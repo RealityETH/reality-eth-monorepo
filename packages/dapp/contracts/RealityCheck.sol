@@ -1,5 +1,7 @@
 pragma solidity ^0.4.6;
 
+import "./StandardToken.sol";
+
 contract CallerAPI {
     function __factcheck_callback(bytes32 question_id, uint256 question_answer); 
 }
@@ -8,9 +10,28 @@ contract ArbitratorAPI {
     function getFee(bytes32 question_id) constant returns (uint256); 
 }
 
-contract FactCheck {
+contract RealityCheck is StandardToken {
 
-    //event LogRequest(string question, uint256 ts, address arbitrator, uint256 callback_bounty);
+    event LogNewQuestion(
+        bytes32 question_id,
+        address arbitrator, 
+        uint256 step_delay,
+        string question_text,
+        uint256 deadline,
+        uint256 default_answer
+    );
+
+    event LogFundAnswerBounty(
+        bytes32 question_id,
+        uint256 bounty_added,
+        uint256 bounty
+    );
+
+    event LogFinalize(
+        bytes32 question_id,
+        bytes32 answer_id,
+        uint256 answer
+    );
 
     mapping(address => uint256) balances;
 
@@ -23,9 +44,10 @@ contract FactCheck {
         string evidence;
     }
 
-    struct Question{
-        // Identity fields - if these are the same, it's a duplicate
+    struct Question {
         uint256 created;
+
+        // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 step_delay;
         string question_text;
@@ -40,15 +62,17 @@ contract FactCheck {
         bytes32 best_answer_id;
     }
 
-    mapping(bytes32 => Question) questions;
-    mapping(bytes32 => Answer) answers;
+    mapping(bytes32 => Question) public questions;
+    mapping(bytes32 => Answer) public answers;
+
+    bytes32 my_question_id;
 
     // question => contract => gas => bounty
-    mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) callback_requests; 
+    mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer, uint256 bounty) payable returns (bytes32) {
+    function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) payable returns (bytes32) {
 
-        bytes32 question_id = sha3(now, arbitrator, step_delay, question_text, deadline, default_answer);
+        bytes32 question_id = keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
         if (questions[question_id].created == 0) {
             questions[question_id] = Question(
                 now,
@@ -56,20 +80,30 @@ contract FactCheck {
                 step_delay,
                 question_text,
                 deadline,
-                deadline,
+                default_answer,
                 msg.value,
                 0,
                 false,
                 false,
                 0
             );
+
         } else {
             // Already created in the same second, probably in the same block
             questions[question_id].bounty += msg.value;
         }
+        my_question_id = question_id;
+        LogNewQuestion( question_id, arbitrator, step_delay, question_text, deadline, default_answer );
+        if (msg.value > 0) {
+            LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty);
+        }
 
         return question_id;
 
+    }
+
+    function getQuestionID(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) constant returns (bytes32) {
+        return keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_contract, uint256 gas) payable {
@@ -79,7 +113,13 @@ contract FactCheck {
 
     }
 
-    function submitAnswer(bytes32 question_id, uint256 answer, string evidence) payable {
+    function getAnswerID(bytes32 question_id, address sender, uint256 amount) constant returns (bytes32) {
+        return keccak256(question_id, sender, amount);
+    }
+
+    function submitAnswer(bytes32 question_id, uint256 answer, string evidence) payable returns (bytes32) {
+
+        bytes32 NULL_BYTES32;
 
         if (questions[question_id].is_finalized) throw;
 
@@ -88,13 +128,21 @@ contract FactCheck {
             if (questions[question_id].is_arbitration_paid_for) throw;
 
             bytes32 best_answer_id = questions[question_id].best_answer_id;
-            if (msg.value <= (answers[best_answer_id].bond * 2)) throw;
 
-            if (now > (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
+            uint256 last_ts;
+            if (best_answer_id == NULL_BYTES32) {
+                last_ts = questions[question_id].created; 
+            } else {
+                last_ts = answers[best_answer_id].ts;
+                if (msg.value == 0) throw;
+                if (msg.value < (answers[best_answer_id].bond * 2)) throw;
+            }
+
+            if (now > (last_ts + questions[question_id].step_delay) ) throw;
 
         }
 
-        bytes32 answer_id = sha3(question_id, answer, msg.sender, now); // TODO ETC ETC
+        bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
 
         answers[answer_id] = Answer(
             question_id,
@@ -111,17 +159,48 @@ contract FactCheck {
             questions[question_id].is_finalized = true;
         }
 
+        return answer_id;
+
+    }
+
+    function getFinalAnswer(bytes32 question_id) constant returns (uint256) {
+        bytes32 NULL_BYTES32;
+        bytes32 best_answer_id = questions[question_id].best_answer_id;
+        if (!questions[question_id].is_finalized) throw;
+        if (best_answer_id == NULL_BYTES32) {
+            return questions[question_id].default_answer;
+        } else {
+            return answers[best_answer_id].answer;
+        }
+    }
+
+    function isFinalized(bytes32 question_id) constant returns (bool) {
+        return questions[question_id].is_finalized;
     }
 
     function finalize(bytes32 question_id) {
         
+        bytes32 NULL_BYTES32;
+
         if (questions[question_id].is_finalized) throw;
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-        if (now < (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
+        uint256 last_ts;
+        uint256 answer;
+        if (best_answer_id == NULL_BYTES32) {
+            last_ts = questions[question_id].created; 
+            answer = questions[question_id].default_answer;
+        } else {
+            last_ts = answers[best_answer_id].ts;
+            answer = answers[best_answer_id].answer;
+        }
+
+        if (now < (last_ts + questions[question_id].step_delay) ) throw;
         if (questions[question_id].is_arbitration_paid_for) throw;
 
         questions[question_id].is_finalized = true;
+
+        LogFinalize(question_id, best_answer_id, answer);
 
     }
 
@@ -160,7 +239,7 @@ contract FactCheck {
 
     }
 
-    function addAnswerBounty(bytes32 question_id) payable {
+    function fundAnswerBounty(bytes32 question_id) payable {
         if (questions[question_id].created == 0) throw; 
         if (questions[question_id].is_finalized) throw;
         questions[question_id].bounty += msg.value;
@@ -182,11 +261,19 @@ contract FactCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_contract, uint256 gas, bool no_bounty) {
+        bytes32 NULL_BYTES32;
+
         if (!questions[question_id].is_finalized) throw;
         if (!no_bounty && callback_requests[question_id][client_contract][gas] == 0) throw;
         if (gas > msg.gas) throw;
         bytes32 answer_id = questions[question_id].best_answer_id;
-        uint256 answer = answers[answer_id].answer;
+
+        uint256 answer;
+        if (answer_id == NULL_BYTES32) {
+            answer = answers[answer_id].answer;
+        } else {
+            answer = questions[question_id].default_answer;
+        }
 
         // TODO: Use send() for this - we still get paid if it errors or runs out of gas.
         CallerAPI(client_contract).__factcheck_callback.gas(gas)(question_id, answer);
