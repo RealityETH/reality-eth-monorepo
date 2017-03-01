@@ -69,38 +69,39 @@ contract RealityCheck {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Answer) public answers;
 
-    bytes32 my_question_id;
-
     // question => contract => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) payable returns (bytes32) {
 
         bytes32 question_id = keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
-        if (questions[question_id].created == 0) {
-            questions[question_id] = Question(
-                now,
-                arbitrator,
-                step_delay,
-                question_text,
-                deadline,
-                default_answer,
-                msg.value,
-                0,
-                false,
-                false,
-                0
-            );
+        if (questions[question_id].created > 0) throw;
 
-        } else {
-            // Already created in the same second, probably in the same block
-            questions[question_id].bounty += msg.value;
-        }
-        my_question_id = question_id;
+        bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
+        answers[answer_id] = Answer(
+            question_id,
+            default_answer,
+            msg.sender,
+            0,
+            now,
+            "" 
+        );
+
+        questions[question_id] = Question(
+            now,
+            arbitrator,
+            step_delay,
+            question_text,
+            deadline,
+            default_answer,
+            msg.value,
+            0,
+            false,
+            false,
+            answer_id 
+        );
+
         LogNewQuestion( question_id, arbitrator, step_delay, question_text, deadline, default_answer );
-        if (msg.value > 0) {
-            LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty);
-        }
 
         return question_id;
 
@@ -123,8 +124,6 @@ contract RealityCheck {
 
     function submitAnswer(bytes32 question_id, uint256 answer, string evidence) payable returns (bytes32) {
 
-        bytes32 NULL_BYTES32;
-
         if (questions[question_id].is_finalized) throw;
 
         if (msg.sender != questions[question_id].arbitrator) {
@@ -133,16 +132,9 @@ contract RealityCheck {
 
             bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-            uint256 last_ts;
-            if (best_answer_id == NULL_BYTES32) {
-                last_ts = questions[question_id].created; 
-            } else {
-                last_ts = answers[best_answer_id].ts;
-                if (msg.value == 0) throw;
-                if (msg.value < (answers[best_answer_id].bond * 2)) throw;
-            }
-
-            if (now > (last_ts + questions[question_id].step_delay) ) throw;
+            if (msg.value == 0) throw;
+            if (msg.value < (answers[best_answer_id].bond * 2)) throw;
+            if (now > (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
 
         }
 
@@ -168,14 +160,11 @@ contract RealityCheck {
     }
 
     function getFinalAnswer(bytes32 question_id) constant returns (uint256) {
-        bytes32 NULL_BYTES32;
+
         bytes32 best_answer_id = questions[question_id].best_answer_id;
         if (!questions[question_id].is_finalized) throw;
-        if (best_answer_id == NULL_BYTES32) {
-            return questions[question_id].default_answer;
-        } else {
-            return answers[best_answer_id].answer;
-        }
+        return answers[best_answer_id].answer;
+
     }
 
     function isFinalized(bytes32 question_id) constant returns (bool) {
@@ -184,27 +173,15 @@ contract RealityCheck {
 
     function finalize(bytes32 question_id) {
         
-        bytes32 NULL_BYTES32;
-
         if (questions[question_id].is_finalized) throw;
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-        uint256 last_ts;
-        uint256 answer;
-        if (best_answer_id == NULL_BYTES32) {
-            last_ts = questions[question_id].created; 
-            answer = questions[question_id].default_answer;
-        } else {
-            last_ts = answers[best_answer_id].ts;
-            answer = answers[best_answer_id].answer;
-        }
-
-        if (now < (last_ts + questions[question_id].step_delay) ) throw;
+        if (now < (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
         if (questions[question_id].is_arbitration_paid_for) throw;
 
         questions[question_id].is_finalized = true;
 
-        LogFinalize(question_id, best_answer_id, answer);
+        LogFinalize(question_id, best_answer_id, answers[best_answer_id].answer);
 
     }
 
@@ -247,7 +224,6 @@ contract RealityCheck {
 
     }
 
-
     function fundAnswerBounty(bytes32 question_id) payable {
         if (questions[question_id].created == 0) throw; 
         if (questions[question_id].is_finalized) throw;
@@ -270,22 +246,14 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_contract, uint256 gas, bool no_bounty) {
-        bytes32 NULL_BYTES32;
 
         if (!questions[question_id].is_finalized) throw;
         if (!no_bounty && callback_requests[question_id][client_contract][gas] == 0) throw;
         if (gas > msg.gas) throw;
         bytes32 answer_id = questions[question_id].best_answer_id;
 
-        uint256 answer;
-        if (answer_id == NULL_BYTES32) {
-            answer = answers[answer_id].answer;
-        } else {
-            answer = questions[question_id].default_answer;
-        }
-
         // TODO: Use send() for this - we still get paid if it errors or runs out of gas.
-        CallerAPI(client_contract).__factcheck_callback.gas(gas)(question_id, answer);
+        CallerAPI(client_contract).__factcheck_callback.gas(gas)(question_id, answers[answer_id].answer);
 
         balances[msg.sender] += callback_requests[question_id][client_contract][gas];
         callback_requests[question_id][client_contract][gas] = 0;

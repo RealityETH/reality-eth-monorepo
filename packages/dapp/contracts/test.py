@@ -9,6 +9,7 @@ from sha3 import sha3_256
 
 import os
 
+# Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
 class TestRealityCheck(TestCase):
@@ -82,14 +83,12 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
 
-        
-
         return
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
+        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
 
         self.s.block.timestamp = self.s.block.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -105,7 +104,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
+        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
 
         self.rc0.submitAnswer(self.question_id, 54321, "my conflicting evidence", value=10) 
 
@@ -118,13 +117,13 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
+        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
 
         # "You must increase from zero"
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=0, sender=t.k3) 
+            self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=1, sender=t.k3) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=1, sender=t.k3) 
+        a1 = self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=2, sender=t.k3) 
 
         a5 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=5, sender=t.k4) 
 
@@ -158,7 +157,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Calling to claim the bond twice is legal but it doesn't make you any richer")
 
         self.rc0.claimBond(a1)
-        k5bal = k5bal + 1
+        k5bal = k5bal + 2
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Winner can claim somebody else's bond if they were wrong")
 
         self.rc0.claimBond(a5)
