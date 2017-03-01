@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase, main
 from rlp.utils import encode_hex, decode_hex
 from ethereum import tester as t
@@ -6,6 +7,9 @@ from ethereum import keys
 import time
 from sha3 import sha3_256
 
+import os
+
+WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
 class TestRealityCheck(TestCase):
 
@@ -13,16 +17,11 @@ class TestRealityCheck(TestCase):
 
         self.s = t.state()
 
-        token_code= open('Token.sol').read()
-        standardtoken_code= open('StandardToken.sol').read()
-
         realitycheck_code = open('RealityCheck.sol').read()
 
-        rc_code_raw = token_code + standardtoken_code + realitycheck_code
-        rc_code_raw = rc_code_raw.replace('import', '// import')
-        self.rc_code = rc_code_raw
-
         arb_code_raw = open('Arbitrator.sol').read()
+
+        self.rc_code = realitycheck_code
         self.arb_code = arb_code_raw
 
         self.rc0 = self.s.abi_contract(self.rc_code, language='solidity', sender=t.k0)
@@ -48,6 +47,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(question[5], 2)
         self.assertEqual(question[6], 1000)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
@@ -57,6 +57,7 @@ class TestRealityCheck(TestCase):
         question = self.rc0.questions(self.question_id)
         self.assertEqual(question[6], 1500)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
 
         err = False
@@ -94,6 +95,7 @@ class TestRealityCheck(TestCase):
 
         return
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
         self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
@@ -111,6 +113,7 @@ class TestRealityCheck(TestCase):
             err = True
         self.assertTrue("You can only finalize once")
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
         self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
@@ -123,6 +126,7 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 54321)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
         self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
@@ -168,13 +172,49 @@ class TestRealityCheck(TestCase):
         self.rc0.finalize(self.question_id)
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10002)
 
-        self.rc0.claimBond(a22)
-        #self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 22, "Winner gets their bond back")
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 22)
-        self.rc0.claimBond(a22)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 22, "Calling to claim the bond twice is legal but it doesn't make you any richer")
+        k5bal = 22
 
-        #self.assertEqual(self.rc0.getBalance(keys.privtoaddr(k5)), 22+10+1, "Winner should get sum of all wrong entries")
+        self.rc0.claimBond(a22)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Winner gets their bond back")
+
+        self.rc0.claimBond(a22)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Calling to claim the bond twice is legal but it doesn't make you any richer")
+
+        self.rc0.claimBond(a1)
+        k5bal = k5bal + 1
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Winner can claim somebody else's bond if they were wrong")
+
+        self.rc0.claimBond(a5)
+        k4bal = 5
+
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), k4bal, "If you got the right answer you get your money back, even if it was not the final answer")
+
+        err = False
+        try:
+            self.rc0.withdraw(k5bal + 1, sender=t.k5)
+        except TransactionFailed:
+            err = True
+        self.assertTrue(err, "You cannot withdraw more than you have")
+
+        self.rc0.withdraw(k5bal - 2, sender=t.k5)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 2)
+
+        self.rc0.withdraw(2, sender=t.k5)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
+
+
+    def test_bounty(self):
+        return
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
+
+        self.s.block.timestamp = self.s.block.timestamp + 11
+        self.rc0.finalize(self.question_id)
+
+        self.rc0.claimBounty(question_id);        
+
+
 
 
     def test_arbitration(self):

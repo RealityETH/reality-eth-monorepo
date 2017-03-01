@@ -1,7 +1,5 @@
 pragma solidity ^0.4.6;
 
-import "./StandardToken.sol";
-
 contract CallerAPI {
     function __factcheck_callback(bytes32 question_id, uint256 question_answer); 
 }
@@ -10,7 +8,9 @@ contract ArbitratorAPI {
     function getFee(bytes32 question_id) constant returns (uint256); 
 }
 
-contract RealityCheck is StandardToken {
+contract RealityCheck {
+
+    mapping (address => uint256) balances;
 
     event LogNewQuestion(
         bytes32 question_id,
@@ -33,7 +33,11 @@ contract RealityCheck is StandardToken {
         uint256 answer
     );
 
-    mapping(address => uint256) balances;
+    event LogClaimBond(
+        bytes32 answer_id,
+        address receiver,
+        uint256 amount
+    );
 
     struct Answer{
         bytes32 question_id;
@@ -226,18 +230,23 @@ contract RealityCheck is StandardToken {
         bytes32 best_answer_id = questions[question_id].best_answer_id;
         address payee;
 
+        // If the answer is correct, it goes to its owner
+        // If the answer is wrong, it goes to whoever gave the best answer
         if (answers[answer_id].answer == answers[best_answer_id].answer) { 
-            // Correct answer, you get your bond back
-            // This may not be the payee, if somebody else later trumped you with the right answer
             payee = answers[answer_id].answerer;
         } else {
             payee = answers[best_answer_id].answerer;
         }
 
-        balances[payee] += answers[answer_id].bond;
+        uint256 bond = answers[answer_id].bond;
+
+        LogClaimBond(answer_id, payee, bond);
+
+        balances[payee] += bond;
         answers[answer_id].bond = 0;
 
     }
+
 
     function fundAnswerBounty(bytes32 question_id) payable {
         if (questions[question_id].created == 0) throw; 
@@ -282,4 +291,18 @@ contract RealityCheck is StandardToken {
         callback_requests[question_id][client_contract][gas] = 0;
     }
 
-}
+    function withdraw(uint256 _value) returns (bool success) {
+        if (_value > balances[msg.sender]) throw;
+        balances[msg.sender] = balances[msg.sender] - _value;
+        if (balances[msg.sender] > _value) throw;
+        if (!msg.sender.send(_value)) {
+            throw;
+        }
+        return true;
+    }
+
+    function balanceOf(address _owner) constant returns (uint256 balance) {
+        return balances[_owner];
+    }
+
+} 
