@@ -33,8 +33,14 @@ contract RealityCheck {
         uint256 answer
     );
 
-    event LogClaimBond(
+    event LogClaimBounty(
         bytes32 answer_id,
+        address receiver,
+        uint256 amount
+    );
+
+    event LogClaimBond(
+        bytes32 question_id,
         address receiver,
         uint256 amount
     );
@@ -221,6 +227,21 @@ contract RealityCheck {
 
         balances[payee] += bond;
         answers[answer_id].bond = 0;
+
+    }
+
+    function claimBounty(bytes32 question_id) {
+
+        if (!questions[question_id].is_finalized) throw;
+        bytes32 best_answer_id = questions[question_id].best_answer_id;
+
+        address payee = answers[best_answer_id].answerer;
+        uint256 bounty = questions[question_id].bounty;
+
+        LogClaimBounty(question_id, payee, bounty);
+
+        balances[payee] += bounty;
+        questions[question_id].bounty = 0;
 
     }
 

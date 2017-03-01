@@ -178,7 +178,6 @@ class TestRealityCheck(TestCase):
 
 
     def test_bounty(self):
-        return
 
         a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
         a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
@@ -186,8 +185,11 @@ class TestRealityCheck(TestCase):
         self.s.block.timestamp = self.s.block.timestamp + 11
         self.rc0.finalize(self.question_id)
 
-        self.rc0.claimBounty(question_id);        
-
+        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
+        self.rc0.claimBounty(self.question_id);        
+        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000)
+        self.rc0.claimBounty(self.question_id);        
+        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000, "Claiming a bounty twice is legal, but you only get paid once")
 
 
 
