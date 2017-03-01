@@ -138,8 +138,13 @@ contract RealityCheck {
 
             bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-            if (msg.value == 0) throw;
+            // The default answer can be 0, but anything added later must be positive
+            if (msg.value == 0) throw; 
+
+            // You have to double every time
             if (msg.value < (answers[best_answer_id].bond * 2)) throw;
+
+            // Once the delay has past you can no longer change it, you have to finalize
             if (now > (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
 
         }
@@ -166,15 +171,17 @@ contract RealityCheck {
     }
 
     function getFinalAnswer(bytes32 question_id) constant returns (uint256) {
-
         bytes32 best_answer_id = questions[question_id].best_answer_id;
         if (!questions[question_id].is_finalized) throw;
         return answers[best_answer_id].answer;
-
     }
 
     function isFinalized(bytes32 question_id) constant returns (bool) {
         return questions[question_id].is_finalized;
+    }
+
+    function isArbitrationPaidFor(bytes32 question_id) constant returns (bool) {
+        return questions[question_id].is_arbitration_paid_for;
     }
 
     function finalize(bytes32 question_id) {
@@ -194,11 +201,17 @@ contract RealityCheck {
     function finalizeByArbitrator(bytes32 answer_id) {
 
         bytes32 question_id = answers[answer_id].question_id;
+
         if (msg.sender != questions[question_id].arbitrator) throw; 
         if (questions[question_id].is_finalized) throw;
 
         questions[question_id].best_answer_id = answer_id;
         questions[question_id].is_finalized = true;
+
+        balances[msg.sender] = balances[msg.sender] + questions[question_id].arbitration_bounty;
+        questions[question_id].arbitration_bounty = 0;
+
+        LogFinalize(question_id, answer_id, answers[answer_id].answer);
 
     }
 
@@ -251,7 +264,12 @@ contract RealityCheck {
         questions[question_id].bounty += msg.value;
     }
 
+    // Sends money to the arbitration bounty pool
+    // Returns true if enough was paid to trigger arbitration
+    // Once triggered, only the arbitrator can finalize
+    // This may take longer than the normal step_delay
     function requestArbitration(bytes32 question_id) payable returns (bool) {
+
         if (questions[question_id].created == 0) throw;
         if (questions[question_id].is_finalized) throw;
 
@@ -264,6 +282,7 @@ contract RealityCheck {
         }
 
         return false;
+
     }
 
     function sendCallback(bytes32 question_id, address client_contract, uint256 gas, bool no_bounty) {

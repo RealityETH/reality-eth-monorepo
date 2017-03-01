@@ -4,7 +4,7 @@ contract RealityCheckAPI {
     function finalizeByArbitrator(bytes32 answer_id);
     function claimBond(bytes32 answer_id);
     function sendCallback(bytes32 question_id, address client_contract, uint256 gas, bool no_bounty);
-    function submitAnswer(bytes32 question_id, uint256 answer, string evidence);
+    function submitAnswer(bytes32 question_id, uint256 answer, string evidence) returns (bytes32);
 }
 
 contract Arbitrator {
@@ -34,8 +34,8 @@ contract Arbitrator {
 
     }
 
-    function submitAnswer(address realitycheck, bytes32 question_id, uint256 answer, string evidence) onlyOwner {
-        RealityCheckAPI(realitycheck).submitAnswer(question_id, answer, evidence);
+    function submitAnswer(address realitycheck, bytes32 question_id, uint256 answer, string evidence) onlyOwner returns (bytes32) {
+        return RealityCheckAPI(realitycheck).submitAnswer(question_id, answer, evidence);
     }
 
     function finalizeByArbitrator(address realitycheck, bytes32 answer_id) onlyOwner {

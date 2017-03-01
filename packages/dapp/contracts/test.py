@@ -176,7 +176,7 @@ class TestRealityCheck(TestCase):
         self.rc0.withdraw(2, sender=t.k5)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
 
-
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bounty(self):
 
         a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
@@ -191,11 +191,70 @@ class TestRealityCheck(TestCase):
         self.rc0.claimBounty(self.question_id);        
         self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000, "Claiming a bounty twice is legal, but you only get paid once")
 
+    def test_arbitration_with_supplied_answer(self):
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
+
+        # This was the default of our arbitrator contract
+        arb_fee = 100000
+
+        self.assertEqual(self.arb0.getFee(), arb_fee)
+        self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8) ), "Cumulatively insufficient, so return false")
+        self.assertFalse(self.rc0.isArbitrationPaidFor(self.question_id))
+
+        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3) ), "Cumulatively sufficient, so return true")
+        self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
+
+        # Once arbitration is requested, we can no longer make a normal finalize request
+        with self.assertRaises(TransactionFailed):
+            self.rc0.finalize(self.question_id)
+
+        # Finalize with the wrong user
+        with self.assertRaises(TransactionFailed):
+            self.rc0.finalizeByArbitrator(a10)
+        
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
+        self.arb0.finalizeByArbitrator(self.rc0.address, a10)
+
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+
+        return
 
 
-    def test_arbitration(self):
 
-        pass 
+    def test_arbitration_with_existing_answer(self):
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
+
+        # This was the default of our arbitrator contract
+        arb_fee = 100000
+
+        self.assertEqual(self.arb0.getFee(), arb_fee)
+        self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8) ), "Cumulatively insufficient, so return false")
+        self.assertFalse(self.rc0.isArbitrationPaidFor(self.question_id))
+
+        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3) ), "Cumulatively sufficient, so return true")
+        self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
+
+        # Once arbitration is requested, we can no longer make a normal finalize request
+        with self.assertRaises(TransactionFailed):
+            self.rc0.finalize(self.question_id)
+
+        # Finalize with the wrong user
+        with self.assertRaises(TransactionFailed):
+            self.rc0.finalizeByArbitrator(a10)
+        
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
+        self.arb0.finalizeByArbitrator(self.rc0.address, a10)
+
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+
+        return
+
 
 if __name__ == '__main__':
     main()
