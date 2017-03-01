@@ -13,8 +13,8 @@ contract RealityCheck {
     mapping (address => uint256) balances;
 
     event LogNewQuestion(
-        bytes32 question_id,
-        address arbitrator, 
+        bytes32 indexed question_id,
+        address indexed arbitrator, 
         uint256 step_delay,
         string question_text,
         uint256 deadline,
@@ -22,36 +22,36 @@ contract RealityCheck {
     );
 
     event LogNewAnswer(
-        bytes32 answer_id,
-        bytes32 question_id,
+        bytes32 indexed answer_id,
+        bytes32 indexed question_id,
         uint256 answer,
-        address answerer,
+        address indexed answerer,
         uint256 bond,
         uint256 ts,
         string evidence
     );
 
     event LogFundAnswerBounty(
-        bytes32 question_id,
+        bytes32 indexed question_id,
         uint256 bounty_added,
         uint256 bounty
     );
 
     event LogFinalize(
-        bytes32 question_id,
+        bytes32 indexed question_id,
         bytes32 answer_id,
         uint256 answer
     );
 
     event LogClaimBounty(
-        bytes32 answer_id,
-        address receiver,
+        bytes32 indexed answer_id,
+        address indexed receiver,
         uint256 amount
     );
 
     event LogClaimBond(
-        bytes32 question_id,
-        address receiver,
+        bytes32 indexed question_id,
+        address indexed receiver,
         uint256 amount
     );
 
