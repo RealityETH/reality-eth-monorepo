@@ -21,6 +21,16 @@ contract RealityCheck {
         uint256 default_answer
     );
 
+    event LogNewAnswer(
+        bytes32 answer_id,
+        bytes32 question_id,
+        uint256 answer,
+        address answerer,
+        uint256 bond,
+        uint256 ts,
+        string evidence
+    );
+
     event LogFundAnswerBounty(
         bytes32 question_id,
         uint256 bounty_added,
@@ -152,6 +162,16 @@ contract RealityCheck {
         bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
 
         answers[answer_id] = Answer(
+            question_id,
+            answer,
+            msg.sender,
+            msg.value,
+            now,
+            evidence
+        );
+
+        LogNewAnswer(
+            answer_id,
             question_id,
             answer,
             msg.sender,
