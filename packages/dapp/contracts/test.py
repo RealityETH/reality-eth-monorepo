@@ -59,24 +59,16 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
-
-        err = False
-        try:
+        # Finalize should fail if too soon (same time case)
+        with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id)
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, 'Finalize should fail if too soon (same time case)')
 
         self.s.block.timestamp = self.s.block.timestamp + 1
-        err = False
-        try:
+        # Finalize should fail if too soon (somewhat later case
+        with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id)
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, 'Finalize should fail if too soon (somewhat later case)')
 
         question = self.rc0.questions(self.question_id)
-        print question
 
         self.s.block.timestamp = self.s.block.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -86,12 +78,11 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 2)
 
-        err = False
-        try:
+        # submitAnswer should fail once finalized
+        with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, 'submitAnswer should fail once finalized')
+
+        
 
         return
 
@@ -106,12 +97,10 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 12345)
 
-        err = False
-        try:
+        # You can only finalize once
+        with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id)
-        except TransactionFailed:
-            err = True
-        self.assertTrue("You can only finalize once")
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
@@ -131,42 +120,30 @@ class TestRealityCheck(TestCase):
 
         self.rc0.submitAnswer(self.question_id, 12345, "my evidence") 
 
-        err = False
-        try:
+        # "You must increase from zero"
+        with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=0, sender=t.k3) 
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, "You must increase from zero")
 
         a1 = self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=1, sender=t.k3) 
 
         a5 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=5, sender=t.k4) 
 
-        err = False
-        try:
+        # You have to at least double
+        with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, 10003, "my evidence", value=6) 
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, "You have to at least double")
 
-        err = False
-        try:
+        # You definitely can't drop back to zero
+        with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, 10004, "my evidence", value=0) 
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, "You definitely can't drop back to zero")
 
         a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
         a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
 
         self.assertEqual(a22, self.rc0.getAnswerID(self.question_id, keys.privtoaddr(t.k5), 22))
 
-        err = False
-        try:
+        #You can't claim the bond until the thing is finalized
+        with self.assertRaises(TransactionFailed):
             self.rc0.claimBond(a22)
-        except TransactionFailed:
-            err = True
-        self.assertTrue("You can't claim the bond until the thing is finalized")
 
         self.s.block.timestamp = self.s.block.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -189,12 +166,10 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), k4bal, "If you got the right answer you get your money back, even if it was not the final answer")
 
-        err = False
-        try:
+    
+        # You cannot withdraw more than you have
+        with self.assertRaises(TransactionFailed):
             self.rc0.withdraw(k5bal + 1, sender=t.k5)
-        except TransactionFailed:
-            err = True
-        self.assertTrue(err, "You cannot withdraw more than you have")
 
         self.rc0.withdraw(k5bal - 2, sender=t.k5)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 2)
