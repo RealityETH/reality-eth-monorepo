@@ -72,7 +72,6 @@ contract RealityCheck {
         uint256 step_delay;
         string question_text;
         uint256 deadline;
-        uint256 default_answer;
 
         // Mutable data
         uint256 bounty;
@@ -109,7 +108,6 @@ contract RealityCheck {
             step_delay,
             question_text,
             deadline,
-            default_answer,
             msg.value,
             0,
             false,
@@ -290,11 +288,12 @@ contract RealityCheck {
     // This may take longer than the normal step_delay
     function requestArbitration(bytes32 question_id) payable returns (bool) {
 
+        uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
+
         if (questions[question_id].created == 0) throw;
         if (questions[question_id].is_finalized) throw;
 
         questions[question_id].arbitration_bounty += msg.value;
-        uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
 
         if (questions[question_id].arbitration_bounty >= arbitration_fee) {
             questions[question_id].is_arbitration_paid_for = true;
