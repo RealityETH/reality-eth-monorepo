@@ -219,6 +219,9 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+        # int(arb_fee * 1.1)
+
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
 
         return
 
@@ -239,6 +242,8 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3) ), "Cumulatively sufficient, so return true")
         self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
 
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address), 0)
+
         # Once arbitration is requested, we can no longer make a normal finalize request
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id)
@@ -252,6 +257,9 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
+        #self.assertEqual(self.rc0.balanceOf(self.arb0.address), 1000, "Arbitrator gets the reward")
 
         return
 

@@ -163,7 +163,7 @@ contract RealityCheck {
         questions[question_id].best_answer_id = answer_id;
 
         if (msg.sender == questions[question_id].arbitrator) {
-            questions[question_id].is_finalized = true;
+            finalizeByArbitrator(answer_id);
         }
 
         return answer_id;
