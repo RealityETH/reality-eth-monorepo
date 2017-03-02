@@ -2,3 +2,6 @@
 virtualenv resources/venv/rc
 source resources/venv/rc/bin/activate
 pip install -r requirements.txt 
+
+testrpc --seed "oink"
+truffle serve
