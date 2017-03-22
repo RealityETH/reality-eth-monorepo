@@ -13,7 +13,7 @@ Your balance: <span class="account-balance">0</span> ETH
 </div>
 
 <div>
-<a href="ask.html">Ask a question</a>
+<a href="index.html">Ask a question</a>
 |
 <a href="answer.html">Answer a question</a>
 |
@@ -26,16 +26,32 @@ Your balance: <span class="account-balance">0</span> ETH
 
 <form id="ask-question-form" method="POST">
 <div style="text-align:center; width:100%; margin-top:60px;">
+
 <textarea name="question-text" id="question-text" rows=6 cols=60 ></textarea>
+
+<div class="question-settings">
+<div>
+Arbitrator
+<select id="arbitrator" name="arbitrator">
+<option value="0xdeadbeef">0xdeadbeef</option>
+<option value="0xbabebabe">0xbabebabe</option>
+</select>
+</div>
+
+<div>
+Bounty
+<input type="text" name="bounty" id="bounty" size="8" /> ETH
+</div>
+</div>
+
+
+
 <br />
 <input type="submit" value="Ask your question" />
 </div>
 </form>
-
   <script src="./jquery-3.1.1.min.js"></script>
   <script src="./app.js"></script>
   <script src="./ask.js"></script>
 </body>
 </html>
-
-
