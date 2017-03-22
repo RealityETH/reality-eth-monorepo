@@ -22,10 +22,3 @@ Callbacks to your contract
  * You can send a bounty for someone to send the answer to your contract. You can top up this bounty at any time.
    (If you know when you want your contract to be called, we recommend that you use the Ethereum Alarm Clock instead, which has more features.)
 
-
-
-TwoLayerOracle
-// Shit shit they revoked our API key
-
-
-Our confidence score

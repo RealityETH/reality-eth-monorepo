@@ -9,7 +9,7 @@ module.exports = {
       "javascripts/ask.js"
     ],
     "answer.js": [
-      "javascripts/ask.js"
+      "javascripts/answer.js"
     ],
     "jquery-3.1.1.min.js": [
       "javascripts/jquery-3.1.1.min.js"

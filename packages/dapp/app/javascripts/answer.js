@@ -49,13 +49,18 @@ $('form#ask-question-form').submit( function() {
 
 function loadQuestions() {
   console.log('loading questions');
-  rc.LogNewQuestion.({}, { fromBlock: 0, toBlock: 'latest' }).get((error, results) => {
-    console.log(JSON.stringify(results));
-    console.log(error);
+  var existing_questions = rc.LogNewQuestion({ fromBlock: 0, toBlock: 'latest' });
+  existing_questions.get(function(error, results) {
+    console.log('get existing questions');
+    console.log('results:', JSON.stringify(results));
+    console.log('error: ',error);
   });
 }
 
+console.log('in ask');
+
 window.onload = function() {
+loadQuestions();
   web3.eth.getAccounts(function(err, accs) {
     console.log('got accounts');
     if (err != null) {
@@ -72,6 +77,6 @@ window.onload = function() {
     account = accounts[0];
 
     //refreshBalance();
-    loadQuestions();
+    //loadQuestions();
   });
 }
