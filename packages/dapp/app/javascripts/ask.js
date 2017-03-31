@@ -5,14 +5,14 @@ var rc = RealityCheck.deployed();
 
 function refreshBalance() {
     RealityCheck.deployed().then(function (instance) {
-      rc = instance;
-      return rc.balanceOf.call(account);
+        rc = instance;
+        return rc.balanceOf.call(account);
     }).then(function (val) {
-      $('.account-balance').text(val.toNumber());
-      console.log('balance is', val.toNumber());
+        $('.account-balance').text(val.toNumber());
+        console.log('balance is', val.toNumber());
     }).catch(function (e) {
-      console.log(e);
-      setStatus("Error getting balance; see log.");
+        console.log(e);
+        setStatus("Error getting balance; see log.");
     });
 };
 
@@ -33,29 +33,29 @@ function refreshBalance() {
 */
 
 $('form#ask-question-form').submit( function() {
-  var qtext = $(this).find('#question-text').val();
-  console.log('submitting question with value', qtext);
+    var qtext = $(this).find('#question-text').val();
+    console.log('submitting question with value', qtext);
 
-  Arbitrator.deployed().then(function (arb) {
-      RealityCheck.deployed().then(function (rc) {
-        return rc.askQuestion(qtext, arb.address, 1, 0, 6, {from: account});
-      }).then(function (result) {
-          for (var i = 0; i < result.logs.length; i++) {
-              var log = result.logs[i];
-              if (log.event == "LogNewQuestion") {
-                  console.log("event", log.args.question_text);
-                  break;
-              }
-          }
-      }).catch(function (e) {
+    Arbitrator.deployed().then(function(arb) {
+        RealityCheck.deployed().then(function(rc) {
+            return rc.askQuestion(qtext, arb.address, 1, 0, 6, {from: account});
+        }).then(function (result) {
+            for (var i = 0; i < result.logs.length; i++) {
+                var log = result.logs[i];
+                if (log.event == "LogNewQuestion") {
+                    console.log("event", log.args.question_text);
+                    break;
+                }
+            }
+        }).catch(function(e) {
           console.log(e);
-      });
-  }).catch(function (e) {
-    console.log(e);
-    return;
-  });
+        });
+    }).catch(function(e) {
+        console.log(e);
+        return;
+    });
 
-  return false;
+    return false;
 });
 
 window.onload = function() {

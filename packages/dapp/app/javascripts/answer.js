@@ -4,15 +4,17 @@ var account;
 var rc = RealityCheck.deployed();
 
 function refreshBalance() {
-  var rc = RealityCheck.deployed();
-  rc.balanceOf.call(account, {from: account}).then(function(value) {
-    $('.account-balance').text(value.valueOf());
-  }).catch(function(e) {
-    console.log(e);
-    setStatus("Error getting balance; see log.");
-  });
+    RealityCheck.deployed().then(function (instance) {
+        rc = instance;
+        return rc.balanceOf.call(account);
+    }).then(function (val) {
+        $('.account-balance').text(val.toNumber());
+        console.log('balance is', val.toNumber());
+    }).catch(function (e) {
+        console.log(e);
+        setStatus("Error getting balance; see log.");
+    });
 };
-
 /*
 
   var amount = parseInt(document.getElementById("amount").value);
@@ -48,19 +50,28 @@ $('form#ask-question-form').submit( function() {
 */
 
 function loadQuestions() {
-  console.log('loading questions');
-  var existing_questions = rc.LogNewQuestion({ fromBlock: 0, toBlock: 'latest' });
-  existing_questions.get(function(error, results) {
-    console.log('get existing questions');
-    console.log('results:', JSON.stringify(results));
-    console.log('error: ',error);
-  });
+    console.log('loading questions');
+    RealityCheck.deployed().then(function(instance) {
+        rc = instance;
+        return rc.LogNewQuestion({_sender: account}, {fromBlock:0x00, toBlock:'latest'});
+    }).then(function(existing_questions) {
+        console.log(existing_questions);
+        existing_questions.get(function(error, results) {
+            console.log('get existing questions');
+            //console.log('error: ',error);
+            for (var i = 0; i < results.length; i++) {
+                console.log("results ", i, JSON.stringify(results[i]['args']['question_text']));
+            }
+        });
+    }).catch(function (e) {
+      console.log(e);
+    });
 }
 
 console.log('in ask');
 
 window.onload = function() {
-loadQuestions();
+  //loadQuestions();
   web3.eth.getAccounts(function(err, accs) {
     console.log('got accounts');
     if (err != null) {
@@ -76,7 +87,7 @@ loadQuestions();
     accounts = accs;
     account = accounts[0];
 
-    //refreshBalance();
-    //loadQuestions();
+    refreshBalance();
+    loadQuestions();
   });
 }
