@@ -58,10 +58,23 @@ function loadQuestions() {
         console.log(existing_questions);
         existing_questions.get(function(error, results) {
             console.log('get existing questions');
-            //console.log('error: ',error);
             for (var i = 0; i < results.length; i++) {
-                console.log("results ", i, JSON.stringify(results[i]['args']['question_text']));
+                var question_text = JSON.stringify(results[i]['args']['question_text']);
+                question_text = question_text.substr(1, question_text.length - 2);
+                console.log("results ", i, question_text);
+                var question_row = '<tr class="test">'
+                    + '<td class="test2">'
+                    + question_text
+                    + '</td>'
+                    + '<td>2017-01-01 12:34</td>'
+                    + '<td>4</td>'
+                    + '<td>10</td>'
+                    + '<td>&nbsp;</td>'
+                    + '<td><a href="">Detail</a></td>'
+                    + '</tr>';
+                $('#question-table').append(question_row);
             }
+            console.log('error: ',error);
         });
     }).catch(function (e) {
       console.log(e);
@@ -71,7 +84,7 @@ function loadQuestions() {
 console.log('in ask');
 
 window.onload = function() {
-  //loadQuestions();
+  loadQuestions();
   web3.eth.getAccounts(function(err, accs) {
     console.log('got accounts');
     if (err != null) {
@@ -87,7 +100,7 @@ window.onload = function() {
     accounts = accs;
     account = accounts[0];
 
-    refreshBalance();
-    loadQuestions();
+    //refreshBalance();
+    //loadQuestions();
   });
 }
