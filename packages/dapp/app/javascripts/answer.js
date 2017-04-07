@@ -1,19 +1,3 @@
-var accounts;
-var account;
-
-function refreshBalance() {
-    RealityCheck.deployed().then(function (instance) {
-        rc = instance;
-        return rc.balanceOf.call(account);
-    }).then(function (val) {
-        $('.account-balance').text(val.toNumber());
-        console.log('balance is', val.toNumber());
-    }).catch(function (e) {
-        console.log(e);
-        setStatus("Error getting balance; see log.");
-    });
-};
-
 function loadQuestions() {
     console.log('loading questions');
     RealityCheck.deployed().then(function(instance) {
@@ -34,7 +18,7 @@ function loadQuestions() {
 function addQuestionRow(question_id) {
     RealityCheck.deployed().then(function(instance){
         var rc = instance;
-        return rc.questions(question_id, {from: account});
+        return rc.questions.call(question_id, {from: account});
     }).then(function(result){
         console.log('in addQuestionRow');
         console.log('question_id', question_id);
@@ -49,7 +33,7 @@ function addQuestionRow(question_id) {
         var min  = (d.getMinutes() < 10) ? '0' + d.getMinutes() : d.getMinutes();
         var asked_datetime = year + '-' + month + '-' + day + ' ' + hour + ':' + min;
 
-        var question_row = '<tr class="test">'
+        var question_row = '<tr class="question-row">'
             + '<td class="test2">' + question_text + '</td>'
             + '<td>'+ asked_datetime + '</td>'
             + '<td>4</td>'
@@ -61,27 +45,4 @@ function addQuestionRow(question_id) {
     }).catch(function (e) {
         console.log(e);
     });
-}
-
-console.log('in ask');
-
-window.onload = function() {
-  web3.eth.getAccounts(function(err, accs) {
-    console.log('got accounts');
-    if (err != null) {
-      alert("There was an error fetching your accounts.");
-      return;
-    }
-
-    if (accs.length == 0) {
-      alert("Couldn't get any accounts! Make sure your Ethereum client is configured correctly.");
-      return;
-    }
-
-    accounts = accs;
-    account = accounts[0];
-
-    refreshBalance();
-    loadQuestions();
-  });
 }

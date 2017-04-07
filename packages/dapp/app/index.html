@@ -13,45 +13,167 @@ Your balance: <span class="account-balance">0</span> ETH
 </div>
 
 <div>
-<a href="index.html">Ask a question</a>
+<a href="/">Ask a question</a>
 |
-<a href="answer.html">Answer a question</a>
+<a href="/questions">Answer a question</a>
 |
-<a href="your.html">Your questions</a>
+<a href="/yours">Your questions</a>
 </div>
 
+<div id="ask" style="display: none">
+  <h3>Ask a question</h3>
 
-<h3>Ask a question</h3>
- 
+  <form id="ask-question-form" method="POST">
+    <div style="text-align:center; width:100%; margin-top:60px;">
 
-<form id="ask-question-form" method="POST">
-<div style="text-align:center; width:100%; margin-top:60px;">
+      <textarea name="question-text" id="question-text" rows=6 cols=60 ></textarea>
 
-<textarea name="question-text" id="question-text" rows=6 cols=60 ></textarea>
+      <div class="question-settings">
+        <div>
+          Arbitrator
+          <select id="arbitrator" name="arbitrator">
+            <option value="0xdeadbeef">0xdeadbeef</option>
+            <option value="0xbabebabe">0xbabebabe</option>
+          </select>
+        </div>
 
-<div class="question-settings">
-<div>
-Arbitrator
-<select id="arbitrator" name="arbitrator">
-<option value="0xdeadbeef">0xdeadbeef</option>
-<option value="0xbabebabe">0xbabebabe</option>
-</select>
+        <div>
+          Bounty
+          <input type="text" name="bounty" id="bounty" size="8" /> ETH
+        </div>
+      </div>
+
+      <br />
+
+      <input type="submit" value="Ask your question" />
+    </div>
+  </form>
+
 </div>
 
-<div>
-Bounty
-<input type="text" name="bounty" id="bounty" size="8" /> ETH
-</div>
+<div id="answer" style="display: none">
+  <h3>Answer a question</h3>
+
+  <table id="question-table" style="border: 1px solid gray; width:100%;">
+    <tr>
+      <th>Question</th>
+      <th>Asked</th>
+      <th>Current answer</th>
+      <th>Reward</th>
+      <th>Bond</th>
+      <th>Action</th>
+    </tr>
+    <tr>
+      <td>Who won the presidential election? 1: Hillary, 2: Trump, 0: Other</td>
+      <td>2017-01-01 12:34</td>
+      <td>1</td>
+      <td>100</td>
+      <td>4</td>
+      <td><a href="/question/1">Detail</a></td>
+    </tr>
+    <tr>
+      <td>What is 2 + 2</td>
+      <td>2017-01-01 12:34</td>
+      <td>4</td>
+      <td>10</td>
+      <td>&nbsp;</td>
+      <td><a href="/question/2">Detail</a></td>
+    </tr>
+  </table>
+
 </div>
 
+<div id="question" style="display: none">
+  <h3>Who won the presidential election?</h3>
+  <p>You have until 2017-09-01 12:12 to answer this question</p>
 
+  <p>Current answer: [1] Hillary Clinton (bond 100 ETH)</p>
+  <p>Posted 2017-01-01 12:34</p>
 
-<br />
-<input type="submit" value="Ask your question" />
+  <p>Change this answer (min bond 200 ETH):
+    <input type="text" value="200" />
+    <input type="submit" value="Change" />
+  </p>
+
+  <p>Request arbitration (min fee 500)</p>
+  <input type="text" value="500" />
+  <input type="submit" value="Request arbitration" />
+
+  <h3>History</h3>
+  <table>
+    <tr>
+      <th>Date</th>
+      <th>Answer</th>
+      <th>Address</th>
+      <th>Bond</th>
+    </tr>
+    <tr>
+      <td>[Default]</td>
+      <td>[1] Hillary Clinton</td>
+      <td>0xdeadbeefdeadbeef</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>2017-07-01 23:12:33</td>
+      <td>[1] Donald Trump</td>
+      <td>0xbabe0abe01abe0babe</td>
+      <td>2</td>
+    </tr>
+  </table>
 </div>
-</form>
-  <script src="./jquery-3.1.1.min.js"></script>
-  <script src="./app.js"></script>
-  <script src="./ask.js"></script>
+
+<div id="yours" style="display: none">
+  <h3>Your questions</h3>
+
+  <table style="border: 1px solid gray; width:100%;">
+    <tr>
+      <th>Question</th>
+      <th>Asked</th>
+      <th>Current answer</th>
+      <th>Reward</th>
+      <th>Your answer</th>
+      <th>Bond</th>
+      <th>Action</th>
+    </tr>
+    <tr>
+      <td>Who won the presidential election? 1: Hillary, 2: Trump, 0: Other<td>
+      <td>2017-01-01 12:34</td>
+      <td>1</td>
+      <td>100</td>
+      <td>1 Hillary Clinton</td>
+      <td>4</td>
+      <td><a href="/question/4">Detail</a></td>
+    </tr>
+  </table>
+
+  <h3>Questions you answered</h3>
+
+  <table style="border: 1px solid gray; width:100%;">
+    <tr>
+      <th>Question</th>
+      <th>Asked</th>
+      <th>Current answer</th>
+      <th>Reward</th>
+      <th>Your answer</th>
+      <th>Bond</th>
+      <th>Action</th>
+    </tr>
+    <tr>
+      <td>What is 2 + 2?<td>
+      <td>2017-01-01 12:34</td>
+      <td>5</td>
+      <td>50</td>
+      <td>4</td>
+      <td>2</td>
+      <td><a href="/question/4">Detail</a></td>
+    </tr>
+  </table>
+</div>
+
+<script src="./jquery-3.1.1.min.js"></script>
+<script src="./app.js"></script>
+<script src="./ask.js"></script>
+<script src="./answer.js"></script>
+<script src="./index.js"></script>
 </body>
 </html>
