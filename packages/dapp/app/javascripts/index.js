@@ -51,6 +51,7 @@ var temp = function(event) {
                 $('#answer').css('display', 'none');
                 $('#question').css('display', 'block');
                 $('#yours').css('display', 'none');
+                loadQuestionInfo(question_id);
             }
             if (pathname == '/yours') {
                 $('#ask').css('display', 'none');
@@ -66,7 +67,7 @@ var temp = function(event) {
 }
 
 $('#menu').on('click', 'a', temp);
-$('#question-table').on('click', 'a', temp);
+$('#question_table').on('click', 'a', temp);
 
 window.onload = function(){
     var pathname = window.location.pathname;

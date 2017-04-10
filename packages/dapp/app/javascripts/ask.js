@@ -4,7 +4,10 @@ $('form#ask-question-form').submit( function() {
 
     Arbitrator.deployed().then(function(arb) {
         RealityCheck.deployed().then(function(rc) {
-            return rc.askQuestion(qtext, arb.address, 1, 0, 6, {from: account});
+            var d = new Date();
+            var deadline = Math.floor(d.getTime()/1000) + 30 * 24 * 60 * 60;
+            var step_delay = 7 * 24 * 60 * 60;
+            return rc.askQuestion(qtext, arb.address, step_delay, deadline, 1, {from: account});
         }).then(function (result) {
             for (var i = 0; i < result.logs.length; i++) {
                 var log = result.logs[i];
