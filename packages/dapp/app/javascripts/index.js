@@ -14,9 +14,9 @@ function refreshBalance() {
     });
 };
 
-$('a').click(function(e) {
-    var a = $(e.target);
-    e.preventDefault();
+var temp = function(event) {
+    var a = $(event.target);
+    event.preventDefault();
     history.pushState('', 'Reality Check', a.attr('href'));
 
     // routing
@@ -46,6 +46,7 @@ $('a').click(function(e) {
                 loadQuestions();
             }
             if (pathinfo[1] == 'question') {
+                var question_id = pathinfo[2];
                 $('#ask').css('display', 'none');
                 $('#answer').css('display', 'none');
                 $('#question').css('display', 'block');
@@ -62,7 +63,10 @@ $('a').click(function(e) {
             console.error(error);
         },
     });
-});
+}
+
+$('#menu').on('click', 'a', temp);
+$('#question-table').on('click', 'a', temp);
 
 window.onload = function(){
     var pathname = window.location.pathname;
