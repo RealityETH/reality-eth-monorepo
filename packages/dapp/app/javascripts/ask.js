@@ -1,12 +1,16 @@
 $('form#ask-question-form').submit( function() {
     var qtext = $(this).find('#question-text').val();
+    var step_delay = $(this).find('#step_delay').val();
+    var deadline = $(this).find('#q_deadline').val();
+
+    var d = new Date();
+    deadline = Math.floor(d.getTime()/1000) + deadline * 24 * 60 * 60;
+    step_delay = step_delay * 24 * 60 * 60;
+
     console.log('submitting question with value', qtext);
 
     Arbitrator.deployed().then(function(arb) {
         RealityCheck.deployed().then(function(rc) {
-            var d = new Date();
-            var deadline = Math.floor(d.getTime()/1000) + 30 * 24 * 60 * 60;
-            var step_delay = 7 * 24 * 60 * 60;
             return rc.askQuestion(qtext, arb.address, step_delay, deadline, 1, {from: account});
         }).then(function (result) {
             for (var i = 0; i < result.logs.length; i++) {

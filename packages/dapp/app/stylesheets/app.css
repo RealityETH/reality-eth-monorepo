@@ -11,6 +11,12 @@ label {
 }
 
 input {
+  width: 100px;
+  padding: 5px;
+  font-size: 16px;
+}
+
+#ask_button {
   width: 500px;
   padding: 5px;
   font-size: 16px;
