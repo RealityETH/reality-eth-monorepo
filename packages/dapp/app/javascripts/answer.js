@@ -39,7 +39,7 @@ function addQuestionRow(question_id) {
             + '<td>4</td>'
             + '<td>10</td>'
             + '<td>&nbsp;</td>'
-            + '<td><a href="question/' + question_id + '">Detail</a></td>'
+            + '<td><a href="index.html#' + question_id + '">Detail</a></td>'
             + '</tr>';
             $('#question_table').append(question_row);
     }).catch(function (e) {

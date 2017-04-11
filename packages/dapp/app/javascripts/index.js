@@ -14,7 +14,39 @@ function refreshBalance() {
     });
 };
 
-var temp = function(event) {
+var showScreen = function(hash) {
+    if (hash == '') {
+        $('#ask').css('display', 'block');
+        $('#answer').css('display', 'none');
+        $('#question').css('display', 'none');
+        $('#yours').css('display', 'none');
+    }
+    if (hash == '#questions') {
+        $('#ask').css('display', 'none');
+        $('#answer').css('display', 'block');
+        $('#question').css('display', 'none');
+        $('#yours').css('display', 'none');
+        $('.question-row').remove();
+        loadQuestions();
+    }
+    var re = /^#0x[0-9a-zA-Z]{64}$/;
+    if (re.test(hash)) {
+        var question_id = hash.replace('#', '');
+        $('#ask').css('display', 'none');
+        $('#answer').css('display', 'none');
+        $('#question').css('display', 'block');
+        $('#yours').css('display', 'none');
+        loadQuestionInfo(question_id);
+    }
+    if (hash == '#yours') {
+        $('#ask').css('display', 'none');
+        $('#answer').css('display', 'none');
+        $('#question').css('display', 'none');
+        $('#yours').css('display', 'block');
+    }
+}
+
+var routing = function(event) {
     var a = $(event.target);
     event.preventDefault();
     history.pushState('', 'Reality Check', a.attr('href'));
@@ -23,42 +55,9 @@ var temp = function(event) {
     $.ajax({
         url: '/index.html',
         success: function () {
-            var pathname = window.location.pathname;
-            console.log('pathname', pathname);
-            var pathinfo = pathname.split('/');
-            console.log('pathinfo', pathinfo);
-
-            if (pathname == '/') {
-                pathname = '/ask';
-            }
-            if (pathname == '/ask') {
-                $('#ask').css('display', 'block');
-                $('#answer').css('display', 'none');
-                $('#question').css('display', 'none');
-                $('#yours').css('display', 'none');
-            }
-            if (pathname == '/questions') {
-                $('#ask').css('display', 'none');
-                $('#answer').css('display', 'block');
-                $('#question').css('display', 'none');
-                $('#yours').css('display', 'none');
-                $('.question-row').remove();
-                loadQuestions();
-            }
-            if (pathinfo[1] == 'question') {
-                var question_id = pathinfo[2];
-                $('#ask').css('display', 'none');
-                $('#answer').css('display', 'none');
-                $('#question').css('display', 'block');
-                $('#yours').css('display', 'none');
-                loadQuestionInfo(question_id);
-            }
-            if (pathname == '/yours') {
-                $('#ask').css('display', 'none');
-                $('#answer').css('display', 'none');
-                $('#question').css('display', 'none');
-                $('#yours').css('display', 'block');
-            }
+            var hash = window.location.hash;
+            console.log('hash', hash);
+            showScreen(hash);
         },
         error: function (xhr, status, error) {
             console.error(error);
@@ -66,17 +65,12 @@ var temp = function(event) {
     });
 }
 
-$('#menu').on('click', 'a', temp);
-$('#question_table').on('click', 'a', temp);
+$('#menu').on('click', 'a', routing);
+$('#question_table').on('click', 'a', routing);
 
 window.onload = function(){
-    var pathname = window.location.pathname;
-    if (pathname == '/') {
-        $('#ask').css('display', 'block');
-        $('#answer').css('display', 'none');
-        $('#question').css('display', 'none');
-        $('#yours').css('display', 'none');
-    }
+    var hash = window.location.hash;
+    showScreen(hash);
 
     web3.eth.getAccounts(function(err, accs) {
         if (err != null) {
