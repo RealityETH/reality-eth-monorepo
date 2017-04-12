@@ -14,20 +14,13 @@ $('form#ask-question-form').submit( function() {
         RealityCheck.deployed().then(function(rc) {
             return rc.askQuestion(qtext, arb.address, step_delay, deadline, 1, {from: account}, {value: bounty});
         }).then(function (result) {
-            for (var i = 0; i < result.logs.length; i++) {
-                var log = result.logs[i];
-                if (log.event == "LogNewQuestion") {
-                    console.log("event", log.args.question_text);
-                    break;
-                }
-            }
+            console.log('question asked.');
+            console.log('question', result);
         }).catch(function(e) {
           console.log(e);
         });
     }).catch(function(e) {
         console.log(e);
-        return;
     });
-
     return false;
 });
