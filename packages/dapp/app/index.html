@@ -78,19 +78,22 @@ Your balance: <span class="account-balance">0</span> ETH
 
 <div id="question" style="display: none">
   <h3 id="question_text"></h3>
-  <p id="deadline"></p>
 
+  <input type="hidden" id="question_id">
+
+  <p id="deadline"></p>
   <p id="current_answer"></p>
   <p id="question_posted"></p>
 
-  <p>Change this answer (min bond 200 ETH):
-    <input type="text" value="200" />
-    <input type="submit" value="Change" />
+  <p>Change this answer<br>
+    New answer:<input type="text" id="new_answer" value="" /><br>
+    Bond (min <span id="min_bond"></span> ETH):<input type="text" id="bond" /><br>
+    <button id="post_answer" value="Change">Change</button>
   </p>
 
   <p>Request arbitration (min fee 500)</p>
   <input type="text" value="500" />
-  <input type="submit" value="Request arbitration" />
+  <button id="request_arbitration" value="Request arbitration">Request arbitartion</button>
 
   <h3>History</h3>
   <table>
