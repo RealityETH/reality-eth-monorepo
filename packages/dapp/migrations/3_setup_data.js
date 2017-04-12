@@ -7,30 +7,33 @@ module.exports = function(deployer) {
     Arbitrator.deployed().then(function (instance) {
        var rc;
        var arb = instance;
-       var question_id;
+       var question_id1, question_id2;
        var d = new Date();
        var deadline = Math.floor(d.getTime() / 1000) + 30 * 24 * 60 * 60;
        var step_delay = 7 * 24 * 60 * 60;
 
-        RealityCheck.deployed().then(function (instance) {
+       var question1 = '{"title":"What is 2 + 2?"}';
+       var question2 = '{"title":"Who won the presidential election?", "outcomes":["Hillary","Trump","Other"]}';
+
+       RealityCheck.deployed().then(function (instance) {
            rc = instance;
-           return rc.getQuestionID("What is 2 + 2?", arb.address, step_delay, deadline, 5);
+           return rc.getQuestionID(question1, arb.address, step_delay, deadline, 5);
        }).then(function (result) {
-           question_id = result;
-           console.log("getQuestionID is", question_id);
-           return rc.askQuestion("What is 2 + 2?", arb.address, step_delay, deadline, 5, {from: accs[0]});
+           question_id1 = result;
+           console.log("getQuestionID is", question_id1);
+           return rc.askQuestion(question1, arb.address, step_delay, deadline, 5, {from: accs[0]});
        }).then(function(){
            console.log("asked question");
-           rc.submitAnswer(question_id, 4, "basic maths", {from: accs[2]}, {value: 100});
+           rc.submitAnswer(question_id1, 4, "basic maths", {from: accs[2]}, {value: 100});
        });
 
         RealityCheck.deployed().then(function (instance) {
             rc = instance;
-            return rc.getQuestionID("What is 3 + 3?", arb.address, step_delay, deadline, 6);
+            return rc.getQuestionID(question2, arb.address, step_delay, deadline, 1);
         }).then(function (result) {
-            question_id = result;
-            console.log("getQuestionID 2 is", question_id);
-            return rc.askQuestion("What is 3 + 3?", arb.address, step_delay, deadline, 6, {from: accs[1]});
+            question_id2 = result;
+            console.log("getQuestionID 2 is", question_id2);
+            return rc.askQuestion(question2, arb.address, step_delay, deadline, 1, {from: accs[1]});
         }).then(function(){
             console.log("asked question 2");
         });
