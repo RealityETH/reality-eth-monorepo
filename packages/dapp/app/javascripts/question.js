@@ -71,7 +71,6 @@ function loadAnswerHistory(question_id) {
         answer_posted.watch(function(error, result) {
             if (error === null) {
                 var option = '';
-                console.log(question_json);
                 if (typeof question_json['outcomes'] !== 'undefined') {
                     option = question_json['outcomes'][result.args.answer];
                 }
@@ -100,5 +99,10 @@ $('#post_answer').on('click', function(event) {
     RealityCheck.deployed().then(function(instance){
         var rc = instance;
         return rc.submitAnswer(question_id, answer, '', {value: bond});
-    })
+    }).then(function(result){
+        $('#new_answer').val('');
+        $('#bond').val(bond * 2);
+    }).catch(function(e){
+        console.log(e);
+    });
 });

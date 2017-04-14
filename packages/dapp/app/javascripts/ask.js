@@ -22,5 +22,7 @@ $('form#ask-question-form').submit( function() {
     }).catch(function(e) {
         console.log(e);
     });
+
+    window.location.href = 'index.html#questions';
     return false;
 });
