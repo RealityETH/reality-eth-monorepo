@@ -117,6 +117,7 @@ contract RealityCheck {
         );
 
         LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, deadline, default_answer );
+        LogNewAnswer( answer_id, question_id, default_answer, msg.sender, 0, now, "");
 
         return question_id;
 
