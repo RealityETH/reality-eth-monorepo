@@ -5,9 +5,12 @@ function loadQuestions() {
         return rc.LogNewQuestion({_sender: account}, {fromBlock:0x00, toBlock:'latest'});
     }).then(function(question_posted) {
         question_posted.watch(function(error, result) {
-            var question_id = result.args.question_id;
-            addQuestionRow(question_id);
-            console.log('error: ',error);
+            if (error === null) {
+                var question_id = result.args.question_id;
+                addQuestionRow(question_id);
+            } else {
+                console.log(e);
+            }
         });
     }).catch(function (e) {
       console.log(e);
@@ -54,7 +57,6 @@ function addQuestionRow(question_id) {
         return rc.answers.call(best_answer_id, {from: account});
     }).then(function(result) {
         answer = result;
-        console.log('answer', answer);
         current_answer = answer[1];
         bond = answer[3];
 

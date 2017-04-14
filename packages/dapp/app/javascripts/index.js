@@ -36,7 +36,9 @@ var showScreen = function(hash) {
         $('#answer').css('display', 'none');
         $('#question').css('display', 'block');
         $('#yours').css('display', 'none');
+        $('.answer_history_row').remove();
         loadQuestionInfo(question_id);
+        loadAnswerHistory(question_id);
     }
     if (hash == '#yours') {
         $('#ask').css('display', 'none');

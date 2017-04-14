@@ -55,6 +55,43 @@ function loadQuestionInfo(question_id) {
     });
 }
 
+function loadAnswerHistory(question_id) {
+    var rc;
+    var question_json;
+    var answer_posted
+
+    RealityCheck.deployed().then(function(instance) {
+        rc = instance;
+        return rc.questions.call(question_id, {from: account});
+    }).then(function(result){
+        question_json = JSON.parse(result[3]);
+        return rc.LogNewAnswer.call({_sender: account}, {question_id: question_id}, {fromBlock: 0x00, toBlock: 'latest'})
+    }).then(function(result){
+        answer_posted = result;
+        answer_posted.watch(function(error, result) {
+            if (error === null) {
+                var option = '';
+                console.log(question_json);
+                if (typeof question_json['outcomes'] !== 'undefined') {
+                    option = question_json['outcomes'][result.args.answer];
+                }
+
+                var table_row = '<tr class="answer_history_row">'
+                    + '<td>' + getDateString(result.args.ts) + '</td>'
+                    + '<td>[' + parseInt(result.args.answer) + '] ' + option + '</td>'
+                    + '<td>' + result.args.answerer + '</td>'
+                    + '<td>' + result.args.bond + '</td>'
+                    + '</tr>';
+                $('#answer_history').append(table_row);
+            } else {
+                console.log(e);
+            }
+        });
+    }).catch(function(e){
+        console.log(e);
+    });
+}
+
 $('#post_answer').on('click', function(event) {
     var question_id = $('#question_id').val();
     var answer = $('#new_answer').val();

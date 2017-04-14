@@ -12,7 +12,7 @@ $('form#ask-question-form').submit( function() {
 
     Arbitrator.deployed().then(function(arb) {
         RealityCheck.deployed().then(function(rc) {
-            return rc.askQuestion(qtext, arb.address, step_delay, deadline, 1, {from: account}, {value: bounty});
+            return rc.askQuestion(qtext, arb.address, step_delay, deadline, 0, {from: account}, {value: bounty});
         }).then(function (result) {
             console.log('question asked.');
             console.log('question', result);
