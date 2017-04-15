@@ -204,6 +204,11 @@ contract RealityCheck {
         return questions[question_id].is_arbitration_paid_for;
     }
 
+    function getEarliestFinalizationTS(bytes32 question_id) constant returns (uint256) {
+        bytes32 best_answer_id = questions[question_id].best_answer_id;
+        return (answers[best_answer_id].ts + questions[question_id].step_delay);
+    }
+
     function finalize(bytes32 question_id) {
         
         if (questions[question_id].is_finalized) throw;

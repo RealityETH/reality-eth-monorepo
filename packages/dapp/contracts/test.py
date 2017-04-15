@@ -99,6 +99,17 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_earliest_finalization_ts(self):
+
+        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
+        ts1 = self.rc0.getEarliestFinalizationTS(self.question_id)
+
+        self.s.block.timestamp = self.s.block.timestamp + 8
+        self.rc0.submitAnswer(self.question_id, 54321, "my conflicting evidence", value=10) 
+        ts2 = self.rc0.getEarliestFinalizationTS(self.question_id)
+
+        self.assertTrue(ts2 > ts1, "Submitting an answer advances the finalization timestamp") 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
