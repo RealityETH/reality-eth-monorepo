@@ -84,16 +84,25 @@ Your balance: <span class="account-balance">0</span> ETH
   <p id="deadline"></p>
   <p id="current_answer"></p>
   <p id="question_posted"></p>
-
-  <p>Change this answer<br>
-    New answer:<input type="text" id="new_answer" value="" /><br>
-    Bond (min <span id="min_bond"></span> ETH):<input type="text" id="bond" /><br>
+  <hr>
+  <div id="change_answer" style="display: none">
+    <p id="answer_text">Change this answer</p>
+    <p id="p_new_answer">New answer:<input type="text" id="new_answer" value="" /></p>
+    <p id="p_bond">Bond (min <span id="min_bond"></span> ETH):<input type="text" id="bond" /></p>
     <button id="post_answer" value="Change">Change</button>
-  </p>
-
-  <p>Request arbitration (min fee 500)</p>
-  <input type="text" value="500" />
+  </div>
+  <hr>
+  <div id="arbitration" style="display: none">
+  <p id="arbitration_text"></p>
+  <input type="text" id="arbitration_fee" value="" />
   <button id="request_arbitration" value="Request arbitration">Request arbitartion</button>
+  </div>
+  <hr>
+  <div id="finalization" style="display: none">
+  <button id="request_finalization" value="Request finalization">Request finalization</button>
+  <button id="claim_bounty" value="Claim bounty">Claim bounty</button>
+  <button id="claim_bond" value="Claim bond">Claim bond</button>
+  </div>
 
   <h3>History</h3>
   <table id="answer_history">

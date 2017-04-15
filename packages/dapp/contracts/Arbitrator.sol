@@ -21,7 +21,7 @@ contract Arbitrator {
     }
 
     function getFee(bytes32 question_id) constant returns (uint256) {
-        return 100000;
+        return 100;
     }
 
     function claimBond(address realitycheck, bytes32 answer_id) onlyOwner {

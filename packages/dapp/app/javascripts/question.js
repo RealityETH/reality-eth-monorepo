@@ -8,6 +8,104 @@ function getDateString(timestamp) {
     return year + '-' + month + '-' + day + ' ' + hour + ':' + min;
 }
 
+function displayChangeAnswerDiv(question_id, disabled) {
+    $('#change_answer').css('display', 'block');
+
+    if (!disabled) {
+        $('#answer_text').text('Change this answer');
+        $('#p_new_answer').css('display', 'inline');
+        $('#p_bond').css('display', 'inline');
+        $('#post_answer').css('display', 'inline');
+    } else {
+        $('#answer_text').text('Changing Answer is disabled.');
+        $('#p_new_answer').css('display', 'none');
+        $('#p_bond').css('display', 'none');
+        $('#post_answer').css('display', 'none');
+    }
+}
+
+function displayArbitrationDiv(question_id, disabled){
+    $('#arbitration').css('display', 'block');
+
+    if (!disabled) {
+        Arbitrator.deployed().then(function (instance) {
+            var arb = instance;
+            return arb.getFee.call(question_id, {from: account});
+        }).then(function (result) {
+            $('#arbitration_text').text('Request arbitration (min fee ' + result.toNumber() + ')');
+            $('#arbitration_fee').val(result.toNumber());
+            $('#arbitration_fee').css('display', 'inline');
+            $('#request_arbitration').css('display', 'inline');
+        }).catch(function (e) {
+            console.log(e);
+        });
+    } else {
+        $('#arbitration_fee').css('display', 'none');
+        $('#request_arbitration').css('display', 'none');
+        $('#arbitration_text').text('Requesting arbitration is disabled.');
+    }
+}
+
+function displayFinalizationDiv(question_id, isArbitrationRequested, isFinalized) {
+    RealityCheck.deployed().then(function(instance) {
+        var rc = instance;
+        return rc.getEarliestFinalizationTS(question_id, {from: account});
+    }).then(function(result){
+        var finalization_start_time = result;
+        var d = new Date();
+        var now = Math.floor(d.getTime() / 1000);
+        if (now >= finalization_start_time) {
+            if (!isArbitrationRequested && !isFinalized) {
+                $('#request_finalization').css('display', 'inline');
+                $('#claim_bounty').css('display', 'none');
+                $('#claim_bond').css('display', 'none');
+                $('#finalization').css('display', 'block');
+            } else if (isArbitrationRequested && !isFinalized) {
+                $('#request_finalization').css('display', 'none');
+                $('#finalization').append('Under arbitration.');
+                $('#claim_bounty').css('display', 'none');
+                $('#claim_bond').css('display', 'none');
+                $('#finalization').css('display', 'block');
+            } else if (isFinalized) {
+                $('#request_finalization').css('display', 'none');
+                $('#claim_bounty').css('display', 'inline');
+                $('#claim_bond').css('display', 'inline');
+                $('#finalization').css('display', 'block');
+            }
+        }
+    }).catch(function(e){
+        console.log(e);
+    });
+}
+
+function loadSubmitButton(question_id) {
+    var rc;
+    var isFinalized, isArbitrationRequested;
+
+    RealityCheck.deployed().then(function(instance){
+        rc = instance;
+        return rc.isFinalized.call(question_id, {from: account});
+    }).then(function(result){
+        console.log('is finalized ?', result);
+        isFinalized = result;
+        return rc.isArbitrationPaidFor.call(question_id, {from: account});
+    }).then(function(result){
+        console.log('is arbitrated ?', result);
+        isArbitrationRequested = result;
+
+        displayFinalizationDiv(question_id, isArbitrationRequested, isFinalized);
+        if (!isFinalized && !isArbitrationRequested) {
+            displayArbitrationDiv(question_id, false);
+            displayChangeAnswerDiv(question_id, false);
+        } else {
+            displayArbitrationDiv(question_id, true);
+            displayChangeAnswerDiv(question_id, true);
+        }
+    }).catch(function(e){
+        console.log(e);
+    });
+}
+
 function loadQuestionInfo(question_id) {
     var rc;
     var question_posted;
@@ -102,6 +200,39 @@ $('#post_answer').on('click', function(event) {
     }).then(function(result){
         $('#new_answer').val('');
         $('#bond').val(bond * 2);
+    }).catch(function(e){
+        console.log(e);
+    });
+});
+
+$('#request_arbitration').on('click', function(event){
+    var question_id = $('#question_id').val();
+    var arbitration_fee = $('#arbitration_fee').val();
+
+    RealityCheck.deployed().then(function(instance){
+        var rc = instance;
+        return rc.requestArbitration(question_id, {from: account}, {value: arbitration_fee});
+    }).then(function(result){
+        console.log('after arbitrated', result);
+        displayChangeAnswerDiv(question_id, true);
+        displayArbitrationDiv(question_id, true);
+        displayFinalizationDiv(question_id, true, false);
+    }).catch(function(e){
+        console.log(e);
+    });
+});
+
+$('#request_finalization').on('click', function(event){
+    var question_id = $('#question_id').val();
+
+    RealityCheck.deployed().then(function(instance){
+        var rc = instance;
+        return rc.finalize(question_id, {from: account});
+    }).then(function(result){
+        console.log('after finalized', result);
+        displayChangeAnswerDiv(question_id, true);
+        displayArbitrationDiv(question_id, true);
+        displayFinalizationDiv(question_id, false, true);
     }).catch(function(e){
         console.log(e);
     });

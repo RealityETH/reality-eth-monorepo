@@ -39,6 +39,7 @@ var showScreen = function(hash) {
         $('.answer_history_row').remove();
         loadQuestionInfo(question_id);
         loadAnswerHistory(question_id);
+        loadSubmitButton(question_id);
     }
     if (hash == '#yours') {
         $('#ask').css('display', 'none');
