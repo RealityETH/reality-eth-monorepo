@@ -118,7 +118,7 @@ Your balance: <span class="account-balance">0</span> ETH
 <div id="yours" style="display: none">
   <h3>Your questions</h3>
 
-  <table style="border: 1px solid gray; width:100%;">
+  <table id="your_question_table" style="border: 1px solid gray; width:100%;">
     <tr>
       <th>Question</th>
       <th>Asked</th>
@@ -127,21 +127,12 @@ Your balance: <span class="account-balance">0</span> ETH
       <th>Your answer</th>
       <th>Bond</th>
       <th>Action</th>
-    </tr>
-    <tr>
-      <td>Who won the presidential election? 1: Hillary, 2: Trump, 0: Other<td>
-      <td>2017-01-01 12:34</td>
-      <td>1</td>
-      <td>100</td>
-      <td>1 Hillary Clinton</td>
-      <td>4</td>
-      <td><a href="/question/4">Detail</a></td>
     </tr>
   </table>
 
   <h3>Questions you answered</h3>
 
-  <table style="border: 1px solid gray; width:100%;">
+  <table id="answered_question_table" style="border: 1px solid gray; width:100%;">
     <tr>
       <th>Question</th>
       <th>Asked</th>
@@ -150,15 +141,6 @@ Your balance: <span class="account-balance">0</span> ETH
       <th>Your answer</th>
       <th>Bond</th>
       <th>Action</th>
-    </tr>
-    <tr>
-      <td>What is 2 + 2?<td>
-      <td>2017-01-01 12:34</td>
-      <td>5</td>
-      <td>50</td>
-      <td>4</td>
-      <td>2</td>
-      <td><a href="/question/4">Detail</a></td>
     </tr>
   </table>
 </div>
@@ -168,6 +150,7 @@ Your balance: <span class="account-balance">0</span> ETH
 <script src="./ask.js"></script>
 <script src="./answer.js"></script>
 <script src="./question.js"></script>
+<script src="./yours.js"></script>
 <script src="./index.js"></script>
 </body>
 </html>

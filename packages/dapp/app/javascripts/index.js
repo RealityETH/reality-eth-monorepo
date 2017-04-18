@@ -46,6 +46,10 @@ var showScreen = function(hash) {
         $('#answer').css('display', 'none');
         $('#question').css('display', 'none');
         $('#yours').css('display', 'block');
+        $('.your-question-row').remove();
+        $('.answered-question-row').remove();
+        loadYourQuestions();
+        loadYourAnsweredQuestions();
     }
 }
 

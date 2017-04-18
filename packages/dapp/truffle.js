@@ -18,6 +18,9 @@ module.exports = {
     "question.js": [
       "javascripts/question.js"
     ],
+    "yours.js": [
+      "javascripts/yours.js"
+    ],
     "jquery-3.1.1.min.js": [
       "javascripts/jquery-3.1.1.min.js"
     ],
