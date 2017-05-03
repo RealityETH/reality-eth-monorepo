@@ -19,11 +19,14 @@ class TestRealityCheck(TestCase):
         self.s = t.state()
 
         realitycheck_code = open('RealityCheck.sol').read()
-
         arb_code_raw = open('Arbitrator.sol').read()
+        client_code_raw = open('CallbackClient.sol').read()
+        exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
 
         self.rc_code = realitycheck_code
         self.arb_code = arb_code_raw
+        self.client_code = client_code_raw
+        self.exploding_client_code = exploding_client_code_raw
 
         self.rc0 = self.s.abi_contract(self.rc_code, language='solidity', sender=t.k0)
         self.arb0 = self.s.abi_contract(self.arb_code, language='solidity', sender=t.k0)
@@ -201,13 +204,14 @@ class TestRealityCheck(TestCase):
         self.rc0.claimBounty(self.question_id);        
         self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000, "Claiming a bounty twice is legal, but you only get paid once")
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_supplied_answer(self):
 
         a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
         a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
 
         # This was the default of our arbitrator contract
-        arb_fee = 100000
+        arb_fee = 100
 
         self.assertEqual(self.arb0.getFee(), arb_fee)
         self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8) ), "Cumulatively insufficient, so return false")
@@ -235,15 +239,14 @@ class TestRealityCheck(TestCase):
 
         return
 
-
-
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_existing_answer(self):
 
         a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
         a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
 
         # This was the default of our arbitrator contract
-        arb_fee = 100000
+        arb_fee = 100
 
         self.assertEqual(self.arb0.getFee(), arb_fee)
         self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8) ), "Cumulatively insufficient, so return false")
@@ -272,6 +275,49 @@ class TestRealityCheck(TestCase):
         #self.assertEqual(self.rc0.balanceOf(self.arb0.address), 1000, "Arbitrator gets the reward")
 
         return
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_callbacks(self):
+     
+        self.cb = self.s.abi_contract(self.client_code, language='solidity', sender=t.k0)
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        self.s.block.timestamp = self.s.block.timestamp + 11
+        self.rc0.finalize(self.question_id)
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+
+        self.rc0.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100)
+        self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
+
+        # Fail an unregistered amount of gas
+        with self.assertRaises(TransactionFailed):
+            self.rc0.sendCallback(self.question_id, self.cb.address, 3000001)
+
+        self.assertNotEqual(self.cb.answers(self.question_id), 10005)
+        self.rc0.sendCallback(self.question_id, self.cb.address, 3000000)
+        self.assertEqual(self.cb.answers(self.question_id), 10005)
+        
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_exploding_callbacks(self):
+     
+        self.exploding_cb = self.s.abi_contract(self.exploding_client_code, language='solidity', sender=t.k0)
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        self.s.block.timestamp = self.s.block.timestamp + 11
+        self.rc0.finalize(self.question_id)
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+
+        self.rc0.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
+        self.assertEqual(self.rc0.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
+
+        # Fail an unregistered amount of gas
+        with self.assertRaises(TransactionFailed):
+            self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000001)
+
+        # should complete with no error, even though the client threw an error
+        self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
+    
+        
 
 
 if __name__ == '__main__':

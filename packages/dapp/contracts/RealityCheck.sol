@@ -128,10 +128,8 @@ contract RealityCheck {
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_contract, uint256 gas) payable {
-
         if (questions[question_id].created == 0) throw; // Check existence
         callback_requests[question_id][client_contract][gas] += msg.value;
-
     }
 
     function getAnswerID(bytes32 question_id, address sender, uint256 amount) constant returns (bytes32) {
@@ -318,8 +316,13 @@ contract RealityCheck {
         if (gas > msg.gas) throw;
         bytes32 answer_id = questions[question_id].best_answer_id;
 
-        // TODO: Use send() for this - we still get paid if it errors or runs out of gas.
-        CallerAPI(client_contract).__factcheck_callback.gas(gas)(question_id, answers[answer_id].answer);
+        // We call the callback with the low-level call() interface
+        // We don't care if it errors out or not:
+        // This is the responsibility of the requestor.
+
+        // Call signature argument hard-codes the result of:
+        // bytes4(bytes32(sha3("__factcheck_callback(bytes32,uint256)"))
+        bool ignore = client_contract.call.gas(gas)(0x6f32be63, question_id, answers[answer_id].answer); 
 
         balances[msg.sender] += callback_requests[question_id][client_contract][gas];
         callback_requests[question_id][client_contract][gas] = 0;
