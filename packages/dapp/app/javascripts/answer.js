@@ -1,10 +1,13 @@
-function loadQuestions() {
+function loadQuestions(filters) {
     console.log('loading questions');
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
-        return rc.LogNewQuestion({_sender: account}, {fromBlock:0x00, toBlock:'latest'});
+        console.log('got deployed')
+        return rc.LogNewQuestion(filters, {fromBlock:0x00, toBlock:'latest'});
     }).then(function(question_posted) {
+        console.log('got filter');
         question_posted.watch(function(error, result) {
+            console.log('in watch', error, result);
             if (error === null) {
                 var question_id = result.args.question_id;
                 addQuestionRow(question_id);

@@ -10,7 +10,7 @@ function refreshBalance() {
         console.log('balance is', val.toNumber());
     }).catch(function (e) {
         console.log(e);
-        setStatus("Error getting balance; see log.");
+        //setStatus("Error getting balance; see log.");
     });
 };
 
@@ -27,7 +27,7 @@ var showScreen = function(hash) {
         $('#question').css('display', 'none');
         $('#yours').css('display', 'none');
         $('.question-row').remove();
-        loadQuestions();
+        loadQuestions({});
     }
     var re = /^#0x[0-9a-zA-Z]{64}$/;
     if (re.test(hash)) {

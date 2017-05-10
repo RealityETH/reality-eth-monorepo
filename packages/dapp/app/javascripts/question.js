@@ -162,7 +162,13 @@ function loadAnswerHistory(question_id) {
         rc = instance;
         return rc.questions.call(question_id, {from: account});
     }).then(function(result){
-        question_json = JSON.parse(result[3]);
+        if (result[3].charAt(0) == '{') {
+            question_json = JSON.parse(result[3]);
+        } else {
+            question_json = {
+              'title': result[3]
+            };
+        }
         return rc.LogNewAnswer.call({_sender: account}, {question_id: question_id}, {fromBlock: 0x00, toBlock: 'latest'})
     }).then(function(result){
         answer_posted = result;
@@ -172,13 +178,11 @@ function loadAnswerHistory(question_id) {
                 if (typeof question_json['outcomes'] !== 'undefined') {
                     option = question_json['outcomes'][result.args.answer];
                 }
-
-                var table_row = '<tr class="answer_history_row">'
-                    + '<td>' + getDateString(result.args.ts) + '</td>'
-                    + '<td>[' + parseInt(result.args.answer) + '] ' + option + '</td>'
-                    + '<td>' + result.args.answerer + '</td>'
-                    + '<td>' + result.args.bond + '</td>'
-                    + '</tr>';
+                var table_row = $('#answer_history').find('.row_template').clone().removeClass('row_template');;
+                table_row.find('.a_date').text( getDateString(result.args.ts) );
+                table_row.find('.a_answer').text('[' + parseInt(result.args.answer) + '] ' + option);
+                table_row.find('.a_address').text(result.args.answerer);
+                table_row.find('.a_bond').text(result.args.bond);
                 $('#answer_history').append(table_row);
             } else {
                 console.log(e);
