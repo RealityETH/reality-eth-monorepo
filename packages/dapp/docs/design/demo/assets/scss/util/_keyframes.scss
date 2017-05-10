@@ -1,0 +1,23 @@
+@keyframes loading {
+	to { transform: rotate(360deg); }
+}
+
+@keyframes arrow-up-down {
+	0% { transform: translate3d(0, -100%, 0); opacity: 0; }
+	50% { transform: translate3d(0, 0%, 0); opacity: 1; }
+	100% { transform: translate3d(0, 100%, 0); opacity: 0; }
+}
+
+@keyframes bounce {
+	0% {
+		opacity: 0;
+		transform: scale(.9);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.02);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
