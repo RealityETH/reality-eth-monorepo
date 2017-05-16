@@ -9,7 +9,7 @@
     "css:min": "csso assets/css/main.css --output assets/css/main.min.css",
     "build:css": "npm run css:sass && npm run css:prefix",
     "js:min": "uglifyjs assets/js/bundle.js --compress --mangle --comments --output assets/js/bundle.min.js",
-    "build:js": "npm run lint:js && browserify assets/js/scripts/main.js -t babelify -o assets/js/bundle.js",
+    "build:js": "browserify assets/js/scripts/main.js -t babelify -o assets/js/bundle.js",
     "build": "npm run build:css && npm run build:js",
     "lint:css": "sass-lint -c sass-lint.yml 'assets/scss/**/*.scss' -v -q",
     "lint:js": "eslint assets/js/scripts/main.js",
@@ -39,11 +39,15 @@
     "gsap": "^1.19.1",
     "imagesloaded": "^4.1.1",
     "interact.js": "^1.2.8",
+    "jquery-browserify": "^1.8.1",
     "node-sass": "^4.5.0",
     "perfect-scrollbar": "^0.6.16",
     "postcss-cli": "^2.6.0",
     "sass-lint": "^1.10.2",
+    "timeago.js": "^3.0.1",
+    "truffle-contract": "^2.0.0",
     "uglify-js": "^2.7.5",
-    "watch": "^1.0.1"
+    "watch": "^1.0.1",
+    "web3": "^0.19.0"
   }
 }

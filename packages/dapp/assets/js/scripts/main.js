@@ -1,8 +1,18 @@
-require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
+// TODO: Check if there was a reason to do this instead of import
+//require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
+
+var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
+var contract = require("truffle-contract");
+var RealityCheck = contract(rc_json);
+RealityCheck.setProvider(new Web3.providers.HttpProvider("http://localhost:8540"));
+
+var $ = require('jquery-browserify')
+
 import imagesLoaded from 'imagesloaded';
 import interact from 'interact.js';
 import Ps from 'perfect-scrollbar';
-import {TweenLite, Power3} from 'gsap';
+import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
+
 (function() {
     'use strict';
 
@@ -503,6 +513,8 @@ import {TweenLite, Power3} from 'gsap';
                 // scroll top
                 TweenLite.to(currentBrowser.querySelector('.rcbrowser-inner'), .8, { scrollTo: {y: 0, autoKill: true} });
             }
+
+            // Send ask question transaction
 
             metamask.addClass('is-open');
 
@@ -1255,5 +1267,107 @@ import {TweenLite, Power3} from 'gsap';
         inputElement.addEventListener('focus', focusHandler);
         inputElement.addEventListener('blur', blurHandler);
     })();
+	
+	function populateSection(section_name, question_log, question_data) {
+
+		var question_id = question_log['question_id'];
+		var question_cls = 'question-'+question_id;
+		var section = $('.'+section_name);
+
+		console.log('cnt items in section', section, question_cls, section.find('.'+question_cls).size()); 
+
+		if (section.find('.'+question_cls).size() > 0) {
+			// already found
+			return;
+		}
+
+		var question_json;
+        if (question_data[3].charAt(0) == '{') {
+            question_json = JSON.parse(question_data[3]);
+        } else {
+            question_json = {
+              'title': question_data[3]
+            };
+        }
+
+		var options = '';
+		if (typeof question_json['outcomes'] !== 'undefined') {
+			for (var i = 0; i < question_json['outcomes'].length; i++) {
+				options = options + i + ':' + question_json['outcomes'][i] + ', ';
+			}
+		}
+		var bounty = question_data[5];
+		var best_answer_id = question_data[9];
+		var posted_ts = question_data[0];
+
+		// Set an attribute in the document for a number to sort by, highest first
+		var ranking = 0;
+		switch (section_name) {
+			case 'questions-latest': 
+ 				ranking = posted_ts;
+				break;
+			case 'questions-high-reward': 
+				ranking = bounty;
+				break;
+		}
+
+		console.log('populate with title', question_json['title']);
+		var entry = $('.questions__item.template-item').clone();
+		entry.addClass(question_cls).removeClass('template-item');
+		entry.find('.question-title').text(question_json['title']);
+		entry.find('.question-age').text(posted_ts);
+		entry.find('.question-bounty').text(bounty);
+		entry.attr('data-ranking', ranking);
+
+		// Look down the list until we get something lower, then prepend
+		var found = false;
+		section.find('.questions-list').each( function() {
+			if (!found && $(this).attr('data-ranking') < ranking) {
+				prepend(entry);
+				found = true;
+			}
+		});
+		if (!found) {
+			section.find('.questions-list').append(entry);
+		}
+		entry.css('display', 'block');
+		
+	}
+
+	function displayQuestion(question_log) {
+        console.log('question', question_log);
+        RealityCheck.deployed().then(function(rc) {
+			return rc.questions.call(question_log.question_id);
+		}).then(function(question_data) {
+			populateSection('questions-best', question_log, question_data);
+			populateSection('questions-high-reward', question_log, question_data);
+			//populateSection('questions-resolved', question_log, question_data);
+			populateSection('questions-latest', question_log, question_data);
+			return;
+		});
+        //return rc.answers.call(best_answer_id, {from: account});
+	}
+
+    (function() {
+        console.log('got RealityCheck', RealityCheck);
+        RealityCheck.deployed().then(function(rc) {
+        	console.log('got deployed')
+        	return rc.LogNewQuestion({}, {fromBlock:0x00, toBlock:'latest'});
+    	}).then(function(question_posted) {
+        	console.log('got filter');
+        	question_posted.watch(function(error, result) {
+            	console.log('in watch', error, result);
+            	if (error === null) {
+                	var question_id = result.args.question_id;
+                	displayQuestion(result.args);
+            	} else {
+               		console.log(e);
+            	}
+			});
+		}).catch(function (e) {
+		  console.log(e);
+		});
+    })();
+
 
 }());
