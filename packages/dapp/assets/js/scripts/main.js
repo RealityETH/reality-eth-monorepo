@@ -1,17 +1,26 @@
 // TODO: Check if there was a reason to do this instead of import
-//require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
+require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
 
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
+var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
+
 var contract = require("truffle-contract");
+var BigNumber = require('bignumber.js');
+
 var RealityCheck = contract(rc_json);
-RealityCheck.setProvider(new Web3.providers.HttpProvider("http://localhost:8540"));
+RealityCheck.setProvider(web3.currentProvider);
+
+// Just used to get the default arbitator address
+var Arbitrator = contract(arb_json);
+Arbitrator.setProvider(web3.currentProvider);
 
 var $ = require('jquery-browserify')
 
 import imagesLoaded from 'imagesloaded';
 import interact from 'interact.js';
 import Ps from 'perfect-scrollbar';
-import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
+//import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
+import {TweenLite, Power3} from 'gsap';
 
 (function() {
     'use strict';
@@ -115,6 +124,8 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 
     // set rcBrowser height
     function rcbrowserHeight() {
+console.log('skipping auto rcbrowserHeight');
+return;
         const rcbrowserHeaders  = document.querySelectorAll('.rcbrowser-header');
         const rcbrowserMains  = document.querySelectorAll('.rcbrowser-main');
         var _maxHeight = document.documentElement.clientHeight * .9;
@@ -514,7 +525,19 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
                 TweenLite.to(currentBrowser.querySelector('.rcbrowser-inner'), .8, { scrollTo: {y: 0, autoKill: true} });
             }
 
+			var frm = $(currentBrowser).find('form[name=postaquestion]');
+			var title = frm.find('[name=question-body]').val();
+			var reward = frm.find('[name=question-reward]').val();
+			var question_type = frm.find('[name=question-type]').val();
+			var arbitrator = frm.find('[name=arbitrator]').val();
+			var step_delay = frm.find('[name=step-delay]').val();
+			var question_json = JSON.stringify({'title': title});
             // Send ask question transaction
+
+			console.log('.askQuestion', question_json, arbitrator, step_delay, 0, 0, {value: reward});
+			RealityCheck.deployed().then(function(rc) {
+				return rc.askQuestion(question_json, arbitrator, step_delay, 0, 0, {from: web3.eth.accounts[0], value: reward});
+			});
 
             metamask.addClass('is-open');
 
@@ -1274,7 +1297,7 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 		var question_cls = 'question-'+question_id;
 		var section = $('.'+section_name);
 
-		console.log('cnt items in section', section, question_cls, section.find('.'+question_cls).size()); 
+		//console.log('cnt items in section', section, question_cls, section.find('.'+question_cls).size()); 
 
 		if (section.find('.'+question_cls).size() > 0) {
 			// already found
@@ -1282,9 +1305,9 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 		}
 
 		var question_json;
-        if (question_data[3].charAt(0) == '{') {
-            question_json = JSON.parse(question_data[3]);
-        } else {
+		try {
+			question_json = JSON.parse(question_data[3]);
+		} catch(e) {
             question_json = {
               'title': question_data[3]
             };
@@ -1296,46 +1319,161 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 				options = options + i + ':' + question_json['outcomes'][i] + ', ';
 			}
 		}
-		var bounty = question_data[5];
-		var best_answer_id = question_data[9];
 		var posted_ts = question_data[0];
+		var arbitrator = question_data[1];
+		var step_delay = question_data[2];
+		var question_text_raw = question_data[3];
+		var deadline = question_data[4];
+		var bounty = question_data[5];
+		var arbitration_bounty = question_data[6];
+		var is_arbitration_paid_for = question_data[7];
+		var is_finalized = question_data[8];
+		var best_answer_id = question_data[9];
 
 		// Set an attribute in the document for a number to sort by, highest first
 		var ranking = 0;
 		switch (section_name) {
 			case 'questions-latest': 
- 				ranking = posted_ts;
+ 				ranking = posted_ts.toNumber();
 				break;
 			case 'questions-high-reward': 
-				ranking = bounty;
+				ranking = bounty.toNumber();
 				break;
 		}
 
-		console.log('populate with title', question_json['title']);
+		//console.log('populate with title', question_json['title']);
 		var entry = $('.questions__item.template-item').clone();
 		entry.addClass(question_cls).removeClass('template-item');
 		entry.find('.question-title').text(question_json['title']);
 		entry.find('.question-age').text(posted_ts);
 		entry.find('.question-bounty').text(bounty);
+
+		// TODO: Check if bignumber survives the round-trip for the relevant range
 		entry.attr('data-ranking', ranking);
 
 		// Look down the list until we get something lower, then prepend
 		var found = false;
-		section.find('.questions-list').each( function() {
-			if (!found && $(this).attr('data-ranking') < ranking) {
-				prepend(entry);
+		section.find('.questions-list .questions__item').each( function() {
+			//if (!found && ranking.gt(new BigNumber($(this).attr('data-ranking')))) {}
+			if (!found && (ranking > $(this).attr('data-ranking'))) {
+				entry.insertBefore($(this));
 				found = true;
-			}
+			} 
+			
 		});
 		if (!found) {
 			section.find('.questions-list').append(entry);
 		}
-		entry.css('display', 'block');
+
+		var rcqa_id = 'qadetail-' + question_id;
+		if (!document.getElementById(rcqa_id)) {
+console.log('adding rcqa', rcqa_id);
+			var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+			rcqa.attr('id', rcqa_id);
+			rcqa.attr('data-browser-id', rcqa_id);
+			rcqa.removeClass('template-item')
+			rcqa.find('.need-data-target-id').attr('data-target-id', rcqa_id);
+
+			rcqa.find('.question-title').text(question_json['title']);
+			rcqa.find('.reward-value').text(bounty.toString());
+			rcqa.find('.arbitrator').text(arbitrator);
+
+			rcqa.css('display', 'block');
+
+			Arbitrator.at(arbitrator).then(function(arb) {
+				return arb.getFee.call(question_id);
+			}).then(function(fee) { 
+				rcqa.find('.arbitration-fee').text(fee);
+			});
+	
+			console.log(best_answer_id);
+
+			var answer;
+			var answerer;
+			var bond;
+			var answered_ts;
+			var evidence;
+			RealityCheck.deployed().then(function(rc) {
+				return rc.answers.call(best_answer_id);	
+			}).then(function(ans) {
+				// ans[0] is question_id
+				answer = ans[1];
+				answerer = ans[2];
+				bond = ans[3];
+				answered_ts = ans[4];
+				evidence = ans[5];
+				var answer_text;
+				if ( ('outcomes' in question_json) ) {
+					answer_text = question_json['outcomes'][answer];
+				} else {
+					answer_text = answer;
+				}
+				rcqa.find('.current-answer-container .current-answer').text(answer_text);
+				rcqa.find('.current-answer-container .current-answer-time').text(answered_ts);
+				rcqa.find('.current-answer-container .answerer').text(answerer);
+				rcqa.find('.current-answer-container .answer-bond-value').text(bond);
+
+				RealityCheck.deployed().then(function(rc) {
+					return rc.LogNewAnswer({'question_id': question_id}, {fromBlock:0x00, toBlock:'latest'});
+				}).then(function(answer_posted) {
+					answer_posted.watch(function(error, result) {
+						if (error === null) {
+							var hist = result['args'];
+							var hist_id = 'answer-' + hist['answer_id'];
+							if (document.getElementById(hist_id)) {
+								return; // already got it
+							}
+
+							var hist_answer = hist['answer'];
+							var hist_answer_text
+							if ( ('outcomes' in question_json) ) {
+								hist_answer_text = question_json['outcomes'][hist_answer];
+							} else {
+								hist_answer_text = hist_answer;
+							}
+							var hc = rcqa.find('.answered-history-item-container.template-item').clone();
+							hc.attr('id', hist_id);
+							hc.removeClass('template-item');
+							hc.find('.current-answer').text(hist_answer_text);
+							hc.find('.answer-bond-value').text(hist['bond']);
+							hc.find('.answerer').text(hist['answerer']);
+							var found = false;
+							rcqa.find('.answered-history-item-container').each( function() {
+								if (!found && (ranking > $(this).attr('data-ranking'))) {
+									hc.insertBefore($(this));
+									found = true;
+								}
+							});
+							if (!found) {
+								hc.insertAfter(rcqa.find('.answered-history-item-container.template-item'));
+							}
+							hc.css('display', 'block');
+
+
+						} else {
+							console.log(e);
+						}
+					});
+				});
+
+			});	
+			
+			rcqa.insertAfter($('#qa-detail-container'));
+		}
+
+		entry.find('.need-data-target-id').attr('data-target-id', rcqa_id);
+		entry.find('.rcbrowser-inner').css('height', '400px');
 		
+		// TODO: Slim this down to just this item
+		setRCBAnchor();
+		//rcbrowserHeight();
+
+		entry.css('display', 'block');
+
 	}
 
 	function displayQuestion(question_log) {
-        console.log('question', question_log);
+        //console.log('question', question_log);
         RealityCheck.deployed().then(function(rc) {
 			return rc.questions.call(question_log.question_id);
 		}).then(function(question_data) {
@@ -1349,14 +1487,18 @@ import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 	}
 
     (function() {
-        console.log('got RealityCheck', RealityCheck);
+		console.log('accounts', web3.eth.accounts);
+		Arbitrator.deployed().then(function(arb) {
+			$('option.default-arbitrator-option').val(arb.address);
+		});
+        //console.log('got RealityCheck', RealityCheck);
         RealityCheck.deployed().then(function(rc) {
-        	console.log('got deployed')
+        	//console.log('got deployed')
         	return rc.LogNewQuestion({}, {fromBlock:0x00, toBlock:'latest'});
     	}).then(function(question_posted) {
-        	console.log('got filter');
+        	//console.log('got filter');
         	question_posted.watch(function(error, result) {
-            	console.log('in watch', error, result);
+            	//console.log('in watch', error, result);
             	if (error === null) {
                 	var question_id = result.args.question_id;
                 	displayQuestion(result.args);

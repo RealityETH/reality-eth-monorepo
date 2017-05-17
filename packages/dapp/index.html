@@ -327,6 +327,8 @@
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--your-qa -->
 
+    <div style="" id="qa-detail-container"></div>
+
     <div class="rcbrowser rcbrowser--qa-detail rcbrowser--qa-detail--single-select rcbrowser--qa-detail--resolved" data-browser-id="id9">
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
@@ -1029,7 +1031,7 @@
                         <div class="select-container select-container--arbitrator select-container--has-quick-help">
                             <select name="arbitrator" class="rcbrowser-select form-item">
                                 <option value="default">Arbitrator</option>
-                                <option value="free-text" SELECTED>Jonh Doe</option>
+                                <option class="default-arbitrator-option" value="" SELECTED>Reality Keys</option>
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
@@ -1039,7 +1041,7 @@
                         </div>
 
                         <div class="select-container select-container--step-delay select-container--has-quick-help">
-                            <select name="stepDelay" class="rcbrowser-select form-item">
+                            <select name="step-delay" class="rcbrowser-select form-item">
                                 <option value="default">Step Delay</option>
                                 <option value="1">1 day</option>
                                 <option value="2" SELECTED>2 day</option>
@@ -1088,7 +1090,7 @@
 
                     <div class="questions__item template-item" style="display:none">
                         <div class="questions__item-inner">
-                            <a class="questions__item__title rcbrowser__open-button" href="" data-target-id="id1">
+                            <a class="questions__item__title rcbrowser__open-button need-data-target-id" href="">
                                 <span class="question-title"></span>
                             </a>
                             <div class="questions__item__footer">
@@ -1097,6 +1099,122 @@
                             </div>
                         </div>
                     </div>
+
+
+    <div style="display:none" class="template-item rcbrowser rcbrowser--qa-detail rcbrowser--qa-detail--number">
+        <div class="rcbrowser-inner">
+            <div class="rcbrowser-header">
+                <div class="rcbrowser-control">
+                    <span class="rcbrowser__close-button need-data-target-id"></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <div class="rcbrowser-loader-container">
+                    <span class="loader"></span>
+                </div>
+            </div>
+
+            <div class="rcbrowser-main">
+                <div class="rcbrowser-main-header">
+                    <div class="rcbrowser-main-header-date">May 10, 2017 - <a href="">Technology / Science</a></div>
+
+                    <h2 class="rcbrowser-main-header-title question-title"></h2>
+
+                    <div class="rcbrowser-main-header-subtitle">
+                        <span class="reward-value-container">Reward: <span class="reward-value">1.25</span> ETH</span>
+                        <span class="add-reward-button" data-browser-id="id5">+ Add Reward</span>
+                    </div>
+
+                    <div class="add-reward-container">
+                        <div class="add-reward">
+                            <div class="add-reward-inner clearfix">
+                                <form action="" method="post" class="rcbrowser-form" data-form-type="add-reward">
+                                    <div class="input-container">
+                                        <div class="input-inner">
+                                            <span class="input-header">Reward (ETH):</span>
+                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                        </div>
+                                        <div class="error-container">Please enter reward.</div>
+                                    </div>
+
+                                    <div class="submit-container">
+                                        <input type="submit" class="rcbrowser-submit rcbrowser-submit--add-reward button--bounce" value="+ Add Reward" data-browser-id="id5" data-form-type="add-reward">
+                                    </div>
+                                </form>
+
+                                <div class="add-reward__close-button" data-browser-id="id5">
+                                    <span>Close</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rcbrowser-main-body">
+                    <div class="answer-deadline" data-browser-id="id5">Answer Deadline: 08/03/2017 6:24 AM</div>
+
+                    <div class="clearfix">
+                        <a href="" class="arbitration-button">Apply for arbitration to <span class="arbitrator"></span> at <span class="arbitration-fee"></span> ETH</a>
+                    </div>
+
+                    <div class="current-answer-container">
+                        <div class="current-answer-inner"><div class="current-answer-header"><span>Current Answer</span></div><div class="answer-item current-answer-item"><div class="current-answer-body"><p><span class="current-answer"></span></p></div><span class="current-answer-time">3 munites ago</span><div class="answer-data"><div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div><div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div><div class="answer-data__item answer-data__bond answer-data__bond--current"><span>Bond: </span><span class="answer-bond-value"></span><span>ETH</span></div></div></div></div></div>
+                    </div>
+
+                    <div class="answered-history-container">
+                        <div class="answered-history-header"><span>Answered History</span></div>
+                        <div class="answered-history-item-container template-item" style="display:none">
+                            <div class="answer-item answered-history-item">
+                                <div class="answered-history-body"><p><span class="current-answer"></span></p></div>
+                                <div class="answer-data">
+                                    <div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div></div>
+                                    <div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div>
+                                    <div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="answer-bond-value"></span><span> ETH</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="answer-form-container">
+                        <div class="answer-form-header">
+                            Do you know the answer to this question?
+                        </div>
+
+                        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+                            <div class="input-container">
+                                <div class="input-inner">
+                                    <span class="input-header">Enter the Answer:</span>
+                                    <input type="number" name="numberAnswer" id="question-number" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--answer form-item form-item-value" placeholder="0">
+                                </div>
+                                <div class="error-container">Please enter number.</div>
+                            </div>
+
+                            <div class="input-container">
+                                <div class="input-inner">
+                                    <span class="input-header">Bond (ETH):</span>
+                                    <input type="number" name="questionBondSingleSelect" id="question-bond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item" placeholder="0" data-browser-id="id5">
+                                </div>
+                                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+                            </div>
+
+                            <div class="submit-container">
+                                <input type="submit" class="rcbrowser-submit button--bounce" value="Post" data-browser-id="id5" data-form-type="answer--single-select">
+                            </div>
+
+                            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+                        </form>
+                    </div>
+                </div>
+            </div><!-- /.rcbrowser-main -->
+        </div><!-- /.rcbrowser-inner -->
+    </div><!-- /.rcbrowser--qa-detail -->
+
+
+
+
+
+
 
 
 
