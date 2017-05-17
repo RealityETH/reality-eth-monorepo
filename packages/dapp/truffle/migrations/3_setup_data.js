@@ -25,6 +25,9 @@ module.exports = function(deployer) {
        }).then(function(){
            console.log("asked question");
            rc.submitAnswer(question_id1, 4, "basic maths", {from: accs[2]}, {value: 100});
+       }).then(function(){
+           console.log("submitted answer");
+           rc.submitAnswer(question_id1, 8, "basic maths", {from: accs[1]}, {value: 250});
        });
 
         RealityCheck.deployed().then(function (instance) {
