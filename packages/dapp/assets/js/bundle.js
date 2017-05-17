@@ -26,12 +26,9 @@ var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 
-var RealityCheck = contract(rc_json);
-RealityCheck.setProvider(web3.currentProvider);
-
-// Just used to get the default arbitator address
-var Arbitrator = contract(arb_json);
-Arbitrator.setProvider(web3.currentProvider);
+// These will be populated in onready, once web3 is loaded
+var RealityCheck;
+var Arbitrator;
 
 var $ = require('jquery-browserify');
 
@@ -1479,10 +1476,10 @@ var $ = require('jquery-browserify');
 
             answer_frm.submit(function () {
                 var val = $(this).find('input[name=numberAnswer]').val();
-                var bond = $(this).find('input[name=questionBondSingleSelect]').val();
+                var submit_bond = $(this).find('input[name=questionBondSingleSelect]').val();
                 console.log('you submitted me', val, bond, question_id);
                 RealityCheck.deployed().then(function (rc) {
-                    return rc.submitAnswer(question_id, val, '', { from: web3.eth.accounts[0], value: bond });
+                    return rc.submitAnswer(question_id, val, '', { from: web3.eth.accounts[0], value: submit_bond });
                 });
                 return false;
             });
@@ -1514,7 +1511,15 @@ var $ = require('jquery-browserify');
         //return rc.answers.call(best_answer_id, {from: account});
     }
 
-    (function () {
+    $().ready(function () {
+
+        RealityCheck = contract(rc_json);
+        RealityCheck.setProvider(web3.currentProvider);
+
+        // Just used to get the default arbitator address
+        Arbitrator = contract(arb_json);
+        Arbitrator.setProvider(web3.currentProvider);
+
         console.log('accounts', web3.eth.accounts);
         Arbitrator.deployed().then(function (arb) {
             $('option.default-arbitrator-option').val(arb.address);
@@ -1537,7 +1542,7 @@ var $ = require('jquery-browserify');
         }).catch(function (e) {
             console.log(e);
         });
-    })();
+    });
 })();
 
 },{"../../../truffle/build/contracts/Arbitrator.json":320,"../../../truffle/build/contracts/RealityCheck.json":321,"bignumber.js":17,"gsap":122,"imagesloaded":131,"interact.js":134,"jquery-browserify":138,"perfect-scrollbar":151,"truffle-contract":264}],2:[function(require,module,exports){

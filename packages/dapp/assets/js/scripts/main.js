@@ -7,12 +7,9 @@ var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 
-var RealityCheck = contract(rc_json);
-RealityCheck.setProvider(web3.currentProvider);
-
-// Just used to get the default arbitator address
-var Arbitrator = contract(arb_json);
-Arbitrator.setProvider(web3.currentProvider);
+// These will be populated in onready, once web3 is loaded
+var RealityCheck; 
+var Arbitrator;
 
 var $ = require('jquery-browserify')
 
@@ -1522,7 +1519,15 @@ console.log('adding rcqa', rcqa_id);
         //return rc.answers.call(best_answer_id, {from: account});
 	}
 
-    (function() {
+    $().ready(function() {
+
+        RealityCheck = contract(rc_json);
+        RealityCheck.setProvider(web3.currentProvider);
+
+        // Just used to get the default arbitator address
+        Arbitrator = contract(arb_json);
+        Arbitrator.setProvider(web3.currentProvider);
+
 		console.log('accounts', web3.eth.accounts);
 		Arbitrator.deployed().then(function(arb) {
 			$('option.default-arbitrator-option').val(arb.address);
@@ -1545,7 +1550,6 @@ console.log('adding rcqa', rcqa_id);
 		}).catch(function (e) {
 		  console.log(e);
 		});
-    })();
-
+    });
 
 }());
