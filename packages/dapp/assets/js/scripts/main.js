@@ -1,5 +1,5 @@
 // TODO: Check if there was a reason to do this instead of import
-require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
+//require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
 
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
@@ -19,8 +19,8 @@ var $ = require('jquery-browserify')
 import imagesLoaded from 'imagesloaded';
 import interact from 'interact.js';
 import Ps from 'perfect-scrollbar';
-//import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
-import {TweenLite, Power3} from 'gsap';
+import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
+//import {TweenLite, Power3} from 'gsap';
 
 (function() {
     'use strict';
@@ -1413,6 +1413,19 @@ console.log('adding rcqa', rcqa_id);
 				rcqa.find('.current-answer-container .answerer').text(answerer);
 				rcqa.find('.current-answer-container .answer-bond-value').text(bond);
 
+				rcqa.find('.answer-item').click( function() {
+					if (!this.hasClass('is-open')) {
+						this.addClass('is-open');
+						$(this).find('.answer-data').css('display', 'block').addClass('is-bounce');
+					} else {
+						this.removeClass('is-open');
+						$(this).find('.answer-data').css('display', 'none').removeClass('is-bounce');
+					}
+				});
+
+
+
+
 				RealityCheck.deployed().then(function(rc) {
 					return rc.LogNewAnswer({'question_id': question_id}, {fromBlock:0x00, toBlock:'latest'});
 				}).then(function(answer_posted) {
@@ -1448,7 +1461,16 @@ console.log('adding rcqa', rcqa_id);
 								hc.insertAfter(rcqa.find('.answered-history-item-container.template-item'));
 							}
 							hc.css('display', 'block');
-
+			
+							hc.find('.answer-item').click( function() {
+								if (!this.hasClass('is-open')) {
+									this.addClass('is-open');
+									$(this).find('.answer-data').css('display', 'block').addClass('is-bounce');
+								} else {
+									this.removeClass('is-open');
+									$(this).find('.answer-data').css('display', 'none').removeClass('is-bounce');
+								}
+							});
 
 						} else {
 							console.log(e);
