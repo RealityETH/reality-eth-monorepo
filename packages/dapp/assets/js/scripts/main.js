@@ -1385,14 +1385,16 @@ console.log('adding rcqa', rcqa_id);
 			}).then(function(fee) { 
 				rcqa.find('.arbitration-fee').text(fee);
 			});
-	
-			console.log(best_answer_id);
 
+            
 			var answer;
 			var answerer;
 			var bond;
 			var answered_ts;
 			var evidence;
+
+            var answer_frm = rcqa.find('form[name=answer-form]');
+
 			RealityCheck.deployed().then(function(rc) {
 				return rc.answers.call(best_answer_id);	
 			}).then(function(ans) {
@@ -1413,6 +1415,9 @@ console.log('adding rcqa', rcqa_id);
 				rcqa.find('.current-answer-container .answerer').text(answerer);
 				rcqa.find('.current-answer-container .answer-bond-value').text(bond);
 
+                answer_frm.find('input[name=questionBondSingleSelect]').val(bond*2);
+                answer_frm.find('input[name=questionBondSingleSelect]').attr('data-min-bond',bond*2);
+
 				rcqa.find('.answer-item').click( function() {
 					if (!this.hasClass('is-open')) {
 						this.addClass('is-open');
@@ -1422,9 +1427,6 @@ console.log('adding rcqa', rcqa_id);
 						$(this).find('.answer-data').css('display', 'none').removeClass('is-bounce');
 					}
 				});
-
-
-
 
 				RealityCheck.deployed().then(function(rc) {
 					return rc.LogNewAnswer({'question_id': question_id}, {fromBlock:0x00, toBlock:'latest'});
@@ -1479,6 +1481,18 @@ console.log('adding rcqa', rcqa_id);
 				});
 
 			});	
+
+
+            answer_frm.submit( function() {
+                var val = $(this).find('input[name=numberAnswer]').val();
+                var submit_bond = $(this).find('input[name=questionBondSingleSelect]').val();
+                console.log('you submitted me', val, bond, question_id);
+                RealityCheck.deployed().then(function(rc) {
+                    return rc.submitAnswer(question_id, val, '', {from: web3.eth.accounts[0], value: submit_bond});
+                });
+                return false;
+            });
+	
 			
 			rcqa.insertAfter($('#qa-detail-container'));
 		}
