@@ -434,7 +434,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -533,7 +533,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -602,7 +602,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -703,7 +703,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -800,7 +800,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -899,7 +899,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward"  class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -962,11 +962,11 @@
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
 
-    <div class="rcbrowser rcbrowser--postaquestion" data-browser-id="id0">
+    <div id="post-a-question-window" class="rcbrowser rcbrowser--postaquestion" data-browser-id="id0">
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
                 <div class="rcbrowser-control">
-                    <span class="rcbrowser__close-button" data-target-id="id0"></span>
+                    <span id="close-question-window" class="rcbrowser__close-button" data-target-id="id0"></span>
                     <span></span>
                     <span></span>
                 </div>
@@ -984,21 +984,20 @@
                     <form name="postaquestion" action="" method="post" class="rcbrowser-form" data-form-type="question">
 
                         <div class="textarea-container textarea-container--postaquestion">
-                            <textarea name="question-body" class="rcbrowser-textarea form-item" placeholder="Enter your question...">OINK</textarea>
+                            <textarea id="question-body" name="question-body" class="rcbrowser-textarea form-item" placeholder="Enter your question...">OINK</textarea>
                             <div class="error-container">Please enter your question.</div>
-
                         </div>
 
                         <div class="input-container">
                             <div class="input-inner">
                                 <span class="input-header">Reward (ETH):</span>
-                                <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--reward form-item" placeholder="0" VALUE="1">
+                                <input  id="question-reward" type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="1">
                             </div>
                             <div class="error-container">Please enter reward.</div>
                         </div>
 
                         <div class="select-container">
-                            <select name="question-type" id="question-type" class="rcbrowser-select form-item">
+                            <select id="question-type" name="question-type" class="rcbrowser-select form-item">
                                 <option value="default">Question Type</option>
                                 <option value="free-text" >Free Text</option>
                                 <option value="binary" SELECTED>Binary (Yes/No)</option>
@@ -1009,18 +1008,18 @@
                             <div class="error-container">Please select question type.</div>
                         </div>
 
-                        <div class="edit-option-container">
+                        <div id="answer-option-container" class="edit-option-container">
                             <div class="edit-option">
                                 <div class="edit-option-inner clearfix">
                                     <div class="edit-option-header">
                                         Edit options
                                     </div>
 
-                                    <div class="input-container input-container--edit-option">
-                                        <input type="text" name="editOption0" class="rcbrowser-input rcbrowser-input--edit-option form-item" placeholder="Enter the option...">
+                                    <div id="first-answer-option" class="input-container">
+                                        <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
                                     </div>
 
-                                    <div class="error-container error-container--select">Please enter at least two options.</div>
+                                    <div id="error-container--answer-option" class="error-container error-container--select">Please enter at least two options.</div>
 
                                     <div class="add-option-button">
                                         + Add a option
@@ -1029,8 +1028,8 @@
                             </div>
                         </div>
 
-                        <div class="select-container select-container--arbitrator select-container--has-quick-help">
-                            <select name="arbitrator" class="rcbrowser-select form-item">
+                        <div class="select-container select-container--has-quick-help">
+                            <select id="arbitrator" name="arbitrator" class="rcbrowser-select form-item">
                                 <option value="default">Arbitrator</option>
                                 <option class="default-arbitrator-option" value="" SELECTED>Reality Keys</option>
                             </select>
@@ -1041,8 +1040,8 @@
                             <div class="error-container">Please select arbitrator.</div>
                         </div>
 
-                        <div class="select-container select-container--step-delay select-container--has-quick-help">
-                            <select name="step-delay" class="rcbrowser-select form-item">
+                        <div class="select-container select-container--has-quick-help">
+                            <select id="step-delay" name="step-delay" class="rcbrowser-select form-item">
                                 <option value="default">Step Delay</option>
                                 <option value="1">1 day</option>
                                 <option value="2" SELECTED>2 day</option>
@@ -1073,7 +1072,7 @@
                             </div>
 
                             <div class="submit-container">
-                                <input type="submit" class="rcbrowser-submit rcbrowser-submit--postaquestion button--bounce" value="Post" data-browser-id="id0" data-form-type="question">
+                                <input id="post-question-submit" type="submit" class="rcbrowser-submit button--bounce" value="Post" data-browser-id="id0" data-form-type="question">
                             </div>
                         </div>
 
@@ -1084,12 +1083,7 @@
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser-postaquestion  -->
 
-    <div id="fake-metamask">
-        <span id="fake-metamask-text">METAMASK</span>
-    </div>
-
-
-                    <div class="questions__item template-item" style="display:none">
+    <div class="questions__item template-item" style="display:none">
                         <div class="questions__item-inner">
                             <a class="questions__item__title rcbrowser__open-button need-data-target-id" href="">
                                 <span class="question-title"></span>
@@ -1134,7 +1128,7 @@
                                     <div class="input-container">
                                         <div class="input-inner">
                                             <span class="input-header">Reward (ETH):</span>
-                                            <input type="number" name="question-reward" id="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
+                                            <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
                                     </div>
@@ -1212,13 +1206,6 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
-
-
-
-
-
-
-
 
 
 <script src="assets/js/bundle.js"></script>
