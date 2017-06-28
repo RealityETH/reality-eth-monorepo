@@ -17,7 +17,7 @@ contract RealityCheck {
         address indexed questioner, 
         address indexed arbitrator, 
         uint256 step_delay,
-        string question_text,
+        bytes32 question_sha256,
         uint256 default_answer
     );
 
@@ -70,7 +70,7 @@ contract RealityCheck {
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 step_delay;
-        string question_text;
+        bytes32 question_sha256;
 
         // Mutable data
         uint256 bounty;
@@ -86,9 +86,9 @@ contract RealityCheck {
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 default_answer) payable returns (bytes32) {
+    function askQuestion(bytes32 question_sha256, address arbitrator, uint256 step_delay, uint256 default_answer) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(arbitrator, step_delay, question_text, default_answer);
+        bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256, default_answer);
         if (questions[question_id].created > 0) throw;
 
         bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
@@ -105,7 +105,7 @@ contract RealityCheck {
             now,
             arbitrator,
             step_delay,
-            question_text,
+            question_sha256,
             msg.value,
             0,
             false,
@@ -113,15 +113,15 @@ contract RealityCheck {
             answer_id 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, default_answer );
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_sha256, default_answer );
         LogNewAnswer( answer_id, question_id, default_answer, msg.sender, 0, now, "");
 
         return question_id;
 
     }
 
-    function getQuestionID(string question_text, address arbitrator, uint256 step_delay, uint256 default_answer) constant returns (bytes32) {
-        return keccak256(arbitrator, step_delay, question_text, default_answer);
+    function getQuestionID(bytes32 question_sha256, address arbitrator, uint256 step_delay, uint256 default_answer) constant returns (bytes32) {
+        return keccak256(arbitrator, step_delay, question_sha256, default_answer);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {

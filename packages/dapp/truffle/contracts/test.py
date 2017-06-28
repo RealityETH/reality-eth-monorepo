@@ -6,6 +6,7 @@ from ethereum.tools.tester import TransactionFailed
 from ethereum.tools import keys
 import time
 from sha3 import sha3_256
+from hashlib import sha256
 
 import os
 
@@ -21,6 +22,9 @@ QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_IS_ARBITRATION_PAID_FOR = 6
 QINDEX_IS_FINALIZED = 7
 QINDEX_BEST_ANSWER_ID = 8
+
+def ipfs_hex(txt):
+    return sha256(txt).hexdigest()
 
 class TestRealityCheck(TestCase):
 
@@ -46,7 +50,7 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         self.question_id = self.rc0.askQuestion(
-            "my question",
+            decode_hex(ipfs_hex("my question")),
             self.arb0.address,
             10,
             2,
@@ -61,7 +65,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)
-        self.assertEqual(question[QINDEX_QUESTION_TEXT], "my question")
+        self.assertEqual(question[QINDEX_QUESTION_TEXT], decode_hex(ipfs_hex("my question")))
         self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
