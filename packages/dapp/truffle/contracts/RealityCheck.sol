@@ -60,12 +60,11 @@ contract RealityCheck {
         uint256 answer;
         address answerer;
         uint256 bond;
-        uint256 ts;
         bytes32 evidence_sha256;
     }
 
     struct Question {
-        uint256 created;
+        uint256 last_changed_ts;
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
@@ -90,7 +89,7 @@ contract RealityCheck {
     function askQuestion(bytes32 question_sha256, address arbitrator, uint256 step_delay, uint256 default_answer) payable returns (bytes32) {
 
         bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256, default_answer);
-        if (questions[question_id].created > 0) throw;
+        if (questions[question_id].last_changed_ts > 0) throw;
 
         bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
         answers[answer_id] = Answer(
@@ -98,7 +97,6 @@ contract RealityCheck {
             default_answer,
             msg.sender,
             0,
-            now,
             0x0 
         );
 
@@ -125,7 +123,7 @@ contract RealityCheck {
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
-        if (questions[question_id].created == 0) throw; // Check existence
+        if (questions[question_id].last_changed_ts == 0) throw; // Check existence
         callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
@@ -150,7 +148,7 @@ contract RealityCheck {
             if (msg.value < (answers[best_answer_id].bond * 2)) throw;
 
             // Once the delay has past you can no longer change it, you have to finalize
-            if (now > (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
+            if (now > (questions[question_id].last_changed_ts + questions[question_id].step_delay) ) throw;
 
         }
 
@@ -161,7 +159,6 @@ contract RealityCheck {
             answer,
             msg.sender,
             msg.value,
-            now,
             evidence_sha256
         );
 
@@ -176,6 +173,7 @@ contract RealityCheck {
         );
 
         questions[question_id].best_answer_id = answer_id;
+        questions[question_id].last_changed_ts = now;
 
         if (msg.sender == questions[question_id].arbitrator) {
             finalizeByArbitrator(answer_id);
@@ -200,8 +198,7 @@ contract RealityCheck {
     }
 
     function getEarliestFinalizationTS(bytes32 question_id) constant returns (uint256) {
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
-        return (answers[best_answer_id].ts + questions[question_id].step_delay);
+        return (questions[question_id].last_changed_ts + questions[question_id].step_delay);
     }
 
     function finalize(bytes32 question_id) {
@@ -209,7 +206,7 @@ contract RealityCheck {
         if (questions[question_id].is_finalized) throw;
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-        if (now < (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
+        if (now < (questions[question_id].last_changed_ts + questions[question_id].step_delay) ) throw;
         if (questions[question_id].is_arbitration_paid_for) throw;
 
         questions[question_id].is_finalized = true;
@@ -279,7 +276,7 @@ contract RealityCheck {
     }
 
     function fundAnswerBounty(bytes32 question_id) payable {
-        if (questions[question_id].created == 0) throw; 
+        if (questions[question_id].last_changed_ts == 0) throw; 
         if (questions[question_id].is_finalized) throw;
         questions[question_id].bounty += msg.value;
     }
@@ -292,7 +289,7 @@ contract RealityCheck {
 
         uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
 
-        if (questions[question_id].created == 0) throw;
+        if (questions[question_id].last_changed_ts == 0) throw;
         if (questions[question_id].is_finalized) throw;
 
         arbitration_bounties[question_id] += msg.value;
