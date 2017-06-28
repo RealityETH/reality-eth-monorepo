@@ -13,6 +13,12 @@ var Arbitrator;
 
 var account;
 
+var timeline_best = [];
+var timeline_latest = [];
+var timeline_high_reward = [];
+var timeline_resolved = [];
+var timeline_pointer = {'latest':0, 'high-reward':0, 'resolved':0};
+
 var $ = require('jquery-browserify')
 
 import imagesLoaded from 'imagesloaded';
@@ -362,23 +368,10 @@ window.dragMoveListener = dragMoveListener;
 (function() {
     function loadHandler() {
         imagesLoaded( document.getElementById('cover'), { background: true }, function() {
-            document.body.addClass('is-page-loaded');
+            $('<body>').addClass('is-page-loaded');
         });
     }
     window.addEventListener('load', loadHandler);
-})();
-
-// loadmore loading
-(function() {
-    const elements = document.querySelectorAll('.loadmore-button');
-
-    function clickHandler() {
-        this.toggleClass('is-loading');
-    }
-
-    for (let i = 0, len = elements.length; i < len; i += 1) {
-        elements[i].addEventListener('click', clickHandler);
-    }
 })();
 
 // smooth scroll
@@ -577,25 +570,17 @@ $('#question-type,#step-delay,#arbitrator').on('change', function (e) {
     }
 });
 
-function populateSection(section_name, question_log, question_data) {
-
-    var question_id = question_log['question_id'];
-    var question_cls = 'question-'+question_id;
-    var section = $('.' + section_name);
-
-    //console.log('cnt items in section', section, question_cls, section.find('.'+question_cls).size());
-
-    if (section.find('.'+question_cls).size() > 0) {
-        // already found
-        return;
-    }
+function populateSection(section_name, question_data, initial) {
+    var question_item_id = 'question-'+question_data[0];
+    section_name = '#' + section_name;
+    var section = $(section_name);
 
     var question_json;
     try {
-        question_json = JSON.parse(question_data[3]);
+        question_json = JSON.parse(question_data[4]);
     } catch(e) {
         question_json = {
-          'title': question_data[3]
+            'title': question_data[4]
         };
     }
 
@@ -605,240 +590,175 @@ function populateSection(section_name, question_log, question_data) {
             options = options + i + ':' + question_json['outcomes'][i] + ', ';
         }
     }
-    var posted_ts = question_data[0];
-    var arbitrator = question_data[1];
-    var step_delay = question_data[2];
-    var question_text_raw = question_data[3];
-    var deadline = question_data[4];
-    var bounty = question_data[5];
-    var arbitration_bounty = question_data[6];
-    var is_arbitration_paid_for = question_data[7];
-    var is_finalized = question_data[8];
-    var best_answer_id = question_data[9];
 
-    // Set an attribute in the document for a number to sort by, highest first
-    var ranking = 0;
-    switch (section_name) {
-        case 'questions-latest':
-            ranking = posted_ts.toNumber();
-            break;
-        case 'questions-high-reward':
-            ranking = bounty.toNumber();
-            break;
-    }
+    var posted_ts = question_data[1];
+    var arbitrator = question_data[2];
+    var step_delay = question_data[3];
+    var question_text_raw = question_data[4];
+    var deadline = question_data[5];
+    var bounty = question_data[6];
+    var arbitration_bounty = question_data[7];
+    var is_arbitration_paid_for = question_data[8];
+    var is_finalized = question_data[9];
+    var best_answer_id = question_data[10];
 
-    //console.log('populate with title', question_json['title']);
     var entry = $('.questions__item.template-item').clone();
-    entry.addClass(question_cls).removeClass('template-item');
+    entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.question-title').text(question_json['title']);
     entry.find('.question-age').text(posted_ts);
     entry.find('.question-bounty').text(bounty);
-
-    // TODO: Check if bignumber survives the round-trip for the relevant range
-    entry.attr('data-ranking', ranking);
-
-    // Look down the list until we get something lower, then prepend
-    var found = false;
-    section.find('.questions-list .questions__item').each( function() {
-        //if (!found && ranking.gt(new BigNumber($(this).attr('data-ranking')))) {}
-        if (!found && (ranking > $(this).attr('data-ranking'))) {
-            entry.insertBefore($(this));
-            found = true;
-        }
-
-    });
-    if (!found) {
-        section.find('.questions-list').append(entry);
-    }
-
-    var rcqa_id = 'qadetail-' + question_id;
-    if (!document.getElementById(rcqa_id)) {
-        console.log('adding rcqa', rcqa_id);
-        var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-        rcqa.attr('id', rcqa_id);
-        rcqa.attr('data-browser-id', rcqa_id);
-        rcqa.removeClass('template-item')
-        rcqa.find('.need-data-target-id').attr('data-target-id', rcqa_id);
-
-        rcqa.find('.question-title').text(question_json['title']);
-        rcqa.find('.reward-value').text(bounty.toString());
-        rcqa.find('.arbitrator').text(arbitrator);
-
-        rcqa.css('display', 'block');
-
-        Arbitrator.at(arbitrator).then(function(arb) {
-            return arb.getFee.call(question_id);
-        }).then(function(fee) {
-            rcqa.find('.arbitration-fee').text(fee);
-        });
-
-
-        var answer;
-        var answerer;
-        var bond;
-        var answered_ts;
-        var evidence;
-
-        var answer_frm = rcqa.find('form[name=answer-form]');
-
-        RealityCheck.deployed().then(function(rc) {
-            return rc.answers.call(best_answer_id);
-        }).then(function(ans) {
-            // ans[0] is question_id
-            answer = ans[1];
-            answerer = ans[2];
-            bond = ans[3];
-            answered_ts = ans[4];
-            evidence = ans[5];
-            var answer_text;
-            if ( ('outcomes' in question_json) ) {
-                answer_text = question_json['outcomes'][answer];
-            } else {
-                answer_text = answer;
-            }
-            rcqa.find('.current-answer-container .current-answer').text(answer_text);
-            rcqa.find('.current-answer-container .current-answer-time').text(answered_ts);
-            rcqa.find('.current-answer-container .answerer').text(answerer);
-            rcqa.find('.current-answer-container .answer-bond-value').text(bond);
-
-            answer_frm.find('input[name=questionBondSingleSelect]').val(bond*2);
-            answer_frm.find('input[name=questionBondSingleSelect]').attr('data-min-bond',bond*2);
-
-            rcqa.find('.answer-item').click( function() {
-                if (!this.hasClass('is-open')) {
-                    this.addClass('is-open');
-                    $(this).find('.answer-data').css('display', 'block').addClass('is-bounce');
-                } else {
-                    this.removeClass('is-open');
-                    $(this).find('.answer-data').css('display', 'none').removeClass('is-bounce');
-                }
-            });
-
-            RealityCheck.deployed().then(function(rc) {
-                return rc.LogNewAnswer({'question_id': question_id}, {fromBlock:0x00, toBlock:'latest'});
-            }).then(function(answer_posted) {
-                answer_posted.watch(function(error, result) {
-                    if (error === null) {
-                        var hist = result['args'];
-                        var hist_id = 'answer-' + hist['answer_id'];
-                        if (document.getElementById(hist_id)) {
-                            return; // already got it
-                        }
-
-                        var hist_answer = hist['answer'];
-                        var hist_answer_text
-                        if ( ('outcomes' in question_json) ) {
-                            hist_answer_text = question_json['outcomes'][hist_answer];
-                        } else {
-                            hist_answer_text = hist_answer;
-                        }
-                        var hc = rcqa.find('.answered-history-item-container.template-item').clone();
-                        hc.attr('id', hist_id);
-                        hc.removeClass('template-item');
-                        hc.find('.current-answer').text(hist_answer_text);
-                        hc.find('.answer-bond-value').text(hist['bond']);
-                        hc.find('.answerer').text(hist['answerer']);
-                        var found = false;
-                        rcqa.find('.answered-history-item-container').each( function() {
-                            if (!found && (ranking > $(this).attr('data-ranking'))) {
-                                hc.insertBefore($(this));
-                                found = true;
-                            }
-                        });
-                        if (!found) {
-                            hc.insertAfter(rcqa.find('.answered-history-item-container.template-item'));
-                        }
-                        hc.css('display', 'block');
-
-                        hc.find('.answer-item').click( function() {
-                            if (!this.hasClass('is-open')) {
-                                this.addClass('is-open');
-                                $(this).find('.answer-data').css('display', 'block').addClass('is-bounce');
-                            } else {
-                                this.removeClass('is-open');
-                                $(this).find('.answer-data').css('display', 'none').removeClass('is-bounce');
-                            }
-                        });
-
-                    } else {
-                        console.log(e);
-                    }
-                });
-            });
-
-        });
-
-
-        answer_frm.submit( function() {
-            var val = $(this).find('input[name=numberAnswer]').val();
-            var submit_bond = $(this).find('input[name=questionBondSingleSelect]').val();
-            console.log('you submitted me', val, bond, question_id);
-            RealityCheck.deployed().then(function(rc) {
-                return rc.submitAnswer(question_id, val, '', {from: web3.eth.accounts[0], value: submit_bond});
-            });
-            return false;
-        });
-
-
-        rcqa.insertAfter($('#qa-detail-container'));
-    }
-
-    entry.find('.need-data-target-id').attr('data-target-id', rcqa_id);
-    entry.find('.rcbrowser-inner').css('height', '400px');
-
-    // TODO: Slim this down to just this item
-    setRCBAnchor();
-    //rcbrowserHeight();
-
     entry.css('display', 'block');
 
+    if (initial) {
+        section.children('.questions-list').prepend(entry);
+    } else {
+        section.children('.questions-list').append(entry);
+    }
+
 }
 
-function displayQuestion(question_log) {
-    //console.log('question', question_log);
-    RealityCheck.deployed().then(function(rc) {
-        return rc.questions.call(question_log.question_id);
-    }).then(function(question_data) {
-        populateSection('questions-best', question_log, question_data);
-        populateSection('questions-high-reward', question_log, question_data);
-        //populateSection('questions-resolved', question_log, question_data);
-        populateSection('questions-latest', question_log, question_data);
-        return;
+function makeTimeline(question, initial) {
+    return new Promise(function (resolve, reject) {
+        RealityCheck.deployed().then(function (rc) {
+            return rc.questions.call(question.args.question_id);
+        }).then(function (question_data) {
+            question_data.unshift(question.args.question_id);
+            //console.log('question data', question_data);
+
+            // latest and resolved
+            var found = false;
+            for (var i = 0; i < timeline_latest.length; i++) {
+                if (question_data[1].toNumber() < timeline_latest[i][1].toNumber()) {
+                    if (question_data[9]) {
+                        // resolved
+                        //timeline_resolved.push(question_data);
+                    }
+                    timeline_latest.splice(i, 0, question_data);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found || timeline_latest.length == 0) {
+                timeline_latest.push(question_data);
+            }
+
+            // high reward
+            var found = false;
+            for (var i = 0; i < timeline_high_reward.length; i++) {
+                if (question_data[6].toNumber() < timeline_high_reward[i][6].toNumber()) {
+                    timeline_high_reward.splice(i, 0, question_data);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found || timeline_high_reward.length == 0) {
+                timeline_high_reward.push(question_data);
+            }
+
+            if (!initial) {
+                populateSection('questions-latest', question_data);
+                populateSection('questions-high-reward', question_data);
+            }
+            resolve();
+        }).catch(function (e) {
+            console.log(e);
+        });
     });
-    //return rc.answers.call(best_answer_id, {from: account});
-}
+};
+
+$('#loadmore-latest').on('click', function(e){
+    var from = timeline_pointer['latest'] - 1;
+    var to = timeline_pointer['latest'] - 3;
+    for (var i = from; i >= to; i--) {
+        populateSection('questions-latest', timeline_latest[i], false);
+    }
+    timeline_pointer['latest'] = to;
+
+    console.log(timeline_pointer);
+});
+
+$('#loadmore-high-reward').on('click', function(e){
+    var from = timeline_pointer['high-reward'] - 1;
+    var to = timeline_pointer['high-reward'] - 3;
+    for (var i = from; i >= to; i--) {
+        populateSection('questions-high-reward', timeline_high_reward[i], false);
+    }
+    timeline_pointer['high-reward'] = to;
+});
 
 window.onload = function() {
+    var rc;
 
     RealityCheck = contract(rc_json);
     RealityCheck.setProvider(web3.currentProvider);
-    //console.log('got RealityCheck', RealityCheck);
 
     // Just used to get the default arbitator address
     Arbitrator = contract(arb_json);
     Arbitrator.setProvider(web3.currentProvider);
-    //console.log('got Arbitrator', Arbitrator);
     Arbitrator.deployed().then(function(arb) {
         $('option.default-arbitrator-option').val(arb.address);
     });
 
-    //console.log('accounts', web3.eth.accounts);
     account = web3.eth.accounts[0];
 
-    RealityCheck.deployed().then(function(rc) {
-        //console.log('got deployed');
+    RealityCheck.deployed().then(function(instance) {
+        rc = instance;
         return rc.LogNewQuestion({}, {fromBlock:0, toBlock:'latest'});
     }).then(function(question_posted) {
-        //console.log('got filter');
-        question_posted.watch(function(error, result) {
-            console.log('in watch', error, result);
+
+        question_posted.get(function (error, result) {
             if (error === null) {
-                var question_id = result.args.question_id;
-                displayQuestion(result.args);
+                console.log(result);
+
+                result.reduce(function (prevValue, currentValue) {
+                    return prevValue.then(function () {
+                        return makeTimeline(currentValue, true);
+                    });
+                }, Promise.resolve()).then(function(result){
+                    var length = timeline_latest.length;
+                    if (length < 4) {
+                        var from = 0;
+                        var to = length;
+                    } else {
+                        var from = length - 3;
+                        var to = length;
+                    }
+                    for (var i = from; i < to; i++) {
+                        populateSection('questions-latest', timeline_latest[i], true);
+                    }
+                    timeline_pointer['latest'] = from;
+
+                    var length = timeline_high_reward.length;
+                    if (length < 4) {
+                        var from = 0;
+                        var to = length;
+                    } else {
+                        var from = length - 3;
+                        var to = length;
+                    }
+                    for (var i = from; i < to; i++) {
+                        populateSection('questions-high-reward', timeline_high_reward[i], true);
+                    }
+                    timeline_pointer['high-reward'] = from;
+
+                    return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
+                }).then(function(question_posted) {
+                    question_posted.watch(function (error, result) {
+                        console.log('watch new questions', result);
+                        if (error === null) {
+                            makeTimeline(result, false);
+                        } else {
+                            console.log(error);
+                        }
+                    });
+                }).catch(function(e){
+                    console.log(e);
+                });
             } else {
-                console.log(e);
+                console.log(error);
             }
         });
+
     }).catch(function (e) {
         console.log(e);
     });
