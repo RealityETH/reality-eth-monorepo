@@ -39,7 +39,6 @@ class TestRealityCheck(TestCase):
             "my question",
             self.arb0.address,
             10,
-            1488258341,
             2,
             value=1000
         )
@@ -53,18 +52,17 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(question[2], 10)
         self.assertEqual(question[3], "my question")
-        self.assertEqual(int(question[4]), 1488258341)
-        self.assertEqual(question[5], 1000)
+        self.assertEqual(question[4], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[5], 1000)
+        self.assertEqual(question[4], 1000)
 
         self.rc0.fundAnswerBounty(self.question_id, value=500)
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[5], 1500)
+        self.assertEqual(question[4], 1500)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
