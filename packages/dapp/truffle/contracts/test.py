@@ -53,7 +53,6 @@ class TestRealityCheck(TestCase):
             decode_hex(ipfs_hex("my question")),
             self.arb0.address,
             10,
-            2,
             value=1000
         )
 
@@ -84,24 +83,10 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id, startgas=200000)
 
-        self.s.timestamp = self.s.timestamp + 1
-        # Finalize should fail if too soon (somewhat later case
+        self.s.timestamp = self.s.timestamp + 11
+        # Finalize should fail if there is no answer
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id, startgas=200000)
-
-        question = self.rc0.questions(self.question_id)
-
-        self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
-
-        question = self.rc0.questions(self.question_id)
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 2)
-
-        # submitAnswer should fail once finalized
-        with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), startgas=200000) 
 
         return
 

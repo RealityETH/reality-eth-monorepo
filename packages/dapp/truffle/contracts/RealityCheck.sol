@@ -17,8 +17,7 @@ contract RealityCheck {
         address indexed questioner, 
         address indexed arbitrator, 
         uint256 step_delay,
-        bytes32 question_sha256,
-        uint256 default_answer
+        bytes32 question_sha256
     );
 
     event LogNewAnswer(
@@ -86,20 +85,12 @@ contract RealityCheck {
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(bytes32 question_sha256, address arbitrator, uint256 step_delay, uint256 default_answer) payable returns (bytes32) {
+    function askQuestion(bytes32 question_sha256, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256, default_answer);
+        bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256);
         if (questions[question_id].last_changed_ts > 0) throw;
 
-        bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
-        answers[answer_id] = Answer(
-            question_id,
-            default_answer,
-            msg.sender,
-            0,
-            0x0 
-        );
-
+        bytes32 answer_id;
         questions[question_id] = Question(
             now,
             arbitrator,
@@ -111,8 +102,7 @@ contract RealityCheck {
             answer_id 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_sha256, default_answer );
-        LogNewAnswer( answer_id, question_id, default_answer, msg.sender, 0, now, "");
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_sha256);
 
         return question_id;
 
@@ -202,8 +192,12 @@ contract RealityCheck {
     }
 
     function finalize(bytes32 question_id) {
+
+        bytes32 NULL_BYTES;
+        if (questions[question_id].best_answer_id == NULL_BYTES) throw;
         
         if (questions[question_id].is_finalized) throw;
+
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
         if (now < (questions[question_id].last_changed_ts + questions[question_id].step_delay) ) throw;
