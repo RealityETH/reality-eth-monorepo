@@ -28,7 +28,7 @@ contract RealityCheck {
         address indexed answerer,
         uint256 bond,
         uint256 ts,
-        string evidence
+        bytes32 evidence_sha256
     );
 
     event LogFundAnswerBounty(
@@ -61,7 +61,7 @@ contract RealityCheck {
         address answerer;
         uint256 bond;
         uint256 ts;
-        string evidence;
+        bytes32 evidence_sha256;
     }
 
     struct Question {
@@ -133,7 +133,7 @@ contract RealityCheck {
         return keccak256(question_id, sender, amount);
     }
 
-    function submitAnswer(bytes32 question_id, uint256 answer, string evidence) payable returns (bytes32) {
+    function submitAnswer(bytes32 question_id, uint256 answer, bytes32 evidence_sha256) payable returns (bytes32) {
 
         if (questions[question_id].is_finalized) throw;
 
@@ -162,7 +162,7 @@ contract RealityCheck {
             msg.sender,
             msg.value,
             now,
-            evidence
+            evidence_sha256
         );
 
         LogNewAnswer(
@@ -172,7 +172,7 @@ contract RealityCheck {
             msg.sender,
             msg.value,
             now,
-            evidence
+            evidence_sha256
         );
 
         questions[question_id].best_answer_id = answer_id;
