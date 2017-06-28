@@ -74,7 +74,6 @@ contract RealityCheck {
 
         // Mutable data
         uint256 bounty;
-        uint256 arbitration_bounty;
         bool is_arbitration_paid_for;
         bool is_finalized;
         bytes32 best_answer_id;
@@ -82,6 +81,8 @@ contract RealityCheck {
 
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Answer) public answers;
+
+    mapping(bytes32 => uint256) public arbitration_bounties;
 
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
@@ -98,7 +99,7 @@ contract RealityCheck {
             msg.sender,
             0,
             now,
-            "" 
+            0x0 
         );
 
         questions[question_id] = Question(
@@ -107,7 +108,6 @@ contract RealityCheck {
             step_delay,
             question_sha256,
             msg.value,
-            0,
             false,
             false,
             answer_id 
@@ -228,8 +228,8 @@ contract RealityCheck {
         questions[question_id].best_answer_id = answer_id;
         questions[question_id].is_finalized = true;
 
-        balances[msg.sender] = balances[msg.sender] + questions[question_id].arbitration_bounty;
-        questions[question_id].arbitration_bounty = 0;
+        balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
+        arbitration_bounties[question_id] = 0;
 
         LogFinalize(question_id, answer_id, answers[answer_id].answer);
 
@@ -295,9 +295,9 @@ contract RealityCheck {
         if (questions[question_id].created == 0) throw;
         if (questions[question_id].is_finalized) throw;
 
-        questions[question_id].arbitration_bounty += msg.value;
+        arbitration_bounties[question_id] += msg.value;
 
-        if (questions[question_id].arbitration_bounty >= arbitration_fee) {
+        if (arbitration_bounties[question_id] >= arbitration_fee) {
             questions[question_id].is_arbitration_paid_for = true;
             return true;
         }
