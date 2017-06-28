@@ -90,7 +90,7 @@ contract RealityCheck {
         bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256);
         if (questions[question_id].last_changed_ts > 0) throw;
 
-        bytes32 answer_id;
+        bytes32 NULL_BYTES;
         questions[question_id] = Question(
             now,
             arbitrator,
@@ -99,7 +99,7 @@ contract RealityCheck {
             msg.value,
             false,
             false,
-            answer_id 
+            NULL_BYTES 
         );
 
         LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_sha256);
