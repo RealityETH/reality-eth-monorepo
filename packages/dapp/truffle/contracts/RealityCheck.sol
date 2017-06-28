@@ -129,16 +129,16 @@ contract RealityCheck {
 
             if (questions[question_id].is_arbitration_paid_for) throw;
 
+            bytes32 NULL_BYTES;
             bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-            // The default answer can be 0, but anything added later must be positive
-            if (msg.value == 0) throw; 
-
-            // You have to double every time
-            if (msg.value < (answers[best_answer_id].bond * 2)) throw;
-
-            // Once the delay has past you can no longer change it, you have to finalize
-            if (now > (questions[question_id].last_changed_ts + questions[question_id].step_delay) ) throw;
+            if (best_answer_id != NULL_BYTES) {
+                if (msg.value == 0)  throw; 
+                // You have to double every time
+                if (msg.value < (answers[best_answer_id].bond * 2)) throw;
+                // Once the delay has past you can no longer change it, you have to finalize
+                if (now > (questions[question_id].last_changed_ts + questions[question_id].step_delay) ) throw;
+            }
 
         }
 
