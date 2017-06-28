@@ -85,7 +85,7 @@ contract RealityCheck {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Answer) public answers;
 
-    // question => contract => gas => bounty
+    // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) payable returns (bytes32) {
@@ -127,9 +127,9 @@ contract RealityCheck {
         return keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
     }
 
-    function fundCallbackRequest(bytes32 question_id, address client_contract, uint256 gas) payable {
+    function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
         if (questions[question_id].created == 0) throw; // Check existence
-        callback_requests[question_id][client_contract][gas] += msg.value;
+        callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
     function getAnswerID(bytes32 question_id, address sender, uint256 amount) constant returns (bytes32) {
@@ -309,10 +309,10 @@ contract RealityCheck {
 
     }
 
-    function sendCallback(bytes32 question_id, address client_contract, uint256 gas, bool no_bounty) {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) {
 
         if (!questions[question_id].is_finalized) throw;
-        if (!no_bounty && callback_requests[question_id][client_contract][gas] == 0) throw;
+        if (!no_bounty && callback_requests[question_id][client_ctrct][gas] == 0) throw;
         if (gas > msg.gas) throw;
         bytes32 answer_id = questions[question_id].best_answer_id;
 
@@ -322,10 +322,10 @@ contract RealityCheck {
 
         // Call signature argument hard-codes the result of:
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,uint256)"))
-        bool ignore = client_contract.call.gas(gas)(0x6f32be63, question_id, answers[answer_id].answer); 
+        bool ignore = client_ctrct.call.gas(gas)(0x6f32be63, question_id, answers[answer_id].answer); 
 
-        balances[msg.sender] += callback_requests[question_id][client_contract][gas];
-        callback_requests[question_id][client_contract][gas] = 0;
+        balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
+        callback_requests[question_id][client_ctrct][gas] = 0;
     }
 
     function withdraw(uint256 _value) returns (bool success) {
