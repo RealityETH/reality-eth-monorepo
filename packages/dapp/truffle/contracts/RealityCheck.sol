@@ -250,7 +250,14 @@ contract RealityCheck {
         LogClaimBond(answer_id, payee, bond);
 
         balances[payee] += bond;
-        answers[answer_id].bond = 0;
+
+        // We no longer need answers, except the final accepted one
+        if (best_answer_id == answer_id) {
+            answers[answer_id].bond = 0;
+        } else {
+            delete answers[answer_id];
+        }
+
 
     }
 
