@@ -12,6 +12,16 @@ import os
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
+QINDEX_ID = 0
+QINDEX_ARBITRATOR = 1
+QINDEX_STEP_DELAY = 2
+QINDEX_QUESTION_TEXT = 3
+QINDEX_BOUNTY = 4
+QINDEX_ARBITRATION_BOUNTY = 5
+QINDEX_IS_ARBITRATION_PAID_FOR = 6
+QINDEX_IS_FINALIZED = 7
+QINDEX_BEST_ANSWER_ID = 8
+
 class TestRealityCheck(TestCase):
 
     def setUp(self):
@@ -47,22 +57,22 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(int(question[0]), int(ts))
-        self.assertEqual(decode_hex(question[1][2:]), self.arb0.address)
+        self.assertEqual(int(question[QINDEX_ID]), int(ts))
+        self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
-        self.assertEqual(question[2], 10)
-        self.assertEqual(question[3], "my question")
-        self.assertEqual(question[4], 1000)
+        self.assertEqual(question[QINDEX_STEP_DELAY], 10)
+        self.assertEqual(question[QINDEX_QUESTION_TEXT], "my question")
+        self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[4], 1000)
+        self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
         self.rc0.fundAnswerBounty(self.question_id, value=500)
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[4], 1500)
+        self.assertEqual(question[QINDEX_BOUNTY], 1500)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
