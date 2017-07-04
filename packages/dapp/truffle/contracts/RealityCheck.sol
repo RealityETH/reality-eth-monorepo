@@ -108,8 +108,8 @@ contract RealityCheck {
 
     }
 
-    function getQuestionID(bytes32 question_sha256, address arbitrator, uint256 step_delay, uint256 default_answer) constant returns (bytes32) {
-        return keccak256(arbitrator, step_delay, question_sha256, default_answer);
+    function getQuestionID(bytes32 question_sha256, address arbitrator, uint256 step_delay) constant returns (bytes32) {
+        return keccak256(arbitrator, step_delay, question_sha256);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
