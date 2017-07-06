@@ -13,11 +13,15 @@ var Arbitrator;
 
 var account;
 
+// questions timeline
 var timeline_best = [];
 var timeline_latest = [];
 var timeline_high_reward = [];
 var timeline_resolved = [];
 var timeline_pointer = {'latest':0, 'high-reward':0, 'resolved':0};
+
+// data for question detail window
+var question_detail_list = [];
 
 var $ = require('jquery-browserify')
 
@@ -100,36 +104,6 @@ rcbrowserHeight();
     for (let i = 0, len = answerItems.length; i < len; i += 1) {
         answerItems[i].addEventListener('click', clickHandler);
     }
-})();
-
-// get question type
-(function() {
-
-    $('#question-type').on('change', function(e){
-        var container = $('#answer-option-container');
-        if ($('#question-type').val() == 'select') {
-            if (!container.hasClass('is-open')) {
-                container.css('display', 'block');
-                container.addClass('is-open');
-                container.addClass('is-bounce');
-            }
-        } else {
-            container.css('display', 'none');
-            container.removeClass('is-open');
-            container.removeClass('is-bounce');
-            $('#first-answer-option').children().val('');
-            $('.input-container--answer-option').remove();
-        }
-    });
-
-    $('.add-option-button').on('click', function(e){
-        var element = $('<div>');
-        element.addClass('input-container input-container--answer-option');
-        var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">';
-        element.append(input);
-        $('#error-container--answer-option').before(element);
-        element.addClass('is-bounce');
-    });
 })();
 
 // set rcBrowser
@@ -283,7 +257,6 @@ function dragMoveListener (event) {
 // this is used later in the resizing and gesture demos
 window.dragMoveListener = dragMoveListener;
 
-
 // see all notifications
 (function() {
     const rcBrowser = document.querySelector('.rcbrowser--your-qa');
@@ -322,46 +295,6 @@ window.dragMoveListener = dragMoveListener;
     }
 
     anchor.addEventListener('click', clickHandler);
-})();
-
-// open/close add reward
-(function() {
-    const rcBrowsers = document.querySelectorAll('.rcbrowser');
-    const openButtons = document.querySelectorAll('.add-reward-button');
-    const closeButtons = document.querySelectorAll('.add-reward__close-button');
-
-    function clickHandler() {
-        const rcBrowserId = this.getAttribute('data-browser-id');
-        for (let i = 0, len = rcBrowsers.length; i < len; i += 1) {
-            var id = rcBrowsers[i].getAttribute('data-browser-id');
-            if (id === rcBrowserId) {
-                var currentBrowser = rcBrowsers[i];
-            }
-        }
-
-        const container = currentBrowser.querySelector('.add-reward-container');
-
-        if (container.hasClass('is-open')) {
-            container.removeClass('is-open');
-            container.style.display = 'none';
-            container.removeClass('is-bounce');
-        } else {
-            container.addClass('is-open');
-            container.style.display = 'block';
-            container.addClass('is-bounce');
-        }
-
-
-        rcbrowserHeight();
-    }
-
-    for (let i = 0, len = openButtons.length; i < len; i += 1) {
-        openButtons[i].addEventListener('click', clickHandler);
-    }
-
-    for (let i = 0, len = closeButtons.length; i < len; i += 1) {
-        closeButtons[i].addEventListener('click', clickHandler);
-    }
 })();
 
 // page loaded
@@ -438,10 +371,13 @@ window.dragMoveListener = dragMoveListener;
     inputElement.addEventListener('blur', blurHandler);
 })();
 
+/*-------------------------------------------------------------------------------------*/
+// window for posting a question
+
 $('#post-a-question-button').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
-    $('#post-a-question-window').css('zindex', 10);
+    $('#post-a-question-window').css('z-index', 10);
     $('#post-a-question-window').addClass('is-open');
     $('#post-a-question-window').css('height', '800px');
 });
@@ -449,7 +385,7 @@ $('#post-a-question-button').on('click', function(e){
 $('#close-question-window').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
-    $('#post-a-question-window').css('zindex', 0);
+    $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
 });
 
@@ -460,6 +396,7 @@ $('#post-question-submit').on('click', function(e){
     var question_body = $('#question-body');
     var reward = $('#question-reward');
     var step_delay = $('#step-delay');
+    var step_delay_val = step_delay.val() * 24 * 60 * 60;
     var arbitrator =$('#arbitrator');
     var question_type = $('#question-type');
     var answer_options = $('.answer-option');
@@ -475,19 +412,11 @@ $('#post-question-submit').on('click', function(e){
             outcomes: outcomes
         }
         var question_json = JSON.stringify(question);
-        console.log('question json', question_json);
 
         RealityCheck.deployed().then(function (rc) {
-            web3.eth.getBalance(account, function (err, result) {
-                if (err === null) {
-                    console.log('balance', result);
-                }
-            });
-
-            console.log('askQuestion', question_json, arbitrator.val(), step_delay.val(), 0, 0, {from: account, value: reward.val()});
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay.val(), 0, 0, {from: account, value: reward.val()});
+            account = web3.eth.accounts[0];
+            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: parseInt(reward.val())});
         }).then(function (result) {
-            console.log(result);
             question_body.val('');
             reward.val('0');
             step_delay.prop('selectedIndex', 0);
@@ -552,70 +481,8 @@ function validate() {
     return valid;
 }
 
-$('.rcbrowser-textarea').on('keyup', function(e){
-    if ($(this).val() !== '') {
-        $(this).closest('div').removeClass('is-error');
-    }
-});
-
-$('#question-reward').on('keyup', function(e){
-    if ($(this).val() > 0) {
-        $(this).parent().parent().removeClass('is-error');
-    }
-});
-
-$('#question-type,#step-delay,#arbitrator').on('change', function (e) {
-    if ($(this).prop('selectedIndex') != 0) {
-        $(this).parent().removeClass('is-error');
-    }
-});
-
-function populateSection(section_name, question_data, initial) {
-    var question_item_id = 'question-'+question_data[0];
-    section_name = '#' + section_name;
-    var section = $(section_name);
-
-    var question_json;
-    try {
-        question_json = JSON.parse(question_data[4]);
-    } catch(e) {
-        question_json = {
-            'title': question_data[4]
-        };
-    }
-
-    var options = '';
-    if (typeof question_json['outcomes'] !== 'undefined') {
-        for (var i = 0; i < question_json['outcomes'].length; i++) {
-            options = options + i + ':' + question_json['outcomes'][i] + ', ';
-        }
-    }
-
-    var posted_ts = question_data[1];
-    var arbitrator = question_data[2];
-    var step_delay = question_data[3];
-    var question_text_raw = question_data[4];
-    var deadline = question_data[5];
-    var bounty = question_data[6];
-    var arbitration_bounty = question_data[7];
-    var is_arbitration_paid_for = question_data[8];
-    var is_finalized = question_data[9];
-    var best_answer_id = question_data[10];
-
-    var entry = $('.questions__item.template-item').clone();
-    entry.attr('id', question_item_id).removeClass('template-item');
-    entry.find('.question-title').text(question_json['title']);
-    entry.find('.question-age').text(posted_ts);
-    entry.find('.question-bounty').text(bounty);
-    entry.css('display', 'block');
-
-    if (initial) {
-        section.children('.questions-list').prepend(entry);
-    } else {
-        section.children('.questions-list').append(entry);
-    }
-
-}
+/*-------------------------------------------------------------------------------------*/
+// for generating timelines
 
 function makeTimeline(question, initial) {
     return new Promise(function (resolve, reject) {
@@ -623,7 +490,6 @@ function makeTimeline(question, initial) {
             return rc.questions.call(question.args.question_id);
         }).then(function (question_data) {
             question_data.unshift(question.args.question_id);
-            //console.log('question data', question_data);
 
             // latest and resolved
             var found = false;
@@ -666,6 +532,56 @@ function makeTimeline(question, initial) {
     });
 };
 
+function populateSection(section_name, question_data, initial) {
+    var question_id = question_data[0];
+    var question_item_id = 'question-' + question_id;
+    var target_question_id = 'qadetail-' + question_id;
+    section_name = '#' + section_name;
+    var section = $(section_name);
+
+    var question_json;
+    try {
+        question_json = JSON.parse(question_data[4]);
+    } catch(e) {
+        question_json = {
+            'title': question_data[4]
+        };
+    }
+
+    var options = '';
+    if (typeof question_json['outcomes'] !== 'undefined') {
+        for (var i = 0; i < question_json['outcomes'].length; i++) {
+            options = options + i + ':' + question_json['outcomes'][i] + ', ';
+        }
+    }
+
+    var posted_ts = question_data[1];
+    var arbitrator = question_data[2];
+    var step_delay = question_data[3];
+    var question_text_raw = question_data[4];
+    var deadline = question_data[5];
+    var bounty = question_data[6];
+    var arbitration_bounty = question_data[7];
+    var is_arbitration_paid_for = question_data[8];
+    var is_finalized = question_data[9];
+    var best_answer_id = question_data[10];
+
+    var entry = $('.questions__item.template-item').clone();
+    entry.attr('id', question_item_id).removeClass('template-item');
+    entry.find('.questions__item__title').attr('data-target-id', target_question_id);
+    entry.find('.question-title').text(question_json['title']);
+    entry.find('.question-age').text(posted_ts);
+    entry.find('.question-bounty').text(bounty);
+    entry.css('display', 'block');
+
+    if (initial) {
+        section.children('.questions-list').prepend(entry);
+    } else {
+        section.children('.questions-list').append(entry);
+    }
+
+}
+
 $('#loadmore-latest').on('click', function(e){
     var from = timeline_pointer['latest'] - 1;
     var to = timeline_pointer['latest'] - 3;
@@ -673,10 +589,7 @@ $('#loadmore-latest').on('click', function(e){
         populateSection('questions-latest', timeline_latest[i], false);
     }
     timeline_pointer['latest'] = to;
-
-    console.log(timeline_pointer);
 });
-
 $('#loadmore-high-reward').on('click', function(e){
     var from = timeline_pointer['high-reward'] - 1;
     var to = timeline_pointer['high-reward'] - 3;
@@ -686,6 +599,541 @@ $('#loadmore-high-reward').on('click', function(e){
     timeline_pointer['high-reward'] = to;
 });
 
+/*-------------------------------------------------------------------------------------*/
+// question detail window
+
+(function() {
+
+    $('#question-type').on('change', function(e){
+        var container = $('#answer-option-container');
+        if ($('#question-type').val() == 'single-select' || $('#question-type').val() == 'multiple-select') {
+            if (!container.hasClass('is-open')) {
+                container.css('display', 'block');
+                container.addClass('is-open');
+                container.addClass('is-bounce');
+            }
+        } else {
+            container.css('display', 'none');
+            container.removeClass('is-open');
+            container.removeClass('is-bounce');
+            $('#first-answer-option').children().val('');
+            $('.input-container--answer-option').remove();
+        }
+    });
+
+    $('.add-option-button').on('click', function(e){
+        var element = $('<div>');
+        element.addClass('input-container input-container--answer-option');
+        var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">';
+        element.append(input);
+        $('#error-container--answer-option').before(element);
+        element.addClass('is-bounce');
+    });
+})();
+
+$(document).on('click', '.questions__item__title', function(e){
+    var rc;
+    var current_question;
+
+    if (e.target.nodeName.toLowerCase() == 'span') {
+        var rcqa_id = e.target.parentNode.getAttribute('data-target-id');
+    } else if (e.target.nodeName.toLowerCase() == 'a') {
+        rcqa_id = e.target.getAttribute('data-target-id');
+    }
+
+    var question_id = rcqa_id.replace('qadetail-', '');
+    RealityCheck.deployed().then(function(instance){
+        rc = instance;
+        return rc.questions.call(question_id);
+    }).then(function(result){
+        current_question = result;
+        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
+    }).then(function(answer_posted){
+        answer_posted.get(function(error, result){
+            if (error === null && typeof result !== 'undefined') {
+                question_detail_list[question_id] = current_question;
+                question_detail_list[question_id]['history'] = result;
+
+                console.log('question_id', question_id);
+                console.log('question detail', question_detail_list);
+
+                displayQuestionDetail(question_id);
+                displayAnswerHistory(question_id);
+            } else {
+                console.log(error);
+            }
+        });
+    }).catch(function(e){
+        console.log(e);
+    });
+});
+$(document).on('click', '.rcbrowser__close-button', function(){
+   var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
+   $('div#' + question_id).remove();
+   question_id = question_id.replace('qadetail-', '');
+   delete question_detail_list[question_id]
+});
+
+function displayQuestionDetail(question_id) {
+    var question_detail = question_detail_list[question_id];
+    var idx = question_detail['history'].length - 1;
+    var latest_answer = question_detail['history'][idx].args;
+    var question_json;
+
+    try {
+        question_json = JSON.parse(question_detail[3]);
+    } catch(e) {
+        question_json = {
+            'title': question_detail[3],
+            'type': 'binary'
+        };
+    }
+    var question_type = question_json['type'];
+
+    var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+    rcqa.attr('id', 'qadetail-' + question_id);
+    rcqa.removeClass('template-item');
+
+    rcqa.find('.question-title').text(question_json['title']);
+    rcqa.find('.reward-value').text(question_detail[5]);
+    rcqa.find('.arbitrator').text(question_detail[1]);
+    rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
+
+    // answerer data
+    var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+    ans_data.find('.answerer').text(latest_answer.answerer);
+    ans_data.find('.answer-bond-value').text(latest_answer.bond);
+
+    // label for show the current answer.
+    var label = getAnswerString(question_json, latest_answer);
+    rcqa.find('.current-answer-body').find('.current-answer').text(label);
+
+    Arbitrator.at(question_detail[1]).then(function(arb) {
+        return arb.getFee.call(question_id);
+    }).then(function(fee) {
+        rcqa.find('.arbitration-fee').text(fee.toString());
+    });
+
+    var ans_frm = makeSelectAnswerInput(question_json);
+    ans_frm.css('display', 'block');
+    ans_frm.addClass('is-open');
+    ans_frm.removeClass('template-item');
+    rcqa.find('.answered-history-container').after(ans_frm);
+
+    $('#qa-detail-container').append(rcqa);
+    rcqa.css('display', 'block');
+    rcqa.addClass('is-open');
+    rcqa.css('z-index',10);
+
+    // final answer button
+    showFAButton(question_id, question_detail[2], latest_answer.ts);
+
+    var rc;
+    RealityCheck.deployed().then(function(instance){
+        rc = instance;
+        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:'latest', toBlock:'latest'});
+    }).then(function(answer_posted){
+        answer_posted.watch(function(error, result){
+            question_detail_list[question_id][9] = result.args.answer_id;
+            pushWatchedAnswer(result);
+            rewriteQuestionDetail(question_id);
+        });
+    }).catch(function (e){
+        console.log(e);
+    });
+
+}
+
+function rewriteQuestionDetail(question_id) {
+    var question_data = question_detail_list[question_id];
+    var idx = question_data['history'].length - 1;
+    var answer_data = question_data['history'][idx];
+    var answer_id = 'answer-' + answer_data.args.answer_id;
+    var answer = answer_data.args.answer.toNumber();
+
+    try {
+        var question_json = JSON.parse(question_data[3]);
+    } catch(e) {
+        question_json = {
+            'title': question_data[3]
+        };
+    }
+
+    var bond = answer_data.args.bond.toNumber();
+    var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
+    $(section_name).find('.current-answer-container').attr('id', answer_id);
+    var label = getAnswerString(question_json, answer_data.args);
+    $(section_name).find('.current-answer-container').find('.current-answer').text(label);
+    $(section_name).find('input[name="numberAnswer"]').val(0);
+    $(section_name).find('input[name="questionBond"]').val(bond * 2);
+
+    // show final answer button
+    showFAButton(question_id, question_data[2], answer_data.args.ts);
+
+    var ans_data = $(section_name).find('.current-answer-container').find('.answer-data');
+    ans_data.find('.answerer').text(answer_data.args.answerer);
+    ans_data.find('.answer-bond-value').text(bond);
+
+    displayAnswerHistory(question_id);
+
+}
+
+function getAnswerString(question_json, answer_data) {
+    var label = '';
+    switch (question_json['type']) {
+        case 'number':
+            label = answer_data.answer.toString();
+            break;
+        case 'binary':
+            if (answer_data.answer.toNumber() === 1) {
+                label = 'Yes';
+            } else if (answer_data.answer.toNumber() === 0) {
+                label = 'No';
+            }
+            break;
+        case 'single-select':
+            if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
+                var idx = answer_data.answer.toNumber();
+                label = question_json['outcomes'][idx];
+            }
+            break;
+        case 'multiple-select':
+            if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
+                var answer_bits = answer_data.answer.toString(2);
+                var length = answer_bits.length;
+
+                for (var i = answer_bits.length - 1; i >= 0; i--) {
+                    if (answer_bits[i] === '1') {
+                        var idx = answer_bits.length - 1 - i;
+                        label += question_json['outcomes'][idx] + ' / ';
+                    }
+                }
+                label = label.substr(0, label.length - 3);
+            }
+            break;
+    }
+
+    return label;
+}
+
+function makeSelectAnswerInput(question_json) {
+    var type = question_json['type'];
+    var options = question_json['outcomes'];
+    var template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
+    var ans_frm = $(template_name).clone();
+    ans_frm.removeClass('template-item');
+
+    switch (type) {
+        case 'single-select':
+            for (var i = 0; i < options.length; i++ ) {
+                var option_elm = $('<option>');
+                option_elm.val(i);
+                option_elm.text(options[i]);
+                ans_frm.find('.select-answer').append(option_elm);
+            }
+            break;
+        case 'multiple-select':
+            for (var i = 0; i < options.length; i++ ) {
+                var checkbox_elm = $('<input>');
+                checkbox_elm.attr('type', 'checkbox');
+                checkbox_elm.attr('name', 'input-answer');
+                checkbox_elm.addClass('rcbrowser-input--checkbox form-item form-item-value');
+                checkbox_elm.val(i);
+                checkbox_elm.text('<span>' + options[i] + '</span>');
+                ans_frm.find('.input-container.input-container--checkbox').children('.error-container').before(checkbox_elm);
+            }
+            ans_frm.find('input:checkbox').wrap('<label></label>');
+            break;
+    }
+
+    return ans_frm;
+}
+
+function displayAnswerHistory(question_id) {
+    var question_data = question_detail_list[question_id];
+    var answer_log = question_data['history'];
+    var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
+    var section = $(section_name);
+
+    section.find('.answered-history-item-container:not(".template-item")').remove();
+
+    answer_log.forEach(function(answer){
+        // skip current answer.
+        if (answer.args.answer_id == question_data[9]) {
+            return;
+        }
+
+        var answer_id = 'answer-' + answer.args.answer_id;
+        var ans = answer.args.answer.toNumber();
+
+        var container = $('.answered-history-item-container.template-item').clone();
+        container.removeClass('template-item');
+        container.css('display', 'block');
+        container.attr('id', answer_id);
+
+        section.find('.answered-history-header').after(container);
+
+        try {
+            var question_json = JSON.parse(question_data[3]);
+        } catch(e) {
+            question_json = {
+                'title': question_data[3]
+            };
+        }
+
+        section_name = 'div#' + answer_id;
+        var label = getAnswerString(question_json, answer.args);
+        $(section_name).find('.answer-item.answered-history-item').find('.current-answer').text(label);
+
+        var ans_data = $(section_name).find('.answer-item.answered-history-item').find('.answer-data');
+        ans_data.find('.answerer').text(answer.args.answerer);
+        ans_data.find('.answer-bond-value').text(answer.args.bond.toNumber());
+
+    });
+}
+
+// show final answer button
+function showFAButton(question_id, step_delay, answer_created) {
+    var d = new Date();
+    var now = d.getTime();
+    var section_name = 'div#qadetail-' + question_id + '.rcbrowser--qa-detail';
+    if (now - answer_created * 1000 > step_delay * 1000) {
+        $(section_name).find('.final-answer-button').css('display', 'block');
+    }
+}
+
+$(document).on('click', '.final-answer-button', function(){
+    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
+    question_id = question_id.replace('qadetail-', '');
+    RealityCheck.deployed().then(function(rc) {
+        return rc.finalize(question_id, {from: web3.eth.accounts[0]});
+    }).then(function(result){
+        console.log('finalized!', result);
+    }).catch(function(e){
+       console.log('on click FA button', e);
+    });
+});
+
+function pushWatchedAnswer(answer) {
+    var question_id = answer.args.question_id;
+    var already_exists = false;
+    var length = question_detail_list[question_id]['history'].length;
+
+    for (var i = 0; i < length; i++) {
+        if (question_detail_list[question_id]['history'][i].args.answer_id == answer.args.answer_id) {
+            already_exists = true;
+            break;
+        }
+    }
+
+    if (!already_exists) {
+        question_detail_list[question_id]['history'].push(answer);
+    }
+}
+
+$(document).on('click', 'div.answered-history-item-container,div.current-answer-container', function(){
+    var section_name = 'div#' + $(this).attr('id');
+    if ($(section_name).find('.answer-data').hasClass('is-bounce')) {
+         $(section_name).find('.answer-data').removeClass('is-bounce');
+         $(section_name).find('.answer-data').css('display', 'none');
+     } else {
+        $(section_name).find('.answer-data').addClass('is-bounce');
+        $(section_name).find('.answer-data').css('display', 'block');
+     }
+});
+
+// post an answer
+$(document).on('click', '.post-answer-button', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    var parent_div = $(this).parents('div.rcbrowser--qa-detail');
+    var question_id = parent_div.attr('id');
+    question_id = question_id.replace('qadetail-', '');
+    var bond = parseInt(parent_div.find('input[name="questionBond"]').val());
+
+    var account = web3.eth.accounts[0];
+    var rc;
+    var question, current_answer, new_answer;
+    var question_json;
+    RealityCheck.deployed().then(function(instance) {
+        rc = instance;
+        return rc.questions.call(question_id);
+    }).then(function(result) {
+        question = result;
+
+        try {
+            question_json = JSON.parse(question[3]);
+        } catch(e) {
+            question_json = {
+                'title': question[3],
+                'type': 'binary'
+            };
+        }
+
+        if (question_json['type'] == 'multiple-select') {
+            var checkbox = parent_div.find('[name="input-answer"]');
+            var answers = checkbox.filter(':checked');
+            var values = [];
+            for (var i = 0; i < answers.length; i++) {
+                values.push(parseInt(answers[i].value));
+            }
+            var answer_bits = '';
+            for (var i = checkbox.length - 1; i >= 0; i--) {
+                if (values.indexOf(i) == -1) {
+                    answer_bits += '0';
+                } else {
+                    answer_bits += '1';
+                }
+            }
+            new_answer = parseInt(answer_bits, 2);
+        } else {
+            new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
+        }
+
+        return rc.answers.call(question[9]);
+    }).then(function(result){
+        current_answer = result;
+
+        // check answer
+        var is_err = false;
+        switch (question_json['type']) {
+            case 'binary':
+                if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
+                    parent_div.find('div.select-container.select-container--answer').addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'number':
+                if (isNaN(new_answer) || new_answer === '') {
+                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'single-select':
+                var container = parent_div.find('div.select-container.select-container--answer');
+                var select = container.find('select[name="input-answer"]');
+                if (select.prop('selectedIndex') == 0) {
+                    container.addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'multiple-select':
+                var container = parent_div.find('div.input-container.input-container--checkbox');
+                var checked = container.find('input[name="input-answer"]:checked');
+                if (checked.length == 0) {
+                    container.addClass('is-error');
+                    is_err = true;
+                }
+                break;
+        }
+
+        // check bond
+        var min_amount = current_answer[3] * 2;
+        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0 && bond  < 1)) {
+            parent_div.find('div.input-container.input-container--bond').addClass('is-error');
+            if (min_amount === 0) {
+                min_amount = 1;
+            }
+            parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(min_amount);
+            is_err = true;
+        }
+
+        if (is_err) throw('err on submitting answer');
+        return rc.submitAnswer(question_id, new_answer, '', {from:account, value:bond});
+    }).then(function(result){
+        parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
+        parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
+        parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
+        parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
+
+        switch (question_json['type']) {
+            case 'binary':
+                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+                break;
+            case 'number':
+                parent_div.find('input[name="input-answer"]').val('');
+                break;
+            case 'single-select':
+                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+                break;
+            case 'multiple-select':
+                var container = parent_div.find('div.input-container.input-container--checkbox');
+                container.find('input[name="input-answer"]:checked').prop('checked', false);
+                break;
+        }
+    }).catch(function(e){
+        console.log(e);
+    });
+});
+
+// open/close/add reward
+$(document).on('click', '.add-reward-button', function(e){
+    var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
+    container.addClass('is-open');
+    container.addClass('is-bounce');
+    container.css('display', 'block');
+});
+$(document).on('click', '.add-reward__close-button', function(e){
+    var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
+    container.removeClass('is-open');
+    container.removeClass('is-bounce');
+    container.css('display', 'none');
+});
+$(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('id');
+    question_id = question_id.replace('qadetail-', '');
+    var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
+    reward = parseInt(reward);
+
+    if (isNaN(reward) || reward <= 0) {
+        $(this).parent('div').prev('div.input-container').addClass('is-error');
+    } else {
+        RealityCheck.deployed().then(function (rc) {
+            return rc.fundAnswerBounty(question_id, {from: web3.eth.accounts[0], value: reward});
+        }).then(function (result) {
+            console.log('fund bounty', result);
+        });
+    }
+});
+
+/*-------------------------------------------------------------------------------------*/
+// reset error messages
+
+$('.rcbrowser-textarea').on('keyup', function(e){
+    if ($(this).val() !== '') {
+        $(this).closest('div').removeClass('is-error');
+    }
+});
+$('#question-reward').on('keyup', function(e){
+    if ($(this).val() > 0) {
+        $(this).parent().parent().removeClass('is-error');
+    }
+});
+$('#question-type,#step-delay,#arbitrator').on('change', function (e) {
+    if ($(this).prop('selectedIndex') != 0) {
+        $(this).parent().removeClass('is-error');
+    }
+});
+$(document).on('change', 'select[name="input-answer"]', function (e) {
+    if ($(this).prop('selectedIndex') != 0) {
+        $(this).parent().removeClass('is-error');
+    }
+});
+$(document).on('change', 'input[name="input-answer"]:checkbox', function(){
+    var parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+    var container = parent_div.find('div.input-container.input-container--checkbox');
+    var checked = container.find('input[name="input-answer"]:checked');
+    if (checked.length > 0) {
+        container.removeClass('is-error');
+    }
+});
+
+/*-------------------------------------------------------------------------------------*/
+// initial process
 window.onload = function() {
     var rc;
 
@@ -699,8 +1147,6 @@ window.onload = function() {
         $('option.default-arbitrator-option').val(arb.address);
     });
 
-    account = web3.eth.accounts[0];
-
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return rc.LogNewQuestion({}, {fromBlock:0, toBlock:'latest'});
@@ -708,7 +1154,6 @@ window.onload = function() {
 
         question_posted.get(function (error, result) {
             if (error === null) {
-                console.log(result);
 
                 result.reduce(function (prevValue, currentValue) {
                     return prevValue.then(function () {

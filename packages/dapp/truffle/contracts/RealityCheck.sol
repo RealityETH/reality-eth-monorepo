@@ -285,6 +285,8 @@ contract RealityCheck {
         if (questions[question_id].created == 0) throw; 
         if (questions[question_id].is_finalized) throw;
         questions[question_id].bounty += msg.value;
+
+        LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty);
     }
 
     // Sends money to the arbitration bounty pool
