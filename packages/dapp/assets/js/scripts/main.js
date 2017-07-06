@@ -491,39 +491,69 @@ function makeTimeline(question, initial) {
         }).then(function (question_data) {
             question_data.unshift(question.args.question_id);
 
-            // latest and resolved
-            var found = false;
+            // latest
+            var latest_pt = -1;
+            console.log('length', timeline_latest.length);
+            for (var i = 0; i < timeline_latest.length; i++) {
+                if (timeline_latest[i] === question_data) {
+                    console.log('exists!', question_data);
+                }
+            }
+            console.log('exists?', timeline_latest.indexOf(question_data));
             for (var i = 0; i < timeline_latest.length; i++) {
                 if (question_data[1].toNumber() < timeline_latest[i][1].toNumber()) {
-                    if (question_data[9]) {
-                        // resolved
-                        //timeline_resolved.push(question_data);
-                    }
                     timeline_latest.splice(i, 0, question_data);
-                    found = true;
+                    latest_pt = i;
                     break;
                 }
             }
-            if (!found || timeline_latest.length == 0) {
+            if (latest_pt == -1 || timeline_latest.length == 0) {
                 timeline_latest.push(question_data);
+                latest_pt = timeline_latest.length - 1;
             }
+            console.log('length', timeline_latest.length);
+            console.log('exists?', timeline_latest.indexOf(question_data));
 
             // high reward
-            var found = false;
+            var hr_pt = -1
             for (var i = 0; i < timeline_high_reward.length; i++) {
                 if (question_data[6].toNumber() < timeline_high_reward[i][6].toNumber()) {
                     timeline_high_reward.splice(i, 0, question_data);
-                    found = true;
+                    hr_pt = i;
                     break;
                 }
             }
-            if (!found || timeline_high_reward.length == 0) {
+            if (hr_pt == -1 || timeline_high_reward.length == 0) {
                 timeline_high_reward.push(question_data);
+                hr_pt = timeline_high_reward.length - 1;
+            }
+
+            // resolved
+            var resolved_pt = -1;
+            if (question_data[9]) {
+                for (var i = 0; i < timeline_resolved.length; i++) {
+                    if (question_data[1].toNumber() < timeline_resolved[i][1].toNumber()) {
+                        timeline_resolved.splice(i, 0, question_data);
+                        resolved_pt = i;
+                        break;
+                    }
+                }
+                if (resolved_pt == -1 || timeline_resolved.length == 0) {
+                    timeline_resolved.push(question_data);
+                    resolved_pt = timeline_resolved.length - 1;
+                }
             }
 
             if (!initial) {
-                populateSection('questions-latest', question_data);
-                populateSection('questions-high-reward', question_data);
+                if (typeof timeline_latest[latest_pt] !== 'undefined') {
+                    populateSection('questions-latest', timeline_latest[latest_pt], false);
+                }
+                if (typeof timeline_high_reward[hr_pt] !== 'undefined') {
+                    populateSection('questions-high-reward', timeline_high_reward[hr_pt], false);
+                }
+                if (typeof timeline_resolved[resolved_pt] !== 'undefined') {
+                    populateSection('questions-resolved', timeline_resolved[resolved_pt], false);
+                }
             }
             resolve();
         }).catch(function (e) {
@@ -583,12 +613,19 @@ function populateSection(section_name, question_data, initial) {
 }
 
 $('#loadmore-latest').on('click', function(e){
+    console.log('before timeline pointer', timeline_pointer['latest']);
+    if (timeline_pointer['latest'] == 0) return;
+
     var from = timeline_pointer['latest'] - 1;
     var to = timeline_pointer['latest'] - 3;
     for (var i = from; i >= to; i--) {
         populateSection('questions-latest', timeline_latest[i], false);
     }
     timeline_pointer['latest'] = to;
+    console.log('load more latest');
+    console.log('from', from);
+    console.log('to', to);
+    console.log('after pointer', timeline_pointer['latest']);
 });
 $('#loadmore-high-reward').on('click', function(e){
     var from = timeline_pointer['high-reward'] - 1;
@@ -598,7 +635,14 @@ $('#loadmore-high-reward').on('click', function(e){
     }
     timeline_pointer['high-reward'] = to;
 });
-
+$('#loadmore-resolved').on('click', function(e){
+    var from = timeline_pointer['resolved'] - 1;
+    var to = timeline_pointer['resolved'] - 3;
+    for (var i = from; i >= to; i--) {
+        populateSection('questions-resolved', timeline_resolved[i], false);
+    }
+    timeline_pointer['resolved'] = to;
+});
 /*-------------------------------------------------------------------------------------*/
 // question detail window
 
@@ -1160,6 +1204,9 @@ window.onload = function() {
                         return makeTimeline(currentValue, true);
                     });
                 }, Promise.resolve()).then(function(result){
+                    console.log('latest', timeline_latest, timeline_latest.length);
+                    console.log('high reward', timeline_high_reward, timeline_high_reward.length);
+                    console.log('resolved', timeline_resolved, timeline_resolved.length);
                     var length = timeline_latest.length;
                     if (length < 4) {
                         var from = 0;
@@ -1185,6 +1232,19 @@ window.onload = function() {
                         populateSection('questions-high-reward', timeline_high_reward[i], true);
                     }
                     timeline_pointer['high-reward'] = from;
+
+                    var length = timeline_resolved.length;
+                    if (length < 4) {
+                        var from = 0;
+                        var to = length;
+                    } else {
+                        var from = length - 3;
+                        var to = length;
+                    }
+                    for (var i = from; i < to; i++) {
+                        populateSection('questions-resolved', timeline_resolved[i], true);
+                    }
+                    timeline_pointer['resolved'] = from;
 
                     return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
                 }).then(function(question_posted) {
