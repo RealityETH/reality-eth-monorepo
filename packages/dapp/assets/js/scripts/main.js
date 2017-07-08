@@ -417,6 +417,7 @@ $('#post-question-submit').on('click', function(e){
             account = web3.eth.accounts[0];
             return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: parseInt(reward.val())});
         }).then(function (result) {
+            console.log('askQuestion called, rseult', result);
             question_body.val('');
             reward.val('0');
             step_delay.prop('selectedIndex', 0);
@@ -877,16 +878,19 @@ function makeSelectAnswerInput(question_json) {
             }
             break;
         case 'multiple-select':
-            for (var i = 0; i < options.length; i++ ) {
-                var checkbox_elm = $('<input>');
-                checkbox_elm.attr('type', 'checkbox');
-                checkbox_elm.attr('name', 'input-answer');
-                checkbox_elm.addClass('rcbrowser-input--checkbox form-item form-item-value');
-                checkbox_elm.val(i);
-                checkbox_elm.text('<span>' + options[i] + '</span>');
-                ans_frm.find('.input-container.input-container--checkbox').children('.error-container').before(checkbox_elm);
+            for (var i = options.length-1; i >= 0; i-- ) {
+                var elmtpl = ans_frm.find('.input-entry.template-item');
+                var elm = elmtpl.clone();
+                elm.removeClass('template-item');
+                var elinput = elm.find('input');
+                elinput.attr('name', 'input-answer');
+                elinput.val(i);
+                var ellabel = elm.find('span');
+                ellabel.text(options[i]);
+                // Here we copy the content and throw away the container
+                elmtpl.after(elm);
             }
-            ans_frm.find('input:checkbox').wrap('<label></label>');
+            //ans_frm.find('input:checkbox').wrap('<label></label>');
             break;
     }
 
