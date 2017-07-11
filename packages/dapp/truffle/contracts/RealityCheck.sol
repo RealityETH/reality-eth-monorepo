@@ -35,7 +35,8 @@ contract RealityCheck {
     event LogFundAnswerBounty(
         bytes32 indexed question_id,
         uint256 bounty_added,
-        uint256 bounty
+        uint256 bounty,
+        address funder
     );
 
     event LogFinalize(
@@ -286,7 +287,7 @@ contract RealityCheck {
         if (questions[question_id].is_finalized) throw;
         questions[question_id].bounty += msg.value;
 
-        LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty);
+        LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
     // Sends money to the arbitration bounty pool
