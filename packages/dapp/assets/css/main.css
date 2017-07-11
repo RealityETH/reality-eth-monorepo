@@ -718,7 +718,10 @@ a#your-qa-button {
 .page-qa a#your-qa-button {
   background-image: url(../image/icon-identity--dark.svg); }
 
-#push-icon {
+body #push-icon {
+  display: none; }
+
+body.pushing #push-icon {
   display: block;
   width: 8px;
   height: 8px;
@@ -729,7 +732,7 @@ a#your-qa-button {
   background-color: #ff4444;
   border: solid 2px #000; }
 
-.page-qa #push-icon {
+body.pushing .page-qa #push-icon {
   border: solid 2px #ffffff; }
 
 #site-introduction {

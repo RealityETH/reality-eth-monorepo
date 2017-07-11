@@ -20,6 +20,9 @@ var timeline_high_reward = [];
 var timeline_resolved = [];
 var timeline_pointer = {'latest':0, 'high-reward':0, 'resolved':0};
 
+var account;
+var user_question_ids = {'answered': [], 'asked': [], 'funded': []};
+
 // data for question detail window
 var question_detail_list = [];
 
@@ -434,6 +437,25 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
+function handleUserAction(acc, action, entry) {
+    if (window.localStorage) { 
+        var lastViewedBlockNumber = 0;
+        if (window.localStorage.getItem('viewedBlockNumber')) {
+            lastViewedBlockNumber = parseInt(window.localStorage.getItem('viewedBlockNumber'));
+        }
+        console.log(lastViewedBlockNumber);
+        if (entry.blockNumber > lastViewedBlockNumber) {
+            //$('body').attr('last-update-block-number', entry.blockNumber);
+            $('body').addClass('pushing');
+        }
+    }
+    var qid = entry.args['question_id'];
+    if (user_question_ids[action].indexOf(qid) === -1) {
+        user_question_ids[action].push(qid);
+    }
+    console.log('user_question_ids', user_question_ids);
+}
+
 function validate() {
     var valid = true;
 
@@ -613,6 +635,7 @@ function populateSection(section_name, question_data, initial) {
 
 }
 
+
 $('#loadmore-latest').on('click', function(e){
     console.log('before timeline pointer', timeline_pointer['latest']);
     if (timeline_pointer['latest'] == 0) return;
@@ -677,6 +700,10 @@ $('#loadmore-resolved').on('click', function(e){
 })();
 
 $(document).on('click', '.questions__item__title', function(e){
+
+    e.preventDefault();
+    e.stopPropagation();
+
     var rc;
     var current_question;
 
@@ -698,6 +725,12 @@ $(document).on('click', '.questions__item__title', function(e){
             if (error === null && typeof result !== 'undefined') {
                 question_detail_list[question_id] = current_question;
                 question_detail_list[question_id]['history'] = result;
+
+                for(var i=0; i<result.length; i++) {
+                    if (result[i].args['answerer'] == account) {
+                        handleUserAction(account, 'answered', result[i]);
+                    }
+                }
 
                 console.log('question_id', question_id);
                 console.log('question detail', question_detail_list);
@@ -1182,7 +1215,11 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
 
 /*-------------------------------------------------------------------------------------*/
 // initial process
-window.onload = function() {
+
+function pageInit(account) {
+
+    console.log('in pageInit for account', account);
+
     var rc;
 
     RealityCheck = contract(rc_json);
@@ -1196,18 +1233,29 @@ window.onload = function() {
     });
 
     RealityCheck.deployed().then(function(instance) {
+
         rc = instance;
         return rc.LogNewQuestion({}, {fromBlock:0, toBlock:'latest'});
+
     }).then(function(question_posted) {
 
         question_posted.get(function (error, result) {
             if (error === null) {
 
                 result.reduce(function (prevValue, currentValue) {
+
                     return prevValue.then(function () {
+                        console.log('currentValue',currentValue);
+                        if (currentValue.args['questioner'] == account) {
+                            handleUserAction(account, 'asked', currentValue);
+                            console.log('user_question_ids', user_question_ids);
+                        }
+
                         return makeTimeline(currentValue, true);
                     });
-                }, Promise.resolve()).then(function(result){
+
+                }, Promise.resolve()).then(function(result) {
+
                     console.log('latest', timeline_latest, timeline_latest.length);
                     console.log('high reward', timeline_high_reward, timeline_high_reward.length);
                     console.log('resolved', timeline_resolved, timeline_resolved.length);
@@ -1251,6 +1299,7 @@ window.onload = function() {
                     timeline_pointer['resolved'] = from;
 
                     return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
+
                 }).then(function(question_posted) {
                     question_posted.watch(function (error, result) {
                         console.log('watch new questions', result);
@@ -1272,3 +1321,9 @@ window.onload = function() {
         console.log(e);
     });
 };
+
+window.onload = web3.eth.getAccounts((err, acc) => {
+    console.log('accounts', acc);
+    account = acc;
+    pageInit(acc[0]);
+});
