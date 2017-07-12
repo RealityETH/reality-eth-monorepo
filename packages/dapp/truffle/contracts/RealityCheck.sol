@@ -39,6 +39,12 @@ contract RealityCheck {
         address funder
     );
 
+    event LogRequestArbitration(
+        bytes32 indexed question_id,
+        uint256 fee_paid,
+        address requester
+    );
+
     event LogFinalize(
         bytes32 indexed question_id,
         bytes32 answer_id,
@@ -307,6 +313,8 @@ contract RealityCheck {
             questions[question_id].is_arbitration_paid_for = true;
             return true;
         }
+
+        LogRequestArbitration(question_id, msg.value, msg.sender);
 
         return false;
 
