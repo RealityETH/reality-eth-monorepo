@@ -7,18 +7,47 @@ var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 
+// Struct array offsets
+// Assumes we unshift the ID onto the start
+
+// Question, as returned by questions()
+var Qi_question_id = 0;
+var Qi_created = 1;
+var Qi_arbitrator = 2;
+var Qi_step_delay = 3;
+var Qi_question_text = 4;
+var Qi_deadline = 5;
+var Qi_bounty = 6;
+var Qi_arbitration_bounty = 7;
+var Qi_is_arbitration_paid_for = 8;
+var Qi_is_finalized = 9;
+var Qi_best_answer_id = 10;
+
+// Answer, as returned by answers()
+var Ai_answer_id = 0;
+var Ai_question_id = 1;
+var Ai_answer = 2;
+var Ai_answerer = 3;
+var Ai_bond = 4;
+var Ai_ts = 5;
+var Ai_evidence = 6;
+
 // These will be populated in onload, once web3 is loaded
 var RealityCheck; 
 var Arbitrator;
 
 var account;
 
-// questions timeline
-var timeline_best = [];
-var timeline_latest = [];
-var timeline_high_reward = [];
-var timeline_resolved = [];
-var timeline_pointer = {'latest':0, 'high-reward':0, 'resolved':0};
+var max_entries = 5;
+
+var display_entries = {
+    'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-best': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
+}
+
+
 
 var account;
 var user_question_ids = {'answered': [], 'asked': [], 'funded': []};
@@ -504,93 +533,20 @@ function validate() {
     return valid;
 }
 
-/*-------------------------------------------------------------------------------------*/
-// for generating timelines
-
-function makeTimeline(question, initial) {
-    return new Promise(function (resolve, reject) {
-        RealityCheck.deployed().then(function (rc) {
-            return rc.questions.call(question.args.question_id);
-        }).then(function (question_data) {
-            question_data.unshift(question.args.question_id);
-
-            // latest
-            var latest_pt = -1;
-            console.log('length', timeline_latest.length);
-            for (var i = 0; i < timeline_latest.length; i++) {
-                if (timeline_latest[i] === question_data) {
-                    console.log('exists!', question_data);
-                }
-            }
-            console.log('exists?', timeline_latest.indexOf(question_data));
-            for (var i = 0; i < timeline_latest.length; i++) {
-                if (question_data[1].toNumber() < timeline_latest[i][1].toNumber()) {
-                    timeline_latest.splice(i, 0, question_data);
-                    latest_pt = i;
-                    break;
-                }
-            }
-            if (latest_pt == -1 || timeline_latest.length == 0) {
-                timeline_latest.push(question_data);
-                latest_pt = timeline_latest.length - 1;
-            }
-            console.log('length', timeline_latest.length);
-            console.log('exists?', timeline_latest.indexOf(question_data));
-
-            // high reward
-            var hr_pt = -1
-            for (var i = 0; i < timeline_high_reward.length; i++) {
-                if (question_data[6].toNumber() < timeline_high_reward[i][6].toNumber()) {
-                    timeline_high_reward.splice(i, 0, question_data);
-                    hr_pt = i;
-                    break;
-                }
-            }
-            if (hr_pt == -1 || timeline_high_reward.length == 0) {
-                timeline_high_reward.push(question_data);
-                hr_pt = timeline_high_reward.length - 1;
-            }
-
-            // resolved
-            var resolved_pt = -1;
-            if (question_data[9]) {
-                for (var i = 0; i < timeline_resolved.length; i++) {
-                    if (question_data[1].toNumber() < timeline_resolved[i][1].toNumber()) {
-                        timeline_resolved.splice(i, 0, question_data);
-                        resolved_pt = i;
-                        break;
-                    }
-                }
-                if (resolved_pt == -1 || timeline_resolved.length == 0) {
-                    timeline_resolved.push(question_data);
-                    resolved_pt = timeline_resolved.length - 1;
-                }
-            }
-
-            if (!initial) {
-                if (typeof timeline_latest[latest_pt] !== 'undefined') {
-                    populateSection('questions-latest', timeline_latest[latest_pt], false);
-                }
-                if (typeof timeline_high_reward[hr_pt] !== 'undefined') {
-                    populateSection('questions-high-reward', timeline_high_reward[hr_pt], false);
-                }
-                if (typeof timeline_resolved[resolved_pt] !== 'undefined') {
-                    populateSection('questions-resolved', timeline_resolved[resolved_pt], false);
-                }
-            }
-            resolve();
-        }).catch(function (e) {
-            console.log(e);
-        });
-    });
-};
-
-function populateSection(section_name, question_data, initial) {
+function populateSection(section_name, question_data, before_item) {
     var question_id = question_data[0];
+
+    var idx = display_entries[section_name].ids.indexOf(question_id);
+//console.log('idx is ',idx);
+    if (idx > display_entries[section_name].max_show) {
+//console.log('over max show, skip');
+        return;
+    }
+
+    var question_item_id = 'question-' + question_id;
     var question_item_id = 'question-' + question_id;
     var target_question_id = 'qadetail-' + question_id;
-    section_name = '#' + section_name;
-    var section = $(section_name);
+    var section = $('#'+section_name);
 
     var question_json;
     try {
@@ -627,45 +583,49 @@ function populateSection(section_name, question_data, initial) {
     entry.find('.question-bounty').text(bounty);
     entry.css('display', 'block');
 
-    if (initial) {
-        section.children('.questions-list').prepend(entry);
+    //console.log('adding entry', question_item_id, 'before item', before_item);
+    if (before_item) {
+        section.find('#question-'+before_item).before(entry);
     } else {
         section.children('.questions-list').append(entry);
     }
 
+//console.log('length is ',section.children('.questions-list').find('.questions__item').length);
+//console.log(section_name);
+    
+    while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
+//console.log('too long, removing');
+        section.children('.questions-list').find('.questions__item:last-child').remove()
+    }
+
+    //if (display_entries[section_name].max_show) {
 }
 
+$('div.loadmore-button').on('click', function(e) {
+    var sec = $(this).attr('data-questions');
+//console.log('loading more sec', sec);
 
-$('#loadmore-latest').on('click', function(e){
-    console.log('before timeline pointer', timeline_pointer['latest']);
-    if (timeline_pointer['latest'] == 0) return;
+    var old_max = display_entries[sec]['max_show'];
+    var new_max = old_max + 3;
 
-    var from = timeline_pointer['latest'] - 1;
-    var to = timeline_pointer['latest'] - 3;
-    for (var i = from; i >= to; i--) {
-        populateSection('questions-latest', timeline_latest[i], false);
+    var num_in_doc = $('#'+sec).find('.questions__item').length;
+
+    display_entries[sec]['max_show'] = new_max;
+
+    // TODO: We may need to refetch to populate this store
+    display_entries[sec]['max_store'] = display_entries[sec]['max_store'] + 3;
+
+    for (var i = num_in_doc; i < new_max && i < display_entries[sec]['ids'].length; i++) {
+        var previd;
+        var nextid = display_entries[sec]['ids'][i];
+        var previd;
+        if (i > 0) {
+             previd = display_entries[sec]['ids'][i-1];
+        }
+        var qdata = question_detail_list[nextid];
+        populateSection(sec, qdata, previd);
     }
-    timeline_pointer['latest'] = to;
-    console.log('load more latest');
-    console.log('from', from);
-    console.log('to', to);
-    console.log('after pointer', timeline_pointer['latest']);
-});
-$('#loadmore-high-reward').on('click', function(e){
-    var from = timeline_pointer['high-reward'] - 1;
-    var to = timeline_pointer['high-reward'] - 3;
-    for (var i = from; i >= to; i--) {
-        populateSection('questions-high-reward', timeline_high_reward[i], false);
-    }
-    timeline_pointer['high-reward'] = to;
-});
-$('#loadmore-resolved').on('click', function(e){
-    var from = timeline_pointer['resolved'] - 1;
-    var to = timeline_pointer['resolved'] - 3;
-    for (var i = from; i >= to; i--) {
-        populateSection('questions-resolved', timeline_resolved[i], false);
-    }
-    timeline_pointer['resolved'] = to;
+    
 });
 /*-------------------------------------------------------------------------------------*/
 // question detail window
@@ -732,8 +692,8 @@ $(document).on('click', '.questions__item__title', function(e){
                     }
                 }
 
-                console.log('question_id', question_id);
-                console.log('question detail', question_detail_list);
+                //console.log('question_id', question_id);
+                //console.log('question detail', question_detail_list);
 
                 displayQuestionDetail(question_id);
                 displayAnswerHistory(question_id);
@@ -749,7 +709,7 @@ $(document).on('click', '.rcbrowser__close-button', function(){
    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
    $('div#' + question_id).remove();
    question_id = question_id.replace('qadetail-', '');
-   delete question_detail_list[question_id]
+   //delete question_detail_list[question_id]
 });
 
 function displayQuestionDetail(question_id) {
@@ -893,6 +853,78 @@ function getAnswerString(question_json, answer_data) {
 
     return label;
 }
+
+
+
+// Inserts into the right place in the stored rankings.
+// If it comes after another stored item, return the ID of that item.
+// If it doesn't belong in storage because it is too low for the ranking, return -1
+// TODO: ??? If it is already in storage and does not need to be updated, return -2
+function update_ranking_data(arr_name, id, val) {
+
+    // Check if we already have it
+    var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
+    if (existing_idx !== -1) {
+
+        // If it is unchanged, return a code saying there is nothing to do
+        if (val.equals(display_entries[arr_name]['vals'][existing_idx])) {
+            return -1; // TODO: make this -2 so the caller can handle this case differently?
+        }
+
+        // If we are already in the list and have the same value, remove and try to add again
+        // This can happen if the variable we sort by is updated
+        display_entries[arr_name]['ids'].splice(existing_idx, 1);
+        display_entries[arr_name]['vals'].splice(existing_idx, 1);
+    }
+
+    //console.log('update_ranking_data', arr_name, id, val.toString());
+    var arr = display_entries[arr_name]['vals']
+    //console.log('start with array ', arr);
+
+    var max_entries = display_entries[arr_name]['max_store'];
+
+    // If the list is full and we're lower, give up
+    if (arr.length >= max_entries) {
+        var last_entry = arr[arr.length-1];
+        if (last_entry.gte(val)) {
+          //  console.log('we are full and last entry is at least as high')
+            return -1;
+        }
+    }
+
+    // go through from the top until we find something we're higher than
+    var i = 0;
+    for (i = 0; i < arr.length; i++) {
+        //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
+        if (val.gte(arr[i])) {
+            // found a spot, we're higher than the current occupant of this index
+            // we'll return its ID to know where to insert in the document
+            var previd = display_entries[arr_name]['ids'][i];
+
+            //console.log('found, splice in before ', previd, 'old', val.toString(), 'new', arr[i].toString());
+
+            // insert at the replaced element's index, bumping everything down
+            display_entries[arr_name]['ids'].splice(i, 0, id);
+            display_entries[arr_name]['vals'].splice(i, 0, val);
+
+            // if the array is now too long, dump the final element
+            if (arr.length > max_entries) {
+                display_entries[arr_name]['ids'].pop();
+                display_entries[arr_name]['vals'].pop();
+            }
+            return previd;
+        } 
+        
+    }
+
+//console.log('not found, add to end');
+    // lower than everything but there's still space, so add to the end
+    display_entries[arr_name]['ids'].push(id);
+    display_entries[arr_name]['vals'].push(val);
+    return null;
+
+}
+
 
 function makeSelectAnswerInput(question_json) {
     var type = question_json['type'];
@@ -1213,6 +1245,47 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
     }
 });
 
+
+function handleQuestionLog(item, rc) {
+    var question_id = item.args.question_id;
+    //console.log('question_id', question_id);
+    rc.questions.call(question_id).then( function(question_data) {
+        //console.log('here is result', question_data, question_id)
+        question_data.unshift(question_id);
+        var created = question_data[Qi_created];
+        var bounty = question_data[Qi_bounty];
+        var is_finalized = question_data[Qi_is_finalized];
+        
+        if (is_finalized) {
+            var insert_before = update_ranking_data('questions-resolved', question_id, created);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-resolved', question_data, insert_before);
+            }
+//console.log(max_entries);
+
+        } else {
+            var insert_before = update_ranking_data('questions-latest', question_id, created);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-latest', question_data, insert_before);
+            }
+
+            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-high-reward', question_data, insert_before);
+            }
+//console.log(display_entries);
+        }
+
+
+
+        //console.log('bounty', bounty, 'is_finalized', is_finalized);
+    });
+}
+
+
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
@@ -1232,83 +1305,131 @@ function pageInit(account) {
         $('option.default-arbitrator-option').val(arb.address);
     });
 
+
+    /* 
+        1) Start watching for all actions.
+           This will include questions that the user answered or funded, which will update list of user question_ids.
+           These will be pass into the ranking tables as they come it.
+           Ranking tables may temporarily flash with new actions, which will later be buried under others which we later fetch
+           We can handle this on the display side if it turns out to be a problem.
+
+        2) Get historical logs of user actions.
+           These may include duplicates of things we got from the watch() call.
+
+        3) Get other historical questions and update the rankings.
+           These may include duplicates of things we got from the watch() call.
+
+        NB When we come to display the user actions, we may have only a partial list of the questions they may have answered
+           This may be because the question info hasn't arrived yet
+           We will use a targetted get() to fill in anything we are missing at that time.
+
+    */ 
+
     RealityCheck.deployed().then(function(instance) {
 
         rc = instance;
+
+        return rc.LogNewAnswer({}, {fromBlock:'latest', toBlock:'latest'});
+
+    }).then(function(all_answers_logger) {
+
+        all_answers_logger.watch(function (error, result) {
+            if (!error && result) {
+                if (result.args['answerer'] == account) {
+                    handleUserAction(account, 'answered', result);
+                }
+                console.log('got answer from watch', result);
+            }
+        });
+
+        return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
+
+    }).then(function(all_questions_logger) {
+
+        all_questions_logger.watch(function (error, result) {
+            if (!error && result) {
+                if (result.args['questioner'] == account) {
+                    handleUserAction(account, 'asked', result);
+                }
+                handleQuestionLog(result, rc);
+                console.log('got question watch', result);
+            }
+        });
+
+        return rc.LogFundAnswerBounty({}, {fromBlock:'latest', toBlock:'latest'});
+
+    }).then(function(all_fund_answers_logger) {
+
+        all_fund_answers_logger.watch(function (error, result) {
+            if (!error && result) {
+                if (result.args['funder'] == account) {
+                    handleUserAction(account, 'funded', result);
+                }
+                handleQuestionLog(result, rc); // will fetch question data for updating rankings
+                console.log('got question watch', result);
+            }
+        });
+
+        // TODO: add arbitration requests
+
+        // Watchers all done, next we do the history gets
+        // We start with the user's answers so we can tell when we see a relevant question ID
+
+        return rc.LogNewAnswer({'answerer': account}, {fromBlock:0, toBlock:'latest'});
+
+    }).then(function(answer_posted){
+        answer_posted.get(function(error, result){
+            if (error === null && typeof result !== 'undefined') {
+
+                for(var i=0; i<result.length; i++) {
+                    if (result[i].args['answerer'] == account) {
+                        handleUserAction(account, 'answered', result[i]);
+                    }
+                }
+
+            } else {
+                console.log(error);
+            }
+        });
+
+        // Next comes the user's funded questions
+        return rc.LogFundAnswerBounty({'answerer': account}, {fromBlock:0, toBlock:'latest'});
+
+    }).then(function(bounty_funded){
+
+        for(var i=0; i<bounty_funded.length; i++) {
+            if (result[i].args['answerer'] == account) {
+                handleUserAction(account, 'answered', result[i]);
+            }
+        }
+
+        // Now the rest of the questions
         return rc.LogNewQuestion({}, {fromBlock:0, toBlock:'latest'});
 
     }).then(function(question_posted) {
 
         question_posted.get(function (error, result) {
-            if (error === null) {
 
-                result.reduce(function (prevValue, currentValue) {
+            if (error === null && typeof result !== 'undefined') {
+                for(var i=0; i<result.length; i++) {
+                    handleQuestionLog(result[i], rc);
+                }
+            } else {
+                console.log(e);
+            }
+                
+        });
 
-                    return prevValue.then(function () {
-                        console.log('currentValue',currentValue);
-                        if (currentValue.args['questioner'] == account) {
-                            handleUserAction(account, 'asked', currentValue);
-                            console.log('user_question_ids', user_question_ids);
-                        }
+    });
 
-                        return makeTimeline(currentValue, true);
-                    });
+};
 
+
+/*
                 }, Promise.resolve()).then(function(result) {
-
-                    console.log('latest', timeline_latest, timeline_latest.length);
-                    console.log('high reward', timeline_high_reward, timeline_high_reward.length);
-                    console.log('resolved', timeline_resolved, timeline_resolved.length);
-                    var length = timeline_latest.length;
-                    if (length < 4) {
-                        var from = 0;
-                        var to = length;
-                    } else {
-                        var from = length - 3;
-                        var to = length;
-                    }
-                    for (var i = from; i < to; i++) {
-                        populateSection('questions-latest', timeline_latest[i], true);
-                    }
-                    timeline_pointer['latest'] = from;
-
-                    var length = timeline_high_reward.length;
-                    if (length < 4) {
-                        var from = 0;
-                        var to = length;
-                    } else {
-                        var from = length - 3;
-                        var to = length;
-                    }
-                    for (var i = from; i < to; i++) {
-                        populateSection('questions-high-reward', timeline_high_reward[i], true);
-                    }
-                    timeline_pointer['high-reward'] = from;
-
-                    var length = timeline_resolved.length;
-                    if (length < 4) {
-                        var from = 0;
-                        var to = length;
-                    } else {
-                        var from = length - 3;
-                        var to = length;
-                    }
-                    for (var i = from; i < to; i++) {
-                        populateSection('questions-resolved', timeline_resolved[i], true);
-                    }
-                    timeline_pointer['resolved'] = from;
 
                     return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
 
-                }).then(function(question_posted) {
-                    question_posted.watch(function (error, result) {
-                        console.log('watch new questions', result);
-                        if (error === null) {
-                            makeTimeline(result, false);
-                        } else {
-                            console.log(error);
-                        }
-                    });
                 }).catch(function(e){
                     console.log(e);
                 });
@@ -1316,11 +1437,7 @@ function pageInit(account) {
                 console.log(error);
             }
         });
-
-    }).catch(function (e) {
-        console.log(e);
-    });
-};
+*/
 
 window.onload = web3.eth.getAccounts((err, acc) => {
     console.log('accounts', acc);
