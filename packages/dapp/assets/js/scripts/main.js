@@ -406,6 +406,21 @@ window.dragMoveListener = dragMoveListener;
 /*-------------------------------------------------------------------------------------*/
 // window for posting a question
 
+$('#your-qa-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#your-question-answer-window').css('z-index', 10);
+    $('#your-question-answer-window').addClass('is-open');
+    $('#your-question-answer-window').css('height', '800px');
+});
+
+$('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#your-question-answer-window').css('z-index', 0);
+    $('#your-question-answer-window').removeClass('is-open');
+});
+
 $('#post-a-question-button').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
@@ -705,12 +720,13 @@ $(document).on('click', '.questions__item__title', function(e){
         console.log(e);
     });
 });
-$(document).on('click', '.rcbrowser__close-button', function(){
-   var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
-   $('div#' + question_id).remove();
-   question_id = question_id.replace('qadetail-', '');
+
+$('#post-a-question-window .rcbrowser__close-button').on('click', function(){
+    $('#post-a-question-window').css('z-index', 0);
+    $('#post-a-question-window').removeClass('is-open');
    //delete question_detail_list[question_id]
 });
+
 
 function displayQuestionDetail(question_id) {
     var question_detail = question_detail_list[question_id];
@@ -730,6 +746,16 @@ function displayQuestionDetail(question_id) {
 
     var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
     rcqa.attr('id', 'qadetail-' + question_id);
+    rcqa.find('.need-data-target-id').attr('data-target-id', 'qadetail-' + question_id);
+
+    rcqa.find('.rcbrowser__close-button').on('click', function(){
+       rcqa.remove();
+        console.log('clicked close');
+       //$('div#' + question_id).remove();
+       //question_id = question_id.replace('qadetail-', '');
+       //delete question_detail_list[question_id]
+    });
+
     rcqa.removeClass('template-item');
 
     rcqa.find('.question-title').text(question_json['title']);
