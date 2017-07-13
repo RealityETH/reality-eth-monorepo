@@ -1465,8 +1465,10 @@ function pageInit(account) {
         });
 */
 
-window.onload = web3.eth.getAccounts((err, acc) => {
-    console.log('accounts', acc);
-    account = acc;
-    pageInit(acc[0]);
-});
+window.onload = function() {
+    web3.eth.getAccounts((err, acc) => {
+        console.log('accounts', acc);
+        account = acc;
+        pageInit(acc[0]);
+    });
+}
