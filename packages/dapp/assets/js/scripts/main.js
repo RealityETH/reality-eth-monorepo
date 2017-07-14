@@ -583,7 +583,7 @@ function handleUserAction(acc, action, entry, rc) {
     if (question_detail_list[question_id]) {
 
         rc.questions.call(question_id).then(function(result){
-            current_question = result;
+            var current_question = result;
             current_question.unshift(question_id);
             return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
         }).then(function(answer_posted){
