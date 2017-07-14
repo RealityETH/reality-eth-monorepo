@@ -949,13 +949,14 @@ function populateWithBlockTimeForBlockNumber(num, callback) {
 // Data should already be stored in question_detail_list
 function renderUserAction(question_id, action, entry) {
 
-    // If the user is the asker, display in the questions section
     var qdata = question_detail_list[question_id];
     console.log('renderUserAction', qdata);
 
     var tmpl;
     if (action == 'asked') {
+
         tmpl = 'notifications-item-asked-question';
+
     } else if (action == 'answered') {
         if (entry.args.answerer == account) {
             tmpl = 'notifications-item-you-posted-answer';
@@ -978,15 +979,40 @@ function renderUserAction(question_id, action, entry) {
     item.find('.question-text').text(question_json['title']);
     console.log('get ts from here:', entry);
      
-    var updateBlockTimestamp = function(ts) {
-        item.find('.time-ago').text(ts);
+    var updateBlockAgoDisplay = function(ts) {
+        item.find('.time-ago').text(ts); // TODO: Make this time ago
     }
 
-    populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
+    populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockAgoDisplay);
 
     item.removeClass('template-item').addClass('populated-item');
     $('#your-question-answer-window').find('.notifications').append(item);
 
+    if (action == 'asked') {
+        var qitem;
+        if (qdata[Qi_is_finalized]) {
+            qitem = $('#your-question-answer-window .your-qa__questions__item.template-item.resolved-item').clone();
+        } else {
+            qitem= $('#your-question-answer-window .your-qa__questions__item.template-item.unresolved-item').clone();
+        }
+        var updateBlockTimestamp = function(ts) {
+            qitem.find('.item-date').text(ts); // TODO: Format the date
+        }
+        populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
+
+        qitem.find('.question-text').text(question_json['title']);
+        qitem.find('.count-answers').text(qdata['history'].length);
+
+        qitem.removeClass('template-item');
+
+        // TODO: Make this happen in some kind of order
+        $('#your-question-answer-window .your-qa__questions-inner').append(qitem);
+
+        // TODO: Fill in resolved finalization data
+    } else if (action == 'answered' && account == entry['answerer']) {
+
+        // TODO
+    }
 
 }
 
