@@ -13,26 +13,26 @@ var BigNumber = require('bignumber.js');
 // Assumes we unshift the ID onto the start
 
 // Question, as returned by questions()
-var Qi_question_id = 0;
-var Qi_created = 1;
-var Qi_arbitrator = 2;
-var Qi_step_delay = 3;
-var Qi_question_text = 4;
-var Qi_deadline = 5;
-var Qi_bounty = 6;
-var Qi_arbitration_bounty = 7;
-var Qi_is_arbitration_paid_for = 8;
-var Qi_is_finalized = 9;
-var Qi_best_answer_id = 10;
+const Qi_question_id = 0;
+const Qi_created = 1;
+const Qi_arbitrator = 2;
+const Qi_step_delay = 3;
+const Qi_question_text = 4;
+const Qi_deadline = 5;
+const Qi_bounty = 6;
+const Qi_arbitration_bounty = 7;
+const  Qi_is_arbitration_paid_for = 8;
+const Qi_is_finalized = 9;
+const Qi_best_answer_id = 10;
 
 // Answer, as returned by answers()
-var Ai_answer_id = 0;
-var Ai_question_id = 1;
-var Ai_answer = 2;
-var Ai_answerer = 3;
-var Ai_bond = 4;
-var Ai_ts = 5;
-var Ai_evidence = 6;
+const Ai_answer_id = 0;
+const Ai_question_id = 1;
+const Ai_answer = 2;
+const Ai_answerer = 3;
+const Ai_bond = 4;
+const Ai_ts = 5;
+const Ai_evidence = 6;
 
 var block_timestamp_cache = {};
 
@@ -43,7 +43,7 @@ var Arbitrator;
 var account;
 var arbitration_fee;
 
-var max_entries = 5;
+const max_entries = 5;
 
 var display_entries = {
     'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
@@ -851,7 +851,7 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 
 function displayQuestionDetail(question_id) {
     var question_detail = question_detail_list[question_id];
-    var is_arbitration_requested = question_detail[7];
+    var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
     var latest_answer = question_detail['history'][idx].args;
     var question_json;
@@ -883,7 +883,7 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(question_detail[Qi_bounty]);
     if (!is_arbitration_requested) {
-        rcqa.find('.arbitrator').text(question_detail[1]);
+        rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
     } else {
         rcqa.find('.arbitration-button').css('display', 'none');
     }
