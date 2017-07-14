@@ -1637,6 +1637,10 @@ label > span {
     margin: 0 0 15px;
 }
 
+.notifications-show-hide {
+    margin: 0 0 15px;
+}
+
 .notifications-item {
     width: 100%;
     background-color: $rcBrowserDarkBg;
@@ -1678,7 +1682,7 @@ label > span {
     color: $rcBrowserSubText;
 }
 
-.see-all-notifications {
+.see-all-notifications, .hide-lower-notifications {
     display: block;
     float: right;
     font-size: 13px;
@@ -1959,3 +1963,13 @@ input:placeholder-shown {
 .template-item {
     display:none;
 }
+
+.display-top-only .notifications-item.populated-item {display: none}
+.display-top-only .notifications-item.populated-item:nth-child(1) {display: block !important}
+.display-top-only .notifications-item.populated-item:nth-child(2) {display: block !important}
+.display-top-only .notifications-item.populated-item:nth-child(3) {display: block !important}
+
+.display-all .see-all-notifications {display:none}
+.display-top-only .hide-lower-notifications {display:none}
+
+div.notifications-template-container {display:none}

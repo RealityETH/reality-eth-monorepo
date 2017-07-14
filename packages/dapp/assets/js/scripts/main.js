@@ -34,6 +34,8 @@ var Ai_bond = 4;
 var Ai_ts = 5;
 var Ai_evidence = 6;
 
+var block_timestamp_cache = {};
+
 // These will be populated in onload, once web3 is loaded
 var RealityCheck; 
 var Arbitrator;
@@ -288,44 +290,18 @@ function dragMoveListener (event) {
 window.dragMoveListener = dragMoveListener;
 
 // see all notifications
-(function() {
-    const rcBrowser = document.querySelector('.rcbrowser--your-qa');
-    const container = document.querySelector('.rcbrowser-main-body--your-qa');
-    const anchor = document.querySelector('.see-all-notifications');
-    const notifications = [].slice.call(document.querySelectorAll('.notifications-item'));
-    var notificationsList = [];
-    const docFragment = document.createDocumentFragment();
-
-    for (let i = 0; i < 4; i += 1) {
-        for (let i = 0, len = notifications.length; i < len; i += 1) {
-            notificationsList.push(notifications[i]);
-        }
-    }
-
-    function clickHandler(e) {
-        e.preventDefault();
-
-        container.textContent = null;
-
-        rcBrowser.addClass('is-loading');
-        setTimeout(function() {
-            const notificationsListLength = notificationsList.length;
-            for (let i = 0; i < notificationsListLength; i += 1) {
-                const elementContainer = document.createElement('div');
-                elementContainer.setAttribute('class', 'notifications-item rcbrowser__open-button');
-                elementContainer.setAttribute('data-target-id', 'id1');
-                elementContainer.innerHTML = notificationsList[i].innerHTML;
-
-                docFragment.appendChild(elementContainer);
-            }
-            container.appendChild(docFragment);
-            setRCBAnchor();
-            rcBrowser.removeClass('is-loading');
-        }, 1500);
-    }
-
-    anchor.addEventListener('click', clickHandler);
-})();
+$(function() {
+    $('.see-all-notifications').click( function() {
+        $(this).closest('#your-question-answer-window').removeClass('display-top-only').addClass('display-all');
+        //$(this).closest('.rcbrowser--your-qa').rcBrowser.addClass('is-loading');
+        return false;
+    });
+    $('.hide-lower-notifications').click( function() {
+        $(this).closest('#your-question-answer-window').addClass('display-top-only').removeClass('display-all');
+        //$(this).closest('.rcbrowser--your-qa').rcBrowser.addClass('is-loading');
+        return false;
+    });
+});
 
 // page loaded
 (function() {
@@ -580,28 +556,34 @@ function handleUserAction(acc, action, entry, rc) {
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
 
-    if (question_detail_list[question_id]) {
+    var current_question;
 
+    if (question_detail_list[question_id]) {
+        renderUserAction(question_id, action, entry);
+    } else {
         rc.questions.call(question_id).then(function(result){
-            var current_question = result;
+            current_question = result;
             current_question.unshift(question_id);
             return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
-        }).then(function(answer_posted){
-            answer_posted.get(function(error, answers){
+        }).then(function(answer_logs){
+            answer_logs.get(function(error, answers){
                 if (error === null && typeof answers !== 'undefined') {
                     question_detail_list[question_id] = current_question;
                     question_detail_list[question_id]['history'] = answers;
-                    displayQuestionDetailYour(question_id);
-                    displayAnswerHistoryYour(question_id);
+                    renderUserAction(question_id, action, entry);
+                    //renderUserAction(question_id);
+                    //displayAnswerHistoryYour(question_id);
                 } else {
                     console.log(error);
                 }
             });
         });
+    } 
 
-    } else {
-        renderUserAction(question_id, action, entry);
-    }
+    rc.balanceOf.call(account).then(function(result){
+        $('.account-balance').text(result.toString());
+    });
+
 
 }
 
@@ -953,6 +935,17 @@ function displayQuestionDetail(question_id) {
 
 }
 
+function populateWithBlockTimeForBlockNumber(num, callback) {
+    if (block_timestamp_cache[num]) {
+        callback(block_timestamp_cache[num]);
+    } else {
+        web3.eth.getBlock(num, function(err, result) {
+            block_timestamp_cache[num] = result.timestamp
+            callback(block_timestamp_cache[num]);
+        }); 
+    }
+}
+
 // Data should already be stored in question_detail_list
 function renderUserAction(question_id, action, entry) {
 
@@ -960,6 +953,39 @@ function renderUserAction(question_id, action, entry) {
     var qdata = question_detail_list[question_id];
     console.log('renderUserAction', qdata);
 
+    var tmpl;
+    if (action == 'asked') {
+        tmpl = 'notifications-item-asked-question';
+    } else if (action == 'answered') {
+        if (entry.args.answerer == account) {
+            tmpl = 'notifications-item-you-posted-answer';
+        } else {
+            tmpl = 'notifications-item-answer-overwritten';
+        }
+    }
+
+    var item = $('#your-question-answer-window').find('.notifications-template-container .template-item.'+tmpl).clone();
+
+    var question_json;
+    try {
+        question_json = JSON.parse(qdata[Qi_question_text]);
+    } catch(e) {
+        question_json = {
+            'title': question_data[3]
+        };
+    }
+
+    item.find('.question-text').text(question_json['title']);
+    console.log('get ts from here:', entry);
+     
+    var updateBlockTimestamp = function(ts) {
+        item.find('.time-ago').text(ts);
+    }
+
+    populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
+
+    item.removeClass('template-item').addClass('populated-item');
+    $('#your-question-answer-window').find('.notifications').append(item);
 
 
 }
