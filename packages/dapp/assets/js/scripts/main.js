@@ -481,25 +481,6 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
-function handleUserAction(acc, action, entry) {
-    if (window.localStorage) { 
-        var lastViewedBlockNumber = 0;
-        if (window.localStorage.getItem('viewedBlockNumber')) {
-            lastViewedBlockNumber = parseInt(window.localStorage.getItem('viewedBlockNumber'));
-        }
-        console.log(lastViewedBlockNumber);
-        if (entry.blockNumber > lastViewedBlockNumber) {
-            //$('body').attr('last-update-block-number', entry.blockNumber);
-            $('body').addClass('pushing');
-        }
-    }
-    var qid = entry.args['question_id'];
-    if (user_question_ids[action].indexOf(qid) === -1) {
-        user_question_ids[action].push(qid);
-    }
-    console.log('user_question_ids', user_question_ids);
-}
-
 function validate() {
     var valid = true;
 
@@ -546,6 +527,55 @@ function validate() {
 
 
     return valid;
+}
+
+/*-------------------------------------------------------------------------------------*/
+// make questions list
+
+$('div.loadmore-button').on('click', function(e) {
+    var sec = $(this).attr('data-questions');
+//console.log('loading more sec', sec);
+
+    var old_max = display_entries[sec]['max_show'];
+    var new_max = old_max + 3;
+
+    var num_in_doc = $('#'+sec).find('.questions__item').length;
+
+    display_entries[sec]['max_show'] = new_max;
+
+    // TODO: We may need to refetch to populate this store
+    display_entries[sec]['max_store'] = display_entries[sec]['max_store'] + 3;
+
+    for (var i = num_in_doc; i < new_max && i < display_entries[sec]['ids'].length; i++) {
+        var previd;
+        var nextid = display_entries[sec]['ids'][i];
+        var previd;
+        if (i > 0) {
+            previd = display_entries[sec]['ids'][i-1];
+        }
+        var qdata = question_detail_list[nextid];
+        populateSection(sec, qdata, previd);
+    }
+
+});
+
+function handleUserAction(acc, action, entry) {
+    if (window.localStorage) { 
+        var lastViewedBlockNumber = 0;
+        if (window.localStorage.getItem('viewedBlockNumber')) {
+            lastViewedBlockNumber = parseInt(window.localStorage.getItem('viewedBlockNumber'));
+        }
+        console.log(lastViewedBlockNumber);
+        if (entry.blockNumber > lastViewedBlockNumber) {
+            //$('body').attr('last-update-block-number', entry.blockNumber);
+            $('body').addClass('pushing');
+        }
+    }
+    var qid = entry.args['question_id'];
+    if (user_question_ids[action].indexOf(qid) === -1) {
+        user_question_ids[action].push(qid);
+    }
+    console.log('user_question_ids', user_question_ids);
 }
 
 function populateSection(section_name, question_data, before_item) {
@@ -616,32 +646,114 @@ function populateSection(section_name, question_data, before_item) {
     //if (display_entries[section_name].max_show) {
 }
 
-$('div.loadmore-button').on('click', function(e) {
-    var sec = $(this).attr('data-questions');
-//console.log('loading more sec', sec);
+function handleQuestionLog(item, rc) {
+    var question_id = item.args.question_id;
+    //console.log('question_id', question_id);
+    rc.questions.call(question_id).then( function(question_data) {
+        //console.log('here is result', question_data, question_id)
+        question_data.unshift(question_id);
+        var created = question_data[Qi_created];
+        var bounty = question_data[Qi_bounty];
+        var is_finalized = question_data[Qi_is_finalized];
 
-    var old_max = display_entries[sec]['max_show'];
-    var new_max = old_max + 3;
+        if (is_finalized) {
+            var insert_before = update_ranking_data('questions-resolved', question_id, created);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-resolved', question_data, insert_before);
+            }
+//console.log(max_entries);
 
-    var num_in_doc = $('#'+sec).find('.questions__item').length;
+        } else {
+            var insert_before = update_ranking_data('questions-latest', question_id, created);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-latest', question_data, insert_before);
+            }
 
-    display_entries[sec]['max_show'] = new_max;
-
-    // TODO: We may need to refetch to populate this store
-    display_entries[sec]['max_store'] = display_entries[sec]['max_store'] + 3;
-
-    for (var i = num_in_doc; i < new_max && i < display_entries[sec]['ids'].length; i++) {
-        var previd;
-        var nextid = display_entries[sec]['ids'][i];
-        var previd;
-        if (i > 0) {
-             previd = display_entries[sec]['ids'][i-1];
+            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
+            if (insert_before !== -1) {
+                question_detail_list[question_id] = question_data;
+                populateSection('questions-high-reward', question_data, insert_before);
+            }
+//console.log(display_entries);
         }
-        var qdata = question_detail_list[nextid];
-        populateSection(sec, qdata, previd);
+
+
+
+        //console.log('bounty', bounty, 'is_finalized', is_finalized);
+    });
+}
+
+// Inserts into the right place in the stored rankings.
+// If it comes after another stored item, return the ID of that item.
+// If it doesn't belong in storage because it is too low for the ranking, return -1
+// TODO: ??? If it is already in storage and does not need to be updated, return -2
+function update_ranking_data(arr_name, id, val) {
+
+    // Check if we already have it
+    var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
+    if (existing_idx !== -1) {
+
+        // If it is unchanged, return a code saying there is nothing to do
+        if (val.equals(display_entries[arr_name]['vals'][existing_idx])) {
+            return -1; // TODO: make this -2 so the caller can handle this case differently?
+        }
+
+        // If we are already in the list and have the same value, remove and try to add again
+        // This can happen if the variable we sort by is updated
+        display_entries[arr_name]['ids'].splice(existing_idx, 1);
+        display_entries[arr_name]['vals'].splice(existing_idx, 1);
     }
-    
-});
+
+    //console.log('update_ranking_data', arr_name, id, val.toString());
+    var arr = display_entries[arr_name]['vals']
+    //console.log('start with array ', arr);
+
+    var max_entries = display_entries[arr_name]['max_store'];
+
+    // If the list is full and we're lower, give up
+    if (arr.length >= max_entries) {
+        var last_entry = arr[arr.length-1];
+        if (last_entry.gte(val)) {
+            //  console.log('we are full and last entry is at least as high')
+            return -1;
+        }
+    }
+
+    // go through from the top until we find something we're higher than
+    var i = 0;
+    for (i = 0; i < arr.length; i++) {
+        //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
+        if (val.gte(arr[i])) {
+            // found a spot, we're higher than the current occupant of this index
+            // we'll return its ID to know where to insert in the document
+            var previd = display_entries[arr_name]['ids'][i];
+
+            //console.log('found, splice in before ', previd, 'old', val.toString(), 'new', arr[i].toString());
+
+            // insert at the replaced element's index, bumping everything down
+            display_entries[arr_name]['ids'].splice(i, 0, id);
+            display_entries[arr_name]['vals'].splice(i, 0, val);
+
+            // if the array is now too long, dump the final element
+            if (arr.length > max_entries) {
+                display_entries[arr_name]['ids'].pop();
+                display_entries[arr_name]['vals'].pop();
+            }
+            return previd;
+        }
+
+    }
+
+//console.log('not found, add to end');
+    // lower than everything but there's still space, so add to the end
+    display_entries[arr_name]['ids'].push(id);
+    display_entries[arr_name]['vals'].push(val);
+    return null;
+
+}
+
 /*-------------------------------------------------------------------------------------*/
 // question detail window
 
@@ -726,7 +838,6 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
     $('#post-a-question-window').removeClass('is-open');
    //delete question_detail_list[question_id]
 });
-
 
 function displayQuestionDetail(question_id) {
     var question_detail = question_detail_list[question_id];
@@ -879,78 +990,6 @@ function getAnswerString(question_json, answer_data) {
 
     return label;
 }
-
-
-
-// Inserts into the right place in the stored rankings.
-// If it comes after another stored item, return the ID of that item.
-// If it doesn't belong in storage because it is too low for the ranking, return -1
-// TODO: ??? If it is already in storage and does not need to be updated, return -2
-function update_ranking_data(arr_name, id, val) {
-
-    // Check if we already have it
-    var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
-    if (existing_idx !== -1) {
-
-        // If it is unchanged, return a code saying there is nothing to do
-        if (val.equals(display_entries[arr_name]['vals'][existing_idx])) {
-            return -1; // TODO: make this -2 so the caller can handle this case differently?
-        }
-
-        // If we are already in the list and have the same value, remove and try to add again
-        // This can happen if the variable we sort by is updated
-        display_entries[arr_name]['ids'].splice(existing_idx, 1);
-        display_entries[arr_name]['vals'].splice(existing_idx, 1);
-    }
-
-    //console.log('update_ranking_data', arr_name, id, val.toString());
-    var arr = display_entries[arr_name]['vals']
-    //console.log('start with array ', arr);
-
-    var max_entries = display_entries[arr_name]['max_store'];
-
-    // If the list is full and we're lower, give up
-    if (arr.length >= max_entries) {
-        var last_entry = arr[arr.length-1];
-        if (last_entry.gte(val)) {
-          //  console.log('we are full and last entry is at least as high')
-            return -1;
-        }
-    }
-
-    // go through from the top until we find something we're higher than
-    var i = 0;
-    for (i = 0; i < arr.length; i++) {
-        //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
-        if (val.gte(arr[i])) {
-            // found a spot, we're higher than the current occupant of this index
-            // we'll return its ID to know where to insert in the document
-            var previd = display_entries[arr_name]['ids'][i];
-
-            //console.log('found, splice in before ', previd, 'old', val.toString(), 'new', arr[i].toString());
-
-            // insert at the replaced element's index, bumping everything down
-            display_entries[arr_name]['ids'].splice(i, 0, id);
-            display_entries[arr_name]['vals'].splice(i, 0, val);
-
-            // if the array is now too long, dump the final element
-            if (arr.length > max_entries) {
-                display_entries[arr_name]['ids'].pop();
-                display_entries[arr_name]['vals'].pop();
-            }
-            return previd;
-        } 
-        
-    }
-
-//console.log('not found, add to end');
-    // lower than everything but there's still space, so add to the end
-    display_entries[arr_name]['ids'].push(id);
-    display_entries[arr_name]['vals'].push(val);
-    return null;
-
-}
-
 
 function makeSelectAnswerInput(question_json) {
     var type = question_json['type'];
@@ -1270,47 +1309,6 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
         container.removeClass('is-error');
     }
 });
-
-
-function handleQuestionLog(item, rc) {
-    var question_id = item.args.question_id;
-    //console.log('question_id', question_id);
-    rc.questions.call(question_id).then( function(question_data) {
-        //console.log('here is result', question_data, question_id)
-        question_data.unshift(question_id);
-        var created = question_data[Qi_created];
-        var bounty = question_data[Qi_bounty];
-        var is_finalized = question_data[Qi_is_finalized];
-        
-        if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, created);
-            if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
-                populateSection('questions-resolved', question_data, insert_before);
-            }
-//console.log(max_entries);
-
-        } else {
-            var insert_before = update_ranking_data('questions-latest', question_id, created);
-            if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
-                populateSection('questions-latest', question_data, insert_before);
-            }
-
-            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
-            if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
-                populateSection('questions-high-reward', question_data, insert_before);
-            }
-//console.log(display_entries);
-        }
-
-
-
-        //console.log('bounty', bounty, 'is_finalized', is_finalized);
-    });
-}
-
 
 /*-------------------------------------------------------------------------------------*/
 // initial process
