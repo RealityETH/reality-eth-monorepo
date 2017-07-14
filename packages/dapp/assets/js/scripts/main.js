@@ -557,7 +557,7 @@ $('div.loadmore-button').on('click', function(e) {
 
 });
 
-function handleUserAction(acc, action, entry) {
+function handleUserAction(acc, action, entry, rc) {
     if (window.localStorage) { 
         var lastViewedBlockNumber = 0;
         if (window.localStorage.getItem('viewedBlockNumber')) {
@@ -569,11 +569,40 @@ function handleUserAction(acc, action, entry) {
             $('body').addClass('pushing');
         }
     }
-    var qid = entry.args['question_id'];
-    if (user_question_ids[action].indexOf(qid) === -1) {
-        user_question_ids[action].push(qid);
+
+    var question_id = entry.args['question_id'];
+    if (user_question_ids[action].indexOf(question_id) === -1) {
+        user_question_ids[action].push(question_id);
     }
     console.log('user_question_ids', user_question_ids);
+
+    // If we have already viewed the question, it should be loaded in the question_detail_list array
+    // If not, we will need to load it and put it there
+    // This is duplicated when you click on a question to view it
+
+    if (question_detail_list[question_id]) {
+
+        rc.questions.call(question_id).then(function(result){
+            current_question = result;
+            current_question.unshift(question_id);
+            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
+        }).then(function(answer_posted){
+            answer_posted.get(function(error, answers){
+                if (error === null && typeof answers !== 'undefined') {
+                    question_detail_list[question_id] = current_question;
+                    question_detail_list[question_id]['history'] = answers;
+                    displayQuestionDetailYour(question_id);
+                    displayAnswerHistoryYour(question_id);
+                } else {
+                    console.log(error);
+                }
+            });
+        });
+
+    } else {
+        renderUserAction(question_id, action, entry);
+    }
+
 }
 
 function populateSection(section_name, question_data, before_item) {
@@ -804,16 +833,17 @@ $(document).on('click', '.questions__item__title', function(e){
         return rc.questions.call(question_id);
     }).then(function(result){
         current_question = result;
+        current_question.unshift(question_id);
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
     }).then(function(answer_posted){
-        answer_posted.get(function(error, result){
-            if (error === null && typeof result !== 'undefined') {
+        answer_posted.get(function(error, answers){
+            if (error === null && typeof answers !== 'undefined') {
                 question_detail_list[question_id] = current_question;
-                question_detail_list[question_id]['history'] = result;
+                question_detail_list[question_id]['history'] = answers;
 
-                for(var i=0; i<result.length; i++) {
-                    if (result[i].args['answerer'] == account) {
-                        handleUserAction(account, 'answered', result[i]);
+                for(var i=0; i<answers.length; i++) {
+                    if (answers[i].args['answerer'] == account) {
+                        handleUserAction(account, 'answered', answers[i], rc);
                     }
                 }
 
@@ -845,10 +875,10 @@ function displayQuestionDetail(question_id) {
     var question_json;
 
     try {
-        question_json = JSON.parse(question_detail[3]);
+        question_json = JSON.parse(question_detail[Qi_question_text]);
     } catch(e) {
         question_json = {
-            'title': question_detail[3],
+            'title': question_detail[Qi_question_text],
             'type': 'binary'
         };
     }
@@ -869,7 +899,7 @@ function displayQuestionDetail(question_id) {
     rcqa.removeClass('template-item');
 
     rcqa.find('.question-title').text(question_json['title']);
-    rcqa.find('.reward-value').text(question_detail[5]);
+    rcqa.find('.reward-value').text(question_detail[Qi_bounty]);
     if (!is_arbitration_requested) {
         rcqa.find('.arbitrator').text(question_detail[1]);
     } else {
@@ -886,7 +916,7 @@ function displayQuestionDetail(question_id) {
     var label = getAnswerString(question_json, latest_answer);
     rcqa.find('.current-answer-body').find('.current-answer').text(label);
 
-    Arbitrator.at(question_detail[1]).then(function(arb) {
+    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
         rcqa.find('.arbitration-fee').text(fee.toString());
@@ -905,7 +935,7 @@ function displayQuestionDetail(question_id) {
     rcqa.css('z-index',10);
 
     // final answer button
-    showFAButton(question_id, question_detail[2], latest_answer.ts);
+    showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
 
     var rc;
     RealityCheck.deployed().then(function(instance){
@@ -913,13 +943,24 @@ function displayQuestionDetail(question_id) {
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:'latest', toBlock:'latest'});
     }).then(function(answer_posted){
         answer_posted.watch(function(error, result){
-            question_detail_list[question_id][9] = result.args.answer_id;
-            pushWatchedAnswer(result);
+            question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
+            pushWatchedAnswer(answer_posted);
             rewriteQuestionDetail(question_id);
         });
     }).catch(function (e){
         console.log(e);
     });
+
+}
+
+// Data should already be stored in question_detail_list
+function renderUserAction(question_id, action, entry) {
+
+    // If the user is the asker, display in the questions section
+    var qdata = question_detail_list[question_id];
+    console.log('renderUserAction', qdata);
+
+
 
 }
 
@@ -931,7 +972,7 @@ function rewriteQuestionDetail(question_id) {
     var answer = answer_data.args.answer.toNumber();
 
     try {
-        var question_json = JSON.parse(question_data[3]);
+        var question_json = JSON.parse(question_data[Qi_question_text]);
     } catch(e) {
         question_json = {
             'title': question_data[3]
@@ -947,7 +988,7 @@ function rewriteQuestionDetail(question_id) {
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
     // show final answer button
-    showFAButton(question_id, question_data[2], answer_data.args.ts);
+    showFAButton(question_id, question_data[Qi_step_delay], answer_data.args.ts);
 
     var ans_data = $(section_name).find('.current-answer-container').find('.answer-data');
     ans_data.find('.answerer').text(answer_data.args.answerer);
@@ -1041,7 +1082,7 @@ function displayAnswerHistory(question_id) {
 
     answer_log.forEach(function(answer){
         // skip current answer.
-        if (answer.args.answer_id == question_data[9]) {
+        if (answer.args.answer_id == question_data[Qi_best_answer_id]) {
             return;
         }
 
@@ -1056,10 +1097,10 @@ function displayAnswerHistory(question_id) {
         section.find('.answered-history-header').after(container);
 
         try {
-            var question_json = JSON.parse(question_data[3]);
+            var question_json = JSON.parse(question_data[Qi_question_text]);
         } catch(e) {
             question_json = {
-                'title': question_data[3]
+                'title': question_data[Qi_question_text]
             };
         }
 
@@ -1141,14 +1182,14 @@ $(document).on('click', '.post-answer-button', function(e){
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return rc.questions.call(question_id);
-    }).then(function(result) {
-        question = result;
+    }).then(function(current_question) {
+        current_question.unshift(question_id);
 
         try {
-            question_json = JSON.parse(question[3]);
+            question_json = JSON.parse(current_question[Qi_question_text]);
         } catch(e) {
             question_json = {
-                'title': question[3],
+                'title': current_question[Qi_question_text],
                 'type': 'binary'
             };
         }
@@ -1173,10 +1214,8 @@ $(document).on('click', '.post-answer-button', function(e){
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
 
-        return rc.answers.call(question[9]);
-    }).then(function(result){
-        current_answer = result;
-
+        return rc.answers.call(current_question[Qi_best_answer_id]);
+    }).then(function(current_answer){
         // check answer
         var is_err = false;
         switch (question_json['type']) {
@@ -1381,7 +1420,7 @@ function pageInit(account) {
         all_answers_logger.watch(function (error, result) {
             if (!error && result) {
                 if (result.args['answerer'] == account) {
-                    handleUserAction(account, 'answered', result);
+                    handleUserAction(account, 'answered', result, rc);
                 }
                 console.log('got answer from watch', result);
             }
@@ -1394,7 +1433,7 @@ function pageInit(account) {
         all_questions_logger.watch(function (error, result) {
             if (!error && result) {
                 if (result.args['questioner'] == account) {
-                    handleUserAction(account, 'asked', result);
+                    handleUserAction(account, 'asked', result, rc);
                 }
                 handleQuestionLog(result, rc);
                 console.log('got question watch', result);
@@ -1408,7 +1447,7 @@ function pageInit(account) {
         all_fund_answers_logger.watch(function (error, result) {
             if (!error && result) {
                 if (result.args['funder'] == account) {
-                    handleUserAction(account, 'funded', result);
+                    handleUserAction(account, 'funded', result, rc);
                 }
                 handleQuestionLog(result, rc); // will fetch question data for updating rankings
                 console.log('got question watch', result);
@@ -1424,11 +1463,12 @@ function pageInit(account) {
 
     }).then(function(answer_posted){
         answer_posted.get(function(error, result){
+            var answers = result;
             if (error === null && typeof result !== 'undefined') {
 
-                for(var i=0; i<result.length; i++) {
+                for(var i=0; i<answers.length; i++) {
                     if (result[i].args['answerer'] == account) {
-                        handleUserAction(account, 'answered', result[i]);
+                        handleUserAction(account, 'answered', answers[i], rc);
                     }
                 }
 
@@ -1444,7 +1484,7 @@ function pageInit(account) {
 
         for(var i=0; i<bounty_funded.length; i++) {
             if (result[i].args['answerer'] == account) {
-                handleUserAction(account, 'answered', result[i]);
+                handleUserAction(account, 'answered', result[i], rc);
             }
         }
 
@@ -1487,7 +1527,7 @@ function pageInit(account) {
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
         console.log('accounts', acc);
-        account = acc;
-        pageInit(acc[0]);
+        account = acc[0];
+        pageInit(account);
     });
 }
