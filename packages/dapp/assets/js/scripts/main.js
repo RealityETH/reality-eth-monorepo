@@ -1,6 +1,8 @@
 // TODO: Check if there was a reason to do this instead of import
 //require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
 
+'use strict';
+
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
@@ -37,6 +39,7 @@ var RealityCheck;
 var Arbitrator;
 
 var account;
+var arbitration_fee;
 
 var max_entries = 5;
 
@@ -47,9 +50,6 @@ var display_entries = {
     'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
 }
 
-
-
-var account;
 var user_question_ids = {'answered': [], 'asked': [], 'funded': []};
 
 // data for question detail window
@@ -62,8 +62,6 @@ import interact from 'interact.js';
 import Ps from 'perfect-scrollbar';
 import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 //import {TweenLite, Power3} from 'gsap';
-
-'use strict';
 
 function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
@@ -841,6 +839,7 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 
 function displayQuestionDetail(question_id) {
     var question_detail = question_detail_list[question_id];
+    var is_arbitration_requested = question_detail[7];
     var idx = question_detail['history'].length - 1;
     var latest_answer = question_detail['history'][idx].args;
     var question_json;
@@ -871,7 +870,11 @@ function displayQuestionDetail(question_id) {
 
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(question_detail[5]);
-    rcqa.find('.arbitrator').text(question_detail[1]);
+    if (!is_arbitration_requested) {
+        rcqa.find('.arbitrator').text(question_detail[1]);
+    } else {
+        rcqa.find('.arbitration-button').css('display', 'none');
+    }
     rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
 
     // answerer data
@@ -887,6 +890,7 @@ function displayQuestionDetail(question_id) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
         rcqa.find('.arbitration-fee').text(fee.toString());
+        arbitration_fee = fee.toNumber();
     });
 
     var ans_frm = makeSelectAnswerInput(question_json);
@@ -1277,6 +1281,23 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         });
     }
 });
+
+/*-------------------------------------------------------------------------------------*/
+// arbitration
+$(document).on('click', '.arbitrator', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+
+    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+
+    RealityCheck.deployed().then(function(rc){
+        return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value:arbitration_fee});
+    }).then(function(result){
+        console.log('arbitration is requestd.', result);
+    }).catch(function(e){
+        console.log(e);
+    });
+})
 
 /*-------------------------------------------------------------------------------------*/
 // reset error messages
