@@ -43,8 +43,6 @@ var Arbitrator;
 var account;
 var arbitration_fee;
 
-const max_entries = 5;
-
 var display_entries = {
     'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
@@ -671,7 +669,6 @@ function handleQuestionLog(item, rc) {
                 question_detail_list[question_id] = question_data;
                 populateSection('questions-resolved', question_data, insert_before);
             }
-//console.log(max_entries);
 
         } else {
             var insert_before = update_ranking_data('questions-latest', question_id, created);
