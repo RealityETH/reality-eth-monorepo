@@ -18,3 +18,4 @@ config/test/contracts.json
 build
 dist
 /assets/js/bundle.js
+/assets/css/main.css

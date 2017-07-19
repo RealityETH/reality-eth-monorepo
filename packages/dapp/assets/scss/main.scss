@@ -490,7 +490,7 @@ body.pushing .page-qa #push-icon {
 }
 .is-page-loaded .questions:first-child,
 .page-qa .questions:first-child {
-    transform: translate3d(0, -2%, 0);
+    transform: translate3d(0, -8%, 0);
 }
 
 .questions:nth-child(2) {
@@ -500,7 +500,7 @@ body.pushing .page-qa #push-icon {
 }
 .is-page-loaded .questions:nth-child(2),
 .page-qa .questions:nth-child(2) {
-    transform: translate3d(0, -4%, 0);
+    transform: translate3d(0, -16%, 0);
 }
 
 .questions:nth-child(3) {
@@ -510,7 +510,7 @@ body.pushing .page-qa #push-icon {
 }
 .is-page-loaded .questions:nth-child(3),
 .page-qa .questions:nth-child(3) {
-    transform: translate3d(0, -3%, 0);
+    transform: translate3d(0, -12%, 0);
 }
 
 .questions:last-child {
@@ -520,7 +520,7 @@ body.pushing .page-qa #push-icon {
 }
 .is-page-loaded .questions:last-child,
 .page-qa .questions:last-child {
-    transform: translate3d(0, -2%, 0);
+    transform: translate3d(0, -8%, 0);
 }
 
 .questions-header {

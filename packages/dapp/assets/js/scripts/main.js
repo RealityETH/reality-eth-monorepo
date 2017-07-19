@@ -305,7 +305,7 @@ $(function() {
 (function() {
     function loadHandler() {
         imagesLoaded( document.getElementById('cover'), { background: true }, function() {
-            $('<body>').addClass('is-page-loaded');
+            $('body').addClass('is-page-loaded');
         });
     }
     window.addEventListener('load', loadHandler);
