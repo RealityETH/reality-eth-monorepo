@@ -628,6 +628,7 @@ function populateSection(section_name, question_data, before_item) {
     var best_answer_id = question_data[10];
 
     var entry = $('.questions__item.template-item').clone();
+    entry.attr('data-question-id', question_id);
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.questions__item__title').attr('data-target-id', target_question_id);
     entry.find('.question-title').text(question_json['title']);
@@ -797,16 +798,26 @@ $(document).on('click', '.questions__item__title', function(e){
     e.preventDefault();
     e.stopPropagation();
 
+    var question_id = $(this).closest('.questions__item').attr('data-question-id');
+    openQuestionWindow(question_id); 
+
+});
+
+$(document).on('click', '.your-qa__questions__item', function(e) {
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    var question_id = $(this).closest('.your-qa__questions__item').attr('data-question-id');
+    openQuestionWindow(question_id);
+
+});
+
+function openQuestionWindow(question_id) {
+
     var rc;
     var current_question;
 
-    if (e.target.nodeName.toLowerCase() == 'span') {
-        var rcqa_id = e.target.parentNode.getAttribute('data-target-id');
-    } else if (e.target.nodeName.toLowerCase() == 'a') {
-        rcqa_id = e.target.getAttribute('data-target-id');
-    }
-
-    var question_id = rcqa_id.replace('qadetail-', '');
     RealityCheck.deployed().then(function(instance){
         rc = instance;
         return rc.questions.call(question_id);
@@ -838,7 +849,7 @@ $(document).on('click', '.questions__item__title', function(e){
     }).catch(function(e){
         console.log(e);
     });
-});
+}
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
     $('#post-a-question-window').css('z-index', 0);
@@ -847,6 +858,7 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 });
 
 function displayQuestionDetail(question_id) {
+
     var question_detail = question_detail_list[question_id];
     var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
@@ -922,9 +934,11 @@ function displayQuestionDetail(question_id) {
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:'latest', toBlock:'latest'});
     }).then(function(answer_posted){
         answer_posted.watch(function(error, result){
-            question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
-            pushWatchedAnswer(answer_posted);
-            rewriteQuestionDetail(question_id);
+            if (!error && result !== undefined) {
+                question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
+                pushWatchedAnswer(answer_posted);
+                rewriteQuestionDetail(question_id);
+            }
         });
     }).catch(function (e){
         console.log(e);
@@ -997,6 +1011,7 @@ function renderUserAction(question_id, action, entry) {
         }
         populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
 
+        qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
         qitem.find('.count-answers').text(qdata['history'].length);
 
