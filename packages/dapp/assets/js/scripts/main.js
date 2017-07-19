@@ -548,7 +548,7 @@ function handleUserAction(acc, action, entry, rc) {
     if (user_question_ids[action].indexOf(question_id) === -1) {
         user_question_ids[action].push(question_id);
     }
-    console.log('user_question_ids', user_question_ids);
+    //console.log('user_question_ids', user_question_ids);
 
     // If we have already viewed the question, it should be loaded in the question_detail_list array
     // If not, we will need to load it and put it there
@@ -628,6 +628,7 @@ function populateSection(section_name, question_data, before_item) {
     var best_answer_id = question_data[10];
 
     var entry = $('.questions__item.template-item').clone();
+    entry.attr('data-question-id', question_id);
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.questions__item__title').attr('data-target-id', target_question_id);
     entry.find('.question-title').text(question_json['title']);
@@ -797,16 +798,26 @@ $(document).on('click', '.questions__item__title', function(e){
     e.preventDefault();
     e.stopPropagation();
 
+    var question_id = $(this).closest('.questions__item').attr('data-question-id');
+    openQuestionWindow(question_id); 
+
+});
+
+$(document).on('click', '.your-qa__questions__item', function(e) {
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    var question_id = $(this).closest('.your-qa__questions__item').attr('data-question-id');
+    openQuestionWindow(question_id);
+
+});
+
+function openQuestionWindow(question_id) {
+
     var rc;
     var current_question;
 
-    if (e.target.nodeName.toLowerCase() == 'span') {
-        var rcqa_id = e.target.parentNode.getAttribute('data-target-id');
-    } else if (e.target.nodeName.toLowerCase() == 'a') {
-        rcqa_id = e.target.getAttribute('data-target-id');
-    }
-
-    var question_id = rcqa_id.replace('qadetail-', '');
     RealityCheck.deployed().then(function(instance){
         rc = instance;
         return rc.questions.call(question_id);
@@ -838,7 +849,7 @@ $(document).on('click', '.questions__item__title', function(e){
     }).catch(function(e){
         console.log(e);
     });
-});
+}
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
     $('#post-a-question-window').css('z-index', 0);
@@ -847,6 +858,7 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 });
 
 function displayQuestionDetail(question_id) {
+
     var question_detail = question_detail_list[question_id];
     var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
@@ -922,9 +934,11 @@ function displayQuestionDetail(question_id) {
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:'latest', toBlock:'latest'});
     }).then(function(answer_posted){
         answer_posted.watch(function(error, result){
-            question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
-            pushWatchedAnswer(answer_posted);
-            rewriteQuestionDetail(question_id);
+            if (!error && result !== undefined) {
+                question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
+                pushWatchedAnswer(result);
+                rewriteQuestionDetail(question_id);
+            }
         });
     }).catch(function (e){
         console.log(e);
@@ -947,7 +961,7 @@ function populateWithBlockTimeForBlockNumber(num, callback) {
 function renderUserAction(question_id, action, entry) {
 
     var qdata = question_detail_list[question_id];
-    console.log('renderUserAction', qdata);
+    //console.log('renderUserAction', qdata);
 
     var tmpl;
     if (action == 'asked') {
@@ -974,7 +988,7 @@ function renderUserAction(question_id, action, entry) {
     }
 
     item.find('.question-text').text(question_json['title']);
-    console.log('get ts from here:', entry);
+    //console.log('get ts from here:', entry);
      
     var updateBlockAgoDisplay = function(ts) {
         item.find('.time-ago').text(ts); // TODO: Make this time ago
@@ -986,17 +1000,19 @@ function renderUserAction(question_id, action, entry) {
     $('#your-question-answer-window').find('.notifications').append(item);
 
     if (action == 'asked') {
+
         var qitem;
         if (qdata[Qi_is_finalized]) {
-            qitem = $('#your-question-answer-window .your-qa__questions__item.template-item.resolved-item').clone();
+            qitem = $('#your-question-answer-window .your-qa__questions .your-qa__questions__item.template-item.resolved-item').clone();
         } else {
-            qitem= $('#your-question-answer-window .your-qa__questions__item.template-item.unresolved-item').clone();
+            qitem = $('#your-question-answer-window .your-qa__questions .your-qa__questions__item.template-item.unresolved-item').clone();
         }
         var updateBlockTimestamp = function(ts) {
             qitem.find('.item-date').text(ts); // TODO: Format the date
         }
         populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
 
+        qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
         qitem.find('.count-answers').text(qdata['history'].length);
 
@@ -1006,9 +1022,34 @@ function renderUserAction(question_id, action, entry) {
         $('#your-question-answer-window .your-qa__questions-inner').append(qitem);
 
         // TODO: Fill in resolved finalization data
-    } else if (action == 'answered' && account == entry['answerer']) {
+    } else if (action == 'answered' && account == entry.args['answerer']) {
 
-        // TODO
+        // TODO: The design calls for the question to be displayed here.
+        // Should we be displaying the answer instead?
+        // Probably needs to be changed, so leaving duplication for now
+
+        var aitem;
+
+        if (qdata[Qi_is_finalized]) {
+            aitem = $('#your-question-answer-window .your-qa__answers .your-qa__questions__item.template-item.resolved-item').clone();
+        } else {
+            aitem = $('#your-question-answer-window .your-qa__answers .your-qa__questions__item.template-item.unresolved-item').clone();
+        }
+        var updateBlockTimestamp = function(ts) {
+            aitem.find('.item-date').text(ts); // TODO: Format the date
+        }
+        populateWithBlockTimeForBlockNumber(entry.blockNumber, updateBlockTimestamp);
+
+        aitem.attr('data-question-id', question_id);
+        aitem.find('.question-text').text(question_json['title']);
+        aitem.find('.count-answers').text(qdata['history'].length);
+
+        aitem.removeClass('template-item');
+
+        // TODO: Make this happen in some kind of order
+        $('#your-question-answer-window .your-qa__answers-inner').append(aitem);
+    } else {
+        console.log('not rendering for user', account, ':', action, entry);
     }
 
 }
@@ -1471,7 +1512,7 @@ function pageInit(account) {
                 if (result.args['answerer'] == account) {
                     handleUserAction(account, 'answered', result, rc);
                 }
-                console.log('got answer from watch', result);
+                //console.log('got answer from watch', result);
             }
         });
 
@@ -1485,7 +1526,7 @@ function pageInit(account) {
                     handleUserAction(account, 'asked', result, rc);
                 }
                 handleQuestionLog(result, rc);
-                console.log('got question watch', result);
+                //console.log('got question watch', result);
             }
         });
 
