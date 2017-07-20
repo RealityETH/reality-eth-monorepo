@@ -68,6 +68,16 @@ class TestRealityCheck(TestCase):
         self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_question_id_generation(self):
+        regen_question_id = self.rc0.getQuestionID(
+            decode_hex(ipfs_hex("my question")),
+            self.arb0.address,
+            10
+        )
+        self.assertEqual(regen_question_id, self.question_id)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
