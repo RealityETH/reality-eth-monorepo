@@ -34,6 +34,12 @@ const Ai_bond = 4;
 const Ai_ts = 5;
 const Ai_evidence = 6;
 
+// BigNumber
+BigNumber.config({ RABGE: 256});
+const MIN_NUMBER = 0.000000000001;
+const MAX_NUMBER = (2 ** 256 / 1000000000000) / 2;
+const ONE_ETH = 1000000000000000000;
+
 var block_timestamp_cache = {};
 
 // These will be populated in onload, once web3 is loaded
@@ -428,15 +434,15 @@ $('#post-question-submit').on('click', function(e){
         var question = {
             title: question_body.val(),
             type: question_type.val(),
+            decimals: 13,
             outcomes: outcomes
         }
         var question_json = JSON.stringify(question);
 
         RealityCheck.deployed().then(function (rc) {
             account = web3.eth.accounts[0];
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: parseInt(reward.val())});
+            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
         }).then(function (result) {
-            console.log('askQuestion called, rseult', result);
             question_body.val('');
             reward.val('0');
             step_delay.prop('selectedIndex', 0);
@@ -596,7 +602,6 @@ function populateSection(section_name, question_data, before_item) {
     }
 
     var question_item_id = 'question-' + question_id;
-    var question_item_id = 'question-' + question_id;
     var target_question_id = 'qadetail-' + question_id;
     var section = $('#'+section_name);
 
@@ -621,7 +626,7 @@ function populateSection(section_name, question_data, before_item) {
     var step_delay = question_data[3];
     var question_text_raw = question_data[4];
     var deadline = question_data[5];
-    var bounty = question_data[6];
+    var bounty = web3.fromWei(question_data[6], 'ether');
     var arbitration_bounty = question_data[7];
     var is_arbitration_paid_for = question_data[8];
     var is_finalized = question_data[9];
@@ -890,7 +895,7 @@ function displayQuestionDetail(question_id) {
     rcqa.removeClass('template-item');
 
     rcqa.find('.question-title').text(question_json['title']);
-    rcqa.find('.reward-value').text(question_detail[Qi_bounty]);
+    rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
     if (!is_arbitration_requested) {
         rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
     } else {
@@ -1069,7 +1074,7 @@ function rewriteQuestionDetail(question_id) {
         };
     }
 
-    var bond = answer_data.args.bond.toNumber();
+    var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     $(section_name).find('.current-answer-container').attr('id', answer_id);
     var label = getAnswerString(question_json, answer_data.args);
@@ -1263,7 +1268,7 @@ $(document).on('click', '.post-answer-button', function(e){
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
     var question_id = parent_div.attr('id');
     question_id = question_id.replace('qadetail-', '');
-    var bond = parseInt(parent_div.find('input[name="questionBond"]').val());
+    var bond = web3.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
 
     var account = web3.eth.accounts[0];
     var rc;
@@ -1300,6 +1305,8 @@ $(document).on('click', '.post-answer-button', function(e){
                 }
             }
             new_answer = parseInt(answer_bits, 2);
+        } else if (question_json['type'] == 'number') {
+            new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
@@ -1316,7 +1323,10 @@ $(document).on('click', '.post-answer-button', function(e){
                 }
                 break;
             case 'number':
-                if (isNaN(new_answer) || new_answer === '') {
+                if (new_answer.isNaN()) {
+                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                    is_err = true;
+                } else if (new_answer.lt(MIN_NUMBER) || new_answer.gt(MAX_NUMBER)) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
                     is_err = true;
                 }
@@ -1341,7 +1351,7 @@ $(document).on('click', '.post-answer-button', function(e){
 
         // check bond
         var min_amount = current_answer[3] * 2;
-        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0 && bond  < 1)) {
+        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0 && bond  <  ONE_ETH)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             if (min_amount === 0) {
                 min_amount = 1;
@@ -1398,7 +1408,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('id');
     question_id = question_id.replace('qadetail-', '');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
-    reward = parseInt(reward);
+    reward = web3.toWei(new BigNumber(reward), 'ether');
 
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
@@ -1429,15 +1439,29 @@ $(document).on('click', '.arbitrator', function(e){
 })
 
 /*-------------------------------------------------------------------------------------*/
-// reset error messages
+// show/delete error messages
 
 $('.rcbrowser-textarea').on('keyup', function(e){
     if ($(this).val() !== '') {
         $(this).closest('div').removeClass('is-error');
     }
 });
-$('#question-reward').on('keyup', function(e){
-    if ($(this).val() > 0) {
+$(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
+    let value = $(this).val();
+    if (value === '') {
+        $(this).parent().parent().addClass('is-error');
+    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
+        $(this).parent().parent().addClass('is-error');
+    } else if($(this).hasClass('rcbrowser-input--number--bond')) {
+        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+        let current_idx = question_detail_list[question_id]['history'].length - 1;
+        let current_bond = web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+        if (value < current_bond * 2) {
+            $(this).parent().parent().addClass('is-error');
+        } else {
+            $(this).parent().parent().removeClass('is-error');
+        }
+    } else {
         $(this).parent().parent().removeClass('is-error');
     }
 });
