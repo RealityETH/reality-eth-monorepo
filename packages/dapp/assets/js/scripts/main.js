@@ -999,8 +999,10 @@ function renderUserAction(question_id, action, entry) {
     item.removeClass('template-item').addClass('populated-item');
     $('#your-question-answer-window').find('.notifications').append(item);
 
+    //console.log('handling action ', action, question_id);
     if (action == 'asked') {
 
+        //console.log('got an asked user action', question_id);
         var qitem;
         if (qdata[Qi_is_finalized]) {
             qitem = $('#your-question-answer-window .your-qa__questions .your-qa__questions__item.template-item.resolved-item').clone();
@@ -1019,7 +1021,7 @@ function renderUserAction(question_id, action, entry) {
         qitem.removeClass('template-item');
 
         // TODO: Make this happen in some kind of order
-        $('#your-question-answer-window .your-qa__questions-inner').append(qitem);
+        $('#your-question-answer-window .your-qa__questions .your-qa__questions-inner').append(qitem);
 
         // TODO: Fill in resolved finalization data
     } else if (action == 'answered' && account == entry.args['answerer']) {
