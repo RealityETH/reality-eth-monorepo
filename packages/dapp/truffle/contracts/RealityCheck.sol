@@ -95,7 +95,7 @@ contract RealityCheck {
 
     function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(question_sha256, arbitrator, step_delay);
+        bytes32 question_id = keccak256(question_text, arbitrator, step_delay);
         require(questions[question_id].last_changed_ts == 0);
 
         bytes32 NULL_BYTES;
@@ -117,7 +117,7 @@ contract RealityCheck {
     }
 
     function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
-        return keccak256(question_sha256, arbitrator, step_delay);
+        return keccak256(question_text, arbitrator, step_delay);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
