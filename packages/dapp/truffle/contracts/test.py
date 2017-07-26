@@ -6,11 +6,25 @@ from ethereum.tools.tester import TransactionFailed
 from ethereum.tools import keys
 import time
 from sha3 import sha3_256
+from hashlib import sha256
 
 import os
 
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
+
+QINDEX_ID = 0
+QINDEX_ARBITRATOR = 1
+QINDEX_STEP_DELAY = 2
+QINDEX_QUESTION_TEXT = 3
+QINDEX_BOUNTY = 4
+QINDEX_ARBITRATION_BOUNTY = 5
+QINDEX_IS_ARBITRATION_PAID_FOR = 6
+QINDEX_IS_FINALIZED = 7
+QINDEX_BEST_ANSWER_ID = 8
+
+def ipfs_hex(txt):
+    return sha256(txt).hexdigest()
 
 class TestRealityCheck(TestCase):
 
@@ -36,11 +50,9 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         self.question_id = self.rc0.askQuestion(
-            "my question",
+            decode_hex(ipfs_hex("my question")),
             self.arb0.address,
             10,
-            1488258341,
-            2,
             value=1000
         )
 
@@ -48,23 +60,32 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(int(question[0]), int(ts))
-        self.assertEqual(decode_hex(question[1][2:]), self.arb0.address)
+        self.assertEqual(int(question[QINDEX_ID]), int(ts))
+        self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
-        self.assertEqual(question[2], 10)
-        self.assertEqual(question[3], "my question")
-        self.assertEqual(int(question[4]), 1488258341)
-        self.assertEqual(question[5], 1000)
+        self.assertEqual(question[QINDEX_STEP_DELAY], 10)
+        self.assertEqual(question[QINDEX_QUESTION_TEXT], decode_hex(ipfs_hex("my question")))
+        self.assertEqual(question[QINDEX_BOUNTY], 1000)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_question_id_generation(self):
+        regen_question_id = self.rc0.getQuestionID(
+            decode_hex(ipfs_hex("my question")),
+            self.arb0.address,
+            10
+        )
+        self.assertEqual(regen_question_id, self.question_id)
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[5], 1000)
+        self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
         self.rc0.fundAnswerBounty(self.question_id, value=500)
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[5], 1500)
+        self.assertEqual(question[QINDEX_BOUNTY], 1500)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
@@ -72,31 +93,17 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id, startgas=200000)
 
-        self.s.timestamp = self.s.timestamp + 1
-        # Finalize should fail if too soon (somewhat later case
+        self.s.timestamp = self.s.timestamp + 11
+        # Finalize should fail if there is no answer
         with self.assertRaises(TransactionFailed):
             self.rc0.finalize(self.question_id, startgas=200000)
-
-        question = self.rc0.questions(self.question_id)
-
-        self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
-
-        question = self.rc0.questions(self.question_id)
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 2)
-
-        # submitAnswer should fail once finalized
-        with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 12345, "my evidence", startgas=200000) 
 
         return
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
+        self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), value=1) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -111,11 +118,11 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
+        self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), value=1) 
         ts1 = self.rc0.getEarliestFinalizationTS(self.question_id)
 
         self.s.timestamp = self.s.timestamp + 8
-        self.rc0.submitAnswer(self.question_id, 54321, "my conflicting evidence", value=10) 
+        self.rc0.submitAnswer(self.question_id, 54321, decode_hex(ipfs_hex("my conflicting evidence")), value=10) 
         ts2 = self.rc0.getEarliestFinalizationTS(self.question_id)
 
         self.assertTrue(ts2 > ts1, "Submitting an answer advances the finalization timestamp") 
@@ -123,9 +130,9 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
+        self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), value=1) 
 
-        self.rc0.submitAnswer(self.question_id, 54321, "my conflicting evidence", value=10) 
+        self.rc0.submitAnswer(self.question_id, 54321, decode_hex(ipfs_hex("my conflicting evidence")), value=10) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -136,26 +143,26 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, "my evidence", value=1) 
+        self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), value=1) 
 
         # "You must increase from zero"
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=1, sender=t.k3, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, 10001, decode_hex(ipfs_hex("my conflicting evidence")), value=1, sender=t.k3, startgas=200000) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, 10001, "my conflicting evidence", value=2, sender=t.k3, startgas=200000) 
+        a1 = self.rc0.submitAnswer(self.question_id, 10001, decode_hex(ipfs_hex("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
 
-        a5 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=5, sender=t.k4, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=5, sender=t.k4, startgas=200000) 
 
         # You have to at least double
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10003, "my evidence", value=6, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, 10003, decode_hex(ipfs_hex("my evidence")), value=6, startgas=200000) 
 
         # You definitely can't drop back to zero
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10004, "my evidence", value=0, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, 10004, decode_hex(ipfs_hex("my evidence")), value=0, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         self.c.mine()
         self.s = self.c.head_state
@@ -201,8 +208,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bounty(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=22, sender=t.k5) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -216,8 +223,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_supplied_answer(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         # This was the default of our arbitrator contract
         arb_fee = 100
@@ -251,8 +258,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_existing_answer(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, "my evidence", value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         # This was the default of our arbitrator contract
         arb_fee = 100
@@ -290,7 +297,7 @@ class TestRealityCheck(TestCase):
      
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id, startgas=200000)
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -311,7 +318,7 @@ class TestRealityCheck(TestCase):
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, "my evidence", value=10, sender=t.k3) 
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
         self.assertTrue(self.rc0.isFinalized(self.question_id))

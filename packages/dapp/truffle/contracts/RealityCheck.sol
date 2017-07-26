@@ -18,8 +18,7 @@ contract RealityCheck {
         address indexed arbitrator, 
         uint256 step_delay,
         string question_text,
-        uint256 deadline,
-        uint256 default_answer
+        uint256 created
     );
 
     event LogNewAnswer(
@@ -29,7 +28,7 @@ contract RealityCheck {
         address indexed answerer,
         uint256 bond,
         uint256 ts,
-        string evidence
+        bytes32 evidence_sha256
     );
 
     event LogFundAnswerBounty(
@@ -68,22 +67,19 @@ contract RealityCheck {
         uint256 answer;
         address answerer;
         uint256 bond;
-        uint256 ts;
-        string evidence;
+        bytes32 evidence_sha256;
     }
 
     struct Question {
-        uint256 created;
+        uint256 last_changed_ts;
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 step_delay;
         string question_text;
-        uint256 deadline;
 
         // Mutable data
         uint256 bounty;
-        uint256 arbitration_bounty;
         bool is_arbitration_paid_for;
         bool is_finalized;
         bytes32 best_answer_id;
@@ -92,50 +88,40 @@ contract RealityCheck {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Answer) public answers;
 
+    mapping(bytes32 => uint256) public arbitration_bounties;
+
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) payable returns (bytes32) {
+    function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
-        if (questions[question_id].created > 0) throw;
+        bytes32 question_id = keccak256(arbitrator, step_delay, question_text);
+        require(questions[question_id].last_changed_ts == 0);
 
-        bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
-        answers[answer_id] = Answer(
-            question_id,
-            default_answer,
-            msg.sender,
-            0,
-            now,
-            "" 
-        );
-
+        bytes32 NULL_BYTES;
         questions[question_id] = Question(
             now,
             arbitrator,
             step_delay,
             question_text,
-            deadline,
             msg.value,
-            0,
             false,
             false,
-            answer_id 
+            NULL_BYTES 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, deadline, default_answer );
-        LogNewAnswer( answer_id, question_id, default_answer, msg.sender, 0, now, "");
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, now);
 
         return question_id;
 
     }
 
-    function getQuestionID(string question_text, address arbitrator, uint256 step_delay, uint256 deadline, uint256 default_answer) constant returns (bytes32) {
-        return keccak256(arbitrator, step_delay, question_text, deadline, default_answer);
+    function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
+        return keccak256(arbitrator, step_delay, question_text);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
-        if (questions[question_id].created == 0) throw; // Check existence
+        require(questions[question_id].last_changed_ts > 0); // Check existence
         callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
@@ -143,24 +129,24 @@ contract RealityCheck {
         return keccak256(question_id, sender, amount);
     }
 
-    function submitAnswer(bytes32 question_id, uint256 answer, string evidence) payable returns (bytes32) {
+    function submitAnswer(bytes32 question_id, uint256 answer, bytes32 evidence_sha256) payable returns (bytes32) {
 
-        if (questions[question_id].is_finalized) throw;
+        require(!questions[question_id].is_finalized);
 
         if (msg.sender != questions[question_id].arbitrator) {
 
-            if (questions[question_id].is_arbitration_paid_for) throw;
+            require(!questions[question_id].is_arbitration_paid_for);
 
+            bytes32 NULL_BYTES;
             bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-            // The default answer can be 0, but anything added later must be positive
-            if (msg.value == 0) throw; 
-
-            // You have to double every time
-            if (msg.value < (answers[best_answer_id].bond * 2)) throw;
-
-            // Once the delay has past you can no longer change it, you have to finalize
-            if (now > (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
+            if (best_answer_id != NULL_BYTES) {
+                require(msg.value > 0); 
+                // You have to double every time
+                require(msg.value >= (answers[best_answer_id].bond * 2));
+                // Once the delay has past you can no longer change it, you have to finalize
+                require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
+            }
 
         }
 
@@ -171,8 +157,7 @@ contract RealityCheck {
             answer,
             msg.sender,
             msg.value,
-            now,
-            evidence
+            evidence_sha256
         );
 
         LogNewAnswer(
@@ -182,10 +167,11 @@ contract RealityCheck {
             msg.sender,
             msg.value,
             now,
-            evidence
+            evidence_sha256
         );
 
         questions[question_id].best_answer_id = answer_id;
+        questions[question_id].last_changed_ts = now;
 
         if (msg.sender == questions[question_id].arbitrator) {
             finalizeByArbitrator(answer_id);
@@ -197,7 +183,7 @@ contract RealityCheck {
 
     function getFinalAnswer(bytes32 question_id) constant returns (uint256) {
         bytes32 best_answer_id = questions[question_id].best_answer_id;
-        if (!questions[question_id].is_finalized) throw;
+        require(questions[question_id].is_finalized);
         return answers[best_answer_id].answer;
     }
 
@@ -210,17 +196,20 @@ contract RealityCheck {
     }
 
     function getEarliestFinalizationTS(bytes32 question_id) constant returns (uint256) {
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
-        return (answers[best_answer_id].ts + questions[question_id].step_delay);
+        return (questions[question_id].last_changed_ts + questions[question_id].step_delay);
     }
 
     function finalize(bytes32 question_id) {
+
+        bytes32 NULL_BYTES;
+        require(questions[question_id].best_answer_id != NULL_BYTES);
         
-        if (questions[question_id].is_finalized) throw;
+        require(!questions[question_id].is_finalized);
+
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-        if (now < (answers[best_answer_id].ts + questions[question_id].step_delay) ) throw;
-        if (questions[question_id].is_arbitration_paid_for) throw;
+        require(now >= (questions[question_id].last_changed_ts + questions[question_id].step_delay) );
+        require(!questions[question_id].is_arbitration_paid_for);
 
         questions[question_id].is_finalized = true;
 
@@ -232,14 +221,14 @@ contract RealityCheck {
 
         bytes32 question_id = answers[answer_id].question_id;
 
-        if (msg.sender != questions[question_id].arbitrator) throw; 
-        if (questions[question_id].is_finalized) throw;
+        require(msg.sender == questions[question_id].arbitrator); 
+        require(!questions[question_id].is_finalized);
 
         questions[question_id].best_answer_id = answer_id;
         questions[question_id].is_finalized = true;
 
-        balances[msg.sender] = balances[msg.sender] + questions[question_id].arbitration_bounty;
-        questions[question_id].arbitration_bounty = 0;
+        balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
+        arbitration_bounties[question_id] = 0;
 
         LogFinalize(question_id, answer_id, answers[answer_id].answer);
 
@@ -251,7 +240,7 @@ contract RealityCheck {
     function claimBond(bytes32 answer_id) {
 
         bytes32 question_id = answers[answer_id].question_id;
-        if (!questions[question_id].is_finalized) throw;
+        require(questions[question_id].is_finalized);
         
         bytes32 best_answer_id = questions[question_id].best_answer_id;
         address payee;
@@ -269,13 +258,20 @@ contract RealityCheck {
         LogClaimBond(answer_id, payee, bond);
 
         balances[payee] += bond;
-        answers[answer_id].bond = 0;
+
+        // We no longer need answers, except the final accepted one
+        if (best_answer_id == answer_id) {
+            answers[answer_id].bond = 0;
+        } else {
+            delete answers[answer_id];
+        }
+
 
     }
 
     function claimBounty(bytes32 question_id) {
 
-        if (!questions[question_id].is_finalized) throw;
+        require(questions[question_id].is_finalized);
         bytes32 best_answer_id = questions[question_id].best_answer_id;
 
         address payee = answers[best_answer_id].answerer;
@@ -289,8 +285,8 @@ contract RealityCheck {
     }
 
     function fundAnswerBounty(bytes32 question_id) payable {
-        if (questions[question_id].created == 0) throw; 
-        if (questions[question_id].is_finalized) throw;
+        require(questions[question_id].last_changed_ts > 0); 
+        require(!questions[question_id].is_finalized);
         questions[question_id].bounty += msg.value;
 
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
@@ -304,12 +300,12 @@ contract RealityCheck {
 
         uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
 
-        if (questions[question_id].created == 0) throw;
-        if (questions[question_id].is_finalized) throw;
+        require(questions[question_id].last_changed_ts > 0);
+        require(!questions[question_id].is_finalized);
 
-        questions[question_id].arbitration_bounty += msg.value;
+        arbitration_bounties[question_id] += msg.value;
 
-        if (questions[question_id].arbitration_bounty >= arbitration_fee) {
+        if (arbitration_bounties[question_id] >= arbitration_fee) {
             questions[question_id].is_arbitration_paid_for = true;
             return true;
         }
@@ -322,9 +318,11 @@ contract RealityCheck {
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) {
 
-        if (!questions[question_id].is_finalized) throw;
-        if (!no_bounty && callback_requests[question_id][client_ctrct][gas] == 0) throw;
-        if (gas > msg.gas) throw;
+        require(questions[question_id].is_finalized);
+        if (!no_bounty) {
+            require(callback_requests[question_id][client_ctrct][gas] > 0);   
+        }
+        require(msg.gas >= gas);
         bytes32 answer_id = questions[question_id].best_answer_id;
 
         // We call the callback with the low-level call() interface
@@ -340,13 +338,10 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) returns (bool success) {
-        if (_value > balances[msg.sender]) throw;
+        require(balances[msg.sender] >= _value);
         balances[msg.sender] = balances[msg.sender] - _value;
-        if (balances[msg.sender] > _value) throw;
-        if (!msg.sender.send(_value)) {
-            throw;
-        }
-        return true;
+        require(_value >= balances[msg.sender]);
+        return msg.sender.send(_value);
     }
 
     function balanceOf(address _owner) constant returns (uint256 balance) {

@@ -21,7 +21,7 @@ module.exports = function(deployer) {
        }).then(function (result) {
            question_id1 = result;
            console.log("getQuestionID is", question_id1);
-           return rc.askQuestion(question1, arb.address, step_delay, deadline, 5, {from: accs[0], value:50});
+           return rc.askQuestion(question1, arb.address, step_delay, {from: accs[0], value:50});
        }).then(function(){
            console.log("asked question");
            rc.submitAnswer(question_id1, 4, "basic maths", {from: accs[2]}, {value: 100});
@@ -36,7 +36,7 @@ module.exports = function(deployer) {
         }).then(function (result) {
             question_id2 = result;
             console.log("getQuestionID 2 is", question_id2);
-            return rc.askQuestion(question2, arb.address, step_delay, deadline, 1, {from: accs[1], value:300});
+            return rc.askQuestion(question2, arb.address, step_delay, {from: accs[1], value:300});
         }).then(function(){
             console.log("asked question 2");
         });
