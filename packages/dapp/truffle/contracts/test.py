@@ -204,6 +204,39 @@ class TestRealityCheck(TestCase):
         self.rc0.withdraw(2, sender=t.k5)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
 
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_bulk_withdrawal(self):
+
+        self.rc0.submitAnswer(self.question_id, 12345, decode_hex(ipfs_hex("my evidence")), value=1) 
+
+        a1 = self.rc0.submitAnswer(self.question_id, 10001, decode_hex(ipfs_hex("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=5, sender=t.k4, startgas=200000) 
+
+        a10 = self.rc0.submitAnswer(self.question_id, 10005, decode_hex(ipfs_hex("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, 10002, decode_hex(ipfs_hex("my evidence")), value=22, sender=t.k5, startgas=200000) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.assertEqual(a22, self.rc0.getAnswerID(self.question_id, keys.privtoaddr(t.k5), 22))
+
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.finalize(self.question_id, startgas=200000)
+        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10002)
+
+        starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+
+        # Mine to reset the gas used to 0
+        self.c.mine()
+        self.s = self.c.head_state
+        
+        self.rc0.claimMultipleAndWithdraw([self.question_id], [a22, a1], sender=t.k5, startgas=200000)
+        gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
+
+        ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+        self.assertEqual(starting_bal+1000+2+22-gas_used, ending_bal)
+
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bounty(self):
 

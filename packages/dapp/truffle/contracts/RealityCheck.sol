@@ -276,6 +276,25 @@ contract RealityCheck {
 
     }
 
+    // Convenience function to claim multiple bounties and bonds in 1 go
+    // TODO: This could probably be more efficient, as some checks are being duplicated
+    function claimMultipleAndWithdraw(bytes32[] question_ids, bytes32[] answer_ids) returns (bool withdrawal_completed) {
+
+        uint256 i;
+        for(i=0; i<question_ids.length; i++) {
+            claimBounty(question_ids[i]);
+        }
+        for(i=0; i<answer_ids.length; i++) {
+            claimBond(answer_ids[i]);
+        }
+        uint256 bal = balances[msg.sender];
+        if (bal > 0) {
+            return withdraw(bal);
+        }
+        return false;
+
+    }
+
     function fundAnswerBounty(bytes32 question_id) payable {
         require(questions[question_id].last_changed_ts > 0); 
         require(!questions[question_id].is_finalized);
