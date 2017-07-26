@@ -95,7 +95,7 @@ contract RealityCheck {
 
     function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(arbitrator, step_delay, question_text);
+        bytes32 question_id = keccak256(question_sha256, arbitrator, step_delay);
         require(questions[question_id].last_changed_ts == 0);
 
         bytes32 NULL_BYTES;
@@ -117,7 +117,7 @@ contract RealityCheck {
     }
 
     function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
-        return keccak256(arbitrator, step_delay, question_text);
+        return keccak256(question_sha256, arbitrator, step_delay);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
@@ -281,6 +281,25 @@ contract RealityCheck {
 
         balances[payee] += bounty;
         questions[question_id].bounty = 0;
+
+    }
+
+    // Convenience function to claim multiple bounties and bonds in 1 go
+    // TODO: This could probably be more efficient, as some checks are being duplicated
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, bytes32[] answer_ids) returns (bool withdrawal_completed) {
+
+        uint256 i;
+        for(i=0; i<question_ids.length; i++) {
+            claimBounty(question_ids[i]);
+        }
+        for(i=0; i<answer_ids.length; i++) {
+            claimBond(answer_ids[i]);
+        }
+        uint256 bal = balances[msg.sender];
+        if (bal > 0) {
+            return withdraw(bal);
+        }
+        return false;
 
     }
 
