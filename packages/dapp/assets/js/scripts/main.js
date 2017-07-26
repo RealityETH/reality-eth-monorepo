@@ -94,7 +94,7 @@ const monthList = [
     'Sept',
     'Oct',
     'Nov',
-        'Dec'
+    'Dec'
 ];
 
 // set rcBrowser height
@@ -894,6 +894,10 @@ function displayQuestionDetail(question_id) {
 
     rcqa.removeClass('template-item');
 
+    let date = new Date();
+    date.setTime(question_detail[Qi_created] * 1000);
+    let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+    rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
     if (!is_arbitration_requested) {
@@ -1226,7 +1230,7 @@ $(document).on('click', '.final-answer-button', function(){
     var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
     question_id = question_id.replace('qadetail-', '');
     RealityCheck.deployed().then(function(rc) {
-        return rc.finalize(question_id, {from: web3.eth.accounts[0]});
+        return rc.finalize(question_id, {from: account});
     }).then(function(result){
         console.log('finalized!', result);
     }).catch(function(e){
