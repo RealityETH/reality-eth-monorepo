@@ -622,16 +622,14 @@ function populateSection(section_name, question_data, before_item) {
         }
     }
 
-    var posted_ts = question_data[1];
-    var arbitrator = question_data[2];
-    var step_delay = question_data[3];
-    var question_text_raw = question_data[4];
-    var deadline = question_data[5];
-    var bounty = question_data[6];
-    var arbitration_bounty = question_data[7];
-    var is_arbitration_paid_for = question_data[8];
-    var is_finalized = question_data[9];
-    var best_answer_id = question_data[10];
+    var posted_ts = question_data[Qi_created];
+    var arbitrator = question_data[Qi_arbitrator];
+    var step_delay = question_data[Qi_step_delay];
+    var question_text_raw = question_data[Qi_question_text];
+    var bounty = question_data[Qi_bounty];
+    var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
+    var is_finalized = question_data[Qi_is_finalized];
+    var best_answer_id = question_data[Qi_best_answer_id];
 
     var entry = $('.questions__item.template-item').clone();
     entry.attr('data-question-id', question_id);
