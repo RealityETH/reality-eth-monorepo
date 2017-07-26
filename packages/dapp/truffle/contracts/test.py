@@ -230,7 +230,7 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
         
-        self.rc0.claimMultipleAndWithdraw([self.question_id], [a22, a1], sender=t.k5, startgas=200000)
+        self.rc0.claimMultipleAndWithdrawBalance([self.question_id], [a22, a1], sender=t.k5, startgas=200000)
         gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
 
         ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))

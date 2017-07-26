@@ -278,7 +278,7 @@ contract RealityCheck {
 
     // Convenience function to claim multiple bounties and bonds in 1 go
     // TODO: This could probably be more efficient, as some checks are being duplicated
-    function claimMultipleAndWithdraw(bytes32[] question_ids, bytes32[] answer_ids) returns (bool withdrawal_completed) {
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, bytes32[] answer_ids) returns (bool withdrawal_completed) {
 
         uint256 i;
         for(i=0; i<question_ids.length; i++) {
