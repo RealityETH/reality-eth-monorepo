@@ -8,7 +8,9 @@
     <meta name="description" content="RealityCheck Demo">
 
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,500,500i,700,700i" rel="stylesheet">
+    <!--
     <link href="assets/fonts/Roboto/css/fonts.css" rel="stylesheet">
+    -->
     <link rel="stylesheet" href="assets/css/main.css">
 </head>
 <body>
@@ -70,7 +72,7 @@
                 <div class="questions-list">
                 </div><!-- /.questions-list -->
 
-                <div class="loadmore-button" data-questions="best-questions">
+                <div class="loadmore-button" data-questions="questions-best">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
@@ -85,7 +87,7 @@
                 <div class="questions-list">
                 </div><!-- /.questions-list -->
 
-                <div id="loadmore-latest" class="loadmore-button" data-questions="latest-questions">
+                <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
@@ -100,13 +102,13 @@
                 <div class="questions-list">
                 </div><!-- /.questions-list -->
 
-                <div id="loadmore-high-reward" class="loadmore-button" data-questions="high-reward-questions">
+                <div id="loadmore-high-reward" class="loadmore-button" data-questions="questions-high-reward">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
             </div>
 
-            <div class="questions questions-resolved">
+            <div id="questions-resolved" class="questions">
                 <div id="filter">
                     <div id="filter-header">
                         <span>Filter by:</span>
@@ -129,7 +131,7 @@
                 <div class="questions-list">
                 </div><!-- /.questions-list -->
 
-                <div class="loadmore-button" data-questions="resolved-questions">
+                <div class="loadmore-button" data-questions="questions-resolved">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
@@ -191,11 +193,11 @@
         <a id="backtotop" href="#"><span></span></a>
     </footer>
 
-    <div class="rcbrowser rcbrowser--your-qa" data-browser-id="id2">
+    <div id="your-question-answer-window" class="rcbrowser rcbrowser--your-qa display-top-only" data-browser-id="your-question-answer-window">
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
                 <div class="rcbrowser-control">
-                    <span class="rcbrowser__close-button" data-target-id="id2"></span>
+                    <span class="rcbrowser__close-button" data-target-id="your-question-answer-window"></span>
                     <span></span>
                     <span></span>
                 </div>
@@ -208,93 +210,139 @@
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-header">
                     <h2 class="rcbrowser-main-header-title">Your Questions &amp; Answers</h2>
-                    <div class="rcbrowser-main-header-subtitle">Your Balance: <span>5.6</span> ETH</div>
+                    <div class="rcbrowser-main-header-subtitle">Your Balance: <span class="account-balance">5.6</span> ETH</div>
                 </div>
 
                 <div class="rcbrowser-main-body rcbrowser-main-body--your-qa">
+
+                    <div class="notifications-show-hide clearfix">
+                        <a href="" class="hide-lower-notifications">Collapse Notifications</a>
+                    </div>
+
                     <div class="notifications clearfix">
-                        <div class="notifications-item rcbrowser__open-button" data-target-id="id10">
+                    </div>
+
+                    <div class="notifications-show-hide clearfix">
+                        <a href="" class="see-all-notifications">See All Notifications</a>
+                    </div>
+
+                    <div class="notifications-template-container">
+
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-asked-question" data-target-id="">
                             <div class="notifications-item-inner">
                                 <div class="notification-badge notification-badge--positive">
                                 </div>
                                 <div class="notifications-item-body">
-                                    <p>You have been applied for arbitration - “Did rain more than 6 mm in Munich on May 6, 2017?”</p>
-                                    <span>1 munites ago</span>
+                                    <p class="notification-text">You asked a question - “<span class="question-text">Did rain more than 6 mm in Munich on May 6, 2017?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="notifications-item rcbrowser__open-button" data-target-id="id1">
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-you-applied-for-arbitration" data-target-id="">
                             <div class="notifications-item-inner">
                                 <div class="notification-badge notification-badge--positive">
                                 </div>
                                 <div class="notifications-item-body">
-                                    <p>A new answer has been posted to your question - “Which of the following are mammals?”</p>
-                                    <span>3 munites ago</span>
+                                    <p class="notification-text">You have applied for arbitration - “<span class="question-text">Did rain more than 6 mm in Munich on May 6, 2017?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="notifications-item rcbrowser__open-button" data-target-id="id4">
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-someone-applied-for-arbitration" data-target-id="">
+                            <div class="notifications-item-inner">
+                                <div class="notification-badge notification-badge--positive">
+                                </div>
+                                <div class="notifications-item-body">
+                                    <p class="notification-text">Arbitration requested for question - “<span class="question-text">Did rain more than 6 mm in Munich on May 6, 2017?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-someone-posted-answer" data-target-id="">
+                            <div class="notifications-item-inner">
+                                <div class="notification-badge notification-badge--positive">
+                                </div>
+                                <div class="notifications-item-body">
+                                    <p class="notification-text">A new answer has been posted to your question - “<span class="question-text">Which of the following are mammals?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-you-posted-answer" data-target-id="">
+                            <div class="notifications-item-inner">
+                                <div class="notification-badge notification-badge--positive">
+                                </div>
+                                <div class="notifications-item-body">
+                                    <p class="notification-text">A new answer has been posted to your question - “<span class="question-text">Which of the following are mammals?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-answer-overwritten" data-target-id="">
                             <div class="notifications-item-inner">
                                 <div class="notification-badge notification-badge--negative">
                                 </div>
                                 <div class="notifications-item-body">
-                                    <p>The question you answered was overwritten - “Which won the game of Yankees and Rays on May 9, 2017?”</p>
-                                    <span>10 munites ago</span>
+                                    <p class="notification-text">The question you answered was overwritten - “<span class="question-text">Which won the game of Yankees and Rays on May 9, 2017?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="notifications-item rcbrowser__open-button" data-target-id="id9">
+                        <div class="notifications-item template-item rcbrowser__open-button need-data-target-id notifications-item-question-resolved-by-arbitration" data-target-id="id9">
                             <div class="notifications-item-inner">
                                 <div class="notification-badge notification-badge--positive">
                                 </div>
                                 <div class="notifications-item-body">
-                                    <p>Your question has been resolved by arbitration - “Did Space X's Falcon 9 successfully launch?”</p>
-                                    <span>2 days ago</span>
+                                    <p class="notification-text">Your question has been resolved by arbitration - “<span class="question-text">Did Space X's Falcon 9 successfully launch?</span>”</p>
+                                    <span class="time-ago">1 minutes ago</span>
                                 </div>
                             </div>
                         </div>
 
-                        <a href="" class="see-all-notifications">See All Notifications</a>
-                    </div>
 
+                    </div>
                     <div class="your-qa clearfix">
                         <div class="your-qa__questions">
                             <div class="your-qa__questions-inner">
                                 <div class="your-qa__questions-header">Questions</div>
 
-                                <div class="your-qa__questions__item">
+                                <div class="your-qa__questions__item template-item unresolved-item">
                                     <div class="your-qa__questions__item-header">
                                         <div class="your-qa__questions__item-date">
-                                            May 10, 2017
+                                            <span class="item-date">May 10, 2017</span>
                                         </div>
-                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button" data-target-id="id1">
-                                            Which of the following are mammals?
+                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button need-data-target-id" data-target-id="">
+                                            <span class="question-text">Which of the following are mammals?</span>
                                         </a>
                                     </div>
 
                                     <div class="your-qa__questions__item-status">
-                                        3 Answered
+                                        <span class="count-answers">3</span> Answers
                                     </div>
                                 </div>
 
-                                <div class="your-qa__questions__item">
+                                <div class="your-qa__questions__item template-item resolved-item">
                                     <div class="your-qa__questions__item-header">
                                         <div class="your-qa__questions__item-date">
                                             Feb 12, 2017
                                         </div>
-                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button" data-target-id="id9">
-                                            Did Space X's Falcon 9 successfully launch?
+                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button need-data-target-id" data-target-id="">
+                                            <span class="question-text">Did Space X's Falcon 9 successfully launch?</span>
                                         </a>
                                     </div>
 
                                     <div class="your-qa__questions__item-body">
-                                        Yes
+                                        <span class="answer-text">Yes</span>
                                     </div>
                                     <div class="your-qa__questions__item-status your-qa__questions__item-status--resolved">
-                                        Resolved at Feb 18, 2017
+                                        Resolved at <span class="resolved-date-time">Feb 18, 2017</span>
                                     </div>
                                 </div>
                             </div>
@@ -306,18 +354,36 @@
                             <div class="your-qa__answers-inner">
                                 <div class="your-qa__answers-header">Answers</div>
 
-                                <div class="your-qa__questions__item">
+                                <div class="your-qa__questions__item template-item unresolved-item">
                                     <div class="your-qa__questions__item-header">
                                         <div class="your-qa__questions__item-date">
-                                            May 10, 2017
+                                            <span class="item-date">May 10, 2017</span>
                                         </div>
-                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button" data-target-id="id4">
-                                            Which won the game of Yankees and Rays on May 9, 2017?
+                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button need-data-target-id" data-target-id="">
+                                            <span class="question-text">Which of the following are mammals?</span>
                                         </a>
                                     </div>
 
                                     <div class="your-qa__questions__item-status">
-                                        2 Answered
+                                        <span class="count-answers">3</span> Answers
+                                    </div>
+                                </div>
+
+                                <div class="your-qa__questions__item template-item resolved-item">
+                                    <div class="your-qa__questions__item-header">
+                                        <div class="your-qa__questions__item-date">
+                                            Feb 12, 2017
+                                        </div>
+                                        <a href="" class="your-qa__questions__item-title rcbrowser__open-button need-data-target-id" data-target-id="">
+                                            <span class="question-text">Did Space X's Falcon 9 successfully launch?</span>
+                                        </a>
+                                    </div>
+
+                                    <div class="your-qa__questions__item-body">
+                                        <span class="answer-text">Yes</span>
+                                    </div>
+                                    <div class="your-qa__questions__item-status your-qa__questions__item-status--resolved">
+                                        Resolved at <span class="resolved-date-time">Feb 18, 2017</span>
                                     </div>
                                 </div>
                             </div>
@@ -360,43 +426,6 @@
                     <div class="current-answer-container">
                         <div class="current-answer-inner"><div class="current-answer-header"><span>Finel Answer</span></div><div class="answer-item current-answer-item"><div class="current-answer-body"><p>Yes</p></div><div class="answer-data"><div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar1.png)"></div><div class="answer-data__item answer-data__user-id"><span>User ID: </span><span>er9w8rwer8r9ewr89wr8e8r</span></div><div class="answer-data__item answer-data__bond answer-data__bond--current"><span>Bond: </span><span class="js-bond-value">1</span><span>ETH</span></div></div></div></div></div>
                     </div>
-                </div>
-            </div><!-- /.rcbrowser-main -->
-        </div><!-- /.rcbrowser-inner -->
-    </div><!-- /.rcbrowser--qa-detail -->
-
-    <div class="rcbrowser rcbrowser--qa-detail rcbrowser--qa-detail--single-select rcbrowser--qa-detail--resolved" data-browser-id="id8">
-        <div class="rcbrowser-inner">
-            <div class="rcbrowser-header">
-                <div class="rcbrowser-control">
-                    <span class="rcbrowser__close-button" data-target-id="id8"></span>
-                    <span></span>
-                    <span></span>
-                </div>
-
-                <div class="rcbrowser-loader-container">
-                    <span class="loader"></span>
-                </div>
-            </div>
-
-            <div class="rcbrowser-main">
-                <div class="rcbrowser-main-header">
-                    <div class="rcbrowser-main-header-date">May 10, 2017 - <a href="">Politics</a></div>
-
-                    <h2 class="rcbrowser-main-header-title">Who won the presidential election?</h2>
-
-                    <div class="rcbrowser-main-header-subtitle">
-                        <span class="reward-value-container">Resolved at May 21, 2017</span>
-                    </div>
-                </div>
-
-                <div class="rcbrowser-main-body">
-                    <div class="current-answer-container">
-                        <div class="current-answer-inner"><div class="current-answer-header"><span>Finel Answer</span></div><div class="answer-item current-answer-item"><div class="current-answer-body"><p>Donald Trump</p></div><div class="answer-data"><div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar1.png)"></div><div class="answer-data__item answer-data__user-id"><span>User ID: </span><span>er9w8rwer8r9ewr89wr8e8r</span></div><div class="answer-data__item answer-data__bond answer-data__bond--current"><span>Bond: </span><span class="js-bond-value">1</span><span>ETH</span></div></div></div></div></div>
-                    </div>
-
-                    <div class="answered-history-container">
-                    <div class="answered-history-header"><span>Answered History</span></div><div class="answer-item answered-history-item"><div class="answered-history-body"><p>Hillary Clinton</p></div><div class="answer-data"><div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div><div class="answer-data__item answer-data__user-id"><span>User ID: </span><span>rtyry546yer564y54y56</span></div><div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="js-bond-value">1</span><span>ETH</span></div></div></div></div></div>
                 </div>
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
@@ -1001,8 +1030,8 @@
                                 <option value="default">Question Type</option>
                                 <option value="free-text" >Free Text</option>
                                 <option value="binary" SELECTED>Binary (Yes/No)</option>
-                                <option value="select">Select (Single)</option>
-                                <option value="select">Select (Multiple)</option>
+                                <option value="single-select">Select (Single)</option>
+                                <option value="multiple-select">Select (Multiple)</option>
                                 <option value="number">Number</option>
                             </select>
                             <div class="error-container">Please select question type.</div>
@@ -1085,7 +1114,7 @@
 
     <div class="questions__item template-item" style="display:none">
                         <div class="questions__item-inner">
-                            <a class="questions__item__title rcbrowser__open-button need-data-target-id" href="">
+                            <a class="questions__item__title rcbrowser__open-button need-data-target-id" href="#">
                                 <span class="question-title"></span>
                             </a>
                             <div class="questions__item__footer">
@@ -1095,8 +1124,153 @@
                         </div>
                     </div>
 
+    <div class="answer-form-container multiple-select template-item" style="display:none;">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
 
-    <div style="display:none" class="template-item rcbrowser rcbrowser--qa-detail rcbrowser--qa-detail--number">
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--checkbox">
+
+            <div class="input-container input-container--checkbox">
+
+                <label class="input-entry template-item"><input id="" type="checkbox" class="rcbrowser-input--checkbox form-item form-item-value" value=""><span>template</span></label>
+
+                <div class="error-container">Please select options.</div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount">0.5</span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+        </form>
+    </div>
+    <div class="answer-form-container single-select template-item" style="display:none;">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+
+            <div class="select-container select-container--answer">
+                <select name="input-answer" class="rcbrowser-select select-answer form-item form-item-value">
+                    <option value="default">Select the Answer</option>
+                </select>
+                <div class="error-container">Please select the answer.</div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount">1</span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+        </form>
+    </div >
+    <div class="answer-form-container number template-item" style="display:none">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+            <div class="input-container input-container--answer">
+                <div class="input-inner">
+                    <span class="input-header">Enter the Answer:</span>
+                    <input type="number" name="input-answer" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--answer form-item form-item-value" placeholder="0">
+                </div>
+                <div class="error-container">Please enter number.</div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+        </form>
+    </div>
+    <div class="answer-form-container binary template-item" style="display:none">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+
+            <div class="select-container select-container--answer">
+                <select name="input-answer" class="rcbrowser-select select-answer form-item form-item-value">
+                    <option value="default">Select the Answer</option>
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+                <div class="error-container">Please select the answer.</div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+        </form>
+    </div>
+    <div class="answer-form-container freetext template-item" style="display:none">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+
+            <div class="textarea-container">
+                <textarea name="question-body" class="rcbrowser-textarea form-item form-item-value" placeholder="Enter the Answer..."></textarea>
+                <div class="error-container">Please enter the answer.</div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
+        </form>
+    </div>
+    
+    <div class="rcbrowser rcbrowser--qa-detail template-item" style="display:none" >
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
                 <div class="rcbrowser-control">
@@ -1147,68 +1321,60 @@
                 </div>
 
                 <div class="rcbrowser-main-body">
-                    <div class="answer-deadline" data-browser-id="id5">Answer Deadline: 08/03/2017 6:24 AM</div>
 
                     <div class="clearfix">
                         <a href="" class="arbitration-button">Apply for arbitration to <span class="arbitrator"></span> at <span class="arbitration-fee"></span> ETH</a>
                     </div>
 
                     <div class="current-answer-container">
-                        <div class="current-answer-inner"><div class="current-answer-header"><span>Current Answer</span></div><div class="answer-item current-answer-item"><div class="current-answer-body"><p><span class="current-answer"></span></p></div><span class="current-answer-time">3 munites ago</span><div class="answer-data"><div class="answer-data-inner"><div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div><div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div><div class="answer-data__item answer-data__bond answer-data__bond--current"><span>Bond: </span><span class="answer-bond-value"></span><span>ETH</span></div></div></div></div></div>
-                    </div>
-
-                    <div class="answered-history-container">
-                        <div class="answered-history-header"><span>Answered History</span></div>
-                        <div class="answered-history-item-container template-item" style="display:none">
-                            <div class="answer-item answered-history-item">
-                                <div class="answered-history-body"><p><span class="current-answer"></span></p></div>
+                        <div class="current-answer-inner">
+                            <div class="current-answer-header">
+                                <span>Current Answer</span>
+                            </div>
+                            <div class="answer-item current-answer-item">
+                                <div class="current-answer-body">
+                                    <p><span class="current-answer"></span></p>
+                                </div>
+                                <span class="current-answer-time">3 munites ago</span>
+                                <div class="final-answer-button" style="display:none;">Make this Final Answer</div>
                                 <div class="answer-data">
                                     <div class="answer-data-inner">
-                                        <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div>
-                                        <div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div>
-                                        <div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="answer-bond-value"></span><span> ETH</span></div>
+                                        <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div>
+                                        <div class="answer-data__item answer-data__user-id">
+                                            <span>User ID: </span><span class="answerer"></span>
+                                        </div>
+                                        <div class="answer-data__item answer-data__bond answer-data__bond--current">
+                                            <span>Bond: </span><span class="answer-bond-value"></span><span>ETH</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="answer-form-container">
-                        <div class="answer-form-header">
-                            Do you know the answer to this question?
-                        </div>
-
-                        <form name="answer-form" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
-                            <div class="input-container">
-                                <div class="input-inner">
-                                    <span class="input-header">Enter the Answer:</span>
-                                    <input type="number" name="numberAnswer" id="question-number" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--answer form-item form-item-value" placeholder="0">
-                                </div>
-                                <div class="error-container">Please enter number.</div>
-                            </div>
-
-                            <div class="input-container">
-                                <div class="input-inner">
-                                    <span class="input-header">Bond (ETH):</span>
-                                    <input type="number" name="questionBondSingleSelect" id="question-bond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item" placeholder="0" data-browser-id="id5">
-                                </div>
-                                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
-                            </div>
-
-                            <div class="submit-container">
-                                <input type="submit" class="rcbrowser-submit button--bounce" value="Post" data-browser-id="id5" data-form-type="answer--single-select">
-                            </div>
-
-                            <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
-                        </form>
+                    <div class="answered-history-container">
+                        <div class="answered-history-header"><span>Answered History</span></div>
                     </div>
+
                 </div>
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
 
+    <div class="answered-history-item-container template-item" style="display:none">
+        <div class="answer-item answered-history-item">
+            <div class="answered-history-body"><p><span class="current-answer"></span></p></div>
+            <div class="answer-data">
+                <div class="answer-data-inner">
+                    <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div>
+                    <div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div>
+                    <div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="answer-bond-value"></span><span> ETH</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script src="assets/js/bundle.js"></script>
+    <script src="assets/js/bundle.js"></script>
 
 <!--
 <script src="truffle/build/app.js"></script>

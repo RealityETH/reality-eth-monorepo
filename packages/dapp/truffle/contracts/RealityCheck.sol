@@ -33,7 +33,14 @@ contract RealityCheck {
     event LogFundAnswerBounty(
         bytes32 indexed question_id,
         uint256 bounty_added,
-        uint256 bounty
+        uint256 bounty,
+        address funder
+    );
+
+    event LogRequestArbitration(
+        bytes32 indexed question_id,
+        uint256 fee_paid,
+        address requester
     );
 
     event LogFinalize(
@@ -280,6 +287,8 @@ contract RealityCheck {
         require(questions[question_id].last_changed_ts > 0); 
         require(!questions[question_id].is_finalized);
         questions[question_id].bounty += msg.value;
+
+        LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
     // Sends money to the arbitration bounty pool
@@ -299,6 +308,8 @@ contract RealityCheck {
             questions[question_id].is_arbitration_paid_for = true;
             return true;
         }
+
+        LogRequestArbitration(question_id, msg.value, msg.sender);
 
         return false;
 

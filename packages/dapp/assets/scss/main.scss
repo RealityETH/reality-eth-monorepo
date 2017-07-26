@@ -159,7 +159,12 @@ a#your-qa-button {
     background-image: url(../image/icon-identity--dark.svg);
 }
 
-#push-icon {
+
+body #push-icon {
+    display:none;
+}
+
+body.pushing #push-icon {
     display: block;
     width: 8px;
     height: 8px;
@@ -171,7 +176,7 @@ a#your-qa-button {
     border: solid 2px #000;
 }
 
-.page-qa #push-icon {
+body.pushing .page-qa #push-icon {
     border: solid 2px $white;
 }
 
@@ -485,7 +490,7 @@ a#your-qa-button {
 }
 .is-page-loaded .questions:first-child,
 .page-qa .questions:first-child {
-    transform: translate3d(0, -2%, 0);
+    transform: translate3d(0, -8%, 0);
 }
 
 .questions:nth-child(2) {
@@ -495,7 +500,7 @@ a#your-qa-button {
 }
 .is-page-loaded .questions:nth-child(2),
 .page-qa .questions:nth-child(2) {
-    transform: translate3d(0, -4%, 0);
+    transform: translate3d(0, -16%, 0);
 }
 
 .questions:nth-child(3) {
@@ -505,7 +510,7 @@ a#your-qa-button {
 }
 .is-page-loaded .questions:nth-child(3),
 .page-qa .questions:nth-child(3) {
-    transform: translate3d(0, -3%, 0);
+    transform: translate3d(0, -12%, 0);
 }
 
 .questions:last-child {
@@ -515,7 +520,7 @@ a#your-qa-button {
 }
 .is-page-loaded .questions:last-child,
 .page-qa .questions:last-child {
-    transform: translate3d(0, -2%, 0);
+    transform: translate3d(0, -8%, 0);
 }
 
 .questions-header {
@@ -1632,6 +1637,10 @@ label > span {
     margin: 0 0 15px;
 }
 
+.notifications-show-hide {
+    margin: 0 0 15px;
+}
+
 .notifications-item {
     width: 100%;
     background-color: $rcBrowserDarkBg;
@@ -1673,7 +1682,7 @@ label > span {
     color: $rcBrowserSubText;
 }
 
-.see-all-notifications {
+.see-all-notifications, .hide-lower-notifications {
     display: block;
     float: right;
     font-size: 13px;
@@ -1950,3 +1959,17 @@ input:placeholder-shown {
     font-size: 24px;
     font-weight: bold;
 }
+
+.template-item {
+    display:none;
+}
+
+.display-top-only .notifications-item.populated-item {display: none}
+.display-top-only .notifications-item.populated-item:nth-child(1) {display: block !important}
+.display-top-only .notifications-item.populated-item:nth-child(2) {display: block !important}
+.display-top-only .notifications-item.populated-item:nth-child(3) {display: block !important}
+
+.display-all .see-all-notifications {display:none}
+.display-top-only .hide-lower-notifications {display:none}
+
+div.notifications-template-container {display:none}
