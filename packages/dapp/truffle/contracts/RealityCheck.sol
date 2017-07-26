@@ -347,11 +347,8 @@ contract RealityCheck {
     function withdraw(uint256 _value) returns (bool success) {
         require(balances[msg.sender] >= _value);
         balances[msg.sender] = balances[msg.sender] - _value;
-        if (balances[msg.sender] > _value) throw;
-        if (!msg.sender.send(_value)) {
-            throw;
-        }
-        return true;
+        require(_value >= balances[msg.sender]);
+        return msg.sender.send(_value);
     }
 
     function balanceOf(address _owner) constant returns (uint256 balance) {
