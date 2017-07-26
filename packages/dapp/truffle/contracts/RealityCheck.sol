@@ -17,7 +17,7 @@ contract RealityCheck {
         address indexed questioner, 
         address indexed arbitrator, 
         uint256 step_delay,
-        bytes32 question_sha256
+        string question_text
     );
 
     event LogNewAnswer(
@@ -75,7 +75,7 @@ contract RealityCheck {
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 step_delay;
-        bytes32 question_sha256;
+        string question_text;
 
         // Mutable data
         uint256 bounty;
@@ -92,9 +92,9 @@ contract RealityCheck {
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(bytes32 question_sha256, address arbitrator, uint256 step_delay) payable returns (bytes32) {
+    function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(arbitrator, step_delay, question_sha256);
+        bytes32 question_id = keccak256(arbitrator, step_delay, question_text);
         require(questions[question_id].last_changed_ts == 0);
 
         bytes32 NULL_BYTES;
@@ -102,21 +102,21 @@ contract RealityCheck {
             now,
             arbitrator,
             step_delay,
-            question_sha256,
+            question_text,
             msg.value,
             false,
             false,
             NULL_BYTES 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_sha256);
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text);
 
         return question_id;
 
     }
 
-    function getQuestionID(bytes32 question_sha256, address arbitrator, uint256 step_delay) constant returns (bytes32) {
-        return keccak256(arbitrator, step_delay, question_sha256);
+    function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
+        return keccak256(arbitrator, step_delay, question_text);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
