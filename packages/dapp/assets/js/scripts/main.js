@@ -89,6 +89,14 @@ const monthList = [
         'Dec'
 ];
 
+function numToBytes32(bignum) {
+    var n = bignum.toString(16);
+    while (n.length < 64) {
+        n = "0" + n;
+    }
+    return "0x" + n;
+}
+
 // set rcBrowser height
 function rcbrowserHeight() {
 console.log('skipping auto rcbrowserHeight');
@@ -1065,7 +1073,7 @@ function rewriteQuestionDetail(question_id) {
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
     var answer_id = 'answer-' + answer_data.args.answer_id;
-    var answer = answer_data.args.answer.toNumber();
+    var answer = new BigNumber(answer_data.args.answer).toNumber();
 
     try {
         var question_json = JSON.parse(question_data[Qi_question_text]);
@@ -1098,18 +1106,18 @@ function getAnswerString(question_json, answer_data) {
     var label = '';
     switch (question_json['type']) {
         case 'number':
-            label = answer_data.answer.toString();
+            label = new BigNumber(answer_data.answer).toString();
             break;
         case 'binary':
-            if (answer_data.answer.toNumber() === 1) {
+            if (new BigNumber(answer_data.answer).toNumber() === 1) {
                 label = 'Yes';
-            } else if (answer_data.answer.toNumber() === 0) {
+            } else if (new BigNumber(answer_data.answer).toNumber() === 0) {
                 label = 'No';
             }
             break;
         case 'single-select':
             if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
-                var idx = answer_data.answer.toNumber();
+                var idx = new BigNumber(answer_data.answer).toNumber();
                 label = question_json['outcomes'][idx];
             }
             break;
@@ -1183,7 +1191,8 @@ function displayAnswerHistory(question_id) {
         }
 
         var answer_id = 'answer-' + answer.args.answer_id;
-        var ans = answer.args.answer.toNumber();
+        console.log('answer orig', answer.args.answer);
+        var ans = new BigNumber(answer.args.answer).toNumber();
 
         var container = $('.answered-history-item-container.template-item').clone();
         container.removeClass('template-item');
@@ -1206,7 +1215,7 @@ function displayAnswerHistory(question_id) {
 
         var ans_data = $(section_name).find('.answer-item.answered-history-item').find('.answer-data');
         ans_data.find('.answerer').text(answer.args.answerer);
-        ans_data.find('.answer-bond-value').text(answer.args.bond.toNumber());
+        ans_data.find('.answer-bond-value').text(new BigNumber(answer.args.bond).toNumber());
 
     });
 }
@@ -1357,7 +1366,9 @@ $(document).on('click', '.post-answer-button', function(e){
         }
 
         if (is_err) throw('err on submitting answer');
-        return rc.submitAnswer(question_id, new_answer, '', {from:account, value:bond});
+
+        // Converting to BigNumber here - ideally we should probably doing this when we parse the form
+        return rc.submitAnswer(question_id, numToBytes32(new BigNumber(new_answer)), '', {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
