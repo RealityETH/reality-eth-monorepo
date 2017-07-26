@@ -1,7 +1,7 @@
 pragma solidity ^0.4.6;
 
 contract CallerAPI {
-    function __factcheck_callback(bytes32 question_id, uint256 question_answer); 
+    function __factcheck_callback(bytes32 question_id, bytes32 question_answer); 
 }
 
 contract ArbitratorAPI {
@@ -24,7 +24,7 @@ contract RealityCheck {
     event LogNewAnswer(
         bytes32 indexed answer_id,
         bytes32 indexed question_id,
-        uint256 answer,
+        bytes32 answer,
         address indexed answerer,
         uint256 bond,
         uint256 ts,
@@ -47,7 +47,7 @@ contract RealityCheck {
     event LogFinalize(
         bytes32 indexed question_id,
         bytes32 answer_id,
-        uint256 answer
+        bytes32 answer
     );
 
     event LogClaimBounty(
@@ -64,7 +64,7 @@ contract RealityCheck {
 
     struct Answer{
         bytes32 question_id;
-        uint256 answer;
+        bytes32 answer;
         address answerer;
         uint256 bond;
         bytes32 evidence_sha256;
@@ -129,7 +129,7 @@ contract RealityCheck {
         return keccak256(question_id, sender, amount);
     }
 
-    function submitAnswer(bytes32 question_id, uint256 answer, bytes32 evidence_sha256) payable returns (bytes32) {
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
 
@@ -181,7 +181,7 @@ contract RealityCheck {
 
     }
 
-    function getFinalAnswer(bytes32 question_id) constant returns (uint256) {
+    function getFinalAnswer(bytes32 question_id) constant returns (bytes32) {
         bytes32 best_answer_id = questions[question_id].best_answer_id;
         require(questions[question_id].is_finalized);
         return answers[best_answer_id].answer;
