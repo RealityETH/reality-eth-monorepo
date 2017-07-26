@@ -17,7 +17,8 @@ contract RealityCheck {
         address indexed questioner, 
         address indexed arbitrator, 
         uint256 step_delay,
-        string question_text
+        string question_text,
+        uint256 created
     );
 
     event LogNewAnswer(
@@ -109,7 +110,7 @@ contract RealityCheck {
             NULL_BYTES 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text);
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, now);
 
         return question_id;
 

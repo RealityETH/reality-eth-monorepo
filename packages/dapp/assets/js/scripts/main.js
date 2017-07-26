@@ -18,12 +18,10 @@ const Qi_created = 1;
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_text = 4;
-const Qi_deadline = 5;
-const Qi_bounty = 6;
-const Qi_arbitration_bounty = 7;
-const  Qi_is_arbitration_paid_for = 8;
-const Qi_is_finalized = 9;
-const Qi_best_answer_id = 10;
+const Qi_bounty = 5;
+const Qi_is_arbitration_paid_for = 6;
+const Qi_is_finalized = 7;
+const Qi_best_answer_id = 8;
 
 // Answer, as returned by answers()
 const Ai_answer_id = 0;
@@ -434,7 +432,7 @@ $('#post-question-submit').on('click', function(e){
 
         RealityCheck.deployed().then(function (rc) {
             account = web3.eth.accounts[0];
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: parseInt(reward.val())});
+            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: parseInt(reward.val())});
         }).then(function (result) {
             console.log('askQuestion called, rseult', result);
             question_body.val('');
@@ -656,11 +654,11 @@ function populateSection(section_name, question_data, before_item) {
 
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
+    var created = item.args.created
     //console.log('question_id', question_id);
     rc.questions.call(question_id).then( function(question_data) {
         //console.log('here is result', question_data, question_id)
         question_data.unshift(question_id);
-        var created = question_data[Qi_created];
         var bounty = question_data[Qi_bounty];
         var is_finalized = question_data[Qi_is_finalized];
 
@@ -860,9 +858,9 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 function displayQuestionDetail(question_id) {
 
     var question_detail = question_detail_list[question_id];
+    //console.log('question_id', question_id);
     var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
-    var latest_answer = question_detail['history'][idx].args;
     var question_json;
 
     try {
@@ -896,16 +894,25 @@ function displayQuestionDetail(question_id) {
     } else {
         rcqa.find('.arbitration-button').css('display', 'none');
     }
-    rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
 
-    // answerer data
-    var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-    ans_data.find('.answerer').text(latest_answer.answerer);
-    ans_data.find('.answer-bond-value').text(latest_answer.bond);
+    if (question_detail['history'].length) {
+        var latest_answer = question_detail['history'][idx].args;
+        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
 
-    // label for show the current answer.
-    var label = getAnswerString(question_json, latest_answer);
-    rcqa.find('.current-answer-body').find('.current-answer').text(label);
+        // answerer data
+        var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+        ans_data.find('.answerer').text(latest_answer.answerer);
+        ans_data.find('.answer-bond-value').text(latest_answer.bond);
+
+        // label for show the current answer.
+        var label = getAnswerString(question_json, latest_answer);
+        rcqa.find('.current-answer-body').find('.current-answer').text(label);
+
+        // final answer button
+        showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
+    } else {
+        rcqa.find('.current-answer-container').hide();
+    }
 
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
@@ -924,9 +931,6 @@ function displayQuestionDetail(question_id) {
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index',10);
-
-    // final answer button
-    showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
 
     var rc;
     RealityCheck.deployed().then(function(instance){
