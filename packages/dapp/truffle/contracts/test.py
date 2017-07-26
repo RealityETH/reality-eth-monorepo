@@ -26,13 +26,19 @@ QINDEX_BEST_ANSWER_ID = 8
 def ipfs_hex(txt):
     return sha256(txt).hexdigest()
 
-def to_text_for_contract(txt):
-    # to_text_for_contract(("my question")),
+def to_question_for_contract(txt):
+    # to_question_for_contract(("my question")),
     return txt
 
-def from_text_for_contract(txt):
+def from_question_for_contract(txt):
     return txt
 
+def to_answer_for_contract(txt):
+    # to_answer_for_contract(("my answer")),
+    return decode_hex(hex(txt)[2:].zfill(64))
+
+def from_answer_for_contract(txt):
+    return int(encode_hex(txt), 16)
 
 class TestRealityCheck(TestCase):
 
@@ -58,7 +64,7 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         self.question_id = self.rc0.askQuestion(
-            to_text_for_contract(("my question")),
+            to_question_for_contract(("my question")),
             self.arb0.address,
             10,
             value=1000
@@ -72,13 +78,13 @@ class TestRealityCheck(TestCase):
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)
-        self.assertEqual(question[QINDEX_QUESTION_TEXT], to_text_for_contract(("my question")))
+        self.assertEqual(question[QINDEX_QUESTION_TEXT], to_question_for_contract(("my question")))
         self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_id(self):
         expected_question_id = self.rc0.getQuestionID(
-            to_text_for_contract(("my question")),
+            to_question_for_contract(("my question")),
             self.arb0.address,
             10,
         )
@@ -86,7 +92,7 @@ class TestRealityCheck(TestCase):
 
     def test_question_id_generation(self):
         regen_question_id = self.rc0.getQuestionID(
-            to_text_for_contract(("my question")),
+            to_question_for_contract(("my question")),
             self.arb0.address,
             10
         )
@@ -118,13 +124,13 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, to_text_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 12345)
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
         # You can only finalize once
         with self.assertRaises(TransactionFailed):
@@ -133,11 +139,11 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, to_text_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
         ts1 = self.rc0.getEarliestFinalizationTS(self.question_id)
 
         self.s.timestamp = self.s.timestamp + 8
-        self.rc0.submitAnswer(self.question_id, 54321, to_text_for_contract(("my conflicting evidence")), value=10) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), value=10) 
         ts2 = self.rc0.getEarliestFinalizationTS(self.question_id)
 
         self.assertTrue(ts2 > ts1, "Submitting an answer advances the finalization timestamp") 
@@ -145,39 +151,39 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, to_text_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
-        self.rc0.submitAnswer(self.question_id, 54321, to_text_for_contract(("my conflicting evidence")), value=10) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), value=10) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 54321)
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 54321)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, to_text_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
         # "You must increase from zero"
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10001, to_text_for_contract(("my conflicting evidence")), value=1, sender=t.k3, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=1, sender=t.k3, startgas=200000) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, 10001, to_text_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
 
-        a5 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
 
         # You have to at least double
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10003, to_text_for_contract(("my evidence")), value=6, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10003), to_question_for_contract(("my evidence")), value=6, startgas=200000) 
 
         # You definitely can't drop back to zero
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, 10004, to_text_for_contract(("my evidence")), value=0, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10004), to_question_for_contract(("my evidence")), value=0, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         self.c.mine()
         self.s = self.c.head_state
@@ -190,7 +196,7 @@ class TestRealityCheck(TestCase):
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id, startgas=200000)
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10002)
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
 
         k5bal = 22
 
@@ -220,16 +226,16 @@ class TestRealityCheck(TestCase):
         self.rc0.withdraw(2, sender=t.k5)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_bulk_withdrawal(self):
 
-        self.rc0.submitAnswer(self.question_id, 12345, to_text_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, 10001, to_text_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
-        a5 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         self.c.mine()
         self.s = self.c.head_state
@@ -238,7 +244,7 @@ class TestRealityCheck(TestCase):
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id, startgas=200000)
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10002)
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
 
         starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
 
@@ -256,8 +262,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bounty(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=22, sender=t.k5) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
@@ -271,8 +277,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_supplied_answer(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         # This was the default of our arbitrator contract
         arb_fee = 100
@@ -296,7 +302,7 @@ class TestRealityCheck(TestCase):
         self.arb0.finalizeByArbitrator(self.rc0.address, a10, startgas=200000)
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10005)
         # int(arb_fee * 1.1)
 
         self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
@@ -306,8 +312,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitration_with_existing_answer(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, 10002, to_text_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
 
         # This was the default of our arbitrator contract
         arb_fee = 100
@@ -333,40 +339,41 @@ class TestRealityCheck(TestCase):
         self.arb0.finalizeByArbitrator(self.rc0.address, a10)
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), 10005)
+        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), to_answer_for_contract(10005))
 
         self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
         #self.assertEqual(self.rc0.balanceOf(self.arb0.address), 1000, "Arbitrator gets the reward")
 
         return
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks(self):
      
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id, startgas=200000)
         self.assertTrue(self.rc0.isFinalized(self.question_id))
 
         self.rc0.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
+
         self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
 
         # Fail an unregistered amount of gas
         with self.assertRaises(TransactionFailed):
             self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000)
 
-        self.assertNotEqual(self.cb.answers(self.question_id), 10005)
+        self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         self.rc0.sendCallback(self.question_id, self.cb.address, 3000000)
-        self.assertEqual(self.cb.answers(self.question_id), 10005)
+        self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_exploding_callbacks(self):
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, 10005, to_text_for_contract(("my evidence")), value=10, sender=t.k3) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.finalize(self.question_id)
         self.assertTrue(self.rc0.isFinalized(self.question_id))

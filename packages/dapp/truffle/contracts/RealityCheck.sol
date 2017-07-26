@@ -349,8 +349,8 @@ contract RealityCheck {
         // This is the responsibility of the requestor.
 
         // Call signature argument hard-codes the result of:
-        // bytes4(bytes32(sha3("__factcheck_callback(bytes32,uint256)"))
-        bool ignore = client_ctrct.call.gas(gas)(0x6f32be63, question_id, answers[answer_id].answer); 
+        // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
+        bool ignore = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, answers[answer_id].answer); 
 
         balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
         callback_requests[question_id][client_ctrct][gas] = 0;
