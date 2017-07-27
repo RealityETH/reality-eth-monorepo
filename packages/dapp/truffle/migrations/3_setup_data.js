@@ -21,13 +21,13 @@ module.exports = function(deployer) {
        }).then(function (result) {
            question_id1 = result;
            console.log("getQuestionID is", question_id1);
-           return rc.askQuestion(question1, arb.address, step_delay, deadline, 5, {from: accs[0], value: web3.toWei(1, 'ether')});
+           return rc.askQuestion(question1, arb.address, step_delay, {from: accs[0], value: web3.toWei(1, 'ether')});
        }).then(function(){
            console.log("asked question");
-           rc.submitAnswer(question_id1, 4, "basic maths", {from: accs[2]}, {value: web3.toWei(2, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000004", "basic maths", {from: accs[2]}, {value: web3.toWei(2, 'ether')});
        }).then(function(){
            console.log("submitted answer");
-           rc.submitAnswer(question_id1, 8, "basic maths", {from: accs[1]}, {value: web3.toWei(4, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000008", "basic maths", {from: accs[1]}, {value: web3.toWei(4, 'ether')});
        });
 
         RealityCheck.deployed().then(function (instance) {
@@ -36,7 +36,7 @@ module.exports = function(deployer) {
         }).then(function (result) {
             question_id2 = result;
             console.log("getQuestionID 2 is", question_id2);
-            return rc.askQuestion(question2, arb.address, step_delay, deadline, 1, {from: accs[1], value: web3.toWei(8, 'ether')});
+            return rc.askQuestion(question2, arb.address, step_delay, {from: accs[1], value: web3.toWei(8, 'ether')});
         }).then(function(){
             console.log("asked question 2");
         });

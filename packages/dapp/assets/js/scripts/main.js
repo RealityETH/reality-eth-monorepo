@@ -18,12 +18,10 @@ const Qi_created = 1;
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_text = 4;
-const Qi_deadline = 5;
-const Qi_bounty = 6;
-const Qi_arbitration_bounty = 7;
-const  Qi_is_arbitration_paid_for = 8;
-const Qi_is_finalized = 9;
-const Qi_best_answer_id = 10;
+const Qi_bounty = 5;
+const Qi_is_arbitration_paid_for = 6;
+const Qi_is_finalized = 7;
+const Qi_best_answer_id = 8;
 
 // Answer, as returned by answers()
 const Ai_answer_id = 0;
@@ -96,6 +94,14 @@ const monthList = [
     'Nov',
     'Dec'
 ];
+
+function numToBytes32(bignum) {
+    var n = bignum.toString(16);
+    while (n.length < 64) {
+        n = "0" + n;
+    }
+    return "0x" + n;
+}
 
 // set rcBrowser height
 function rcbrowserHeight() {
@@ -441,7 +447,7 @@ $('#post-question-submit').on('click', function(e){
 
         RealityCheck.deployed().then(function (rc) {
             account = web3.eth.accounts[0];
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, 0, 1, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
+            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
         }).then(function (result) {
             question_body.val('');
             reward.val('0');
@@ -621,16 +627,14 @@ function populateSection(section_name, question_data, before_item) {
         }
     }
 
-    var posted_ts = question_data[1];
-    var arbitrator = question_data[2];
-    var step_delay = question_data[3];
-    var question_text_raw = question_data[4];
-    var deadline = question_data[5];
-    var bounty = web3.fromWei(question_data[6], 'ether');
-    var arbitration_bounty = question_data[7];
-    var is_arbitration_paid_for = question_data[8];
-    var is_finalized = question_data[9];
-    var best_answer_id = question_data[10];
+    var posted_ts = question_data[Qi_created];
+    var arbitrator = question_data[Qi_arbitrator];
+    var step_delay = question_data[Qi_step_delay];
+    var question_text_raw = question_data[Qi_question_text];
+    var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
+    var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
+    var is_finalized = question_data[Qi_is_finalized];
+    var best_answer_id = question_data[Qi_best_answer_id];
 
     var entry = $('.questions__item.template-item').clone();
     entry.attr('data-question-id', question_id);
@@ -661,11 +665,11 @@ function populateSection(section_name, question_data, before_item) {
 
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
+    var created = item.args.created
     //console.log('question_id', question_id);
     rc.questions.call(question_id).then( function(question_data) {
         //console.log('here is result', question_data, question_id)
         question_data.unshift(question_id);
-        var created = question_data[Qi_created];
         var bounty = question_data[Qi_bounty];
         var is_finalized = question_data[Qi_is_finalized];
 
@@ -865,9 +869,9 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 function displayQuestionDetail(question_id) {
 
     var question_detail = question_detail_list[question_id];
+    //console.log('question_id', question_id);
     var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
-    var latest_answer = question_detail['history'][idx].args;
     var question_json;
 
     try {
@@ -905,16 +909,25 @@ function displayQuestionDetail(question_id) {
     } else {
         rcqa.find('.arbitration-button').css('display', 'none');
     }
-    rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
 
-    // answerer data
-    var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-    ans_data.find('.answerer').text(latest_answer.answerer);
-    ans_data.find('.answer-bond-value').text(latest_answer.bond);
+    if (question_detail['history'].length) {
+        var latest_answer = question_detail['history'][idx].args;
+        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
 
-    // label for show the current answer.
-    var label = getAnswerString(question_json, latest_answer);
-    rcqa.find('.current-answer-body').find('.current-answer').text(label);
+        // answerer data
+        var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+        ans_data.find('.answerer').text(latest_answer.answerer);
+        ans_data.find('.answer-bond-value').text(latest_answer.bond);
+
+        // label for show the current answer.
+        var label = getAnswerString(question_json, latest_answer);
+        rcqa.find('.current-answer-body').find('.current-answer').text(label);
+
+        // final answer button
+        showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
+    } else {
+        rcqa.find('.current-answer-container').hide();
+    }
 
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
@@ -933,9 +946,6 @@ function displayQuestionDetail(question_id) {
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index',10);
-
-    // final answer button
-    showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
 
     var rc;
     RealityCheck.deployed().then(function(instance){
@@ -1070,7 +1080,7 @@ function rewriteQuestionDetail(question_id) {
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
     var answer_id = 'answer-' + answer_data.args.answer_id;
-    var answer = answer_data.args.answer.toNumber();
+    var answer = new BigNumber(answer_data.args.answer).toNumber();
 
     try {
         var question_json = JSON.parse(question_data[Qi_question_text]);
@@ -1103,18 +1113,18 @@ function getAnswerString(question_json, answer_data) {
     var label = '';
     switch (question_json['type']) {
         case 'number':
-            label = answer_data.answer.toString();
+            label = new BigNumber(answer_data.answer).toString();
             break;
         case 'binary':
-            if (answer_data.answer.toNumber() === 1) {
+            if (new BigNumber(answer_data.answer).toNumber() === 1) {
                 label = 'Yes';
-            } else if (answer_data.answer.toNumber() === 0) {
+            } else if (new BigNumber(answer_data.answer).toNumber() === 0) {
                 label = 'No';
             }
             break;
         case 'single-select':
             if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
-                var idx = answer_data.answer.toNumber();
+                var idx = new BigNumber(answer_data.answer).toNumber();
                 label = question_json['outcomes'][idx];
             }
             break;
@@ -1188,7 +1198,8 @@ function displayAnswerHistory(question_id) {
         }
 
         var answer_id = 'answer-' + answer.args.answer_id;
-        var ans = answer.args.answer.toNumber();
+        console.log('answer orig', answer.args.answer);
+        var ans = new BigNumber(answer.args.answer).toNumber();
 
         var container = $('.answered-history-item-container.template-item').clone();
         container.removeClass('template-item');
@@ -1211,7 +1222,7 @@ function displayAnswerHistory(question_id) {
 
         var ans_data = $(section_name).find('.answer-item.answered-history-item').find('.answer-data');
         ans_data.find('.answerer').text(answer.args.answerer);
-        ans_data.find('.answer-bond-value').text(answer.args.bond.toNumber());
+        ans_data.find('.answer-bond-value').text(new BigNumber(answer.args.bond).toNumber());
 
     });
 }
@@ -1367,7 +1378,9 @@ $(document).on('click', '.post-answer-button', function(e){
         }
 
         if (is_err) throw('err on submitting answer');
-        return rc.submitAnswer(question_id, new_answer, '', {from:account, value:bond});
+
+        // Converting to BigNumber here - ideally we should probably doing this when we parse the form
+        return rc.submitAnswer(question_id, numToBytes32(new BigNumber(new_answer)), '', {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
