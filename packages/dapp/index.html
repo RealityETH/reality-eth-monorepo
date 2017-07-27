@@ -1118,7 +1118,7 @@
                                 <span class="question-title"></span>
                             </a>
                             <div class="questions__item__footer">
-                                <span class="question-age"></span>
+                                <time class="timeago" datetime=""></time>
                                 <span class="question-bounty"></span> ETH
                             </div>
                         </div>
@@ -1335,7 +1335,7 @@
                                 <div class="current-answer-body">
                                     <p><span class="current-answer"></span></p>
                                 </div>
-                                <span class="current-answer-time">3 munites ago</span>
+                                <time class="timeago" datetime=""></time>
                                 <div class="final-answer-button" style="display:none;">Make this Final Answer</div>
                                 <div class="answer-data">
                                     <div class="answer-data-inner">
@@ -1363,7 +1363,8 @@
 
     <div class="answered-history-item-container template-item" style="display:none">
         <div class="answer-item answered-history-item">
-            <div class="answered-history-body"><p><span class="current-answer"></span></p></div>
+            <div class="answered-history-body"></div>
+            <time class="timeago" datetime=""></time>
             <div class="answer-data">
                 <div class="answer-data-inner">
                     <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div>
@@ -1374,6 +1375,7 @@
         </div>
     </div>
 
+    <script src="jquery.timeago.js" type="text/javascript"></script>
     <script src="assets/js/bundle.js"></script>
 
 <!--

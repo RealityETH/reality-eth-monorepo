@@ -8,6 +8,8 @@ var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
+var timeago = require('timeago.js');
+var timeAgo = new timeago();
 
 // Struct array offsets
 // Assumes we unshift the ID onto the start
@@ -101,6 +103,29 @@ function numToBytes32(bignum) {
         n = "0" + n;
     }
     return "0x" + n;
+}
+
+function convertTsToString(ts) {
+    let date = new Date();
+    date.setTime(ts * 1000);
+    let year = date.getFullYear();
+    let month = date.getMonth() + 1;
+    let day = date.getDate();
+    let hour = date.getHours();
+    let minute = date.getMinutes();
+    let second = date.getSeconds();
+
+    let new_date = [year, month, day, hour, minute, second].map(function(val){
+       val = String(val);
+       if (val.length == 1) {
+           return '0' + val;
+       } else {
+           return val;
+       }
+    });
+
+    return new_date[0] + '-' + new_date[1] + '-' + new_date[2]
+        + 'T' + new_date[3] + ':' + new_date[4] + ':' + new_date[5] + 'Z'
 }
 
 // set rcBrowser height
@@ -641,7 +666,6 @@ function populateSection(section_name, question_data, before_item) {
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.questions__item__title').attr('data-target-id', target_question_id);
     entry.find('.question-title').text(question_json['title']);
-    entry.find('.question-age').text(posted_ts);
     entry.find('.question-bounty').text(bounty);
     entry.css('display', 'block');
 
@@ -652,7 +676,10 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').append(entry);
     }
 
-//console.log('length is ',section.children('.questions-list').find('.questions__item').length);
+    $('div#question-'+question_id).find('.timeago').attr('datetime', convertTsToString(posted_ts));
+    timeAgo.render($('div#question-'+question_id).find('.timeago'));
+
+    //console.log('length is ',section.children('.questions-list').find('.questions__item').length);
 //console.log(section_name);
     
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
@@ -890,7 +917,7 @@ function displayQuestionDetail(question_id) {
 
     rcqa.find('.rcbrowser__close-button').on('click', function(){
        rcqa.remove();
-        console.log('clicked close');
+        //console.log('clicked close');
        //$('div#' + question_id).remove();
        //question_id = question_id.replace('qadetail-', '');
        //delete question_detail_list[question_id]
@@ -913,6 +940,7 @@ function displayQuestionDetail(question_id) {
     if (question_detail['history'].length) {
         var latest_answer = question_detail['history'][idx].args;
         rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
+        rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -943,6 +971,7 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.answered-history-container').after(ans_frm);
 
     $('#qa-detail-container').append(rcqa);
+    timeAgo.render($('#qadetail-' + question_id).find('.current-answer-item').find('.timeago'))
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index',10);
@@ -1198,7 +1227,7 @@ function displayAnswerHistory(question_id) {
         }
 
         var answer_id = 'answer-' + answer.args.answer_id;
-        console.log('answer orig', answer.args.answer);
+        //console.log('answer orig', answer.args.answer);
         var ans = new BigNumber(answer.args.answer).toNumber();
 
         var container = $('.answered-history-item-container.template-item').clone();
@@ -1218,7 +1247,10 @@ function displayAnswerHistory(question_id) {
 
         section_name = 'div#' + answer_id;
         var label = getAnswerString(question_json, answer.args);
-        $(section_name).find('.answer-item.answered-history-item').find('.current-answer').text(label);
+        var history_item = $(section_name).find('.answer-item.answered-history-item');
+        history_item.find('.answered-history-body').text(label);
+        history_item.find('.timeago').attr('datetime', convertTsToString(answer.args.ts));
+        timeAgo.render($(section_name).find('.timeago'));
 
         var ans_data = $(section_name).find('.answer-item.answered-history-item').find('.answer-data');
         ans_data.find('.answerer').text(answer.args.answerer);
