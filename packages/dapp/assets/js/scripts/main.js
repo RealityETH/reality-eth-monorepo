@@ -108,24 +108,7 @@ function numToBytes32(bignum) {
 function convertTsToString(ts) {
     let date = new Date();
     date.setTime(ts * 1000);
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-    let day = date.getDate();
-    let hour = date.getHours();
-    let minute = date.getMinutes();
-    let second = date.getSeconds();
-
-    let new_date = [year, month, day, hour, minute, second].map(function(val){
-       val = String(val);
-       if (val.length == 1) {
-           return '0' + val;
-       } else {
-           return val;
-       }
-    });
-
-    return new_date[0] + '-' + new_date[1] + '-' + new_date[2]
-        + 'T' + new_date[3] + ':' + new_date[4] + ':' + new_date[5] + 'Z'
+    return date.toISOString();
 }
 
 // set rcBrowser height
