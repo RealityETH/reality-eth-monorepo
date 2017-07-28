@@ -818,7 +818,12 @@ $(document).on('click', '.questions__item__title', function(e){
     e.stopPropagation();
 
     var question_id = $(this).closest('.questions__item').attr('data-question-id');
-    openQuestionWindow(question_id); 
+
+    if ($('#qadetail-'+question_id).size()) {
+        console.log('already open');
+    } else {
+        openQuestionWindow(question_id); 
+    }
 
 });
 
