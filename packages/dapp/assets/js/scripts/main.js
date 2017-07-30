@@ -60,6 +60,7 @@ var user_question_ids = {'answered': [], 'asked': [], 'funded': []};
 
 // data for question detail window
 var question_detail_list = [];
+var window_position = [];
 
 var $ = require('jquery-browserify')
 
@@ -73,14 +74,7 @@ function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
 }
 
-var clickCounter = 9;
-var isFirstFocusBond = true;
-var isFirstErrorEditOption = true;
-var editOptionId = 0;
-
-var bondUnit = 0;
-var _bondValue = 0;
-var bondValue = bondUnit + _bondValue;
+var zindex = 10;
 
 const monthList = [
     'Jan',
@@ -132,46 +126,48 @@ return;
 }
 rcbrowserHeight();
 
-// initialize
-(function() {
-    const answerItems = document.querySelectorAll('.answer-item');
-
-    function clickHandler() {
-        let answerData = this.querySelector('.answer-data');
-        if (!this.hasClass('is-open')) {
-            this.addClass('is-open');
-            answerData.style.display = 'block';
-            answerData.addClass('is-bounce');
-        } else {
-            this.removeClass('is-open');
-            answerData.style.display = 'none';
-            answerData.removeClass('is-bounce');
+// set rcBrowser's position.
+function setRcBrowserPosition(rcbrowser) {
+    // when position has been stored.
+    if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
+        var question_id = rcbrowser.attr('id').replace('qadetail-', '');
+        if (typeof window_position[question_id] !== 'undefined') {
+            let left =  parseInt(window_position[question_id]['x']) + 'px';
+            let top = parseInt(window_position[question_id]['y']) + 'px';
+            rcbrowser.css('left', left);
+            rcbrowser.css('top', top);
+            return;
         }
-
-        rcbrowserHeight();
     }
 
-    for (let i = 0, len = answerItems.length; i < len; i += 1) {
-        answerItems[i].addEventListener('click', clickHandler);
-    }
-})();
-
-// set rcBrowser
-(function() {
-    const items = document.querySelectorAll('.rcbrowser');
+    // when window is newly opend.
     const winWidth = document.documentElement.clientWidth;
     const winHeight = document.documentElement.clientHeight;
-    const paddingTop = winHeight * 0.1;
     const paddingLeft = winWidth * 0.1;
-    for (let i = 0, len = items.length; i < len; i += 1) {
-        var itemWidth = Math.min(items[i].clientWidth, winWidth * 0.9);
-        var itemHeight = Math.min(items[i].clientHeight, winHeight * 0.9);
-        var topMax = document.documentElement.clientHeight - itemHeight - paddingTop;
-        var leftMax = document.documentElement.clientWidth - itemWidth - paddingLeft;
-        items[i].style.top = rand(paddingTop, topMax) + 'px';
-        items[i].style.left = rand(paddingLeft, leftMax) + 'px';
+    const paddingTop = winHeight * 0.1;
+
+    let rcb_width = parseInt(rcbrowser.css('width').replace('px', ''));
+    let rcb_height = parseInt(rcbrowser.css('height').replace('px', ''));
+    let itemWidth = Math.min(rcb_width, winWidth * 0.9);
+    let itemHeight = Math.min(rcb_height, winHeight * 0.9);
+    let leftMax = winWidth - itemWidth - paddingLeft;
+    let topMax = winHeight - itemHeight - paddingTop;
+
+    if (rcbrowser.attr('id') == 'post-a-question-window') {
+        var leftMin = winWidth / 2;
+        var left = winWidth / 2 + itemWidth / 10;
+        var top = itemHeight / 10;
+        left += 'px'; top += 'px';
+    } else if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
+        left = parseInt(rand(paddingLeft, leftMax));
+        top = parseInt(rand(paddingTop, topMax));
+        window_position[question_id] = {'x': left, 'y': top};
+        left += 'px'; top += 'px';
     }
-})();
+
+    rcbrowser.css('left', left);
+    rcbrowser.css('top', top);
+}
 
 // arbitration
 (function() {
@@ -277,7 +273,12 @@ interact('.rcbrowser-header').draggable({
     inertia: false,
     // keep the element within the area of it's parent
     restrict: {
-        restriction: 'self',
+        restriction: {
+            left: 0,
+            right: document.documentElement.clientWidth,
+            top: 0,
+            bottom: document.documentElement.clientHeight
+        },
         endOnly: true,
         elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
     },
@@ -285,27 +286,33 @@ interact('.rcbrowser-header').draggable({
     autoScroll: false,
 
     // call this function on every dragmove event
-    onmove: dragMoveListener,
+    onmove: dragMoveListener
 });
 function dragMoveListener (event) {
-    clickCounter += 1;
     var target = event.target.parentNode.parentNode;
-    target.style.zIndex = clickCounter;
     // keep the dragged position in the data-x/data-y attributes
     var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
     var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
     // translate the element
-    target.style.webkitTransform =
-    target.style.transform =
-    'translate(' + x + 'px, ' + y + 'px)';
+    let top = parseInt(target.style.top);
+    if (top + y < 1){
+        target.style.webkitTransform =
+            target.style.transform =
+                'translate(' + x + 'px, -' + top + 'px)';
+    } else {
+        target.style.webkitTransform =
+            target.style.transform =
+                'translate(' + x + 'px, ' + y + 'px)';
+    }
 
     // update the posiion attributes
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);
 }
-// this is used later in the resizing and gesture demos
-window.dragMoveListener = dragMoveListener;
+$(document).on('click', '.rcbrowser', function(){
+    $(this).css('z-index', ++zindex);
+});
 
 // see all notifications
 $(function() {
@@ -401,7 +408,7 @@ $(function() {
 $('#your-qa-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    $('#your-question-answer-window').css('z-index', 10);
+    $('#your-question-answer-window').css('z-index', ++zindex);
     $('#your-question-answer-window').addClass('is-open');
     $('#your-question-answer-window').css('height', '800px');
 });
@@ -416,9 +423,13 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
 $('#post-a-question-button').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
-    $('#post-a-question-window').css('z-index', 10);
-    $('#post-a-question-window').addClass('is-open');
-    $('#post-a-question-window').css('height', '800px');
+    let question_window = $('#post-a-question-window');
+    if (!question_window.hasClass('is-open')) {
+        question_window.css('z-index', ++zindex);
+        question_window.addClass('is-open');
+        question_window.css('height', '800px');
+        setRcBrowserPosition(question_window);
+    }
 });
 
 $('#close-question-window').on('click', function(e){
@@ -871,9 +882,9 @@ function openQuestionWindow(question_id) {
 }
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
-    $('#post-a-question-window').css('z-index', 0);
-    $('#post-a-question-window').removeClass('is-open');
-   //delete question_detail_list[question_id]
+    let window = $('#post-a-question-window');
+    window.css('z-index', 0);
+    window.removeClass('is-open');
 });
 
 function displayQuestionDetail(question_id) {
@@ -899,11 +910,19 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.need-data-target-id').attr('data-target-id', 'qadetail-' + question_id);
 
     rcqa.find('.rcbrowser__close-button').on('click', function(){
-       rcqa.remove();
+        let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+        let left = parseInt(parent_div.css('left').replace('px', ''));
+        let top = parseInt(parent_div.css('top').replace('px', ''));
+        let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+        let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+        left += data_x; top += data_y;
+        window_position[question_id]['x'] = left;
+        window_position[question_id]['y'] = top;
+        rcqa.remove();
         //console.log('clicked close');
-       //$('div#' + question_id).remove();
-       //question_id = question_id.replace('qadetail-', '');
-       //delete question_detail_list[question_id]
+        //$('div#' + question_id).remove();
+        //question_id = question_id.replace('qadetail-', '');
+        //delete question_detail_list[question_id]
     });
 
     rcqa.removeClass('template-item');
@@ -957,7 +976,8 @@ function displayQuestionDetail(question_id) {
     timeAgo.render($('#qadetail-' + question_id).find('.current-answer-item').find('.timeago'))
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
-    rcqa.css('z-index',10);
+    rcqa.css('z-index', ++zindex);
+    setRcBrowserPosition(rcqa);
 
     var rc;
     RealityCheck.deployed().then(function(instance){
