@@ -67,7 +67,6 @@ contract RealityCheck {
         bytes32 answer;
         address answerer;
         uint256 bond;
-        bytes32 evidence_sha256;
     }
 
     struct Question {
@@ -156,8 +155,7 @@ contract RealityCheck {
             question_id,
             answer,
             msg.sender,
-            msg.value,
-            evidence_sha256
+            msg.value
         );
 
         LogNewAnswer(
