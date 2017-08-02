@@ -468,14 +468,16 @@ $('#post-question-submit').on('click', function(e){
             account = web3.eth.accounts[0];
             return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
         }).then(function (result) {
-            question_body.val('');
-            reward.val('0');
-            step_delay.prop('selectedIndex', 0);
-            arbitrator.prop('selectedIndex', 0);
-            question_type.prop('selectedIndex', 0);
-            $('#answer-option-container').removeClass('is-open');
-            $('#answer-option-container').css('height', 0);
-            $('.answer-option').remove();
+
+            let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
+            let id = setInterval(function(){
+                let question_link = $('div#questions-latest').find(section_name);
+                if ('generated', question_link.length > 0) {
+                    $('#close-question-window').trigger('click');
+                    question_link.trigger('click');
+                    clearInterval(id);
+                }
+            }, 3000)
         }).catch(function (e) {
             console.log(e);
         });
