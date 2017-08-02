@@ -47,6 +47,7 @@ var RealityCheck;
 var Arbitrator;
 
 var account;
+var account_balance;
 var arbitration_fee;
 
 var display_entries = {
@@ -611,10 +612,12 @@ function handleUserAction(acc, action, entry, rc) {
         });
     } 
 
-    rc.balanceOf.call(account).then(function(result){
-        $('.account-balance').text(result.toString());
+    web3.eth.getBalance(account, function(error, result){
+        if (error === null) {
+            account_balance = web3.fromWei(result.toNumber(), 'ether');
+            $('.account-balance').text(web3.fromWei(result.toNumber(), 'ether'));
+        }
     });
-
 
 }
 
