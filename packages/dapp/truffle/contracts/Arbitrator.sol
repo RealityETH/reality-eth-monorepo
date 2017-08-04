@@ -1,7 +1,7 @@
 pragma solidity ^0.4.6;
 
 contract RealityCheckAPI {
-    function finalizeByArbitrator(bytes32 answer_id);
+    function finalizeByArbitrator(bytes32 question_id, bytes32 answer);
     function claimBond(bytes32 answer_id);
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty);
     function submitAnswer(bytes32 question_id, bytes32 answer, string evidence) returns (bytes32);
@@ -38,8 +38,8 @@ contract Arbitrator {
         return RealityCheckAPI(realitycheck).submitAnswer(question_id, answer, evidence);
     }
 
-    function finalizeByArbitrator(address realitycheck, bytes32 answer_id) onlyOwner {
-        RealityCheckAPI(realitycheck).finalizeByArbitrator(answer_id);
+    function finalizeByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer_id) onlyOwner {
+        RealityCheckAPI(realitycheck).finalizeByArbitrator(question_id, answer_id);
     }
 
 }

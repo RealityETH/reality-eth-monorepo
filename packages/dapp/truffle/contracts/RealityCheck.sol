@@ -22,9 +22,8 @@ contract RealityCheck {
     );
 
     event LogNewAnswer(
-        bytes32 indexed answer_id,
+        bytes32 indexed answer,
         bytes32 indexed question_id,
-        bytes32 answer,
         address indexed answerer,
         uint256 bond,
         uint256 ts,
@@ -46,25 +45,23 @@ contract RealityCheck {
 
     event LogFinalize(
         bytes32 indexed question_id,
-        bytes32 answer_id,
-        bytes32 answer
+        bytes32 indexed answer
     );
 
     event LogClaimBounty(
-        bytes32 indexed answer_id,
+        bytes32 indexed question_id,
         address indexed receiver,
         uint256 amount
     );
 
     event LogClaimBond(
         bytes32 indexed question_id,
+        bytes32 indexed answer,
         address indexed receiver,
         uint256 amount
     );
 
     struct Answer{
-        bytes32 question_id;
-        bytes32 answer;
         address answerer;
         uint256 bond;
     }
@@ -81,12 +78,13 @@ contract RealityCheck {
         uint256 bounty;
         bool is_arbitration_paid_for;
         bool is_finalized;
-        bytes32 best_answer_id;
+        bytes32 best_answer;
+        mapping(bytes32 => Answer) answers; // answer to answer ownership details
     }
 
     mapping(bytes32 => Question) public questions;
-    mapping(bytes32 => Answer) public answers;
 
+    // This isn't normally used, so to save gas don't normally assign space in the Question struct
     mapping(bytes32 => uint256) public arbitration_bounties;
 
     // question => ctrct => gas => bounty
@@ -124,65 +122,75 @@ contract RealityCheck {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
-    function getAnswerID(bytes32 question_id, address sender, uint256 amount) constant returns (bytes32) {
-        return keccak256(question_id, sender, amount);
-    }
-
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
 
+        uint256 remaining_val = msg.value;
+        bytes32 old_best_answer = questions[question_id].best_answer;
+
         if (msg.sender != questions[question_id].arbitrator) {
 
             require(!questions[question_id].is_arbitration_paid_for);
+            require(msg.value > 0); 
 
-            bytes32 NULL_BYTES;
-            bytes32 best_answer_id = questions[question_id].best_answer_id;
-
-            if (best_answer_id != NULL_BYTES) {
-                require(msg.value > 0); 
-                // You have to double every time
-                require(msg.value >= (answers[best_answer_id].bond * 2));
-                // Once the delay has past you can no longer change it, you have to finalize
-                require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
-            }
+            // Once the delay has past you can no longer change it, you have to finalize
+            require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
 
         }
 
-        bytes32 answer_id = keccak256(question_id, msg.sender, msg.value);
+        address NULL_ADDRESS;
+        address previous_answerer = questions[question_id].answers[answer].answerer;
+        
+        // If the answer you submit is already submitted, you have to pay its owner their bond 
+        // They also get their original bond back
+        if (previous_answerer == msg.sender) {
 
-        answers[answer_id] = Answer(
-            question_id,
-            answer,
+            // Credit your previous bond to the remaining value
+            remaining_val += questions[question_id].answers[answer].bond;
+
+        } else if (previous_answerer != NULL_ADDRESS) { 
+
+            uint256 previous_bond = questions[question_id].answers[answer].bond;
+            remaining_val = remaining_val - previous_bond;
+
+            // The previous answerer ends up with twice their bond.
+            // Half comes from the new answerer, half is their original bond back
+            balances[previous_answerer] += previous_bond + previous_bond;
+
+        } 
+
+        // You have to double every time
+        require(remaining_val >= (questions[question_id].answers[old_best_answer].bond * 2));
+
+        questions[question_id].answers[answer] = Answer(
             msg.sender,
-            msg.value
+            remaining_val
         );
 
         LogNewAnswer(
-            answer_id,
-            question_id,
             answer,
+            question_id,
             msg.sender,
             msg.value,
             now,
             evidence_sha256
         );
 
-        questions[question_id].best_answer_id = answer_id;
+        questions[question_id].best_answer = answer;
         questions[question_id].last_changed_ts = now;
 
         if (msg.sender == questions[question_id].arbitrator) {
-            finalizeByArbitrator(answer_id);
+            finalizeByArbitrator(question_id, answer);
         }
-
-        return answer_id;
+        
+        return answer;
 
     }
 
     function getFinalAnswer(bytes32 question_id) constant returns (bytes32) {
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
         require(questions[question_id].is_finalized);
-        return answers[best_answer_id].answer;
+        return questions[question_id].best_answer;
     }
 
     function isFinalized(bytes32 question_id) constant returns (bool) {
@@ -199,80 +207,72 @@ contract RealityCheck {
 
     function finalize(bytes32 question_id) {
 
-        bytes32 NULL_BYTES;
-        require(questions[question_id].best_answer_id != NULL_BYTES);
+        bytes32 best_answer = questions[question_id].best_answer;
+
+        address NULL_ADDRESS;
+        require(questions[question_id].answers[best_answer].answerer != NULL_ADDRESS);
         
         require(!questions[question_id].is_finalized);
-
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
 
         require(now >= (questions[question_id].last_changed_ts + questions[question_id].step_delay) );
         require(!questions[question_id].is_arbitration_paid_for);
 
         questions[question_id].is_finalized = true;
 
-        LogFinalize(question_id, best_answer_id, answers[best_answer_id].answer);
+        LogFinalize(question_id, best_answer);
 
     }
 
-    function finalizeByArbitrator(bytes32 answer_id) {
-
-        bytes32 question_id = answers[answer_id].question_id;
+    function finalizeByArbitrator(bytes32 question_id, bytes32 answer) {
 
         require(msg.sender == questions[question_id].arbitrator); 
         require(!questions[question_id].is_finalized);
 
-        questions[question_id].best_answer_id = answer_id;
+        questions[question_id].best_answer = answer;
         questions[question_id].is_finalized = true;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
         arbitration_bounties[question_id] = 0;
 
-        LogFinalize(question_id, answer_id, answers[answer_id].answer);
+        LogFinalize(question_id, answer);
 
     }
 
     // Assigns the bond for a particular answer to either:
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimBond(bytes32 answer_id) {
+    function claimBond(bytes32 question_id, bytes32 answer) {
 
-        bytes32 question_id = answers[answer_id].question_id;
         require(questions[question_id].is_finalized);
         
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
-        address payee;
+        bytes32 best_answer = questions[question_id].best_answer;
 
-        // If the answer is correct, it goes to its owner
-        // If the answer is wrong, it goes to whoever gave the best answer
-        if (answers[answer_id].answer == answers[best_answer_id].answer) { 
-            payee = answers[answer_id].answerer;
-        } else {
-            payee = answers[best_answer_id].answerer;
-        }
+        // The bond goes to whoever had the correct answer
+        address payee = questions[question_id].answers[best_answer].answerer;
 
-        uint256 bond = answers[answer_id].bond;
+        uint256 bond = questions[question_id].answers[answer].bond;
 
-        LogClaimBond(answer_id, payee, bond);
+        LogClaimBond(question_id, answer, payee, bond);
 
         balances[payee] += bond;
 
-        // We no longer need answers, except the final accepted one
-        if (best_answer_id == answer_id) {
-            answers[answer_id].bond = 0;
+        // We no longer need answer data except for the best answer.
+        // (We may still need the best answer because there may be other unclaimed bonds)
+        if (answer == best_answer) {
+            questions[question_id].answers[answer].bond = 0;
         } else {
-            delete answers[answer_id];
+            delete questions[question_id].answers[answer];
         }
-
 
     }
 
     function claimBounty(bytes32 question_id) {
 
         require(questions[question_id].is_finalized);
-        bytes32 best_answer_id = questions[question_id].best_answer_id;
 
-        address payee = answers[best_answer_id].answerer;
+        bytes32 best_answer = questions[question_id].best_answer;
+
+        address payee = questions[question_id].answers[best_answer].answerer;
         uint256 bounty = questions[question_id].bounty;
 
         LogClaimBounty(question_id, payee, bounty);
@@ -283,21 +283,23 @@ contract RealityCheck {
     }
 
     // Convenience function to claim multiple bounties and bonds in 1 go
+    // bond_question_ids are the question ids you want to claim for
+    // bond_answers are the answers you want to claim for
     // TODO: This could probably be more efficient, as some checks are being duplicated
-    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, bytes32[] answer_ids) returns (bool withdrawal_completed) {
+    function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) returns (bool withdrawal_completed) {
+        
+        require(bond_question_ids.length == bond_answers.length);
 
         uint256 i;
-        for(i=0; i<question_ids.length; i++) {
-            claimBounty(question_ids[i]);
+        for(i=0; i<bounty_question_ids.length; i++) {
+            claimBounty(bounty_question_ids[i]);
         }
-        for(i=0; i<answer_ids.length; i++) {
-            claimBond(answer_ids[i]);
+
+        for(i=0; i<bond_question_ids.length; i++) {
+            claimBond(bond_question_ids[i], bond_answers[i]);
         }
-        uint256 bal = balances[msg.sender];
-        if (bal > 0) {
-            return withdraw(bal);
-        }
-        return false;
+
+        return msg.sender.send(balances[msg.sender]);
 
     }
 
@@ -340,7 +342,7 @@ contract RealityCheck {
             require(callback_requests[question_id][client_ctrct][gas] > 0);   
         }
         require(msg.gas >= gas);
-        bytes32 answer_id = questions[question_id].best_answer_id;
+        bytes32 best_answer = questions[question_id].best_answer;
 
         // We call the callback with the low-level call() interface
         // We don't care if it errors out or not:
@@ -348,7 +350,7 @@ contract RealityCheck {
 
         // Call signature argument hard-codes the result of:
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-        bool ignore = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, answers[answer_id].answer); 
+        bool ignore = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
 
         balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
         callback_requests[question_id][client_ctrct][gas] = 0;
