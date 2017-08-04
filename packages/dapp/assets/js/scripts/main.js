@@ -257,10 +257,15 @@ function setRcBrowserPosition(rcbrowser) {
     const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
 
     for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-        Ps.initialize(rcbrowsers[i]);
+        // Initialize anything that isn't part of a template item.
+        // If it's a template item it should be initialized after it's cloned.
+        if (!$(rcbrowsers[i]).closest('.template-item').length) {
+            Ps.initialize(rcbrowsers[i]);
+        }
     }
 
     function changeSize() {
+        // TODO: Does this need to be added to items that are initialized later?
         for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
             Ps.update(rcbrowsers[i]);
         }
@@ -411,7 +416,7 @@ $('#your-qa-button').on('click', function(e) {
     e.stopPropagation();
     $('#your-question-answer-window').css('z-index', ++zindex);
     $('#your-question-answer-window').addClass('is-open');
-    $('#your-question-answer-window').css('height', '800px');
+    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height()+'px');
 });
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
@@ -428,7 +433,7 @@ $('#post-a-question-button').on('click', function(e){
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
-        question_window.css('height', '800px');
+        question_window.css('height', question_window.height()+'px');
         setRcBrowserPosition(question_window);
     }
 });
@@ -987,7 +992,9 @@ function displayQuestionDetail(question_id) {
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index', ++zindex);
+    rcqa.css('height', rcqa.height()+'px');
     setRcBrowserPosition(rcqa);
+    Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
 
     var rc;
     RealityCheck.deployed().then(function(instance){
