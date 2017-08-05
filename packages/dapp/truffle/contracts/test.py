@@ -50,11 +50,15 @@ class TestRealityCheck(TestCase):
         arb_code_raw = open('Arbitrator.sol').read()
         client_code_raw = open('CallbackClient.sol').read()
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
+        caller_backer_code_raw = open('CallerBacker.sol').read()
 
         self.rc_code = realitycheck_code
         self.arb_code = arb_code_raw
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
+        self.caller_backer_code = caller_backer_code_raw
+
+        self.caller_backer = self.c.contract(self.caller_backer_code, language='solidity', sender=t.k0)
 
         self.arb0 = self.c.contract(self.arb_code, language='solidity', sender=t.k0)
         self.c.mine()
@@ -349,7 +353,36 @@ class TestRealityCheck(TestCase):
 
         return
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_callbacks_unbundled(self):
+     
+        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
+        self.caller_backer.setRealityCheck(self.rc0.address)
+
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.finalize(self.question_id, startgas=200000)
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+
+        
+        gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
+        self.caller_backer.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
+        gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
+        self.assertEqual(gas_used_after - gas_used_before, 45978)
+
+        self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.cb.address, 3000000), 100)
+
+        # Fail an unregistered amount of gas
+        with self.assertRaises(TransactionFailed):
+            self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000)
+
+        self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
+        self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000000)
+        self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
+        
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks(self):
      
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
@@ -361,7 +394,14 @@ class TestRealityCheck(TestCase):
 
         self.rc0.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
 
+
+        # For comparing with the version with unbundled 
+        gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
         self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
+        gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
+        self.assertEqual(gas_used_after - gas_used_before, 26031)
+
+
 
         # Fail an unregistered amount of gas
         with self.assertRaises(TransactionFailed):
@@ -392,6 +432,53 @@ class TestRealityCheck(TestCase):
         self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
     
         
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_withdrawal(self):
+
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=100, sender=t.k5) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.finalize(self.question_id, startgas=200000)
+
+        self.rc0.claimBounty(self.question_id, sender=t.k5, startgas=200000);
+        self.rc0.claimBond(self.question_id, a1, sender=t.k5, startgas=200000)
+
+        starting_deposited = self.rc0.balanceOf(keys.privtoaddr(t.k5))
+        self.assertEqual(starting_deposited, 1100)
+
+        # Withdrawing more than you have should fail
+        with self.assertRaises(TransactionFailed):
+            self.rc0.withdraw((starting_deposited + 1), sender=t.k5, startgas=100000)
+
+        # Mine to reset the gas used to 0
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.assertEqual(self.s.gas_used, 0)
+
+        starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+
+        self.rc0.withdraw(1, sender=t.k5, startgas=100000)
+
+        gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
+
+        self.assertEqual(self.s.get_balance(keys.privtoaddr(t.k5)), starting_bal+1 - gas_used)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), starting_deposited-1)
+
+        self.rc0.withdraw((starting_deposited - 1 -1), sender=t.k5, startgas=100000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1)
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.withdraw(2, sender=t.k5, startgas=100000)
+
+        self.rc0.withdraw(1, sender=t.k5, startgas=100000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
+        # ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+
+        return
 
 
 if __name__ == '__main__':

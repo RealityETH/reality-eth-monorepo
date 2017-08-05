@@ -357,10 +357,16 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) returns (bool success) {
-        require(balances[msg.sender] >= _value);
-        balances[msg.sender] = balances[msg.sender] - _value;
-        require(_value >= balances[msg.sender]);
-        return msg.sender.send(_value);
+        uint256 orig_bal = balances[msg.sender];
+        require(orig_bal >= _value);
+        uint256 new_bal = balances[msg.sender] - _value;
+
+        // Overflow shouldn't be possible here but check anyhow
+        require(orig_bal > new_bal); 
+
+        balances[msg.sender] = new_bal;
+        msg.sender.transfer(_value);
+        return true;
     }
 
     function balanceOf(address _owner) constant returns (uint256 balance) {
