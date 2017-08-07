@@ -93,6 +93,9 @@ contract RealityCheck {
     function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
         bytes32 question_id = keccak256(question_text, arbitrator, step_delay);
+
+        // Should not already exist
+        // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].last_changed_ts == 0);
 
         bytes32 NULL_BYTES;
@@ -113,6 +116,7 @@ contract RealityCheck {
 
     }
 
+    // Predict the ID for a given question
     function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
         return keccak256(question_text, arbitrator, step_delay);
     }
@@ -335,13 +339,16 @@ contract RealityCheck {
 
     }
 
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) returns (bool) {
 
         require(questions[question_id].is_finalized);
+
         if (!no_bounty) {
             require(callback_requests[question_id][client_ctrct][gas] > 0);   
         }
+
         require(msg.gas >= gas);
+
         bytes32 best_answer = questions[question_id].best_answer;
 
         // We call the callback with the low-level call() interface
@@ -350,10 +357,13 @@ contract RealityCheck {
 
         // Call signature argument hard-codes the result of:
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-        bool ignore = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
+        bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
 
-        balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
         callback_requests[question_id][client_ctrct][gas] = 0;
+        balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
+
+        return callback_result;
+
     }
 
     function withdraw(uint256 _value) returns (bool success) {
