@@ -401,11 +401,8 @@ class TestRealityCheck(TestCase):
         gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
         self.assertEqual(gas_used_after - gas_used_before, 26031)
 
-
-
-        # Fail an unregistered amount of gas
-        with self.assertRaises(TransactionFailed):
-            self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000)
+        # Return false with an unregistered or spent amount of gas
+        self.assertFalse(self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))
 
         self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         self.rc0.sendCallback(self.question_id, self.cb.address, 3000000)
@@ -424,9 +421,8 @@ class TestRealityCheck(TestCase):
         self.rc0.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
         self.assertEqual(self.rc0.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
 
-        # Fail an unregistered amount of gas
-        with self.assertRaises(TransactionFailed):
-            self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000001, startgas=200000)
+        # return false with an unregistered or spent amount of gas
+        self.assertFalse(self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000001, startgas=200000))
 
         # should complete with no error, even though the client threw an error
         self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 

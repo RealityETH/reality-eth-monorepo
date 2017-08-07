@@ -61,6 +61,23 @@ contract RealityCheck {
         uint256 amount
     );
 
+    event LogFundCallbackRequest(
+        bytes32 indexed question_id,
+        address indexed ctrct,
+        address indexed caller,
+        uint256 gas,
+        uint256 bounty
+    );
+
+    event LogSendCallback(
+        bytes32 indexed question_id,
+        address indexed ctrct,
+        address indexed caller,
+        uint256 gas,
+        uint256 bounty,
+        bool callback_result
+    );
+
     struct Answer{
         address answerer;
         uint256 bond;
@@ -124,6 +141,7 @@ contract RealityCheck {
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
         require(questions[question_id].last_changed_ts > 0); // Check existence
         callback_requests[question_id][client_ctrct][gas] += msg.value;
+        LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
@@ -341,15 +359,16 @@ contract RealityCheck {
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) returns (bool) {
 
-        require(questions[question_id].is_finalized);
-
-        if (!no_bounty) {
-            require(callback_requests[question_id][client_ctrct][gas] > 0);   
+        // By default we return false if there is no bounty, because it has probably already been taken.
+        // You can override this behaviour with the no_bounty flag
+        if (!no_bounty && (callback_requests[question_id][client_ctrct][gas] == 0)) {
+            return false;
         }
 
-        require(msg.gas >= gas);
-
+        require(questions[question_id].is_finalized);
         bytes32 best_answer = questions[question_id].best_answer;
+
+        require(msg.gas >= gas);
 
         // We call the callback with the low-level call() interface
         // We don't care if it errors out or not:
@@ -359,8 +378,10 @@ contract RealityCheck {
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
         bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
 
-        callback_requests[question_id][client_ctrct][gas] = 0;
+        delete callback_requests[question_id][client_ctrct][gas];
         balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
+
+        LogSendCallback(question_id, client_ctrct, msg.sender, gas, msg.value, callback_result);
 
         return callback_result;
 
