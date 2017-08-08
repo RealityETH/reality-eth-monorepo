@@ -151,27 +151,27 @@ contract RealityCheck {
         uint256 remaining_val = msg.value;
         bytes32 old_best_answer = questions[question_id].best_answer;
 
-        if (msg.sender != questions[question_id].arbitrator) {
+        require(!questions[question_id].is_arbitration_paid_for);
+        require(msg.value > 0); 
 
-            require(!questions[question_id].is_arbitration_paid_for);
-            require(msg.value > 0); 
-
-            // Once the delay has past you can no longer change it, you have to finalize
-            require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
-
-        }
+        // Once the delay has passed you can no longer change it
+        require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
 
         address NULL_ADDRESS;
         address previous_answerer = questions[question_id].answers[answer].answerer;
         
-        // If the answer you submit is already submitted, you have to pay its owner their bond 
-        // They also get their original bond back
         if (previous_answerer == msg.sender) {
 
-            // Credit your previous bond to the remaining value
+            // If you gave the previous answer, credit your previous bond to the remaining value
+            // Your previous bond will then be over-written with the combined value
+
             remaining_val += questions[question_id].answers[answer].bond;
 
         } else if (previous_answerer != NULL_ADDRESS) { 
+
+            // If the answer you submit is already submitted, you have to pay its owner the value of their bond 
+            // They also get their original bond back
+            // Their previous bond and answerer record will then be over-written with new answerer and their remaining value
 
             uint256 previous_bond = questions[question_id].answers[answer].bond;
             remaining_val = remaining_val - previous_bond;
@@ -182,13 +182,16 @@ contract RealityCheck {
 
         } 
 
-        // You have to double every time
+        // You have to double the bond every time
         require(remaining_val >= (questions[question_id].answers[old_best_answer].bond * 2));
 
         questions[question_id].answers[answer] = Answer(
             msg.sender,
             remaining_val
         );
+
+        questions[question_id].best_answer = answer;
+        questions[question_id].last_changed_ts = now;
 
         LogNewAnswer(
             answer,
@@ -199,12 +202,41 @@ contract RealityCheck {
             evidence_sha256
         );
 
+        return answer;
+
+    }
+
+    // Used if the arbitrator has been asked to arbitrate but no correct answer is supplied
+    // Allows the arbitrator to submit the correct answer themselves
+    // The arbitrator doesn't need to send a bond.
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
+
+        require(!questions[question_id].is_finalized);
+
+        // Answer should not exist yet. If it does, they should be using finalize()
+        require(questions[question_id].answers[answer].bond == 0);
+
+        uint256 remaining_val = msg.value;
+        bytes32 old_best_answer = questions[question_id].best_answer;
+
+        questions[question_id].answers[answer] = Answer(
+            msg.sender,
+            remaining_val
+        );
+
+        LogNewAnswer(
+            answer,
+            question_id,
+            msg.sender,
+            0,
+            now,
+            evidence_sha256
+        );
+
         questions[question_id].best_answer = answer;
         questions[question_id].last_changed_ts = now;
 
-        if (msg.sender == questions[question_id].arbitrator) {
-            finalizeByArbitrator(question_id, answer);
-        }
+        finalizeByArbitrator(question_id, answer);
         
         return answer;
 
@@ -250,11 +282,15 @@ contract RealityCheck {
         require(msg.sender == questions[question_id].arbitrator); 
         require(!questions[question_id].is_finalized);
 
+        // The answer must exist. If it doesn't, use submitAnswerByArbitrator()
+        address NULL_ADDRESS;
+        require(questions[question_id].answers[answer].answerer != NULL_ADDRESS);
+
         questions[question_id].best_answer = answer;
         questions[question_id].is_finalized = true;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
-        arbitration_bounties[question_id] = 0;
+        delete arbitration_bounties[question_id];
 
         LogFinalize(question_id, answer);
 

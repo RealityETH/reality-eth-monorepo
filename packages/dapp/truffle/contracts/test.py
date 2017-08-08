@@ -165,6 +165,33 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 54321)
 
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering(self):
+
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        # The arbitrator cannot finalize on an answer that has not been given yet
+        with self.assertRaises(TransactionFailed):
+            self.arb0.finalizeByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), startgas=200000) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        # The arbitrator cannot submit an answer that has already been given
+        with self.assertRaises(TransactionFailed):
+            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
+
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
@@ -399,7 +426,7 @@ class TestRealityCheck(TestCase):
         gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
         self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
         gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.assertEqual(gas_used_after - gas_used_before, 26031)
+        self.assertEqual(gas_used_after - gas_used_before, 26053)
 
         # Return false with an unregistered or spent amount of gas
         self.assertFalse(self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))
