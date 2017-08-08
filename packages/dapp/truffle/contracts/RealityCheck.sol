@@ -40,7 +40,8 @@ contract RealityCheck {
     event LogRequestArbitration(
         bytes32 indexed question_id,
         uint256 fee_paid,
-        address requester
+        address requester,
+        uint256 remaining
     );
 
     event LogFinalize(
@@ -381,15 +382,16 @@ contract RealityCheck {
         require(!questions[question_id].is_finalized);
 
         arbitration_bounties[question_id] += msg.value;
+        uint256 paid = arbitration_bounties[question_id];
 
-        if (arbitration_bounties[question_id] >= arbitration_fee) {
+        if (paid >= arbitration_fee) {
             questions[question_id].is_arbitration_paid_for = true;
+            LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
+        } else {
+            LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
+            return false;
         }
-
-        LogRequestArbitration(question_id, msg.value, msg.sender);
-
-        return false;
 
     }
 

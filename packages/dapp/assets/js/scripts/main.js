@@ -47,6 +47,7 @@ var RealityCheck;
 var Arbitrator;
 
 var account;
+var account_balance;
 var arbitration_fee;
 
 var display_entries = {
@@ -256,10 +257,15 @@ function setRcBrowserPosition(rcbrowser) {
     const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
 
     for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-        Ps.initialize(rcbrowsers[i]);
+        // Initialize anything that isn't part of a template item.
+        // If it's a template item it should be initialized after it's cloned.
+        if (!$(rcbrowsers[i]).closest('.template-item').length) {
+            Ps.initialize(rcbrowsers[i]);
+        }
     }
 
     function changeSize() {
+        // TODO: Does this need to be added to items that are initialized later?
         for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
             Ps.update(rcbrowsers[i]);
         }
@@ -410,7 +416,7 @@ $('#your-qa-button').on('click', function(e) {
     e.stopPropagation();
     $('#your-question-answer-window').css('z-index', ++zindex);
     $('#your-question-answer-window').addClass('is-open');
-    $('#your-question-answer-window').css('height', '800px');
+    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height()+'px');
 });
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
@@ -427,7 +433,7 @@ $('#post-a-question-button').on('click', function(e){
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
-        question_window.css('height', '800px');
+        question_window.css('height', question_window.height()+'px');
         setRcBrowserPosition(question_window);
     }
 });
@@ -468,14 +474,16 @@ $('#post-question-submit').on('click', function(e){
             account = web3.eth.accounts[0];
             return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
         }).then(function (result) {
-            question_body.val('');
-            reward.val('0');
-            step_delay.prop('selectedIndex', 0);
-            arbitrator.prop('selectedIndex', 0);
-            question_type.prop('selectedIndex', 0);
-            $('#answer-option-container').removeClass('is-open');
-            $('#answer-option-container').css('height', 0);
-            $('.answer-option').remove();
+
+            let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
+            let id = setInterval(function(){
+                let question_link = $('div#questions-latest').find(section_name);
+                if ('generated', question_link.length > 0) {
+                    $('#close-question-window').trigger('click');
+                    question_link.trigger('click');
+                    clearInterval(id);
+                }
+            }, 3000)
         }).catch(function (e) {
             console.log(e);
         });
@@ -609,10 +617,12 @@ function handleUserAction(acc, action, entry, rc) {
         });
     } 
 
-    rc.balanceOf.call(account).then(function(result){
-        $('.account-balance').text(result.toString());
+    web3.eth.getBalance(account, function(error, result){
+        if (error === null) {
+            account_balance = web3.fromWei(result.toNumber(), 'ether');
+            $('.account-balance').text(web3.fromWei(result.toNumber(), 'ether'));
+        }
     });
-
 
 }
 
@@ -982,7 +992,9 @@ function displayQuestionDetail(question_id) {
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index', ++zindex);
+    rcqa.css('height', rcqa.height()+'px');
     setRcBrowserPosition(rcqa);
+    Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
 
     var rc;
     RealityCheck.deployed().then(function(instance){
