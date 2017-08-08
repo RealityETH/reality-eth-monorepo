@@ -6,6 +6,9 @@
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
+var ipfsAPI = require('ipfs-api')
+var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
+
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
@@ -469,25 +472,27 @@ $('#post-question-submit').on('click', function(e){
             outcomes: outcomes
         }
         var question_json = JSON.stringify(question);
+        ipfs.add(new Buffer(question_json), function(err, res) {
+            console.log('ipfs result', err, res)
+            RealityCheck.deployed().then(function (rc) {
+                account = web3.eth.accounts[0];
+                return rc.askQuestion(res[0].hash, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
+            }).then(function (result) {
 
-        RealityCheck.deployed().then(function (rc) {
-            account = web3.eth.accounts[0];
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
-        }).then(function (result) {
+                let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
+                let id = setInterval(function(){
+                    let question_link = $('div#questions-latest').find(section_name);
+                    if ('generated', question_link.length > 0) {
+                        $('#close-question-window').trigger('click');
+                        question_link.trigger('click');
+                        clearInterval(id);
+                    }
+                }, 3000)
+            }).catch(function (e) {
+                console.log(e);
+            });
 
-            let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
-            let id = setInterval(function(){
-                let question_link = $('div#questions-latest').find(section_name);
-                if ('generated', question_link.length > 0) {
-                    $('#close-question-window').trigger('click');
-                    question_link.trigger('click');
-                    clearInterval(id);
-                }
-            }, 3000)
-        }).catch(function (e) {
-            console.log(e);
         });
-
     }
 
 });
@@ -1051,7 +1056,7 @@ function renderUserAction(question_id, action, entry) {
         question_json = JSON.parse(qdata[Qi_question_text]);
     } catch(e) {
         question_json = {
-            'title': question_data[3]
+            'title': qdata[Qi_question_text]
         };
     }
 
@@ -1694,20 +1699,33 @@ function pageInit(account) {
 
 };
 
+function ipfs_store (toStore) {
+  ipfs.add(new Buffer(toStore), function (err, res) {
+    if (err || !res) {
+      return console.error('ipfs add error', err, res)
+    }
 
-/*
-                }, Promise.resolve()).then(function(result) {
+    res.forEach(function (file) {
+      if (file && file.hash) {
+        console.log('successfully stored', file.hash)
+        display(file.hash)
+      }
+    })
+  })
+}
 
-                    return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
+function ipfs_fetch(hash) {
+  // buffer: true results in the returned result being a buffer rather than a stream
+  ipfs.cat(hash, {buffer: true}, function (err, res) {
+    if (err || !res) {
+      return console.error('ipfs cat error', err, res)
+    }
 
-                }).catch(function(e){
-                    console.log(e);
-                });
-            } else {
-                console.log(error);
-            }
-        });
-*/
+    console.log('hash', hash);
+    console.log('res', res.toString());
+  })
+}
+
 
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {

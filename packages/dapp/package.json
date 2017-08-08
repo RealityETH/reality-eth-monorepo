@@ -40,6 +40,7 @@
     "gsap": "^1.19.1",
     "imagesloaded": "^4.1.1",
     "interact.js": "^1.2.8",
+    "ipfs-api": "^14.1.2",
     "jquery-browserify": "^1.8.1",
     "node-sass": "^4.5.0",
     "perfect-scrollbar": "^0.6.16",
