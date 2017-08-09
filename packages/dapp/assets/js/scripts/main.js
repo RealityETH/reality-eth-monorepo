@@ -1222,14 +1222,7 @@ function renderUserQandA(question_id, action, entry) {
     var qdata = question_detail_list[question_id];
     var answer_history = qdata['history'];
 
-    var question_json;
-    try {
-        question_json = JSON.parse(qdata[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': qdata[Qi_question_text]
-        };
-    }
+    var question_json = qdata[Qi_question_json];
 
     var your_window = $('#your-question-answer-window');
 
@@ -1506,14 +1499,18 @@ $(document).on('click', '.post-answer-button', function(e){
     var rc;
     var question, current_answer, new_answer;
     var question_json;
+    var current_question;
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return rc.questions.call(question_id);
-    }).then(function(current_question) {
+    }).then(function(cq) {
+        current_question = cq;
         current_question.unshift(question_id);
-
-        // TODO: Load this from ipfs
-        var question_json = current_question[Qi_question_json];
+        var question_ipfs = current_question[Qi_question_ipfs];
+        return ipfs.cat(question_ipfs, {buffer: true})
+    }).then(function (res) {
+        current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+        question_json = current_question[Qi_question_json];
 
         if (question_json['type'] == 'multiple-select') {
             var checkbox = parent_div.find('[name="input-answer"]');
@@ -1681,7 +1678,10 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
-        let current_bond = web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+        let current_bond = 0;
+        if (current_idx >= 0) {
+            web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+        }
         if (value < current_bond * 2) {
             $(this).parent().parent().addClass('is-error');
         } else {
