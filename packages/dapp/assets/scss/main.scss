@@ -1767,7 +1767,8 @@ label > span {
     background-color: $green;
 }
 
-.your-qa__questions__item-body {
+.your-qa__questions__item-body--latest,
+.your-qa__questions__item-body--user {
     padding: 9px;
     font-size: inherit;
     border-radius: 3px;
