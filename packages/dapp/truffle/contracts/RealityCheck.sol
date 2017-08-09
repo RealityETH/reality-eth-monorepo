@@ -134,6 +134,10 @@ contract RealityCheck {
 
     }
 
+    function getAnswer(bytes32 question_id, bytes32 answer) public constant returns (address answerer, uint256 bond) {
+        return (questions[question_id].answers[answer].answerer, questions[question_id].answers[answer].bond); 
+    }
+
     // Predict the ID for a given question
     function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
         return keccak256(question_text, arbitrator, step_delay);
@@ -143,6 +147,25 @@ contract RealityCheck {
         require(questions[question_id].last_changed_ts > 0); // Check existence
         callback_requests[question_id][client_ctrct][gas] += msg.value;
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
+    }
+
+    // TODO: Write tests for this
+    function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) public constant returns (uint256) {
+        bytes32 old_best_answer = questions[question_id].best_answer;
+        uint256 old_bond = questions[question_id].answers[old_best_answer].bond;
+        address previous_answerer = questions[question_id].answers[answer].answerer;
+
+        address NULL_ADDRESS;
+        if (previous_answerer == NULL_ADDRESS) {
+            return old_bond * 2;
+        }
+        
+        uint256 previous_bond = questions[question_id].answers[answer].bond;
+        if (previous_answerer == answerer) {
+            return (old_bond * 2) - previous_bond;
+        } else {
+            return (old_bond * 2) + previous_bond;
+        }
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
@@ -218,8 +241,6 @@ contract RealityCheck {
         require(questions[question_id].answers[answer].bond == 0);
 
         uint256 remaining_val = msg.value;
-        bytes32 old_best_answer = questions[question_id].best_answer;
-
         questions[question_id].answers[answer] = Answer(
             msg.sender,
             remaining_val
@@ -416,10 +437,12 @@ contract RealityCheck {
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
         bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
 
-        delete callback_requests[question_id][client_ctrct][gas];
-        balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
+        uint256 bounty = callback_requests[question_id][client_ctrct][gas];
 
-        LogSendCallback(question_id, client_ctrct, msg.sender, gas, msg.value, callback_result);
+        delete callback_requests[question_id][client_ctrct][gas];
+        balances[msg.sender] += bounty;
+
+        LogSendCallback(question_id, client_ctrct, msg.sender, gas, bounty, callback_result);
 
         return callback_result;
 

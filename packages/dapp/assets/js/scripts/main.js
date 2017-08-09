@@ -19,14 +19,14 @@ var timeAgo = new timeago();
 
 // Question, as returned by questions()
 const Qi_question_id = 0;
-const Qi_created = 1;
+const Qi_created = 1; // TODO: This is really last_changed_ts
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_is_arbitration_paid_for = 6;
 const Qi_is_finalized = 7;
-const Qi_best_answer_id = 8;
+const Qi_best_answer = 8;
 const Qi_question_json = 9; // We add this manually after we load the ipfs data
 
 // Answer, as returned by answers()
@@ -93,6 +93,10 @@ const monthList = [
     'Nov',
     'Dec'
 ];
+
+function formatForAnswer(answer, qtype) {
+    numToBytes32(new BigNumber(new_answer))
+}
 
 function numToBytes32(bignum) {
     var n = bignum.toString(16);
@@ -660,7 +664,7 @@ function populateSection(section_name, question_data, before_item) {
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
     var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
     var is_finalized = question_data[Qi_is_finalized];
-    var best_answer_id = question_data[Qi_best_answer_id];
+    var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
     entry.attr('data-question-id', question_id);
@@ -904,9 +908,12 @@ function openQuestionWindow(question_id) {
                 console.log(error);
             }
         });
-    }).catch(function(e){
+    });
+    /*
+    .catch(function(e){
         console.log(e);
     });
+    */
 }
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
@@ -975,7 +982,7 @@ function displayQuestionDetail(question_id) {
 
     if (question_detail['history'].length) {
         var latest_answer = question_detail['history'][idx].args;
-        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
+        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer);
         rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
 
         // answerer data
@@ -1023,14 +1030,17 @@ function displayQuestionDetail(question_id) {
     }).then(function(answer_posted){
         answer_posted.watch(function(error, result){
             if (!error && result !== undefined) {
-                question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
+                question_detail_list[question_id][Qi_best_answer] = result.args.answer;
                 pushWatchedAnswer(result);
                 rewriteQuestionDetail(question_id);
             }
         });
-    }).catch(function (e){
+    });
+    /*
+    .catch(function (e){
         console.log(e);
     });
+    */
 
 }
 
@@ -1048,7 +1058,7 @@ function populateWithBlockTimeForBlockNumber1(action, entry) {
                      section_name = 'div[data-question-id=' + entry.args.question_id + ']';
                     break;
                 case 'answered':
-                    section_name = 'div[data-answer-id=' + entry.args.answer_id + ']';
+                    section_name = 'div[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
                     break;
                 case 'funded':
                     section_name = 'div[data-funded-question-id=' + entry.args.question_id + ']';
@@ -1109,7 +1119,7 @@ function renderNotifications(question_id, action, entry, rc) {
             populateWithBlockTimeForBlockNumber1(action, entry);
             break
         case 'answered':
-            var section_name = '.notifications-item[data-answer-id=' + entry.args.answer_id + ']';
+            var section_name = '.notifications-item[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
             var notifications_item = your_qa_window.find(section_name);
 
             if (notifications_item.length > 0) {
@@ -1131,7 +1141,7 @@ function renderNotifications(question_id, action, entry, rc) {
                 console.log('notifications text', ntext);
                 if (typeof ntext !== 'undefined') {
                     item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                    item.attr('data-answer-id', entry.args.answer_id);
+                    item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
                     populateWithBlockTimeForBlockNumber1(action, entry);
                 }
             }
@@ -1297,7 +1307,7 @@ function rewriteQuestionDetail(question_id) {
     var question_data = question_detail_list[question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
-    var answer_id = 'answer-' + answer_data.args.answer_id;
+    var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
     var answer = new BigNumber(answer_data.args.answer).toNumber();
 
     var question_json = question_data[Qi_question_json];
@@ -1404,11 +1414,11 @@ function displayAnswerHistory(question_id) {
 
     answer_log.forEach(function(answer){
         // skip current answer.
-        if (answer.args.answer_id == question_data[Qi_best_answer_id]) {
+        if (answer.args.answer == question_data[Qi_best_answer]) {
             return;
         }
 
-        var answer_id = 'answer-' + answer.args.answer_id;
+        var answer_id = 'answer-' + question_id + '-' + answer.args.answer;
         //console.log('answer orig', answer.args.answer);
         var ans = new BigNumber(answer.args.answer).toNumber();
 
@@ -1463,7 +1473,7 @@ function pushWatchedAnswer(answer) {
     var length = question_detail_list[question_id]['history'].length;
 
     for (var i = 0; i < length; i++) {
-        if (question_detail_list[question_id]['history'][i].args.answer_id == answer.args.answer_id) {
+        if (question_detail_list[question_id]['history'][i].args.answer == answer.args.answer) {
             already_exists = true;
             break;
         }
@@ -1500,6 +1510,7 @@ $(document).on('click', '.post-answer-button', function(e){
     var question, current_answer, new_answer;
     var question_json;
     var current_question;
+    var is_err = false;
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return rc.questions.call(question_id);
@@ -1511,6 +1522,7 @@ $(document).on('click', '.post-answer-button', function(e){
     }).then(function (res) {
         current_question[Qi_question_json] = parseQuestionJSON(res.toString());
         question_json = current_question[Qi_question_json];
+        console.log('got question_json', question_json);
 
         if (question_json['type'] == 'multiple-select') {
             var checkbox = parent_div.find('[name="input-answer"]');
@@ -1534,10 +1546,6 @@ $(document).on('click', '.post-answer-button', function(e){
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
 
-        return rc.answers.call(current_question[Qi_best_answer_id]);
-    }).then(function(current_answer){
-        // check answer
-        var is_err = false;
         switch (question_json['type']) {
             case 'binary':
                 if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
@@ -1573,12 +1581,10 @@ $(document).on('click', '.post-answer-button', function(e){
         }
 
         // check bond
-        var min_amount = current_answer[3] * 2;
-        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0 && bond  <  ONE_ETH)) {
+        return rc.getMinimumBondForAnswer.call(question_id, formatForAnswer(new_answer, question_json['type']), account);
+    }).then(function(min_amount){
+        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-            if (min_amount === 0) {
-                min_amount = 1;
-            }
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(min_amount);
             is_err = true;
         }
@@ -1586,7 +1592,7 @@ $(document).on('click', '.post-answer-button', function(e){
         if (is_err) throw('err on submitting answer');
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, numToBytes32(new BigNumber(new_answer)), '', {from:account, value:bond});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
@@ -1608,9 +1614,12 @@ $(document).on('click', '.post-answer-button', function(e){
                 container.find('input[name="input-answer"]:checked').prop('checked', false);
                 break;
         }
-    }).catch(function(e){
+    });
+    /*
+    .catch(function(e){
         console.log(e);
     });
+    */
 });
 
 // open/close/add reward
