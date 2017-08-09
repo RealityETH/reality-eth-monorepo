@@ -22,11 +22,12 @@ const Qi_question_id = 0;
 const Qi_created = 1;
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
-const Qi_question_text = 4;
+const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_is_arbitration_paid_for = 6;
 const Qi_is_finalized = 7;
 const Qi_best_answer_id = 8;
+const Qi_question_json = 9; // We add this manually after we load the ipfs data
 
 // Answer, as returned by answers()
 const Ai_answer_id = 0;
@@ -473,7 +474,11 @@ $('#post-question-submit').on('click', function(e){
         }
         var question_json = JSON.stringify(question);
         ipfs.add(new Buffer(question_json), function(err, res) {
-            console.log('ipfs result', err, res)
+            if (err) {
+                alert('ipfs save failed');
+                console.log('ipfs result', err, res)
+                return;
+            }
             RealityCheck.deployed().then(function (rc) {
                 account = web3.eth.accounts[0];
                 return rc.askQuestion(res[0].hash, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
@@ -606,9 +611,13 @@ function handleUserAction(acc, action, entry, rc) {
         rc.questions.call(question_id).then(function(result){
             current_question = result;
             current_question.unshift(question_id);
-            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
-        }).then(function(answer_logs){
-            answer_logs.get(function(error, answers){
+            var question_json_ipfs = current_question[Qi_question_ipfs];
+            return ipfs.cat(question_json_ipfs, {buffer: true})
+        }).then(function (res) {
+            current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
+        }).then(function(answer_logs) {
+            answer_logs.get(function(error, answers) {
                 if (error === null && typeof answers !== 'undefined') {
                     question_detail_list[question_id] = current_question;
                     question_detail_list[question_id]['history'] = answers;
@@ -645,14 +654,7 @@ function populateSection(section_name, question_data, before_item) {
     var target_question_id = 'qadetail-' + question_id;
     var section = $('#'+section_name);
 
-    var question_json;
-    try {
-        question_json = JSON.parse(question_data[4]);
-    } catch(e) {
-        question_json = {
-            'title': question_data[4]
-        };
-    }
+    var question_json = question_data[Qi_question_json];
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -664,7 +666,6 @@ function populateSection(section_name, question_data, before_item) {
     var posted_ts = question_data[Qi_created];
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
-    var question_text_raw = question_data[Qi_question_text];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
     var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
     var is_finalized = question_data[Qi_is_finalized];
@@ -702,12 +703,22 @@ function populateSection(section_name, question_data, before_item) {
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
-    //console.log('question_id', question_id);
-    rc.questions.call(question_id).then( function(question_data) {
+    var question_data;
+
+    rc.questions.call(question_id).then( function(qdata) {
         //console.log('here is result', question_data, question_id)
+        question_data = qdata;
         question_data.unshift(question_id);
-        var bounty = question_data[Qi_bounty];
+        var question_json_ipfs = question_data[Qi_question_ipfs];
+        return ipfs.cat(question_json_ipfs, {buffer: true})
+    }).then(function (res) {
+        if (!res) {
+            console.log('ipfs cat error', err, res)
+            return;
+        }
+        question_data[Qi_question_json] = parseQuestionJSON(res.toString());
         var is_finalized = question_data[Qi_is_finalized];
+        var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
             var insert_before = update_ranking_data('questions-resolved', question_id, created);
@@ -730,9 +741,6 @@ function handleQuestionLog(item, rc) {
             }
 //console.log(display_entries);
         }
-
-
-
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
     });
 }
@@ -868,12 +876,21 @@ function openQuestionWindow(question_id) {
     var rc;
     var current_question;
 
+    // TODO: We should probably already have all this data 
+    // ...from when we generated the link to display it
+    // So we can probably just load it from question_detail_list
+    
     RealityCheck.deployed().then(function(instance){
         rc = instance;
         return rc.questions.call(question_id);
     }).then(function(result){
         current_question = result;
         current_question.unshift(question_id);
+        var question_json_ipfs = current_question[Qi_question_ipfs];
+        return ipfs.cat(question_json_ipfs, {buffer: true})
+    }).then(function(ipfs_result){
+        console.log('promise has ipfs_result', ipfs_result);
+        current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
     }).then(function(answer_posted){
         answer_posted.get(function(error, answers){
@@ -907,22 +924,29 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
     window.removeClass('is-open');
 });
 
+function parseQuestionJSON(data) {
+
+    var question_json;
+    try {
+        question_json = JSON.parse(data);
+    } catch(e) {
+        question_json = {
+            'title': data,
+            'type': 'binary'
+        };
+    }
+    return question_json;
+
+}
+
 function displayQuestionDetail(question_id) {
 
     var question_detail = question_detail_list[question_id];
     //console.log('question_id', question_id);
     var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
-    var question_json;
+    var question_json = question_detail[Qi_question_json];
 
-    try {
-        question_json = JSON.parse(question_detail[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': question_detail[Qi_question_text],
-            'type': 'binary'
-        };
-    }
     var question_type = question_json['type'];
 
     var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -1051,14 +1075,7 @@ function renderUserAction(question_id, action, entry) {
 
     var item = $('#your-question-answer-window').find('.notifications-template-container .template-item.'+tmpl).clone();
 
-    var question_json;
-    try {
-        question_json = JSON.parse(qdata[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': qdata[Qi_question_text]
-        };
-    }
+    var question_json = qdata[Qi_question_json];
 
     item.find('.question-text').text(question_json['title']);
     //console.log('get ts from here:', entry);
@@ -1136,14 +1153,7 @@ function rewriteQuestionDetail(question_id) {
     var answer_id = 'answer-' + answer_data.args.answer_id;
     var answer = new BigNumber(answer_data.args.answer).toNumber();
 
-    try {
-        var question_json = JSON.parse(question_data[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': question_data[3]
-        };
-    }
-
+    var question_json = question_data[Qi_question_json];
     var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     $(section_name).find('.current-answer-container').attr('id', answer_id);
@@ -1262,13 +1272,7 @@ function displayAnswerHistory(question_id) {
 
         section.find('.answered-history-header').after(container);
 
-        try {
-            var question_json = JSON.parse(question_data[Qi_question_text]);
-        } catch(e) {
-            question_json = {
-                'title': question_data[Qi_question_text]
-            };
-        }
+        var question_json = question_data[Qi_question_json];
 
         section_name = 'div#' + answer_id;
         var label = getAnswerString(question_json, answer.args);
@@ -1354,14 +1358,8 @@ $(document).on('click', '.post-answer-button', function(e){
     }).then(function(current_question) {
         current_question.unshift(question_id);
 
-        try {
-            question_json = JSON.parse(current_question[Qi_question_text]);
-        } catch(e) {
-            question_json = {
-                'title': current_question[Qi_question_text],
-                'type': 'binary'
-            };
-        }
+        // TODO: Load this from ipfs
+        var question_json = current_question[Qi_question_json];
 
         if (question_json['type'] == 'multiple-select') {
             var checkbox = parent_div.find('[name="input-answer"]');
@@ -1698,34 +1696,6 @@ function pageInit(account) {
     });
 
 };
-
-function ipfs_store (toStore) {
-  ipfs.add(new Buffer(toStore), function (err, res) {
-    if (err || !res) {
-      return console.error('ipfs add error', err, res)
-    }
-
-    res.forEach(function (file) {
-      if (file && file.hash) {
-        console.log('successfully stored', file.hash)
-        display(file.hash)
-      }
-    })
-  })
-}
-
-function ipfs_fetch(hash) {
-  // buffer: true results in the returned result being a buffer rather than a stream
-  ipfs.cat(hash, {buffer: true}, function (err, res) {
-    if (err || !res) {
-      return console.error('ipfs cat error', err, res)
-    }
-
-    console.log('hash', hash);
-    console.log('res', res.toString());
-  })
-}
-
 
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
