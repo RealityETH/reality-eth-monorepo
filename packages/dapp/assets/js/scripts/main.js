@@ -1272,6 +1272,44 @@ function insertQAItem(question_id, item_to_insert, action, timestamp) {
 
 }
 
+function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized) {
+    var question_section = $('#your-question-answer-window').find('.your-qa__questions');
+    var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
+    var sections = [question_section, answer_section];
+
+    sections.forEach(function(section){
+        var target = section.find('div[data-question-id='+question_id+']');
+        if (answer_history.length > 0) {
+            let user_answer;
+            for (let i = answer_history.length - 1; i >= 0 ; i--) {
+                if (answer_history[i].args.answerer == account) {
+                    user_answer = answer_history[i].args.answer;
+                    break;
+                }
+            }
+            let latest_answer = answer_history[answer_history.length - 1].args.answer;
+            target.find('.latest-answer-text').text(getAnswerString(question_json, latest_answer));
+            if (typeof user_answer !== 'undefined') {
+                target.find('.user-answer-text').text(getAnswerString(question_json, user_answer));
+            } else {
+                target.find('.your-qa__questions__item-body--user').css('display', 'none');
+            }
+            target.find('.your-qa__questions__item-body--latest').css('display', 'block');
+        } else {
+            target.find('.your-qa__questions__item-body--latest').css('display', 'none');
+            target.find('.your-qa__questions__item-body--user').css('display', 'none');
+        }
+
+        if (is_finalized) {
+            target.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
+            target.find('.your-qa__questions__item-status').text('Resolved at');
+        } else {
+            target.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
+        }
+    });
+
+}
+
 function renderUserQandA(question_id, action, entry) {
     var qdata = question_detail_list[question_id];
     var answer_history = qdata['history'];
@@ -1285,22 +1323,14 @@ function renderUserQandA(question_id, action, entry) {
         };
     }
 
-    var your_window = $('#your-question-answer-window');
-
-    var your_qa_section;
-    if (action == 'asked') {
-        your_qa_section = your_window.find('.your-qa__questions');
-    } else if (action == 'answered') {
-        your_qa_section = your_window.find('.your-qa__answers');
-    }
-
-    var qitem = your_window.find('.your-qa__questions__item.template-item').clone();
+    var qitem = $('#your-question-answer-window').find('.your-qa__questions__item.template-item').clone();
     web3.eth.getBlock(entry.blockNumber, function(error, result){
         qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
         qitem.attr('data-block-time', result.timestamp);
         qitem.removeClass('template-item');
         insertQAItem(question_id, qitem, action, result.timestamp);
+        rewriteAnswerOfQAItem(question_id, answer_history, question_json, qdata[Qi_is_finalized]);
     });
 
     var updateBlockTimestamp = function (ts) {
@@ -1310,37 +1340,6 @@ function renderUserQandA(question_id, action, entry) {
         qitem.find('.item-date').text(date_str);
     }
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
-
-
-    if (answer_history.length > 0) {
-        let user_answer;
-        for (let i = answer_history.length - 1; i >= 0 ; i--) {
-            if (answer_history[i].args.answerer == account) {
-                user_answer = answer_history[i].args.answer;
-                break;
-            }
-        }
-        let latest_answer = answer_history[answer_history.length - 1].args.answer;
-        qitem.find('.latest-answer-text').text(getAnswerString(question_json, latest_answer));
-        if (typeof user_answer !== 'undefined') {
-            qitem.find('.user-answer-text').text(getAnswerString(question_json, user_answer));
-            qitem.find('.your-qa__questions__item-body').css('display', 'block');
-        } else {
-            qitem.find('.your-qa__questions__item-body--user').css('display', 'none');
-        }
-        qitem.find('.your-qa__questions__item-body--latest').css('display', 'block');
-    } else {
-        qitem.find('.your-qa__questions__item-body--latest').css('display', 'none');
-        qitem.find('.your-qa__questions__item-body--user').css('display', 'none');
-    }
-
-    if (qdata[Qi_is_finalized]) {
-        qitem.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
-        qitem.find('.your-qa__questions__item-status').text('Resolved at');
-    } else {
-        qitem.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
-    }
-
 }
 
 function rewriteQuestionDetail(question_id) {
