@@ -1005,36 +1005,16 @@ function displayQuestionDetail(question_id) {
 
 }
 
-function populateWithBlockTimeForBlockNumber1(action, entry) {
-    let num = entry.blockNumber;
-    if (block_timestamp_cache[num]) {
+function populateWithBlockTimeForBlockNumber1(notification_id, block_number) {
+    if (block_timestamp_cache[block_number]) {
 
     } else {
-        web3.eth.getBlock(num, function(err, result) {
-            block_timestamp_cache[num] = result.timestamp;
+        web3.eth.getBlock(block_number, function(err, result) {
+            block_timestamp_cache[block_number] = result.timestamp;
 
-            let section_name;
-            switch (action) {
-                case 'asked':
-                     section_name = 'div[data-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'answered':
-                    section_name = 'div[data-answer-id=' + entry.args.answer_id + ']';
-                    break;
-                case 'funded':
-                    section_name = 'div[data-funded-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'arbitration-requested':
-                    section_name = 'div[data-arbitration-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'finalized':
-                    section_name = 'div[data-finalized-question-id=' + entry.args.question_id + ']';
-                    break;
-            }
-
+            let section_name = 'div[data-notification-id=' + notification_id + ']';
             $('div#your-question-answer-window').find(section_name).find('.timeago').attr('datetime',  convertTsToString(result.timestamp));
             timeAgo.render($('div#your-question-answer-window').find(section_name).find('.timeago'));
-
         });
     }
 }
@@ -1117,7 +1097,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
                     ntext  = 'You asked a question - "' + question_json['title'] + '"';
                     insertNotificationItem(notification_id, item, ntext, result.timestamp);
-                    populateWithBlockTimeForBlockNumber1(action, entry);
+                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                 }
             });
             break;
@@ -1129,7 +1109,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.answerer == account) {
                         ntext = 'You answered a question - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(action, entry);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                     } else {
                         var answered_question = rc.LogNewQuestion({question_id: question_id}, {
                             fromBlock: 0,
@@ -1145,7 +1125,7 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(action, entry);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                                 }
                             }
                         });
@@ -1161,7 +1141,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.funder == account) {
                         ntext = 'You added reward - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(action, entry);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                     } else {
                         var funded_question = rc.LogNewQuestion({question_id: question_id}, {
                             fromBlock: 0,
@@ -1178,7 +1158,7 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(action, entry);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                                 }
                             }
                         });
@@ -1194,7 +1174,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.requester == account) {
                         ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(action, entry);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                     } else {
                         var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
                         arbitration_requested_question.get(function (error, result2) {
@@ -1207,8 +1187,7 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(action, entry);
-
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                                 }
                             }
                         });
@@ -1232,7 +1211,7 @@ function renderNotifications(question_id, action, entry, rc) {
                             if (typeof ntext !== 'undefined') {
                                 ntext += ' - "' + question_json['title'] + '"';
                                 insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                populateWithBlockTimeForBlockNumber1(action, entry);
+                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
                             }
                         }
                     });
@@ -1336,7 +1315,8 @@ function renderUserQandA(question_id, action, entry) {
     var updateBlockTimestamp = function (ts) {
         let date = new Date();
         date.setTime(ts * 1000);
-        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear()
+            + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
         qitem.find('.item-date').text(date_str);
     }
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
