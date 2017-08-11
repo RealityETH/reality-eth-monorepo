@@ -896,8 +896,6 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
 function displayQuestionDetail(question_id) {
 
     var question_detail = question_detail_list[question_id];
-    //console.log('question_id', question_id);
-    var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
     var idx = question_detail['history'].length - 1;
     var question_json;
 
@@ -909,7 +907,6 @@ function displayQuestionDetail(question_id) {
             'type': 'binary'
         };
     }
-    var question_type = question_json['type'];
 
     var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
     rcqa.attr('id', 'qadetail-' + question_id);
@@ -938,16 +935,10 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
-    if (!is_arbitration_requested) {
-        rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-    } else {
-        rcqa.find('.arbitration-button').css('display', 'none');
-    }
 
     if (question_detail['history'].length) {
         var latest_answer = question_detail['history'][idx].args;
         rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
-        rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -961,13 +952,20 @@ function displayQuestionDetail(question_id) {
         rcqa.find('.current-answer-container').hide();
     }
 
-    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
-        return arb.getFee.call(question_id);
-    }).then(function(fee) {
-        rcqa.find('.arbitration-fee').text(fee.toString());
-        arbitration_fee = fee.toNumber();
-    });
+    // Arbitrator
+    if (!question_detail[Qi_is_arbitration_paid_for]) {
+        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+            return arb.getFee.call(question_id);
+        }).then(function(fee) {
+            rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
+            rcqa.find('.arbitration-fee').text(fee.toString());
+            arbitration_fee = fee.toNumber();
+        });
+    } else {
+        rcqa.find('.arbitration-button').css('display', 'none');
+    }
 
+    // answer form
     var ans_frm = makeSelectAnswerInput(question_json);
     ans_frm.css('display', 'block');
     ans_frm.addClass('is-open');
@@ -975,11 +973,13 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.answered-history-container').after(ans_frm);
 
     $('#qa-detail-container').append(rcqa);
+
     if (question_detail['history'].length) {
-        // final answer button
+        $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
         showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
-        timeAgo.render($('#qadetail-' + question_id).find('.current-answer-item').find('.timeago'))
     }
+
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index', ++zindex);
@@ -1342,6 +1342,9 @@ function rewriteQuestionDetail(question_id) {
     $(section_name).find('.current-answer-container').attr('id', answer_id);
     var label = getAnswerString(question_json, answer_data.args.answer);
     $(section_name).find('.current-answer-container').find('.current-answer').text(label);
+    $(section_name).find('.current-answer-container').css('display', 'block');
+    $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
+    timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
     $(section_name).find('input[name="numberAnswer"]').val(0);
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
@@ -1722,7 +1725,12 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
-        let current_bond = web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+        let current_bond;
+        if (current_idx >= 0) {
+            current_bond = web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+        } else {
+            current_bond = 0;
+        }
         if (value < current_bond * 2) {
             $(this).parent().parent().addClass('is-error');
         } else {
