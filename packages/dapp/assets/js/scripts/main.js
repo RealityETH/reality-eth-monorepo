@@ -873,9 +873,6 @@ function openQuestionWindow(question_id) {
                     }
                 }
 
-                //console.log('question_id', question_id);
-                //console.log('question detail', question_detail_list);
-
                 displayQuestionDetail(question_id);
                 displayAnswerHistory(question_id);
             } else {
@@ -1482,12 +1479,17 @@ function displayAnswerHistory(question_id) {
 
 // show final answer button
 function showFAButton(question_id, step_delay, answer_created) {
-    var d = new Date();
-    var now = d.getTime();
     var section_name = '#qadetail-' + question_id;
-    if (now - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
+    if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
         $(section_name).find('.final-answer-button').css('display', 'block');
     }
+
+    var id = setInterval(function(){
+        if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
+            $(section_name).find('.final-answer-button').css('display', 'block');
+            clearInterval(id);
+        }
+    }, 15000);
 }
 
 $(document).on('click', '.final-answer-button', function(){
