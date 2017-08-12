@@ -141,7 +141,7 @@ rcbrowserHeight();
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        var question_id = rcbrowser.attr('id').replace('qadetail-', '');
+        var question_id = rcbrowser.attr('data-question-id');
         if (typeof window_position[question_id] !== 'undefined') {
             let left =  parseInt(window_position[question_id]['x']) + 'px';
             let top = parseInt(window_position[question_id]['y']) + 'px';
@@ -950,6 +950,7 @@ function displayQuestionDetail(question_id) {
 
     var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
     rcqa.attr('id', 'qadetail-' + question_id);
+    rcqa.attr('data-question-id', question_id);
 
     rcqa.find('.rcbrowser__close-button').on('click', function(){
         let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
@@ -1055,7 +1056,12 @@ function populateWithBlockTimeForBlockNumber1(notification_id, num, action, entr
         return block_timestamp_cache[num];
     } else {
     */
+    console.log('getting block for num', num, entry);
         web3.eth.getBlock(num, function(err, result) {
+            console.log('getBlock', num, err, result);
+            if (err || !result) {
+                return;
+            }
             block_timestamp_cache[num] = result.timestamp;
 
             let section_name;
@@ -1089,6 +1095,9 @@ function populateWithBlockTimeForBlockNumber2(num, callback) {
         callback(block_timestamp_cache[num]);
     } else {
         web3.eth.getBlock(num, function(err, result) {
+            if (!err || result) {
+                return;
+            }
             block_timestamp_cache[num] = result.timestamp
             callback(block_timestamp_cache[num]);
         });
@@ -1193,7 +1202,7 @@ function renderNotifications(question_id, action, entry, rc) {
                 if (typeof ntext !== 'undefined') {
                     item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
                     item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
-                    populateWithBlockTimeForBlockNumber1(action, entry, action, entry);
+                    populateWithBlockTimeForBlockNumber1(action, entry.blockNumber, action, entry);
                 }
             });
             break;
@@ -1541,8 +1550,7 @@ function showFAButton(question_id, step_delay, answer_created) {
 }
 
 $(document).on('click', '.final-answer-button', function(){
-    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('data-question-id');
     RealityCheck.deployed().then(function(rc) {
         return rc.finalize(question_id, {from: account});
     }).then(function(result){
@@ -1586,8 +1594,7 @@ $(document).on('click', '.post-answer-button', function(e){
     e.stopPropagation();
 
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
-    var question_id = parent_div.attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = parent_div.attr('data-question-id');
     var bond = web3.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
 
     var account = web3.eth.accounts[0];
@@ -1724,8 +1731,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
     reward = web3.toWei(new BigNumber(reward), 'ether');
 
@@ -1746,7 +1752,7 @@ $(document).on('click', '.arbitrator', function(e){
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
 
     RealityCheck.deployed().then(function(rc){
         return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value:arbitration_fee});
@@ -1770,7 +1776,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
         $(this).parent().parent().addClass('is-error');
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
-        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
         let current_bond = 0;
         if (current_idx >= 0) {
