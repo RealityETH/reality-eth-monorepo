@@ -6,6 +6,12 @@
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
+var ipfsAPI = require('ipfs-api')
+var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
+
+var multihash = require('multihashes');
+var bs58 = require('bs58');
+
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
@@ -16,14 +22,15 @@ var timeAgo = new timeago();
 
 // Question, as returned by questions()
 const Qi_question_id = 0;
-const Qi_created = 1;
+const Qi_created = 1; // TODO: This is really last_changed_ts
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
-const Qi_question_text = 4;
+const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_is_arbitration_paid_for = 6;
 const Qi_is_finalized = 7;
-const Qi_best_answer_id = 8;
+const Qi_best_answer = 8;
+const Qi_question_json = 9; // We add this manually after we load the ipfs data
 
 // Answer, as returned by answers()
 const Ai_answer_id = 0;
@@ -90,6 +97,30 @@ const monthList = [
     'Dec'
 ];
 
+function ipfsHashToBytes32(ipfs_hash) {
+    var h = multihash.decode(bs58.decode(ipfs_hash));
+    console.log(h);
+    if (h.name != 'sha2-256') {
+        console.log('unexpected name', h.name);
+        return null;
+    }
+    return '0x' + h.digest.toString('hex');
+}
+
+function bytes32ToIPFSHash(hash_hex) {
+    console.log('bytes32ToIPFSHash starts with hash_buffer', hash_hex.replace(/^0x/, ''));
+    var buf = new Buffer(hash_hex.replace(/^0x/, ''), 'hex')
+    return bs58.encode(multihash.encode(buf, 'sha2-256'))
+}
+
+function formatForAnswer(answer, qtype) {
+    if (typeof answer == 'BigNumber') {
+        return answer;
+    }
+    console.log('formatForAnswer', answer, qtype, typeof answer);
+    return numToBytes32(new BigNumber(answer));
+}
+
 function numToBytes32(bignum) {
     var n = bignum.toString(16);
     while (n.length < 64) {
@@ -129,7 +160,7 @@ rcbrowserHeight();
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        var question_id = rcbrowser.attr('id').replace('qadetail-', '');
+        var question_id = rcbrowser.attr('data-question-id');
         if (typeof window_position[question_id] !== 'undefined') {
             let left =  parseInt(window_position[question_id]['x']) + 'px';
             let top = parseInt(window_position[question_id]['y']) + 'px';
@@ -467,25 +498,31 @@ $('#post-question-submit').on('click', function(e){
             outcomes: outcomes
         }
         var question_json = JSON.stringify(question);
+        ipfs.add(new Buffer(question_json), function(err, res) {
+            if (err) {
+                alert('ipfs save failed');
+                console.log('ipfs result', err, res)
+                return;
+            }
+            RealityCheck.deployed().then(function (rc) {
+                account = web3.eth.accounts[0];
+                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
+            }).then(function (result) {
 
-        RealityCheck.deployed().then(function (rc) {
-            account = web3.eth.accounts[0];
-            return rc.askQuestion(question_json, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
-        }).then(function (result) {
+                let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
+                let id = setInterval(function(){
+                    let question_link = $('div#questions-latest').find(section_name);
+                    if ('generated', question_link.length > 0) {
+                        $('#close-question-window').trigger('click');
+                        question_link.trigger('click');
+                        clearInterval(id);
+                    }
+                }, 3000)
+            }).catch(function (e) {
+                console.log(e);
+            });
 
-            let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
-            let id = setInterval(function(){
-                let question_link = $('div#questions-latest').find(section_name);
-                if ('generated', question_link.length > 0) {
-                    $('#close-question-window').trigger('click');
-                    question_link.trigger('click');
-                    clearInterval(id);
-                }
-            }, 1000)
-        }).catch(function (e) {
-            console.log(e);
         });
-
     }
 
 });
@@ -594,9 +631,13 @@ function handleUserAction(action, entry, rc) {
         rc.questions.call(question_id).then(function(result){
             current_question = result;
             current_question.unshift(question_id);
-            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
-        }).then(function(answer_logs){
-            answer_logs.get(function(error, answers){
+            var question_json_ipfs = current_question[Qi_question_ipfs];
+            return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
+        }).then(function (res) {
+            current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
+        }).then(function(answer_logs) {
+            answer_logs.get(function(error, answers) {
                 if (error === null && typeof answers !== 'undefined') {
                     question_detail_list[question_id] = current_question;
                     question_detail_list[question_id]['history'] = answers;
@@ -631,14 +672,7 @@ function populateSection(section_name, question_data, before_item) {
     var target_question_id = 'qadetail-' + question_id;
     var section = $('#'+section_name);
 
-    var question_json;
-    try {
-        question_json = JSON.parse(question_data[4]);
-    } catch(e) {
-        question_json = {
-            'title': question_data[4]
-        };
-    }
+    var question_json = question_data[Qi_question_json];
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -650,11 +684,10 @@ function populateSection(section_name, question_data, before_item) {
     var posted_ts = question_data[Qi_created];
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
-    var question_text_raw = question_data[Qi_question_text];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
     var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
     var is_finalized = question_data[Qi_is_finalized];
-    var best_answer_id = question_data[Qi_best_answer_id];
+    var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
     entry.attr('data-question-id', question_id);
@@ -688,12 +721,22 @@ function populateSection(section_name, question_data, before_item) {
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
-    //console.log('question_id', question_id);
-    rc.questions.call(question_id).then( function(question_data) {
+    var question_data;
+
+    rc.questions.call(question_id).then( function(qdata) {
         //console.log('here is result', question_data, question_id)
+        question_data = qdata;
         question_data.unshift(question_id);
-        var bounty = question_data[Qi_bounty];
+        var question_json_ipfs = question_data[Qi_question_ipfs];
+        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
+    }).then(function (res) {
+        if (!res) {
+            console.log('ipfs cat error', err, res)
+            return;
+        }
+        question_data[Qi_question_json] = parseQuestionJSON(res.toString());
         var is_finalized = question_data[Qi_is_finalized];
+        var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
             var insert_before = update_ranking_data('questions-resolved', question_id, created);
@@ -716,9 +759,6 @@ function handleQuestionLog(item, rc) {
             }
 //console.log(display_entries);
         }
-
-
-
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
     });
 }
@@ -854,12 +894,21 @@ function openQuestionWindow(question_id) {
     var rc;
     var current_question;
 
+    // TODO: We should probably already have all this data 
+    // ...from when we generated the link to display it
+    // So we can probably just load it from question_detail_list
+    
     RealityCheck.deployed().then(function(instance){
         rc = instance;
         return rc.questions.call(question_id);
     }).then(function(result){
         current_question = result;
         current_question.unshift(question_id);
+        var question_json_ipfs = current_question[Qi_question_ipfs];
+        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
+    }).then(function(ipfs_result){
+        console.log('promise has ipfs_result', ipfs_result);
+        current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
     }).then(function(answer_posted){
         answer_posted.get(function(error, answers){
@@ -879,9 +928,12 @@ function openQuestionWindow(question_id) {
                 console.log(error);
             }
         });
-    }).catch(function(e){
+    });
+    /*
+    .catch(function(e){
         console.log(e);
     });
+    */
 }
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
@@ -890,23 +942,34 @@ $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
     window.removeClass('is-open');
 });
 
-function displayQuestionDetail(question_id) {
+function parseQuestionJSON(data) {
 
-    var question_detail = question_detail_list[question_id];
-    var idx = question_detail['history'].length - 1;
     var question_json;
-
     try {
-        question_json = JSON.parse(question_detail[Qi_question_text]);
+        question_json = JSON.parse(data);
     } catch(e) {
         question_json = {
-            'title': question_detail[Qi_question_text],
+            'title': data,
             'type': 'binary'
         };
     }
+    return question_json;
+
+}
+
+function displayQuestionDetail(question_id) {
+
+    var question_detail = question_detail_list[question_id];
+    //console.log('question_id', question_id);
+    var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
+    var idx = question_detail['history'].length - 1;
+    var question_json = question_detail[Qi_question_json];
+
+    var question_type = question_json['type'];
 
     var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
     rcqa.attr('id', 'qadetail-' + question_id);
+    rcqa.attr('data-question-id', question_id);
 
     rcqa.find('.rcbrowser__close-button').on('click', function(){
         let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
@@ -935,7 +998,8 @@ function displayQuestionDetail(question_id) {
 
     if (question_detail['history'].length) {
         var latest_answer = question_detail['history'][idx].args;
-        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer_id);
+        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer);
+        rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -991,29 +1055,58 @@ function displayQuestionDetail(question_id) {
     }).then(function(answer_posted){
         answer_posted.watch(function(error, result){
             if (!error && result !== undefined) {
-                question_detail_list[question_id][Qi_best_answer_id] = result.args.answer_id;
+                question_detail_list[question_id][Qi_best_answer] = result.args.answer;
                 pushWatchedAnswer(result);
                 rewriteQuestionDetail(question_id);
             }
         });
-    }).catch(function (e){
+    });
+    /*
+    .catch(function (e){
         console.log(e);
     });
+    */
 
 }
 
-function populateWithBlockTimeForBlockNumber1(notification_id, block_number) {
-    if (block_timestamp_cache[block_number]) {
-
+function populateWithBlockTimeForBlockNumber1(notification_id, num, action, entry) {
+    /*
+    if (block_timestamp_cache[num]) {
+        return block_timestamp_cache[num];
     } else {
-        web3.eth.getBlock(block_number, function(err, result) {
-            block_timestamp_cache[block_number] = result.timestamp;
+    */
+    console.log('getting block for num', num, entry);
+        web3.eth.getBlock(num, function(err, result) {
+            console.log('getBlock', num, err, result);
+            if (err || !result) {
+                return;
+            }
+            block_timestamp_cache[num] = result.timestamp;
 
-            let section_name = 'div[data-notification-id=' + notification_id + ']';
+            let section_name;
+            switch (action) {
+                case 'asked':
+                     section_name = 'div[data-question-id=' + entry.args.question_id + ']';
+                    break;
+                case 'answered':
+                    section_name = 'div[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
+                    break;
+                case 'funded':
+                    section_name = 'div[data-funded-question-id=' + entry.args.question_id + ']';
+                    break;
+                case 'arbitration-requested':
+                    section_name = 'div[data-arbitration-question-id=' + entry.args.question_id + ']';
+                    break;
+                case 'finalized':
+                    section_name = 'div[data-finalized-question-id=' + entry.args.question_id + ']';
+                    break;
+            }
             $('div#your-question-answer-window').find(section_name).find('.timeago').attr('datetime',  convertTsToString(result.timestamp));
             timeAgo.render($('div#your-question-answer-window').find(section_name).find('.timeago'));
         });
+    /*
     }
+    */
 }
 
 function populateWithBlockTimeForBlockNumber2(num, callback) {
@@ -1021,6 +1114,9 @@ function populateWithBlockTimeForBlockNumber2(num, callback) {
         callback(block_timestamp_cache[num]);
     } else {
         web3.eth.getBlock(num, function(err, result) {
+            if (!err || result) {
+                return;
+            }
             block_timestamp_cache[num] = result.timestamp
             callback(block_timestamp_cache[num]);
         });
@@ -1074,14 +1170,7 @@ function renderNotifications(question_id, action, entry, rc) {
     var qdata = question_detail_list[question_id];
     //console.log('renderNotification', action, entry, qdata);
 
-    var question_json;
-    try {
-        question_json = JSON.parse(qdata[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': qdata[Qi_question_text]
-        };
-    }
+    var question_json = qdata[Qi_question_json];
 
     var your_qa_window = $('#your-question-answer-window');
     var item = your_qa_window.find('.notifications-template-container .template-item').clone();
@@ -1094,7 +1183,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
                     ntext  = 'You asked a question - "' + question_json['title'] + '"';
                     insertNotificationItem(notification_id, item, ntext, result.timestamp);
-                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                 }
             });
             break;
@@ -1106,7 +1195,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.answerer == account) {
                         ntext = 'You answered a question - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                     } else {
                         var answered_question = rc.LogNewQuestion({question_id: question_id}, {
                             fromBlock: 0,
@@ -1122,11 +1211,17 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                                 }
                             }
                         });
                     }
+                }
+                console.log('notifications text', ntext);
+                if (typeof ntext !== 'undefined') {
+                    item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
+                    item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
+                    populateWithBlockTimeForBlockNumber1(action, entry.blockNumber, action, entry);
                 }
             });
             break;
@@ -1138,7 +1233,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.funder == account) {
                         ntext = 'You added reward - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                     } else {
                         var funded_question = rc.LogNewQuestion({question_id: question_id}, {
                             fromBlock: 0,
@@ -1155,7 +1250,7 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                                 }
                             }
                         });
@@ -1171,7 +1266,7 @@ function renderNotifications(question_id, action, entry, rc) {
                     if (entry.args.requester == account) {
                         ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                         insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                     } else {
                         var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
                         arbitration_requested_question.get(function (error, result2) {
@@ -1184,7 +1279,7 @@ function renderNotifications(question_id, action, entry, rc) {
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
                                     insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                                 }
                             }
                         });
@@ -1208,7 +1303,7 @@ function renderNotifications(question_id, action, entry, rc) {
                             if (typeof ntext !== 'undefined') {
                                 ntext += ' - "' + question_json['title'] + '"';
                                 insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber);
+                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
                             }
                         }
                     });
@@ -1287,17 +1382,11 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
 }
 
 function renderUserQandA(question_id, action, entry) {
+
     var qdata = question_detail_list[question_id];
     var answer_history = qdata['history'];
 
-    var question_json;
-    try {
-        question_json = JSON.parse(qdata[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': qdata[Qi_question_text]
-        };
-    }
+    var question_json = qdata[Qi_question_json];
 
     var qitem = $('#your-question-answer-window').find('.your-qa__questions__item.template-item').clone();
     web3.eth.getBlock(entry.blockNumber, function(error, result){
@@ -1323,17 +1412,10 @@ function rewriteQuestionDetail(question_id) {
     var question_data = question_detail_list[question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
-    var answer_id = 'answer-' + answer_data.args.answer_id;
+    var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
     var answer = new BigNumber(answer_data.args.answer).toNumber();
 
-    try {
-        var question_json = JSON.parse(question_data[Qi_question_text]);
-    } catch(e) {
-        question_json = {
-            'title': question_data[3]
-        };
-    }
-
+    var question_json = question_data[Qi_question_json];
     var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     $(section_name).find('.current-answer-container').attr('id', answer_id);
@@ -1440,11 +1522,11 @@ function displayAnswerHistory(question_id) {
 
     answer_log.forEach(function(answer){
         // skip current answer.
-        if (answer.args.answer_id == question_data[Qi_best_answer_id]) {
+        if (answer.args.answer == question_data[Qi_best_answer]) {
             return;
         }
 
-        var answer_id = 'answer-' + answer.args.answer_id;
+        var answer_id = 'answer-' + question_id + '-' + answer.args.answer;
         //console.log('answer orig', answer.args.answer);
         var ans = new BigNumber(answer.args.answer).toNumber();
 
@@ -1455,13 +1537,7 @@ function displayAnswerHistory(question_id) {
 
         section.find('.answered-history-header').after(container);
 
-        try {
-            var question_json = JSON.parse(question_data[Qi_question_text]);
-        } catch(e) {
-            question_json = {
-                'title': question_data[Qi_question_text]
-            };
-        }
+        var question_json = question_data[Qi_question_json];
 
         section_name = 'div#' + answer_id;
         var label = getAnswerString(question_json, answer.args.answer);
@@ -1493,8 +1569,7 @@ function showFAButton(question_id, step_delay, answer_created) {
 }
 
 $(document).on('click', '.final-answer-button', function(){
-    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('data-question-id');
     RealityCheck.deployed().then(function(rc) {
         return rc.finalize(question_id, {from: account});
     }).then(function(result){
@@ -1510,7 +1585,7 @@ function pushWatchedAnswer(answer) {
     var length = question_detail_list[question_id]['history'].length;
 
     for (var i = 0; i < length; i++) {
-        if (question_detail_list[question_id]['history'][i].args.answer_id == answer.args.answer_id) {
+        if (question_detail_list[question_id]['history'][i].args.answer == answer.args.answer) {
             already_exists = true;
             break;
         }
@@ -1538,28 +1613,27 @@ $(document).on('click', '.post-answer-button', function(e){
     e.stopPropagation();
 
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
-    var question_id = parent_div.attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = parent_div.attr('data-question-id');
     var bond = web3.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
 
     var account = web3.eth.accounts[0];
     var rc;
     var question, current_answer, new_answer;
     var question_json;
+    var current_question;
+    var is_err = false;
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return rc.questions.call(question_id);
-    }).then(function(current_question) {
+    }).then(function(cq) {
+        current_question = cq;
         current_question.unshift(question_id);
-
-        try {
-            question_json = JSON.parse(current_question[Qi_question_text]);
-        } catch(e) {
-            question_json = {
-                'title': current_question[Qi_question_text],
-                'type': 'binary'
-            };
-        }
+        var question_ipfs = current_question[Qi_question_ipfs];
+        return ipfs.cat(bytes32ToIPFSHash(question_ipfs), {buffer: true})
+    }).then(function (res) {
+        current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+        question_json = current_question[Qi_question_json];
+        console.log('got question_json', question_json);
 
         if (question_json['type'] == 'multiple-select') {
             var checkbox = parent_div.find('[name="input-answer"]');
@@ -1583,10 +1657,6 @@ $(document).on('click', '.post-answer-button', function(e){
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
 
-        return rc.answers.call(current_question[Qi_best_answer_id]);
-    }).then(function(current_answer){
-        // check answer
-        var is_err = false;
         switch (question_json['type']) {
             case 'binary':
                 if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
@@ -1622,12 +1692,10 @@ $(document).on('click', '.post-answer-button', function(e){
         }
 
         // check bond
-        var min_amount = current_answer[3] * 2;
-        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0 && bond  <  ONE_ETH)) {
+        return rc.getMinimumBondForAnswer.call(question_id, formatForAnswer(new_answer, question_json['type']), account);
+    }).then(function(min_amount){
+        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-            if (min_amount === 0) {
-                min_amount = 1;
-            }
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(min_amount);
             is_err = true;
         }
@@ -1635,7 +1703,7 @@ $(document).on('click', '.post-answer-button', function(e){
         if (is_err) throw('err on submitting answer');
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, numToBytes32(new BigNumber(new_answer)), '', {from:account, value:bond});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
@@ -1657,9 +1725,12 @@ $(document).on('click', '.post-answer-button', function(e){
                 container.find('input[name="input-answer"]:checked').prop('checked', false);
                 break;
         }
-    }).catch(function(e){
+    });
+    /*
+    .catch(function(e){
         console.log(e);
     });
+    */
 });
 
 // open/close/add reward
@@ -1679,8 +1750,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('id');
-    question_id = question_id.replace('qadetail-', '');
+    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
     reward = web3.toWei(new BigNumber(reward), 'ether');
 
@@ -1701,7 +1771,7 @@ $(document).on('click', '.arbitrator', function(e){
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
 
     RealityCheck.deployed().then(function(rc){
         return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value:arbitration_fee});
@@ -1725,13 +1795,11 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
         $(this).parent().parent().addClass('is-error');
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
-        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('id').replace('qadetail-', '');
+        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
-        let current_bond;
+        let current_bond = 0;
         if (current_idx >= 0) {
-            current_bond = web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
-        } else {
-            current_bond = 0;
+            web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
         }
         if (value < current_bond * 2) {
             $(this).parent().parent().addClass('is-error');
@@ -1940,21 +2008,6 @@ function pageInit(account) {
     });
 
 };
-
-
-/*
-                }, Promise.resolve()).then(function(result) {
-
-                    return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
-
-                }).catch(function(e){
-                    console.log(e);
-                });
-            } else {
-                console.log(error);
-            }
-        });
-*/
 
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
