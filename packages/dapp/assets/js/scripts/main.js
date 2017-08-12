@@ -95,7 +95,11 @@ const monthList = [
 ];
 
 function formatForAnswer(answer, qtype) {
-    numToBytes32(new BigNumber(new_answer))
+    if (typeof answer == 'BigNumber') {
+        return answer;
+    }
+    console.log('formatForAnswer', answer, qtype, typeof answer);
+    return numToBytes32(new BigNumber(answer));
 }
 
 function numToBytes32(bignum) {
@@ -899,9 +903,6 @@ function openQuestionWindow(question_id) {
                     }
                 }
 
-                //console.log('question_id', question_id);
-                //console.log('question detail', question_detail_list);
-
                 displayQuestionDetail(question_id);
                 displayAnswerHistory(question_id);
             } else {
@@ -974,11 +975,6 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
-    if (!is_arbitration_requested) {
-        rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-    } else {
-        rcqa.find('.arbitration-button').css('display', 'none');
-    }
 
     if (question_detail['history'].length) {
         var latest_answer = question_detail['history'][idx].args;
@@ -997,13 +993,20 @@ function displayQuestionDetail(question_id) {
         rcqa.find('.current-answer-container').hide();
     }
 
-    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
-        return arb.getFee.call(question_id);
-    }).then(function(fee) {
-        rcqa.find('.arbitration-fee').text(fee.toString());
-        arbitration_fee = fee.toNumber();
-    });
+    // Arbitrator
+    if (!question_detail[Qi_is_arbitration_paid_for]) {
+        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+            return arb.getFee.call(question_id);
+        }).then(function(fee) {
+            rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
+            rcqa.find('.arbitration-fee').text(fee.toString());
+            arbitration_fee = fee.toNumber();
+        });
+    } else {
+        rcqa.find('.arbitration-button').css('display', 'none');
+    }
 
+    // answer form
     var ans_frm = makeSelectAnswerInput(question_json);
     ans_frm.css('display', 'block');
     ans_frm.addClass('is-open');
@@ -1011,11 +1014,13 @@ function displayQuestionDetail(question_id) {
     rcqa.find('.answered-history-container').after(ans_frm);
 
     $('#qa-detail-container').append(rcqa);
+
     if (question_detail['history'].length) {
-        // final answer button
+        $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
         showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
-        timeAgo.render($('#qadetail-' + question_id).find('.current-answer-item').find('.timeago'))
     }
+
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
     rcqa.css('z-index', ++zindex);
@@ -1044,11 +1049,12 @@ function displayQuestionDetail(question_id) {
 
 }
 
-function populateWithBlockTimeForBlockNumber1(action, entry) {
-    let num = entry.blockNumber;
+function populateWithBlockTimeForBlockNumber1(notification_id, num, action, entry) {
+    /*
     if (block_timestamp_cache[num]) {
-
+        return block_timestamp_cache[num];
     } else {
+    */
         web3.eth.getBlock(num, function(err, result) {
             block_timestamp_cache[num] = result.timestamp;
 
@@ -1070,12 +1076,12 @@ function populateWithBlockTimeForBlockNumber1(action, entry) {
                     section_name = 'div[data-finalized-question-id=' + entry.args.question_id + ']';
                     break;
             }
-
             $('div#your-question-answer-window').find(section_name).find('.timeago').attr('datetime',  convertTsToString(result.timestamp));
             timeAgo.render($('div#your-question-answer-window').find(section_name).find('.timeago'));
-
         });
+    /*
     }
+    */
 }
 
 function populateWithBlockTimeForBlockNumber2(num, callback) {
@@ -1100,6 +1106,37 @@ function renderUserAction(question_id, action, entry, rc) {
 
 }
 
+function insertNotificationItem(notification_id, item_to_insert, ntext, timestamp) {
+    var notifications = $('#your-question-answer-window').find('.notifications');
+    var section_name = 'div[data-notification-id='+ notification_id + ']';
+    if (notifications.find(section_name).length > 0) return;
+
+    var notification_item = notifications.find('.notifications-item');
+
+    if (notification_item.length == 0) {
+        notifications.append(item_to_insert);
+    } else {
+        for (var i = 0; i < notification_item.length; i++) {
+            var inserted = false;
+            if (notification_item[i].getAttribute('data-block-time') <= timestamp) {
+                var id = notification_item[i].getAttribute('data-notification-id');
+                $('#your-question-answer-window').find('.notifications-item[data-notification-id=' + id + ']').before(item_to_insert);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            notifications.append(item_to_insert);
+        }
+    }
+
+    item_to_insert.attr('data-notification-id', notification_id);
+    item_to_insert.find('.notification-text').text(ntext);
+    item_to_insert.attr('data-block-time', timestamp);
+    item_to_insert.removeClass('template-item').addClass('populated-item');
+
+}
+
 function renderNotifications(question_id, action, entry, rc) {
 
     var qdata = question_detail_list[question_id];
@@ -1113,154 +1150,178 @@ function renderNotifications(question_id, action, entry, rc) {
     var ntext;
     switch (action) {
         case 'asked':
-            ntext  = 'You asked a question';
-            item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-            item.attr('data-question-id', question_id);
-            populateWithBlockTimeForBlockNumber1(action, entry);
-            break
-        case 'answered':
-            var section_name = '.notifications-item[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
-            var notifications_item = your_qa_window.find(section_name);
+            web3.eth.getBlock(entry.blockNumber, function(err, result){
+                if (err === null) {
+                    var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
+                    ntext  = 'You asked a question - "' + question_json['title'] + '"';
+                    insertNotificationItem(notification_id, item, ntext, result.timestamp);
+                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                }
+            });
+            break;
 
-            if (notifications_item.length > 0) {
-                item = undefined;
-            } else {
-                if (entry.args.answerer == account) {
-                    ntext = 'You answered a question';
-                } else {
-                    var answered_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
-                    answered_question.get(function (error, result) {
-                        if (error === null && typeof result !== 'undefined') {
-                            console.log('answered question', result[0]);
-                            if (result[0].args.questioner == account) {
-                                ntext = 'Someone answered to your question';
+        case 'answered':
+            web3.eth.getBlock(entry.blockNumber, function(err, result1){
+                if (err === null) {
+                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
+                    if (entry.args.answerer == account) {
+                        ntext = 'You answered a question - "' + question_json['title'] + '"';
+                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                    } else {
+                        var answered_question = rc.LogNewQuestion({question_id: question_id}, {
+                            fromBlock: 0,
+                            toBlock: 'latest'
+                        });
+                        answered_question.get(function (error, result2) {
+                            if (error === null && typeof result2 !== 'undefined') {
+                                if (result2[0].args.questioner == account) {
+                                    ntext = 'Someone answered to your question';
+                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                                    ntext = 'Your answer was overwritten';
+                                }
+                                if (typeof ntext !== 'undefined') {
+                                    ntext += ' - "' + question_json['title'] + '"';
+                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
                 console.log('notifications text', ntext);
                 if (typeof ntext !== 'undefined') {
                     item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
                     item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
-                    populateWithBlockTimeForBlockNumber1(action, entry);
+                    populateWithBlockTimeForBlockNumber1(action, entry, action, entry);
                 }
-            }
+            });
             break;
-        case 'funded':
-            section_name = '.notifications-item[data-funded-question-id=' + question_id + ']';
-            notifications_item = your_qa_window.find(section_name);
-            if (notifications_item.length > 0) {
-                item = undefined;
-            } else {
-                if (entry.args.funder == account) {
-                    ntext = 'You added reward.';
-                } else {
-                    var funded_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
-                    funded_question.get(function (error, result) {
-                        if (error === null && typeof result !== 'undefined') {
-                            console.log('funded question', result[0]);
-                            if (result[0].args.questioner == account) {
-                                ntext = 'Someone added reward to your question';
-                            }
-                        }
-                    });
-                }
-                if (typeof ntext !== 'undefined') {
-                    item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                    item.attr('data-funded-question-id', question_id);
-                    populateWithBlockTimeForBlockNumber1(action, entry);
-                }
-            }
-            break;
-        case 'arbitration-requested':
-            section_name = '.notifications-item[data-arbitration-question-id=' + question_id + ']';
-            notifications_item = your_qa_window.find(section_name);
-            if (notifications_item.length > 0) {
-                item = undefined;
-            } else {
-                if (entry.args.requester == account) {
-                    ntext = 'You requested arbitration';
-                } else {
-                    var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fomBlock: 0, toBlock: 'latest'});
-                    arbitration_requested_question.get(function (error, result) {
-                        if (error === null && typeof result !== 'undefined') {
-                            console.log('arbitration requested question', result[0]);
-                            if (entry.args.requester == account) {
-                                ntext = 'You requested arbitration';
-                            } else if (result[0].args.questioner == account) {
-                                ntext = 'Someone requested arbitration to your question';
-                            }
-                        }
-                    });
-                }
-                if (typeof ntext !== 'undefined') {
-                    item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                    item.attr('data-arbitration-question-id', question_id);
-                    populateWithBlockTimeForBlockNumber1(action, entry);
-                }
-            }
-            break;
-        case 'finalized':
-            section_name = '.notifications-item[data-finalized-question-id=' + question_id + ']';
-            notifications_item = your_qa_window.find(section_name);
-            if (notifications_item.length > 0) {
-                item = undefined;
-            } else {
-                var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
-                finalized_question.get(function (error, result) {
-                    if (error === null && typeof result !== 'undefined') {
-                        console.log('finalized question', result[0]);
-                        if (result[0].args.questioner == account) {
-                            ntext = 'Your question is finalized';
-                            item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                            item.attr('data-finalized-question-id', question_id);
-                            populateWithBlockTimeForBlockNumber1(action, entry);
-                        }
-                    }
-                });
-            }
-    }
 
-    if (typeof item !== 'undefined') {
-        item.removeClass('template-item').addClass('populated-item');
-        $('#your-question-answer-window').find('.notifications').append(item);
+        case 'funded':
+            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
+                var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
+                if (err === null) {
+                    if (entry.args.funder == account) {
+                        ntext = 'You added reward - "' + question_json['title'] + '"';
+                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                    } else {
+                        var funded_question = rc.LogNewQuestion({question_id: question_id}, {
+                            fromBlock: 0,
+                            toBlock: 'latest'
+                        });
+                        funded_question.get(function (error, result2) {
+                            if (error === null && typeof result2 !== 'undefined') {
+                                if (result2[0].args.questioner == account) {
+                                    ntext = 'Someone added reward to your question';
+                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                                    ntext = 'Someone added reward to the question you answered';
+
+                                }
+                                if (typeof ntext !== 'undefined') {
+                                    ntext += ' - "' + question_json['title'] + '"';
+                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            break;
+
+        case 'arbitration-requested':
+            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
+                if (err === null) {
+                    var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
+                    if (entry.args.requester == account) {
+                        ntext = 'You requested arbitration - "' + question_json['title'] + '"';
+                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                    } else {
+                        var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
+                        arbitration_requested_question.get(function (error, result2) {
+                            if (error === null && typeof result2 !== 'undefined') {
+                                if (result2[0].args.questioner == account) {
+                                    ntext = 'Someone requested arbitration to your question';
+                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                                    ntext = 'Someone requested arbitration to the question you answered';
+                                }
+                                if (typeof ntext !== 'undefined') {
+                                    ntext += ' - "' + question_json['title'] + '"';
+                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            break;
+
+        case 'finalized':
+            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
+                if (err === null) {
+                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answer_id + entry.args.answer);
+                    var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
+                    finalized_question.get(function (error, result2) {
+                        if (error === null && typeof result2 !== 'undefined') {
+                            if (result2[0].args.questioner == account) {
+                                ntext = 'Your question is finalized';
+                            } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                                ntext = 'The question you answered is finalized';
+                            }
+                            if (typeof ntext !== 'undefined') {
+                                ntext += ' - "' + question_json['title'] + '"';
+                                insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+                            }
+                        }
+                    });
+                }
+            });
     }
 
 }
 
-function renderUserQandA(question_id, action, entry) {
-    var qdata = question_detail_list[question_id];
-    var answer_history = qdata['history'];
-
-    var question_json = qdata[Qi_question_json];
-
-    var your_window = $('#your-question-answer-window');
-
-    var your_qa_section;
+function insertQAItem(question_id, item_to_insert, action, timestamp) {
+    var question_section;
     if (action == 'asked') {
-        your_qa_section = your_window.find('.your-qa__questions');
+        question_section = $('#your-question-answer-window').find('.your-qa__questions');
     } else if (action == 'answered') {
-        your_qa_section = your_window.find('.your-qa__answers');
+        question_section = $('#your-question-answer-window').find('.your-qa__answers');
     }
-    var data_question_attr = '[data-question-id=' + question_id + ']';
-    var target = your_qa_section.find(data_question_attr);
 
-    var qitem;
-    if (target.length == 0) {
-        qitem = your_window.find('.your-qa__questions__item.template-item').clone();
+    question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
-        var updateBlockTimestamp = function (ts) {
-            let date = new Date();
-            date.setTime(ts * 1000);
-            let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
-            qitem.find('.item-date').text(date_str);
+    var question_items = question_section.find('.your-qa__questions__item');
+    if (question_items.length ==  0) {
+        question_section.append(item_to_insert);
+    } else {
+        for (var i = 0; i < question_items.length; i++) {
+            var inserted = false;
+            if (question_items[i].getAttribute('data-block-time') <= timestamp) {
+                var id = question_items[i].getAttribute('data-question-id');
+                question_section.find('.your-qa__questions__item[data-question-id=' + id + ']').before(item_to_insert);
+                inserted = true;
+                break;
+            }
         }
-        populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
+        if (!inserted) {
+            question_section.append(item_to_insert);
+        }
+    }
 
-        qitem.attr('data-question-id', question_id);
-        qitem.find('.question-text').text(question_json['title']);
-        qitem.removeClass('template-item');
+}
 
+function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized) {
+    var question_section = $('#your-question-answer-window').find('.your-qa__questions');
+    var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
+    var sections = [question_section, answer_section];
+
+    sections.forEach(function(section){
+        var target = section.find('div[data-question-id='+question_id+']');
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0 ; i--) {
@@ -1270,37 +1331,53 @@ function renderUserQandA(question_id, action, entry) {
                 }
             }
             let latest_answer = answer_history[answer_history.length - 1].args.answer;
-            qitem.find('.latest-answer-text').text(getAnswerString(question_json, latest_answer));
+            target.find('.latest-answer-text').text(getAnswerString(question_json, latest_answer));
             if (typeof user_answer !== 'undefined') {
-                qitem.find('.user-answer-text').text(getAnswerString(question_json, user_answer));
-                qitem.find('.your-qa__questions__item-body').css('display', 'block');
+                target.find('.user-answer-text').text(getAnswerString(question_json, user_answer));
             } else {
-                qitem.find('.your-qa__questions__item-body--user').css('display', 'none');
+                target.find('.your-qa__questions__item-body--user').css('display', 'none');
             }
-            qitem.find('.your-qa__questions__item-body--latest').css('display', 'block');
+            target.find('.your-qa__questions__item-body--latest').css('display', 'block');
         } else {
-            qitem.find('.your-qa__questions__item-body--latest').css('display', 'none');
-            qitem.find('.your-qa__questions__item-body--user').css('display', 'none');
+            target.find('.your-qa__questions__item-body--latest').css('display', 'none');
+            target.find('.your-qa__questions__item-body--user').css('display', 'none');
         }
 
-        if (qdata[Qi_is_finalized]) {
-            qitem.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
-            qitem.find('.your-qa__questions__item-status').text('Resolved at');
+        if (is_finalized) {
+            target.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
+            target.find('.your-qa__questions__item-status').text('Resolved at');
         } else {
-            qitem.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
+            target.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
         }
+    });
 
-        // TODO: Make this happen in some kind of order
-        if (action == 'asked') {
-            your_window.find('.your-qa__questions-inner').append(qitem);
-        } else if (action == 'answered') {
-            your_window.find('.your-qa__answers-inner').append(qitem);
-        }
-    } else {
-        target.find('.count-answers').text(answer_history[answer_history.length]);
+}
+
+function renderUserQandA(question_id, action, entry) {
+
+    var qdata = question_detail_list[question_id];
+    var answer_history = qdata['history'];
+
+    var question_json = qdata[Qi_question_json];
+
+    var qitem = $('#your-question-answer-window').find('.your-qa__questions__item.template-item').clone();
+    web3.eth.getBlock(entry.blockNumber, function(error, result){
+        qitem.attr('data-question-id', question_id);
+        qitem.find('.question-text').text(question_json['title']);
+        qitem.attr('data-block-time', result.timestamp);
+        qitem.removeClass('template-item');
+        insertQAItem(question_id, qitem, action, result.timestamp);
+        rewriteAnswerOfQAItem(question_id, answer_history, question_json, qdata[Qi_is_finalized]);
+    });
+
+    var updateBlockTimestamp = function (ts) {
+        let date = new Date();
+        date.setTime(ts * 1000);
+        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear()
+            + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+        qitem.find('.item-date').text(date_str);
     }
-
-    // TODO: Fill in resolved finalization data
+    populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
 }
 
 function rewriteQuestionDetail(question_id) {
@@ -1316,6 +1393,9 @@ function rewriteQuestionDetail(question_id) {
     $(section_name).find('.current-answer-container').attr('id', answer_id);
     var label = getAnswerString(question_json, answer_data.args.answer);
     $(section_name).find('.current-answer-container').find('.current-answer').text(label);
+    $(section_name).find('.current-answer-container').css('display', 'block');
+    $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
+    timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
     $(section_name).find('input[name="numberAnswer"]').val(0);
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
@@ -1447,12 +1527,17 @@ function displayAnswerHistory(question_id) {
 
 // show final answer button
 function showFAButton(question_id, step_delay, answer_created) {
-    var d = new Date();
-    var now = d.getTime();
     var section_name = '#qadetail-' + question_id;
-    if (now - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
+    if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
         $(section_name).find('.final-answer-button').css('display', 'block');
     }
+
+    var id = setInterval(function(){
+        if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
+            $(section_name).find('.final-answer-button').css('display', 'block');
+            clearInterval(id);
+        }
+    }, 15000);
 }
 
 $(document).on('click', '.final-answer-button', function(){
@@ -1461,7 +1546,7 @@ $(document).on('click', '.final-answer-button', function(){
     RealityCheck.deployed().then(function(rc) {
         return rc.finalize(question_id, {from: account});
     }).then(function(result){
-        console.log('finalized!', result);
+        //console.log('finalized!', result);
     }).catch(function(e){
        console.log('on click FA button', e);
     });
