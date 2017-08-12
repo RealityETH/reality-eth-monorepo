@@ -28,7 +28,7 @@ def ipfs_hex(txt):
 
 def to_question_for_contract(txt):
     # to_question_for_contract(("my question")),
-    return txt
+    return decode_hex(ipfs_hex(txt)[2:].zfill(64))
 
 def from_question_for_contract(txt):
     return txt
@@ -395,7 +395,6 @@ class TestRealityCheck(TestCase):
         gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
         self.caller_backer.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
         gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.assertEqual(gas_used_after - gas_used_before, 45915)
 
         self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.cb.address, 3000000), 100)
 
@@ -426,7 +425,6 @@ class TestRealityCheck(TestCase):
         gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
         self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
         gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.assertEqual(gas_used_after - gas_used_before, 25993)
 
         # Return false with an unregistered or spent amount of gas
         self.assertFalse(self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))

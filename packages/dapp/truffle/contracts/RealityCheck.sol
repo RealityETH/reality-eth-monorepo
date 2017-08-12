@@ -17,7 +17,7 @@ contract RealityCheck {
         address indexed questioner, 
         address indexed arbitrator, 
         uint256 step_delay,
-        string question_text,
+        bytes32 question_ipfs,
         uint256 created
     );
 
@@ -27,7 +27,7 @@ contract RealityCheck {
         address indexed answerer,
         uint256 bond,
         uint256 ts,
-        bytes32 evidence_sha256
+        bytes32 evidence_ipfs
     );
 
     event LogFundAnswerBounty(
@@ -90,7 +90,7 @@ contract RealityCheck {
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 step_delay;
-        string question_text;
+        bytes32 question_ipfs;
 
         // Mutable data
         uint256 bounty;
@@ -108,9 +108,9 @@ contract RealityCheck {
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(string question_text, address arbitrator, uint256 step_delay) payable returns (bytes32) {
+    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) payable returns (bytes32) {
 
-        bytes32 question_id = keccak256(question_text, arbitrator, step_delay);
+        bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
 
         // Should not already exist
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
@@ -121,14 +121,14 @@ contract RealityCheck {
             now,
             arbitrator,
             step_delay,
-            question_text,
+            question_ipfs,
             msg.value,
             false,
             false,
             NULL_BYTES 
         );
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_text, now);
+        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_ipfs, now);
 
         return question_id;
 
@@ -139,8 +139,8 @@ contract RealityCheck {
     }
 
     // Predict the ID for a given question
-    function getQuestionID(string question_text, address arbitrator, uint256 step_delay) constant returns (bytes32) {
-        return keccak256(question_text, arbitrator, step_delay);
+    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) constant returns (bytes32) {
+        return keccak256(question_ipfs, arbitrator, step_delay);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
@@ -168,7 +168,7 @@ contract RealityCheck {
         }
     }
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
 
@@ -223,7 +223,7 @@ contract RealityCheck {
             msg.sender,
             msg.value,
             now,
-            evidence_sha256
+            evidence_ipfs
         );
 
         return answer;
@@ -233,7 +233,7 @@ contract RealityCheck {
     // Used if the arbitrator has been asked to arbitrate but no correct answer is supplied
     // Allows the arbitrator to submit the correct answer themselves
     // The arbitrator doesn't need to send a bond.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_sha256) payable returns (bytes32) {
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
 
@@ -252,7 +252,7 @@ contract RealityCheck {
             msg.sender,
             0,
             now,
-            evidence_sha256
+            evidence_ipfs
         );
 
         questions[question_id].best_answer = answer;

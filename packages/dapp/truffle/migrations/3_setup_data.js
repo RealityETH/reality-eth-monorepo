@@ -12,8 +12,8 @@ module.exports = function(deployer) {
        var deadline = Math.floor(d.getTime() / 1000) + 30 * 24 * 60 * 60;
        var step_delay = 7 * 24 * 60 * 60;
 
-       var question1 = 'QmdGwCmiPSvxU1dDsnaaVWdZMFK1EK5bKaU8dkfp2pHukk'; // '{"title":"What is 2 + 2?", "type":"number"}';
-       var question2 = 'QmQarJ9ZrWvACLbRaHsVrZNhFy5FbyKgR8CjxQAumUW5qN'; // '{"title":"Who won the presidential election in the US?", "type":"single-select", "outcomes":["Hillary","Trump","Other"]}';
+       var question1 = '0xddeba17826d59eeb072802782bca9869aee48454d094359780d5825c02115f09'; // '{"title":"What is 2 + 2?", "type":"number"}';
+       var question2 = '0x215a9b47a549259edab8a31436c42146a24a035d4ade5fc84d37353791c74ebd'; // '{"title":"Who won the presidential election in the US?", "type":"single-select", "outcomes":["Hillary","Trump","Other"]}';
 
        RealityCheck.deployed().then(function (instance) {
            rc = instance;

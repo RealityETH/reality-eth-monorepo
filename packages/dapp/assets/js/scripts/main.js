@@ -9,6 +9,9 @@ var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 var ipfsAPI = require('ipfs-api')
 var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
 
+var multihash = require('multihashes');
+var bs58 = require('bs58');
+
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
@@ -93,6 +96,22 @@ const monthList = [
     'Nov',
     'Dec'
 ];
+
+function ipfsHashToBytes32(ipfs_hash) {
+    var h = multihash.decode(bs58.decode(ipfs_hash));
+    console.log(h);
+    if (h.name != 'sha2-256') {
+        console.log('unexpected name', h.name);
+        return null;
+    }
+    return '0x' + h.digest.toString('hex');
+}
+
+function bytes32ToIPFSHash(hash_hex) {
+    console.log('bytes32ToIPFSHash starts with hash_buffer', hash_hex.replace(/^0x/, ''));
+    var buf = new Buffer(hash_hex.replace(/^0x/, ''), 'hex')
+    return bs58.encode(multihash.encode(buf, 'sha2-256'))
+}
 
 function formatForAnswer(answer, qtype) {
     if (typeof answer == 'BigNumber') {
@@ -487,7 +506,7 @@ $('#post-question-submit').on('click', function(e){
             }
             RealityCheck.deployed().then(function (rc) {
                 account = web3.eth.accounts[0];
-                return rc.askQuestion(res[0].hash, arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
+                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
             }).then(function (result) {
 
                 let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
@@ -613,7 +632,7 @@ function handleUserAction(action, entry, rc) {
             current_question = result;
             current_question.unshift(question_id);
             var question_json_ipfs = current_question[Qi_question_ipfs];
-            return ipfs.cat(question_json_ipfs, {buffer: true})
+            return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
         }).then(function (res) {
             current_question[Qi_question_json] = parseQuestionJSON(res.toString());
             return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
@@ -709,7 +728,7 @@ function handleQuestionLog(item, rc) {
         question_data = qdata;
         question_data.unshift(question_id);
         var question_json_ipfs = question_data[Qi_question_ipfs];
-        return ipfs.cat(question_json_ipfs, {buffer: true})
+        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function (res) {
         if (!res) {
             console.log('ipfs cat error', err, res)
@@ -886,7 +905,7 @@ function openQuestionWindow(question_id) {
         current_question = result;
         current_question.unshift(question_id);
         var question_json_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(question_json_ipfs, {buffer: true})
+        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function(ipfs_result){
         console.log('promise has ipfs_result', ipfs_result);
         current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
@@ -1610,7 +1629,7 @@ $(document).on('click', '.post-answer-button', function(e){
         current_question = cq;
         current_question.unshift(question_id);
         var question_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(question_ipfs, {buffer: true})
+        return ipfs.cat(bytes32ToIPFSHash(question_ipfs), {buffer: true})
     }).then(function (res) {
         current_question[Qi_question_json] = parseQuestionJSON(res.toString());
         question_json = current_question[Qi_question_json];
