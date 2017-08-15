@@ -922,15 +922,20 @@
                             <div class="error-container">Please enter your question.</div>
                         </div>
 
-                        <div class="input-container">
+                        <div class="input-container  input-container--has-quick-help">
                             <div class="input-inner">
                                 <span class="input-header">Reward (ETH):</span>
                                 <input  id="question-reward" type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="1">
+
+                            </div>
+                            <div class="quick-help">
+                                <span class="quick-help-button">?</span>
+                                <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
                             </div>
                             <div class="error-container">Please enter reward.</div>
                         </div>
 
-                        <div class="select-container">
+                        <div class="select-container  select-container--has-quick-help">
                             <select id="question-type" name="question-type" class="rcbrowser-select form-item">
                                 <option value="default">Question Type</option>
                                 <option value="free-text" >Free Text</option>
@@ -939,6 +944,11 @@
                                 <option value="multiple-select">Select (Multiple)</option>
                                 <option value="number">Number</option>
                             </select>
+                            <div class="quick-help">
+                                <span class="quick-help-button">?</span>
+                                <div class="quick-help-body"><span>The kind of answer your question expects.</span></div>
+                            </div>
+
                             <div class="error-container">Please select question type.</div>
                         </div>
 
@@ -951,6 +961,7 @@
 
                                     <div id="first-answer-option" class="input-container">
                                         <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
+
                                     </div>
 
                                     <div id="error-container--answer-option" class="error-container error-container--select">Please enter at least two options.</div>
@@ -969,7 +980,7 @@
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</span></div>
+                                <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
                             </div>
                             <div class="error-container">Please select arbitrator.</div>
                         </div>
@@ -987,7 +998,7 @@
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s</span></div>
+                                <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
                             </div>
                             <div class="error-container">Please select step delay.</div>
                         </div>

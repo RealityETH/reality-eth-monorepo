@@ -1479,6 +1479,10 @@ textarea[name="question-body"] {
     width: calc(100% - 30px);
 }
 
+.input-container--has-quick-help .rcbrowser-input {
+    width: calc(100% - 30px);
+}
+
 .select-container::after {
     display: block;
     content: "";
@@ -1497,6 +1501,11 @@ textarea[name="question-body"] {
 .select-container--has-quick-help::after {
     right: 30px;
 }
+
+.input-container--has-quick-help::after {
+    right: 30px;
+}
+
 
 .quick-help {
     position: absolute;
