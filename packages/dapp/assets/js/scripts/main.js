@@ -99,16 +99,16 @@ const monthList = [
 
 function ipfsHashToBytes32(ipfs_hash) {
     var h = multihash.decode(bs58.decode(ipfs_hash));
-    console.log(h);
+    //console.log(h);
     if (h.name != 'sha2-256') {
-        console.log('unexpected name', h.name);
+        //console.log('unexpected name', h.name);
         return null;
     }
     return '0x' + h.digest.toString('hex');
 }
 
 function bytes32ToIPFSHash(hash_hex) {
-    console.log('bytes32ToIPFSHash starts with hash_buffer', hash_hex.replace(/^0x/, ''));
+    //console.log('bytes32ToIPFSHash starts with hash_buffer', hash_hex.replace(/^0x/, ''));
     var buf = new Buffer(hash_hex.replace(/^0x/, ''), 'hex')
     return bs58.encode(multihash.encode(buf, 'sha2-256'))
 }
@@ -117,7 +117,7 @@ function formatForAnswer(answer, qtype) {
     if (typeof answer == 'BigNumber') {
         return answer;
     }
-    console.log('formatForAnswer', answer, qtype, typeof answer);
+    //console.log('formatForAnswer', answer, qtype, typeof answer);
     return numToBytes32(new BigNumber(answer));
 }
 
@@ -501,7 +501,7 @@ $('#post-question-submit').on('click', function(e){
         ipfs.add(new Buffer(question_json), function(err, res) {
             if (err) {
                 alert('ipfs save failed');
-                console.log('ipfs result', err, res)
+                //console.log('ipfs result', err, res)
                 return;
             }
             RealityCheck.deployed().then(function (rc) {
@@ -611,7 +611,7 @@ function handleUserAction(action, entry, rc) {
         if (window.localStorage.getItem('viewedBlockNumber')) {
             lastViewedBlockNumber = parseInt(window.localStorage.getItem('viewedBlockNumber'));
         }
-        console.log(lastViewedBlockNumber);
+        //console.log(lastViewedBlockNumber);
         if (entry.blockNumber > lastViewedBlockNumber) {
             //$('body').attr('last-update-block-number', entry.blockNumber);
             $('body').addClass('pushing');
@@ -731,7 +731,7 @@ function handleQuestionLog(item, rc) {
         return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function (res) {
         if (!res) {
-            console.log('ipfs cat error', err, res)
+            //console.log('ipfs cat error', err, res)
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
@@ -907,7 +907,7 @@ function openQuestionWindow(question_id) {
         var question_json_ipfs = current_question[Qi_question_ipfs];
         return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function(ipfs_result){
-        console.log('promise has ipfs_result', ipfs_result);
+        //console.log('promise has ipfs_result', ipfs_result);
         current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
     }).then(function(answer_posted){
@@ -1075,9 +1075,9 @@ function populateWithBlockTimeForBlockNumber1(notification_id, num, action, entr
         return block_timestamp_cache[num];
     } else {
     */
-    console.log('getting block for num', num, entry);
+    //console.log('getting block for num', num, entry);
         web3.eth.getBlock(num, function(err, result) {
-            console.log('getBlock', num, err, result);
+            //console.log('getBlock', num, err, result);
             if (err || !result) {
                 return;
             }
@@ -1217,7 +1217,7 @@ function renderNotifications(question_id, action, entry, rc) {
                         });
                     }
                 }
-                console.log('notifications text', ntext);
+                //console.log('notifications text', ntext);
                 if (typeof ntext !== 'undefined') {
                     item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
                     item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
@@ -1239,13 +1239,16 @@ function renderNotifications(question_id, action, entry, rc) {
                             fromBlock: 0,
                             toBlock: 'latest'
                         });
+                        // TODO: Should this really always be index 0?
                         funded_question.get(function (error, result2) {
                             if (error === null && typeof result2 !== 'undefined') {
                                 if (result2[0].args.questioner == account) {
                                     ntext = 'Someone added reward to your question';
-                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                    ntext = 'Someone added reward to the question you answered';
-
+                                } else {
+                                    var prev_hist_idx = qdata['history'].length - 2;
+                                    if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
+                                        ntext = 'Someone added reward to the question you answered';
+                                    }
                                 }
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
@@ -1271,10 +1274,13 @@ function renderNotifications(question_id, action, entry, rc) {
                         var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
                         arbitration_requested_question.get(function (error, result2) {
                             if (error === null && typeof result2 !== 'undefined') {
+                                var history_idx = qdata['history'].length - 2;
                                 if (result2[0].args.questioner == account) {
                                     ntext = 'Someone requested arbitration to your question';
-                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                    ntext = 'Someone requested arbitration to the question you answered';
+                                } else {
+                                    if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
+                                        ntext = 'Someone requested arbitration to the question you answered';
+                                    }
                                 }
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
@@ -1314,7 +1320,7 @@ function renderNotifications(question_id, action, entry, rc) {
 }
 
 function insertQAItem(question_id, item_to_insert, question_section, timestamp) {
-    console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
+    //console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
     question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
     var question_items = question_section.find('.your-qa__questions__item');
@@ -1326,7 +1332,7 @@ function insertQAItem(question_id, item_to_insert, question_section, timestamp) 
         if ($(item).attr('data-block-time') <= timestamp) {
             $(item).before(item_to_insert);
             inserted = true;
-            console.log('inserted in loop');
+            //console.log('inserted in loop');
             return false;
         } else {
             return true;
@@ -1334,7 +1340,7 @@ function insertQAItem(question_id, item_to_insert, question_section, timestamp) 
     });
     if (!inserted) {
         question_section.append(item_to_insert);
-    console.log('inserted through fall through');
+    //console.log('inserted through fall through');
     }
 
 }
@@ -1392,7 +1398,7 @@ function renderUserQandA(question_id, action, entry) {
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
-    console.log('inserting qitem', qitem, qitem.size());
+    //console.log('inserting qitem', qitem, qitem.size());
     web3.eth.getBlock(entry.blockNumber, function(error, result){
         qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
@@ -1771,18 +1777,29 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
 
 /*-------------------------------------------------------------------------------------*/
 // arbitration
-$(document).on('click', '.arbitrator', function(e){
+$(document).on('click', '.arbitrator', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
     var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
+    var question_detail = question_detail_list[question_id];
+    if (!question_detail) {
+        console.log('Error, question detail not found');
+        return false;
+    }
 
-    RealityCheck.deployed().then(function(rc){
-        return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value:arbitration_fee});
-    }).then(function(result){
-        //console.log('arbitration is requestd.', result);
+    var arbitration_fee;
+    //if (!question_detail[Qi_is_arbitration_paid_for]) {}
+    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+        return arb.getFee.call(question_id);
+    }).then(function(fee) {
+        RealityCheck.deployed().then(function(rc){
+            return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value: arbitration_fee});
+        }).then(function(result){
+            //console.log('arbitration is requestd.', result);
+        });
     });
-})
+});
 
 /*-------------------------------------------------------------------------------------*/
 // show/delete error messages
@@ -1838,7 +1855,7 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
 
 function pageInit(account) {
 
-    console.log('in pageInit for account', account);
+    //console.log('in pageInit for account', account);
 
     var rc;
 
@@ -2015,7 +2032,7 @@ function pageInit(account) {
 
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
-        console.log('accounts', acc);
+        //console.log('accounts', acc);
         account = acc[0];
         pageInit(account);
     });
