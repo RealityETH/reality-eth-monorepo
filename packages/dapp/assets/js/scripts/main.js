@@ -391,52 +391,6 @@ $(function() {
     }
 })();
 
-// observe a search-form
-(function() {
-    const inputElement = document.getElementById('search-input');
-    const formElement = document.getElementById('search-form');
-    const reslutNumberElement = document.getElementById('result-number');
-    var timer = null;
-
-    function focusHandler() {
-        function update() {
-            if (inputElement.value === '') {
-                formElement.style.borderColor = '#3a3c40';
-                reslutNumberElement.textContent = '';
-            } else if (inputElement.value === 'y' || inputElement.value === 'ya' || inputElement.value === 'yan') {
-                formElement.style.borderColor = '#0d6ffc';
-                reslutNumberElement.style.color = '#0d6ffc';
-                reslutNumberElement.textContent = '6 Hit';
-            } else if (inputElement.value === 'yank') {
-                formElement.style.borderColor = '#0d6ffc';
-                reslutNumberElement.style.color = '#0d6ffc';
-                reslutNumberElement.textContent = '3 Hit';
-            } else if (inputElement.value === 'yanke' || inputElement.value === 'yankee' || inputElement.value === 'yankees') {
-                formElement.style.borderColor = '#0d6ffc';
-                reslutNumberElement.style.color = '#0d6ffc';
-                reslutNumberElement.textContent = '1 Hit';
-            }
-            // no hit
-            else {
-                formElement.style.borderColor = '#ff4444';
-                reslutNumberElement.style.color = '#ff4444';
-                reslutNumberElement.textContent = '0 Hit';
-            }
-            timer = setTimeout(update, 60);
-        }
-        update();
-    }
-
-    function blurHandler() {
-        formElement.style.borderColor = '#3a3c40';
-        reslutNumberElement.textContent = '';
-        clearTimeout(timer);
-    }
-
-    inputElement.addEventListener('focus', focusHandler);
-    inputElement.addEventListener('blur', blurHandler);
-})();
-
 /*-------------------------------------------------------------------------------------*/
 // window for posting a question
 
