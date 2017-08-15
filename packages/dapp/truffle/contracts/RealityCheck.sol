@@ -465,4 +465,12 @@ contract RealityCheck {
         return balances[_owner];
     }
 
+    function isFinalized1(bytes32 question_id) returns (bool) {
+        return questions[question_id].is_finalized;
+    }
+
+    function isFinalized2(bytes32 question_id) returns (bool) {
+        return (!questions[question_id].is_arbitration_paid_for && ((questions[question_id].last_changed_ts + questions[question_id].step_delay) > now) );
+    }
+
 } 
