@@ -1313,32 +1313,28 @@ function renderNotifications(question_id, action, entry, rc) {
 
 }
 
-function insertQAItem(question_id, item_to_insert, action, timestamp) {
-    var question_section;
-    if (action == 'asked') {
-        question_section = $('#your-question-answer-window').find('.your-qa__questions');
-    } else if (action == 'answered') {
-        question_section = $('#your-question-answer-window').find('.your-qa__answers');
-    }
-
+function insertQAItem(question_id, item_to_insert, question_section, timestamp) {
+    console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
     question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
     var question_items = question_section.find('.your-qa__questions__item');
-    if (question_items.length ==  0) {
+    var inserted = false;
+    question_items.each( function(idx, item) {
+        if ($(item).hasClass('template-item')) {
+            return true;
+        }
+        if ($(item).attr('data-block-time') <= timestamp) {
+            $(item).before(item_to_insert);
+            inserted = true;
+            console.log('inserted in loop');
+            return false;
+        } else {
+            return true;
+        }
+    });
+    if (!inserted) {
         question_section.append(item_to_insert);
-    } else {
-        for (var i = 0; i < question_items.length; i++) {
-            var inserted = false;
-            if (question_items[i].getAttribute('data-block-time') <= timestamp) {
-                var id = question_items[i].getAttribute('data-question-id');
-                question_section.find('.your-qa__questions__item[data-question-id=' + id + ']').before(item_to_insert);
-                inserted = true;
-                break;
-            }
-        }
-        if (!inserted) {
-            question_section.append(item_to_insert);
-        }
+    console.log('inserted through fall through');
     }
 
 }
@@ -1388,13 +1384,21 @@ function renderUserQandA(question_id, action, entry) {
 
     var question_json = qdata[Qi_question_json];
 
-    var qitem = $('#your-question-answer-window').find('.your-qa__questions__item.template-item').clone();
+    var question_section;
+    if (action == 'asked') {
+        question_section = $('#your-question-answer-window').find('.your-qa__questions');
+    } else if (action == 'answered') {
+        question_section = $('#your-question-answer-window').find('.your-qa__answers');
+    }
+
+    var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
+    console.log('inserting qitem', qitem, qitem.size());
     web3.eth.getBlock(entry.blockNumber, function(error, result){
         qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
         qitem.attr('data-block-time', result.timestamp);
         qitem.removeClass('template-item');
-        insertQAItem(question_id, qitem, action, result.timestamp);
+        insertQAItem(question_id, qitem, question_section, result.timestamp);
         rewriteAnswerOfQAItem(question_id, answer_history, question_json, qdata[Qi_is_finalized]);
     });
 
