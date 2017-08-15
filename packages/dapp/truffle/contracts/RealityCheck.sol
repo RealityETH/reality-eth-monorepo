@@ -143,14 +143,16 @@ contract RealityCheck {
         return keccak256(question_ipfs, arbitrator, step_delay);
     }
 
-    function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
-        require(questions[question_id].last_changed_ts > 0); // Check existence
+    function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
+        payable 
+    {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
     }
 
     // TODO: Write tests for this
-    function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) public constant returns (uint256) {
+    function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) 
+    public constant returns (uint256) {
         bytes32 old_best_answer = questions[question_id].best_answer;
         uint256 old_bond = questions[question_id].answers[old_best_answer].bond;
         address previous_answerer = questions[question_id].answers[answer].answerer;
@@ -168,7 +170,8 @@ contract RealityCheck {
         }
     }
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) payable returns (bytes32) {
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+    payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
 
@@ -233,7 +236,8 @@ contract RealityCheck {
     // Used if the arbitrator has been asked to arbitrate but no correct answer is supplied
     // Allows the arbitrator to submit the correct answer themselves
     // The arbitrator doesn't need to send a bond.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) payable returns (bytes32) {
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+    payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
         require(msg.sender == questions[question_id].arbitrator); 
@@ -265,24 +269,29 @@ contract RealityCheck {
 
     }
 
-    function getFinalAnswer(bytes32 question_id) constant returns (bytes32) {
+    function getFinalAnswer(bytes32 question_id) 
+    constant returns (bytes32) {
         require(questions[question_id].is_finalized);
         return questions[question_id].best_answer;
     }
 
-    function isFinalized(bytes32 question_id) constant returns (bool) {
+    function isFinalized(bytes32 question_id) 
+    constant returns (bool) {
         return questions[question_id].is_finalized;
     }
 
-    function isArbitrationPaidFor(bytes32 question_id) constant returns (bool) {
+    function isArbitrationPaidFor(bytes32 question_id) 
+    constant returns (bool) {
         return questions[question_id].is_arbitration_paid_for;
     }
 
-    function getEarliestFinalizationTS(bytes32 question_id) constant returns (uint256) {
+    function getEarliestFinalizationTS(bytes32 question_id) 
+    constant returns (uint256) {
         return (questions[question_id].last_changed_ts + questions[question_id].step_delay);
     }
 
-    function finalize(bytes32 question_id) {
+    function finalize(bytes32 question_id) 
+    {
 
         bytes32 best_answer = questions[question_id].best_answer;
 
@@ -300,7 +309,8 @@ contract RealityCheck {
 
     }
 
-    function finalizeByArbitrator(bytes32 question_id, bytes32 answer) {
+    function finalizeByArbitrator(bytes32 question_id, bytes32 answer) 
+    {
 
         require(msg.sender == questions[question_id].arbitrator); 
         require(!questions[question_id].is_finalized);
@@ -322,7 +332,8 @@ contract RealityCheck {
     // Assigns the bond for a particular answer to either:
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimBond(bytes32 question_id, bytes32 answer) {
+    function claimBond(bytes32 question_id, bytes32 answer) 
+    {
 
         require(questions[question_id].is_finalized);
         
@@ -347,7 +358,8 @@ contract RealityCheck {
 
     }
 
-    function claimBounty(bytes32 question_id) {
+    function claimBounty(bytes32 question_id) 
+    {
 
         require(questions[question_id].is_finalized);
 
@@ -367,7 +379,8 @@ contract RealityCheck {
     // bond_question_ids are the question ids you want to claim for
     // bond_answers are the answers you want to claim for
     // TODO: This could probably be more efficient, as some checks are being duplicated
-    function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) returns (bool withdrawal_completed) {
+    function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
+    returns (bool withdrawal_completed) {
         
         require(bond_question_ids.length == bond_answers.length);
 
@@ -384,7 +397,8 @@ contract RealityCheck {
 
     }
 
-    function fundAnswerBounty(bytes32 question_id) payable {
+    function fundAnswerBounty(bytes32 question_id) 
+    payable {
         require(questions[question_id].last_changed_ts > 0); 
         require(!questions[question_id].is_finalized);
         questions[question_id].bounty += msg.value;
@@ -396,7 +410,8 @@ contract RealityCheck {
     // Returns true if enough was paid to trigger arbitration
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
-    function requestArbitration(bytes32 question_id) payable returns (bool) {
+    function requestArbitration(bytes32 question_id) 
+    payable returns (bool) {
 
         uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
 
@@ -417,7 +432,8 @@ contract RealityCheck {
 
     }
 
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) returns (bool) {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
+    returns (bool) {
 
         // By default we return false if there is no bounty, because it has probably already been taken.
         // You can override this behaviour with the no_bounty flag
@@ -449,7 +465,8 @@ contract RealityCheck {
 
     }
 
-    function withdraw(uint256 _value) returns (bool success) {
+    function withdraw(uint256 _value) 
+    returns (bool success) {
         uint256 orig_bal = balances[msg.sender];
         require(orig_bal >= _value);
         uint256 new_bal = balances[msg.sender] - _value;
@@ -462,15 +479,18 @@ contract RealityCheck {
         return true;
     }
 
-    function balanceOf(address _owner) constant returns (uint256 balance) {
+    function balanceOf(address _owner) constant 
+    returns (uint256 balance) {
         return balances[_owner];
     }
 
-    function isFinalized1(bytes32 question_id) returns (bool) {
+    function isFinalized1(bytes32 question_id) 
+    returns (bool) {
         return questions[question_id].is_finalized;
     }
 
-    function isFinalized2(bytes32 question_id) returns (bool) {
+    function isFinalized2(bytes32 question_id) 
+    returns (bool) {
         return (!questions[question_id].is_arbitration_paid_for && ((questions[question_id].last_changed_ts + questions[question_id].step_delay) > now) );
     }
 
