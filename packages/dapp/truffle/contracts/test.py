@@ -187,6 +187,13 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
+        # You cannot submit the answer unless you are the arbitrator
+        with self.assertRaises(TransactionFailed):
+            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.c.mine()
+        self.s = self.c.head_state
+
         self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")

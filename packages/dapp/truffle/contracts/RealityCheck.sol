@@ -236,6 +236,7 @@ contract RealityCheck {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) payable returns (bytes32) {
 
         require(!questions[question_id].is_finalized);
+        require(msg.sender == questions[question_id].arbitrator); 
 
         // Answer should not exist yet. If it does, they should be using finalize()
         require(questions[question_id].answers[answer].bond == 0);
