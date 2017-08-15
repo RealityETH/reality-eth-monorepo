@@ -481,7 +481,7 @@ $('#post-question-submit').on('click', function(e){
     var question_body = $('#question-body');
     var reward = $('#question-reward');
     var step_delay = $('#step-delay');
-    var step_delay_val = step_delay.val() * 24 * 60 * 60;
+    var step_delay_val = step_delay.val();
     var arbitrator =$('#arbitrator');
     var question_type = $('#question-type');
     var answer_options = $('.answer-option');

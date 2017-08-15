@@ -988,13 +988,17 @@
                         <div class="select-container select-container--has-quick-help">
                             <select id="step-delay" name="step-delay" class="rcbrowser-select form-item">
                                 <option value="default">Step Delay</option>
-                                <option value="1">1 day</option>
-                                <option value="2" SELECTED>2 day</option>
-                                <option value="3">3 day</option>
-                                <option value="4">4 day</option>
-                                <option value="5">5 day</option>
-                                <option value="6">6 day</option>
-                                <option value="7">7 day</option>
+                                <option class="exceptional-option" value="180">3 minutes (for testing or use by bots)</option>
+                                <option value="3600">1 hour</option>
+                                <option value="10800">3 hours</option>
+                                <option value="43200">12 hours</option>
+                                <option value="86400" SELECTED>1 day</option>
+                                <option value="172800">2 days</option>
+                                <option value="259200">3 days</option>
+                                <option value="345600">4 days</option>
+                                <option value="432000">5 days</option>
+                                <option value="518400">6 days</option>
+                                <option value="604800">1 week</option>
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
