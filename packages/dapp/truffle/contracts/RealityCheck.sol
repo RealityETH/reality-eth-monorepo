@@ -10,6 +10,40 @@ contract ArbitratorAPI {
 
 contract RealityCheck {
 
+    // To make it hard for us to forget to set one of these, every non-constant function should specify:
+    //    actorArbitrator or //actorAnyone
+    //    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or //stateAny
+
+    modifier actorArbitrator(bytes32 question_id) {
+        require(msg.sender == questions[question_id].arbitrator);
+        _;
+    }
+
+    modifier stateOpen(bytes32 question_id) {
+        require(questions[question_id].last_changed_ts > 0); // Check existence
+        require(!questions[question_id].is_finalized);
+        require(!questions[question_id].is_arbitration_paid_for);
+        _;
+    }
+
+    modifier statePendingArbitration(bytes32 question_id) {
+        // require(questions[question_id].last_changed_ts > 0); Covered by is_finalized
+        require(!questions[question_id].is_finalized);
+        require(questions[question_id].is_arbitration_paid_for);
+        _;
+    }
+
+    modifier stateFinalized(bytes32 question_id) {
+        // require(questions[question_id].last_changed_ts > 0); Covered by is_finalized 
+        require(questions[question_id].is_finalized);
+        // require(questions[question_id].is_arbitration_paid_for); Covered by is_finalized
+        _;
+    }
+
+    modifier stateAny(bytes32 question_id) {
+        _;
+    }
+
     mapping (address => uint256) balances;
 
     event LogNewQuestion(
@@ -102,13 +136,15 @@ contract RealityCheck {
 
     mapping(bytes32 => Question) public questions;
 
-    // This isn't normally used, so to save gas don't normally assign space in the Question struct
+    // Arbitration requests should be unusual, so to save gas don't assign space in the Question struct
     mapping(bytes32 => uint256) public arbitration_bounties;
 
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
+        // actorAnyone
+        // stateNotCreated: See inline check below
     payable returns (bytes32) {
 
         bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
@@ -136,21 +172,20 @@ contract RealityCheck {
     }
 
     function getAnswer(bytes32 question_id, bytes32 answer) 
-    constant returns (address answerer, uint256 bond) 
-    {
+    constant returns (address answerer, uint256 bond) {
         return (questions[question_id].answers[answer].answerer, questions[question_id].answers[answer].bond); 
     }
 
     // Predict the ID for a given question
     function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-    constant returns (bytes32) 
-    {
+    constant returns (bytes32) {
         return keccak256(question_ipfs, arbitrator, step_delay);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
-        payable 
-    {
+        // actorAnyone(question_id)
+        stateAny(question_id)
+    payable {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
     }
@@ -176,14 +211,13 @@ contract RealityCheck {
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+        // actorAnyone(question_id)
+        stateOpen(question_id)
     payable returns (bytes32) {
-
-        require(!questions[question_id].is_finalized);
 
         uint256 remaining_val = msg.value;
         bytes32 old_best_answer = questions[question_id].best_answer;
 
-        require(!questions[question_id].is_arbitration_paid_for);
         require(msg.value > 0); 
 
         // Once the delay has passed you can no longer change it
@@ -242,10 +276,9 @@ contract RealityCheck {
     // Allows the arbitrator to submit the correct answer themselves
     // The arbitrator doesn't need to send a bond.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+        actorArbitrator(question_id)
+        //statePendingArbitration(question_id)
     payable returns (bytes32) {
-
-        require(!questions[question_id].is_finalized);
-        require(msg.sender == questions[question_id].arbitrator); 
 
         // Answer should not exist yet. If it does, they should be using finalize()
         require(questions[question_id].answers[answer].bond == 0);
@@ -295,6 +328,7 @@ contract RealityCheck {
         return (questions[question_id].last_changed_ts + questions[question_id].step_delay);
     }
 
+    // TODO: Remove this
     function finalize(bytes32 question_id) 
     {
 
@@ -314,7 +348,10 @@ contract RealityCheck {
 
     }
 
+    // TODO: Remove this
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer) 
+        actorArbitrator(question_id)
+        statePendingArbitration(question_id)
     {
 
         require(msg.sender == questions[question_id].arbitrator); 
@@ -338,10 +375,10 @@ contract RealityCheck {
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
     function claimBond(bytes32 question_id, bytes32 answer) 
+        // actorAnyone(question_id)
+        stateFinalized(question_id)
     {
 
-        require(questions[question_id].is_finalized);
-        
         bytes32 best_answer = questions[question_id].best_answer;
 
         // The bond goes to whoever had the correct answer
@@ -364,9 +401,9 @@ contract RealityCheck {
     }
 
     function claimBounty(bytes32 question_id) 
+        // actorAnyone(question_id) // Anyone can call this as it just reassigns the bounty, they don't withdraw it
+        stateFinalized(question_id)
     {
-
-        require(questions[question_id].is_finalized);
 
         bytes32 best_answer = questions[question_id].best_answer;
 
@@ -385,6 +422,8 @@ contract RealityCheck {
     // bond_answers are the answers you want to claim for
     // TODO: This could probably be more efficient, as some checks are being duplicated
     function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
+        // actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        // stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
     returns (bool withdrawal_completed) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -403,11 +442,10 @@ contract RealityCheck {
     }
 
     function fundAnswerBounty(bytes32 question_id) 
+        // actorAnyone(question_id)
+        stateOpen(question_id)
     payable {
-        require(questions[question_id].last_changed_ts > 0); 
-        require(!questions[question_id].is_finalized);
         questions[question_id].bounty += msg.value;
-
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
@@ -416,12 +454,11 @@ contract RealityCheck {
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
     function requestArbitration(bytes32 question_id) 
+        // actorAnyone(question_id)
+        stateOpen(question_id)
     payable returns (bool) {
 
         uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
-
-        require(questions[question_id].last_changed_ts > 0);
-        require(!questions[question_id].is_finalized);
 
         arbitration_bounties[question_id] += msg.value;
         uint256 paid = arbitration_bounties[question_id];
@@ -438,6 +475,8 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
+        // actorAnyone(question_id)
+        stateFinalized(question_id)
     returns (bool) {
 
         // By default we return false if there is no bounty, because it has probably already been taken.
@@ -446,7 +485,6 @@ contract RealityCheck {
             return false;
         }
 
-        require(questions[question_id].is_finalized);
         bytes32 best_answer = questions[question_id].best_answer;
 
         require(msg.gas >= gas);
@@ -471,6 +509,8 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) 
+        // actorAnyone: Only withdraws your own balance 
+        // stateAny: You can always withdraw your balance
     returns (bool success) {
         uint256 orig_bal = balances[msg.sender];
         require(orig_bal >= _value);
@@ -484,8 +524,8 @@ contract RealityCheck {
         return true;
     }
 
-    function balanceOf(address _owner) constant 
-    returns (uint256 balance) {
+    function balanceOf(address _owner) 
+    constant returns (uint256 balance) {
         return balances[_owner];
     }
 

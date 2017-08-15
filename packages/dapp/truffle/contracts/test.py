@@ -177,6 +177,11 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.arb0.finalizeByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), startgas=200000) 
 
+        # The arbitrator cannot submit an answer that has not been requested. 
+        # (If they really want to do this, they can always pay themselves for arbitration.)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
         self.c.mine()
         self.s = self.c.head_state
 
@@ -193,6 +198,8 @@ class TestRealityCheck(TestCase):
 
         self.c.mine()
         self.s = self.c.head_state
+
+        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
 
         self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
