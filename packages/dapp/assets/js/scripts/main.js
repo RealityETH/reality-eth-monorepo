@@ -967,7 +967,7 @@ function displayQuestionDetail(question_id) {
         $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
         timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
         showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
-    }
+    } 
 
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
@@ -1495,15 +1495,30 @@ function displayAnswerHistory(question_id) {
 function showFAButton(question_id, step_delay, answer_created) {
     var section_name = '#qadetail-' + question_id;
     if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
-        $(section_name).find('.final-answer-button').css('display', 'block');
-    }
+        RealityCheck.deployed().then(function(instance) {
+            var rc = instance;
+            return rc.questions.call(question_id);
+        }).then(function(cq) {
+            cq.unshift(question_id);
+            if (cq[Qi_is_finalized]) {
+                console.log(question_id, 'activating claim button');
+                $(section_name).find('.answer-claim-button').css('display', 'block');
+                $(section_name).find('.final-answer-button').css('display', 'none');
+            } else {
+                console.log(question_id, 'activating final anser button');
+                $(section_name).find('.final-answer-button').css('display', 'block');
+            }
+        });
+    } 
 
+    /*
     var id = setInterval(function(){
         if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
             $(section_name).find('.final-answer-button').css('display', 'block');
             clearInterval(id);
         }
     }, 15000);
+    */
 }
 
 $(document).on('click', '.final-answer-button', function(){
