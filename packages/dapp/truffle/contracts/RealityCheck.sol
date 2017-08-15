@@ -108,7 +108,8 @@ contract RealityCheck {
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
-    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) payable returns (bytes32) {
+    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
+    payable returns (bytes32) {
 
         bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
 
@@ -134,12 +135,16 @@ contract RealityCheck {
 
     }
 
-    function getAnswer(bytes32 question_id, bytes32 answer) public constant returns (address answerer, uint256 bond) {
+    function getAnswer(bytes32 question_id, bytes32 answer) 
+    constant returns (address answerer, uint256 bond) 
+    {
         return (questions[question_id].answers[answer].answerer, questions[question_id].answers[answer].bond); 
     }
 
     // Predict the ID for a given question
-    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) constant returns (bytes32) {
+    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
+    constant returns (bytes32) 
+    {
         return keccak256(question_ipfs, arbitrator, step_delay);
     }
 
@@ -152,7 +157,7 @@ contract RealityCheck {
 
     // TODO: Write tests for this
     function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) 
-    public constant returns (uint256) {
+    constant returns (uint256) {
         bytes32 old_best_answer = questions[question_id].best_answer;
         uint256 old_bond = questions[question_id].answers[old_best_answer].bond;
         address previous_answerer = questions[question_id].answers[answer].answerer;
