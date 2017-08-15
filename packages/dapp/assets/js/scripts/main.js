@@ -255,32 +255,6 @@ function setRcBrowserPosition(rcbrowser) {
     }
 })();
 
-// apply for arbitration
-(function() {
-    const arbitrationButtons = document.querySelectorAll('.arbitration-button');
-
-    function clickOpenHandler(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        metamask.addClass('is-open');
-
-        setTimeout(function() {
-            metamask.removeClass('is-open');
-            this.parentNode.innerHTML = '<div class="arbitration-button" style="color: #fff;">Applied for arbitration at Jonh Doe.</div>';
-            this.addClass('is-bounce');
-        }.bind(this), 3000);
-
-        setTimeout(function() {
-            this.removeClass('is-bounce');
-        }.bind(this), 5000);
-    }
-
-    for (let i = 0, len = arbitrationButtons.length; i < len; i += 1) {
-        arbitrationButtons[i].addEventListener('click', clickOpenHandler);
-    }
-})();
-
 // RCBrowser custom scrollbar
 (function() {
     const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
