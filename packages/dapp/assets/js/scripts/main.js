@@ -1392,9 +1392,9 @@ function renderUserQandA(question_id, action, entry) {
 
     var question_section;
     if (action == 'asked') {
-        question_section = $('#your-question-answer-window').find('.your-qa__questions');
+        question_section = $('#your-question-answer-window').find('.your-qa__questions .your-qa__questions-inner');
     } else if (action == 'answered') {
-        question_section = $('#your-question-answer-window').find('.your-qa__answers');
+        question_section = $('#your-question-answer-window').find('.your-qa__answers .your-qa__answers-inner');
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
