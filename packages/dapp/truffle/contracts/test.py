@@ -20,8 +20,7 @@ QINDEX_QUESTION_TEXT = 3
 QINDEX_BOUNTY = 4
 QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_IS_ARBITRATION_PAID_FOR = 6
-QINDEX_IS_FINALIZED = 7
-QINDEX_BEST_ANSWER_ID = 8
+QINDEX_BEST_ANSWER_ID = 7
 
 def ipfs_hex(txt):
     return sha256(txt).hexdigest()
@@ -112,16 +111,15 @@ class TestRealityCheck(TestCase):
         question = self.rc0.questions(self.question_id)
         self.assertEqual(question[QINDEX_BOUNTY], 1500)
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
-        # Finalize should fail if too soon (same time case)
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalize(self.question_id, startgas=200000)
+        # Should not be final if too soon
+        self.assertFalse(self.rc0.isFinalized(self.question_id, startgas=200000))
 
         self.s.timestamp = self.s.timestamp + 11
-        # Finalize should fail if there is no answer
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalize(self.question_id, startgas=200000)
+
+        # Should not be final if there is no answer
+        self.assertFalse(self.rc0.isFinalized(self.question_id, startgas=200000))
 
         return
 
@@ -131,14 +129,10 @@ class TestRealityCheck(TestCase):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id)
+        self.assertTrue(self.rc0.isFinalized(self.question_id, startgas=200000))
 
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
-        # You can only finalize once
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalize(self.question_id)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
@@ -160,7 +154,6 @@ class TestRealityCheck(TestCase):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), value=10) 
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id)
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 54321)
@@ -170,8 +163,8 @@ class TestRealityCheck(TestCase):
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
-        self.c.mine()
-        self.s = self.c.head_state
+        #self.c.mine()
+        #self.s = self.c.head_state
 
         # The arbitrator cannot finalize on an answer that has not been given yet
         with self.assertRaises(TransactionFailed):
@@ -182,27 +175,21 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
-        self.c.mine()
-        self.s = self.c.head_state
-
         # The arbitrator cannot submit an answer that has already been given
         with self.assertRaises(TransactionFailed):
             self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), startgas=200000) 
-
-        self.c.mine()
-        self.s = self.c.head_state
 
         # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
-        self.c.mine()
-        self.s = self.c.head_state
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
 
         self.assertTrue(self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
 
         self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
 
@@ -237,15 +224,21 @@ class TestRealityCheck(TestCase):
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=(22+5), sender=t.k5, startgas=200000) 
         self.assertEqual(earlier_owner_bal + (5*2), self.rc0.balanceOf(keys.privtoaddr(t.k4)), "After submitting an answer, the previous owner gets their bond * 2")
 
+        ts = self.s.timestamp
+
         self.c.mine()
         self.s = self.c.head_state
+
+        self.s.timestamp = ts
+
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
 
         #You can't claim the bond until the thing is finalized
         with self.assertRaises(TransactionFailed):
             self.rc0.claimBond(self.question_id, a22, startgas=200000)
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
+
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
 
         k5bal = 22
@@ -291,7 +284,6 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
 
         starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
@@ -314,7 +306,6 @@ class TestRealityCheck(TestCase):
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5) 
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id)
 
         self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
         self.rc0.claimBounty(self.question_id);        
@@ -337,10 +328,6 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3), startgas=200000 ), "Cumulatively sufficient, so return true")
         self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
-
-        # Once arbitration is requested, we can no longer make a normal finalize request
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalize(self.question_id, startgas=200000)
 
         # Finalize with the wrong user
         with self.assertRaises(TransactionFailed):
@@ -375,10 +362,6 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(self.rc0.balanceOf(self.arb0.address), 0)
 
-        # Once arbitration is requested, we can no longer make a normal finalize request
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalize(self.question_id, startgas=200000)
-
         # Finalize with the wrong user
         with self.assertRaises(TransactionFailed):
             self.rc0.finalizeByArbitrator(self.question_id, a10, startgas=200000)
@@ -402,7 +385,7 @@ class TestRealityCheck(TestCase):
 
         a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
+
         self.assertTrue(self.rc0.isFinalized(self.question_id))
 
         
@@ -429,7 +412,7 @@ class TestRealityCheck(TestCase):
 
         a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
+
         self.assertTrue(self.rc0.isFinalized(self.question_id))
 
         self.rc0.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
@@ -454,7 +437,7 @@ class TestRealityCheck(TestCase):
 
         a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id)
+
         self.assertTrue(self.rc0.isFinalized(self.question_id))
 
         self.rc0.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
@@ -476,7 +459,6 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         self.s.timestamp = self.s.timestamp + 11
-        self.rc0.finalize(self.question_id, startgas=200000)
 
         self.rc0.claimBounty(self.question_id, sender=t.k5, startgas=200000);
         self.rc0.claimBond(self.question_id, a1, sender=t.k5, startgas=200000)

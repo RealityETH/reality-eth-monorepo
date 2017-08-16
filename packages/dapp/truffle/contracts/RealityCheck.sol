@@ -20,23 +20,19 @@ contract RealityCheck {
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].last_changed_ts > 0); // Check existence
-        require(!questions[question_id].is_finalized);
-        require(!questions[question_id].is_arbitration_paid_for);
+        require(questions[question_id].finalization_ts > 0); // Check existence
+        require(!questions[question_id].is_arbitration_pending);
+        require(!isFinalized(question_id));
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        // require(questions[question_id].last_changed_ts > 0); Covered by is_finalized
-        require(!questions[question_id].is_finalized);
-        require(questions[question_id].is_arbitration_paid_for);
+        require(questions[question_id].is_arbitration_pending);
         _;
     }
 
     modifier stateFinalized(bytes32 question_id) {
-        // require(questions[question_id].last_changed_ts > 0); Covered by is_finalized 
-        require(questions[question_id].is_finalized);
-        // require(questions[question_id].is_arbitration_paid_for); Covered by is_finalized
+        require(isFinalized(question_id));
         _;
     }
 
@@ -119,7 +115,7 @@ contract RealityCheck {
     }
 
     struct Question {
-        uint256 last_changed_ts;
+        uint256 finalization_ts;
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
@@ -128,8 +124,7 @@ contract RealityCheck {
 
         // Mutable data
         uint256 bounty;
-        bool is_arbitration_paid_for;
-        bool is_finalized;
+        bool is_arbitration_pending;
         bytes32 best_answer;
         mapping(bytes32 => Answer) answers; // answer to answer ownership details
     }
@@ -151,7 +146,7 @@ contract RealityCheck {
 
         // Should not already exist
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
-        require(questions[question_id].last_changed_ts == 0);
+        require(questions[question_id].finalization_ts == 0);
 
         bytes32 NULL_BYTES;
         questions[question_id] = Question(
@@ -160,7 +155,6 @@ contract RealityCheck {
             step_delay,
             question_ipfs,
             msg.value,
-            false,
             false,
             NULL_BYTES 
         );
@@ -220,9 +214,6 @@ contract RealityCheck {
 
         require(msg.value > 0); 
 
-        // Once the delay has passed you can no longer change it
-        require( (questions[question_id].last_changed_ts + questions[question_id].step_delay) > now);
-
         address NULL_ADDRESS;
         address previous_answerer = questions[question_id].answers[answer].answerer;
         
@@ -257,7 +248,7 @@ contract RealityCheck {
         );
 
         questions[question_id].best_answer = answer;
-        questions[question_id].last_changed_ts = now;
+        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         LogNewAnswer(
             answer,
@@ -299,7 +290,7 @@ contract RealityCheck {
         );
 
         questions[question_id].best_answer = answer;
-        questions[question_id].last_changed_ts = now;
+        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         finalizeByArbitrator(question_id, answer);
         
@@ -307,62 +298,43 @@ contract RealityCheck {
 
     }
 
-    function getFinalAnswer(bytes32 question_id) 
-    constant returns (bytes32) {
-        require(questions[question_id].is_finalized);
-        return questions[question_id].best_answer;
+    function isFinalized(bytes32 question_id) 
+    returns (bool) {
+        if (questions[question_id].finalization_ts > now) {
+            return false;
+        }
+        if (questions[question_id].is_arbitration_pending) {
+            return false;
+        }
+        bytes32 best_answer = questions[question_id].best_answer;
+        address NULL_ADDRESS;
+        return (questions[question_id].answers[best_answer].answerer != NULL_ADDRESS); 
     }
 
-    function isFinalized(bytes32 question_id) 
-    constant returns (bool) {
-        return questions[question_id].is_finalized;
+    function getFinalAnswer(bytes32 question_id) 
+        stateFinalized(question_id)
+    returns (bytes32) {
+        return questions[question_id].best_answer;
     }
 
     function isArbitrationPaidFor(bytes32 question_id) 
     constant returns (bool) {
-        return questions[question_id].is_arbitration_paid_for;
+        return questions[question_id].is_arbitration_pending;
     }
 
     function getEarliestFinalizationTS(bytes32 question_id) 
     constant returns (uint256) {
-        return (questions[question_id].last_changed_ts + questions[question_id].step_delay);
+        return questions[question_id].finalization_ts;
     }
 
-    // TODO: Remove this
-    function finalize(bytes32 question_id) 
-    {
-
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        address NULL_ADDRESS;
-        require(questions[question_id].answers[best_answer].answerer != NULL_ADDRESS);
-        
-        require(!questions[question_id].is_finalized);
-
-        require(now >= (questions[question_id].last_changed_ts + questions[question_id].step_delay) );
-        require(!questions[question_id].is_arbitration_paid_for);
-
-        questions[question_id].is_finalized = true;
-
-        LogFinalize(question_id, best_answer);
-
-    }
-
-    // TODO: Remove this
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
     {
 
-        require(msg.sender == questions[question_id].arbitrator); 
-        require(!questions[question_id].is_finalized);
-
-        // The answer must exist. If it doesn't, use submitAnswerByArbitrator()
-        address NULL_ADDRESS;
-        require(questions[question_id].answers[answer].answerer != NULL_ADDRESS);
-
         questions[question_id].best_answer = answer;
-        questions[question_id].is_finalized = true;
+        questions[question_id].is_arbitration_pending = false;
+        questions[question_id].finalization_ts = now;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
         delete arbitration_bounties[question_id];
@@ -464,7 +436,7 @@ contract RealityCheck {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            questions[question_id].is_arbitration_paid_for = true;
+            questions[question_id].is_arbitration_pending = true;
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
@@ -527,16 +499,6 @@ contract RealityCheck {
     function balanceOf(address _owner) 
     constant returns (uint256 balance) {
         return balances[_owner];
-    }
-
-    function isFinalized1(bytes32 question_id) 
-    returns (bool) {
-        return questions[question_id].is_finalized;
-    }
-
-    function isFinalized2(bytes32 question_id) 
-    returns (bool) {
-        return (!questions[question_id].is_arbitration_paid_for && ((questions[question_id].last_changed_ts + questions[question_id].step_delay) > now) );
     }
 
 } 
