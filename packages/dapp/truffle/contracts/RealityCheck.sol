@@ -174,7 +174,9 @@ contract RealityCheck {
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
         //actorAnyone(question_id)
-        //stateAny(question_id)
+        //stateAny(question_id) 
+        // You can make a callback request before question registration, or repeat a previous one
+        // If your calling contract expects only one, it should handle the duplication check itself.
     payable {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
@@ -183,8 +185,12 @@ contract RealityCheck {
     // TODO: Write tests for this
     function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) 
     constant returns (uint256) {
+
+        // The bond we have to beat
         bytes32 old_best_answer = questions[question_id].best_answer;
         uint256 old_bond = questions[question_id].answers[old_best_answer].bond;
+
+        // The address that previously gave the answer you intend to give
         address previous_answerer = questions[question_id].answers[answer].answerer;
 
         address NULL_ADDRESS;
