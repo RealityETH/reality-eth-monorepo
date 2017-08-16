@@ -146,7 +146,7 @@ contract RealityCheck {
 
         bytes32 NULL_BYTES;
         questions[question_id] = Question(
-            now,
+            now + step_delay,
             arbitrator,
             step_delay,
             question_ipfs,

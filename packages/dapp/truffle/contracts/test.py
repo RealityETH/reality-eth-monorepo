@@ -13,7 +13,7 @@ import os
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
-QINDEX_ID = 0
+QINDEX_FINALIZATION_TS = 0
 QINDEX_ARBITRATOR = 1
 QINDEX_STEP_DELAY = 2
 QINDEX_QUESTION_TEXT = 3
@@ -77,7 +77,7 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(int(question[QINDEX_ID]), int(ts))
+        self.assertEqual(int(question[QINDEX_FINALIZATION_TS]), int(ts+10))
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)
