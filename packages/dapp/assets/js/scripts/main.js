@@ -27,7 +27,7 @@ const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
-const Qi_is_arbitration_paid_for = 6;
+const Qi_is_arbitration_due = 6;
 const Qi_best_answer = 7;
 const Qi_question_json = 8; // We add this manually after we load the ipfs data
 
@@ -454,6 +454,53 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
+$(document).on('click', '.answer-claim-button', function(){
+    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
+    var answer;
+    var rc;
+    console.log('answer-claim-button clicked for question');
+    RealityCheck.deployed().then(function (instance) {
+        rc = instance;
+        return rc.questions.call(question_id);
+    }).then(function(qdata){
+        qdata.unshift(question_id);
+        if (qdata[Qi_finalization_ts].toNumber() * 1000 > new Date().getDate()) {
+            console.log(question_id, 'error: not yet finalized');
+        } else if (qdata[Qi_is_arbitration_due]) {
+            console.log(question_id, 'arbitration ');
+        }
+        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
+    }).then(function (answer_logs) {
+        // We don't bother re-checking if we really got the right answer, if not nothing too bad happens
+        answer_logs.get(function(error, answers) {
+            if (error === null && typeof answers !== 'undefined') { 
+                var bounty_question_ids = [question_id];
+                var bond_question_ids = [];
+                var bond_answers = [];
+                if (error === null && typeof answers !== 'undefined') {
+                    for (var i in answers) {
+                        var answer = answers[i].args['answer'];
+                        var answerer = answers[i].args['answerer'];
+                        var bond = answers[i].args['bond'];
+                        if (bond > 0) {
+                            bond_question_ids.push(question_id);
+                            bond_answers.push(answer);
+                        }
+                    }
+                    console.log('claimMultipleAndWithdrawBalance', bounty_question_ids, bond_question_ids, bond_answers);
+                    rc.claimMultipleAndWithdrawBalance(bounty_question_ids, bond_question_ids, bond_answers, {from: account}).then(function(claim_result){
+                        console.log('claim result', claim_result);
+                    });
+                } else {
+                    console.log(error);
+                }
+            } else {
+console.log('log get fail', error, answers);
+            }
+        });
+    });
+});
+
 function validate() {
     var valid = true;
 
@@ -612,8 +659,8 @@ function populateSection(section_name, question_data, before_item) {
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
-    var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
-    var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) > new Date().getTime() ) && question_data[Qi_is_arbitration_paid_for] );
+    var is_arbitration_paid_for = question_data[Qi_is_arbitration_due];
+    var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
     var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
@@ -662,7 +709,7 @@ function handleQuestionLog(item, rc) {
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
-        var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) > new Date().getTime() ) && question_data[Qi_is_arbitration_paid_for] );
+        var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
@@ -888,7 +935,7 @@ function displayQuestionDetail(question_id) {
 
     var question_detail = question_detail_list[question_id];
     //console.log('question_id', question_id);
-    var is_arbitration_requested = question_detail[Qi_is_arbitration_paid_for];
+    var is_arbitration_requested = question_detail[Qi_is_arbitration_due];
     var idx = question_detail['history'].length - 1;
     var question_json = question_detail[Qi_question_json];
 
@@ -931,6 +978,11 @@ function displayQuestionDetail(question_id) {
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
         ans_data.find('.answerer').text(latest_answer.answerer);
+        if (latest_answer.answerer == account) {
+            ans_data.addClass('current-account');
+        } else {
+            ans_data.removeClass('current-account');
+        }
         ans_data.find('.answer-bond-value').text(latest_answer.bond);
 
         // label for show the current answer.
@@ -941,7 +993,7 @@ function displayQuestionDetail(question_id) {
     }
 
     // Arbitrator
-    if (!question_detail[Qi_is_arbitration_paid_for]) {
+    if (!question_detail[Qi_is_arbitration_due]) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
@@ -965,7 +1017,7 @@ function displayQuestionDetail(question_id) {
     if (question_detail['history'].length) {
         $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
         timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
-        showFAButton(question_id, question_detail[Qi_step_delay], latest_answer.ts);
+        updateQuestionState(question_id, question_detail[Qi_step_delay], latest_answer.ts);
     } 
 
     rcqa.css('display', 'block');
@@ -1332,7 +1384,7 @@ function renderUserQandA(question_id, action, entry) {
         qitem.attr('data-block-time', result.timestamp);
         qitem.removeClass('template-item');
         insertQAItem(question_id, qitem, question_section, result.timestamp);
-        var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) > new Date().getTime() ) && qdata[Qi_is_arbitration_paid_for] );
+        var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
         rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
     });
 
@@ -1366,7 +1418,7 @@ function rewriteQuestionDetail(question_id) {
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
     // show final answer button
-    showFAButton(question_id, question_data[Qi_step_delay], answer_data.args.ts);
+    updateQuestionState(question_id, question_data[Qi_step_delay], answer_data.args.ts);
 
     var ans_data = $(section_name).find('.current-answer-container').find('.answer-data');
     ans_data.find('.answerer').text(answer_data.args.answerer);
@@ -1492,25 +1544,27 @@ function displayAnswerHistory(question_id) {
 }
 
 // show final answer button
-function showFAButton(question_id, step_delay, answer_created) {
+// TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
+function updateQuestionState(question_id, step_delay, answer_created) {
     var section_name = '#qadetail-' + question_id;
-    if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
-        RealityCheck.deployed().then(function(instance) {
-            var rc = instance;
-            return rc.questions.call(question_id);
-        }).then(function(cq) {
-            cq.unshift(question_id);
-            var is_finalized = ( ( (cq[Qi_finalization_ts] * 1000) > new Date().getTime() ) && [Qi_is_arbitration_paid_for] );
-            if (is_finalized) {
-                console.log(question_id, 'activating claim button');
-                $(section_name).find('.answer-claim-button').css('display', 'block');
-                $(section_name).find('.final-answer-button').css('display', 'none');
+    RealityCheck.deployed().then(function(instance) {
+        var rc = instance;
+        return rc.questions.call(question_id);
+    }).then(function(cq) {
+        cq.unshift(question_id);
+        $(section_name).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+        timeAgo.render($(section_name).find('.answer-deadline.timeago'));
+
+        if (cq['Qi_is_arbitration_due']) {
+            $(section_name).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+        } else {
+            if ( (cq[Qi_finalization_ts].toNumber() * 1000) > new Date().getTime() ) {
+                $(section_name).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
             } else {
-                console.log(question_id, 'activating final anser button');
-                $(section_name).find('.final-answer-button').css('display', 'block');
+                $(section_name).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
             }
-        });
-    } 
+        }
+    });
 
     /*
     var id = setInterval(function(){
@@ -1733,7 +1787,7 @@ $(document).on('click', '.arbitrator', function(e) {
     }
 
     var arbitration_fee;
-    //if (!question_detail[Qi_is_arbitration_paid_for]) {}
+    //if (!question_detail[Qi_is_arbitration_due]) {}
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {

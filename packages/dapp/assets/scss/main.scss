@@ -1985,4 +1985,12 @@ input:placeholder-shown {
 div.notifications-template-container {display:none}
 
 option.exceptional-option {font-style: italic}
+
+
+.answer-claim-button {display:none}
+div.rcbrowser--qa-detail.question-state-finalized .answer-claim-button {display:block !important}
+div.rcbrowser--qa-detail.question-state-finalized .answer-form-container{display:none !important}
+div.rcbrowser--qa-detail.question-state-pending-arbitration.answer-form-container{display:none !important}
  
+div.rcbrowser--qa-detail.question-state-finalized .arbitration-button{display:none}
+div.rcbrowser--qa-detail.question-state-pending-arbitration .arbitration-button{display:none}
