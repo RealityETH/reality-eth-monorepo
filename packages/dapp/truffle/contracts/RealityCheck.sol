@@ -36,10 +36,6 @@ contract RealityCheck {
         _;
     }
 
-    modifier stateAny(bytes32 question_id) {
-        _;
-    }
-
     mapping (address => uint256) balances;
 
     event LogNewQuestion(
@@ -144,7 +140,7 @@ contract RealityCheck {
 
         bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
 
-        // Should not already exist
+        // Should not already exist (equivalent to stateNotCreated)
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].finalization_ts == 0);
 
@@ -177,8 +173,8 @@ contract RealityCheck {
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
-        // actorAnyone(question_id)
-        stateAny(question_id)
+        //actorAnyone(question_id)
+        //stateAny(question_id)
     payable {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
@@ -205,7 +201,7 @@ contract RealityCheck {
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
-        // actorAnyone(question_id)
+        //actorAnyone(question_id)
         stateOpen(question_id)
     payable returns (bytes32) {
 
@@ -231,7 +227,7 @@ contract RealityCheck {
             // Their previous bond and answerer record will then be over-written with new answerer and their remaining value
 
             uint256 previous_bond = questions[question_id].answers[answer].bond;
-            remaining_val = remaining_val - previous_bond;
+            remaining_val -= previous_bond;
 
             // The previous answerer ends up with twice their bond.
             // Half comes from the new answerer, half is their original bond back
@@ -242,6 +238,7 @@ contract RealityCheck {
         // You have to double the bond every time
         require(remaining_val >= (questions[question_id].answers[old_best_answer].bond * 2));
 
+        // If the previous answer already exists it will be overwritten, replacing its value with the new value
         questions[question_id].answers[answer] = Answer(
             msg.sender,
             remaining_val
@@ -268,16 +265,16 @@ contract RealityCheck {
     // The arbitrator doesn't need to send a bond.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
         actorArbitrator(question_id)
-        //statePendingArbitration(question_id)
-    payable returns (bytes32) {
+        statePendingArbitration(question_id)
+    returns (bytes32) {
 
         // Answer should not exist yet. If it does, they should be using finalize()
-        require(questions[question_id].answers[answer].bond == 0);
+        address NULL_ADDRESS;
+        require(questions[question_id].answers[answer].answerer == NULL_ADDRESS);
 
-        uint256 remaining_val = msg.value;
         questions[question_id].answers[answer] = Answer(
             msg.sender,
-            remaining_val
+            0 
         );
 
         LogNewAnswer(
@@ -290,7 +287,6 @@ contract RealityCheck {
         );
 
         questions[question_id].best_answer = answer;
-        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         finalizeByArbitrator(question_id, answer);
         
@@ -394,8 +390,8 @@ contract RealityCheck {
     // bond_answers are the answers you want to claim for
     // TODO: This could probably be more efficient, as some checks are being duplicated
     function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
-        // actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        // stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+        //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
     returns (bool withdrawal_completed) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -481,8 +477,8 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) 
-        // actorAnyone: Only withdraws your own balance 
-        // stateAny: You can always withdraw your balance
+        //actorAnyone: Only withdraws your own balance 
+        //stateAny: You can always withdraw your balance
     returns (bool success) {
         uint256 orig_bal = balances[msg.sender];
         require(orig_bal >= _value);
