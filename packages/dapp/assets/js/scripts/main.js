@@ -22,15 +22,14 @@ var timeAgo = new timeago();
 
 // Question, as returned by questions()
 const Qi_question_id = 0;
-const Qi_created = 1; // TODO: This is really last_changed_ts
+const Qi_finalization_ts = 1; // TODO: This is really last_changed_ts
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_is_arbitration_paid_for = 6;
-const Qi_is_finalized = 7;
-const Qi_best_answer = 8;
-const Qi_question_json = 9; // We add this manually after we load the ipfs data
+const Qi_best_answer = 7;
+const Qi_question_json = 8; // We add this manually after we load the ipfs data
 
 // Answer, as returned by answers()
 const Ai_answer_id = 0;
@@ -609,12 +608,12 @@ function populateSection(section_name, question_data, before_item) {
         }
     }
 
-    var posted_ts = question_data[Qi_created];
+    var posted_ts = question_data[Qi_finalization_ts];
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
     var is_arbitration_paid_for = question_data[Qi_is_arbitration_paid_for];
-    var is_finalized = question_data[Qi_is_finalized];
+    var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) > new Date().getTime() ) && question_data[Qi_is_arbitration_paid_for] );
     var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
@@ -663,7 +662,7 @@ function handleQuestionLog(item, rc) {
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
-        var is_finalized = question_data[Qi_is_finalized];
+        var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) > new Date().getTime() ) && question_data[Qi_is_arbitration_paid_for] );
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
@@ -918,7 +917,7 @@ function displayQuestionDetail(question_id) {
     rcqa.removeClass('template-item');
 
     let date = new Date();
-    date.setTime(question_detail[Qi_created] * 1000);
+    date.setTime(question_detail[Qi_finalization_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
@@ -1333,7 +1332,8 @@ function renderUserQandA(question_id, action, entry) {
         qitem.attr('data-block-time', result.timestamp);
         qitem.removeClass('template-item');
         insertQAItem(question_id, qitem, question_section, result.timestamp);
-        rewriteAnswerOfQAItem(question_id, answer_history, question_json, qdata[Qi_is_finalized]);
+        var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) > new Date().getTime() ) && qdata[Qi_is_arbitration_paid_for] );
+        rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
     });
 
     var updateBlockTimestamp = function (ts) {
@@ -1500,7 +1500,8 @@ function showFAButton(question_id, step_delay, answer_created) {
             return rc.questions.call(question_id);
         }).then(function(cq) {
             cq.unshift(question_id);
-            if (cq[Qi_is_finalized]) {
+            var is_finalized = ( ( (cq[Qi_finalization_ts] * 1000) > new Date().getTime() ) && [Qi_is_arbitration_paid_for] );
+            if (is_finalized) {
                 console.log(question_id, 'activating claim button');
                 $(section_name).find('.answer-claim-button').css('display', 'block');
                 $(section_name).find('.final-answer-button').css('display', 'none');
