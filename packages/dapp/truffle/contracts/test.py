@@ -77,7 +77,7 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(int(question[QINDEX_FINALIZATION_TS]), int(ts+10))
+        self.assertEqual(int(question[QINDEX_FINALIZATION_TS]), 0)
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)

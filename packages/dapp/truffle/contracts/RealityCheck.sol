@@ -20,7 +20,7 @@ contract RealityCheck {
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].finalization_ts > 0); // Check existence
+        require(questions[question_id].step_delay > 0); // Check existence
         require(!questions[question_id].is_arbitration_pending);
         require(!isFinalized(question_id));
         _;
@@ -138,15 +138,18 @@ contract RealityCheck {
         // stateNotCreated: See inline check below
     payable returns (bytes32) {
 
+        // A step delay of 0 makes no sense, and we will use this to check existence
+        require(step_delay > 0); 
+
         bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
 
         // Should not already exist (equivalent to stateNotCreated)
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
-        require(questions[question_id].finalization_ts == 0);
+        require(questions[question_id].step_delay ==  0); // Check existence
 
         bytes32 NULL_BYTES;
         questions[question_id] = Question(
-            now + step_delay,
+            0,
             arbitrator,
             step_delay,
             question_ipfs,
@@ -296,15 +299,8 @@ contract RealityCheck {
 
     function isFinalized(bytes32 question_id) 
     returns (bool) {
-        if (questions[question_id].finalization_ts > now) {
-            return false;
-        }
-        if (questions[question_id].is_arbitration_pending) {
-            return false;
-        }
-        bytes32 best_answer = questions[question_id].best_answer;
-        address NULL_ADDRESS;
-        return (questions[question_id].answers[best_answer].answerer != NULL_ADDRESS); 
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        return ( (finalization_ts > 0) && (finalization_ts < now) && (!questions[question_id].is_arbitration_pending) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
@@ -330,7 +326,9 @@ contract RealityCheck {
 
         questions[question_id].best_answer = answer;
         questions[question_id].is_arbitration_pending = false;
-        questions[question_id].finalization_ts = now;
+
+        // Set this to 1 second ago so that "did we finalize" checks will immediately pass
+        questions[question_id].finalization_ts = now - 1;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
         delete arbitration_bounties[question_id];
