@@ -1192,7 +1192,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, block_nu
     } else {
         for (var i = 0; i < notification_item.length; i++) {
             var inserted = false;
-            if (notification_item[i].getAttribute('data-block-number') >= timestamp) {
+            if (notification_item[i].getAttribute('data-block-number') <= block_number) {
                 var id = notification_item[i].getAttribute('data-notification-id');
                 $('#your-question-answer-window').find('.notifications-item[data-notification-id=' + id + ']').before(item_to_insert);
                 inserted = true;
