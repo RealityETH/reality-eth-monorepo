@@ -17,6 +17,20 @@ var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 
+const EVENT_ACTOR_ARGS = {
+    'LogNewQuestion': 'questioner',
+    'LogNewAnswer': 'answerer',
+    'LogFundAnswerBounty': 'funder',
+    'LogRequestArbitration': 'requester',
+    'LogClaimBounty': 'receiver',
+    'LogClaimBond': 'receiver',
+    'LogFundCallbackRequest': 'caller',
+    'LogSendCallback': 'caller',
+};
+
+// Assume we get logs from the server from earlier than this
+const START_BLOCK = 0;
+
 // Struct array offsets
 // Assumes we unshift the ID onto the start
 
@@ -27,26 +41,19 @@ const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
-const Qi_is_arbitration_due = 6;
-const Qi_best_answer = 7;
-const Qi_question_json = 8; // We add this manually after we load the ipfs data
+const Qi_best_answer = 6;
+const Qi_question_json = 7; // We add this manually after we load the ipfs data
+const Qi_creation_ts = 8; // We add this manually from the event log
 
-// Answer, as returned by answers()
-const Ai_answer_id = 0;
-const Ai_question_id = 1;
-const Ai_answer = 2;
-const Ai_answerer = 3;
-const Ai_bond = 4;
-const Ai_ts = 5;
-const Ai_evidence = 6;
-
-// BigNumber
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
 const MAX_NUMBER = (2 ** 256 / 1000000000000) / 2;
 const ONE_ETH = 1000000000000000000;
 
 var block_timestamp_cache = {};
+
+// Array of all questions that the user is interested in
+var q_min_activity_blocks = {};
 
 // These will be populated in onload, once web3 is loaded
 var RealityCheck;
@@ -454,6 +461,16 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
+function isArbitrationDue(question) {
+    // finalization_ts has a magical timestamp of 1 meaning pending arbitration
+    return (question[Qi_finalization_ts].toNumber() == 1);
+}
+
+function isFinalized(question) {
+    var fin = question[Qi_finalization_ts].toNumber() 
+    return ( (fin > 1) && (fin * 1000 < new Date().getDate()) );  
+}
+
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
     var answer;
@@ -464,12 +481,10 @@ $(document).on('click', '.answer-claim-button', function(){
         return rc.questions.call(question_id);
     }).then(function(qdata){
         qdata.unshift(question_id);
-        if (qdata[Qi_finalization_ts].toNumber() * 1000 > new Date().getDate()) {
+        if (!isFinalized(qdata)) {
             console.log(question_id, 'error: not yet finalized');
-        } else if (qdata[Qi_is_arbitration_due]) {
-            console.log(question_id, 'arbitration ');
         }
-        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
+        return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
     }).then(function (answer_logs) {
         // We don't bother re-checking if we really got the right answer, if not nothing too bad happens
         answer_logs.get(function(error, answers) {
@@ -579,7 +594,44 @@ $('div.loadmore-button').on('click', function(e) {
 
 });
 
-function handleUserAction(action, entry, rc) {
+// This gets called when we discover an event related to the user.
+// We may or may not have already seen this event.
+// We may or may not have known that the event was related to the user already.
+// We may or may not have fetched information about the question.
+function handleUserAction(entry, rc) {
+   
+    if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
+        console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
+        return;
+    }
+
+    // This is the same for all events
+    var question_id = entry.args['question_id'];
+
+    // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
+    // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
+    // TODO: The filter could be tigher on the case where we already knew we had it, but we didn't know how soon the user was interested in it
+    if ( ( !q_min_activity_blocks[question_id]) || (entry.blockNumber < q_min_activity_blocks[question_id]) ) {
+        // Event doesn't, in itself, have anything to show we are interested in it
+        // NB we may be interested in it later if some other event shows that we should be interested in this question.
+        if (!isForCurrentUser(entry)) {
+            console.log('entry', entry, 'not interesting to account', account);
+            return;
+        }
+        q_min_activity_blocks[question_id] = entry.blockNumber;
+        var all_evts = rc.allEvents({question_id: question_id});
+        all_evts.get(function(error, evts) {
+            if (error === null && typeof evts !== 'undefined') {
+                for(var i=0; i<evts.length; i++) {
+                    handleUserAction(evts[i], rc);
+                }
+            } else {
+                console.log('error getting all_evts', error);
+            }
+        });
+        return; 
+    }
+
     if (window.localStorage) {
         var lastViewedBlockNumber = 0;
         if (window.localStorage.getItem('viewedBlockNumber')) {
@@ -592,36 +644,72 @@ function handleUserAction(action, entry, rc) {
         }
     }
 
+ 
     // If we have already viewed the question, it should be loaded in the question_detail_list array
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
 
-    var question_id = entry.args['question_id'];
     var current_question;
 
-    if (question_detail_list[question_id]) {
-        renderUserAction(question_id, action, entry, rc);
-    } else {
-        rc.questions.call(question_id).then(function(result){
-            current_question = result;
-            current_question.unshift(question_id);
-            var question_json_ipfs = current_question[Qi_question_ipfs];
-            return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-        }).then(function (res) {
-            current_question[Qi_question_json] = parseQuestionJSON(res.toString());
-            return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'})
-        }).then(function(answer_logs) {
-            answer_logs.get(function(error, answers) {
-                if (error === null && typeof answers !== 'undefined') {
-                    question_detail_list[question_id] = current_question;
-                    question_detail_list[question_id]['history'] = answers;
-                    renderUserAction(question_id, action, entry, rc);
-                } else {
-                    console.log(error);
-                }
+    populateQuestionDetail(question_id, rc).then(function(question) {
+        renderUserAction(question, entry, rc);
+    });
+
+}
+
+// question_log is optional, pass it in when we already have it
+function populateQuestionDetail(question_id, rc, question_log) {
+
+    return new Promise((resolve, reject)=>{
+        if (question_detail_list[question_id]) {
+            resolve(question_detail_list[question_id]);
+        } else {
+            var current_question;
+            rc.questions.call(question_id).then(function(result){
+                current_question = result;
+                current_question.unshift(question_id);
+                var question_json_ipfs = current_question[Qi_question_ipfs];
+                return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
+            }).then(function (res) {
+                current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+                return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
+            // TODO: Update this in real time as the answers come in
+            }).then(function(answer_logs) {
+                answer_logs.get(function(error, answers) {
+                    if (error === null && typeof answers !== 'undefined') {
+                        // We need the question log for the creation datetime
+                        // Often we are populating in response to a question log event, so we had it passed in
+                        // If we didn't, grab it before we return
+                        if (question_log) {
+                            current_question[Qi_creation_ts] = question_log.args['created'];
+                            question_detail_list[question_id] = current_question;
+                            question_detail_list[question_id]['history'] = answers;
+                            resolve(question_detail_list[question_id]);
+                        } else {
+                            var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+                            question_logs.get(function(error, question_arr) {
+                                if (error || question_arr.length != 1) {
+                                    reject(error);
+                                } else {
+                                    current_question[Qi_creation_ts] = question_arr[0].args['created'];
+                                    question_detail_list[question_id] = current_question;
+                                    question_detail_list[question_id]['history'] = answers;
+                                    resolve(question_detail_list[question_id]);
+                                }
+                            });
+                        }
+                    } else {
+                        reject(error);
+                    }
+                });
             });
-        });
-    }
+        }
+    });
+
+}
+
+// TODO: Fire this on a timer, and also on the withdrawal event
+function updateUserBalanceDisplay() {
 
     web3.eth.getBalance(account, function(error, result){
         if (error === null) {
@@ -631,6 +719,7 @@ function handleUserAction(action, entry, rc) {
     });
 
 }
+
 
 function populateSection(section_name, question_data, before_item) {
     var question_id = question_data[Qi_question_id];
@@ -655,12 +744,12 @@ function populateSection(section_name, question_data, before_item) {
         }
     }
 
-    var posted_ts = question_data[Qi_finalization_ts];
+    var posted_ts = question_data[Qi_creation_ts];
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
-    var is_arbitration_paid_for = question_data[Qi_is_arbitration_due];
-    var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
+    var is_arbitration_paid_for = isArbitrationDue(question_data);
+    var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
@@ -695,12 +784,14 @@ function populateSection(section_name, question_data, before_item) {
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
+    console.log('created is ', created, 'for quid', question_id);
     var question_data;
 
     rc.questions.call(question_id).then( function(qdata) {
         //console.log('here is result', question_data, question_id)
         question_data = qdata;
         question_data.unshift(question_id);
+        question_data[Qi_creation_ts] = created;
         var question_json_ipfs = question_data[Qi_question_ipfs];
         return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function (res) {
@@ -709,26 +800,27 @@ function handleQuestionLog(item, rc) {
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
-        var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
+        var is_finalized = isFinalized(question_data);
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
             var insert_before = update_ranking_data('questions-resolved', question_id, created);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // TODO: If we include this we have to handle the history too
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-resolved', question_data, insert_before);
             }
 
         } else {
             var insert_before = update_ranking_data('questions-latest', question_id, created);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
             }
 
             var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
             }
 //console.log(display_entries);
@@ -868,40 +960,17 @@ function openQuestionWindow(question_id) {
     var rc;
     var current_question;
 
-    // TODO: We should probably already have all this data 
-    // ...from when we generated the link to display it
-    // So we can probably just load it from question_detail_list
-    
-    RealityCheck.deployed().then(function(instance){
+    RealityCheck.deployed().then(function(instance) {
         rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(result){
-        current_question = result;
-        current_question.unshift(question_id);
-        var question_json_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-    }).then(function(ipfs_result){
-        //console.log('promise has ipfs_result', ipfs_result);
-        current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
-        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:0, toBlock:'latest'});
-    }).then(function(answer_posted){
-        answer_posted.get(function(error, answers){
-            if (error === null && typeof answers !== 'undefined') {
-                question_detail_list[question_id] = current_question;
-                question_detail_list[question_id]['history'] = answers;
+        return populateQuestionDetail(question_id, rc);
+    }).then(function(question) {
+        var answers = question['history'];
+        for(var i=0; i<answers.length; i++) {
+            handleUserAction(answers[i], rc);
+        }
 
-                for(var i=0; i<answers.length; i++) {
-                    if (answers[i].args['answerer'] == account) {
-                        handleUserAction('answered', answers[i], rc);
-                    }
-                }
-
-                displayQuestionDetail(question_id);
-                displayAnswerHistory(question_id);
-            } else {
-                console.log(error);
-            }
-        });
+        displayQuestionDetail(question);
+        displayAnswerHistory(question);
     });
     /*
     .catch(function(e){
@@ -931,11 +1000,11 @@ function parseQuestionJSON(data) {
 
 }
 
-function displayQuestionDetail(question_id) {
+function displayQuestionDetail(question_detail) {
 
-    var question_detail = question_detail_list[question_id];
+    var question_id = question_detail[Qi_question_id];
     //console.log('question_id', question_id);
-    var is_arbitration_requested = question_detail[Qi_is_arbitration_due];
+    var is_arbitration_requested = isArbitrationDue(question_detail);
     var idx = question_detail['history'].length - 1;
     var question_json = question_detail[Qi_question_json];
 
@@ -964,7 +1033,7 @@ function displayQuestionDetail(question_id) {
     rcqa.removeClass('template-item');
 
     let date = new Date();
-    date.setTime(question_detail[Qi_finalization_ts] * 1000);
+    date.setTime(question_detail[Qi_creation_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
@@ -993,7 +1062,7 @@ function displayQuestionDetail(question_id) {
     }
 
     // Arbitrator
-    if (!question_detail[Qi_is_arbitration_due]) {
+    if (!isArbitrationDue(question_detail) && !isFinalized(question_detail)) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
@@ -1027,6 +1096,9 @@ function displayQuestionDetail(question_id) {
     setRcBrowserPosition(rcqa);
     Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
 
+    // TODO: We already have a watch running on all new answers
+    // Can we move this handling to the one that was going to happen anyhow?
+
     var rc;
     RealityCheck.deployed().then(function(instance){
         rc = instance;
@@ -1036,7 +1108,7 @@ function displayQuestionDetail(question_id) {
             if (!error && result !== undefined) {
                 question_detail_list[question_id][Qi_best_answer] = result.args.answer;
                 pushWatchedAnswer(result);
-                rewriteQuestionDetail(question_id);
+                rewriteQuestionDetail(question_detail_list[question_id]);
             }
         });
     });
@@ -1048,45 +1120,34 @@ function displayQuestionDetail(question_id) {
 
 }
 
-function populateWithBlockTimeForBlockNumber1(notification_id, num, action, entry) {
-    /*
+/*
+Finds any item with timeago and the given block number
+Fetches the timestamp for the block if not already cached
+Populates the timestamp attribute
+Calls timeago.render() on it
+*/
+function renderBlockTimeAgo(item, num) {
+
+    function applyTimestamp(i, ts) {
+        i.find('.timeago').attr('datetime', convertTsToString(ts));
+        timeAgo.render(i.find('.timeago'));
+    }
+
     if (block_timestamp_cache[num]) {
-        return block_timestamp_cache[num];
+        applyTimestamp(item, block_timestamp_cache[num]);
     } else {
-    */
-    //console.log('getting block for num', num, entry);
         web3.eth.getBlock(num, function(err, result) {
-            //console.log('getBlock', num, err, result);
             if (err || !result) {
+                console.log('getBlock err', err, result);
                 return;
             }
-            block_timestamp_cache[num] = result.timestamp;
-
-            let section_name;
-            switch (action) {
-                case 'asked':
-                     section_name = 'div[data-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'answered':
-                    section_name = 'div[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
-                    break;
-                case 'funded':
-                    section_name = 'div[data-funded-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'arbitration-requested':
-                    section_name = 'div[data-arbitration-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'finalized':
-                    section_name = 'div[data-finalized-question-id=' + entry.args.question_id + ']';
-                    break;
-            }
-            $('div#your-question-answer-window').find(section_name).find('.timeago').attr('datetime',  convertTsToString(result.timestamp));
-            timeAgo.render($('div#your-question-answer-window').find(section_name).find('.timeago'));
+            block_timestamp_cache[num] = result.timestamp
+            applyTimestamp(item, result.timestamp);
         });
-    /*
     }
-    */
+
 }
+
 
 function populateWithBlockTimeForBlockNumber2(num, callback) {
     if (block_timestamp_cache[num]) {
@@ -1102,18 +1163,23 @@ function populateWithBlockTimeForBlockNumber2(num, callback) {
     }
 }
 
-// Data should already be stored in question_detail_list
-function renderUserAction(question_id, action, entry, rc) {
+// At this point the data we need should already be stored in question_detail_list
+function renderUserAction(question, entry, rc) {
 
-    renderNotifications(question_id, action,entry, rc);
+    // This will include events that we didn't specifically trigger, but we are intereseted in
+    renderNotifications(question, entry, rc);
 
-    if (action == 'asked' || action == 'answered') {
-        renderUserQandA(question_id, action, entry);
+    // Only show here if we asked the question (questions section) or gave the answer (answers section)
+    if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
+        if (isForCurrentUser(entry)) {
+            renderUserQandA(question, entry);
+        }
     }
 
 }
 
-function insertNotificationItem(notification_id, item_to_insert, ntext, timestamp) {
+function insertNotificationItem(notification_id, item_to_insert, ntext, block_number) {
+
     var notifications = $('#your-question-answer-window').find('.notifications');
     var section_name = 'div[data-notification-id='+ notification_id + ']';
     if (notifications.find(section_name).length > 0) return;
@@ -1125,7 +1191,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, timestam
     } else {
         for (var i = 0; i < notification_item.length; i++) {
             var inserted = false;
-            if (notification_item[i].getAttribute('data-block-time') <= timestamp) {
+            if (notification_item[i].getAttribute('data-block-number') <= block_number) {
                 var id = notification_item[i].getAttribute('data-notification-id');
                 $('#your-question-answer-window').find('.notifications-item[data-notification-id=' + id + ']').before(item_to_insert);
                 inserted = true;
@@ -1139,14 +1205,16 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, timestam
 
     item_to_insert.attr('data-notification-id', notification_id);
     item_to_insert.find('.notification-text').text(ntext);
-    item_to_insert.attr('data-block-time', timestamp);
+    item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
+
+    renderBlockTimeAgo(item_to_insert, block_number);
 
 }
 
-function renderNotifications(question_id, action, entry, rc) {
+function renderNotifications(qdata, entry, rc) {
 
-    var qdata = question_detail_list[question_id];
+    var question_id = qdata[Qi_question_id];
     //console.log('renderNotification', action, entry, qdata);
 
     var question_json = qdata[Qi_question_json];
@@ -1154,152 +1222,126 @@ function renderNotifications(question_id, action, entry, rc) {
     var your_qa_window = $('#your-question-answer-window');
     var item = your_qa_window.find('.notifications-template-container .template-item').clone();
 
+    // TODO: Handle whether you asked the question
+
     var ntext;
-    switch (action) {
-        case 'asked':
-            web3.eth.getBlock(entry.blockNumber, function(err, result){
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
-                    ntext  = 'You asked a question - "' + question_json['title'] + '"';
-                    insertNotificationItem(notification_id, item, ntext, result.timestamp);
-                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                }
-            });
+    switch (entry['event']) {
+        case 'LogNewQuestion':
+            var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
+            ntext  = 'You asked a question - "' + question_json['title'] + '"';
+            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
             break;
 
-        case 'answered':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1){
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
-                    if (entry.args.answerer == account) {
-                        ntext = 'You answered a question - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                    } else {
-                        var answered_question = rc.LogNewQuestion({question_id: question_id}, {
-                            fromBlock: 0,
-                            toBlock: 'latest'
-                        });
-                        answered_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone answered to your question';
-                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                    ntext = 'Your answer was overwritten';
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                                }
-                            }
-                        });
+        case 'LogNewAnswer':
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
+            if (entry.args.answerer == account) {
+                ntext = 'You answered a question - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var answered_question = rc.LogNewQuestion({question_id: question_id}, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                answered_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone answered to your question';
+                        } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                            ntext = 'Your answer was overwritten';
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
                     }
-                }
-                //console.log('notifications text', ntext);
-                if (typeof ntext !== 'undefined') {
-                    item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                    item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
-                    populateWithBlockTimeForBlockNumber1(action, entry.blockNumber, action, entry);
-                }
-            });
+                });
+            }
+        
+            //console.log('notifications text', ntext);
+            if (typeof ntext !== 'undefined') {
+                item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
+                item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
+            }
             break;
 
-        case 'funded':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
-                if (err === null) {
-                    if (entry.args.funder == account) {
-                        ntext = 'You added reward - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                    } else {
-                        var funded_question = rc.LogNewQuestion({question_id: question_id}, {
-                            fromBlock: 0,
-                            toBlock: 'latest'
-                        });
-                        // TODO: Should this really always be index 0?
-                        funded_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone added reward to your question';
-                                } else {
-                                    var prev_hist_idx = qdata['history'].length - 2;
-                                    if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
-                                        ntext = 'Someone added reward to the question you answered';
-                                    }
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-            break;
-
-        case 'arbitration-requested':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
-                    if (entry.args.requester == account) {
-                        ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                    } else {
-                        var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
-                        arbitration_requested_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                var history_idx = qdata['history'].length - 2;
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone requested arbitration to your question';
-                                } else {
-                                    if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
-                                        ntext = 'Someone requested arbitration to the question you answered';
-                                    }
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-            break;
-
-        case 'finalized':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answer_id + entry.args.answer);
-                    var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: 0, toBlock: 'latest'});
-                    finalized_question.get(function (error, result2) {
-                        if (error === null && typeof result2 !== 'undefined') {
-                            if (result2[0].args.questioner == account) {
-                                ntext = 'Your question is finalized';
-                            } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                ntext = 'The question you answered is finalized';
-                            }
-                            if (typeof ntext !== 'undefined') {
-                                ntext += ' - "' + question_json['title'] + '"';
-                                insertNotificationItem(notification_id, item, ntext, result1.timestamp);
-                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, action, entry);
+        case 'LogFundAnswerBounty':
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
+            if (entry.args.funder == account) {
+                ntext = 'You added reward - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var funded_question = rc.LogNewQuestion({question_id: question_id}, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                // TODO: Should this really always be index 0?
+                funded_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone added reward to your question';
+                        } else {
+                            var prev_hist_idx = qdata['history'].length - 2;
+                            if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
+                                ntext = 'Someone added reward to the question you answered';
                             }
                         }
-                    });
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
+                    }
+                });
+            }
+            break;
+
+        case 'LogRequestArbitration':
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
+            if (entry.args.requester == account) {
+                ntext = 'You requested arbitration - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+                arbitration_requested_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        var history_idx = qdata['history'].length - 2;
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone requested arbitration to your question';
+                        } else {
+                            if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
+                                ntext = 'Someone requested arbitration to the question you answered';
+                            }
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
+                    }
+                });
+            }
+            break;
+
+        case 'LogFinalize':
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.answer_id + entry.args.answer);
+            var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+            finalized_question.get(function (error, result2) {
+                if (error === null && typeof result2 !== 'undefined') {
+                    if (result2[0].args.questioner == account) {
+                        ntext = 'Your question is finalized';
+                    } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                        ntext = 'The question you answered is finalized';
+                    }
+                    if (typeof ntext !== 'undefined') {
+                        ntext += ' - "' + question_json['title'] + '"';
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                    }
                 }
             });
     }
 
 }
 
-function insertQAItem(question_id, item_to_insert, question_section, timestamp) {
-    //console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
+function insertQAItem(question_id, item_to_insert, question_section, block_number) {
+
     question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
     var question_items = question_section.find('.your-qa__questions__item');
@@ -1308,7 +1350,7 @@ function insertQAItem(question_id, item_to_insert, question_section, timestamp) 
         if ($(item).hasClass('template-item')) {
             return true;
         }
-        if ($(item).attr('data-block-time') <= timestamp) {
+        if ($(item).attr('data-block-number') <= block_number) {
             $(item).before(item_to_insert);
             inserted = true;
             //console.log('inserted in loop');
@@ -1321,6 +1363,7 @@ function insertQAItem(question_id, item_to_insert, question_section, timestamp) 
         question_section.append(item_to_insert);
     //console.log('inserted through fall through');
     }
+    renderBlockTimeAgo(item_to_insert, block_number);
 
 }
 
@@ -1362,31 +1405,28 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
 
 }
 
-function renderUserQandA(question_id, action, entry) {
+function renderUserQandA(qdata, entry) {
 
-    var qdata = question_detail_list[question_id];
+    var question_id = qdata[Qi_question_id];
     var answer_history = qdata['history'];
 
     var question_json = qdata[Qi_question_json];
 
     var question_section;
-    if (action == 'asked') {
+    if (entry['event'] == 'LogNewQuestion') {
         question_section = $('#your-question-answer-window').find('.your-qa__questions .your-qa__questions-inner');
-    } else if (action == 'answered') {
+    } else if (entry['event'] == 'LogNewAnswer') {
         question_section = $('#your-question-answer-window').find('.your-qa__answers .your-qa__answers-inner');
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
-    //console.log('inserting qitem', qitem, qitem.size());
-    web3.eth.getBlock(entry.blockNumber, function(error, result){
-        qitem.attr('data-question-id', question_id);
-        qitem.find('.question-text').text(question_json['title']);
-        qitem.attr('data-block-time', result.timestamp);
-        qitem.removeClass('template-item');
-        insertQAItem(question_id, qitem, question_section, result.timestamp);
-        var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
-        rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
-    });
+    qitem.attr('data-question-id', question_id);
+    qitem.find('.question-text').text(question_json['title']);
+    qitem.attr('data-block-number', entry.blockNumber);
+    qitem.removeClass('template-item');
+    insertQAItem(question_id, qitem, question_section, entry.blockNumber);
+    var is_finalized = isFinalized(qdata);
+    rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
 
     var updateBlockTimestamp = function (ts) {
         let date = new Date();
@@ -1398,8 +1438,8 @@ function renderUserQandA(question_id, action, entry) {
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
 }
 
-function rewriteQuestionDetail(question_id) {
-    var question_data = question_detail_list[question_id];
+function rewriteQuestionDetail(question_data) {
+    var question_id = question_data[Qi_question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
     var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
@@ -1412,8 +1452,12 @@ function rewriteQuestionDetail(question_id) {
     var label = getAnswerString(question_json, answer_data.args.answer);
     $(section_name).find('.current-answer-container').find('.current-answer').text(label);
     $(section_name).find('.current-answer-container').css('display', 'block');
+
+    // TODO: Make sure the old timeago is cancelled
+
     $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
     timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
+
     $(section_name).find('input[name="numberAnswer"]').val(0);
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
@@ -1424,7 +1468,7 @@ function rewriteQuestionDetail(question_id) {
     ans_data.find('.answerer').text(answer_data.args.answerer);
     ans_data.find('.answer-bond-value').text(bond);
 
-    displayAnswerHistory(question_id);
+    displayAnswerHistory(question_data);
 
 }
 
@@ -1502,8 +1546,8 @@ function makeSelectAnswerInput(question_json) {
     return ans_frm;
 }
 
-function displayAnswerHistory(question_id) {
-    var question_data = question_detail_list[question_id];
+function displayAnswerHistory(question_data) {
+    var question_id = question_data['Qi_question_id'];
     var answer_log = question_data['history'];
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     var section = $(section_name);
@@ -1553,12 +1597,13 @@ function updateQuestionState(question_id, step_delay, answer_created) {
     }).then(function(cq) {
         cq.unshift(question_id);
         $(section_name).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+
         timeAgo.render($(section_name).find('.answer-deadline.timeago'));
 
-        if (cq['Qi_is_arbitration_due']) {
+        if (isArbitrationDue(cq)) {
             $(section_name).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
         } else {
-            if ( (cq[Qi_finalization_ts].toNumber() * 1000) > new Date().getTime() ) {
+            if ( !isFinalized(cq) ) {
                 $(section_name).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
             } else {
                 $(section_name).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
@@ -1891,73 +1936,33 @@ function pageInit(account) {
 
         rc = instance;
 
-        return rc.LogNewAnswer({}, {fromBlock:'latest', toBlock:'latest'});
+        return rc.allEvents({}, {fromBlock:'latest', toBlock:'latest'});
 
-    }).then(function(all_answers_logger) {
+    }).then(function(evts) {
 
-        all_answers_logger.watch(function (error, result) {
+        evts.watch(function (error, result) {
             if (!error && result) {
-                if (result.args['answerer'] == account) {
-                    handleUserAction('answered', result, rc);
+                // Check the action to see if it is interesting, if it is then populate notifications etc
+                handleUserAction(result, rc);
+
+                // Handles front page event changes.
+                // NB We need to reflect other changes too...
+                if (result['event'] == 'LogNewQuestion') {
+                    handleQuestionLog(result, rc);
                 }
-                //
-                //console.log('got answer from watch', result);
-            }
-        });
-
-        return rc.LogNewQuestion({}, {fromBlock:'latest', toBlock:'latest'});
-
-    }).then(function(all_questions_logger) {
-
-        all_questions_logger.watch(function (error, result) {
-            if (!error && result) {
-                if (result.args['questioner'] == account) {
-                    handleUserAction('asked', result, rc);
-                }
-                handleQuestionLog(result, rc);
-                //console.log('got question watch', result);
-            }
-        });
-
-        return rc.LogFundAnswerBounty({}, {fromBlock:'latest', toBlock:'latest'});
-
-    }).then(function(all_fund_answers_logger) {
-
-        all_fund_answers_logger.watch(function (error, result) {
-            if (!error && result) {
-                handleUserAction('funded', result, rc);
-            }
-        });
-
-        return rc.LogRequestArbitration({}, {fromBlock: 'latest', toBlock: 'latest'});
-
-    }).then(function(all_arbitration_logger) {
-
-        all_arbitration_logger.watch(function (error, result) {
-            if (!error && result) {
-                handleUserAction('arbitration-requested', result, rc);
-            }
-        });
-
-        return rc.LogFinalize({}, {fromBlock: 'latest', toBlock: 'latest'});
-
-    }).then(function(all_finalization_logger){
-        all_finalization_logger.watch(function (error, result) {
-            if (!error && result) {
-                handleUserAction('finalized', result, rc);
             }
         });
 
         // Watchers all done, next we do the history gets
         // We start with the user's answers so we can tell when we see a relevant question ID
-        return rc.LogNewAnswer({}, {fromBlock:0, toBlock:'latest'});
+        return rc.LogNewAnswer({}, {fromBlock: START_BLOCK, toBlock:'latest'});
 
     }).then(function(answer_posted) {
         answer_posted.get(function (error, result) {
             var answers = result;
             if (error === null && typeof result !== 'undefined') {
                 for (var i = 0; i < answers.length; i++) {
-                    handleUserAction('answered', answers[i], rc);
+                    handleUserAction(answers[i], rc);
                 }
             } else {
                 console.log(error);
@@ -1965,40 +1970,40 @@ function pageInit(account) {
         });
 
         // Next comes the user's funded questions
-        return rc.LogFundAnswerBounty({}, {fromBlock: 0, toBlock: 'latest'});
+        return rc.LogFundAnswerBounty({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
 
     }).then(function(bounty_funded) {
 
         bounty_funded.get(function (error, result) {
             if (error === null && typeof result !== 'undefined') {
                 for (var i = 0; i < result.length; i++) {
-                    handleUserAction('funded', result[i], rc);
+                    handleUserAction(result[i], rc);
                 }
             } else {
                 console.log(error);
             }
         });
 
-        return rc.LogRequestArbitration({}, {fromBlock: 0, toBlock: 'latest'});
+        return rc.LogRequestArbitration({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
 
     }).then(function(arbitration_requested) {
         arbitration_requested.get(function (error, result) {
             if (error === null && typeof result !== 'undefined') {
                 for (var i = 0; i < result.length; i++) {
-                    handleUserAction('arbitration-requested', result[i], rc);
+                    handleUserAction(result[i], rc);
                 }
             } else {
                 console.log(error);
             }
         });
 
-        return rc.LogFinalize({}, {fromBlock: 0, toBlock: 'latest'});
+        return rc.LogFinalize({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
 
     }).then(function(finalized){
         finalized.get(function (error, result) {
             if (error === null && typeof result !== 'undefined') {
                 for (var i = 0; i < result.length; i++) {
-                    handleUserAction('finalized', result[i], rc);
+                    handleUserAction(result[i], rc);
                 }
             } else {
                 console.log(error);
@@ -2006,16 +2011,15 @@ function pageInit(account) {
         });
 
         // Now the rest of the questions
-        return rc.LogNewQuestion({}, {fromBlock:0, toBlock:'latest'});
+        return rc.LogNewQuestion({}, {fromBlock: START_BLOCK, toBlock:'latest'});
 
     }).then(function(question_posted) {
 
         question_posted.get(function (error, result) {
             if (error === null && typeof result !== 'undefined') {
                 for(var i=0; i<result.length; i++) {
-                    if (result[i].args['questioner'] == account) {
-                        handleUserAction('asked', result[i], rc);
-                    }
+
+                    handleUserAction(result[i], rc);
                     handleQuestionLog(result[i], rc);
                 }
             } else {
@@ -2027,6 +2031,15 @@ function pageInit(account) {
     });
 
 };
+
+function isForCurrentUser(entry) {
+    var actor_arg = EVENT_ACTOR_ARGS[entry['event']];
+    if (actor_arg) {
+        return (entry.args[actor_arg] == account);
+    } else {
+        return false;
+    }
+}
 
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {

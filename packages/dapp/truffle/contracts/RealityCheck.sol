@@ -20,14 +20,14 @@ contract RealityCheck {
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].finalization_ts > 0); // Check existence
-        require(!questions[question_id].is_arbitration_pending);
+        require(questions[question_id].step_delay > 0); // Check existence
+        require(questions[question_id].finalization_ts != 1); // arbitration pending
         require(!isFinalized(question_id));
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].is_arbitration_pending);
+        require(questions[question_id].finalization_ts == 1);
         _;
     }
 
@@ -111,7 +111,7 @@ contract RealityCheck {
     }
 
     struct Question {
-        uint256 finalization_ts;
+        uint256 finalization_ts; // Special magic values: 0 for unanswered, 1 for pending arbitration
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
@@ -120,7 +120,6 @@ contract RealityCheck {
 
         // Mutable data
         uint256 bounty;
-        bool is_arbitration_pending;
         bytes32 best_answer;
         mapping(bytes32 => Answer) answers; // answer to answer ownership details
     }
@@ -138,20 +137,22 @@ contract RealityCheck {
         // stateNotCreated: See inline check below
     payable returns (bytes32) {
 
+        // A step delay of 0 makes no sense, and we will use this to check existence
+        require(step_delay > 0); 
+
         bytes32 question_id = keccak256(question_ipfs, arbitrator, step_delay);
 
         // Should not already exist (equivalent to stateNotCreated)
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
-        require(questions[question_id].finalization_ts == 0);
+        require(questions[question_id].step_delay ==  0); // Check existence
 
         bytes32 NULL_BYTES;
         questions[question_id] = Question(
-            now + step_delay,
+            0,
             arbitrator,
             step_delay,
             question_ipfs,
             msg.value,
-            false,
             NULL_BYTES 
         );
 
@@ -302,15 +303,8 @@ contract RealityCheck {
 
     function isFinalized(bytes32 question_id) 
     returns (bool) {
-        if (questions[question_id].finalization_ts > now) {
-            return false;
-        }
-        if (questions[question_id].is_arbitration_pending) {
-            return false;
-        }
-        bytes32 best_answer = questions[question_id].best_answer;
-        address NULL_ADDRESS;
-        return (questions[question_id].answers[best_answer].answerer != NULL_ADDRESS); 
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        return ( (finalization_ts > 1) && (finalization_ts < now) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
@@ -321,7 +315,7 @@ contract RealityCheck {
 
     function isArbitrationPaidFor(bytes32 question_id) 
     constant returns (bool) {
-        return questions[question_id].is_arbitration_pending;
+        return questions[question_id].finalization_ts == 1;
     }
 
     function getEarliestFinalizationTS(bytes32 question_id) 
@@ -335,8 +329,9 @@ contract RealityCheck {
     {
 
         questions[question_id].best_answer = answer;
-        questions[question_id].is_arbitration_pending = false;
-        questions[question_id].finalization_ts = now;
+
+        // Set this to 1 second ago so that "did we finalize" checks will immediately pass
+        questions[question_id].finalization_ts = now - 1;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
         delete arbitration_bounties[question_id];
@@ -438,7 +433,7 @@ contract RealityCheck {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            questions[question_id].is_arbitration_pending = true;
+            questions[question_id].finalization_ts = 1;
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {

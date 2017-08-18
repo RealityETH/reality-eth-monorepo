@@ -19,8 +19,7 @@ QINDEX_STEP_DELAY = 2
 QINDEX_QUESTION_TEXT = 3
 QINDEX_BOUNTY = 4
 QINDEX_ARBITRATION_BOUNTY = 5
-QINDEX_IS_ARBITRATION_PAID_FOR = 6
-QINDEX_BEST_ANSWER_ID = 7
+QINDEX_BEST_ANSWER_ID = 6
 
 def ipfs_hex(txt):
     return sha256(txt).hexdigest()
@@ -77,7 +76,7 @@ class TestRealityCheck(TestCase):
         self.s = self.c.head_state
 
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(int(question[QINDEX_FINALIZATION_TS]), int(ts+10))
+        self.assertEqual(int(question[QINDEX_FINALIZATION_TS]), 0)
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)
