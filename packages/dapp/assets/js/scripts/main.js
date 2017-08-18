@@ -653,8 +653,8 @@ function handleUserAction(entry, rc) {
 
     var current_question;
 
-    populateQuestionDetail(question_id, rc).then(function(result) {
-        renderUserAction(question_id, entry, rc);
+    populateQuestionDetail(question_id, rc).then(function(question) {
+        renderUserAction(question, entry, rc);
     });
 
 }
@@ -663,7 +663,7 @@ function populateQuestionDetail(question_id, rc) {
 
     return new Promise((resolve, reject)=>{
         if (question_detail_list[question_id]) {
-            resolve(question_id);
+            resolve(question_detail_list[question_id]);
         } else {
             var current_question;
             rc.questions.call(question_id).then(function(result){
@@ -680,7 +680,7 @@ function populateQuestionDetail(question_id, rc) {
                     if (error === null && typeof answers !== 'undefined') {
                         question_detail_list[question_id] = current_question;
                         question_detail_list[question_id]['history'] = answers;
-                        resolve(question_id);
+                        resolve(question_detail_list[question_id]);
                     } else {
                         reject(error);
                     }
@@ -944,14 +944,14 @@ function openQuestionWindow(question_id) {
     RealityCheck.deployed().then(function(instance) {
         rc = instance;
         return populateQuestionDetail(question_id, rc);
-    }).then(function() {
-        var answers = question_detail_list[question_id]['history'];
+    }).then(function(question) {
+        var answers = question['history'];
         for(var i=0; i<answers.length; i++) {
             handleUserAction(answers[i], rc);
         }
 
-        displayQuestionDetail(question_id);
-        displayAnswerHistory(question_id);
+        displayQuestionDetail(question);
+        displayAnswerHistory(question);
     });
     /*
     .catch(function(e){
@@ -981,9 +981,9 @@ function parseQuestionJSON(data) {
 
 }
 
-function displayQuestionDetail(question_id) {
+function displayQuestionDetail(question_detail) {
 
-    var question_detail = question_detail_list[question_id];
+    var question_id = question_detail[Qi_question_id];
     //console.log('question_id', question_id);
     var is_arbitration_requested = question_detail[Qi_is_arbitration_due];
     var idx = question_detail['history'].length - 1;
@@ -1077,6 +1077,9 @@ function displayQuestionDetail(question_id) {
     setRcBrowserPosition(rcqa);
     Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
 
+    // TODO: We already have a watch running on all new answers
+    // Can we move this handling to the one that was going to happen anyhow?
+
     var rc;
     RealityCheck.deployed().then(function(instance){
         rc = instance;
@@ -1086,7 +1089,7 @@ function displayQuestionDetail(question_id) {
             if (!error && result !== undefined) {
                 question_detail_list[question_id][Qi_best_answer] = result.args.answer;
                 pushWatchedAnswer(result);
-                rewriteQuestionDetail(question_id);
+                rewriteQuestionDetail(question_detail_list[question_id]);
             }
         });
     });
@@ -1142,15 +1145,15 @@ function populateWithBlockTimeForBlockNumber2(num, callback) {
 }
 
 // At this point the data we need should already be stored in question_detail_list
-function renderUserAction(question_id, entry, rc) {
+function renderUserAction(question, entry, rc) {
 
     // This will include events that we didn't specifically trigger, but we are intereseted in
-    renderNotifications(question_id, entry, rc);
+    renderNotifications(question, entry, rc);
 
     // Only show here if we asked the question (questions section) or gave the answer (answers section)
     if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
         if (isForCurrentUser(entry)) {
-            renderUserQandA(question_id, entry);
+            renderUserQandA(question, entry);
         }
     }
 
@@ -1190,9 +1193,9 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, block_nu
 
 }
 
-function renderNotifications(question_id, entry, rc) {
+function renderNotifications(qdata, entry, rc) {
 
-    var qdata = question_detail_list[question_id];
+    var question_id = qdata[Qi_question_id];
     //console.log('renderNotification', action, entry, qdata);
 
     var question_json = qdata[Qi_question_json];
@@ -1383,9 +1386,9 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
 
 }
 
-function renderUserQandA(question_id, entry) {
+function renderUserQandA(qdata, entry) {
 
-    var qdata = question_detail_list[question_id];
+    var question_id = qdata[Qi_question_id];
     var answer_history = qdata['history'];
 
     var question_json = qdata[Qi_question_json];
@@ -1416,8 +1419,8 @@ function renderUserQandA(question_id, entry) {
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
 }
 
-function rewriteQuestionDetail(question_id) {
-    var question_data = question_detail_list[question_id];
+function rewriteQuestionDetail(question_data) {
+    var question_d = question_data[Qi_question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
     var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
@@ -1520,8 +1523,8 @@ function makeSelectAnswerInput(question_json) {
     return ans_frm;
 }
 
-function displayAnswerHistory(question_id) {
-    var question_data = question_detail_list[question_id];
+function displayAnswerHistory(question_data) {
+    var question_id = question_data['Qi_question_id'];
     var answer_log = question_data['history'];
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     var section = $(section_name);
