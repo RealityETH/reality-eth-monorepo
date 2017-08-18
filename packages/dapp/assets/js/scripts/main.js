@@ -41,20 +41,10 @@ const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
-const Qi_is_arbitration_due = 6;
-const Qi_best_answer = 7;
-const Qi_question_json = 8; // We add this manually after we load the ipfs data
+const Qi_best_answer = 6;
+const Qi_question_json = 7; // We add this manually after we load the ipfs data
+const Qi_creation_ts = 8; // We add this manually from the event log
 
-// Answer, as returned by answers()
-const Ai_answer_id = 0;
-const Ai_question_id = 1;
-const Ai_answer = 2;
-const Ai_answerer = 3;
-const Ai_bond = 4;
-const Ai_ts = 5;
-const Ai_evidence = 6;
-
-// BigNumber
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
 const MAX_NUMBER = (2 ** 256 / 1000000000000) / 2;
@@ -471,6 +461,16 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
+function isArbitrationDue(question) {
+    // finalization_ts has a magical timestamp of 1 meaning pending arbitration
+    return (question[Qi_finalization_ts].toNumber() == 1);
+}
+
+function isFinalized(question) {
+    var fin = question[Qi_finalization_ts].toNumber() 
+    return ( (fin > 1) && (fin * 1000 < new Date().getDate()) );  
+}
+
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
     var answer;
@@ -481,10 +481,8 @@ $(document).on('click', '.answer-claim-button', function(){
         return rc.questions.call(question_id);
     }).then(function(qdata){
         qdata.unshift(question_id);
-        if (qdata[Qi_finalization_ts].toNumber() * 1000 > new Date().getDate()) {
+        if (!isFinalized(qdata)) {
             console.log(question_id, 'error: not yet finalized');
-        } else if (qdata[Qi_is_arbitration_due]) {
-            console.log(question_id, 'arbitration ');
         }
         return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
     }).then(function (answer_logs) {
@@ -659,7 +657,8 @@ function handleUserAction(entry, rc) {
 
 }
 
-function populateQuestionDetail(question_id, rc) {
+// question_log is optional, pass it in when we already have it
+function populateQuestionDetail(question_id, rc, question_log) {
 
     return new Promise((resolve, reject)=>{
         if (question_detail_list[question_id]) {
@@ -678,9 +677,27 @@ function populateQuestionDetail(question_id, rc) {
             }).then(function(answer_logs) {
                 answer_logs.get(function(error, answers) {
                     if (error === null && typeof answers !== 'undefined') {
-                        question_detail_list[question_id] = current_question;
-                        question_detail_list[question_id]['history'] = answers;
-                        resolve(question_detail_list[question_id]);
+                        // We need the question log for the creation datetime
+                        // Often we are populating in response to a question log event, so we had it passed in
+                        // If we didn't, grab it before we return
+                        if (question_log) {
+                            current_question[Qi_creation_ts] = question_log.args['created'];
+                            question_detail_list[question_id] = current_question;
+                            question_detail_list[question_id]['history'] = answers;
+                            resolve(question_detail_list[question_id]);
+                        } else {
+                            var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+                            question_logs.get(function(error, question_arr) {
+                                if (error || question_arr.length != 1) {
+                                    reject(error);
+                                } else {
+                                    current_question[Qi_creation_ts] = question_arr[0].args['created'];
+                                    question_detail_list[question_id] = current_question;
+                                    question_detail_list[question_id]['history'] = answers;
+                                    resolve(question_detail_list[question_id]);
+                                }
+                            });
+                        }
                     } else {
                         reject(error);
                     }
@@ -727,12 +744,12 @@ function populateSection(section_name, question_data, before_item) {
         }
     }
 
-    var posted_ts = question_data[Qi_finalization_ts];
+    var posted_ts = question_data[Qi_creation_ts];
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
-    var is_arbitration_paid_for = question_data[Qi_is_arbitration_due];
-    var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
+    var is_arbitration_paid_for = isArbitrationDue(question_data);
+    var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
 
     var entry = $('.questions__item.template-item').clone();
@@ -767,12 +784,14 @@ function populateSection(section_name, question_data, before_item) {
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
+    console.log('created is ', created, 'for quid', question_id);
     var question_data;
 
     rc.questions.call(question_id).then( function(qdata) {
         //console.log('here is result', question_data, question_id)
         question_data = qdata;
         question_data.unshift(question_id);
+        question_data[Qi_creation_ts] = created;
         var question_json_ipfs = question_data[Qi_question_ipfs];
         return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function (res) {
@@ -781,7 +800,7 @@ function handleQuestionLog(item, rc) {
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
-        var is_finalized = ( ( (question_data[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !question_data[Qi_is_arbitration_due] );
+        var is_finalized = isFinalized(question_data);
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
@@ -985,7 +1004,7 @@ function displayQuestionDetail(question_detail) {
 
     var question_id = question_detail[Qi_question_id];
     //console.log('question_id', question_id);
-    var is_arbitration_requested = question_detail[Qi_is_arbitration_due];
+    var is_arbitration_requested = isArbitrationDue(question_detail);
     var idx = question_detail['history'].length - 1;
     var question_json = question_detail[Qi_question_json];
 
@@ -1014,7 +1033,7 @@ function displayQuestionDetail(question_detail) {
     rcqa.removeClass('template-item');
 
     let date = new Date();
-    date.setTime(question_detail[Qi_finalization_ts] * 1000);
+    date.setTime(question_detail[Qi_creation_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']);
@@ -1043,7 +1062,7 @@ function displayQuestionDetail(question_detail) {
     }
 
     // Arbitrator
-    if (!question_detail[Qi_is_arbitration_due]) {
+    if (!isArbitrationDue(question_detail) && !isFinalized(question_detail)) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
@@ -1406,7 +1425,7 @@ function renderUserQandA(qdata, entry) {
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     insertQAItem(question_id, qitem, question_section, entry.blockNumber);
-    var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
+    var is_finalized = isFinalized(qdata);
     rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
 
     var updateBlockTimestamp = function (ts) {
@@ -1420,7 +1439,7 @@ function renderUserQandA(qdata, entry) {
 }
 
 function rewriteQuestionDetail(question_data) {
-    var question_d = question_data[Qi_question_id];
+    var question_id = question_data[Qi_question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
     var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
@@ -1433,8 +1452,12 @@ function rewriteQuestionDetail(question_data) {
     var label = getAnswerString(question_json, answer_data.args.answer);
     $(section_name).find('.current-answer-container').find('.current-answer').text(label);
     $(section_name).find('.current-answer-container').css('display', 'block');
+
+    // TODO: Make sure the old timeago is cancelled
+
     $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
     timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
+
     $(section_name).find('input[name="numberAnswer"]').val(0);
     $(section_name).find('input[name="questionBond"]').val(bond * 2);
 
@@ -1445,7 +1468,7 @@ function rewriteQuestionDetail(question_data) {
     ans_data.find('.answerer').text(answer_data.args.answerer);
     ans_data.find('.answer-bond-value').text(bond);
 
-    displayAnswerHistory(question_id);
+    displayAnswerHistory(question_data);
 
 }
 
@@ -1574,12 +1597,13 @@ function updateQuestionState(question_id, step_delay, answer_created) {
     }).then(function(cq) {
         cq.unshift(question_id);
         $(section_name).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+
         timeAgo.render($(section_name).find('.answer-deadline.timeago'));
 
-        if (cq['Qi_is_arbitration_due']) {
+        if (isArbitrationDue(cq)) {
             $(section_name).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
         } else {
-            if ( (cq[Qi_finalization_ts].toNumber() * 1000) > new Date().getTime() ) {
+            if ( !isFinalized(cq) ) {
                 $(section_name).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
             } else {
                 $(section_name).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
