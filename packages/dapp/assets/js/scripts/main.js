@@ -653,35 +653,42 @@ function handleUserAction(entry, rc) {
 
     var current_question;
 
-    if (question_detail_list[question_id]) {
+    populateQuestionDetail(question_id, rc).then(function(result) {
         renderUserAction(question_id, entry, rc);
-    } else {
-        rc.questions.call(question_id).then(function(result){
-            current_question = result;
-            current_question.unshift(question_id);
-            var question_json_ipfs = current_question[Qi_question_ipfs];
-            return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-        }).then(function (res) {
-            current_question[Qi_question_json] = parseQuestionJSON(res.toString());
-            return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
-        // TODO: Update this in real time as the answers come in
-        }).then(function(answer_logs) {
-            answer_logs.get(function(error, answers) {
-                if (error === null && typeof answers !== 'undefined') {
-                    question_detail_list[question_id] = current_question;
-                    question_detail_list[question_id]['history'] = answers;
-                    renderUserAction(question_id, entry, rc);
-                } else {
-                    console.log(error);
-                }
-            });
-        });
-    }
+    });
 
 }
 
-// todo
-function populateQuestionDetail(question_id, callback) {
+function populateQuestionDetail(question_id, rc) {
+
+    return new Promise((resolve, reject)=>{
+        if (question_detail_list[question_id]) {
+            resolve(question_id);
+        } else {
+            var current_question;
+            rc.questions.call(question_id).then(function(result){
+                current_question = result;
+                current_question.unshift(question_id);
+                var question_json_ipfs = current_question[Qi_question_ipfs];
+                return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
+            }).then(function (res) {
+                current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+                return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
+            // TODO: Update this in real time as the answers come in
+            }).then(function(answer_logs) {
+                answer_logs.get(function(error, answers) {
+                    if (error === null && typeof answers !== 'undefined') {
+                        question_detail_list[question_id] = current_question;
+                        question_detail_list[question_id]['history'] = answers;
+                        resolve(question_id);
+                    } else {
+                        reject(error);
+                    }
+                });
+            });
+        }
+    });
+
 }
 
 // TODO: Fire this on a timer, and also on the withdrawal event
@@ -780,20 +787,21 @@ function handleQuestionLog(item, rc) {
         if (is_finalized) {
             var insert_before = update_ranking_data('questions-resolved', question_id, created);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // TODO: If we include this we have to handle the history too
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-resolved', question_data, insert_before);
             }
 
         } else {
             var insert_before = update_ranking_data('questions-latest', question_id, created);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
             }
 
             var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
             if (insert_before !== -1) {
-                question_detail_list[question_id] = question_data;
+                // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
             }
 //console.log(display_entries);
@@ -933,38 +941,17 @@ function openQuestionWindow(question_id) {
     var rc;
     var current_question;
 
-    // TODO: We should probably already have all this data 
-    // ...from when we generated the link to display it
-    // So we can probably just load it from question_detail_list
-    
-    RealityCheck.deployed().then(function(instance){
+    RealityCheck.deployed().then(function(instance) {
         rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(result){
-        current_question = result;
-        current_question.unshift(question_id);
-        var question_json_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-    }).then(function(ipfs_result){
-        //console.log('promise has ipfs_result', ipfs_result);
-        current_question[Qi_question_json] = parseQuestionJSON(ipfs_result.toString());
-        return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
-    }).then(function(answer_posted){
-        answer_posted.get(function(error, answers){
-            if (error === null && typeof answers !== 'undefined') {
-                question_detail_list[question_id] = current_question;
-                question_detail_list[question_id]['history'] = answers;
+        return populateQuestionDetail(question_id, rc);
+    }).then(function() {
+        var answers = question_detail_list[question_id]['history'];
+        for(var i=0; i<answers.length; i++) {
+            handleUserAction(answers[i], rc);
+        }
 
-                for(var i=0; i<answers.length; i++) {
-                    handleUserAction(answers[i], rc);
-                }
-
-                displayQuestionDetail(question_id);
-                displayAnswerHistory(question_id);
-            } else {
-                console.log(error);
-            }
-        });
+        displayQuestionDetail(question_id);
+        displayAnswerHistory(question_id);
     });
     /*
     .catch(function(e){
