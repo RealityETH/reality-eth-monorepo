@@ -1180,7 +1180,7 @@ function renderUserAction(question_id, entry, rc) {
 
 }
 
-function insertNotificationItem(notification_id, item_to_insert, ntext, timestamp) {
+function insertNotificationItem(notification_id, item_to_insert, ntext, block_number, timestamp) {
     var notifications = $('#your-question-answer-window').find('.notifications');
     var section_name = 'div[data-notification-id='+ notification_id + ']';
     if (notifications.find(section_name).length > 0) return;
@@ -1192,7 +1192,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, timestam
     } else {
         for (var i = 0; i < notification_item.length; i++) {
             var inserted = false;
-            if (notification_item[i].getAttribute('data-block-time') <= timestamp) {
+            if (notification_item[i].getAttribute('data-block-number') >= timestamp) {
                 var id = notification_item[i].getAttribute('data-notification-id');
                 $('#your-question-answer-window').find('.notifications-item[data-notification-id=' + id + ']').before(item_to_insert);
                 inserted = true;
@@ -1206,7 +1206,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, timestam
 
     item_to_insert.attr('data-notification-id', notification_id);
     item_to_insert.find('.notification-text').text(ntext);
-    item_to_insert.attr('data-block-time', timestamp);
+    item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
 
 }
@@ -1230,7 +1230,7 @@ function renderNotifications(question_id, entry, rc) {
                 if (err === null) {
                     var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
                     ntext  = 'You asked a question - "' + question_json['title'] + '"';
-                    insertNotificationItem(notification_id, item, ntext, result.timestamp);
+                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result.timestamp);
                     populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                 }
             });
@@ -1242,7 +1242,7 @@ function renderNotifications(question_id, entry, rc) {
                     var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
                     if (entry.args.answerer == account) {
                         ntext = 'You answered a question - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                         populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                     } else {
                         var answered_question = rc.LogNewQuestion({question_id: question_id}, {
@@ -1258,7 +1258,7 @@ function renderNotifications(question_id, entry, rc) {
                                 }
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                                     populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                                 }
                             }
@@ -1280,7 +1280,7 @@ function renderNotifications(question_id, entry, rc) {
                 if (err === null) {
                     if (entry.args.funder == account) {
                         ntext = 'You added reward - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                         populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                     } else {
                         var funded_question = rc.LogNewQuestion({question_id: question_id}, {
@@ -1300,7 +1300,7 @@ function renderNotifications(question_id, entry, rc) {
                                 }
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                                     populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                                 }
                             }
@@ -1316,7 +1316,7 @@ function renderNotifications(question_id, entry, rc) {
                     var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
                     if (entry.args.requester == account) {
                         ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                         populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                     } else {
                         var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
@@ -1332,7 +1332,7 @@ function renderNotifications(question_id, entry, rc) {
                                 }
                                 if (typeof ntext !== 'undefined') {
                                     ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                                     populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                                 }
                             }
@@ -1356,7 +1356,7 @@ function renderNotifications(question_id, entry, rc) {
                             }
                             if (typeof ntext !== 'undefined') {
                                 ntext += ' - "' + question_json['title'] + '"';
-                                insertNotificationItem(notification_id, item, ntext, result1.timestamp);
+                                insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
                                 populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
                             }
                         }
@@ -1367,7 +1367,7 @@ function renderNotifications(question_id, entry, rc) {
 
 }
 
-function insertQAItem(question_id, item_to_insert, question_section, timestamp) {
+function insertQAItem(question_id, item_to_insert, question_section, block_number, timestamp) {
     //console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
     question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
@@ -1377,7 +1377,7 @@ function insertQAItem(question_id, item_to_insert, question_section, timestamp) 
         if ($(item).hasClass('template-item')) {
             return true;
         }
-        if ($(item).attr('data-block-time') <= timestamp) {
+        if ($(item).attr('data-block-number') <= block_number) {
             $(item).before(item_to_insert);
             inserted = true;
             //console.log('inserted in loop');
@@ -1450,9 +1450,9 @@ function renderUserQandA(question_id, entry) {
     web3.eth.getBlock(entry.blockNumber, function(error, result){
         qitem.attr('data-question-id', question_id);
         qitem.find('.question-text').text(question_json['title']);
-        qitem.attr('data-block-time', result.timestamp);
+        qitem.attr('data-block-number', entry.blockNumber);
         qitem.removeClass('template-item');
-        insertQAItem(question_id, qitem, question_section, result.timestamp);
+        insertQAItem(question_id, qitem, question_section, entry.blockNumber, result.timestamp);
         var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
         rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
     });
