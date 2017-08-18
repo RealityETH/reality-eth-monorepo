@@ -1111,45 +1111,34 @@ function displayQuestionDetail(question_id) {
 
 }
 
-function populateWithBlockTimeForBlockNumber1(notification_id, num, entry) {
-    /*
+/*
+Finds any item with timeago and the given block number
+Fetches the timestamp for the block if not already cached
+Populates the timestamp attribute
+Calls timeago.render() on it
+*/
+function renderBlockTimeAgo(item, num) {
+
+    function applyTimestamp(i, ts) {
+        i.find('.timeago').attr('datetime', convertTsToString(ts));
+        timeAgo.render(i.find('.timeago'));
+    }
+
     if (block_timestamp_cache[num]) {
-        return block_timestamp_cache[num];
+        applyTimestamp(item, block_timestamp_cache[num]);
     } else {
-    */
-    //console.log('getting block for num', num, entry);
         web3.eth.getBlock(num, function(err, result) {
-            //console.log('getBlock', num, err, result);
             if (err || !result) {
+                console.log('getBlock err', err, result);
                 return;
             }
-            block_timestamp_cache[num] = result.timestamp;
-
-            let section_name;
-            switch (entry['event']) {
-                case 'LogNewQuestion':
-                     section_name = 'div[data-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'LogNewAnswer':
-                    section_name = 'div[data-answer-id=' + entry.args.question_id + '-' + entry.args.answer + ']';
-                    break;
-                case 'LogFundAnswerBounty':
-                    section_name = 'div[data-funded-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'LogRequestArbitration':
-                    section_name = 'div[data-arbitration-question-id=' + entry.args.question_id + ']';
-                    break;
-                case 'LogFinalize':
-                    section_name = 'div[data-finalized-question-id=' + entry.args.question_id + ']';
-                    break;
-            }
-            $('div#your-question-answer-window').find(section_name).find('.timeago').attr('datetime',  convertTsToString(result.timestamp));
-            timeAgo.render($('div#your-question-answer-window').find(section_name).find('.timeago'));
+            block_timestamp_cache[num] = result.timestamp
+            applyTimestamp(item, result.timestamp);
         });
-    /*
     }
-    */
+
 }
+
 
 function populateWithBlockTimeForBlockNumber2(num, callback) {
     if (block_timestamp_cache[num]) {
@@ -1180,7 +1169,8 @@ function renderUserAction(question_id, entry, rc) {
 
 }
 
-function insertNotificationItem(notification_id, item_to_insert, ntext, block_number, timestamp) {
+function insertNotificationItem(notification_id, item_to_insert, ntext, block_number) {
+
     var notifications = $('#your-question-answer-window').find('.notifications');
     var section_name = 'div[data-notification-id='+ notification_id + ']';
     if (notifications.find(section_name).length > 0) return;
@@ -1209,6 +1199,8 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, block_nu
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
 
+    renderBlockTimeAgo(item_to_insert, block_number);
+
 }
 
 function renderNotifications(question_id, entry, rc) {
@@ -1226,149 +1218,121 @@ function renderNotifications(question_id, entry, rc) {
     var ntext;
     switch (entry['event']) {
         case 'LogNewQuestion':
-            web3.eth.getBlock(entry.blockNumber, function(err, result){
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
-                    ntext  = 'You asked a question - "' + question_json['title'] + '"';
-                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result.timestamp);
-                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                }
-            });
+            var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
+            ntext  = 'You asked a question - "' + question_json['title'] + '"';
+            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
             break;
 
         case 'LogNewAnswer':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1){
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
-                    if (entry.args.answerer == account) {
-                        ntext = 'You answered a question - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                    } else {
-                        var answered_question = rc.LogNewQuestion({question_id: question_id}, {
-                            fromBlock: START_BLOCK,
-                            toBlock: 'latest'
-                        });
-                        answered_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone answered to your question';
-                                } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                    ntext = 'Your answer was overwritten';
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                                }
-                            }
-                        });
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
+            if (entry.args.answerer == account) {
+                ntext = 'You answered a question - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var answered_question = rc.LogNewQuestion({question_id: question_id}, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                answered_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone answered to your question';
+                        } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                            ntext = 'Your answer was overwritten';
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
                     }
-                }
-                //console.log('notifications text', ntext);
-                if (typeof ntext !== 'undefined') {
-                    item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
-                    item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
-                    populateWithBlockTimeForBlockNumber1(entry['event'], entry.blockNumber, entry);
-                }
-            });
+                });
+            }
+        
+            //console.log('notifications text', ntext);
+            if (typeof ntext !== 'undefined') {
+                item.find('.notification-text').text(ntext + ' - "' + question_json['title'] + '"');
+                item.attr('data-answer-id', entry.args.question_id + '-' + entry.args.answer);
+            }
             break;
 
         case 'LogFundAnswerBounty':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
-                if (err === null) {
-                    if (entry.args.funder == account) {
-                        ntext = 'You added reward - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                    } else {
-                        var funded_question = rc.LogNewQuestion({question_id: question_id}, {
-                            fromBlock: START_BLOCK,
-                            toBlock: 'latest'
-                        });
-                        // TODO: Should this really always be index 0?
-                        funded_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone added reward to your question';
-                                } else {
-                                    var prev_hist_idx = qdata['history'].length - 2;
-                                    if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
-                                        ntext = 'Someone added reward to the question you answered';
-                                    }
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                                }
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
+            if (entry.args.funder == account) {
+                ntext = 'You added reward - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var funded_question = rc.LogNewQuestion({question_id: question_id}, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                // TODO: Should this really always be index 0?
+                funded_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone added reward to your question';
+                        } else {
+                            var prev_hist_idx = qdata['history'].length - 2;
+                            if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
+                                ntext = 'Someone added reward to the question you answered';
                             }
-                        });
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
                     }
-                }
-            });
+                });
+            }
             break;
 
         case 'LogRequestArbitration':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
-                    if (entry.args.requester == account) {
-                        ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                        populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                    } else {
-                        var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-                        arbitration_requested_question.get(function (error, result2) {
-                            if (error === null && typeof result2 !== 'undefined') {
-                                var history_idx = qdata['history'].length - 2;
-                                if (result2[0].args.questioner == account) {
-                                    ntext = 'Someone requested arbitration to your question';
-                                } else {
-                                    if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
-                                        ntext = 'Someone requested arbitration to the question you answered';
-                                    }
-                                }
-                                if (typeof ntext !== 'undefined') {
-                                    ntext += ' - "' + question_json['title'] + '"';
-                                    insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                                    populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                                }
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
+            if (entry.args.requester == account) {
+                ntext = 'You requested arbitration - "' + question_json['title'] + '"';
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            } else {
+                var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+                arbitration_requested_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        var history_idx = qdata['history'].length - 2;
+                        if (result2[0].args.questioner == account) {
+                            ntext = 'Someone requested arbitration to your question';
+                        } else {
+                            if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
+                                ntext = 'Someone requested arbitration to the question you answered';
                             }
-                        });
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        }
                     }
-                }
-            });
+                });
+            }
             break;
 
         case 'LogFinalize':
-            web3.eth.getBlock(entry.blockNumber, function(err, result1) {
-                if (err === null) {
-                    var notification_id = web3.sha3(entry.args.question_id + entry.args.answer_id + entry.args.answer);
-                    var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-                    finalized_question.get(function (error, result2) {
-                        if (error === null && typeof result2 !== 'undefined') {
-                            if (result2[0].args.questioner == account) {
-                                ntext = 'Your question is finalized';
-                            } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
-                                ntext = 'The question you answered is finalized';
-                            }
-                            if (typeof ntext !== 'undefined') {
-                                ntext += ' - "' + question_json['title'] + '"';
-                                insertNotificationItem(notification_id, item, ntext, entry.blockNumber, result1.timestamp);
-                                populateWithBlockTimeForBlockNumber1(notification_id, entry.blockNumber, entry);
-                            }
-                        }
-                    });
+            var notification_id = web3.sha3(entry.args.question_id + entry.args.answer_id + entry.args.answer);
+            var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+            finalized_question.get(function (error, result2) {
+                if (error === null && typeof result2 !== 'undefined') {
+                    if (result2[0].args.questioner == account) {
+                        ntext = 'Your question is finalized';
+                    } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                        ntext = 'The question you answered is finalized';
+                    }
+                    if (typeof ntext !== 'undefined') {
+                        ntext += ' - "' + question_json['title'] + '"';
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                    }
                 }
             });
     }
 
 }
 
-function insertQAItem(question_id, item_to_insert, question_section, block_number, timestamp) {
-    //console.log('insert item_to_insert', item_to_insert, item_to_insert.size());
+function insertQAItem(question_id, item_to_insert, question_section, block_number) {
+
     question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
 
     var question_items = question_section.find('.your-qa__questions__item');
@@ -1390,6 +1354,7 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
         question_section.append(item_to_insert);
     //console.log('inserted through fall through');
     }
+    renderBlockTimeAgo(item_to_insert, block_number);
 
 }
 
@@ -1446,16 +1411,13 @@ function renderUserQandA(question_id, entry) {
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
-    //console.log('inserting qitem', qitem, qitem.size());
-    web3.eth.getBlock(entry.blockNumber, function(error, result){
-        qitem.attr('data-question-id', question_id);
-        qitem.find('.question-text').text(question_json['title']);
-        qitem.attr('data-block-number', entry.blockNumber);
-        qitem.removeClass('template-item');
-        insertQAItem(question_id, qitem, question_section, entry.blockNumber, result.timestamp);
-        var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
-        rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
-    });
+    qitem.attr('data-question-id', question_id);
+    qitem.find('.question-text').text(question_json['title']);
+    qitem.attr('data-block-number', entry.blockNumber);
+    qitem.removeClass('template-item');
+    insertQAItem(question_id, qitem, question_section, entry.blockNumber);
+    var is_finalized = ( ( (qdata[Qi_finalization_ts] * 1000) < new Date().getTime() ) && !qdata[Qi_is_arbitration_due] );
+    rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
 
     var updateBlockTimestamp = function (ts) {
         let date = new Date();
