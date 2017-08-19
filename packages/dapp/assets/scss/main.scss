@@ -1188,10 +1188,6 @@ span.rcbrowser__close-button {
     font-size: 13px;
 }
 
-.current-answer-header > span {
-    display: inline-block;
-}
-
 .current-answer-header::before {
     display: inline-block;
     content: "";
@@ -2008,3 +2004,9 @@ div.rcbrowser--qa-detail.question-state-finalized .resolved-at-container { displ
 
 .questions__item__answer { display:none }
 .has-answer .questions__item__answer { display:block !important}
+
+.current-answer-label-final { display: none }
+div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-final { display: inline-block !important }
+
+.current-answer-label-current { display: inline-block }
+div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-current{ display: none !important }
