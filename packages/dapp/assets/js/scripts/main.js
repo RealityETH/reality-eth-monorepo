@@ -68,7 +68,7 @@ var arbitration_fee;
 var display_entries = {
     'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-best': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
 }
 
@@ -822,7 +822,7 @@ function handleQuestionLog(item, rc) {
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, created);
+            var insert_before = update_ranking_data('questions-resolved', question_id, question_data[Qi_finalization_ts], 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
                 // question_detail_list[question_id] = question_data;
@@ -830,17 +830,26 @@ function handleQuestionLog(item, rc) {
             }
 
         } else {
-            var insert_before = update_ranking_data('questions-latest', question_id, created);
+            var insert_before = update_ranking_data('questions-latest', question_id, created, 'desc');
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
             }
 
-            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
+            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty, 'desc');
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
             }
+            
+            if (isAnswered(question_data)) {
+                var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data[Qi_finalization_ts], 'asc');
+                if (insert_before !== -1) {
+                    populateSection('questions-closing-soon', question_data, insert_before);
+                }
+            }
+
+
 //console.log(display_entries);
         }
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
@@ -851,7 +860,7 @@ function handleQuestionLog(item, rc) {
 // If it comes after another stored item, return the ID of that item.
 // If it doesn't belong in storage because it is too low for the ranking, return -1
 // TODO: ??? If it is already in storage and does not need to be updated, return -2
-function update_ranking_data(arr_name, id, val) {
+function update_ranking_data(arr_name, id, val, ord) {
 
     // Check if we already have it
     var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
@@ -887,7 +896,7 @@ function update_ranking_data(arr_name, id, val) {
     var i = 0;
     for (i = 0; i < arr.length; i++) {
         //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
-        if (val.gte(arr[i])) {
+        if ((ord == 'desc' && val.gte(arr[i])) || (ord == 'asc' && val.lte(arr[i]))) {
             // found a spot, we're higher than the current occupant of this index
             // we'll return its ID to know where to insert in the document
             var previd = display_entries[arr_name]['ids'][i];
