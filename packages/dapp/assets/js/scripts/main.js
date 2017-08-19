@@ -1603,8 +1603,13 @@ function updateQuestionState(question, question_window) {
         question_window.removeClass('has-answer');
     } else {
         question_window.addClass('has-answer');
-        question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
-        timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
+        if (isFinalized(question)) {
+            question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            timeAgo.render(question_window.find('.resolved-at-value.timeago')); // TODO: Does this work if we haven't displayed the item yet?
+        } else {
+            question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
+        }
     }
 
     if (isArbitrationDue(question)) {
