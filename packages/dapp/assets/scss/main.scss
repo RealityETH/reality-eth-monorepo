@@ -1055,7 +1055,7 @@ span.rcbrowser__close-button {
     color: $white;
 }
 
-.answer-deadline {
+.answer-deadline-container {
     display: none;
     margin: -9px 0 15px;
     padding: 6px;
@@ -1064,7 +1064,7 @@ span.rcbrowser__close-button {
     background-color: $rcBrowserDarkBg;
 }
 
-.rcbrowser.has-answer .answer-deadline {
+.rcbrowser.has-answer .answer-deadline-container {
     display: block;
 }
 
@@ -1994,3 +1994,21 @@ div.rcbrowser--qa-detail.question-state-pending-arbitration.answer-form-containe
  
 div.rcbrowser--qa-detail.question-state-finalized .arbitration-button{display:none}
 div.rcbrowser--qa-detail.question-state-pending-arbitration .arbitration-button{display:none}
+
+div.rcbrowser--qa-detail.question-state-finalized .answer-deadline-label {display:none}
+
+div.rcbrowser--qa-detail.question-state-finalized .answer-deadline-label.closed {display:block !important}
+div.rcbrowser--qa-detail.question-state-pending-arbitration .answer-deadline-label.pending-arbitration {display:block !important}
+div.rcbrowser--qa-detail.question-state-open .answer-deadline-label.open {display:block !important}
+
+.apply-for-arbitration-container { display: none}
+div.rcbrowser--qa-detail.question-state-open .apply-for-arbitration-container { display: block !important}
+
+.pending-arbitration-container { display:none }
+div.rcbrowser--qa-detail.question-state-pending-arbitration .apply-for-arbitration-container { display: block !important}
+
+.reward-value-container { display:none }
+.div.rcbrowser--qa-detail.question-state-open .reward-value-container { display:block !important}
+
+.add-reward-button { display:none }
+.div.rcbrowser--qa-detail.question-state-open .add-reward-button { display:block !important}

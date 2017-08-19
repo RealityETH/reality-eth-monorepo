@@ -468,7 +468,11 @@ function isArbitrationDue(question) {
 
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
-    return ( (fin > 1) && (fin * 1000 < new Date().getDate()) );  
+    // 0: Unanswered
+    // 1: Pending arbitration
+    // Below current date: Finalized
+    // Above current date: Open for new answers or arbitration requests
+    return ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
 }
 
 $(document).on('click', '.answer-claim-button', function(){
@@ -1067,8 +1071,7 @@ function displayQuestionDetail(question_detail) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
             rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-            rcqa.find('.arbitration-fee').text(fee.toString());
-            arbitration_fee = fee.toNumber();
+            rcqa.find('.arbitration-fee').text(web3.fromWei(fee.toNumber(), 'ether')); 
         });
     } else {
         rcqa.find('.arbitration-button').css('display', 'none');
@@ -1086,8 +1089,11 @@ function displayQuestionDetail(question_detail) {
     if (question_detail['history'].length) {
         $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
         timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
-        updateQuestionState(question_id, question_detail[Qi_step_delay], latest_answer.ts);
     } 
+
+    // TODO: Should we be doing something for latest_answer.ts?
+    //updateQuestionState(question_id, question_detail[Qi_step_delay], latest_answer.ts);
+    updateQuestionState(question_detail);
 
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
@@ -1589,24 +1595,35 @@ function displayAnswerHistory(question_data) {
 
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
-function updateQuestionState(question_id, step_delay, answer_created) {
-    var section_name = '#qadetail-' + question_id;
+function updateQuestionState(question) {
+
+    var question_id = question[Qi_question_id];
+    var step_delay = question[Qi_step_delay];
+
+    // TODO: Should we already have up-to-date data when we load this?
+
+    var window_id = '#qadetail-' + question_id;
     RealityCheck.deployed().then(function(instance) {
         var rc = instance;
         return rc.questions.call(question_id);
     }).then(function(cq) {
         cq.unshift(question_id);
-        $(section_name).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+        if (cq[Qi_finalization_ts] == 0) {
+            $(window_id).removeClass('has-answer');
+        } else {
+            $(window_id).addClass('has-answer');
+        }
+        $(window_id).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
 
-        timeAgo.render($(section_name).find('.answer-deadline.timeago'));
+        timeAgo.render($(window_id).find('.answer-deadline.timeago'));
 
         if (isArbitrationDue(cq)) {
-            $(section_name).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+            $(window_id).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
         } else {
             if ( !isFinalized(cq) ) {
-                $(section_name).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+                $(window_id).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
             } else {
-                $(section_name).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
+                $(window_id).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
             }
         }
     });
@@ -1836,8 +1853,9 @@ $(document).on('click', '.arbitrator', function(e) {
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
+        console.log('got fee', fee);
         RealityCheck.deployed().then(function(rc){
-            return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value: arbitration_fee});
+            return rc.requestArbitration(question_id, {from:account, value: arbitration_fee});
         }).then(function(result){
             //console.log('arbitration is requestd.', result);
         });
@@ -1942,6 +1960,7 @@ function pageInit(account) {
 
         evts.watch(function (error, result) {
             if (!error && result) {
+
                 // Check the action to see if it is interesting, if it is then populate notifications etc
                 handleUserAction(result, rc);
 
