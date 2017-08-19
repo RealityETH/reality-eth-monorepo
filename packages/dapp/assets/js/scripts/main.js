@@ -626,7 +626,7 @@ function handleUserAction(entry, rc) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
-            console.log('entry', entry, 'not interesting to account', account);
+            //console.log('entry', entry, 'not interesting to account', account);
             return;
         }
         q_min_activity_blocks[question_id] = entry.blockNumber;
@@ -803,7 +803,6 @@ function populateSection(section_name, question_data, before_item) {
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
-    console.log('created is ', created, 'for quid', question_id);
     var question_data;
 
     rc.questions.call(question_id).then( function(qdata) {
@@ -1092,7 +1091,6 @@ function displayQuestionDetail(question_detail) {
 
     // answer form
     var ans_frm = makeSelectAnswerInput(question_json);
-    ans_frm.css('display', 'block');
     ans_frm.addClass('is-open');
     ans_frm.removeClass('template-item');
     rcqa.find('.answered-history-container').after(ans_frm);
@@ -1613,9 +1611,7 @@ function displayAnswerHistory(question_data) {
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
 function updateQuestionState(question, question_window) {
 
-    if (question[Qi_finalization_ts] == 0) {
-        question_window.removeClass('has-answer');
-    } else {
+    if (question[Qi_finalization_ts] > 1) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
             question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
@@ -1624,6 +1620,8 @@ function updateQuestionState(question, question_window) {
             question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
+    } else {
+        question_window.removeClass('has-answer');
     }
 
     if (isArbitrationDue(question)) {

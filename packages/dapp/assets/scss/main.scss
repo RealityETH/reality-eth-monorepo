@@ -1992,7 +1992,7 @@ div.rcbrowser--qa-detail.question-state-open .answer-form-container{display:bloc
 div.rcbrowser--qa-detail.question-state-open .arbitration-button{display:block !important}
 
 .answer-deadline-container{display:none}
-div.rcbrowser--qa-detail.question-state-open .answer-deadline-container{display:block !important}
+div.rcbrowser--qa-detail.question-state-open.has-answer .answer-deadline-container{display:block !important}
 
 .apply-for-arbitration-container { display: none}
 div.rcbrowser--qa-detail.question-state-open .apply-for-arbitration-container { display: block !important}
