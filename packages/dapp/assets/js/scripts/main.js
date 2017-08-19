@@ -17,6 +17,8 @@ var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 
+var submitted_question_id_timestamp = {};
+
 const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'questioner',
     'LogNewAnswer': 'answerer',
@@ -610,7 +612,9 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
 function handleUserAction(entry, rc) {
-   
+  
+
+
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
         return;
@@ -657,6 +661,19 @@ function handleUserAction(entry, rc) {
         }
     }
 
+    var is_population_done = false;
+
+    // User action
+    if (entry['event'] == 'LogNewAnswer') {
+        // force refresh
+        delete question_detail_list[question_id];
+        if ( submitted_question_id_timestamp[question_id] > 0) {
+            delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
+            populateQuestionDetail(question_id, rc).then(function(question) {
+                displayQuestionDetail(question);
+            });
+        }
+    } 
  
     // If we have already viewed the question, it should be loaded in the question_detail_list array
     // If not, we will need to load it and put it there
@@ -731,8 +748,8 @@ function updateUserBalanceDisplay() {
 
 }
 
-
 function populateSection(section_name, question_data, before_item) {
+
     var question_id = question_data[Qi_question_id];
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
@@ -797,7 +814,6 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
-    //if (display_entries[section_name].max_show) {
 }
 
 function handleQuestionLog(item, rc) {
@@ -848,7 +864,6 @@ function handleQuestionLog(item, rc) {
                     populateSection('questions-closing-soon', question_data, insert_before);
                 }
             }
-
 
 //console.log(display_entries);
         }
@@ -964,11 +979,15 @@ $(document).on('click', '.questions__item__title', function(e){
 
     var question_id = $(this).closest('.questions__item').attr('data-question-id');
 
+    // Should repopulate and bring to the front if already open
+    openQuestionWindow(question_id);
+    /*
     if ($('#qadetail-'+question_id).size()) {
         console.log('already open');
     } else {
         openQuestionWindow(question_id);
     }
+    */
 
 });
 
@@ -991,13 +1010,16 @@ function openQuestionWindow(question_id) {
         rc = instance;
         return populateQuestionDetail(question_id, rc);
     }).then(function(question) {
+        /*
         var answers = question['history'];
+
         for(var i=0; i<answers.length; i++) {
             handleUserAction(answers[i], rc);
         }
+        */
 
         displayQuestionDetail(question);
-        displayAnswerHistory(question);
+        //displayAnswerHistory(question);
     });
     /*
     .catch(function(e){
@@ -1031,33 +1053,63 @@ function displayQuestionDetail(question_detail) {
 
     var question_id = question_detail[Qi_question_id];
     //console.log('question_id', question_id);
-    var is_arbitration_requested = isArbitrationDue(question_detail);
-    var idx = question_detail['history'].length - 1;
-    var question_json = question_detail[Qi_question_json];
 
+    // If already open, refresh and bring to the front
+    var window_id = 'qadetail-' + question_id;
+    var rcqa = $('#'+window_id);
+    if (rcqa.length) {
+        rcqa = populateQuestionWindow(rcqa, question_detail, true);
+        //rcqa.css('display', 'block');
+        //rcqa.addClass('is-open');
+        rcqa.css('z-index', ++zindex);
+        //rcqa.css('height', rcqa.height()+'px');
+        //setRcBrowserPosition(rcqa);
+        //Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+
+    } else {
+        rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+        rcqa.attr('id', window_id);
+        rcqa.attr('data-question-id', question_id);
+
+        rcqa.find('.rcbrowser__close-button').on('click', function(){
+            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+            let left = parseInt(parent_div.css('left').replace('px', ''));
+            let top = parseInt(parent_div.css('top').replace('px', ''));
+            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+            left += data_x; top += data_y;
+            window_position[question_id]['x'] = left;
+            window_position[question_id]['y'] = top;
+            rcqa.remove();
+            //console.log('clicked close');
+            //$('div#' + question_id).remove();
+            //question_id = question_id.replace('qadetail-', '');
+            //delete question_detail_list[question_id]
+        });
+
+        rcqa.removeClass('template-item');
+
+        rcqa = populateQuestionWindow(rcqa, question_detail, false);
+
+        $('#qa-detail-container').append(rcqa);
+
+        rcqa.css('display', 'block');
+        rcqa.addClass('is-open');
+        rcqa.css('z-index', ++zindex);
+        rcqa.css('height', rcqa.height()+'px');
+        setRcBrowserPosition(rcqa);
+        Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+    }
+
+}
+
+function populateQuestionWindow(rcqa, question_detail, is_refresh) {
+
+    var question_id = question_detail[Qi_question_id];
+    var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
 
-    var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-    rcqa.attr('id', 'qadetail-' + question_id);
-    rcqa.attr('data-question-id', question_id);
-
-    rcqa.find('.rcbrowser__close-button').on('click', function(){
-        let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-        let left = parseInt(parent_div.css('left').replace('px', ''));
-        let top = parseInt(parent_div.css('top').replace('px', ''));
-        let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-        let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-        left += data_x; top += data_y;
-        window_position[question_id]['x'] = left;
-        window_position[question_id]['y'] = top;
-        rcqa.remove();
-        //console.log('clicked close');
-        //$('div#' + question_id).remove();
-        //question_id = question_id.replace('qadetail-', '');
-        //delete question_detail_list[question_id]
-    });
-
-    rcqa.removeClass('template-item');
+    var idx = question_detail['history'].length - 1;
 
     let date = new Date();
     date.setTime(question_detail[Qi_creation_ts] * 1000);
@@ -1070,6 +1122,7 @@ function displayQuestionDetail(question_detail) {
         var latest_answer = question_detail['history'][idx].args;
         rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer);
         rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render(rcqa.find('.current-answer-item').find('.timeago'));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -1084,6 +1137,26 @@ function displayQuestionDetail(question_detail) {
         // label for show the current answer.
         var label = getAnswerString(question_json, latest_answer.answer);
         rcqa.find('.current-answer-body').find('.current-answer').text(label);
+
+        // TODO: Do duplicate checks and ensure order in case stuff comes in weird
+        for (var i = idx-1; i>=0; i--) {
+            var ans = question_detail['history'][i].args;
+            var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
+            var hist_item = hist_tmpl.clone();
+            var hist_id = web3.sha3(question_id, ans['answer'], ans['bond']);
+            if (rcqa.find('#'+hist_id).length) {
+                continue;
+            }
+            hist_item.attr('id', hist_id);
+            hist_item.find('.answerer').text(ans['answerer']);
+            hist_item.find('.current-answer').text(getAnswerString(question_json, ans['answer']));
+            hist_item.find('.answer-bond-value').text(web3.fromWei(ans['bond'].toNumber(), 'ether'));
+            hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
+            timeAgo.render(hist_item.find('.answer-time.timeago')); // TODO Do we have to add this to the document first?
+            hist_item.removeClass('template-item');
+            hist_tmpl.before(hist_item); 
+        }
+
     } else {
         rcqa.find('.current-answer-container').hide();
     }
@@ -1098,27 +1171,18 @@ function displayQuestionDetail(question_detail) {
         });
     } 
 
-    // answer form
-    var ans_frm = makeSelectAnswerInput(question_json);
-    ans_frm.addClass('is-open');
-    ans_frm.removeClass('template-item');
-    rcqa.find('.answered-history-container').after(ans_frm);
+    if (!is_refresh) {
+        // answer form
+        var ans_frm = makeSelectAnswerInput(question_json);
+        ans_frm.addClass('is-open');
+        ans_frm.removeClass('template-item');
+        rcqa.find('.answered-history-container').after(ans_frm);
+    }
 
-    updateQuestionState(question_detail, rcqa);
+    rcqa = updateQuestionState(question_detail, rcqa);
 
-    $('#qa-detail-container').append(rcqa);
 
-    if (question_detail['history'].length) {
-        $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
-        timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
-    } 
-
-    rcqa.css('display', 'block');
-    rcqa.addClass('is-open');
-    rcqa.css('z-index', ++zindex);
-    rcqa.css('height', rcqa.height()+'px');
-    setRcBrowserPosition(rcqa);
-    Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+    return rcqa;
 
     // TODO: We already have a watch running on all new answers
     // Can we move this handling to the one that was going to happen anyhow?
@@ -1413,6 +1477,11 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
             } else {
                 target.find('.your-qa__questions__item-body--user').css('display', 'none');
             }
+
+            if (user_answer == latest_answer) {
+                target.find('.different-latest-answer-container').hide();
+            }
+
             target.find('.your-qa__questions__item-body--latest').css('display', 'block');
         } else {
             target.find('.your-qa__questions__item-body--latest').css('display', 'none');
@@ -1421,7 +1490,7 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
 
         if (is_finalized) {
             target.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
-            target.find('.your-qa__questions__item-status').text('Resolved at');
+            target.find('.your-qa__questions__item-status').text('Resolved');
         } else {
             target.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
         }
@@ -1460,45 +1529,6 @@ function renderUserQandA(qdata, entry) {
         qitem.find('.item-date').text(date_str);
     }
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
-}
-
-function rewriteQuestionDetail(question_data) {
-
-    var question_id = question_data[Qi_question_id];
-    var idx = question_data['history'].length - 1;
-    var answer_data = question_data['history'][idx];
-    var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
-    var answer = new BigNumber(answer_data.args.answer).toNumber();
-
-    var question_json = question_data[Qi_question_json];
-    var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
-    var window_id = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
-
-    var question_window = $(window_id);
-
-    question_window.find('.current-answer-container').attr('id', answer_id);
-
-    var label = getAnswerString(question_json, answer_data.args.answer);
-    question_window.find('.current-answer-container').find('.current-answer').text(label);
-    question_window.find('.current-answer-container').css('display', 'block');
-
-    // TODO: Make sure the old timeago is cancelled
-
-    question_window.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
-    timeAgo.render(question_window.find('.current-answer-item').find('.timeago'));
-
-    question_window.find('input[name="numberAnswer"]').val(0);
-    question_window.find('input[name="questionBond"]').val(bond * 2);
-
-    // show final answer button
-    updateQuestionState(question_data, question_window);
-
-    var ans_data = question_window.find('.current-answer-container').find('.answer-data');
-    ans_data.find('.answerer').text(answer_data.args.answerer);
-    ans_data.find('.answer-bond-value').text(bond);
-
-    displayAnswerHistory(question_data);
-
 }
 
 function getAnswerString(question_json, answer) {
@@ -1576,7 +1606,8 @@ function makeSelectAnswerInput(question_json) {
 }
 
 function displayAnswerHistory(question_data) {
-    var question_id = question_data['Qi_question_id'];
+
+    var question_id = question_data[Qi_question_id];
     var answer_log = question_data['history'];
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     var section = $(section_name);
@@ -1642,6 +1673,8 @@ function updateQuestionState(question, question_window) {
             question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
         }
     }
+
+    return question_window;
 
 /*
     var id = setInterval(function(){
@@ -1787,6 +1820,8 @@ $(document).on('click', '.post-answer-button', function(e){
 
         if (is_err) throw('err on submitting answer');
 
+        submitted_question_id_timestamp[question_id] = new Date().getTime();
+
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
         return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', {from:account, value:bond});
     }).then(function(result){
@@ -1835,7 +1870,8 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
+    var rcqa = $(this).closest('.rcbrowser--qa-detail');
+    var question_id = rcqa.attr('data-question-id');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
     reward = web3.toWei(new BigNumber(reward), 'ether');
 
@@ -1843,9 +1879,14 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         RealityCheck.deployed().then(function (rc) {
-            return rc.fundAnswerBounty(question_id, {from: web3.eth.accounts[0], value: reward});
+            return rc.fundAnswerBounty(question_id, {from: account, value: reward});
         }).then(function (result) {
-            //console.log('fund bounty', result);
+            console.log('fund bounty', result);
+            var container = rcqa.find('.add-reward-container');
+            console.log('removing open', container.length, container);
+            container.removeClass('is-open');
+            container.removeClass('is-bounce');
+            container.css('display', 'none');
         });
     }
 });
@@ -1981,8 +2022,19 @@ function pageInit(account) {
 
                 // Handles front page event changes.
                 // NB We need to reflect other changes too...
-                if (result['event'] == 'LogNewQuestion') {
+                var evt = result['event'];
+                if (evt == 'LogNewQuestion') {
                     handleQuestionLog(result, rc);
+                } else {
+                    // TODO: We shouldn't really need a full refresh for what may be a small event
+                    var question_id = result.args.question_id;
+                    var window_id = 'qadetail-' + question_id;
+                    if (document.getElementById(window_id)) {
+                        delete question_detail_list[question_id];
+                        populateQuestionDetail(question_id, rc).then(function(question) {
+                            displayQuestionDetail(question);
+                        });
+                    }
                 }
             }
         });

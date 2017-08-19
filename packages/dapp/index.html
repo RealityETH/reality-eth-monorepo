@@ -242,10 +242,7 @@
                                     </div>
 
                                     <div class="your-qa__questions__item-body--latest">
-                                        <span class="latest-answer-text"></span> - Latest answer
-                                    </div>
-                                    <div class="your-qa__questions__item-body--user">
-                                        <span class="user-answer-text"></span> - Your latest answer
+                                        <span class="latest-answer-text"></span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>
@@ -269,11 +266,9 @@
                                         </a>
                                     </div>
 
-                                    <div class="your-qa__questions__item-body--latest">
-                                        <span class="latest-answer-text"></span> - Latest answer
-                                    </div>
                                     <div class="your-qa__questions__item-body--user">
-                                        <span class="user-answer-text"></span> - Your latest answer
+                                        <span class="user-answer-text"></span>
+                                        <span class="different-latest-answer-container"> (since changed to <span class="latest-answer-text"></span>)</span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>
@@ -659,8 +654,7 @@
                                 <div class="current-answer-body">
                                     <p><span class="current-answer"></span></p>
                                 </div>
-                                <span class="timeago-container template-item"><time class="timeago-template" datetime=""></time></span>
-                                <div class="final-answer-button" style="display:none;">Make this Final Answer</div>
+                                <span class="timeago-container"><time class="timeago" datetime=""></time></span>
                                 <div class="answer-data">
                                     <div class="answer-data-inner">
                                         <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div>
@@ -678,26 +672,29 @@
 
                     <div class="answered-history-container">
                         <div class="answered-history-header"><span>Answered History</span></div>
-                    </div>
 
+                        <div class="answer-item answered-history-item template-item">
+                            <div class="current-answer-body">
+                                <p><span class="current-answer"></span></p>
+                            </div>
+                            <span class="timeago-container"><time class="answer-time timeago" datetime=""></time></span>
+                            <div class="answer-data">
+                                <div class="answer-data-inner">
+                                    <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div>
+                                    <div class="answer-data__item answer-data__user-id">
+                                        <span>User ID: </span><span class="answerer"></span>
+                                    </div>
+                                    <div class="answer-data__item answer-data__bond answer-data__bond--current">
+                                        <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
-
-    <div class="answered-history-item-container template-item" style="display:none">
-        <div class="answer-item answered-history-item">
-            <div class="answered-history-body"></div>
-            <span><time class="timeago" datetime=""></time></span>
-            <div class="answer-data">
-                <div class="answer-data-inner">
-                    <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div>
-                    <div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div>
-                    <div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="answer-bond-value"></span><span> ETH</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="assets/js/bundle.js"></script>
 
