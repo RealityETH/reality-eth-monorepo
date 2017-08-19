@@ -626,9 +626,10 @@ function handleUserAction(entry, rc) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
-            //console.log('entry', entry, 'not interesting to account', account);
+            //console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
             return;
-        }
+        } 
+
         q_min_activity_blocks[question_id] = entry.blockNumber;
         var all_evts = rc.allEvents({question_id: question_id});
         all_evts.get(function(error, evts) {
@@ -640,8 +641,9 @@ function handleUserAction(entry, rc) {
                 console.log('error getting all_evts', error);
             }
         });
-        return; 
     }
+
+    //console.log('handling', entry.args['question_id'], 'entry', entry, account);
 
     if (window.localStorage) {
         var lastViewedBlockNumber = 0;
@@ -659,8 +661,6 @@ function handleUserAction(entry, rc) {
     // If we have already viewed the question, it should be loaded in the question_detail_list array
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
-
-    var current_question;
 
     populateQuestionDetail(question_id, rc).then(function(question) {
         renderUserAction(question, entry, rc);
