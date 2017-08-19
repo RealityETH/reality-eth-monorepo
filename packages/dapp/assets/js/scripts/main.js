@@ -1056,7 +1056,7 @@ function displayQuestionDetail(question_detail) {
         } else {
             ans_data.removeClass('current-account');
         }
-        ans_data.find('.answer-bond-value').text(latest_answer.bond);
+        ans_data.find('.answer-bond-value').text(web3.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
         // label for show the current answer.
         var label = getAnswerString(question_json, latest_answer.answer);
@@ -1073,9 +1073,7 @@ function displayQuestionDetail(question_detail) {
             rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(web3.fromWei(fee.toNumber(), 'ether')); 
         });
-    } else {
-        rcqa.find('.arbitration-button').css('display', 'none');
-    }
+    } 
 
     // answer form
     var ans_frm = makeSelectAnswerInput(question_json);
@@ -1084,6 +1082,8 @@ function displayQuestionDetail(question_detail) {
     ans_frm.removeClass('template-item');
     rcqa.find('.answered-history-container').after(ans_frm);
 
+    updateQuestionState(question_detail, rcqa);
+
     $('#qa-detail-container').append(rcqa);
 
     if (question_detail['history'].length) {
@@ -1091,9 +1091,6 @@ function displayQuestionDetail(question_detail) {
         timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
     } 
 
-    // TODO: Should we be doing something for latest_answer.ts?
-    //updateQuestionState(question_id, question_detail[Qi_step_delay], latest_answer.ts);
-    updateQuestionState(question_detail);
 
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');
@@ -1445,6 +1442,7 @@ function renderUserQandA(qdata, entry) {
 }
 
 function rewriteQuestionDetail(question_data) {
+
     var question_id = question_data[Qi_question_id];
     var idx = question_data['history'].length - 1;
     var answer_data = question_data['history'][idx];
@@ -1453,24 +1451,28 @@ function rewriteQuestionDetail(question_data) {
 
     var question_json = question_data[Qi_question_json];
     var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
-    var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
-    $(section_name).find('.current-answer-container').attr('id', answer_id);
+    var window_id = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
+
+    var question_window = $(window_id);
+
+    question_window.find('.current-answer-container').attr('id', answer_id);
+
     var label = getAnswerString(question_json, answer_data.args.answer);
-    $(section_name).find('.current-answer-container').find('.current-answer').text(label);
-    $(section_name).find('.current-answer-container').css('display', 'block');
+    question_window.find('.current-answer-container').find('.current-answer').text(label);
+    question_window.find('.current-answer-container').css('display', 'block');
 
     // TODO: Make sure the old timeago is cancelled
 
-    $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
-    timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
+    question_window.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
+    timeAgo.render(question_window.find('.current-answer-item').find('.timeago'));
 
-    $(section_name).find('input[name="numberAnswer"]').val(0);
-    $(section_name).find('input[name="questionBond"]').val(bond * 2);
+    question_window.find('input[name="numberAnswer"]').val(0);
+    question_window.find('input[name="questionBond"]').val(bond * 2);
 
     // show final answer button
-    updateQuestionState(question_id, question_data[Qi_step_delay], answer_data.args.ts);
+    updateQuestionState(question_data, question_window);
 
-    var ans_data = $(section_name).find('.current-answer-container').find('.answer-data');
+    var ans_data = question_window.find('.current-answer-container').find('.answer-data');
     ans_data.find('.answerer').text(answer_data.args.answerer);
     ans_data.find('.answer-bond-value').text(bond);
 
@@ -1595,40 +1597,27 @@ function displayAnswerHistory(question_data) {
 
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
-function updateQuestionState(question) {
+function updateQuestionState(question, question_window) {
 
-    var question_id = question[Qi_question_id];
-    var step_delay = question[Qi_step_delay];
+    if (question[Qi_finalization_ts] == 0) {
+        question_window.removeClass('has-answer');
+    } else {
+        question_window.addClass('has-answer');
+        question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+        timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
+    }
 
-    // TODO: Should we already have up-to-date data when we load this?
-
-    var window_id = '#qadetail-' + question_id;
-    RealityCheck.deployed().then(function(instance) {
-        var rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(cq) {
-        cq.unshift(question_id);
-        if (cq[Qi_finalization_ts] == 0) {
-            $(window_id).removeClass('has-answer');
+    if (isArbitrationDue(question)) {
+        question_window.removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+    } else {
+        if ( !isFinalized(question) ) {
+            question_window.addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
         } else {
-            $(window_id).addClass('has-answer');
+            question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
         }
-        $(window_id).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+    }
 
-        timeAgo.render($(window_id).find('.answer-deadline.timeago'));
-
-        if (isArbitrationDue(cq)) {
-            $(window_id).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
-        } else {
-            if ( !isFinalized(cq) ) {
-                $(window_id).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
-            } else {
-                $(window_id).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
-            }
-        }
-    });
-
-    /*
+/*
     var id = setInterval(function(){
         if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
             $(section_name).find('.final-answer-button').css('display', 'block');
