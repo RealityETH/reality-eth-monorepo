@@ -1056,16 +1056,11 @@ span.rcbrowser__close-button {
 }
 
 .answer-deadline-container {
-    display: none;
     margin: -9px 0 15px;
     padding: 6px;
     border-radius: 2px;
     font-size: 12px;
     background-color: $rcBrowserDarkBg;
-}
-
-.rcbrowser.has-answer .answer-deadline-container {
-    display: block;
 }
 
 // rcBrowser--qa-detail main header
