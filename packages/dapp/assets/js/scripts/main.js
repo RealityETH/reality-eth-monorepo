@@ -36,7 +36,9 @@ const START_BLOCK = 0;
 
 // Question, as returned by questions()
 const Qi_question_id = 0;
-const Qi_finalization_ts = 1; // TODO: This is really last_changed_ts
+
+// NB This has magic values - 0 for no answer, 1 for pending arbitration, will be 2 for pending arbitration with answer, otherwise timestamp
+const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
@@ -466,6 +468,11 @@ function isArbitrationDue(question) {
     return (question[Qi_finalization_ts].toNumber() == 1);
 }
 
+function isAnswered(question) {
+    // TODO: Change contract to be able to differentiate when in pending-arbitration state
+    return (question[Qi_finalization_ts].toNumber() > 1);
+}
+
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
     // 0: Unanswered
@@ -760,6 +767,14 @@ function populateSection(section_name, question_data, before_item) {
     entry.attr('data-question-id', question_id);
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.questions__item__title').attr('data-target-id', target_question_id);
+    if (isAnswered(question_data)) {
+        entry.find('.questions__item__answer').text(getAnswerString(question_json, best_answer));
+        entry.addClass('has-answer');
+    } else {
+        entry.find('.questions__item__answer').text('');
+        entry.removeClass('has-answer');
+    }
+
     entry.find('.question-title').text(question_json['title']);
     entry.find('.question-bounty').text(bounty);
     entry.css('display', 'block');
@@ -1090,7 +1105,6 @@ function displayQuestionDetail(question_detail) {
         $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
         timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
     } 
-
 
     rcqa.css('display', 'block');
     rcqa.addClass('is-open');

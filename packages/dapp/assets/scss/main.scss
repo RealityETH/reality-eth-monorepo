@@ -2008,3 +2008,6 @@ div.rcbrowser--qa-detail.question-state-open .add-reward-button { display:inline
 
 .resolved-at-container { display:none }
 div.rcbrowser--qa-detail.question-state-finalized .resolved-at-container { display:inline-block !important}
+
+.questions__item__answer { display:none }
+.has-answer .questions__item__answer { display:block !important}
