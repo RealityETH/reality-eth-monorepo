@@ -612,8 +612,6 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
 function handleUserAction(entry, rc) {
-  
-
 
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
@@ -1010,16 +1008,7 @@ function openQuestionWindow(question_id) {
         rc = instance;
         return populateQuestionDetail(question_id, rc);
     }).then(function(question) {
-        /*
-        var answers = question['history'];
-
-        for(var i=0; i<answers.length; i++) {
-            handleUserAction(answers[i], rc);
-        }
-        */
-
         displayQuestionDetail(question);
-        //displayAnswerHistory(question);
     });
     /*
     .catch(function(e){
@@ -1181,48 +1170,26 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     rcqa = updateQuestionState(question_detail, rcqa);
 
-
     return rcqa;
 
-    // TODO: We already have a watch running on all new answers
-    // Can we move this handling to the one that was going to happen anyhow?
-
-    var rc;
-    RealityCheck.deployed().then(function(instance){
-        rc = instance;
-        return rc.LogNewAnswer({question_id:question_id}, {fromBlock:'latest', toBlock:'latest'});
-    }).then(function(answer_posted){
-        answer_posted.watch(function(error, result){
-            if (!error && result !== undefined) {
-                question_detail_list[question_id][Qi_best_answer] = result.args.answer;
-                pushWatchedAnswer(result);
-                rewriteQuestionDetail(question_detail_list[question_id]);
-            }
-        });
-    });
-    /*
-    .catch(function (e){
-        console.log(e);
-    });
-    */
-
 }
+
+function renderTimeAgo(i, ts) {
+    i.find('.timeago').attr('datetime', convertTsToString(ts));
+    timeAgo.render(i.find('.timeago'));
+}
+
 
 /*
 Finds any item with timeago and the given block number
 Fetches the timestamp for the block if not already cached
 Populates the timestamp attribute
-Calls timeago.render() on it
+Calls the callback on it
 */
-function renderBlockTimeAgo(item, num) {
-
-    function applyTimestamp(i, ts) {
-        i.find('.timeago').attr('datetime', convertTsToString(ts));
-        timeAgo.render(i.find('.timeago'));
-    }
+function populateWithBlockTimeForBlockNumber(item, num, callback) {
 
     if (block_timestamp_cache[num]) {
-        applyTimestamp(item, block_timestamp_cache[num]);
+        callback(item, block_timestamp_cache[num]);
     } else {
         web3.eth.getBlock(num, function(err, result) {
             if (err || !result) {
@@ -1230,25 +1197,10 @@ function renderBlockTimeAgo(item, num) {
                 return;
             }
             block_timestamp_cache[num] = result.timestamp
-            applyTimestamp(item, result.timestamp);
+            callback(item, result.timestamp);
         });
     }
 
-}
-
-
-function populateWithBlockTimeForBlockNumber2(num, callback) {
-    if (block_timestamp_cache[num]) {
-        callback(block_timestamp_cache[num]);
-    } else {
-        web3.eth.getBlock(num, function(err, result) {
-            if (!err || result) {
-                return;
-            }
-            block_timestamp_cache[num] = result.timestamp
-            callback(block_timestamp_cache[num]);
-        });
-    }
 }
 
 // At this point the data we need should already be stored in question_detail_list
@@ -1296,7 +1248,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, block_nu
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
 
-    renderBlockTimeAgo(item_to_insert, block_number);
+    populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
 
 }
 
@@ -1451,7 +1403,7 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
         question_section.append(item_to_insert);
     //console.log('inserted through fall through');
     }
-    renderBlockTimeAgo(item_to_insert, block_number);
+    populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
 
 }
 
@@ -1521,14 +1473,14 @@ function renderUserQandA(qdata, entry) {
     var is_finalized = isFinalized(qdata);
     rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
 
-    var updateBlockTimestamp = function (ts) {
+    var updateBlockTimestamp = function (item, ts) {
         let date = new Date();
         date.setTime(ts * 1000);
         let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear()
             + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
-        qitem.find('.item-date').text(date_str);
+        item.find('.item-date').text(date_str);
     }
-    populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
+    populateWithBlockTimeForBlockNumber(qitem, entry.blockNumber, updateBlockTimestamp);
 }
 
 function getAnswerString(question_json, answer) {
@@ -1603,48 +1555,6 @@ function makeSelectAnswerInput(question_json) {
     }
 
     return ans_frm;
-}
-
-function displayAnswerHistory(question_data) {
-
-    var question_id = question_data[Qi_question_id];
-    var answer_log = question_data['history'];
-    var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
-    var section = $(section_name);
-
-    section.find('.answered-history-item-container:not(".template-item")').remove();
-
-    answer_log.forEach(function(answer){
-        // skip current answer.
-        if (answer.args.answer == question_data[Qi_best_answer]) {
-            return;
-        }
-
-        var answer_id = 'answer-' + question_id + '-' + answer.args.answer;
-        //console.log('answer orig', answer.args.answer);
-        var ans = new BigNumber(answer.args.answer).toNumber();
-
-        var container = $('.answered-history-item-container.template-item').clone();
-        container.removeClass('template-item');
-        container.css('display', 'block');
-        container.attr('id', answer_id);
-
-        section.find('.answered-history-header').after(container);
-
-        var question_json = question_data[Qi_question_json];
-
-        section_name = 'div#' + answer_id;
-        var label = getAnswerString(question_json, answer.args.answer);
-        var history_item = $(section_name).find('.answer-item.answered-history-item');
-        history_item.find('.answered-history-body').text(label);
-        history_item.find('.timeago').attr('datetime', convertTsToString(answer.args.ts));
-        timeAgo.render($(section_name).find('.timeago'));
-
-        var ans_data = $(section_name).find('.answer-item.answered-history-item').find('.answer-data');
-        ans_data.find('.answerer').text(answer.args.answerer);
-        ans_data.find('.answer-bond-value').text(new BigNumber(answer.args.bond).toNumber());
-
-    });
 }
 
 // show final answer button
