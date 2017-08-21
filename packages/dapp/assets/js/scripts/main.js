@@ -17,6 +17,8 @@ var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 
+var submitted_question_id_timestamp = {};
+
 const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'questioner',
     'LogNewAnswer': 'answerer',
@@ -36,7 +38,9 @@ const START_BLOCK = 0;
 
 // Question, as returned by questions()
 const Qi_question_id = 0;
-const Qi_finalization_ts = 1; // TODO: This is really last_changed_ts
+
+// NB This has magic values - 0 for no answer, 1 for pending arbitration, will be 2 for pending arbitration with answer, otherwise timestamp
+const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
@@ -66,7 +70,7 @@ var arbitration_fee;
 var display_entries = {
     'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-best': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
 }
 
@@ -466,9 +470,18 @@ function isArbitrationDue(question) {
     return (question[Qi_finalization_ts].toNumber() == 1);
 }
 
+function isAnswered(question) {
+    // TODO: Change contract to be able to differentiate when in pending-arbitration state
+    return (question[Qi_finalization_ts].toNumber() > 1);
+}
+
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
-    return ( (fin > 1) && (fin * 1000 < new Date().getDate()) );  
+    // 0: Unanswered
+    // 1: Pending arbitration
+    // Below current date: Finalized
+    // Above current date: Open for new answers or arbitration requests
+    return ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
 }
 
 $(document).on('click', '.answer-claim-button', function(){
@@ -599,7 +612,9 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
 function handleUserAction(entry, rc) {
-   
+  
+
+
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
         return;
@@ -615,9 +630,10 @@ function handleUserAction(entry, rc) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
-            console.log('entry', entry, 'not interesting to account', account);
+            //console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
             return;
-        }
+        } 
+
         q_min_activity_blocks[question_id] = entry.blockNumber;
         var all_evts = rc.allEvents({question_id: question_id});
         all_evts.get(function(error, evts) {
@@ -629,8 +645,9 @@ function handleUserAction(entry, rc) {
                 console.log('error getting all_evts', error);
             }
         });
-        return; 
     }
+
+    //console.log('handling', entry.args['question_id'], 'entry', entry, account);
 
     if (window.localStorage) {
         var lastViewedBlockNumber = 0;
@@ -644,12 +661,23 @@ function handleUserAction(entry, rc) {
         }
     }
 
+    var is_population_done = false;
+
+    // User action
+    if (entry['event'] == 'LogNewAnswer') {
+        // force refresh
+        delete question_detail_list[question_id];
+        if ( submitted_question_id_timestamp[question_id] > 0) {
+            delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
+            populateQuestionDetail(question_id, rc).then(function(question) {
+                displayQuestionDetail(question);
+            });
+        }
+    } 
  
     // If we have already viewed the question, it should be loaded in the question_detail_list array
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
-
-    var current_question;
 
     populateQuestionDetail(question_id, rc).then(function(question) {
         renderUserAction(question, entry, rc);
@@ -720,8 +748,8 @@ function updateUserBalanceDisplay() {
 
 }
 
-
 function populateSection(section_name, question_data, before_item) {
+
     var question_id = question_data[Qi_question_id];
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
@@ -756,6 +784,14 @@ function populateSection(section_name, question_data, before_item) {
     entry.attr('data-question-id', question_id);
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.find('.questions__item__title').attr('data-target-id', target_question_id);
+    if (isAnswered(question_data)) {
+        entry.find('.questions__item__answer').text(getAnswerString(question_json, best_answer));
+        entry.addClass('has-answer');
+    } else {
+        entry.find('.questions__item__answer').text('');
+        entry.removeClass('has-answer');
+    }
+
     entry.find('.question-title').text(question_json['title']);
     entry.find('.question-bounty').text(bounty);
     entry.css('display', 'block');
@@ -778,13 +814,11 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
-    //if (display_entries[section_name].max_show) {
 }
 
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
-    console.log('created is ', created, 'for quid', question_id);
     var question_data;
 
     rc.questions.call(question_id).then( function(qdata) {
@@ -804,7 +838,7 @@ function handleQuestionLog(item, rc) {
         var bounty = question_data[Qi_bounty];
 
         if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, created);
+            var insert_before = update_ranking_data('questions-resolved', question_id, question_data[Qi_finalization_ts], 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
                 // question_detail_list[question_id] = question_data;
@@ -812,17 +846,25 @@ function handleQuestionLog(item, rc) {
             }
 
         } else {
-            var insert_before = update_ranking_data('questions-latest', question_id, created);
+            var insert_before = update_ranking_data('questions-latest', question_id, created, 'desc');
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
             }
 
-            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty);
+            var insert_before = update_ranking_data('questions-high-reward', question_id, bounty, 'desc');
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
             }
+            
+            if (isAnswered(question_data)) {
+                var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data[Qi_finalization_ts], 'asc');
+                if (insert_before !== -1) {
+                    populateSection('questions-closing-soon', question_data, insert_before);
+                }
+            }
+
 //console.log(display_entries);
         }
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
@@ -833,7 +875,7 @@ function handleQuestionLog(item, rc) {
 // If it comes after another stored item, return the ID of that item.
 // If it doesn't belong in storage because it is too low for the ranking, return -1
 // TODO: ??? If it is already in storage and does not need to be updated, return -2
-function update_ranking_data(arr_name, id, val) {
+function update_ranking_data(arr_name, id, val, ord) {
 
     // Check if we already have it
     var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
@@ -869,7 +911,7 @@ function update_ranking_data(arr_name, id, val) {
     var i = 0;
     for (i = 0; i < arr.length; i++) {
         //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
-        if (val.gte(arr[i])) {
+        if ((ord == 'desc' && val.gte(arr[i])) || (ord == 'asc' && val.lte(arr[i]))) {
             // found a spot, we're higher than the current occupant of this index
             // we'll return its ID to know where to insert in the document
             var previd = display_entries[arr_name]['ids'][i];
@@ -937,11 +979,15 @@ $(document).on('click', '.questions__item__title', function(e){
 
     var question_id = $(this).closest('.questions__item').attr('data-question-id');
 
+    // Should repopulate and bring to the front if already open
+    openQuestionWindow(question_id);
+    /*
     if ($('#qadetail-'+question_id).size()) {
         console.log('already open');
     } else {
         openQuestionWindow(question_id);
     }
+    */
 
 });
 
@@ -964,13 +1010,16 @@ function openQuestionWindow(question_id) {
         rc = instance;
         return populateQuestionDetail(question_id, rc);
     }).then(function(question) {
+        /*
         var answers = question['history'];
+
         for(var i=0; i<answers.length; i++) {
             handleUserAction(answers[i], rc);
         }
+        */
 
         displayQuestionDetail(question);
-        displayAnswerHistory(question);
+        //displayAnswerHistory(question);
     });
     /*
     .catch(function(e){
@@ -1004,33 +1053,63 @@ function displayQuestionDetail(question_detail) {
 
     var question_id = question_detail[Qi_question_id];
     //console.log('question_id', question_id);
-    var is_arbitration_requested = isArbitrationDue(question_detail);
-    var idx = question_detail['history'].length - 1;
-    var question_json = question_detail[Qi_question_json];
 
+    // If already open, refresh and bring to the front
+    var window_id = 'qadetail-' + question_id;
+    var rcqa = $('#'+window_id);
+    if (rcqa.length) {
+        rcqa = populateQuestionWindow(rcqa, question_detail, true);
+        //rcqa.css('display', 'block');
+        //rcqa.addClass('is-open');
+        rcqa.css('z-index', ++zindex);
+        //rcqa.css('height', rcqa.height()+'px');
+        //setRcBrowserPosition(rcqa);
+        //Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+
+    } else {
+        rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+        rcqa.attr('id', window_id);
+        rcqa.attr('data-question-id', question_id);
+
+        rcqa.find('.rcbrowser__close-button').on('click', function(){
+            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+            let left = parseInt(parent_div.css('left').replace('px', ''));
+            let top = parseInt(parent_div.css('top').replace('px', ''));
+            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+            left += data_x; top += data_y;
+            window_position[question_id]['x'] = left;
+            window_position[question_id]['y'] = top;
+            rcqa.remove();
+            //console.log('clicked close');
+            //$('div#' + question_id).remove();
+            //question_id = question_id.replace('qadetail-', '');
+            //delete question_detail_list[question_id]
+        });
+
+        rcqa.removeClass('template-item');
+
+        rcqa = populateQuestionWindow(rcqa, question_detail, false);
+
+        $('#qa-detail-container').append(rcqa);
+
+        rcqa.css('display', 'block');
+        rcqa.addClass('is-open');
+        rcqa.css('z-index', ++zindex);
+        rcqa.css('height', rcqa.height()+'px');
+        setRcBrowserPosition(rcqa);
+        Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+    }
+
+}
+
+function populateQuestionWindow(rcqa, question_detail, is_refresh) {
+
+    var question_id = question_detail[Qi_question_id];
+    var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
 
-    var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-    rcqa.attr('id', 'qadetail-' + question_id);
-    rcqa.attr('data-question-id', question_id);
-
-    rcqa.find('.rcbrowser__close-button').on('click', function(){
-        let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-        let left = parseInt(parent_div.css('left').replace('px', ''));
-        let top = parseInt(parent_div.css('top').replace('px', ''));
-        let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-        let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-        left += data_x; top += data_y;
-        window_position[question_id]['x'] = left;
-        window_position[question_id]['y'] = top;
-        rcqa.remove();
-        //console.log('clicked close');
-        //$('div#' + question_id).remove();
-        //question_id = question_id.replace('qadetail-', '');
-        //delete question_detail_list[question_id]
-    });
-
-    rcqa.removeClass('template-item');
+    var idx = question_detail['history'].length - 1;
 
     let date = new Date();
     date.setTime(question_detail[Qi_creation_ts] * 1000);
@@ -1043,6 +1122,7 @@ function displayQuestionDetail(question_detail) {
         var latest_answer = question_detail['history'][idx].args;
         rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer);
         rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render(rcqa.find('.current-answer-item').find('.timeago'));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -1052,11 +1132,31 @@ function displayQuestionDetail(question_detail) {
         } else {
             ans_data.removeClass('current-account');
         }
-        ans_data.find('.answer-bond-value').text(latest_answer.bond);
+        ans_data.find('.answer-bond-value').text(web3.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
         // label for show the current answer.
         var label = getAnswerString(question_json, latest_answer.answer);
         rcqa.find('.current-answer-body').find('.current-answer').text(label);
+
+        // TODO: Do duplicate checks and ensure order in case stuff comes in weird
+        for (var i = idx-1; i>=0; i--) {
+            var ans = question_detail['history'][i].args;
+            var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
+            var hist_item = hist_tmpl.clone();
+            var hist_id = web3.sha3(question_id, ans['answer'], ans['bond']);
+            if (rcqa.find('#'+hist_id).length) {
+                continue;
+            }
+            hist_item.attr('id', hist_id);
+            hist_item.find('.answerer').text(ans['answerer']);
+            hist_item.find('.current-answer').text(getAnswerString(question_json, ans['answer']));
+            hist_item.find('.answer-bond-value').text(web3.fromWei(ans['bond'].toNumber(), 'ether'));
+            hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
+            timeAgo.render(hist_item.find('.answer-time.timeago')); // TODO Do we have to add this to the document first?
+            hist_item.removeClass('template-item');
+            hist_tmpl.before(hist_item); 
+        }
+
     } else {
         rcqa.find('.current-answer-container').hide();
     }
@@ -1067,34 +1167,22 @@ function displayQuestionDetail(question_detail) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
             rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-            rcqa.find('.arbitration-fee').text(fee.toString());
-            arbitration_fee = fee.toNumber();
+            rcqa.find('.arbitration-fee').text(web3.fromWei(fee.toNumber(), 'ether')); 
         });
-    } else {
-        rcqa.find('.arbitration-button').css('display', 'none');
-    }
-
-    // answer form
-    var ans_frm = makeSelectAnswerInput(question_json);
-    ans_frm.css('display', 'block');
-    ans_frm.addClass('is-open');
-    ans_frm.removeClass('template-item');
-    rcqa.find('.answered-history-container').after(ans_frm);
-
-    $('#qa-detail-container').append(rcqa);
-
-    if (question_detail['history'].length) {
-        $('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
-        timeAgo.render($('div#qadetail-' + question_id).find('.current-answer-item').find('.timeago'));
-        updateQuestionState(question_id, question_detail[Qi_step_delay], latest_answer.ts);
     } 
 
-    rcqa.css('display', 'block');
-    rcqa.addClass('is-open');
-    rcqa.css('z-index', ++zindex);
-    rcqa.css('height', rcqa.height()+'px');
-    setRcBrowserPosition(rcqa);
-    Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+    if (!is_refresh) {
+        // answer form
+        var ans_frm = makeSelectAnswerInput(question_json);
+        ans_frm.addClass('is-open');
+        ans_frm.removeClass('template-item');
+        rcqa.find('.answered-history-container').after(ans_frm);
+    }
+
+    rcqa = updateQuestionState(question_detail, rcqa);
+
+
+    return rcqa;
 
     // TODO: We already have a watch running on all new answers
     // Can we move this handling to the one that was going to happen anyhow?
@@ -1389,6 +1477,11 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
             } else {
                 target.find('.your-qa__questions__item-body--user').css('display', 'none');
             }
+
+            if (user_answer == latest_answer) {
+                target.find('.different-latest-answer-container').hide();
+            }
+
             target.find('.your-qa__questions__item-body--latest').css('display', 'block');
         } else {
             target.find('.your-qa__questions__item-body--latest').css('display', 'none');
@@ -1397,7 +1490,7 @@ function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_fi
 
         if (is_finalized) {
             target.find('.your-qa__questions__item-status').addClass('.your-qa__questions__item-status--resolved');
-            target.find('.your-qa__questions__item-status').text('Resolved at');
+            target.find('.your-qa__questions__item-status').text('Resolved');
         } else {
             target.find('.your-qa__questions__item-status').text(answer_history.length + ' Answers');
         }
@@ -1436,40 +1529,6 @@ function renderUserQandA(qdata, entry) {
         qitem.find('.item-date').text(date_str);
     }
     populateWithBlockTimeForBlockNumber2(entry.blockNumber, updateBlockTimestamp);
-}
-
-function rewriteQuestionDetail(question_data) {
-    var question_id = question_data[Qi_question_id];
-    var idx = question_data['history'].length - 1;
-    var answer_data = question_data['history'][idx];
-    var answer_id = 'answer-' + answer_data.args.question_id + '-' + answer_data.args.answer;
-    var answer = new BigNumber(answer_data.args.answer).toNumber();
-
-    var question_json = question_data[Qi_question_json];
-    var bond = web3.fromWei(answer_data.args.bond.toNumber(), 'ether');
-    var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
-    $(section_name).find('.current-answer-container').attr('id', answer_id);
-    var label = getAnswerString(question_json, answer_data.args.answer);
-    $(section_name).find('.current-answer-container').find('.current-answer').text(label);
-    $(section_name).find('.current-answer-container').css('display', 'block');
-
-    // TODO: Make sure the old timeago is cancelled
-
-    $(section_name).find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(answer_data.args.ts));
-    timeAgo.render($(section_name).find('.current-answer-item').find('.timeago'));
-
-    $(section_name).find('input[name="numberAnswer"]').val(0);
-    $(section_name).find('input[name="questionBond"]').val(bond * 2);
-
-    // show final answer button
-    updateQuestionState(question_id, question_data[Qi_step_delay], answer_data.args.ts);
-
-    var ans_data = $(section_name).find('.current-answer-container').find('.answer-data');
-    ans_data.find('.answerer').text(answer_data.args.answerer);
-    ans_data.find('.answer-bond-value').text(bond);
-
-    displayAnswerHistory(question_data);
-
 }
 
 function getAnswerString(question_json, answer) {
@@ -1547,7 +1606,8 @@ function makeSelectAnswerInput(question_json) {
 }
 
 function displayAnswerHistory(question_data) {
-    var question_id = question_data['Qi_question_id'];
+
+    var question_id = question_data[Qi_question_id];
     var answer_log = question_data['history'];
     var section_name = 'div#qadetail-' + question_id + '.rcbrowser.rcbrowser--qa-detail';
     var section = $(section_name);
@@ -1589,29 +1649,34 @@ function displayAnswerHistory(question_data) {
 
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
-function updateQuestionState(question_id, step_delay, answer_created) {
-    var section_name = '#qadetail-' + question_id;
-    RealityCheck.deployed().then(function(instance) {
-        var rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(cq) {
-        cq.unshift(question_id);
-        $(section_name).find('.answer-deadline').attr('datetime', convertTsToString(cq[Qi_finalization_ts]));
+function updateQuestionState(question, question_window) {
 
-        timeAgo.render($(section_name).find('.answer-deadline.timeago'));
-
-        if (isArbitrationDue(cq)) {
-            $(section_name).removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+    if (question[Qi_finalization_ts] > 1) {
+        question_window.addClass('has-answer');
+        if (isFinalized(question)) {
+            question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            timeAgo.render(question_window.find('.resolved-at-value.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         } else {
-            if ( !isFinalized(cq) ) {
-                $(section_name).addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
-            } else {
-                $(section_name).removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
-            }
+            question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
-    });
+    } else {
+        question_window.removeClass('has-answer');
+    }
 
-    /*
+    if (isArbitrationDue(question)) {
+        question_window.removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+    } else {
+        if ( !isFinalized(question) ) {
+            question_window.addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
+        } else {
+            question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
+        }
+    }
+
+    return question_window;
+
+/*
     var id = setInterval(function(){
         if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
             $(section_name).find('.final-answer-button').css('display', 'block');
@@ -1755,6 +1820,8 @@ $(document).on('click', '.post-answer-button', function(e){
 
         if (is_err) throw('err on submitting answer');
 
+        submitted_question_id_timestamp[question_id] = new Date().getTime();
+
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
         return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', {from:account, value:bond});
     }).then(function(result){
@@ -1803,7 +1870,8 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
+    var rcqa = $(this).closest('.rcbrowser--qa-detail');
+    var question_id = rcqa.attr('data-question-id');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
     reward = web3.toWei(new BigNumber(reward), 'ether');
 
@@ -1811,9 +1879,14 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         RealityCheck.deployed().then(function (rc) {
-            return rc.fundAnswerBounty(question_id, {from: web3.eth.accounts[0], value: reward});
+            return rc.fundAnswerBounty(question_id, {from: account, value: reward});
         }).then(function (result) {
-            //console.log('fund bounty', result);
+            console.log('fund bounty', result);
+            var container = rcqa.find('.add-reward-container');
+            console.log('removing open', container.length, container);
+            container.removeClass('is-open');
+            container.removeClass('is-bounce');
+            container.css('display', 'none');
         });
     }
 });
@@ -1836,8 +1909,9 @@ $(document).on('click', '.arbitrator', function(e) {
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
+        console.log('got fee', fee);
         RealityCheck.deployed().then(function(rc){
-            return rc.requestArbitration(question_id, {from:web3.eth.accounts[0], value: arbitration_fee});
+            return rc.requestArbitration(question_id, {from:account, value: arbitration_fee});
         }).then(function(result){
             //console.log('arbitration is requestd.', result);
         });
@@ -1942,13 +2016,25 @@ function pageInit(account) {
 
         evts.watch(function (error, result) {
             if (!error && result) {
+
                 // Check the action to see if it is interesting, if it is then populate notifications etc
                 handleUserAction(result, rc);
 
                 // Handles front page event changes.
                 // NB We need to reflect other changes too...
-                if (result['event'] == 'LogNewQuestion') {
+                var evt = result['event'];
+                if (evt == 'LogNewQuestion') {
                     handleQuestionLog(result, rc);
+                } else {
+                    // TODO: We shouldn't really need a full refresh for what may be a small event
+                    var question_id = result.args.question_id;
+                    var window_id = 'qadetail-' + question_id;
+                    if (document.getElementById(window_id)) {
+                        delete question_detail_list[question_id];
+                        populateQuestionDetail(question_id, rc).then(function(question) {
+                            displayQuestionDetail(question);
+                        });
+                    }
                 }
             }
         });

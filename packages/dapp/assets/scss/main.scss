@@ -1055,17 +1055,12 @@ span.rcbrowser__close-button {
     color: $white;
 }
 
-.answer-deadline {
-    display: none;
+.answer-deadline-container {
     margin: -9px 0 15px;
     padding: 6px;
     border-radius: 2px;
     font-size: 12px;
     background-color: $rcBrowserDarkBg;
-}
-
-.rcbrowser.has-answer .answer-deadline {
-    display: block;
 }
 
 // rcBrowser--qa-detail main header
@@ -1094,7 +1089,6 @@ span.rcbrowser__close-button {
 
 .rcbrowser--qa-detail .rcbrowser-main-header-subtitle > span {
     margin: 0 9px 0 0;
-    display: inline-block;
 }
 
 .add-reward-button {
@@ -1140,9 +1134,6 @@ span.rcbrowser__close-button {
     background-size: 9px 9px;
 }
 
-.reward-value-container {
-    display: inline-block;
-}
 
 // rcbrowser main body
 .rcbrowser-main-body {
@@ -1195,10 +1186,6 @@ span.rcbrowser__close-button {
 
 .current-answer-header {
     font-size: 13px;
-}
-
-.current-answer-header > span {
-    display: inline-block;
 }
 
 .current-answer-header::before {
@@ -1986,11 +1973,42 @@ div.notifications-template-container {display:none}
 
 option.exceptional-option {font-style: italic}
 
+div.questions__item__footer span.question-bounty-container { float:right }
 
 .answer-claim-button {display:none}
 div.rcbrowser--qa-detail.question-state-finalized .answer-claim-button {display:block !important}
-div.rcbrowser--qa-detail.question-state-finalized .answer-form-container{display:none !important}
-div.rcbrowser--qa-detail.question-state-pending-arbitration.answer-form-container{display:none !important}
+
+.answer-form-container{display:none}
+div.rcbrowser--qa-detail.question-state-open .answer-form-container{display:block !important}
  
-div.rcbrowser--qa-detail.question-state-finalized .arbitration-button{display:none}
-div.rcbrowser--qa-detail.question-state-pending-arbitration .arbitration-button{display:none}
+.arbitration-button{display:none}
+div.rcbrowser--qa-detail.question-state-open .arbitration-button{display:block !important}
+
+.answer-deadline-container{display:none}
+div.rcbrowser--qa-detail.question-state-open.has-answer .answer-deadline-container{display:block !important}
+
+.apply-for-arbitration-container { display: none}
+div.rcbrowser--qa-detail.question-state-open .apply-for-arbitration-container { display: block !important}
+
+.pending-arbitration-container { display:none }
+div.rcbrowser--qa-detail.question-state-pending-arbitration .apply-for-arbitration-container { display: block !important}
+
+.reward-value-container { display:none}
+div.rcbrowser--qa-detail.question-state-open .reward-value-container { display:inline-block !important}
+
+.add-reward-button { display:none}
+div.rcbrowser--qa-detail.question-state-open .add-reward-button { display:inline-block !important}
+
+.resolved-at-container { display:none }
+div.rcbrowser--qa-detail.question-state-finalized .resolved-at-container { display:inline-block !important}
+
+.questions__item__answer { display:none }
+.has-answer .questions__item__answer { display:block !important}
+
+.current-answer-label-final { display: none }
+div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-final { display: inline-block !important }
+
+.current-answer-label-current { display: inline-block }
+div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-current{ display: none !important }
+
+

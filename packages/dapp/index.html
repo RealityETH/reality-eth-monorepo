@@ -64,16 +64,16 @@
 
     <div id="main">
         <div id="questions-container">
-            <div id="questions-best" class="questions">
+            <div id="questions-closing-soon" class="questions">
                 <h3 class="questions-header">
                     <span class="questions-header__icon questions-header__icon--best" aria-hidden="true"><span></span></span>
-                    <span>Best Questions</span>
+                    <span>Closing Soon</span>
                 </h3>
 
                 <div class="questions-list">
                 </div><!-- /.questions-list -->
 
-                <div class="loadmore-button" data-questions="questions-best">
+                <div class="loadmore-button" data-questions="questions-closing-soon">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
@@ -242,10 +242,7 @@
                                     </div>
 
                                     <div class="your-qa__questions__item-body--latest">
-                                        <span class="latest-answer-text"></span> - Latest answer
-                                    </div>
-                                    <div class="your-qa__questions__item-body--user">
-                                        <span class="user-answer-text"></span> - Your latest answer
+                                        <span class="latest-answer-text"></span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>
@@ -269,11 +266,9 @@
                                         </a>
                                     </div>
 
-                                    <div class="your-qa__questions__item-body--latest">
-                                        <span class="latest-answer-text"></span> - Latest answer
-                                    </div>
                                     <div class="your-qa__questions__item-body--user">
-                                        <span class="user-answer-text"></span> - Your latest answer
+                                        <span class="user-answer-text"></span>
+                                        <span class="different-latest-answer-container"> (since changed to <span class="latest-answer-text"></span>)</span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>
@@ -431,9 +426,10 @@
                             <a class="questions__item__title rcbrowser__open-button" href="#">
                                 <span class="question-title"></span>
                             </a>
+                            <div class="questions__item__answer"></div>
                             <div class="questions__item__footer">
+                                <span class="question-bounty-container"><span class="question-bounty"></span> ETH</span>
                                 <time class="timeago" datetime=""></time>
-                                <span class="question-bounty"></span> ETH
                             </div>
                         </div>
                     </div>
@@ -457,7 +453,7 @@
                     <span class="input-header">Bond (ETH):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount">0.5</span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
             </div>
 
             <div class="submit-container">
@@ -486,7 +482,7 @@
                     <span class="input-header">Bond (ETH):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount">1</span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
             </div>
 
             <div class="submit-container">
@@ -515,7 +511,7 @@
                     <span class="input-header">Bond (ETH):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
             </div>
 
             <div class="submit-container">
@@ -546,7 +542,7 @@
                     <span class="input-header">Bond (ETH):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
             </div>
 
             <div class="submit-container">
@@ -573,7 +569,7 @@
                     <span class="input-header">Bond (ETH):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount">0</span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
             </div>
 
             <div class="submit-container">
@@ -607,6 +603,7 @@
                     <div class="rcbrowser-main-header-subtitle">
                         <span class="reward-value-container">Reward: <span class="reward-value">1.25</span> ETH</span>
                         <span class="add-reward-button" data-browser-id="id5">+ Add Reward</span>
+                        <span class="resolved-at-container">Resolved: <span class="resolved-at-value timeago"></span></span>
                         <div class="answer-claim-button">Claim your <span class="claimable-eth"></span> ETH</div>
                     </div>
 
@@ -637,21 +634,27 @@
 
                 <div class="rcbrowser-main-body">
 
-                    <div class="clearfix">
+                    <div class="answer-deadline-container">Deadline: <span class="answer-deadline timeago"></span></div>
+
+                    <div class="clearfix apply-for-arbitration-container">
                         <a href="" class="arbitration-button">Apply for arbitration to <span class="arbitrator"></span> at <span class="arbitration-fee"></span> ETH</a>
+                    </div>
+
+                    <div class="clearfix pending-arbitration-container">
+                        This question is awaiting arbitration.
                     </div>
 
                     <div class="current-answer-container">
                         <div class="current-answer-inner">
                             <div class="current-answer-header">
-                                <span>Current Answer</span>
+                                <span class="current-answer-label-current">Current Answer</span>
+                                <span class="current-answer-label-final">Final Answer</span>
                             </div>
                             <div class="answer-item current-answer-item">
                                 <div class="current-answer-body">
                                     <p><span class="current-answer"></span></p>
                                 </div>
-                                <span><time class="timeago" datetime=""></time></span>
-                                <div class="final-answer-button" style="display:none;">Make this Final Answer</div>
+                                <span class="timeago-container"><time class="timeago" datetime=""></time></span>
                                 <div class="answer-data">
                                     <div class="answer-data-inner">
                                         <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div>
@@ -659,7 +662,7 @@
                                             <span>User ID: </span><span class="answerer"></span>
                                         </div>
                                         <div class="answer-data__item answer-data__bond answer-data__bond--current">
-                                            <span>Bond: </span><span class="answer-bond-value"></span><span>ETH</span>
+                                            <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
                                         </div>
                                     </div>
                                 </div>
@@ -669,26 +672,29 @@
 
                     <div class="answered-history-container">
                         <div class="answered-history-header"><span>Answered History</span></div>
-                    </div>
 
+                        <div class="answer-item answered-history-item template-item">
+                            <div class="current-answer-body">
+                                <p><span class="current-answer"></span></p>
+                            </div>
+                            <span class="timeago-container"><time class="answer-time timeago" datetime=""></time></span>
+                            <div class="answer-data">
+                                <div class="answer-data-inner">
+                                    <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)" data-avatar-src="assets/image/avatar2.png"></div>
+                                    <div class="answer-data__item answer-data__user-id">
+                                        <span>User ID: </span><span class="answerer"></span>
+                                    </div>
+                                    <div class="answer-data__item answer-data__bond answer-data__bond--current">
+                                        <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
-
-    <div class="answered-history-item-container template-item" style="display:none">
-        <div class="answer-item answered-history-item">
-            <div class="answered-history-body"></div>
-            <span><time class="timeago" datetime=""></time></span>
-            <div class="answer-data">
-                <div class="answer-data-inner">
-                    <div class="answer-data__avatar" style="background-image: url(assets/image/avatar2.png)"></div>
-                    <div class="answer-data__item answer-data__user-id"><span>User ID: </span><span class="answerer"></span></div>
-                    <div class="answer-data__item answer-data__bond"><span>Bond: </span><span class="answer-bond-value"></span><span> ETH</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="assets/js/bundle.js"></script>
 
