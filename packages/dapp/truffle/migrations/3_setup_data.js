@@ -23,20 +23,26 @@ module.exports = function(deployer) {
            console.log("getQuestionID is", question_id1);
            return rc.askQuestion(question1, arb.address, step_delay, {from: accs[0], value: web3.toWei(1, 'ether')});
        }).then(function(){
+           rc.sendTransaction({from: accs[0], to: accs[1], value: web3.toWei(1, 'ether')});
+       }).then(function(){
+           rc.sendTransaction({from: accs[0], to: accs[2], value: web3.toWei(1, 'ether')});
+       }).then(function(){
            console.log("asked question");
-           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000004", "basic maths", {from: accs[2]}, {value: web3.toWei(2, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000004", "basic maths", {from: accs[2]}, {value: web3.toWei(0.0002, 'ether')});
        }).then(function(){
            console.log("submitted answer");
-           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000008", "basic maths", {from: accs[1]}, {value: web3.toWei(4, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000008", "basic maths", {from: accs[1]}, {value: web3.toWei(0.0004, 'ether')});
        });
 
         RealityCheck.deployed().then(function (instance) {
             rc = instance;
             return rc.getQuestionID(question2, arb.address, step_delay, deadline, 1);
+       }).then(function(){
+           rc.sendTransaction({from: accs[0], to: accs[1], value: web3.toWei(1, 'ether')});
         }).then(function (result) {
             question_id2 = result;
             console.log("getQuestionID 2 is", question_id2);
-            return rc.askQuestion(question2, arb.address, step_delay, {from: accs[1], value: web3.toWei(8, 'ether')});
+            return rc.askQuestion(question2, arb.address, step_delay, {from: accs[1], value: web3.toWei(0.0008, 'ether')});
         }).then(function(){
             console.log("asked question 2");
         });
