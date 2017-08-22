@@ -1141,7 +1141,7 @@ console.log('updateing aunswer');
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
-            rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
+            //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(web3.fromWei(fee.toNumber(), 'ether')); 
         });
     } 
@@ -1898,7 +1898,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
 
 /*-------------------------------------------------------------------------------------*/
 // arbitration
-$(document).on('click', '.arbitrator', function(e) {
+$(document).on('click', '.arbitration-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
