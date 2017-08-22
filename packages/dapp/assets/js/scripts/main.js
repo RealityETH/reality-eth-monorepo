@@ -1092,6 +1092,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
 
+console.log('current list last item in history, which is ', question_detail['history'])
     var idx = question_detail['history'].length - 1;
 
     let date = new Date();
@@ -1101,11 +1102,21 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
 
+console.log('question_detail is', question_detail);
+
+    // Default to something non-zero but very low
+    var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
     if (question_detail['history'].length) {
+console.log('updateing aunswer');
         var latest_answer = question_detail['history'][idx].args;
-        rcqa.find('.current-answer-container').attr('id', 'answer-' + latest_answer.answer);
-        rcqa.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
-        timeAgo.render(rcqa.find('.current-answer-item').find('.timeago'));
+        bond = latest_answer.bond;
+
+        var current_container = rcqa.find('.current-answer-container');
+        current_container.attr('id', 'answer-' + latest_answer.answer);
+
+        timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+        current_container.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -1119,30 +1130,30 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
         // label for show the current answer.
         var label = getAnswerString(question_json, latest_answer.answer);
-        rcqa.find('.current-answer-body').find('.current-answer').text(label);
+        current_container.find('.current-answer-body').find('.current-answer').text(label);
 
         // TODO: Do duplicate checks and ensure order in case stuff comes in weird
-        for (var i = idx-1; i>=0; i--) {
+        for (var i = 0; i < idx; i++) {
             var ans = question_detail['history'][i].args;
-            var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
-            var hist_item = hist_tmpl.clone();
-            var hist_id = web3.sha3(question_id, ans['answer'], ans['bond']);
+            var hist_id = 'question-window-history-item-' + web3.sha3(question_id + ans.answer + ans.bond.toString());
             if (rcqa.find('#'+hist_id).length) {
+                console.log('already in list, skipping', hist_id, ans);
                 continue;
             }
+            console.log('not already in list, adding', hist_id, ans);
+            var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
+            var hist_item = hist_tmpl.clone();
             hist_item.attr('id', hist_id);
             hist_item.find('.answerer').text(ans['answerer']);
-            hist_item.find('.current-answer').text(getAnswerString(question_json, ans['answer']));
-            hist_item.find('.answer-bond-value').text(web3.fromWei(ans['bond'].toNumber(), 'ether'));
+            hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
+            hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
             hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
-            timeAgo.render(hist_item.find('.answer-time.timeago')); // TODO Do we have to add this to the document first?
+            timeAgo.render(hist_item.find('.answer-time.timeago'));
             hist_item.removeClass('template-item');
             hist_tmpl.before(hist_item); 
         }
 
-    } else {
-        rcqa.find('.current-answer-container').hide();
-    }
+    } 
 
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
@@ -1162,6 +1173,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.find('.answered-history-container').after(ans_frm);
     }
 
+    rcqa.find('.rcbrowser-input--number--bond.form-item').val(web3.fromWei(bond.toNumber(), 'ether') * 2);
+
     rcqa = updateQuestionState(question_detail, rcqa);
 
     return rcqa;
@@ -1169,6 +1182,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 }
 
 function renderTimeAgo(i, ts) {
+    var old_attr = i.find('.timeago').attr('datetime');
+    if (old_attr != '') {
+        console.log('cancelling old time');
+        timeago.cancel(i.find('.timeago'));
+    } else {
+        console.log('no oldattr, no cancel');
+}
     i.find('.timeago').attr('datetime', convertTsToString(ts));
     timeAgo.render(i.find('.timeago'));
 }
@@ -1560,14 +1580,23 @@ function updateQuestionState(question, question_window) {
     if (question[Qi_finalization_ts] > 2) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
+            timeago.cancel(question_window.find('.resolved-at-value.timeago'));
             question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.resolved-at-value.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         } else {
+            timeago.cancel(question_window.find('.answer-deadline.timeago'));
             question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
     } else {
         question_window.removeClass('has-answer');
+    }
+
+    // The first item is the current answer
+    if (question['history'].length > 1) {
+        question_window.addClass('has-history');
+    } else {
+        question_window.removeClass('has-history');
     }
 
     if (isArbitrationPending(question)) {
@@ -1620,14 +1649,13 @@ function pushWatchedAnswer(answer) {
     }
 }
 
-$(document).on('click', 'div.answered-history-item-container,div.current-answer-container', function(){
-    var section_name = 'div#' + $(this).attr('id');
-    if ($(section_name).find('.answer-data').hasClass('is-bounce')) {
-         $(section_name).find('.answer-data').removeClass('is-bounce');
-         $(section_name).find('.answer-data').css('display', 'none');
+$(document).on('click', '.answer-item.answered-history-item', function(){
+    if ($(this).find('.answer-data').hasClass('is-bounce')) {
+        $(this).find('.answer-data').removeClass('is-bounce');
+        $(this).find('.answer-data').css('display', 'none');
      } else {
-        $(section_name).find('.answer-data').addClass('is-bounce');
-        $(section_name).find('.answer-data').css('display', 'block');
+        $(this).find('.answer-data').addClass('is-bounce');
+        $(this).find('.answer-data').css('display', 'block');
      }
 });
 
