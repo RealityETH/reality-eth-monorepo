@@ -36,8 +36,4 @@ contract Arbitrator {
         return RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, evidence);
     }
 
-    function finalizeByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer_id) onlyOwner {
-        RealityCheckAPI(realitycheck).finalizeByArbitrator(question_id, answer_id);
-    }
-
 }

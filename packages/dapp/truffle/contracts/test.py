@@ -92,6 +92,7 @@ class TestRealityCheck(TestCase):
         )
         self.assertEqual(self.question_id, expected_question_id)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_id_generation(self):
         regen_question_id = self.rc0.getQuestionID(
             to_question_for_contract(("my question")),
@@ -110,7 +111,7 @@ class TestRealityCheck(TestCase):
         question = self.rc0.questions(self.question_id)
         self.assertEqual(question[QINDEX_BOUNTY], 1500)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_no_response_finalization(self):
         # Should not be final if too soon
         self.assertFalse(self.rc0.isFinalized(self.question_id, startgas=200000))
@@ -157,40 +158,57 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 54321)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_arbitrator_answering(self):
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_answered(self):
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
 
         #self.c.mine()
         #self.s = self.c.head_state
 
-        # The arbitrator cannot finalize on an answer that has not been given yet
-        with self.assertRaises(TransactionFailed):
-            self.arb0.finalizeByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), startgas=200000) 
-
         # The arbitrator cannot submit an answer that has not been requested. 
         # (If they really want to do this, they can always pay themselves for arbitration.)
         with self.assertRaises(TransactionFailed):
             self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
-        # The arbitrator cannot submit an answer that has already been given
-        with self.assertRaises(TransactionFailed):
-            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), startgas=200000) 
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
+
+        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
+        question = self.rc0.questions(self.question_id)
+        self.assertEqual(question[QINDEX_FINALIZATION_TS], 2, "When arbitration is pending for an answered question, we set the finalization_ts to 2")
 
         # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
-        self.assertFalse(self.rc0.isFinalized(self.question_id))
 
-        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
-
+        self.c.mine()
+        self.s = self.c.head_state
         self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_unanswered(self):
+
+        with self.assertRaises(TransactionFailed):
+            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.assertFalse(self.rc0.isFinalized(self.question_id))
+
+        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
+        question = self.rc0.questions(self.question_id)
+        self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
+
+        # You cannot submit the answer unless you are the arbitrator
+        with self.assertRaises(TransactionFailed):
+            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.assertTrue(self.rc0.isFinalized(self.question_id))
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
@@ -311,70 +329,6 @@ class TestRealityCheck(TestCase):
         self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000)
         self.rc0.claimBounty(self.question_id);        
         self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000, "Claiming a bounty twice is legal, but you only get paid once")
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_arbitration_with_supplied_answer(self):
-
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
-
-        # This was the default of our arbitrator contract
-        arb_fee = 100
-
-        self.assertEqual(self.arb0.getFee(), arb_fee)
-        self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8) ), "Cumulatively insufficient, so return false")
-        self.assertFalse(self.rc0.isArbitrationPaidFor(self.question_id))
-
-        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3), startgas=200000 ), "Cumulatively sufficient, so return true")
-        self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
-
-        # Finalize with the wrong user
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalizeByArbitrator(self.question_id, a10, startgas=200000)
-        
-        self.assertFalse(self.rc0.isFinalized(self.question_id))
-        self.arb0.finalizeByArbitrator(self.rc0.address, self.question_id, a10, startgas=200000)
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10005)
-        # int(arb_fee * 1.1)
-
-        self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
-
-        return
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_arbitration_with_existing_answer(self):
-
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
-
-        # This was the default of our arbitrator contract
-        arb_fee = 100
-
-        self.assertEqual(self.arb0.getFee(), arb_fee)
-        self.assertFalse(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.8), startgas=200000 ), "Cumulatively insufficient, so return false")
-        self.assertFalse(self.rc0.isArbitrationPaidFor(self.question_id))
-
-        self.assertTrue(self.rc0.requestArbitration(self.question_id, value=int(arb_fee * 0.3), startgas=200000 ), "Cumulatively sufficient, so return true")
-        self.assertTrue(self.rc0.isArbitrationPaidFor(self.question_id))
-
-        self.assertEqual(self.rc0.balanceOf(self.arb0.address), 0)
-
-        # Finalize with the wrong user
-        with self.assertRaises(TransactionFailed):
-            self.rc0.finalizeByArbitrator(self.question_id, a10, startgas=200000)
-        
-        self.assertFalse(self.rc0.isFinalized(self.question_id))
-        self.arb0.finalizeByArbitrator(self.rc0.address, self.question_id, a10)
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(self.rc0.getFinalAnswer(self.question_id), to_answer_for_contract(10005))
-
-        self.assertEqual(self.rc0.balanceOf(self.arb0.address), int(arb_fee * 1.1) )
-        #self.assertEqual(self.rc0.balanceOf(self.arb0.address), 1000, "Arbitrator gets the reward")
-
-        return
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks_unbundled(self):

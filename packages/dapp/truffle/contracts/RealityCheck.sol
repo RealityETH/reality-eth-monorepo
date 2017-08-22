@@ -21,13 +21,15 @@ contract RealityCheck {
 
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].step_delay > 0); // Check existence
-        require(questions[question_id].finalization_ts != 1); // arbitration pending
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        require(finalization_ts != 1 && finalization_ts != 2); // arbitration pending
         require(!isFinalized(question_id));
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].finalization_ts == 1);
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        require(questions[question_id].finalization_ts == 1 || questions[question_id].finalization_ts == 2);
         _;
     }
 
@@ -35,6 +37,7 @@ contract RealityCheck {
         require(isFinalized(question_id));
         _;
     }
+
 
     mapping (address => uint256) balances;
 
@@ -275,58 +278,28 @@ contract RealityCheck {
         statePendingArbitration(question_id)
     returns (bytes32) {
 
-        // Answer should not exist yet. If it does, they should be using finalize()
+        // If the answer is already there, just go ahead and finalize on it
+        // If this is a new answer, submit it first with a bond of zero
+        // This will allow us to claim the other bonds
+
         address NULL_ADDRESS;
-        require(questions[question_id].answers[answer].answerer == NULL_ADDRESS);
+        if (questions[question_id].answers[answer].answerer == NULL_ADDRESS ) {
 
-        questions[question_id].answers[answer] = Answer(
-            msg.sender,
-            0 
-        );
+            questions[question_id].answers[answer] = Answer(
+                msg.sender,
+                0 
+            );
 
-        LogNewAnswer(
-            answer,
-            question_id,
-            msg.sender,
-            0,
-            now,
-            evidence_ipfs
-        );
+            LogNewAnswer(
+                answer,
+                question_id,
+                msg.sender,
+                0,
+                now,
+                evidence_ipfs
+            );
 
-        questions[question_id].best_answer = answer;
-
-        finalizeByArbitrator(question_id, answer);
-        
-        return answer;
-
-    }
-
-    function isFinalized(bytes32 question_id) 
-    returns (bool) {
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts > 1) && (finalization_ts < now) );
-    }
-
-    function getFinalAnswer(bytes32 question_id) 
-        stateFinalized(question_id)
-    returns (bytes32) {
-        return questions[question_id].best_answer;
-    }
-
-    function isArbitrationPaidFor(bytes32 question_id) 
-    constant returns (bool) {
-        return questions[question_id].finalization_ts == 1;
-    }
-
-    function getEarliestFinalizationTS(bytes32 question_id) 
-    constant returns (uint256) {
-        return questions[question_id].finalization_ts;
-    }
-
-    function finalizeByArbitrator(bytes32 question_id, bytes32 answer) 
-        actorArbitrator(question_id)
-        statePendingArbitration(question_id)
-    {
+        }
 
         questions[question_id].best_answer = answer;
 
@@ -337,7 +310,33 @@ contract RealityCheck {
         delete arbitration_bounties[question_id];
 
         LogFinalize(question_id, answer);
+        
+        return answer;
 
+    }
+
+    function isFinalized(bytes32 question_id) 
+    returns (bool) {
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        // 0, 1, 2 are magic numbers meaning "unanswered, unanswered pending arbitration, answered pending arbitration"
+        return ( (finalization_ts > 2) && (finalization_ts < now) );
+    }
+
+    function getFinalAnswer(bytes32 question_id) 
+        stateFinalized(question_id)
+    returns (bytes32) {
+        return questions[question_id].best_answer;
+    }
+
+    function isArbitrationPaidFor(bytes32 question_id) 
+    constant returns (bool) {
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        return ( (finalization_ts == 2) || (finalization_ts == 1) );
+    }
+
+    function getEarliestFinalizationTS(bytes32 question_id) 
+    constant returns (uint256) {
+        return questions[question_id].finalization_ts;
     }
 
     // Assigns the bond for a particular answer to either:
@@ -433,7 +432,13 @@ contract RealityCheck {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            questions[question_id].finalization_ts = 1;
+            // It's useful for the UI to be able to differentiate between "answered" and "unanswered"
+            // So assign a different magic number for each
+            if (questions[question_id].finalization_ts == 0) {
+                questions[question_id].finalization_ts = 1;
+            } else {
+                questions[question_id].finalization_ts = 2;
+            }
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
