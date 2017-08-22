@@ -2017,3 +2017,5 @@ div.rcbrowser--qa-detail.has-answer .current-answer-container { display: block !
 div.rcbrowser--qa-detail .answered-history-container { display:none }
 div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block !important }
 
+div.rcbrowser--qa-detail .answer-claim-button { display: none}
+div.rcbrowser--qa-detail.is-claimable .answer-claim-button { display: block !important }

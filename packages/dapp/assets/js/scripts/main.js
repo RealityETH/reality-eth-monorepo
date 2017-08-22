@@ -489,45 +489,26 @@ function isFinalized(question) {
 
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
-    var answer;
+
     var rc;
+    //console.log(claimableItems(question_detail));
+
+
     console.log('answer-claim-button clicked for question');
     RealityCheck.deployed().then(function (instance) {
         rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(qdata){
-        qdata.unshift(question_id);
-        if (!isFinalized(qdata)) {
-            console.log(question_id, 'error: not yet finalized');
+        return populateQuestionDetail(question_id, rc) 
+    }).then(function(question_detail){
+        var claimable = claimableItems(question_detail);
+        console.log('try9ing to claim ', claimable['total'].toString());
+        if (claimable['total'].isZero()) {
+            console.log('nothing to claim');
+            // Nothing there, so force a refresh
+            openQuestionWindow(question_id);
         }
-        return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
-    }).then(function (answer_logs) {
-        // We don't bother re-checking if we really got the right answer, if not nothing too bad happens
-        answer_logs.get(function(error, answers) {
-            if (error === null && typeof answers !== 'undefined') { 
-                var bounty_question_ids = [question_id];
-                var bond_question_ids = [];
-                var bond_answers = [];
-                if (error === null && typeof answers !== 'undefined') {
-                    for (var i in answers) {
-                        var answer = answers[i].args['answer'];
-                        var answerer = answers[i].args['answerer'];
-                        var bond = answers[i].args['bond'];
-                        if (bond > 0) {
-                            bond_question_ids.push(question_id);
-                            bond_answers.push(answer);
-                        }
-                    }
-                    console.log('claimMultipleAndWithdrawBalance', bounty_question_ids, bond_question_ids, bond_answers);
-                    rc.claimMultipleAndWithdrawBalance(bounty_question_ids, bond_question_ids, bond_answers, {from: account}).then(function(claim_result){
-                        console.log('claim result', claim_result);
-                    });
-                } else {
-                    console.log(error);
-                }
-            } else {
-console.log('log get fail', error, answers);
-            }
+        console.log('claimMultipleAndWithdrawBalance', claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers']);
+        rc.claimMultipleAndWithdrawBalance(claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers'], {from: account}).then(function(claim_result){
+            console.log('claim result', claim_result);
         });
     });
 });
@@ -1177,18 +1158,68 @@ console.log('updateing aunswer');
 
     rcqa = updateQuestionState(question_detail, rcqa);
 
+    //console.log(claimableItems(question_detail));
+
     return rcqa;
 
+}
+
+function claimableItems(question_detail) {
+    //console.log('in claimableItems', question_detail);
+    var ttl = new BigNumber(0); 
+    var is_your_claim;
+
+    var your_question_ids = [];
+    var claimable_question_ids = [];
+    var claimable_answers = [];
+
+    if (isFinalized(question_detail)) {
+        for(var i=0; i<question_detail['history'].length; i++) {
+            if (question_detail[Qi_best_answer] == question_detail['history'][i].args.answer) {
+                is_your_claim = true;
+            }
+            break; 
+        }
+    }
+    
+    if (is_your_claim) {
+        var claimable_bonds = {};
+        for(var i=0; i<question_detail['history'].length; i++) {
+            var a = question_detail['history'][i].args.answer;
+            var b = question_detail['history'][i].args.bond;
+            if (typeof claimable_answers[a] != 'BigNumber') {
+                claimable_bonds[a] = new BigNumber(0);
+            }
+            claimable_bonds[a] = claimable_bonds[a].plus(b);
+            ttl = ttl.plus(b);
+        }
+
+        ttl = ttl.plus(question_detail[Qi_bounty]);
+        if (!question_detail[Qi_bounty].isZero()) {
+            your_question_ids.push(question_detail[Qi_question_id]);
+        }
+
+        claimable_answers = Object.keys(your_question_ids);
+        for(var i = 0; i<claimable_answers.length; i++) {
+            claimable_question_ids.push(question_detail[Qi_question_id]);
+        }
+
+    }
+
+    return {
+        'total': ttl,
+        'bounty_question_ids': your_question_ids,
+        'bond_question_ids': claimable_question_ids,
+        'bond_answers': claimable_answers
+    }
+    
 }
 
 function renderTimeAgo(i, ts) {
     var old_attr = i.find('.timeago').attr('datetime');
     if (old_attr != '') {
-        console.log('cancelling old time');
         timeago.cancel(i.find('.timeago'));
-    } else {
-        console.log('no oldattr, no cancel');
-}
+    } 
     i.find('.timeago').attr('datetime', convertTsToString(ts));
     timeAgo.render(i.find('.timeago'));
 }
@@ -1608,6 +1639,16 @@ function updateQuestionState(question, question_window) {
             question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
         }
     }
+
+    var st = claimableItems(question);
+    if (!st['total'].isZero()) {
+        question_window.removeClass('is-claimable');
+    } else {
+        console.log('total claimable is '.st['total'].toString());
+        question_window.addClass('is-claimable');
+        question_window.find('.claimable-eth').text(web3.fromWei(st['total'].toNumber(), 'ether'));
+    }
+    
 
     return question_window;
 
@@ -2047,7 +2088,6 @@ function pageInit(account) {
         question_posted.get(function (error, result) {
             if (error === null && typeof result !== 'undefined') {
                 for(var i=0; i<result.length; i++) {
-
                     handleUserAction(result[i], rc);
                     handleQuestionLog(result[i], rc);
                 }
