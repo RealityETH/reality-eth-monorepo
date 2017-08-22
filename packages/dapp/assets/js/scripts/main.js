@@ -209,6 +209,7 @@ function setRcBrowserPosition(rcbrowser) {
     rcbrowser.css('top', top);
 }
 
+/*
 // arbitration
 (function() {
     const buttons = document.querySelectorAll('.final-answer-button');
@@ -264,6 +265,7 @@ function setRcBrowserPosition(rcbrowser) {
         buttons[i].addEventListener('click', clickHandler);
     }
 })();
+*/
 
 // RCBrowser custom scrollbar
 (function() {
@@ -465,7 +467,7 @@ $('#post-question-submit').on('click', function(e){
 
 });
 
-function isArbitrationDue(question) {
+function isArbitrationPending(question) {
     // finalization_ts has a magical timestamp of 1 meaning pending arbitration
     return (question[Qi_finalization_ts].toNumber() == 1);
 }
@@ -774,7 +776,7 @@ function populateSection(section_name, question_data, before_item) {
     var arbitrator = question_data[Qi_arbitrator];
     var step_delay = question_data[Qi_step_delay];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
-    var is_arbitration_paid_for = isArbitrationDue(question_data);
+    var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
 
@@ -1151,7 +1153,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
 
     // Arbitrator
-    if (!isArbitrationDue(question_detail) && !isFinalized(question_detail)) {
+    if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
             return arb.getFee.call(question_id);
         }).then(function(fee) {
@@ -1407,7 +1409,7 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
 
 }
 
-function rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized) {
+function renderQAItemAnswer(question_id, answer_history, question_json, is_finalized) {
     var question_section = $('#your-question-answer-window').find('.your-qa__questions');
     var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
     var sections = [question_section, answer_section];
@@ -1470,8 +1472,9 @@ function renderUserQandA(qdata, entry) {
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     insertQAItem(question_id, qitem, question_section, entry.blockNumber);
+
     var is_finalized = isFinalized(qdata);
-    rewriteAnswerOfQAItem(question_id, answer_history, question_json, is_finalized);
+    renderQAItemAnswer(question_id, answer_history, question_json, is_finalized);
 
     var updateBlockTimestamp = function (item, ts) {
         let date = new Date();
@@ -1574,7 +1577,7 @@ function updateQuestionState(question, question_window) {
         question_window.removeClass('has-answer');
     }
 
-    if (isArbitrationDue(question)) {
+    if (isArbitrationPending(question)) {
         question_window.removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
     } else {
         if ( !isFinalized(question) ) {
