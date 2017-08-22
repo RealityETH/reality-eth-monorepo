@@ -39,7 +39,7 @@ const START_BLOCK = 0;
 // Question, as returned by questions()
 const Qi_question_id = 0;
 
-// NB This has magic values - 0 for no answer, 1 for pending arbitration, will be 2 for pending arbitration with answer, otherwise timestamp
+// NB This has magic values - 0 for no answer, 1 for pending arbitration, 2 for pending arbitration with answer, otherwise timestamp
 const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
 const Qi_step_delay = 3;
@@ -480,10 +480,11 @@ function isAnswered(question) {
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
     // 0: Unanswered
-    // 1: Pending arbitration
+    // 1: Pending arbitration (unanswered)
+    // 2: Pending arbitration (answered)
     // Below current date: Finalized
     // Above current date: Open for new answers or arbitration requests
-    return ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
+    return ( (fin > 2) && (fin * 1000 < new Date().getTime()) );  
 }
 
 $(document).on('click', '.answer-claim-button', function(){
@@ -806,11 +807,8 @@ function populateSection(section_name, question_data, before_item) {
     $('div#question-'+question_id).find('.timeago').attr('datetime', convertTsToString(posted_ts));
     timeAgo.render($('div#question-'+question_id).find('.timeago'));
 
-    //console.log('length is ',section.children('.questions-list').find('.questions__item').length);
-//console.log(section_name);
-
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
-//console.log('too long, removing');
+        //console.log('too long, removing');
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
@@ -981,13 +979,6 @@ $(document).on('click', '.questions__item__title', function(e){
 
     // Should repopulate and bring to the front if already open
     openQuestionWindow(question_id);
-    /*
-    if ($('#qadetail-'+question_id).size()) {
-        console.log('already open');
-    } else {
-        openQuestionWindow(question_id);
-    }
-    */
 
 });
 
@@ -997,6 +988,7 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
     e.stopPropagation();
 
     var question_id = $(this).closest('.your-qa__questions__item').attr('data-question-id');
+
     openQuestionWindow(question_id);
 
 });
@@ -1220,7 +1212,7 @@ function renderUserAction(question, entry, rc) {
 
 }
 
-function insertNotificationItem(notification_id, item_to_insert, ntext, block_number) {
+function insertNotificationItem(notification_id, item_to_insert, ntext, block_number, question_id) {
 
     var notifications = $('#your-question-answer-window').find('.notifications');
     var section_name = 'div[data-notification-id='+ notification_id + ']';
@@ -1245,6 +1237,7 @@ function insertNotificationItem(notification_id, item_to_insert, ntext, block_nu
         }
     }
 
+    item_to_insert.attr('data-question-id', question_id);
     item_to_insert.attr('data-notification-id', notification_id);
     item_to_insert.find('.notification-text').text(ntext);
     item_to_insert.attr('data-block-number', block_number);
@@ -1271,14 +1264,14 @@ function renderNotifications(qdata, entry, rc) {
         case 'LogNewQuestion':
             var notification_id = web3.sha3(entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
             ntext  = 'You asked a question - "' + question_json['title'] + '"';
-            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+            insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
             break;
 
         case 'LogNewAnswer':
             var notification_id = web3.sha3(entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
             if (entry.args.answerer == account) {
                 ntext = 'You answered a question - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
             } else {
                 var answered_question = rc.LogNewQuestion({question_id: question_id}, {
                     fromBlock: START_BLOCK,
@@ -1293,7 +1286,7 @@ function renderNotifications(qdata, entry, rc) {
                         }
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
                         }
                     }
                 });
@@ -1310,7 +1303,7 @@ function renderNotifications(qdata, entry, rc) {
             var notification_id = web3.sha3(entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
             if (entry.args.funder == account) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
             } else {
                 var funded_question = rc.LogNewQuestion({question_id: question_id}, {
                     fromBlock: START_BLOCK,
@@ -1329,7 +1322,7 @@ function renderNotifications(qdata, entry, rc) {
                         }
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
                         }
                     }
                 });
@@ -1340,7 +1333,7 @@ function renderNotifications(qdata, entry, rc) {
             var notification_id = web3.sha3(entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
             if (entry.args.requester == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
             } else {
                 var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
                 arbitration_requested_question.get(function (error, result2) {
@@ -1355,7 +1348,7 @@ function renderNotifications(qdata, entry, rc) {
                         }
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
                         }
                     }
                 });
@@ -1374,7 +1367,7 @@ function renderNotifications(qdata, entry, rc) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber);
+                        insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id);
                     }
                 }
             });
@@ -1564,7 +1557,7 @@ function makeSelectAnswerInput(question_json) {
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
 function updateQuestionState(question, question_window) {
 
-    if (question[Qi_finalization_ts] > 1) {
+    if (question[Qi_finalization_ts] > 2) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
             question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
@@ -1773,12 +1766,21 @@ $(document).on('click', '.add-reward-button', function(e){
     container.addClass('is-bounce');
     container.css('display', 'block');
 });
+
 $(document).on('click', '.add-reward__close-button', function(e){
     var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.removeClass('is-open');
     container.removeClass('is-bounce');
     container.css('display', 'none');
 });
+
+$(document).on('click', '.notifications-item', function(e){
+    console.log('notifications-item clicked');
+    e.preventDefault();
+    e.stopPropagation();
+    openQuestionWindow($(this).attr('data-question-id'));
+});
+
 $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', function(e){
     e.preventDefault();
     e.stopPropagation();
