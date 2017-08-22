@@ -385,6 +385,44 @@ contract RealityCheck {
 
     }
 
+
+    function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
+    constant
+        //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+    returns (uint256) {
+        
+        require(bond_question_ids.length == bond_answers.length);
+        uint256 ttl;
+
+        uint256 i;
+        address payee;
+        bytes32 best_answer;
+        bytes32 question_id;
+        for(i=0; i<bounty_question_ids.length; i++) {
+            question_id = bounty_question_ids[i];
+            best_answer = questions[question_id].best_answer;
+            payee = questions[question_id].answers[best_answer].answerer;
+            if (payee == claimer) {
+                ttl += questions[question_id].bounty;
+            }
+        }
+
+        for(i=0; i<bond_question_ids.length; i++) {
+            question_id = bond_question_ids[i];
+            best_answer = questions[question_id].best_answer;
+            payee = questions[question_id].answers[best_answer].answerer;
+            if (payee == claimer) {
+                ttl += questions[question_id].answers[bond_answers[i]].bond;
+            }
+        }
+
+        return ttl;
+
+    }
+
+
+
     // Convenience function to claim multiple bounties and bonds in 1 go
     // bond_question_ids are the question ids you want to claim for
     // bond_answers are the answers you want to claim for

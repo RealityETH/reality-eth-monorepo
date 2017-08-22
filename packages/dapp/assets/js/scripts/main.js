@@ -499,7 +499,7 @@ $(document).on('click', '.answer-claim-button', function(){
         rc = instance;
         return populateQuestionDetail(question_id, rc) 
     }).then(function(question_detail){
-        var claimable = claimableItems(question_detail);
+        var claimable = possibleClaimableItems(question_detail);
         console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
             console.log('nothing to claim');
@@ -1158,16 +1158,47 @@ console.log('updateing aunswer');
 
     rcqa = updateQuestionState(question_detail, rcqa);
 
+    if (isFinalized(question_detail)) {    
+        totalClaimable(question_detail).then(function(tot) {
+            console.log('tot is ', tot.toNumber());
+            if (tot.toNumber() == 0) {
+                rcqa.removeClass('is-claimable');
+            } else {
+                rcqa.addClass('is-claimable');
+            } 
+        });
+    } else {
+        rcqa.removeClass('is-claimable');
+    }
+    
     //console.log(claimableItems(question_detail));
 
     return rcqa;
 
 }
 
-function claimableItems(question_detail) {
+function totalClaimable(question_detail) {
+    return new Promise((resolve, reject)=>{
+        var poss = possibleClaimableItems(question_detail);
+        if (poss['total'].isZero()) {
+            resolve(poss['total']);
+        } else {
+            RealityCheck.deployed().then(function(rc) {
+                return rc.totalClaimable.call(account, poss['bounty_question_ids'], poss['bounty_question_ids'], poss['bond_answers'])
+            }).then(function(tot) {
+                resolve(tot);
+            }).catch(function(err) {
+                reject(err);
+            });
+        }
+    });
+}
+
+function possibleClaimableItems(question_detail) {
+
     //console.log('in claimableItems', question_detail);
     var ttl = new BigNumber(0); 
-    var is_your_claim;
+    var is_your_claim = false;
 
     var your_question_ids = [];
     var claimable_question_ids = [];
@@ -1639,16 +1670,6 @@ function updateQuestionState(question, question_window) {
             question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
         }
     }
-
-    var st = claimableItems(question);
-    if (!st['total'].isZero()) {
-        question_window.removeClass('is-claimable');
-    } else {
-        console.log('total claimable is '.st['total'].toString());
-        question_window.addClass('is-claimable');
-        question_window.find('.claimable-eth').text(web3.fromWei(st['total'].toNumber(), 'ether'));
-    }
-    
 
     return question_window;
 
