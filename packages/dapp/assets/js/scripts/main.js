@@ -85,7 +85,6 @@ var $ = require('jquery-browserify')
 import imagesLoaded from 'imagesloaded';
 import interact from 'interact.js';
 import Ps from 'perfect-scrollbar';
-import {TweenLite, Power3, ScrollToPlugin} from 'gsap';
 //import {TweenLite, Power3} from 'gsap';
 
 function rand(min, max) {
@@ -359,24 +358,6 @@ $(function() {
         });
     }
     window.addEventListener('load', loadHandler);
-})();
-
-// smooth scroll
-(function() {
-    const elements = document.querySelectorAll('[href^="#"]');
-
-    function clickHandler(e) {
-        e.preventDefault();
-        const duration = 2;
-        const href = this.getAttribute('href');
-        const target = href === '#' || href === null ? 'html' : href;
-        const targetPosition = target === 'html' ? 0 : document.querySelectorAll(target)[0].getBoundingClientRect().top + window.pageYOffset;
-        TweenLite.to(window, duration, { scrollTo: {y: targetPosition, autoKill: true}, ease: Power3.easeOut });
-    }
-
-    for (let i = 0, len = elements.length; i < len; i += 1) {
-        elements[i].addEventListener('click', clickHandler);
-    }
 })();
 
 /*-------------------------------------------------------------------------------------*/
