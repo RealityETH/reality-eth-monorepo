@@ -367,6 +367,7 @@ $('#your-qa-button').on('click', function(e) {
     $('#your-question-answer-window').css('z-index', ++zindex);
     $('#your-question-answer-window').addClass('is-open');
     $('#your-question-answer-window').css('height', $('#your-question-answer-window').height()+'px');
+    $('.tooltip').removeClass('is-visible');
 });
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
@@ -578,7 +579,7 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have already seen this event.
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
-function handleUserAction(entry, rc) {
+function handleUserAction(entry, rc, is_watch) {
 
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
@@ -636,6 +637,7 @@ function handleUserAction(entry, rc) {
         // force refresh
         delete question_detail_list[question_id];
         if ( submitted_question_id_timestamp[question_id] > 0) {
+            
             delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
             populateQuestionDetail(question_id, rc).then(function(question) {
                 displayQuestionDetail(question);
@@ -648,7 +650,7 @@ function handleUserAction(entry, rc) {
     // This is duplicated when you click on a question to view it
 
     populateQuestionDetail(question_id, rc).then(function(question) {
-        renderUserAction(question, entry, rc);
+        renderUserAction(question, entry, rc, is_watch);
     });
 
 }
@@ -1345,7 +1347,7 @@ function populateWithBlockTimeForBlockNumber(item, num, callback) {
 }
 
 // At this point the data we need should already be stored in question_detail_list
-function renderUserAction(question, entry, rc) {
+function renderUserAction(question, entry, rc, is_watch) {
 
     // This will include events that we didn't specifically trigger, but we are intereseted in
     renderNotifications(question, entry, rc);
@@ -1354,6 +1356,9 @@ function renderUserAction(question, entry, rc) {
     if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
         if (isForCurrentUser(entry)) {
             renderUserQandA(question, entry);
+            if (is_watch) {
+                $('.tooltip').addClass('is-visible');
+            }
         }
     }
 
@@ -2149,7 +2154,7 @@ function pageInit(account) {
             if (!error && result) {
 
                 // Check the action to see if it is interesting, if it is then populate notifications etc
-                handleUserAction(result, rc);
+                handleUserAction(result, rc, true);
 
                 // Handles front page event changes.
                 // NB We need to reflect other changes too...
