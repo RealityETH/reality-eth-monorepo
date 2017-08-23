@@ -1989,7 +1989,7 @@ div.rcbrowser--qa-detail.question-state-open.has-answer .answer-deadline-contain
 div.rcbrowser--qa-detail.question-state-open .apply-for-arbitration-container { display: block !important}
 
 .pending-arbitration-container { display:none }
-div.rcbrowser--qa-detail.question-state-pending-arbitration .apply-for-arbitration-container { display: block !important}
+div.rcbrowser--qa-detail.question-state-pending-arbitration .pending-arbitration-container { display: block !important}
 
 .reward-value-container { display:none}
 div.rcbrowser--qa-detail.question-state-open .reward-value-container { display:inline-block !important}

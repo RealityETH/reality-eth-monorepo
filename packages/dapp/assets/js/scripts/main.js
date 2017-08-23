@@ -451,8 +451,8 @@ $('#post-question-submit').on('click', function(e){
 });
 
 function isArbitrationPending(question) {
-    // finalization_ts has a magical timestamp of 1 meaning pending arbitration
-    return (question[Qi_finalization_ts].toNumber() == 1);
+    // finalization_ts has a magical timestamp of 1 meaning pending arbitration (unanswered) or 2 meaning pending arbitration (answered)
+    return ( (question[Qi_finalization_ts].toNumber() == 1) || (question[Qi_finalization_ts].toNumber() == 2) );
 }
 
 function isAnswered(question) {
@@ -1989,9 +1989,10 @@ $(document).on('click', '.arbitration-button', function(e) {
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
-        console.log('got fee', fee);
+        arbitration_fee = fee;
+        console.log('got fee', arbitration_fee.toString());
         RealityCheck.deployed().then(function(rc){
-            return rc.requestArbitration(question_id, {from:account, value: arbitration_fee});
+            return rc.requestArbitration(question_id, {from:account, value: fee});
         }).then(function(result){
             //console.log('arbitration is requestd.', result);
         });
