@@ -478,21 +478,21 @@ $(document).on('click', '.answer-claim-button', function(){
     //console.log(claimableItems(question_detail));
 
 
-    console.log('answer-claim-button clicked for question');
+    //console.log('answer-claim-button clicked for question');
     RealityCheck.deployed().then(function (instance) {
         rc = instance;
         return populateQuestionDetail(question_id, rc) 
     }).then(function(question_detail){
         var claimable = possibleClaimableItems(question_detail);
-        console.log('try9ing to claim ', claimable['total'].toString());
+        //console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
-            console.log('nothing to claim');
+            //console.log('nothing to claim');
             // Nothing there, so force a refresh
             openQuestionWindow(question_id);
         }
-        console.log('claimMultipleAndWithdrawBalance', claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers']);
+        //console.log('claimMultipleAndWithdrawBalance', claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers']);
         rc.claimMultipleAndWithdrawBalance(claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers'], {from: account}).then(function(claim_result){
-            console.log('claim result', claim_result);
+            //console.log('claim result', claim_result);
         });
     });
 });
@@ -550,7 +550,7 @@ function validate() {
 
 $('div.loadmore-button').on('click', function(e) {
     var sec = $(this).attr('data-questions');
-//console.log('loading more sec', sec);
+    //console.log('loading more sec', sec);
 
     var old_max = display_entries[sec]['max_show'];
     var new_max = old_max + 3;
@@ -660,7 +660,7 @@ function scheduleFinalizationDisplayUpdate(question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question)) {
-        console.log('going ahead with scheduling');
+        //console.log('going ahead with scheduling');
         var question_id = question[Qi_question_id];
         var is_done = false;
         if (question_event_times[question_id]) {
@@ -673,7 +673,7 @@ function scheduleFinalizationDisplayUpdate(question) {
             }
         }
         if (!is_done) {
-            console.log('scheduling');
+            //console.log('scheduling');
             // Run 1 second after the finalization timestamp
             var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime() );
             //console.log('update_time is ', update_time);
@@ -748,9 +748,9 @@ function populateQuestionDetail(question_id, rc, question_log) {
 
 // TODO: Fire this on a timer, and also on the withdrawal event
 function updateUserBalanceDisplay() {
-    console.log('updating balacne for', account);
+    //console.log('updating balacne for', account);
     web3.eth.getBalance(account, function(error, result){
-    console.log('got updated balacne for', account, result.toNumber());
+        //console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
             account_balance = web3.fromWei(result.toNumber(), 'ether');
             $('.account-balance').text(web3.fromWei(result.toNumber(), 'ether'));
@@ -763,9 +763,9 @@ function populateSection(section_name, question_data, before_item) {
     var question_id = question_data[Qi_question_id];
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
-//console.log('idx is ',idx);
+    //console.log('idx is ',idx);
     if (idx > display_entries[section_name].max_show) {
-//console.log('over max show, skip');
+        //console.log('over max show, skip');
         return;
     }
 
@@ -824,7 +824,7 @@ function populateSection(section_name, question_data, before_item) {
 }
 
 function depopulateSection(section_name, question_id) {
-    console.log('depopulating', section_name, question_id);
+    //console.log('depopulating', section_name, question_id);
 
     var question_item_id = 'question-' + question_id;
     var section = $('#'+section_name);
@@ -897,7 +897,7 @@ function handleQuestionLog(item, rc) {
             }
 
             scheduleFinalizationDisplayUpdate(question_data);
-//console.log(display_entries);
+            //console.log(display_entries);
         }
 
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
@@ -965,7 +965,7 @@ function update_ranking_data(arr_name, id, val, ord) {
 
     }
 
-//console.log('not found, add to end');
+    //console.log('not found, add to end');
     // lower than everything but there's still space, so add to the end
     display_entries[arr_name]['ids'].push(id);
     display_entries[arr_name]['vals'].push(val);
@@ -1140,7 +1140,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
 
-console.log('current list last item in history, which is ', question_detail['history'])
+    //console.log('current list last item in history, which is ', question_detail['history'])
     var idx = question_detail['history'].length - 1;
 
     let date = new Date();
@@ -1150,12 +1150,12 @@ console.log('current list last item in history, which is ', question_detail['his
     rcqa.find('.question-title').text(question_json['title']);
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
 
-console.log('question_detail is', question_detail);
+    //console.log('question_detail is', question_detail);
 
     // Default to something non-zero but very low
     var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
     if (question_detail['history'].length) {
-console.log('updateing aunswer');
+        //console.log('updateing aunswer');
         var latest_answer = question_detail['history'][idx].args;
         bond = latest_answer.bond;
 
@@ -1185,10 +1185,10 @@ console.log('updateing aunswer');
             var ans = question_detail['history'][i].args;
             var hist_id = 'question-window-history-item-' + web3.sha3(question_id + ans.answer + ans.bond.toString());
             if (rcqa.find('#'+hist_id).length) {
-                console.log('already in list, skipping', hist_id, ans);
+                //console.log('already in list, skipping', hist_id, ans);
                 continue;
             }
-            console.log('not already in list, adding', hist_id, ans);
+            //console.log('not already in list, adding', hist_id, ans);
             var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
             var hist_item = hist_tmpl.clone();
             hist_item.attr('id', hist_id);
@@ -1227,7 +1227,7 @@ console.log('updateing aunswer');
 
     if (isFinalized(question_detail)) {    
         totalClaimable(question_detail).then(function(tot) {
-            console.log('tot is ', tot.toNumber());
+            //console.log('tot is ', tot.toNumber());
             if (tot.toNumber() == 0) {
                 rcqa.removeClass('is-claimable');
             } else {
@@ -1760,7 +1760,7 @@ $(document).on('click', '.final-answer-button', function(){
     }).then(function(result){
         //console.log('finalized!', result);
     }).catch(function(e){
-       console.log('on click FA button', e);
+       //console.log('on click FA button', e);
     });
 });
 
@@ -1786,7 +1786,7 @@ function pushWatchedAnswer(answer) {
 }
 
 $(document).on('click', '.answer-item', function(){
-    console.log('.answer-item clicked');
+    //console.log('.answer-item clicked');
     if ($(this).find('.answer-data').hasClass('is-bounce')) {
         $(this).find('.answer-data').removeClass('is-bounce');
         $(this).find('.answer-data').css('display', 'none');
@@ -1822,7 +1822,7 @@ $(document).on('click', '.post-answer-button', function(e){
     }).then(function (res) {
         current_question[Qi_question_json] = parseQuestionJSON(res.toString());
         question_json = current_question[Qi_question_json];
-        console.log('got question_json', question_json);
+        //console.log('got question_json', question_json);
 
         if (question_json['type'] == 'multiple-select') {
             var checkbox = parent_div.find('[name="input-answer"]');
@@ -1940,7 +1940,7 @@ $(document).on('click', '.add-reward__close-button', function(e){
 });
 
 $(document).on('click', '.notifications-item', function(e){
-    console.log('notifications-item clicked');
+    //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();
     openQuestionWindow($(this).attr('data-question-id'));
@@ -1961,9 +1961,9 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         RealityCheck.deployed().then(function (rc) {
             return rc.fundAnswerBounty(question_id, {from: account, value: reward});
         }).then(function (result) {
-            console.log('fund bounty', result);
+            //console.log('fund bounty', result);
             var container = rcqa.find('.add-reward-container');
-            console.log('removing open', container.length, container);
+            //console.log('removing open', container.length, container);
             container.removeClass('is-open');
             container.removeClass('is-bounce');
             container.css('display', 'none');
