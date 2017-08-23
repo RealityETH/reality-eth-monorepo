@@ -2180,6 +2180,14 @@ function pageInit(account) {
                         });
                     }
 
+                    // This is only done by the arbitrator, normally it happens on the timer
+                    if (evt == 'LogFinalize') {
+                        populateQuestionDetail(question_id, rc).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
+                    }
+
                     // TODO: We shouldn't really need a full refresh for what may be a small event
                     var window_id = 'qadetail-' + question_id;
                     if (document.getElementById(window_id)) {
