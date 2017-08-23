@@ -397,7 +397,7 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
     $('#your-question-answer-window').removeClass('is-open');
 });
 
-$('#post-a-question-button').on('click', function(e){
+$('#post-a-question-button,#post-a-question-link').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
     let question_window = $('#post-a-question-window');
