@@ -76,6 +76,8 @@ var display_entries = {
 
 // data for question detail window
 var question_detail_list = [];
+var question_event_times = {}; // Hold timer IDs for things we display that need to be moved when finalized
+
 var window_position = [];
 
 var $ = require('jquery-browserify')
@@ -477,6 +479,7 @@ function isAnswered(question) {
     return (question[Qi_finalization_ts].toNumber() > 1);
 }
 
+
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
     // 0: Unanswered
@@ -667,6 +670,45 @@ function handleUserAction(entry, rc) {
 
 }
 
+function scheduleFinalizationDisplayUpdate(question) {
+
+console.log('in scheduleFinalizationDisplayUpdate', question);
+    // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
+    if (!isFinalized(question) && isAnswered(question)) {
+        console.log('going ahead with scheduling');
+        var question_id = question[Qi_question_id];
+        var is_done = false;
+        if (question_event_times[question_id]) {
+            if (question_event_times[question_id].finalization_ts == question[Qi_finalization_ts]) {
+                console.log('leaving existing timeout for question', question_id)
+                is_done = true;
+            } else {
+                clearTimeout(question_event_times[question_id].timeout_id);
+                console.log('clearing timeout for question', question_id)
+            }
+        }
+        if (!is_done) {
+            console.log('scheduling');
+            // Run 1 second after the finalization timestamp
+            var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime() );
+            console.log('update_time is ', update_time);
+            var timeout_id = setTimeout( function() {
+                // TODO: Call again here in case it changed and we missed it
+                clearTimeout(question_event_times[question_id].timeout_id);
+                delete question_event_times[question_id];
+                updateQuestionWindowIfOpen(question);
+                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]); 
+            }, update_time );
+            question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
+            console.log(question_event_times);
+        }
+    } else {
+        console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
+    }
+
+}
+
+
 // question_log is optional, pass it in when we already have it
 function populateQuestionDetail(question_id, rc, question_log) {
 
@@ -678,6 +720,7 @@ function populateQuestionDetail(question_id, rc, question_log) {
             rc.questions.call(question_id).then(function(result){
                 current_question = result;
                 current_question.unshift(question_id);
+
                 var question_json_ipfs = current_question[Qi_question_ipfs];
                 return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
             }).then(function (res) {
@@ -795,6 +838,30 @@ function populateSection(section_name, question_data, before_item) {
 
 }
 
+function depopulateSection(section_name, question_id) {
+    console.log('depopulating', section_name, question_id);
+
+    var question_item_id = 'question-' + question_id;
+    var section = $('#'+section_name);
+
+    var item = section.find('#'+question_item_id);
+    if (item.length) {
+        item.remove();
+        // Add the next entry to the bottom
+        var current_last_qid = section.find('.questions__item').last().attr('data-question-id');
+        var current_last_idx = display_entries[section_name]['ids'].indexOf(current_last_qid);
+        var next_idx = current_last_idx + 1;
+        if (display_entries[section_name]['ids'].length > next_idx) {
+            var add_qid = display_entries[section_name]['ids'][next_idx];
+            var qdata = question_detail_list[add_qid];
+            populateSection(sec, qdata, previd);
+        }
+    }
+
+}
+
+
+
 function handleQuestionLog(item, rc) {
     var question_id = item.args.question_id;
     var created = item.args.created
@@ -844,8 +911,10 @@ function handleQuestionLog(item, rc) {
                 }
             }
 
+            scheduleFinalizationDisplayUpdate(question_data);
 //console.log(display_entries);
         }
+
         //console.log('bounty', bounty, 'is_finalized', is_finalized);
     });
 }
@@ -1010,6 +1079,17 @@ function parseQuestionJSON(data) {
         };
     }
     return question_json;
+
+}
+
+function updateQuestionWindowIfOpen(question) {
+
+    var question_id = question[Qi_question_id];
+    var window_id = 'qadetail-' + question_id;
+    var rcqa = $('#'+window_id);
+    if (rcqa.length) {
+        rcqa = populateQuestionWindow(rcqa, question, true);
+    }
 
 }
 
@@ -1977,6 +2057,62 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
     }
 });
 
+
+// This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and Qi_finalization_ts.
+// A full repopulate will work, but so will an array with these fields overwritten from a log event.
+function updateRankingSections(question, changed_field, changed_val) {
+
+//console.log('in updateRankingSections', question, changed_field, changed_val);
+    // latest only change on new question
+    // resolved changes on finalization, this happens either with a timer or with arbitration. Also removes items from other section.
+    // closing soon changes when we add an answer
+    // high reward changes if we add reward. TODO: Should maybe include bond value, in which case it would also change on new answer
+
+    var question_id = question[Qi_question_id];
+    if (changed_field == Qi_finalization_ts) {
+        if (isFinalized(question)) {
+            //console.log('isFinalized');
+            var sections = ['questions-latest', 'questions-closing-soon', 'questions-high-reward'];
+            for (var i =0; i < sections.length; i++) {
+                var s = sections[i];
+                //console.log('doing section', s);
+                var existing_idx = display_entries[s].ids.indexOf(question_id);
+                if (existing_idx !== -1) {
+                    display_entries[s].ids.splice(existing_idx, 1);
+                    display_entries[s].vals.splice(existing_idx, 1);
+                    depopulateSection(s, question_id);
+                }
+            }
+            var insert_before = update_ranking_data('questions-resolved', question_id, question[Qi_finalization_ts], 'desc');
+            //console.log('insert_before iss ', insert_before);
+            if (insert_before !== -1) {
+                //console.log('poulating', question);
+                // TODO: If question may not be populated, maybe we should refetch here first
+                populateSection('questions-resolved', question, insert_before);
+            }
+        } else {
+            //console.log('not finalized yet', question[Qi_finalization_ts].toNumber(), new Date().getTime());
+        }
+
+    } else {
+        //console.log('not updating for changed field ',changed);
+    }
+
+    ///if (question[Qi_question_id] in display_entries['questions-
+
+/*
+var display_entries = {
+        'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+            'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+                'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+                    'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
+}
+*/
+                                                                                      
+}
+
+
+
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
@@ -2036,13 +2172,21 @@ function pageInit(account) {
                 if (evt == 'LogNewQuestion') {
                     handleQuestionLog(result, rc);
                 } else {
-                    // TODO: We shouldn't really need a full refresh for what may be a small event
                     var question_id = result.args.question_id;
+                    if (evt == 'LogNewAnswer') {
+                        // TODO: Tighten this up, we don't always need all this
+                        populateQuestionDetail(question_id, rc).then(function(question) {
+                            scheduleFinalizationDisplayUpdate(question);
+                        });
+                    }
+
+                    // TODO: We shouldn't really need a full refresh for what may be a small event
                     var window_id = 'qadetail-' + question_id;
                     if (document.getElementById(window_id)) {
                         delete question_detail_list[question_id];
                         populateQuestionDetail(question_id, rc).then(function(question) {
                             displayQuestionDetail(question);
+                            //updateRankingSections(question);
                         });
                     }
                 }
