@@ -1694,6 +1694,10 @@ $(document).on('click', '.final-answer-button', function(){
     });
 });
 
+// TODO
+// This is currently not called, as we just fetch everything back from logs
+// Potentially resurrect it with a more efficient flow
+// Also potentially do it before confirmation (See issue #44)
 function pushWatchedAnswer(answer) {
     var question_id = answer.args.question_id;
     var already_exists = false;
@@ -1711,7 +1715,8 @@ function pushWatchedAnswer(answer) {
     }
 }
 
-$(document).on('click', '.answer-item.answered-history-item', function(){
+$(document).on('click', '.answer-item', function(){
+    console.log('.answer-item clicked');
     if ($(this).find('.answer-data').hasClass('is-bounce')) {
         $(this).find('.answer-data').removeClass('is-bounce');
         $(this).find('.answer-data').css('display', 'none');
