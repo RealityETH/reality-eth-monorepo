@@ -376,6 +376,7 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
     e.stopPropagation();
     $('#your-question-answer-window').css('z-index', 0);
     $('#your-question-answer-window').removeClass('is-open');
+    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
 
 $('#post-a-question-button,#post-a-question-link').on('click', function(e){
@@ -611,6 +612,9 @@ function handleUserAction(entry, rc) {
                 console.log('error getting all_evts', error);
             }
         });
+
+        updateUserBalanceDisplay();
+
     }
 
     //console.log('handling', entry.args['question_id'], 'entry', entry, account);
@@ -653,7 +657,7 @@ function handleUserAction(entry, rc) {
 
 function scheduleFinalizationDisplayUpdate(question) {
 
-console.log('in scheduleFinalizationDisplayUpdate', question);
+    //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question)) {
         console.log('going ahead with scheduling');
@@ -661,18 +665,18 @@ console.log('in scheduleFinalizationDisplayUpdate', question);
         var is_done = false;
         if (question_event_times[question_id]) {
             if (question_event_times[question_id].finalization_ts == question[Qi_finalization_ts]) {
-                console.log('leaving existing timeout for question', question_id)
+                //console.log('leaving existing timeout for question', question_id)
                 is_done = true;
             } else {
                 clearTimeout(question_event_times[question_id].timeout_id);
-                console.log('clearing timeout for question', question_id)
+                //console.log('clearing timeout for question', question_id)
             }
         }
         if (!is_done) {
             console.log('scheduling');
             // Run 1 second after the finalization timestamp
             var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime() );
-            console.log('update_time is ', update_time);
+            //console.log('update_time is ', update_time);
             var timeout_id = setTimeout( function() {
                 // TODO: Call again here in case it changed and we missed it
                 clearTimeout(question_event_times[question_id].timeout_id);
@@ -681,10 +685,10 @@ console.log('in scheduleFinalizationDisplayUpdate', question);
                 updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]); 
             }, update_time );
             question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
-            console.log(question_event_times);
+            //console.log(question_event_times);
         }
     } else {
-        console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
+        //console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
     }
 
 }
@@ -744,14 +748,14 @@ function populateQuestionDetail(question_id, rc, question_log) {
 
 // TODO: Fire this on a timer, and also on the withdrawal event
 function updateUserBalanceDisplay() {
-
+    console.log('updating balacne for', account);
     web3.eth.getBalance(account, function(error, result){
+    console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
             account_balance = web3.fromWei(result.toNumber(), 'ether');
             $('.account-balance').text(web3.fromWei(result.toNumber(), 'ether'));
         }
     });
-
 }
 
 function populateSection(section_name, question_data, before_item) {
@@ -1043,9 +1047,10 @@ function openQuestionWindow(question_id) {
 }
 
 $('#post-a-question-window .rcbrowser__close-button').on('click', function(){
-    let window = $('#post-a-question-window');
-    window.css('z-index', 0);
-    window.removeClass('is-open');
+    let win = $('#post-a-question-window');
+    win.css('z-index', 0);
+    win.removeClass('is-open');
+    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
 
 function parseQuestionJSON(data) {
@@ -1106,6 +1111,7 @@ function displayQuestionDetail(question_detail) {
             window_position[question_id]['x'] = left;
             window_position[question_id]['y'] = top;
             rcqa.remove();
+            document.documentElement.style.cursor = ""; // Work around Interact draggable bug
             //console.log('clicked close');
             //$('div#' + question_id).remove();
             //question_id = question_id.replace('qadetail-', '');
@@ -2273,6 +2279,7 @@ window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
         //console.log('accounts', acc);
         account = acc[0];
+        updateUserBalanceDisplay();
         pageInit(account);
     });
 }
