@@ -7,7 +7,7 @@ var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
 var ipfsAPI = require('ipfs-api')
-var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
+var ipfs = ipfsAPI({host: 'ipfs.infura.io', port: '5001', protocol: 'https'})
 
 var bs58 = require('bs58');
 
