@@ -208,64 +208,6 @@ function setRcBrowserPosition(rcbrowser) {
     rcbrowser.css('top', top);
 }
 
-/*
-// arbitration
-(function() {
-    const buttons = document.querySelectorAll('.final-answer-button');
-    const rcBrowsers = document.querySelectorAll('.rcbrowser');
-
-    function clickHandler(e) {
-        e.stopPropagation();
-
-        const rcBrowserId = this.getAttribute('data-browser-id');
-        var currentBrowser = null;
-        for (let i = 0, len = rcBrowsers.length; i < len; i += 1) {
-            var id = rcBrowsers[i].getAttribute('data-browser-id');
-            if (id === rcBrowserId) {
-                currentBrowser = rcBrowsers[i];
-            }
-        }
-
-        // set Final Answer
-        currentBrowser.querySelector('.current-answer-body').children[0].textContent = this.getAttribute('data-answer');
-
-        // set resolved date
-        const date = new Date();
-        const resolvedDate = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
-        currentBrowser.querySelector('.rcbrowser-main-header-subtitle').innerHTML = 'Resolved at ' + resolvedDate;
-
-        // delete deadline
-        currentBrowser.querySelector('.answer-deadline').parentNode.removeChild(currentBrowser.querySelector('.answer-deadline'));
-
-        // delete apply for ...
-        currentBrowser.querySelector('.arbitration-button--applied').parentNode.removeChild(currentBrowser.querySelector('.arbitration-button--applied'));
-
-        // delete time
-        currentBrowser.querySelector('.current-answer-time').parentNode.removeChild(currentBrowser.querySelector('.current-answer-time'));
-
-        // change word current answer
-        currentBrowser.querySelector('.current-answer-header').innerHTML = '<span>Final Answer</span>';
-
-        // delete answer history container
-        currentBrowser.querySelector('.answered-history-container').parentNode.removeChild(currentBrowser.querySelector('.answered-history-container'));
-
-        currentBrowser.querySelector('.current-answer-container').style.marginTop = 0;
-
-        currentBrowser.querySelector('.current-answer-item').addClass('is-bounce');
-
-        for (let i = 0, len = buttons.length; i < len; i += 1) {
-            buttons[i].parentNode.removeChild(buttons[i]);
-        }
-
-        rcbrowserHeight();
-    }
-
-    for (let i = 0, len = buttons.length; i < len; i += 1) {
-        buttons[i].addEventListener('click', clickHandler);
-    }
-})();
-*/
-
 // RCBrowser custom scrollbar
 (function() {
     const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
