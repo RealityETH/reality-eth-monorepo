@@ -1300,7 +1300,7 @@ function renderUserAction(question, entry, is_watch) {
 
 }
 
-function insertNotificationItem(notification_id, ntext, block_number, question_id, is_positive) {
+function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive) {
 
     var notifications = $('#your-question-answer-window').find('.notifications');
     if (document.getElementById(notification_id)) {
@@ -1311,6 +1311,7 @@ function insertNotificationItem(notification_id, ntext, block_number, question_i
     var existing_notification_items = notifications.find('.notifications-item');
 
     var item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
+    item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
     item_to_insert.attr('data-question-id', question_id);
     item_to_insert.find('.notification-text').text(ntext);
@@ -1354,11 +1355,12 @@ function renderNotifications(qdata, entry) {
     // TODO: Handle whether you asked the question
 
     var ntext;
-    switch (entry['event']) {
+    var evt = entry['event'] 
+    switch (evt) {
         case 'LogNewQuestion':
             var notification_id = web3.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
             ntext  = 'You asked a question - "' + question_json['title'] + '"';
-            insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             break;
 
         case 'LogNewAnswer':
@@ -1366,7 +1368,7 @@ function renderNotifications(qdata, entry) {
             var notification_id = web3.sha3('LogNewAnswer' + entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
             if (entry.args.answerer == account) {
                 ntext = 'You answered a question - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
                 var answered_question = rc.LogNewQuestion({question_id: question_id}, {
                     fromBlock: START_BLOCK,
@@ -1382,7 +1384,7 @@ function renderNotifications(qdata, entry) {
                         }
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
+                            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
                         }
                     }
                 });
@@ -1393,7 +1395,7 @@ function renderNotifications(qdata, entry) {
             var notification_id = web3.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
             if (entry.args.funder == account) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
                 var funded_question = rc.LogNewQuestion({question_id: question_id}, {
                     fromBlock: START_BLOCK,
@@ -1412,7 +1414,7 @@ function renderNotifications(qdata, entry) {
                         }
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
                         }
                     }
                 });
@@ -1424,7 +1426,7 @@ function renderNotifications(qdata, entry) {
             var is_positive = true;
             if (entry.args.requester == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
                 var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
                 arbitration_requested_question.get(function (error, result2) {
@@ -1443,7 +1445,7 @@ function renderNotifications(qdata, entry) {
                         /*
                         if (typeof ntext !== 'undefined') {
                             ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(notification_id, item, ntext, entry.blockNumber, entry.args.question_id, is_positive);
+                            insertNotificationItem(evt, notification_id, item, ntext, entry.blockNumber, entry.args.question_id, is_positive);
                         }
                         */
                     }
@@ -1468,7 +1470,7 @@ function renderNotifications(qdata, entry) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
                     }
                 }
             });
