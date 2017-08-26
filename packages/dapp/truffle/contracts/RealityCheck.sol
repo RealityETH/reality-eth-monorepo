@@ -385,7 +385,6 @@ contract RealityCheck {
 
     }
 
-
     function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
     constant
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance

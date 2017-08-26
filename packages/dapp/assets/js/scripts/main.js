@@ -402,12 +402,13 @@ function isAnswered(question) {
 
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
+    var res = ( (fin > 2) && (fin * 1000 < new Date().getTime()) );  
     // 0: Unanswered
     // 1: Pending arbitration (unanswered)
     // 2: Pending arbitration (answered)
     // Below current date: Finalized
     // Above current date: Open for new answers or arbitration requests
-    return ( (fin > 2) && (fin * 1000 < new Date().getTime()) );  
+    return res;
 }
 
 $(document).on('click', '.answer-claim-button', function(){
@@ -590,8 +591,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
-    if (!isFinalized(question) && isAnswered(question)) {
-        //console.log('going ahead with scheduling');
+    if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
         var question_id = question[Qi_question_id];
         var is_done = false;
         if (question_event_times[question_id]) {
@@ -612,20 +612,35 @@ function scheduleFinalizationDisplayUpdate(question) {
                 // TODO: Call again here in case it changed and we missed it
                 clearTimeout(question_event_times[question_id].timeout_id);
                 delete question_event_times[question_id];
-                updateQuestionWindowIfOpen(question);
-                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]); 
 
-                // There no blockchain event for this, but otherwise it looks to the UI like a normal event
-                // Make a pretend log to feed to the notifications handling function.
-                var fake_entry = {
-                    event: 'LogFinalize',
-                    args: {
-                        question_id: question[Qi_question_id],
+                populateQuestionDetail(question_id, question).then(function(question) {
+
+                    if (isFinalized(question)) { 
+                        updateQuestionWindowIfOpen(question);
+                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]); 
+
+                        // The notification code sorts by block number
+                        // So get the current block
+                        // But also add the timestamp for display
+                        web3.eth.getBlock('latest', function(err, result) {
+                            // There no blockchain event for this, but otherwise it looks to the UI like a normal event
+                            // Make a pretend log to feed to the notifications handling function.
+                            block_timestamp_cache[result.number] = result.timestamp
+                            var fake_entry = {
+                                event: 'LogFinalize',
+                                blockNumber: result.number,
+                                timestamp: question[Qi_finalization_ts].toNumber(),
+                                args: {
+                                    question_id: question[Qi_question_id],
+                                }
+                            }
+                            console.log('sending fake entry', fake_entry, question);
+             
+                            renderNotifications(question, fake_entry);
+                        });
                     }
-                }
-                console.log('sending fake entry', fake_entry, question);
- 
-                renderNotifications(question, fake_entry);
+
+                });
 
             }, update_time );
             question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
@@ -971,8 +986,6 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 function openQuestionWindow(question_id) {
 
-    var current_question;
-
     populateQuestionDetail(question_id).then(function(question) {
         displayQuestionDetail(question);
     });
@@ -1265,10 +1278,10 @@ Fetches the timestamp for the block if not already cached
 Populates the timestamp attribute
 Calls the callback on it
 */
-function populateWithBlockTimeForBlockNumber(item, num, callback) {
+function populateWithBlockTimeForBlockNumber(item, num, cbk) {
 
     if (block_timestamp_cache[num]) {
-        callback(item, block_timestamp_cache[num]);
+        cbk(item, block_timestamp_cache[num]);
     } else {
         web3.eth.getBlock(num, function(err, result) {
             if (err || !result) {
@@ -1276,7 +1289,7 @@ function populateWithBlockTimeForBlockNumber(item, num, callback) {
                 return;
             }
             block_timestamp_cache[num] = result.timestamp
-            callback(item, result.timestamp);
+            cbk(item, result.timestamp);
         });
     }
 
@@ -1300,7 +1313,7 @@ function renderUserAction(question, entry, is_watch) {
 
 }
 
-function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive) {
+function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
 
     var notifications = $('#your-question-answer-window').find('.notifications');
     if (document.getElementById(notification_id)) {
@@ -1327,19 +1340,26 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     var inserted = false;
     existing_notification_items.each( function(){
         var exi = $(this);
-         if (exi.attr('data-block-number') <= block_number) {
+        console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
+        if (exi.attr('data-block-number') <= block_number) {
             exi.before(item_to_insert);
             inserted = true;
-            return true;
+            return false;
         }
-        return false;
+        return true;
     });
        
     if (!inserted) {
         notifications.append(item_to_insert);
     }
 
-    populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
+    // If we faked the event then we already have the timestamp
+    // We still use the latest block number for sorting purposes.
+    if (timestamp) {
+        renderTimeAgo(item_to_insert, timestamp);
+    } else {
+        populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
+    }
 
 }
 
@@ -1457,6 +1477,11 @@ function renderNotifications(qdata, entry) {
             console.log('in LogFinalize', entry);
             var notification_id = web3.sha3('LogFinalize' + entry.args.question_id + entry.args.answer);
             var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+            var timestamp = null;
+            // Fake timestamp for our fake finalize event
+            if (entry.timestamp) {
+                timestamp = entry.timestamp;
+            }
             console.log('getting question_id', question_id)
             finalized_question.get(function (error, result2) {
             console.log('gotquestion_id', question_id)
@@ -1470,7 +1495,7 @@ function renderNotifications(qdata, entry) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true, timestamp);
                     }
                 }
             });
