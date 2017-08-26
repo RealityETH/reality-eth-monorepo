@@ -63,14 +63,13 @@ var RealityCheck;
 var Arbitrator;
 
 var account;
-var account_balance;
-var arbitration_fee;
+var rc;
 
 var display_entries = {
-    'questions-latest': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-resolved': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
+    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
     'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-high-reward': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
+    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
 }
 
 // data for question detail window
@@ -369,10 +368,8 @@ $('#post-question-submit').on('click', function(e){
                 //console.log('ipfs result', err, res)
                 return;
             }
-            RealityCheck.deployed().then(function (rc) {
-                account = web3.eth.accounts[0];
-                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')});
-            }).then(function (result) {
+            rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+            .then(function (result) {
 
                 let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
                 let id = setInterval(function(){
@@ -416,15 +413,7 @@ function isFinalized(question) {
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
-    var rc;
-    //console.log(claimableItems(question_detail));
-
-
-    //console.log('answer-claim-button clicked for question');
-    RealityCheck.deployed().then(function (instance) {
-        rc = instance;
-        return populateQuestionDetail(question_id, rc) 
-    }).then(function(question_detail){
+    populateQuestionDetail(question_id).then(function(question_detail){
         var claimable = possibleClaimableItems(question_detail);
         //console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
@@ -521,7 +510,7 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have already seen this event.
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
-function handleUserAction(entry, rc, is_watch) {
+function handleUserAction(entry, is_watch) {
 
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
@@ -547,7 +536,7 @@ function handleUserAction(entry, rc, is_watch) {
         all_evts.get(function(error, evts) {
             if (error === null && typeof evts !== 'undefined') {
                 for(var i=0; i<evts.length; i++) {
-                    handleUserAction(evts[i], rc);
+                    handleUserAction(evts[i]);
                 }
             } else {
                 console.log('error getting all_evts', error);
@@ -581,7 +570,7 @@ function handleUserAction(entry, rc, is_watch) {
         if ( submitted_question_id_timestamp[question_id] > 0) {
             
             delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
-            populateQuestionDetail(question_id, rc).then(function(question) {
+            populateQuestionDetail(question_id).then(function(question) {
                 displayQuestionDetail(question);
             });
         }
@@ -591,8 +580,8 @@ function handleUserAction(entry, rc, is_watch) {
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
 
-    populateQuestionDetail(question_id, rc).then(function(question) {
-        renderUserAction(question, entry, rc, is_watch);
+    populateQuestionDetail(question_id).then(function(question) {
+        renderUserAction(question, entry, is_watch);
     });
 
 }
@@ -636,10 +625,7 @@ function scheduleFinalizationDisplayUpdate(question) {
                 }
                 console.log('sending fake entry', fake_entry, question);
  
-                RealityCheck.deployed().then(function(instance) {
-                    var rc = instance;
-                    renderNotifications(question, fake_entry, rc);
-                });
+                renderNotifications(question, fake_entry);
 
             }, update_time );
             question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
@@ -653,7 +639,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
 
 // question_log is optional, pass it in when we already have it
-function populateQuestionDetail(question_id, rc, question_log) {
+function populateQuestionDetail(question_id, question_log) {
 
     return new Promise((resolve, reject)=>{
         if (question_detail_list[question_id]) {
@@ -710,7 +696,6 @@ function updateUserBalanceDisplay() {
     web3.eth.getBalance(account, function(error, result){
         //console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
-            account_balance = web3.fromWei(result.toNumber(), 'ether');
             $('.account-balance').text(web3.fromWei(result.toNumber(), 'ether'));
         }
     });
@@ -803,7 +788,7 @@ function depopulateSection(section_name, question_id) {
 
 }
 
-function handleQuestionLog(item, rc) {
+function handleQuestionLog(item) {
     var question_id = item.args.question_id;
     var created = item.args.created
     var question_data;
@@ -986,13 +971,9 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 function openQuestionWindow(question_id) {
 
-    var rc;
     var current_question;
 
-    RealityCheck.deployed().then(function(instance) {
-        rc = instance;
-        return populateQuestionDetail(question_id, rc);
-    }).then(function(question) {
+    populateQuestionDetail(question_id).then(function(question) {
         displayQuestionDetail(question);
     });
     /*
@@ -1206,9 +1187,8 @@ function totalClaimable(question_detail) {
         if (poss['total'].isZero()) {
             resolve(poss['total']);
         } else {
-            RealityCheck.deployed().then(function(rc) {
-                return rc.totalClaimable.call(account, poss['bounty_question_ids'], poss['bounty_question_ids'], poss['bond_answers'])
-            }).then(function(tot) {
+            rc.totalClaimable.call(account, poss['bounty_question_ids'], poss['bounty_question_ids'], poss['bond_answers'])
+            .then(function(tot) {
                 resolve(tot);
             }).catch(function(err) {
                 reject(err);
@@ -1303,10 +1283,10 @@ function populateWithBlockTimeForBlockNumber(item, num, callback) {
 }
 
 // At this point the data we need should already be stored in question_detail_list
-function renderUserAction(question, entry, rc, is_watch) {
+function renderUserAction(question, entry, is_watch) {
 
     // This will include events that we didn't specifically trigger, but we are intereseted in
-    renderNotifications(question, entry, rc);
+    renderNotifications(question, entry);
 
     // Only show here if we asked the question (questions section) or gave the answer (answers section)
     if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
@@ -1362,7 +1342,7 @@ function insertNotificationItem(notification_id, ntext, block_number, question_i
 
 }
 
-function renderNotifications(qdata, entry, rc) {
+function renderNotifications(qdata, entry) {
 
     var question_id = qdata[Qi_question_id];
     //console.log('renderNotification', action, entry, qdata);
@@ -1722,17 +1702,6 @@ function updateQuestionState(question, question_window) {
     */
 }
 
-$(document).on('click', '.final-answer-button', function(){
-    var question_id = $(this).closest('div.rcbrowser--qa-detail').attr('data-question-id');
-    RealityCheck.deployed().then(function(rc) {
-        return rc.finalize(question_id, {from: account});
-    }).then(function(result){
-        //console.log('finalized!', result);
-    }).catch(function(e){
-       //console.log('on click FA button', e);
-    });
-});
-
 // TODO
 // This is currently not called, as we just fetch everything back from logs
 // Potentially resurrect it with a more efficient flow
@@ -1774,16 +1743,11 @@ $(document).on('click', '.post-answer-button', function(e){
     var question_id = parent_div.attr('data-question-id');
     var bond = web3.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
 
-    var account = web3.eth.accounts[0];
-    var rc;
     var question, current_answer, new_answer;
     var question_json;
     var current_question;
     var is_err = false;
-    RealityCheck.deployed().then(function(instance) {
-        rc = instance;
-        return rc.questions.call(question_id);
-    }).then(function(cq) {
+    rc.questions.call(question_id).then(function(cq) {
         current_question = cq;
         current_question.unshift(question_id);
         var question_ipfs = current_question[Qi_question_ipfs];
@@ -1927,9 +1891,8 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
-        RealityCheck.deployed().then(function (rc) {
-            return rc.fundAnswerBounty(question_id, {from: account, value: reward});
-        }).then(function (result) {
+        rc.fundAnswerBounty(question_id, {from: account, value: reward})
+        .then(function (result) {
             //console.log('fund bounty', result);
             var container = rcqa.find('.add-reward-container');
             //console.log('removing open', container.length, container);
@@ -1960,9 +1923,8 @@ $(document).on('click', '.arbitration-button', function(e) {
     }).then(function(fee) {
         arbitration_fee = fee;
         console.log('got fee', arbitration_fee.toString());
-        RealityCheck.deployed().then(function(rc){
-            return rc.requestArbitration(question_id, {from:account, value: fee});
-        }).then(function(result){
+        rc.requestArbitration(question_id, {from:account, value: fee})
+        .then(function(result){
             //console.log('arbitration is requestd.', result);
         });
     });
@@ -2069,11 +2031,6 @@ function pageInit(account) {
 
     //console.log('in pageInit for account', account);
 
-    var rc;
-
-    RealityCheck = contract(rc_json);
-    RealityCheck.setProvider(web3.currentProvider);
-
     // Just used to get the default arbitator address
     Arbitrator = contract(arb_json);
     Arbitrator.setProvider(web3.currentProvider);
@@ -2101,128 +2058,105 @@ function pageInit(account) {
 
     */
 
-    RealityCheck.deployed().then(function(instance) {
+    var evts = rc.allEvents({}, {fromBlock:'latest', toBlock:'latest'})
 
-        rc = instance;
+    evts.watch(function (error, result) {
+        if (!error && result) {
 
-        return rc.allEvents({}, {fromBlock:'latest', toBlock:'latest'});
+            // Check the action to see if it is interesting, if it is then populate notifications etc
+            handleUserAction(result, true);
 
-    }).then(function(evts) {
-
-        evts.watch(function (error, result) {
-            if (!error && result) {
-
-                // Check the action to see if it is interesting, if it is then populate notifications etc
-                handleUserAction(result, rc, true);
-
-                // Handles front page event changes.
-                // NB We need to reflect other changes too...
-                var evt = result['event'];
-                if (evt == 'LogNewQuestion') {
-                    handleQuestionLog(result, rc);
-                } else {
-                    var question_id = result.args.question_id;
-                    if (evt == 'LogNewAnswer') {
-                        // TODO: Tighten this up, we don't always need all this
-                        populateQuestionDetail(question_id, rc).then(function(question) {
-                            scheduleFinalizationDisplayUpdate(question);
-                        });
-                    }
-
-                    // This is only done by the arbitrator, otherwise it happens on the timer
-                    if (evt == 'LogFinalize') {
-                        populateQuestionDetail(question_id, rc).then(function(question) {
-                            updateQuestionWindowIfOpen(question);
-                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                        });
-                    }
-
-                    // TODO: We shouldn't really need a full refresh for what may be a small event
-                    var window_id = 'qadetail-' + question_id;
-                    if (document.getElementById(window_id)) {
-                        delete question_detail_list[question_id];
-                        populateQuestionDetail(question_id, rc).then(function(question) {
-                            displayQuestionDetail(question);
-                            //updateRankingSections(question);
-                        });
-                    }
-                }
-            }
-        });
-
-        // Watchers all done, next we do the history gets
-        // We start with the user's answers so we can tell when we see a relevant question ID
-        return rc.LogNewAnswer({}, {fromBlock: START_BLOCK, toBlock:'latest'});
-
-    }).then(function(answer_posted) {
-        answer_posted.get(function (error, result) {
-            var answers = result;
-            if (error === null && typeof result !== 'undefined') {
-                for (var i = 0; i < answers.length; i++) {
-                    handleUserAction(answers[i], rc);
-                }
+            // Handles front page event changes.
+            // NB We need to reflect other changes too...
+            var evt = result['event'];
+            if (evt == 'LogNewQuestion') {
+                handleQuestionLog(result);
             } else {
-                console.log(error);
-            }
-        });
-
-        // Next comes the user's funded questions
-        return rc.LogFundAnswerBounty({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-
-    }).then(function(bounty_funded) {
-
-        bounty_funded.get(function (error, result) {
-            if (error === null && typeof result !== 'undefined') {
-                for (var i = 0; i < result.length; i++) {
-                    handleUserAction(result[i], rc);
+                var question_id = result.args.question_id;
+                if (evt == 'LogNewAnswer') {
+                    // TODO: Tighten this up, we don't always need all this
+                    populateQuestionDetail(question_id).then(function(question) {
+                        scheduleFinalizationDisplayUpdate(question);
+                    });
                 }
-            } else {
-                console.log(error);
-            }
-        });
 
-        return rc.LogRequestArbitration({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-
-    }).then(function(arbitration_requested) {
-        arbitration_requested.get(function (error, result) {
-            if (error === null && typeof result !== 'undefined') {
-                for (var i = 0; i < result.length; i++) {
-                    handleUserAction(result[i], rc);
+                // This is only done by the arbitrator, otherwise it happens on the timer
+                if (evt == 'LogFinalize') {
+                    populateQuestionDetail(question_id).then(function(question) {
+                        updateQuestionWindowIfOpen(question);
+                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                    });
                 }
-            } else {
-                console.log(error);
-            }
-        });
 
-        return rc.LogFinalize({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-
-    }).then(function(finalized){
-        finalized.get(function (error, result) {
-            if (error === null && typeof result !== 'undefined') {
-                for (var i = 0; i < result.length; i++) {
-                    handleUserAction(result[i], rc);
+                // TODO: We shouldn't really need a full refresh for what may be a small event
+                var window_id = 'qadetail-' + question_id;
+                if (document.getElementById(window_id)) {
+                    delete question_detail_list[question_id];
+                    populateQuestionDetail(question_id).then(function(question) {
+                        displayQuestionDetail(question);
+                        //updateRankingSections(question);
+                    });
                 }
-            } else {
-                console.log(error);
             }
-        });
+        }
+    });
 
-        // Now the rest of the questions
-        return rc.LogNewQuestion({}, {fromBlock: START_BLOCK, toBlock:'latest'});
-
-    }).then(function(question_posted) {
-
-        question_posted.get(function (error, result) {
-            if (error === null && typeof result !== 'undefined') {
-                for(var i=0; i<result.length; i++) {
-                    handleUserAction(result[i], rc);
-                    handleQuestionLog(result[i], rc);
-                }
-            } else {
-                console.log(e);
+    var answer_posted = rc.LogNewAnswer({}, {fromBlock: START_BLOCK, toBlock:'latest'})
+    answer_posted.get(function (error, result) {
+        var answers = result;
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < answers.length; i++) {
+                handleUserAction(answers[i]);
             }
+        } else {
+            console.log(error);
+        }
+    });
 
-        });
+    var bounty_funded = rc.LogFundAnswerBounty({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+    bounty_funded.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handleUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var arbitration_requested = rc.LogRequestArbitration({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+    arbitration_requested.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handleUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var finalized = rc.LogFinalize({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+    finalized.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handleUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    // Now the rest of the questions
+    var question_posted = rc.LogNewQuestion({}, {fromBlock: START_BLOCK, toBlock:'latest'});
+    question_posted.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for(var i=0; i<result.length; i++) {
+                handleUserAction(result[i]);
+                handleQuestionLog(result[i]);
+            }
+        } else {
+            console.log(e);
+        }
 
     });
 
@@ -2241,7 +2175,13 @@ window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
         //console.log('accounts', acc);
         account = acc[0];
-        updateUserBalanceDisplay();
-        pageInit(account);
+
+        RealityCheck = contract(rc_json);
+        RealityCheck.setProvider(web3.currentProvider);
+        RealityCheck.deployed().then(function(instance) {
+            rc = instance;
+            updateUserBalanceDisplay();
+            pageInit(account);
+        });
     });
 }
