@@ -126,7 +126,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
         self.s.timestamp = self.s.timestamp + 11
         self.assertTrue(self.rc0.isFinalized(self.question_id, startgas=200000))
@@ -137,7 +137,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
         ts1 = self.rc0.getEarliestFinalizationTS(self.question_id)
 
         self.s.timestamp = self.s.timestamp + 8
@@ -149,9 +149,9 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), value=10) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), 0, value=10) 
 
         self.s.timestamp = self.s.timestamp + 11
 
@@ -161,7 +161,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_answered(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
         #self.c.mine()
         #self.s = self.c.head_state
@@ -210,35 +210,54 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_min_payment_with_bond_param(self):
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
+
+        # The extra amount you have to send should be passed in a parameters
+        with self.assertRaises(TransactionFailed): 
+            a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=(22+5), sender=t.k5, startgas=200000) 
+
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
+
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
         # "You must increase from zero"
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=1, sender=t.k3, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=1, sender=t.k3, startgas=200000) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
 
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
 
         # You have to at least double
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10003), to_question_for_contract(("my evidence")), value=6, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10003), to_question_for_contract(("my evidence")), 0, value=6, startgas=200000) 
 
         # You definitely can't drop back to zero
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10004), to_question_for_contract(("my evidence")), value=0, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10004), to_question_for_contract(("my evidence")), 0, value=0, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
 
         # When picking up somebody else's answer, you have to pay extra for their bond
         with self.assertRaises(TransactionFailed):
-            a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5, startgas=200000) 
+            a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=22, sender=t.k5, startgas=200000) 
+
+        # The extra amount you have to send should be passed in a parameters
+        #with self.assertRaises(TransactionFailed): 
+        #    a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=(22+5), sender=t.k5, startgas=200000) 
 
         earlier_owner_bal = self.rc0.balanceOf(keys.privtoaddr(t.k4))
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=(22+5), sender=t.k5, startgas=200000) 
+
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
+
         self.assertEqual(earlier_owner_bal + (5*2), self.rc0.balanceOf(keys.privtoaddr(t.k4)), "After submitting an answer, the previous owner gets their bond * 2")
 
         ts = self.s.timestamp
@@ -289,13 +308,13 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_bulk_withdrawal(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), value=2, sender=t.k3, startgas=200000) 
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=5, sender=t.k4, startgas=200000) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22+5, sender=t.k5, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=22+5, sender=t.k5, startgas=200000) 
 
         self.c.mine()
         self.s = self.c.head_state
@@ -319,8 +338,8 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bounty(self):
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), value=22, sender=t.k5) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3) 
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=22, sender=t.k5) 
 
         self.s.timestamp = self.s.timestamp + 11
 
@@ -336,7 +355,7 @@ class TestRealityCheck(TestCase):
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
         self.caller_backer.setRealityCheck(self.rc0.address)
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -363,7 +382,7 @@ class TestRealityCheck(TestCase):
      
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3, startgas=200000) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -388,7 +407,7 @@ class TestRealityCheck(TestCase):
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), value=10, sender=t.k3) 
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -406,7 +425,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), value=100, sender=t.k5) 
+        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=100, sender=t.k5) 
 
         self.c.mine()
         self.s = self.c.head_state

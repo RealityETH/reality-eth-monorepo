@@ -1313,6 +1313,20 @@ function renderUserAction(question, entry, is_watch) {
 
 }
 
+function answersByMaxBond(answer_logs) {
+    var ans = {};
+    for (var i=0; i<answer_logs.length; i++) {
+        var an = answer_logs[i];
+        var aval = an.args.answer;
+        var bond = an.args.bond;
+        if (ans[aval] && ans[aval].args.bond >= bond) {
+            continue;
+        }
+        ans[aval] = an;
+    }
+    return ans;
+}
+
 function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
 
     var notifications = $('#your-question-answer-window').find('.notifications');
@@ -1340,7 +1354,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     var inserted = false;
     existing_notification_items.each( function(){
         var exi = $(this);
-        console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
+        //console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
         if (exi.attr('data-block-number') <= block_number) {
             exi.before(item_to_insert);
             inserted = true;
@@ -1774,6 +1788,17 @@ $(document).on('click', '.post-answer-button', function(e){
     var question_json;
     var current_question;
     var is_err = false;
+
+    var payable = new BigNumber(0);
+    if (parent_div.hasClass('has-someone-elses-answer')) {
+        payable = new BigNumber(parent_div.attr('data-answer-payment-value')); 
+    console.log('is someone elses answer');
+    } else if (parent_div.hasClass('has-your-answer')) {
+        payable = new BigNumber(parent_div.attr('data-answer-payment-value')).neg()
+    console.log('is your answer');
+    }
+    console.log('payable is ', payable.toString());
+
     rc.questions.call(question_id).then(function(cq) {
         current_question = cq;
         current_question.unshift(question_id);
@@ -1853,8 +1878,12 @@ $(document).on('click', '.post-answer-button', function(e){
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
+        var min_payable_param = new BigNumber(0);
+        if (payable > 0) {
+            min_payable_param = payable;
+        }
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', {from:account, value:bond});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', payable, {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
@@ -1960,6 +1989,58 @@ $(document).on('click', '.arbitration-button', function(e) {
 /*-------------------------------------------------------------------------------------*/
 // show/delete error messages
 
+function show_bond_payments(ctrl) {
+    var frm = ctrl.closest('div.rcbrowser--qa-detail')
+    var question_id = frm.attr('data-question-id'); 
+    console.log('got question_id', question_id);
+    populateQuestionDetail(question_id).then(function(question) {
+        var question_json = question[Qi_question_json];
+        var existing_answers = answersByMaxBond(question['history']);
+        var payable = 0;
+        var new_answer;
+        if (question_json['type'] == 'multiple-select') {
+            var checkbox = frm.find('[name="input-answer"]');
+            var answers = checkbox.filter(':checked');
+            var values = [];
+            for (var i = 0; i < answers.length; i++) {
+                values.push(parseInt(answers[i].value));
+            }
+            var answer_bits = '';
+            for (var i = checkbox.length - 1; i >= 0; i--) {
+                if (values.indexOf(i) == -1) {
+                    answer_bits += '0';
+                } else {
+                    answer_bits += '1';
+                }
+            }
+            new_answer = parseInt(answer_bits, 2);
+        } else if (question_json['type'] == 'number') {
+            new_answer = new BigNumber(frm.find('[name="input-answer"]').val());
+        } else {
+            new_answer = parseInt(frm.find('[name="input-answer"]').val());
+        }
+        new_answer = formatForAnswer(new_answer, question_json['type'])
+        console.log('new_answer', new_answer);
+
+        console.log('existing_answers', existing_answers);
+        if (existing_answers[new_answer]) {
+            payable = existing_answers[new_answer].args.bond;
+            if (existing_answers[new_answer].args.answerer == account) {
+                frm.addClass('has-your-answer').removeClass('has-someone-elses-answer');
+                frm.find('.answer-credit-info .answer-payment-value').text( web3.fromWei(payable, 'ether'))
+            } else {
+                frm.addClass('has-someone-elses-answer').removeClass('has-your-answer');
+                frm.find('.answer-debit-info .answer-payment-value').text( web3.fromWei(payable, 'ether'))
+            }
+            frm.attr('data-answer-payment-value', payable.toString());
+        } else {
+            frm.removeClass('has-your-answer').removeClass('has-someone-elses-answer');
+            frm.find('.answer-payment-value').text('');
+            frm.attr('data-answer-payment-value', '');
+        }
+    });
+}
+
 $('.rcbrowser-textarea').on('keyup', function(e){
     if ($(this).val() !== '') {
         $(this).closest('div').removeClass('is-error');
@@ -1967,6 +2048,7 @@ $('.rcbrowser-textarea').on('keyup', function(e){
 });
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     let value = $(this).val();
+    show_bond_payments($(this));
     if (value === '') {
         $(this).parent().parent().addClass('is-error');
     } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
@@ -1995,6 +2077,7 @@ $('#question-type,#step-delay,#arbitrator').on('change', function (e) {
 $(document).on('change', 'select[name="input-answer"]', function (e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
+        show_bond_payments($(this));
     }
 });
 $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
@@ -2004,6 +2087,7 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
     if (checked.length > 0) {
         container.removeClass('is-error');
     }
+    show_bond_payments($(this), checked);
 });
 
 

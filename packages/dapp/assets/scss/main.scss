@@ -2020,3 +2020,22 @@ div.rcbrowser--qa-detail .answer-claim-button { display: none}
 
 .answer-claim-button {display:none}
 div.rcbrowser--qa-detail.question-state-finalized.is-claimable .answer-claim-button { display: block !important }
+
+.answer-debit-info,.answer-credit-info {
+    font-size: 13px;
+    color: $rcBrowserBodyText;
+    margin-top: 6px;
+    padding: 4px 6px 6px;
+    line-height: 1.3;
+    border-radius: 3px;
+    display: none;
+    background-color: $gray;
+    box-shadow: inset 0 0 0 1px darken($white, 15%);
+}
+
+div.rcbrowser--qa-detail .answer-debit-info{ display:none }
+div.rcbrowser--qa-detail .answer-credit-info{ display:none }
+div.rcbrowser--qa-detail.has-your-answer .answer-credit-info { display:block !important}
+div.rcbrowser--qa-detail.has-someone-elses-answer .answer-debit-info { display:block !important}
+
+

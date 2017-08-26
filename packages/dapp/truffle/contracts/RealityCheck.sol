@@ -210,7 +210,7 @@ contract RealityCheck {
         }
     }
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_payable) 
         //actorAnyone(question_id)
         stateOpen(question_id)
     payable returns (bytes32) {
@@ -237,6 +237,8 @@ contract RealityCheck {
             // Their previous bond and answerer record will then be over-written with new answerer and their remaining value
 
             uint256 previous_bond = questions[question_id].answers[answer].bond;
+            require(max_payable >= previous_bond);
+
             remaining_val -= previous_bond;
 
             // The previous answerer ends up with twice their bond.
