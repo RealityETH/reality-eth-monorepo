@@ -575,7 +575,7 @@ function handleUserAction(entry, is_watch) {
     // User action
     if (entry['event'] == 'LogNewAnswer') {
         // force refresh
-        delete question_detail_list[question_id];
+        purgeQuestionDetail(question_id);
         if ( submitted_question_id_timestamp[question_id] > 0) {
             
             delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
@@ -642,7 +642,7 @@ function scheduleFinalizationDisplayUpdate(question) {
                                     question_id: question[Qi_question_id],
                                 }
                             }
-                            console.log('sending fake entry', fake_entry, question);
+                            //console.log('sending fake entry', fake_entry, question);
              
                             renderNotifications(question, fake_entry);
                         });
@@ -660,6 +660,9 @@ function scheduleFinalizationDisplayUpdate(question) {
 
 }
 
+function purgeQuestionDetail(question_id) {
+    delete question_detail_list[question_id];
+}
 
 // question_log is optional, pass it in when we already have it
 function ensureQuestionDetailFetched(question_id, question_log) {
@@ -883,9 +886,11 @@ function update_ranking_data(arr_name, id, val, ord) {
     // Check if we already have it
     var existing_idx = display_entries[arr_name]['ids'].indexOf(id);
     if (existing_idx !== -1) {
+        //console.log('not found in list');
 
         // If it is unchanged, return a code saying there is nothing to do
         if (val.equals(display_entries[arr_name]['vals'][existing_idx])) {
+            //console.log('nothing to do, val was unchanged at', val, display_entries[arr_name]['vals'][existing_idx]);
             return -1; // TODO: make this -2 so the caller can handle this case differently?
         }
 
@@ -903,6 +908,7 @@ function update_ranking_data(arr_name, id, val, ord) {
 
     // If the list is full and we're lower, give up
     if (arr.length >= max_entries) {
+        //console.log('list full and lower, give up');
         var last_entry = arr[arr.length-1];
         if (last_entry.gte(val)) {
             //  console.log('we are full and last entry is at least as high')
@@ -1301,6 +1307,11 @@ function renderTimeAgo(i, ts) {
     timeAgo.render(i.find('.timeago'));
 }
 
+// Anything in the document with this class gets updated
+// For when there's a single thing changed, and it's not worth doing a full refresh
+function updateAnyDisplay(question_id, txt, cls) {
+    $("[data-question-id='" + question_id+ "']").find('.'+cls).text(txt);
+}
 
 /*
 Finds any item with timeago and the given block number
@@ -1518,7 +1529,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogFinalize':
-            console.log('in LogFinalize', entry);
+            //console.log('in LogFinalize', entry);
             var notification_id = web3.sha3('LogFinalize' + entry.args.question_id + entry.args.answer);
             var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
             var timestamp = null;
@@ -1526,9 +1537,9 @@ function renderNotifications(qdata, entry) {
             if (entry.timestamp) {
                 timestamp = entry.timestamp;
             }
-            console.log('getting question_id', question_id)
+            //console.log('getting question_id', question_id)
             finalized_question.get(function (error, result2) {
-            console.log('gotquestion_id', question_id)
+            //console.log('gotquestion_id', question_id)
                 if (error === null && typeof result2 !== 'undefined') {
                     if (result2[0].args.questioner == account) {
                         ntext = 'Your question is finalized';
@@ -1822,12 +1833,12 @@ $(document).on('click', '.post-answer-button', function(e){
     var payable = new BigNumber(0);
     if (parent_div.hasClass('has-someone-elses-answer')) {
         payable = new BigNumber(parent_div.attr('data-answer-payment-value')); 
-    console.log('is someone elses answer');
+        //console.log('is someone elses answer');
     } else if (parent_div.hasClass('has-your-answer')) {
         payable = new BigNumber(parent_div.attr('data-answer-payment-value')).neg()
-    console.log('is your answer');
+        //console.log('is your answer');
     }
-    console.log('payable is ', payable.toString());
+    //console.log('payable is ', payable.toString());
 
     rc.questions.call(question_id).then(function(cq) {
         current_question = cq;
@@ -1901,7 +1912,7 @@ $(document).on('click', '.post-answer-button', function(e){
         // check bond
         return rc.getMinimumBondForAnswer.call(question_id, formatForAnswer(new_answer, question_json['type']), account);
     }).then(function(min_amount){
-        console.log('got min_amount', min_amount.toString(), 'vs bond ', bond.toString());
+        //console.log('got min_amount', min_amount.toString(), 'vs bond ', bond.toString());
         if (bond.plus(payable).lt(min_amount)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3.fromWei(min_amount, 'ether'));
@@ -2017,7 +2028,7 @@ $(document).on('click', '.arbitration-button', function(e) {
         return arb.getFee.call(question_id);
     }).then(function(fee) {
         arbitration_fee = fee;
-        console.log('got fee', arbitration_fee.toString());
+        //console.log('got fee', arbitration_fee.toString());
         rc.requestArbitration(question_id, {from:account, value: fee})
         .then(function(result){
             //console.log('arbitration is requestd.', result);
@@ -2031,7 +2042,7 @@ $(document).on('click', '.arbitration-button', function(e) {
 function show_bond_payments(ctrl) {
     var frm = ctrl.closest('div.rcbrowser--qa-detail')
     var question_id = frm.attr('data-question-id'); 
-    console.log('got question_id', question_id);
+    //console.log('got question_id', question_id);
     ensureQuestionDetailFetched(question_id).then(function(question) {
         var question_json = question[Qi_question_json];
         var existing_answers = answersByMaxBond(question['history']);
@@ -2059,9 +2070,9 @@ function show_bond_payments(ctrl) {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());
         }
         new_answer = formatForAnswer(new_answer, question_json['type'])
-        console.log('new_answer', new_answer);
+        //console.log('new_answer', new_answer);
 
-        console.log('existing_answers', existing_answers);
+        //console.log('existing_answers', existing_answers);
         if (existing_answers[new_answer]) {
             payable = existing_answers[new_answer].args.bond;
             if (existing_answers[new_answer].args.answerer == account) {
@@ -2141,6 +2152,7 @@ function updateRankingSections(question, changed_field, changed_val) {
     // high reward changes if we add reward. TODO: Should maybe include bond value, in which case it would also change on new answer
 
     var question_id = question[Qi_question_id];
+    //console.log('updateRankingSections', question_id, changed_field, changed_val);
     if (changed_field == Qi_finalization_ts) {
         if (isFinalized(question)) {
             //console.log('isFinalized');
@@ -2163,12 +2175,23 @@ function updateRankingSections(question, changed_field, changed_val) {
                 populateSection('questions-resolved', question, insert_before);
             }
         } else {
-            //console.log('not finalized yet', question[Qi_finalization_ts].toNumber(), new Date().getTime());
+
+            var insert_before = update_ranking_data('questions-closing-soon', question_id, question[Qi_finalization_ts], 'desc');
+            if (insert_before !== -1) {
+                populateSection('questions-closing-soon', question, insert_before);
+            }
+
         }
 
-    } else {
-        //console.log('not updating for changed field ',changed);
+    } else if (changed_field == Qi_bounty) {
+        var insert_before = update_ranking_data('questions-high-reward', question_id, question[Qi_bounty], 'desc');
+        //console.log('update for new bounty', question[Qi_bounty], 'insert_before is', insert_before);
+        if (insert_before !== -1) {
+            populateSection('questions-high-reward', question, insert_before);
+        }
     }
+
+    // TODO: Need to update sections that haven't changed position, but changed data
 
 }
 
@@ -2228,11 +2251,23 @@ function pageInit(account) {
                     // TODO: Tighten this up, we don't always need all this
                     ensureQuestionDetailFetched(question_id).then(function(question) {
                         scheduleFinalizationDisplayUpdate(question);
+                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                     });
                 }
 
+                if (evt == 'LogFundAnswerBounty') {
+                    ensureQuestionDetailFetched(question_id).then(function(question) {
+                        question[Qi_bounty] = result.args.bounty; // TODO: find a cleaner way to handle this
+                        updateQuestionWindowIfOpen(question);
+                        updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                        updateAnyDisplay(question_id, web3.fromWei(result.args.bounty, 'ether'), 'question-bounty');
+                    });
+
+                } 
+
                 // This is only done by the arbitrator, otherwise it happens on the timer
                 if (evt == 'LogFinalize') {
+                    purgeQuestionDetail(question_id);
                     ensureQuestionDetailFetched(question_id).then(function(question) {
                         updateQuestionWindowIfOpen(question);
                         updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
@@ -2242,7 +2277,7 @@ function pageInit(account) {
                 // TODO: We shouldn't really need a full refresh for what may be a small event
                 var window_id = 'qadetail-' + question_id;
                 if (document.getElementById(window_id)) {
-                    delete question_detail_list[question_id];
+                    purgeQuestionDetail(question_id);
                     ensureQuestionDetailFetched(question_id).then(function(question) {
                         displayQuestionDetail(question);
                         //updateRankingSections(question);
