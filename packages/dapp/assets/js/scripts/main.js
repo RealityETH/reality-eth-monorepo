@@ -419,7 +419,7 @@ function isFinalized(question) {
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
-    populateQuestionDetail(question_id).then(function(question_detail){
+    ensureQuestionDetailFetched(question_id).then(function(question_detail){
         var claimable = possibleClaimableItems(question_detail);
         //console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
@@ -506,7 +506,7 @@ $('div.loadmore-button').on('click', function(e) {
             previd = display_entries[sec]['ids'][i-1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
-        populateQuestionDetail(nextid).then(function(qdata) {
+        ensureQuestionDetailFetched(nextid).then(function(qdata) {
             populateSection(sec, qdata, previd);
         });
     }
@@ -577,7 +577,7 @@ function handleUserAction(entry, is_watch) {
         if ( submitted_question_id_timestamp[question_id] > 0) {
             
             delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
-            populateQuestionDetail(question_id).then(function(question) {
+            ensureQuestionDetailFetched(question_id).then(function(question) {
                 displayQuestionDetail(question);
             });
         }
@@ -587,7 +587,7 @@ function handleUserAction(entry, is_watch) {
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
 
-    populateQuestionDetail(question_id).then(function(question) {
+    ensureQuestionDetailFetched(question_id).then(function(question) {
         renderUserAction(question, entry, is_watch);
     });
 
@@ -619,7 +619,7 @@ function scheduleFinalizationDisplayUpdate(question) {
                 clearTimeout(question_event_times[question_id].timeout_id);
                 delete question_event_times[question_id];
 
-                populateQuestionDetail(question_id, question).then(function(question) {
+                ensureQuestionDetailFetched(question_id, question).then(function(question) {
 
                     if (isFinalized(question)) { 
                         updateQuestionWindowIfOpen(question);
@@ -660,7 +660,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
 
 // question_log is optional, pass it in when we already have it
-function populateQuestionDetail(question_id, question_log) {
+function ensureQuestionDetailFetched(question_id, question_log) {
 
     return new Promise((resolve, reject)=>{
         if (question_detail_list[question_id]) {
@@ -1004,7 +1004,7 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 function openQuestionWindow(question_id) {
 
-    populateQuestionDetail(question_id).then(function(question) {
+    ensureQuestionDetailFetched(question_id).then(function(question) {
         displayQuestionDetail(question);
     });
     /*
@@ -2024,7 +2024,7 @@ function show_bond_payments(ctrl) {
     var frm = ctrl.closest('div.rcbrowser--qa-detail')
     var question_id = frm.attr('data-question-id'); 
     console.log('got question_id', question_id);
-    populateQuestionDetail(question_id).then(function(question) {
+    ensureQuestionDetailFetched(question_id).then(function(question) {
         var question_json = question[Qi_question_json];
         var existing_answers = answersByMaxBond(question['history']);
         var payable = 0;
@@ -2218,14 +2218,14 @@ function pageInit(account) {
                 var question_id = result.args.question_id;
                 if (evt == 'LogNewAnswer') {
                     // TODO: Tighten this up, we don't always need all this
-                    populateQuestionDetail(question_id).then(function(question) {
+                    ensureQuestionDetailFetched(question_id).then(function(question) {
                         scheduleFinalizationDisplayUpdate(question);
                     });
                 }
 
                 // This is only done by the arbitrator, otherwise it happens on the timer
                 if (evt == 'LogFinalize') {
-                    populateQuestionDetail(question_id).then(function(question) {
+                    ensureQuestionDetailFetched(question_id).then(function(question) {
                         updateQuestionWindowIfOpen(question);
                         updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                     });
@@ -2239,7 +2239,7 @@ function pageInit(account) {
                     // TODO: Do we even need this? We could just populate the question data from the logs and hope it's all correct
                     // If the finalization_ts in the log doesn't match the current bond in the question, clear the cache
                     // Otherwise, just pop our log on the end
-                    // TODO: Move this logic into populateQuestionDetail somehow
+                    // TODO: Move this logic into ensureQuestionDetailFetched somehow
                     if (question_detail_list[question_id]) {
             console.log('calling quesion', question_id);
                         rc.questions.call(question_id).then(function(qdata) {
@@ -2254,7 +2254,7 @@ function pageInit(account) {
                                 question_detail_list[question_id][Qi_best_answer] = qdata[Qi_best_answer]; //evt.args['answer'];
                 console.log('adding event, is now', question_detail_list[question_id]);
                             }
-                            populateQuestionDetail(question_id).then(function(question) {
+                            ensureQuestionDetailFetched(question_id).then(function(question) {
                 console.log('repopuplated, displaying');
                                 displayQuestionDetail(question);
                                 //updateRankingSections(question);
@@ -2262,7 +2262,7 @@ function pageInit(account) {
                         });
                     } else {
                         // If we have the cache this should just displayQuestionDetail without refetching
-                        populateQuestionDetail(question_id).then(function(question) {
+                        ensureQuestionDetailFetched(question_id).then(function(question) {
                             displayQuestionDetail(question);
                             //updateRankingSections(question);
                         });
