@@ -30,6 +30,8 @@ const EVENT_ACTOR_ARGS = {
     'LogSendCallback': 'caller',
 };
 
+const IPFS_MAX_SIZE = 1024; // max size of an ipfs file in bytes
+
 // Assume we get logs from the server from earlier than this
 const START_BLOCK = 0;
 
@@ -670,6 +672,9 @@ function populateQuestionDetail(question_id, question_log) {
                 var question_json_ipfs = current_question[Qi_question_ipfs];
                 return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
             }).then(function (res) {
+                if (res.length > IPFS_MAX_SIZE) {
+                    reject(new Error('IPFS file too large'));
+                }
                 current_question[Qi_question_json] = parseQuestionJSON(res.toString());
                 return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
             // TODO: Update this in real time as the answers come in
@@ -818,6 +823,9 @@ function handleQuestionLog(item) {
         var question_json_ipfs = question_data[Qi_question_ipfs];
         return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
     }).then(function (res) {
+        if (res.length > IPFS_MAX_SIZE) {
+            throw new Error('IPFS file too large');
+        }
         if (!res) {
             //console.log('ipfs cat error', err, res)
             return;
@@ -1813,6 +1821,9 @@ $(document).on('click', '.post-answer-button', function(e){
         var question_ipfs = current_question[Qi_question_ipfs];
         return ipfs.cat(bytes32ToIPFSHash(question_ipfs), {buffer: true})
     }).then(function (res) {
+        if (res.length > IPFS_MAX_SIZE) {
+            throw new Error('IPFS file too large');
+        }
         current_question[Qi_question_json] = parseQuestionJSON(res.toString());
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
