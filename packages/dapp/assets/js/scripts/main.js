@@ -88,7 +88,7 @@ var $ = require('jquery-browserify')
 require('jquery-expander')($);
 
 import imagesLoaded from 'imagesloaded';
-import interact from 'interact.js';
+import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 //import {TweenLite, Power3} from 'gsap';
 

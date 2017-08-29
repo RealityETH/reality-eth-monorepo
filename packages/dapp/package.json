@@ -40,7 +40,7 @@
     "eslint": "^3.15.0",
     "gsap": "^1.19.1",
     "imagesloaded": "^4.1.1",
-    "interact.js": "^1.2.8",
+    "interactjs": "https://github.com/taye/interact.js/archive/v1.2.9.tar.gz",
     "ipfs-api": "^14.1.2",
     "jazzicon": "^1.5.0",
     "jquery-browserify": "^1.8.1",
