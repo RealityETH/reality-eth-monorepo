@@ -16,8 +16,8 @@ var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
-var blockies = require('blockies');
-//console.log('blockies', blockies);
+var jazzicon = require('jazzicon');
+//console.log('jazzicon', jazzicon);
 
 var submitted_question_id_timestamp = {};
 
@@ -1143,8 +1143,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
         ans_data.find('.answerer').text(latest_answer.answerer);
-        var bgdata = blockies({ seed: latest_answer.answerer.toLowerCase() }).toDataURL();
-        ans_data.find('.answer-data__avatar').css('background-image', 'url('+bgdata+')');
+        var avjazzicon = jazzicon(32, parseInt(latest_answer.answerer.toLowerCase().slice(2,10), 16) );
+        ans_data.find('.answer-data__avatar').html(avjazzicon);
         if (latest_answer.answerer == account) {
             ans_data.addClass('current-account');
         } else {
@@ -1169,8 +1169,10 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             var hist_item = hist_tmpl.clone();
             hist_item.attr('id', hist_id);
             hist_item.find('.answerer').text(ans['answerer']);
-            var bgdata = blockies({ seed: ans['answerer'].toLowerCase() }).toDataURL();
-            hist_item.find('.answer-data__avatar').css('background-image', 'url('+bgdata+')');
+
+            var avjazzicon = jazzicon(32, parseInt(ans['answerer'].toLowerCase().slice(2,10), 16) );
+
+            hist_item.find('.answer-data__avatar').html(avjazzicon);
             hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
             hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
             hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
