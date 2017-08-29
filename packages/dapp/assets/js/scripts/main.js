@@ -500,14 +500,15 @@ $('div.loadmore-button').on('click', function(e) {
     display_entries[sec]['max_store'] = display_entries[sec]['max_store'] + 3;
 
     for (var i = num_in_doc; i < new_max && i < display_entries[sec]['ids'].length; i++) {
-        var previd;
         var nextid = display_entries[sec]['ids'][i];
         var previd;
         if (i > 0) {
             previd = display_entries[sec]['ids'][i-1];
         }
-        var qdata = question_detail_list[nextid];
-        populateSection(sec, qdata, previd);
+        //console.log('populatewith', previd, nextid, question_detail_list);
+        populateQuestionDetail(nextid).then(function(qdata) {
+            populateSection(sec, qdata, previd);
+        });
     }
 
 });
