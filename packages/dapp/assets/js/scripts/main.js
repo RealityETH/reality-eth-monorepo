@@ -35,8 +35,8 @@ const EVENT_ACTOR_ARGS = {
 const IPFS_MAX_SIZE = 8192; // max size of an ipfs file in characters
 const QUESTION_MAX_OUTCOMES = 128; 
 
-// Assume we get logs from the server from earlier than this
-const START_BLOCK = 0;
+// Assume we don't need blocks earlier than this, eg is when the contract was deployed.
+const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
 // Struct array offsets
 // Assumes we unshift the ID onto the start
