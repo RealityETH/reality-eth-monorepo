@@ -263,7 +263,7 @@ contract RealityCheck {
             answer,
             question_id,
             msg.sender,
-            msg.value,
+            remaining_val,
             now,
             evidence_ipfs
         );
