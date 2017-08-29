@@ -2334,7 +2334,7 @@ function pageInit(account) {
                 handleQuestionLog(result[i]);
             }
         } else {
-            console.log(e);
+            console.log(error);
         }
 
     });
