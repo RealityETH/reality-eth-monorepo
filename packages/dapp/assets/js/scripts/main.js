@@ -1142,7 +1142,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         var current_container = rcqa.find('.current-answer-container');
         current_container.attr('id', 'answer-' + latest_answer.answer);
 
-        populateWithBlockTimeForBlockNumber(current_container.find('.current-answer-item'), question_detail['history'][idx].blockNumber, renderTimeAgo);
+        timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+        current_container.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+        timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
@@ -1179,9 +1181,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             hist_item.find('.answer-data__avatar').html(avjazzicon);
             hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
             hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
-
-            populateWithBlockTimeForBlockNumber(hist_item, question_detail['history'][i].blockNumber, renderTimeAgo);
-
+            hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
+            timeAgo.render(hist_item.find('.answer-time.timeago'));
             hist_item.removeClass('template-item');
             hist_tmpl.before(hist_item); 
         }
