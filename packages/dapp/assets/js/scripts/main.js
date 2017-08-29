@@ -80,6 +80,7 @@ var question_event_times = {}; // Hold timer IDs for things we display that need
 var window_position = [];
 
 var $ = require('jquery-browserify')
+require('jquery-expander')($);
 
 import imagesLoaded from 'imagesloaded';
 import interact from 'interact.js';
@@ -761,7 +762,7 @@ function populateSection(section_name, question_data, before_item) {
         entry.removeClass('has-answer');
     }
 
-    entry.find('.question-title').text(question_json['title']);
+    entry.find('.question-title').text(question_json['title']).expander({expandText: '', slicePoint:140});
     entry.find('.question-bounty').text(bounty);
     entry.css('display', 'block');
 
@@ -963,6 +964,9 @@ function update_ranking_data(arr_name, id, val, ord) {
 })();
 
 $(document).on('click', '.questions__item__title', function(e){
+    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+        return true;
+    }
 
     e.preventDefault();
     e.stopPropagation();
@@ -975,6 +979,9 @@ $(document).on('click', '.questions__item__title', function(e){
 });
 
 $(document).on('click', '.your-qa__questions__item', function(e) {
+    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+        return true;
+    }
 
     e.preventDefault();
     e.stopPropagation();
@@ -1098,7 +1105,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     date.setTime(question_detail[Qi_creation_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
-    rcqa.find('.question-title').text(question_json['title']);
+    rcqa.find('.question-title').text(question_json['title']).expander({slicePoint: 200});
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
 
     //console.log('question_detail is', question_detail);
@@ -1342,7 +1349,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
     item_to_insert.attr('data-question-id', question_id);
-    item_to_insert.find('.notification-text').text(ntext);
+    item_to_insert.find('.notification-text').text(ntext).expander();
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
 
@@ -1604,7 +1611,7 @@ function renderUserQandA(qdata, entry) {
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-question-id', question_id);
-    qitem.find('.question-text').text(question_json['title']);
+    qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     insertQAItem(question_id, qitem, question_section, entry.blockNumber);
@@ -1933,6 +1940,9 @@ $(document).on('click', '.add-reward__close-button', function(e){
 });
 
 $(document).on('click', '.notifications-item', function(e){
+    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+        return true;
+    }
     //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();

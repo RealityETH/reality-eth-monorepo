@@ -43,6 +43,7 @@
     "interact.js": "^1.2.8",
     "ipfs-api": "^14.1.2",
     "jquery-browserify": "^1.8.1",
+    "jquery-expander": "^1.7.0",
     "node-sass": "^4.5.0",
     "perfect-scrollbar": "^0.6.16",
     "postcss-cli": "^2.6.0",
