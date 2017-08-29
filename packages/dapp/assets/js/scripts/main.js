@@ -30,7 +30,8 @@ const EVENT_ACTOR_ARGS = {
     'LogSendCallback': 'caller',
 };
 
-const IPFS_MAX_SIZE = 1024; // max size of an ipfs file in bytes
+const IPFS_MAX_SIZE = 8192; // max size of an ipfs file in characters
+const QUESTION_MAX_OUTCOMES = 128; 
 
 // Assume we get logs from the server from earlier than this
 const START_BLOCK = 0;
@@ -1030,7 +1031,11 @@ function parseQuestionJSON(data) {
             'type': 'binary'
         };
     }
+    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
+        throw Error("Too many outcomes");
+    }
     return question_json;
+     
 
 }
 
