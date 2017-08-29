@@ -2204,7 +2204,7 @@ function pageInit(account) {
 
     evts.watch(function (error, result) {
         if (!error && result) {
-            console.log('got event', error, result);
+            //console.log('got event', error, result);
 
             // Check the action to see if it is interesting, if it is then populate notifications etc
             handleUserAction(result, true);
@@ -2234,28 +2234,28 @@ function pageInit(account) {
                 // TODO: We shouldn't really need a full refresh for what may be a small event
                 var window_id = 'qadetail-' + question_id;
                 if (document.getElementById(window_id)) {
-            console.log('refill window');
+            //console.log('refill window');
                     // Refresh the question with a call
                     // TODO: Do we even need this? We could just populate the question data from the logs and hope it's all correct
                     // If the finalization_ts in the log doesn't match the current bond in the question, clear the cache
                     // Otherwise, just pop our log on the end
                     // TODO: Move this logic into ensureQuestionDetailFetched somehow
                     if (question_detail_list[question_id]) {
-            console.log('calling quesion', question_id);
+            //console.log('calling quesion', question_id);
                         rc.questions.call(question_id).then(function(qdata) {
-                console.log('got question data', qdata);
+                //console.log('got question data', qdata);
                             qdata.unshift(question_id);
                             if (qdata[Qi_finalization_ts] != (evt.args['ts'] + qdata[Qi_step_delay])) {
                                 delete question_detail_list[question_id];
-                console.log('date mismatch, refetching question detail list');
+                //console.log('date mismatch, refetching question detail list');
                             } else {
                                 question_detail_list[question_id]['history'].push(evt);
                                 question_detail_list[question_id][Qi_finalization_ts] = qdata[Qi_finalization_ts]; // evt.args[''];
                                 question_detail_list[question_id][Qi_best_answer] = qdata[Qi_best_answer]; //evt.args['answer'];
-                console.log('adding event, is now', question_detail_list[question_id]);
+                //console.log('adding event, is now', question_detail_list[question_id]);
                             }
                             ensureQuestionDetailFetched(question_id).then(function(question) {
-                console.log('repopuplated, displaying');
+                //console.log('repopuplated, displaying');
                                 displayQuestionDetail(question);
                                 //updateRankingSections(question);
                             });
