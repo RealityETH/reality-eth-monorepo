@@ -7,6 +7,7 @@ var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
 var ipfsAPI = require('ipfs-api')
+//var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
 var ipfs = ipfsAPI({host: 'ipfs.infura.io', port: '5001', protocol: 'https'})
 
 var bs58 = require('bs58');
@@ -1868,9 +1869,10 @@ $(document).on('click', '.post-answer-button', function(e){
         // check bond
         return rc.getMinimumBondForAnswer.call(question_id, formatForAnswer(new_answer, question_json['type']), account);
     }).then(function(min_amount){
-        if (isNaN(bond) || (bond < min_amount) || (min_amount === 0)) {
+        console.log('got min_amount', min_amount.toString(), 'vs bond ', bond.toString());
+        if (bond.plus(payable).lt(min_amount)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-            parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(min_amount);
+            parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3.fromWei(min_amount, 'ether'));
             is_err = true;
         }
 
@@ -1883,12 +1885,14 @@ $(document).on('click', '.post-answer-button', function(e){
             min_payable_param = payable;
         }
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', payable, {from:account, value:bond});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', payable, {from:account, value:bond.plus(payable)});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
         parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
         parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
+        parent_div.find('.answer-payment-value').text('');
+        parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
 
         switch (question_json['type']) {
             case 'binary':
@@ -2173,6 +2177,7 @@ function pageInit(account) {
 
     evts.watch(function (error, result) {
         if (!error && result) {
+            console.log('got event', error, result);
 
             // Check the action to see if it is interesting, if it is then populate notifications etc
             handleUserAction(result, true);
@@ -2202,11 +2207,39 @@ function pageInit(account) {
                 // TODO: We shouldn't really need a full refresh for what may be a small event
                 var window_id = 'qadetail-' + question_id;
                 if (document.getElementById(window_id)) {
-                    delete question_detail_list[question_id];
-                    populateQuestionDetail(question_id).then(function(question) {
-                        displayQuestionDetail(question);
-                        //updateRankingSections(question);
-                    });
+            console.log('refill window');
+                    // Refresh the question with a call
+                    // TODO: Do we even need this? We could just populate the question data from the logs and hope it's all correct
+                    // If the finalization_ts in the log doesn't match the current bond in the question, clear the cache
+                    // Otherwise, just pop our log on the end
+                    // TODO: Move this logic into populateQuestionDetail somehow
+                    if (question_detail_list[question_id]) {
+            console.log('calling quesion', question_id);
+                        rc.questions.call(question_id).then(function(qdata) {
+                console.log('got question data', qdata);
+                            qdata.unshift(question_id);
+                            if (qdata[Qi_finalization_ts] != (evt.args['ts'] + qdata[Qi_step_delay])) {
+                                delete question_detail_list[question_id];
+                console.log('date mismatch, refetching question detail list');
+                            } else {
+                                question_detail_list[question_id]['history'].push(evt);
+                                question_detail_list[question_id][Qi_finalization_ts] = qdata[Qi_finalization_ts]; // evt.args[''];
+                                question_detail_list[question_id][Qi_best_answer] = qdata[Qi_best_answer]; //evt.args['answer'];
+                console.log('adding event, is now', question_detail_list[question_id]);
+                            }
+                            populateQuestionDetail(question_id).then(function(question) {
+                console.log('repopuplated, displaying');
+                                displayQuestionDetail(question);
+                                //updateRankingSections(question);
+                            });
+                        });
+                    } else {
+                        // If we have the cache this should just displayQuestionDetail without refetching
+                        populateQuestionDetail(question_id).then(function(question) {
+                            displayQuestionDetail(question);
+                            //updateRankingSections(question);
+                        });
+                    }
                 }
             }
         }
