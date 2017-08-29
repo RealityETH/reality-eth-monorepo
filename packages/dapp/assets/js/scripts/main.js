@@ -1643,10 +1643,10 @@ function getAnswerString(question_json, answer) {
             break;
         case 'multiple-select':
             if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
-                var answer_bits = answer.toString(2);
+                var answer_bits = new BigNumber(answer).toString(2);
                 var length = answer_bits.length;
 
-                for (var i = answer_bits.length - 1; i >= 0; i--) {
+                for (var i = question_json['outcomes'].length - 1; i >= 0; i--) {
                     if (answer_bits[i] === '1') {
                         var idx = answer_bits.length - 1 - i;
                         label += question_json['outcomes'][idx] + ' / ';
