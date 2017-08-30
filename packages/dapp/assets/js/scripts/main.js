@@ -72,10 +72,10 @@ var account;
 var rc;
 
 var display_entries = {
-    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3},
-    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 5, 'max_show': 3}
+    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
+    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
+    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
+    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3}
 }
 
 // data for question detail window
@@ -669,8 +669,10 @@ function ensureQuestionDetailFetched(question_id, question_log) {
 
     return new Promise((resolve, reject)=>{
         if (question_detail_list[question_id]) {
+            console.log('returning from cache', question_id);
             resolve(question_detail_list[question_id]);
         } else {
+            //console.log('not in cache, fetching', question_id);
             var current_question;
             rc.questions.call(question_id).then(function(result){
                 current_question = result;
@@ -713,6 +715,9 @@ function ensureQuestionDetailFetched(question_id, question_log) {
                         reject(error);
                     }
                 });
+            }).catch(function(e) {
+                console.log('error fetching', e);
+                reject(e);
             });
         }
     });
@@ -737,13 +742,34 @@ function populateSection(section_name, question_data, before_item) {
     var idx = display_entries[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
     if (idx > display_entries[section_name].max_show) {
-        //console.log('over max show, skip');
+        //console.log('over max show, skip', question_id);
         return;
     }
 
-    var question_item_id = 'question-' + question_id;
+    var question_item_id = section_name + '-question-' + question_id;
+    var before_item_id = section_name + '-question-' + before_item
+
     var target_question_id = 'qadetail-' + question_id;
+
     var section = $('#'+section_name);
+
+    // If the item is already in the document but in the wrong place, remove it.
+    // If it's already in the right place, do nothing
+    var existing_in_doc = section.find('#' + question_item_id);
+    if (existing_in_doc.length) {
+        if (existing_in_doc.next().attr('id') == before_item_id) {
+            //console.log('already before item', before_item_id);
+            return;
+        } else {
+            //console.log('already in doc, removing', question_item_id);
+            existing_in_doc.remove();
+        }
+    } else {
+        //console.log('not in doc yet, adding', question_id,' at ', question_item_id);
+        //console.log('item to insert before is here? ', before_item_id, section.find('#' + before_item_id).length);
+    }
+
+    var is_found = (section.find('#' + before_item_id).length > 0);
 
     var question_json = question_data[Qi_question_json];
 
@@ -779,17 +805,17 @@ function populateSection(section_name, question_data, before_item) {
     entry.css('display', 'block');
 
     //console.log('adding entry', question_item_id, 'before item', before_item);
-    if (before_item) {
-        section.find('#question-'+before_item).before(entry);
+    if (before_item && is_found) {
+        section.find('#' + before_item_id).before(entry);
     } else {
         section.children('.questions-list').append(entry);
     }
 
-    $('div#question-'+question_id).find('.timeago').attr('datetime', convertTsToString(posted_ts));
-    timeAgo.render($('div#question-'+question_id).find('.timeago'));
+    $('#' + question_item_id).find('.timeago').attr('datetime', convertTsToString(posted_ts));
+    timeAgo.render($('#' + question_item_id).find('.timeago'));
 
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
-        //console.log('too long, removing');
+        console.log('too long, removing');
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
@@ -798,7 +824,7 @@ function populateSection(section_name, question_data, before_item) {
 function depopulateSection(section_name, question_id) {
     //console.log('depopulating', section_name, question_id);
 
-    var question_item_id = 'question-' + question_id;
+    var question_item_id = section_name + '-question-' + question_id;
     var section = $('#'+section_name);
 
     var item = section.find('#'+question_item_id);
@@ -819,6 +845,7 @@ function depopulateSection(section_name, question_id) {
 
 function handleQuestionLog(item) {
     var question_id = item.args.question_id;
+    console.log('in handleQuestionLog', question_id);
     var created = item.args.created
     var question_data;
 
@@ -2144,7 +2171,6 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
 // This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and Qi_finalization_ts.
 // A full repopulate will work, but so will an array with these fields overwritten from a log event.
 function updateRankingSections(question, changed_field, changed_val) {
-
 //console.log('in updateRankingSections', question, changed_field, changed_val);
     // latest only change on new question
     // resolved changes on finalization, this happens either with a timer or with arbitration. Also removes items from other section.
@@ -2164,6 +2190,7 @@ function updateRankingSections(question, changed_field, changed_val) {
                 if (existing_idx !== -1) {
                     display_entries[s].ids.splice(existing_idx, 1);
                     display_entries[s].vals.splice(existing_idx, 1);
+                    console.log('depopulating', s, question_id);
                     depopulateSection(s, question_id);
                 }
             }
@@ -2175,8 +2202,9 @@ function updateRankingSections(question, changed_field, changed_val) {
                 populateSection('questions-resolved', question, insert_before);
             }
         } else {
-
-            var insert_before = update_ranking_data('questions-closing-soon', question_id, question[Qi_finalization_ts], 'desc');
+console.log('updating closing soon with timestamp', question_id, question[Qi_finalization_ts].toString());
+            var insert_before = update_ranking_data('questions-closing-soon', question_id, question[Qi_finalization_ts], 'asc');
+console.log('insert_before was', insert_before);
             if (insert_before !== -1) {
                 populateSection('questions-closing-soon', question, insert_before);
             }
@@ -2247,9 +2275,12 @@ function pageInit(account) {
                 handleQuestionLog(result);
             } else {
                 var question_id = result.args.question_id;
+
                 if (evt == 'LogNewAnswer') {
                     // TODO: Tighten this up, we don't always need all this
+                    purgeQuestionDetail(question_id);
                     ensureQuestionDetailFetched(question_id).then(function(question) {
+                        //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
                         scheduleFinalizationDisplayUpdate(question);
                         updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                     });
@@ -2280,9 +2311,9 @@ function pageInit(account) {
                     purgeQuestionDetail(question_id);
                     ensureQuestionDetailFetched(question_id).then(function(question) {
                         displayQuestionDetail(question);
-                        //updateRankingSections(question);
                     });
                 }
+
             }
         }
     });
