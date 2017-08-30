@@ -970,6 +970,20 @@ a#backtotop:hover {
     margin: 0 0 15px 0;
 }
 
+.rcbrowser--help-center, .rcbrowser--help-center .rcbrowser-header {
+    width: 800px;
+}
+.rcbrowser--help-center {
+    height: 100%;
+}
+
+.help-explanation > p {
+    line-height: 1.4;
+    font-size: 13px;
+    color: $rcBrowserBodyText;
+}
+
+
 // rcBrowser header
 .rcbrowser-header {
     display: flex;
@@ -1673,6 +1687,7 @@ label > span {
     color: $rcBrowserBodyText;
 }
 
+
 .notifications-item-body > span {
     font-size: 12px;
     color: $rcBrowserSubText;
@@ -1686,7 +1701,7 @@ label > span {
     margin-top: 5px;
 }
 
-// your q&a
+// our q&a
 .your-qa {
     position: relative;
 }

@@ -323,6 +323,13 @@ $('#your-qa-button').on('click', function(e) {
     markViewedToDate();
 });
 
+$('#help-center-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#help-center-window').css('z-index', ++zindex).addClass('is-open');
+    //$('#help-center-window').css('height', $('#help-center-window').height()+'px');
+});
+
 function markViewedToDate() {
     var vbn = parseInt(window.localStorage.getItem('viewedBlockNumber'));
     if (vbn >= last_displayed_block_number) {
@@ -331,6 +338,12 @@ function markViewedToDate() {
         window.localStorage.setItem('viewedBlockNumber', last_displayed_block_number);
     }
 }
+
+$('#help-center-window .rcbrowser__close-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#help-center-window').css('z-index', 0).removeClass('is-open');
+});
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
