@@ -375,22 +375,18 @@ $('#post-question-submit').on('click', function(e){
                 //console.log('ipfs result', err, res)
                 return;
             }
-            rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
-            .then(function (result) {
-
-                let section_name = 'div#question-' + result.logs[0].args.question_id + ' .questions__item__title';
-                let id = setInterval(function(){
-                    let question_link = $('div#questions-latest').find(section_name);
-                    if ('generated', question_link.length > 0) {
-                        $('#close-question-window').trigger('click');
-                        question_link.trigger('click');
-                        clearInterval(id);
-                    }
-                }, 3000)
+            var question_id;
+            rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val)
+            .then(function(qid) {
+                question_id = qid;
+                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+            }).then(function(txid) {
+                console.log('sent tx with id', txid);
+                openQuestionWindow(question_id);
+                $('#close-question-window').trigger('click');
             }).catch(function (e) {
                 console.log(e);
             });
-
         });
     }
 
