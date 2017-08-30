@@ -38,6 +38,8 @@ const QUESTION_MAX_OUTCOMES = 128;
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
+var last_displayed_block_number = 0;;
+
 // Struct array offsets
 // Assumes we unshift the ID onto the start
 
@@ -316,7 +318,18 @@ $('#your-qa-button').on('click', function(e) {
     $('#your-question-answer-window').addClass('is-open');
     $('#your-question-answer-window').css('height', $('#your-question-answer-window').height()+'px');
     $('.tooltip').removeClass('is-visible');
+    $('body').removeClass('pushing');
+    markViewedToDate();
 });
+
+function markViewedToDate() {
+    var vbn = parseInt(window.localStorage.getItem('viewedBlockNumber'));
+    if (vbn >= last_displayed_block_number) {
+        last_displayed_block_number = vbn;
+    } else {
+        window.localStorage.setItem('viewedBlockNumber', last_displayed_block_number);
+    }
+}
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
@@ -324,6 +337,9 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
     $('#your-question-answer-window').css('z-index', 0);
     $('#your-question-answer-window').removeClass('is-open');
     document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+    $('body').removeClass('pushing');
+    $('.tooltip').removeClass('is-visible');
+    markViewedToDate();
 });
 
 $('#post-a-question-button,#post-a-question-link').on('click', function(e){
@@ -1362,6 +1378,11 @@ function populateWithBlockTimeForBlockNumber(item, num, cbk) {
 // At this point the data we need should already be stored in question_detail_list
 function renderUserAction(question, entry, is_watch) {
 
+    // Keep track of the last block number whose result we could see by clicking on the user link
+    if (entry.blockNumber > last_displayed_block_number) {
+        last_displayed_block_number = entry.blockNumber;
+    }
+
     // This will include events that we didn't specifically trigger, but we are intereseted in
     renderNotifications(question, entry);
 
@@ -1370,7 +1391,9 @@ function renderUserAction(question, entry, is_watch) {
         if (isForCurrentUser(entry)) {
             renderUserQandA(question, entry);
             if (is_watch) {
-                $('.tooltip').addClass('is-visible');
+                if (entry.blockNumber > parseInt(window.localStorage.getItem('viewedBlockNumber'))) {
+                    $('.tooltip').addClass('is-visible');
+                }
             }
         }
     }
