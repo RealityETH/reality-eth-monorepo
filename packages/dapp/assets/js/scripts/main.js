@@ -20,6 +20,7 @@ var jazzicon = require('jazzicon');
 //console.log('jazzicon', jazzicon);
 
 var submitted_question_id_timestamp = {};
+var category = null;
 
 const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'questioner',
@@ -352,6 +353,9 @@ $('#post-a-question-button,#post-a-question-link').on('click', function(e){
         question_window.css('height', question_window.height()+'px');
         setRcBrowserPosition(question_window);
     }
+    if (category) {
+        question_window.find("[name='question-category']").val(category);
+    }
 });
 
 $('#close-question-window').on('click', function(e){
@@ -372,6 +376,7 @@ $('#post-question-submit').on('click', function(e){
     var arbitrator =$('#arbitrator');
     var question_type = $('#question-type');
     var answer_options = $('.answer-option');
+    var category = $('div.select-container--question-category select');
     var outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
@@ -382,6 +387,7 @@ $('#post-question-submit').on('click', function(e){
             title: question_body.val(),
             type: question_type.val(),
             decimals: 13,
+            category: category.val(),
             outcomes: outcomes
         }
         var question_json = JSON.stringify(question);
@@ -417,7 +423,6 @@ function isAnswered(question) {
     // TODO: Change contract to be able to differentiate when in pending-arbitration state
     return (question[Qi_finalization_ts].toNumber() > 1);
 }
-
 
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
@@ -750,6 +755,7 @@ function updateUserBalanceDisplay() {
 function populateSection(section_name, question_data, before_item) {
 
     var question_id = question_data[Qi_question_id];
+    var question_json = question_data[Qi_question_json];
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
@@ -782,8 +788,6 @@ function populateSection(section_name, question_data, before_item) {
     }
 
     var is_found = (section.find('#' + before_item_id).length > 0);
-
-    var question_json = question_data[Qi_question_json];
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -827,7 +831,7 @@ function populateSection(section_name, question_data, before_item) {
     timeAgo.render($('#' + question_item_id).find('.timeago'));
 
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
-        console.log('too long, removing');
+        //console.log('too long, removing');
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
@@ -857,7 +861,7 @@ function depopulateSection(section_name, question_id) {
 
 function handleQuestionLog(item) {
     var question_id = item.args.question_id;
-    console.log('in handleQuestionLog', question_id);
+    //console.log('in handleQuestionLog', question_id);
     var created = item.args.created
     var question_data;
 
@@ -877,6 +881,14 @@ function handleQuestionLog(item) {
             return;
         }
         question_data[Qi_question_json] = parseQuestionJSON(res.toString());
+
+        if (category && question_data[Qi_question_json].category != category) {
+            //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
+            return;
+        } else {
+            //console.log('category match', category, question_data[Qi_question_json].category);
+        }
+
         var is_finalized = isFinalized(question_data);
         var bounty = question_data[Qi_bounty];
 
@@ -2186,6 +2198,22 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function(){
     show_bond_payments($(this), checked);
 });
 
+// For now we force a reload
+// Probably better to handle the section arrays per category and display without moving
+$('#filter-list a').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var cat = $(this).attr('data-category');
+    if (cat == 'all') {
+        window.location.hash = '';
+        //window.location.href = location.protocol+'//'+location.host+location.pathname; 
+    } else {
+        //window.location.href = location.protocol+'//'+location.host+location.pathname + '#!/category/' + cat;
+        window.location.hash = '#!/category/' + cat;
+    }
+    location.reload();
+});
+
 
 // This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and Qi_finalization_ts.
 // A full repopulate will work, but so will an array with these fields overwritten from a log event.
@@ -2407,10 +2435,35 @@ function isForCurrentUser(entry) {
     }
 }
 
+function parseHash() {
+    // Alternate args should be names and values
+    if (location.hash.substring(0, 3) != '#!/') {
+        return {};
+    }
+    var arg_arr = location.hash.substring(3).split('/');
+    var args = {};
+    for (var i=0; i<arg_arr.length+1; i = i+2) {
+        var n = arg_arr[i];
+        var v = arg_arr[i+1];
+        if (n && v) {
+            args[n] = v;
+        }
+    }
+    return args;
+}
+
 window.onload = function() {
     web3.eth.getAccounts((err, acc) => {
         //console.log('accounts', acc);
         account = acc[0];
+        var args = parseHash();
+        if (args['category']) {
+            category = args['category'];
+            $('body').addClass('category-' + category);
+            var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
+            $('#filterby').text(cat_txt);
+        }
+        //console.log('args:', args);
 
         RealityCheck = contract(rc_json);
         RealityCheck.setProvider(web3.currentProvider);
@@ -2418,6 +2471,12 @@ window.onload = function() {
             rc = instance;
             updateUserBalanceDisplay();
             pageInit(account);
+            if (args['question']) {
+                //console.log('fetching question');
+                ensureQuestionDetailFetched(args['question']).then(function(question){
+                    openQuestionWindow(question[Qi_question_id]);
+                })
+            }
         });
     });
 }

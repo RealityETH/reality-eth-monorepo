@@ -2040,3 +2040,6 @@ div.rcbrowser--qa-detail.has-someone-elses-answer .answer-debit-info { display:b
 
 a.more-link{ font-style: italic !important}
 a.less-link{ font-style: italic !important}
+
+#filter-header span { visibility: hidden }
+body.is-page-loaded #filter-header span { visibility: visible !important }
