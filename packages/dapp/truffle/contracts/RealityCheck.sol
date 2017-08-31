@@ -332,7 +332,7 @@ contract RealityCheck {
     // Assigns the bond for a particular answer to either:
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimBond(bytes32 question_id, uint256 stop_at_idx) 
+    function claimWinnings(bytes32 question_id, uint256 stop_at_idx) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
         returns (uint256)
@@ -344,7 +344,7 @@ contract RealityCheck {
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
-        //uint256 bounty = questions[question_id].bounty;
+        uint256 bounty = questions[question_id].bounty;
 
         // If there's still a bounty available, claim it now before we delete the first answer item
 
@@ -375,16 +375,13 @@ contract RealityCheck {
 
                     if (last_bond > 0) {
                         take = bond; // This comes from the higher payee
+                    } else { 
+                        if (bounty > 0) {
+                            take += bounty;
+                            bounty = 0;
+                            questions[question_id].bounty = 0;
+                        }
                     }
-
-                    /*
-                    // If there's a bounty still available, ie this is the highest item, claim it right away
-                    if (bounty > 0) {
-                        take += bounty;
-                        bounty = 0;
-                        questions[question_id].bounty = 0;
-                    }
-                    */
 
                 } 
 
@@ -418,7 +415,7 @@ contract RealityCheck {
     function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
     constant
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
     returns (uint256) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -460,7 +457,7 @@ contract RealityCheck {
     // TODO: This could probably be more efficient, as some checks are being duplicated
     function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
     returns (bool withdrawal_completed) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -471,7 +468,7 @@ contract RealityCheck {
         }
 
         for(i=0; i<bond_question_ids.length; i++) {
-            claimBond(bond_question_ids[i], bond_answers[i]);
+            claimWinnings(bond_question_ids[i], bond_answers[i]);
         }
 
         return msg.sender.send(balances[msg.sender]);
