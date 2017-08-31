@@ -53,6 +53,7 @@ contract RealityCheck {
     event LogNewAnswer(
         bytes32 indexed answer,
         bytes32 indexed question_id,
+        bytes32 answer_history_state,
         address indexed answerer,
         uint256 bond,
         uint256 ts,
@@ -125,7 +126,8 @@ contract RealityCheck {
         // Mutable data
         uint256 bounty;
         bytes32 best_answer;
-        Answer[] answers; // answer to answer ownership details
+        uint256 bond;
+        bytes32 answer_history_state;
     }
 
     mapping(bytes32 => Question) public questions;
@@ -216,11 +218,7 @@ contract RealityCheck {
         stateOpen(question_id)
     payable returns (bytes32) {
 
-        uint256 answer_length = questions[question_id].answers.length;
-        uint256 bond_to_beat = 0;
-        if (answer_length > 0) {
-            bond_to_beat = questions[question_id].answers[answer_length - 1].bond;
-        }
+        uint256 bond_to_beat = questions[question_id].bond;
 
         // You can specify that you don't want to beat a bond bigger than x
         require(max_previous == 0 || bond_to_beat <= max_previous);
@@ -230,21 +228,18 @@ contract RealityCheck {
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
 
-        // If the previous answer already exists it will be overwritten, replacing its value with the new value
-        questions[question_id].answers.push(
-            Answer(
-                answer,
-                msg.sender,
-                msg.value
-            )
-        );
+        bytes32 old_state = questions[question_id].answer_history_state;
+        bytes32 new_state = keccak256(old_state, msg.sender, msg.value, answer);
 
+        questions[question_id].bond = msg.value;
+        questions[question_id].answer_history_state = new_state;
         questions[question_id].best_answer = answer;
         questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         LogNewAnswer(
             answer,
             question_id,
+            new_state,
             msg.sender,
             msg.value,
             now,
@@ -268,23 +263,21 @@ contract RealityCheck {
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
 
-        questions[question_id].answers.push(Answer(
-            answer,
-            msg.sender,
-            0 
-        ));
+        bytes32 old_state = questions[question_id].answer_history_state;
+        bytes32 new_state = keccak256(old_state, msg.sender, 0, answer);
 
         LogNewAnswer(
             answer,
             question_id,
+            new_state,
             msg.sender,
             0,
             now,
             evidence_ipfs
         );
 
-
         questions[question_id].best_answer = answer;
+        questions[question_id].answer_history_state = new_state;
 
         // Set this to 1 second ago so that "did we finalize" checks will immediately pass
         questions[question_id].finalization_ts = now - 1;
@@ -332,49 +325,48 @@ contract RealityCheck {
     // Assigns the bond for a particular answer to either:
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimWinnings(bytes32 question_id, uint256 stop_at_idx) 
+    function claimWinnings(bytes32 question_id, bytes32[] state_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
-        returns (uint256)
     {
 
         uint256 take = 0; // Money that can be immediately claimed
-        uint256 last_bond = question_claims[question_id].last_bond; // Money that we kept back
+        uint256 last_bond = 0; //question_claims[question_id].last_bond; // Money that we kept back
         address payee = question_claims[question_id].payee;
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
         uint256 bounty = questions[question_id].bounty;
 
-        // If there's still a bounty available, claim it now before we delete the first answer item
-
+        // Arguments should have been sent from last to first
         // Mostly we take all the bonds.
         // However, if someone gave our answer before we did, they need to get their bond back from our total.
         // We won't know that until we get to their entry.
         // Pay out what we can as we go, but always save enough to pay the max possible earlier bond.
-        for (i = questions[question_id].answers.length; i > stop_at_idx; i--) {
 
-            uint256 bond = questions[question_id].answers[i-1].bond;
+        bytes32 last_state_hash = questions[question_id].answer_history_state;
 
-            if (questions[question_id].answers[i-1].answer == best_answer) {
+        for(i=0; i<state_hashes.length; i++) {
 
-                address lower_payee = questions[question_id].answers[i-1].answerer;
+            require(last_state_hash == keccak256(state_hashes[i], addrs[i], bonds[i], answers[i]));
+
+            if (answers[i] == best_answer) {
 
                 // If the payee has changed, pay out the last guy then change to the new payee
-                if (lower_payee != payee) {
+                if (addrs[i] != payee) {
 
                     // Assign the payee what they are owed from the last_bond, which will equal their bond
                     // Give any money remaining in the last_bond to the old payee
                     if (last_bond > 0) {
-                        take += last_bond - bond; // Cash in anything left in the last_bond
+                        take += last_bond - bonds[i]; // Cash in anything left in the last_bond
                         balances[payee] += take;
                     }
 
                     // Now start again with the new payee, beginning with their income from the higher payee
-                    payee = lower_payee;
+                    payee = addrs[i];
 
                     if (last_bond > 0) {
-                        take = bond; // This comes from the higher payee
+                        take = bonds[i]; // This comes from the higher payee
                     } else { 
                         if (bounty > 0) {
                             take += bounty;
@@ -390,25 +382,20 @@ contract RealityCheck {
             }
 
             // Line the bond up for next time, when it will be added to somebody's take
-            last_bond = bond;
+            last_bond = bonds[i];
 
-            delete questions[question_id].answers[i-1];
+            last_state_hash = state_hashes[i];
+
         }
-        
-        if (stop_at_idx > 0) {
-            // Store the state so we can pick up where we left off later
-            question_claims[question_id].payee = payee;
-            question_claims[question_id].last_bond = last_bond;
-        } else {
-            // All done, keep anything left in the last_bond
-            take += last_bond;
-        }
+
+        // All done, keep anything left in the last_bond
+        // TODO: handle if there is still more
+        take += last_bond;
 
         balances[payee] += take;
         LogClaimBond(question_id, best_answer, payee, take);
 
     }
-
 
 
     /*
