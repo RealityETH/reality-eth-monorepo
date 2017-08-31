@@ -20,6 +20,7 @@ QINDEX_QUESTION_TEXT = 3
 QINDEX_BOUNTY = 4
 QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_BEST_ANSWER_ID = 6
+QINDEX_HISTORY_HASH = 7
 
 def ipfs_hex(txt):
     return sha256(txt).hexdigest()
@@ -230,23 +231,42 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
-        self.rc0.claimWinnings(self.question_id, 0, startgas=400000)
+        self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k0)], [3], [to_answer_for_contract(12345)] , startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000, "Winner gets their bond back plus the bounty")
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
+        claim_args_state = []
+        claim_args_addrs = []
+        claim_args_bonds = []
+        claim_args_answs = []
+
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 0)
 
+        claim_args_state.append("")
+        claim_args_addrs.append(keys.privtoaddr(t.k0))
+        claim_args_bonds.append(1)
+        claim_args_answs.append(to_answer_for_contract(12345))
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
+        
 
         # "You must increase from zero"
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=1, sender=t.k3, startgas=200000) 
 
+
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k3))
+        claim_args_bonds.append(2)
+        claim_args_answs.append(to_answer_for_contract(10001))
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
 
         # We will ultimately finalize on this answer
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k4))
+        claim_args_bonds.append(4)
+        claim_args_answs.append(to_answer_for_contract(10002))
         a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=4, sender=t.k4, startgas=200000) 
 
         # You have to at least double
@@ -257,12 +277,20 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10004), to_question_for_contract(("my evidence")), 0, value=0, startgas=200000) 
 
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k3))
+        claim_args_bonds.append(11)
+        claim_args_answs.append(to_answer_for_contract(10005))
         a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=11, sender=t.k3, startgas=200000) 
 
         # The extra amount you have to send should be passed in a parameters
         #with self.assertRaises(TransactionFailed): 
         #    a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=(22+5), sender=t.k5, startgas=200000) 
 
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k5))
+        claim_args_bonds.append(22)
+        claim_args_answs.append(to_answer_for_contract(10002))
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 11, value=22, sender=t.k5, startgas=200000) 
 
         ts = self.s.timestamp
@@ -276,7 +304,7 @@ class TestRealityCheck(TestCase):
 
         #You can't claim the bond until the thing is finalized
         with self.assertRaises(TransactionFailed):
-            self.rc0.claimWinnings(self.question_id, a22, startgas=200000)
+            self.rc0.claimWinnings(self.question_id, claim_args_state[::-1], claim_args_addrs[::-1], claim_args_bonds[::-1], claim_args_answs[::-1], startgas=200000)
 
         self.s.timestamp = self.s.timestamp + 11
 
@@ -288,7 +316,7 @@ class TestRealityCheck(TestCase):
         #  - the accumulated bonds until their last answer (1 + 2)
 
         k4bal = 4 + 4 + 1 + 2
-        self.rc0.claimWinnings(self.question_id, 0, startgas=400000)
+        self.rc0.claimWinnings(self.question_id, claim_args_state[::-1], claim_args_addrs[::-1], claim_args_bonds[::-1], claim_args_answs[::-1], startgas=400000)
 
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), k4bal, "First answerer gets double their bond, plus earlier bonds")
 
@@ -414,7 +442,7 @@ class TestRealityCheck(TestCase):
         self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
     
         
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=100, sender=t.k5) 
@@ -424,7 +452,7 @@ class TestRealityCheck(TestCase):
 
         self.s.timestamp = self.s.timestamp + 11
 
-        self.rc0.claimWinnings(self.question_id, 0, sender=t.k5, startgas=200000)
+        self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k5)], [100], [to_answer_for_contract(12345)], sender=t.k5, startgas=200000)
 
         starting_deposited = self.rc0.balanceOf(keys.privtoaddr(t.k5))
         self.assertEqual(starting_deposited, 1100)

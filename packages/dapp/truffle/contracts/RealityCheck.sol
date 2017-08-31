@@ -53,7 +53,7 @@ contract RealityCheck {
     event LogNewAnswer(
         bytes32 indexed answer,
         bytes32 indexed question_id,
-        bytes32 answer_history_state,
+        bytes32 history_hash,
         address indexed answerer,
         uint256 bond,
         uint256 ts,
@@ -127,7 +127,7 @@ contract RealityCheck {
         uint256 bounty;
         bytes32 best_answer;
         uint256 bond;
-        bytes32 answer_history_state;
+        bytes32 history_hash;
     }
 
     mapping(bytes32 => Question) public questions;
@@ -228,11 +228,10 @@ contract RealityCheck {
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
 
-        bytes32 old_state = questions[question_id].answer_history_state;
-        bytes32 new_state = keccak256(old_state, msg.sender, msg.value, answer);
+        bytes32 new_state = keccak256(questions[question_id].history_hash, msg.sender, msg.value, answer);
 
         questions[question_id].bond = msg.value;
-        questions[question_id].answer_history_state = new_state;
+        questions[question_id].history_hash = new_state;
         questions[question_id].best_answer = answer;
         questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
@@ -263,8 +262,7 @@ contract RealityCheck {
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
 
-        bytes32 old_state = questions[question_id].answer_history_state;
-        bytes32 new_state = keccak256(old_state, msg.sender, 0, answer);
+        bytes32 new_state = keccak256(questions[question_id].history_hash, msg.sender, 0, answer);
 
         LogNewAnswer(
             answer,
@@ -277,7 +275,7 @@ contract RealityCheck {
         );
 
         questions[question_id].best_answer = answer;
-        questions[question_id].answer_history_state = new_state;
+        questions[question_id].history_hash = new_state;
 
         // Set this to 1 second ago so that "did we finalize" checks will immediately pass
         questions[question_id].finalization_ts = now - 1;
@@ -325,7 +323,7 @@ contract RealityCheck {
     // Assigns the bond for a particular answer to either:
     // ...the original answerer, if they had the final answer
     // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimWinnings(bytes32 question_id, bytes32[] state_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
+    function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
     {
@@ -344,11 +342,11 @@ contract RealityCheck {
         // We won't know that until we get to their entry.
         // Pay out what we can as we go, but always save enough to pay the max possible earlier bond.
 
-        bytes32 last_state_hash = questions[question_id].answer_history_state;
+        bytes32 last_history_hash = questions[question_id].history_hash;
 
-        for(i=0; i<state_hashes.length; i++) {
+        for(i=0; i<history_hashes.length; i++) {
 
-            require(last_state_hash == keccak256(state_hashes[i], addrs[i], bonds[i], answers[i]));
+            require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
 
             if (answers[i] == best_answer) {
 
@@ -384,7 +382,7 @@ contract RealityCheck {
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
 
-            last_state_hash = state_hashes[i];
+            last_history_hash = history_hashes[i];
 
         }
 
