@@ -324,7 +324,7 @@ contract RealityCheck {
 
     struct Claim {
         address payee;
-        uint256 pool;
+        uint256 last_bond;
     }
 
     mapping(bytes32 => Claim) question_claims;
@@ -339,7 +339,7 @@ contract RealityCheck {
     {
 
         uint256 take = 0; // Money that can be immediately claimed
-        uint256 pool = question_claims[question_id].pool; // Money that we need to keep back
+        uint256 last_bond = question_claims[question_id].last_bond; // Money that we kept back
         address payee = question_claims[question_id].payee;
         bytes32 best_answer = questions[question_id].best_answer;
 
@@ -363,20 +363,19 @@ contract RealityCheck {
                 // If the payee has changed, pay out the last guy then change to the new payee
                 if (lower_payee != payee) {
 
-                    // Assign the payee what they are owed from the pool, which will equal their bond
-                    // Give any money remaining in the pool to the old payee
-
-                    uint256 buyout_payment = 0;
-                    if (pool > 0) {
-                        //assert(pool > buyout_payment); // There should always be enough in the pool to pay for the previous bond
-
-                        take += pool - bond; // Cash in anything left in the pool
+                    // Assign the payee what they are owed from the last_bond, which will equal their bond
+                    // Give any money remaining in the last_bond to the old payee
+                    if (last_bond > 0) {
+                        take += last_bond - bond; // Cash in anything left in the last_bond
                         balances[payee] += take;
                     }
 
                     // Now start again with the new payee, beginning with their income from the higher payee
                     payee = lower_payee;
-                    take = buyout_payment;
+
+                    if (last_bond > 0) {
+                        take = bond; // This comes from the higher payee
+                    }
 
                     /*
                     // If there's a bounty still available, ie this is the highest item, claim it right away
@@ -390,12 +389,11 @@ contract RealityCheck {
                 } 
 
             } else {
-                take += pool; // Take the previous pool
+                take += last_bond; // Take the previous bond
             }
 
-            uint256 this_take = bond / 2;
-            take += this_take;
-            pool = (bond - this_take);
+            // Line the bond up for next time, when it will be added to somebody's take
+            last_bond = bond;
 
             delete questions[question_id].answers[i-1];
         }
@@ -403,10 +401,10 @@ contract RealityCheck {
         if (stop_at_idx > 0) {
             // Store the state so we can pick up where we left off later
             question_claims[question_id].payee = payee;
-            question_claims[question_id].pool = pool;
+            question_claims[question_id].last_bond = last_bond;
         } else {
-            // All done, keep anything left in the pool
-            take += pool;
+            // All done, keep anything left in the last_bond
+            take += last_bond;
         }
 
         balances[payee] += take;
@@ -489,7 +487,7 @@ contract RealityCheck {
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
-    // Sends money to the arbitration bounty pool
+    // Sends money to the arbitration bounty last_bond
     // Returns true if enough was paid to trigger arbitration
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
