@@ -150,8 +150,6 @@ contract RealityCheck {
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].step_delay ==  0); // Check existence
 
-        bytes32 NULL_BYTES;
-
         questions[question_id].finalization_ts = 0;
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].step_delay = step_delay;
@@ -213,17 +211,21 @@ contract RealityCheck {
     }
     */
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_payable) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
         //actorAnyone(question_id)
         stateOpen(question_id)
     payable returns (bytes32) {
 
-        //uint256 bond_to_beat = questions[question_id].answers[questions[question_id].answers.length-1].bond;
+        uint256 answer_length = questions[question_id].answers.length;
         uint256 bond_to_beat = 0;
+        if (answer_length > 0) {
+            bond_to_beat = questions[question_id].answers[answer_length - 1].bond;
+        }
+
+        // You can specify that you don't want to beat a bond bigger than x
+        require(max_previous == 0 || bond_to_beat <= max_previous);
 
         //require(msg.value > 0); 
-
-        address NULL_ADDRESS;
 
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
@@ -265,8 +267,6 @@ contract RealityCheck {
         // If the answer is already there, just go ahead and finalize on it
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
-
-        address NULL_ADDRESS;
 
         questions[question_id].answers.push(Answer(
             answer,
@@ -335,8 +335,8 @@ contract RealityCheck {
     function claimBond(bytes32 question_id, uint256 stop_at_idx) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
+        returns (uint256)
     {
-
 
         uint256 take = 0; // Money that can be immediately claimed
         uint256 pool = question_claims[question_id].pool; // Money that we need to keep back
@@ -344,46 +344,60 @@ contract RealityCheck {
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
-        
+        //uint256 bounty = questions[question_id].bounty;
+
+        // If there's still a bounty available, claim it now before we delete the first answer item
+
         // Mostly we take all the bonds.
         // However, if someone gave our answer before we did, they need to get their bond back from our total.
         // We won't know that until we get to their entry.
         // Pay out what we can as we go, but always save enough to pay the max possible earlier bond.
-        for (i = questions[question_id].answers.length; i >= stop_at_idx; i--) {
+        for (i = questions[question_id].answers.length; i > stop_at_idx; i--) {
 
-            uint256 bond = questions[question_id].answers[i].bond;
+            uint256 bond = questions[question_id].answers[i-1].bond;
 
-            if (questions[question_id].answers[i].answer == best_answer) {
+            if (questions[question_id].answers[i-1].answer == best_answer) {
 
-                address new_payee = questions[question_id].answers[i].answerer;
+                address lower_payee = questions[question_id].answers[i-1].answerer;
 
                 // If the payee has changed, pay out the last guy then change to the new payee
-                if (new_payee != payee) {
-                    // If there was someone further down the list than us, they will have left some money in the pool
+                if (lower_payee != payee) {
+
+                    // Assign the payee what they are owed from the pool, which will equal their bond
+                    // Give any money remaining in the pool to the old payee
+
                     uint256 buyout_payment = 0;
                     if (pool > 0) {
-                        buyout_payment = bond;
-                        assert(pool > buyout_payment); // There should always be enough in the pool to pay for the previous bond
+                        //assert(pool > buyout_payment); // There should always be enough in the pool to pay for the previous bond
 
-                        take += pool - buyout_payment; // Cash in anything left in the pool
-                        pool = 0; // Empty the pool
+                        take += pool - bond; // Cash in anything left in the pool
                         balances[payee] += take;
                     }
 
-                    payee = new_payee;
+                    // Now start again with the new payee, beginning with their income from the higher payee
+                    payee = lower_payee;
                     take = buyout_payment;
+
+                    /*
+                    // If there's a bounty still available, ie this is the highest item, claim it right away
+                    if (bounty > 0) {
+                        take += bounty;
+                        bounty = 0;
+                        questions[question_id].bounty = 0;
+                    }
+                    */
+
                 } 
 
+            } else {
+                take += pool; // Take the previous pool
             }
-
-            // Take the previous pool
-            take += pool;
 
             uint256 this_take = bond / 2;
             take += this_take;
-            pool += (bond - this_take);
+            pool = (bond - this_take);
 
-            delete questions[question_id].answers[i];
+            delete questions[question_id].answers[i-1];
         }
         
         if (stop_at_idx > 0) {
@@ -398,27 +412,9 @@ contract RealityCheck {
         balances[payee] += take;
         LogClaimBond(question_id, best_answer, payee, take);
 
-
     }
 
-    /*
-    function claimBounty(bytes32 question_id) 
-        // actorAnyone(question_id) // Anyone can call this as it just reassigns the bounty, they don't withdraw it
-        stateFinalized(question_id)
-    {
 
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        address payee = questions[question_id].answers[best_answer].answerer;
-        uint256 bounty = questions[question_id].bounty;
-
-        LogClaimBounty(question_id, payee, bounty);
-
-        balances[payee] += bounty;
-        questions[question_id].bounty = 0;
-
-    }
-    */
 
     /*
     function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
