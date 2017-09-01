@@ -444,7 +444,8 @@ contract RealityCheck {
             claimBond(bond_question_ids[i], bond_answers[i]);
         }
 
-        return msg.sender.send(balances[msg.sender]);
+        msg.sender.transfer(balances[msg.sender]);
+        balances[msg.sender] = 0;
 
     }
 

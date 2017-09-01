@@ -333,6 +333,7 @@ class TestRealityCheck(TestCase):
 
         ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
         self.assertEqual(starting_bal+1000+2+22-gas_used, ending_bal)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0, "All funds are gone from the contract once withdrawal is complete")
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
