@@ -323,33 +323,43 @@ contract RealityCheck {
 
     mapping(bytes32 => Claim) question_claims;
     
+    // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
+    // The caller must provide the answer history, in reverse order.
+    // The first answer is authenticated by checking against the stored history_hash.
+    // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
+    // Once we get to an empty hash we'll know we're done and there are no more answers.
+    // Usually you would call the whole thing in a single transaction.
+    // But in theory the chain of answers can be infinitely long, so you may run out of gas.
+    // If you only supply part of the chain the data we need to carry on later will be stored.
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
     {
 
-        uint256 take = 0; // Money we can pay out
-        uint256 last_bond = question_claims[question_id].last_bond;
-        address payee = question_claims[question_id].payee; 
-
+        uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
+        address payee = question_claims[question_id].payee; // The person with the highest answer, working back down.
         bytes32 best_answer = questions[question_id].best_answer;
 
+        uint256 take = 0; // Money we can pay out
         uint256 i;
 
-        // Arguments should have been sent from last to first, taking the bonds as we go.
-        // However, if someone gave our answer before we did, they need to get their bond back from our total.
-        // We won't know that until we get to their entry.
-        // So we don't pay out the bond added at x until we have looked at the one before
+        // History entries should have been sent from last to first.
+        // We work up the chain and assign bonds to the person who gave the right answer
+        // However, if someone gave our answer before they did, we make them the payee for subsequent (lower) bonds
+        // They also get the equivalent of their bond from the higher-up right-answerer
+        // We won't know that we have to pay them until we get to their entry.
+        // So we don't pay out the bond added at x until we have looked at x-1
 
-        // This is usually the final hash
+        // last_history_hash is usually the final hash
         // However, in theory the list may be too long to handle in one go
-        // In that case it may be the hash where we left off
+        // In that case it may be the hash where we left off last time
         bytes32 last_history_hash = questions[question_id].history_hash;
 
         for (i=0; i<history_hashes.length; i++) {
 
             require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
             take += last_bond; 
+            assert(take >= last_bond);
 
             if (answers[i] == best_answer) {
 
@@ -363,28 +373,26 @@ contract RealityCheck {
 
                 } else if (addrs[i] != payee) {
 
-                    // Assign the payee what they are owed from the last_bond, which will equal their bond
-                    // Give any money remaining in the last_bond to the old payee
+                    // The lower answerer will take over receiving bonds from higher answerer.
+                    // They should also be paid the equivalent of their bond. (This is our arbitrary rule.)
+                    // Normally there should be enough (x2) from the higher user's last_bond to pay the lower user.
+                    // There's an edge case involving weird arbitrator behaviour where there may not a higher bond.
+                    // If we hit that, just pay them as much as we've got, which is probably 0...
 
-                    // last_bond is 0 when it's the top item, or when the top item was arbitration and it's the second item.
-                    // Check for bounty in case it's the top item.
-
-                    // New payee. 
-                    // First settle up with the old payee.
-                    // They get whatever is left in last_bond, minus what we have to pay to the new guy
-
-                    // There should already be enough from the higher bond to pay the new payee.
-                    // There should be no case where it's more than zero but less than the bond
-                    if (last_bond > 0) {
-                        assert(last_bond >= bonds[i]);
-                        assert(take >= bonds[i]);
-                        take -= bonds[i];
+                    uint256 payment = 0;
+                    if (last_bond >= bonds[i]) {
+                        payment = bonds[i];
+                    } else {
+                        payment = last_bond;
                     }
+
+                    assert(take >= payment);
+                    take -= payment;
                     balances[payee] += take;
 
                     // Now start take again for the new payee
                     payee = addrs[i];
-                    take = bonds[i]; // This comes from the higher payee
+                    take = payment;
 
                 } 
 
