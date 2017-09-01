@@ -358,6 +358,8 @@ contract RealityCheck {
                     // Assign the payee what they are owed from the last_bond, which will equal their bond
                     // Give any money remaining in the last_bond to the old payee
 
+                    // last_bond is 0 when it's the top item, or when the top item was arbitration and it's the second item.
+                    // Check for bounty in case it's the top item.
                     if (last_bond == 0) {
                         // First time
                         if (bounty > 0) {
@@ -367,15 +369,14 @@ contract RealityCheck {
                         }
                     } else {
                         // New payee. 
-                        // There should already be enough from the higher bond to pay them.
-                        // TODO: Think what happens here if the issue was settled by the arbitrator
-                        // TODO: Think what happens if the right answer came from a commit-and-reveal
-
                         // First settle up with the old payee.
                         // They get whatever is left in last_bond, minus what we have to pay to the new guy
+
+                        // There should already be enough from the higher bond to pay the new payee.
+                        // There should be no case where it's more than zero but less than the bond
                         assert(last_bond > bonds[i]);
-                        take += last_bond - bonds[i]; // Cash in anything left in the last_bond
-                        balances[payee] += take;
+
+                        balances[payee] += take + last_bond - bonds[i];
 
                         // Now start take again for the new payee
                         take = bonds[i]; // This comes from the higher payee
