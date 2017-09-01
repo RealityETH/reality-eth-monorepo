@@ -336,12 +336,14 @@ contract RealityCheck {
         stateFinalized(question_id)
     {
 
+        // The following are usually 0 / null.
+        // They are only set if we split our claim over multiple tranactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
         address payee = question_claims[question_id].payee; // The person with the highest answer, working back down.
+
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 take = 0; // Money we can pay out
-        uint256 i;
 
         // History entries should have been sent from last to first.
         // We work up the chain and assign bonds to the person who gave the right answer
@@ -350,14 +352,15 @@ contract RealityCheck {
         // We won't know that we have to pay them until we get to their entry.
         // So we don't pay out the bond added at x until we have looked at x-1
 
-        // last_history_hash is usually the final hash
-        // However, in theory the list may be too long to handle in one go
-        // In that case it may be the hash where we left off last time
+        // Usually the final hash. It'll be cleared when we're done.
+        // If we split the claim over multiple transactions, it's the hash where we left off last time
         bytes32 last_history_hash = questions[question_id].history_hash;
 
+        uint256 i;
         for (i=0; i<history_hashes.length; i++) {
 
             require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
+
             take += last_bond; 
             assert(take >= last_bond);
 
@@ -374,7 +377,9 @@ contract RealityCheck {
                 } else if (addrs[i] != payee) {
 
                     // The lower answerer will take over receiving bonds from higher answerer.
-                    // They should also be paid the equivalent of their bond. (This is our arbitrary rule.)
+                    // They should also be paid the equivalent of their bond. 
+                    // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
+
                     // Normally there should be enough (x2) from the higher user's last_bond to pay the lower user.
                     // There's an edge case involving weird arbitrator behaviour where there may not a higher bond.
                     // If we hit that, just pay them as much as we've got, which is probably 0...
@@ -394,7 +399,7 @@ contract RealityCheck {
                     payee = addrs[i];
                     take = payment;
 
-                } 
+                }
 
             } 
 
