@@ -139,8 +139,8 @@ contract RealityCheck {
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-        // actorAnyone
-        // stateNotCreated: See inline check below
+        //actorAnyone
+        //stateNotCreated: See inline check below
     payable returns (bytes32) {
 
         // A step delay of 0 makes no sense, and we will use this to check existence
@@ -325,14 +325,17 @@ contract RealityCheck {
     
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
+    //
     // The first answer is authenticated by checking against the stored history_hash.
     // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
     // Once we get to an empty hash we'll know we're done and there are no more answers.
+    //
     // Usually you would call the whole thing in a single transaction.
-    // But in theory the chain of answers can be infinitely long, so you may run out of gas.
-    // If you only supply part of the chain the data we need to carry on later will be stored.
+    // But in theory the chain of answers can be arbitrarily long, so you may run out of gas.
+    // If you only supply part of the then chain the data we need to carry on later will be stored.
+    //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-        // actorAnyone(question_id)
+        //actorAnyone(question_id) // Doesn't matter who calls it, it only pays the winner(s).
         stateFinalized(question_id)
     {
 
@@ -353,7 +356,7 @@ contract RealityCheck {
         // So we don't pay out the bond added at x until we have looked at x-1
 
         // Usually the final hash. It'll be cleared when we're done.
-        // If we split the claim over multiple transactions, it's the hash where we left off last time
+        // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
         bytes32 last_history_hash = questions[question_id].history_hash;
 
         uint256 i;
@@ -366,15 +369,17 @@ contract RealityCheck {
 
             if (answers[i] == best_answer) {
 
-                // New payee
                 if (payee == 0x0) {
 
-                    // First time
+                    // The highest right answer
+
                     payee = addrs[i];
                     take += questions[question_id].bounty;
                     questions[question_id].bounty = 0;
 
                 } else if (addrs[i] != payee) {
+
+                    // Answerer has changed, ie we found someone lower down who needs to be paid
 
                     // The lower answerer will take over receiving bonds from higher answerer.
                     // They should also be paid the equivalent of their bond. 
@@ -382,7 +387,7 @@ contract RealityCheck {
 
                     // Normally there should be enough (x2) from the higher user's last_bond to pay the lower user.
                     // There's an edge case involving weird arbitrator behaviour where there may not a higher bond.
-                    // If we hit that, just pay them as much as we've got, which is probably 0...
+                    // If we hit that, just pay them as much as we've got, which is 0...
 
                     uint256 payment = 0;
                     if (last_bond >= bonds[i]) {
@@ -391,9 +396,12 @@ contract RealityCheck {
                         payment = last_bond;
                     }
 
+                    assert(take >= last_bond);
                     assert(take >= payment);
+
                     take -= payment;
                     balances[payee] += take;
+                    take = 0;
 
                     // Now start take again for the new payee
                     payee = addrs[i];
@@ -409,12 +417,12 @@ contract RealityCheck {
 
         }
 
-        // If we haven't got to the null hash, persist the details to pick up later
         if (last_history_hash == "") {
             // All done, there is nothing left below us so we can keep what remains
             take += last_bond;
             delete question_claims[question_id];
         } else {
+            // We haven't yet got to the null hash (1st answer), so store the details to pick up later
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
         }
@@ -532,7 +540,7 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
-        // actorAnyone(question_id)
+        //actorAnyone(question_id)
         stateFinalized(question_id)
     returns (bool) {
 
