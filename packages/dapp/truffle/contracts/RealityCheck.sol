@@ -326,12 +326,11 @@ contract RealityCheck {
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
-        returns(bytes32)
     {
 
         uint256 take = 0; // Money we can pay out
-        uint256 last_bond = 0; // The amount of bond 1 slot higher than the one we are considering
-        address payee;
+        uint256 last_bond = question_claims[question_id].last_bond;
+        address payee = question_claims[question_id].payee; 
 
         bytes32 best_answer = questions[question_id].best_answer;
 
@@ -401,12 +400,13 @@ contract RealityCheck {
         if (last_history_hash == "") {
             // All done, there is nothing left below us so we can keep what remains
             take += last_bond;
-            balances[payee] += take;
             delete question_claims[question_id];
         } else {
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
         }
+
+        balances[payee] += take;
         questions[question_id].history_hash = last_history_hash;
 
         LogClaimBond(question_id, best_answer, payee, take);

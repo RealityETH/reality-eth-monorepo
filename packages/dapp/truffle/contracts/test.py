@@ -291,6 +291,28 @@ class TestRealityCheck(TestCase):
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+8+4+2+1000)
 
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_split_over_transactions(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 4, 8, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k4)
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        self.rc0.claimWinnings(self.question_id, st['hash'][:2], st['addr'][:2], st['bond'][:2], st['answer'][:2], startgas=400000)
+
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+1000)
+
+        self.rc0.claimWinnings(self.question_id, st['hash'][2:], st['addr'][2:], st['bond'][2:], st['answer'][2:], startgas=400000)
+
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+8+4+2+1000)
+
+
+
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_not_final(self):
         st = None
@@ -309,10 +331,6 @@ class TestRealityCheck(TestCase):
 
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 16+8+4+2+1000)
-
-
-
-
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
