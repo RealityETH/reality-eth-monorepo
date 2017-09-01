@@ -264,6 +264,7 @@ contract RealityCheck {
         // If the answer is already there, just go ahead and finalize on it
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
+        require(answerer != 0x0);
 
         bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, 0, answer);
         LogNewAnswer(
@@ -334,7 +335,6 @@ contract RealityCheck {
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
-        uint256 bounty = questions[question_id].bounty;
 
         // Arguments should have been sent from last to first, taking the bonds as we go.
         // However, if someone gave our answer before we did, they need to get their bond back from our total.
@@ -349,51 +349,46 @@ contract RealityCheck {
         for (i=0; i<history_hashes.length; i++) {
 
             require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
+            take += last_bond; 
 
             if (answers[i] == best_answer) {
 
-                // If the payee has changed, pay out the last guy then change to the new payee
-                if (addrs[i] != payee) {
+                // New payee
+                if (payee == 0x0) {
+
+                    // First time
+                    payee = addrs[i];
+                    take += questions[question_id].bounty;
+                    questions[question_id].bounty = 0;
+
+                } else if (addrs[i] != payee) {
 
                     // Assign the payee what they are owed from the last_bond, which will equal their bond
                     // Give any money remaining in the last_bond to the old payee
 
                     // last_bond is 0 when it's the top item, or when the top item was arbitration and it's the second item.
                     // Check for bounty in case it's the top item.
-                    if (last_bond == 0) {
-                        // First time
-                        if (bounty > 0) {
-                            take += bounty;
-                            bounty = 0;
-                            questions[question_id].bounty = 0;
-                        }
-                    } else {
-                        // New payee. 
-                        // First settle up with the old payee.
-                        // They get whatever is left in last_bond, minus what we have to pay to the new guy
 
-                        // There should already be enough from the higher bond to pay the new payee.
-                        // There should be no case where it's more than zero but less than the bond
-                        assert(last_bond > bonds[i]);
+                    // New payee. 
+                    // First settle up with the old payee.
+                    // They get whatever is left in last_bond, minus what we have to pay to the new guy
 
-                        balances[payee] += take + last_bond - bonds[i];
-
-                        // Now start take again for the new payee
-                        take = bonds[i]; // This comes from the higher payee
+                    // There should already be enough from the higher bond to pay the new payee.
+                    // There should be no case where it's more than zero but less than the bond
+                    if (last_bond > 0) {
+                        assert(last_bond >= bonds[i]);
+                        assert(take >= bonds[i]);
+                        take -= bonds[i];
                     }
+                    balances[payee] += take;
 
+                    // Now start take again for the new payee
                     payee = addrs[i];
+                    take = bonds[i]; // This comes from the higher payee
 
-                } else {
-                    take += last_bond; 
-                }
+                } 
 
-            } else {
-
-                // If it's a previous bond, just take it
-                take += last_bond; 
-
-            }
+            } 
 
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
@@ -401,11 +396,17 @@ contract RealityCheck {
 
         }
 
-        // All done, keep anything left in the last_bond
-        // TODO: handle if there is still more
-        take += last_bond;
+        // If we haven't got to the null hash, persist the details to pick up later
+        if (last_history_hash == "") {
+            // All done, keep anything left in the last_bond
+            take += last_bond;
+            balances[payee] += take;
+        } else {
+            question_claims[question_id].payee = payee;
+            question_claims[question_id].last_bond = last_bond;
+        }
+        questions[question_id].history_hash = last_history_hash;
 
-        balances[payee] += take;
         LogClaimBond(question_id, best_answer, payee, take);
 
     }

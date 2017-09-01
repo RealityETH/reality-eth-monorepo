@@ -258,7 +258,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
 
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_final(self):
         return
         st = None
@@ -289,7 +289,7 @@ class TestRealityCheck(TestCase):
 
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_bond_claim(self):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=3) 
 
@@ -298,6 +298,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
         self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k0)], [3], [to_answer_for_contract(12345)] , startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000, "Winner gets their bond back plus the bounty")
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
