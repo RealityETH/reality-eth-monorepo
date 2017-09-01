@@ -39,7 +39,8 @@ const QUESTION_MAX_OUTCOMES = 128;
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
-var last_displayed_block_number = 0;;
+var last_displayed_block_number = 0;
+var current_block_number = 0;
 
 // Struct array offsets
 // Assumes we unshift the ID onto the start
@@ -2466,30 +2467,52 @@ function parseHash() {
 }
 
 window.onload = function() {
-    web3.eth.getAccounts((err, acc) => {
-        //console.log('accounts', acc);
-        account = acc[0];
-        var args = parseHash();
-        if (args['category']) {
-            category = args['category'];
-            $('body').addClass('category-' + category);
-            var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
-            $('#filterby').text(cat_txt);
-        }
-        //console.log('args:', args);
 
-        RealityCheck = contract(rc_json);
-        RealityCheck.setProvider(web3.currentProvider);
-        RealityCheck.deployed().then(function(instance) {
-            rc = instance;
-            updateUserBalanceDisplay();
-            pageInit(account);
-            if (args['question']) {
-                //console.log('fetching question');
-                ensureQuestionDetailFetched(args['question']).then(function(question){
-                    openQuestionWindow(question[Qi_question_id]);
-                })
+    // Set up a filter so we always know the latest block number.
+    // This helps us keep track of how fresh our question data etc is.
+    web3.eth.filter('latest').watch( function(err, res) {
+        web3.eth.getBlock('latest', function(err, result) {
+            if (result.number > current_block_number) {
+                current_block_number = result.number;
             }
-        });
+            // Should we do this?
+            // Potentially calls later but grows indefinitely...
+            // block_timestamp_cache[result.number] = result.timestamp;
+        })
+    });
+
+    web3.eth.getAccounts((err, acc) => {
+
+        web3.eth.getBlock('latest', function(err, result) {
+            if (result.number > current_block_number) {
+                current_block_number = result.number;
+            }
+
+            //console.log('accounts', acc);
+            account = acc[0];
+            var args = parseHash();
+            if (args['category']) {
+                category = args['category'];
+                $('body').addClass('category-' + category);
+                var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
+                $('#filterby').text(cat_txt);
+            }
+            //console.log('args:', args);
+
+
+            RealityCheck = contract(rc_json);
+            RealityCheck.setProvider(web3.currentProvider);
+            RealityCheck.deployed().then(function(instance) {
+                rc = instance;
+                updateUserBalanceDisplay();
+                pageInit(account);
+                if (args['question']) {
+                    //console.log('fetching question');
+                    ensureQuestionDetailFetched(args['question']).then(function(question){
+                        openQuestionWindow(question[Qi_question_id]);
+                    })
+                }
+            });
+        })
     });
 }
