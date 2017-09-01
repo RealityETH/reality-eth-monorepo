@@ -342,7 +342,7 @@ contract RealityCheck {
         // The following are usually 0 / null.
         // They are only set if we split our claim over multiple tranactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
-        address payee = question_claims[question_id].payee; // The person with the highest answer, working back down.
+        address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
 
         bytes32 best_answer = questions[question_id].best_answer;
 
@@ -351,7 +351,7 @@ contract RealityCheck {
         // History entries should have been sent from last to first.
         // We work up the chain and assign bonds to the person who gave the right answer
         // However, if someone gave our answer before they did, we make them the payee for subsequent (lower) bonds
-        // They also get the equivalent of their bond from the higher-up right-answerer
+        // They also get the equivalent (x1) of their bond from the higher-up right-answerer
         // We won't know that we have to pay them until we get to their entry.
         // So we don't pay out the bond added at x until we have looked at x-1
 
@@ -399,6 +399,7 @@ contract RealityCheck {
                     assert(take >= last_bond);
                     assert(take >= payment);
 
+                    // Settle up with the old payee
                     take -= payment;
                     balances[payee] += take;
                     take = 0;
