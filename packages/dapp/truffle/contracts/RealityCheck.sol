@@ -320,31 +320,31 @@ contract RealityCheck {
 
     mapping(bytes32 => Claim) question_claims;
     
-    // Assigns the bond for a particular answer to either:
-    // ...the original answerer, if they had the final answer
-    // ...or the highest-bonded person with the right answer, if they were wrong
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
     {
 
-        uint256 take = 0; // Money that can be immediately claimed
-        uint256 last_bond = 0; //question_claims[question_id].last_bond; // Money that we kept back
-        address payee = question_claims[question_id].payee;
+        uint256 take = 0; // Money we can pay out
+        uint256 last_bond = 0; // The amount of bond 1 slot higher than the one we are considering
+        address payee;
+
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
         uint256 bounty = questions[question_id].bounty;
 
-        // Arguments should have been sent from last to first
-        // Mostly we take all the bonds.
+        // Arguments should have been sent from last to first, taking the bonds as we go.
         // However, if someone gave our answer before we did, they need to get their bond back from our total.
         // We won't know that until we get to their entry.
-        // Pay out what we can as we go, but always save enough to pay the max possible earlier bond.
+        // So we don't pay out the bond added at x until we have looked at the one before
 
+        // This is usually the final hash
+        // However, in theory the list may be too long to handle in one go
+        // In that case it may be the hash where we left off
         bytes32 last_history_hash = questions[question_id].history_hash;
 
-        for(i=0; i<history_hashes.length; i++) {
+        for (i=0; i<history_hashes.length; i++) {
 
             require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
 
@@ -355,33 +355,43 @@ contract RealityCheck {
 
                     // Assign the payee what they are owed from the last_bond, which will equal their bond
                     // Give any money remaining in the last_bond to the old payee
-                    if (last_bond > 0) {
-                        take += last_bond - bonds[i]; // Cash in anything left in the last_bond
-                        balances[payee] += take;
-                    }
 
-                    // Now start again with the new payee, beginning with their income from the higher payee
-                    payee = addrs[i];
-
-                    if (last_bond > 0) {
-                        take = bonds[i]; // This comes from the higher payee
-                    } else { 
+                    if (last_bond == 0) {
+                        // First time
                         if (bounty > 0) {
                             take += bounty;
                             bounty = 0;
                             questions[question_id].bounty = 0;
                         }
+                    } else {
+                        // New payee. 
+                        // There should already be enough from the higher bond to pay them.
+                        // TODO: Think what happens here if the issue was settled by the arbitrator
+                        // TODO: Think what happens if the right answer came from a commit-and-reveal
+
+                        // First settle up with the old payee.
+                        // They get whatever is left in last_bond, minus what we have to pay to the new guy
+                        assert(last_bond > bonds[i]);
+                        take += last_bond - bonds[i]; // Cash in anything left in the last_bond
+                        balances[payee] += take;
+
+                        // Now start take again for the new payee
+                        take = bonds[i]; // This comes from the higher payee
                     }
+
+                    payee = addrs[i];
 
                 } 
 
             } else {
-                take += last_bond; // Take the previous bond
+
+                // If it's a previous bond, just take it
+                take += last_bond; 
+
             }
 
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
-
             last_history_hash = history_hashes[i];
 
         }
