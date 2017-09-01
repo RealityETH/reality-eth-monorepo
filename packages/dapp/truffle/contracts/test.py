@@ -244,14 +244,17 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 0)
 
+        with self.assertRaises(TransactionFailed):
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=0, startgas=200000) 
+
         claim_args_state.append("")
         claim_args_addrs.append(keys.privtoaddr(t.k0))
         claim_args_bonds.append(1)
         claim_args_answs.append(to_answer_for_contract(12345))
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1, startgas=200000) 
         
 
-        # "You must increase from zero"
+        # "You must increase"
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=1, sender=t.k3, startgas=200000) 
 

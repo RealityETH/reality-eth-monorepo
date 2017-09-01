@@ -223,7 +223,7 @@ contract RealityCheck {
         // You can specify that you don't want to beat a bond bigger than x
         require(max_previous == 0 || bond_to_beat <= max_previous);
 
-        //require(msg.value > 0); 
+        require(msg.value > 0); 
 
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
