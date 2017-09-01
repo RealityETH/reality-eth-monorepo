@@ -266,7 +266,7 @@ contract RealityCheck {
         // This will allow us to claim the other bonds
         require(answerer != 0x0);
 
-        bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, 0, answer);
+        bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, uint256(0), answer);
         LogNewAnswer(
             answer,
             question_id,
@@ -326,6 +326,7 @@ contract RealityCheck {
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         // actorAnyone(question_id)
         stateFinalized(question_id)
+        returns(bytes32)
     {
 
         uint256 take = 0; // Money we can pay out

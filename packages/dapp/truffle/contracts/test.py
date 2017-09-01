@@ -257,8 +257,22 @@ class TestRealityCheck(TestCase):
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
 
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_arbitration_existing_none(self):
+        self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000)
+        st_hash = self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH]
+
+        self.assertEqual(encode_hex(st_hash), "0"*64)
+
+        st_addr = keys.privtoaddr(t.k4)
+        st_bond = 0
+        st_answer = to_answer_for_contract(1001)
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
+        hh = self.rc0.claimWinnings(self.question_id, [st_hash], [st_addr], [st_bond], [st_answer], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 1000)
+        return
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_final(self):
         return
         st = None
@@ -272,12 +286,11 @@ class TestRealityCheck(TestCase):
         st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         st['addr'].insert(0, keys.privtoaddr(t.k4))
         st['bond'].insert(0, 0)
-        st['answer'].insert(0, to_answer_for_contract(1002))
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1002), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
+        st['answer'].insert(0, to_answer_for_contract(1001))
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 16+8+4+2+1000)
-
 
 
 
