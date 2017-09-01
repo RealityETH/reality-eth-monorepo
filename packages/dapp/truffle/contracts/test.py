@@ -244,6 +244,42 @@ class TestRealityCheck(TestCase):
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_same_person_contradicting_self(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
+
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_arbitration_existing_final(self):
+        return
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k4)
+
+        self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000)
+
+        st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        st['addr'].insert(0, keys.privtoaddr(t.k4))
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, to_answer_for_contract(1002))
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1002), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 16+8+4+2+1000)
+
+
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_min_payment_with_bond_param(self):
