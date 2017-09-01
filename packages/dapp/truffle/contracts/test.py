@@ -289,7 +289,7 @@ class TestRealityCheck(TestCase):
 
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_bond_claim(self):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=3) 
 

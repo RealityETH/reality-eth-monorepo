@@ -398,9 +398,10 @@ contract RealityCheck {
 
         // If we haven't got to the null hash, persist the details to pick up later
         if (last_history_hash == "") {
-            // All done, keep anything left in the last_bond
+            // All done, there is nothing left below us so we can keep what remains
             take += last_bond;
             balances[payee] += take;
+            delete question_claims[question_id];
         } else {
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
