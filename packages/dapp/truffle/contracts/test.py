@@ -215,6 +215,36 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
+    def submitAnswerReturnUpdatedState(self, st, qid, ans, evid, max_last, bond, sdr):
+        if st is None:
+            st = {
+                'addr': [],
+                'bond': [],
+                'answer': [],
+                'hash': []
+            }
+        st['hash'].insert(0, self.rc0.questions(qid)[QINDEX_HISTORY_HASH])
+        st['bond'].insert(0, bond)
+        st['answer'].insert(0, to_answer_for_contract(ans))
+        st['addr'].insert(0, keys.privtoaddr(sdr))
+        self.rc0.submitAnswer(qid, to_answer_for_contract(ans), to_question_for_contract(evid), max_last, value=bond, sender=sdr)
+        return st
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_same_person_repeating_self(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
+
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_min_payment_with_bond_param(self):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 

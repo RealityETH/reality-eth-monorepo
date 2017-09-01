@@ -383,7 +383,9 @@ contract RealityCheck {
 
                     payee = addrs[i];
 
-                } 
+                } else {
+                    take += last_bond; 
+                }
 
             } else {
 
