@@ -252,7 +252,10 @@ contract RealityCheck {
     // Used if the arbitrator has been asked to arbitrate but no correct answer is supplied
     // Allows the arbitrator to submit the correct answer themselves
     // The arbitrator doesn't need to send a bond.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+    // NB They are trusted not to leave the top answer, but change the answerer
+    // If they do this, they break the assumption that if you have the right answer, you get paid out of the higher person's bond.
+    // TODO: Should we require that they send the previous data, and actually enforce this condition?
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer, bytes32 evidence_ipfs) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
     returns (bytes32) {
@@ -262,8 +265,7 @@ contract RealityCheck {
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
 
-        bytes32 new_state = keccak256(questions[question_id].history_hash, msg.sender, 0, answer);
-
+        bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, 0, answer);
         LogNewAnswer(
             answer,
             question_id,
