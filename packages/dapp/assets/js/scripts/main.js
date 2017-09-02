@@ -772,64 +772,111 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
 }
 
+function isDataFresh(question_id, data_type, freshness) {
+    if (!question_detail_list[question_id]) {
+        return false;
+    }
+    return (question_detail_list[question_id].freshness >= freshness);
+}
+
+// No freshness as this only happens once per question
+function _ensureQuestionLogFetched(question_id, freshness) {
+    var called_block = current_block_number;
+    return new Promise((resolve, reject)=>{
+        if (isDataFresh(question_id, 'question_ipfs', freshness)) {
+            resolve(question_detail_list[question_id]);
+        } else {
+            var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+            question_logs.get(function(error, question_arr) {
+                if (error || question_arr.length != 1) {
+                    reject(error);
+                } else {
+                    var question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
+                    resolve(question);
+                }
+            });
+        }
+    });
+}
+
+function _ensureQuestionDataFetched(question_id, freshness) {
+    var called_block = current_block_number;
+    return new Promise((resolve, reject)=>{
+        if (isDataFresh(question_id, 'question_call', freshness)) {
+            resolve(question_detail_list[question_id]);
+        } else {
+            rc.questions.call(question_id).then(function(result){
+                var question = filledQuestionDetail(question_id, 'question_call', called_block, result);
+                resolve(question);
+            }).catch(function(err) {
+                reject(err);
+            });
+        }
+    });
+}
+
+function _ensureQuestionIPFSFetched(question_id, question_json_ipfs) {
+    var called_block = current_block_number;
+    return new Promise((resolve, reject)=>{
+        if (isDataFresh(question_id, 'question_ipfs', 1)) {
+            resolve(question_detail_list[question_id]);
+        } else {
+            console.log('fetching ipfs for ipfs addr', question_json_ipfs);
+            ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true}).then(function(res) {
+                if (res.length > IPFS_MAX_SIZE) {
+                    reject(new Error('IPFS file too large'));
+                } else {
+                    // TODO: We will probably move question_ipfs out of the contract data, in which case the logs will have to come first
+                    var question = filledQuestionDetail(question_id, 'question_json', called_block, parseQuestionJSON(res.toString()));
+                    resolve(question);
+                }
+            }).catch(function(err) {
+                reject(err);
+            });
+        }
+    });
+}
+
+function _ensureAnswersFetched(question_id, freshness) {
+    var called_block = current_block_number;
+    return new Promise((resolve, reject)=>{
+        if (isDataFresh(question_id, 'answers', freshness)) {
+            resolve(question_detail_list[question_id]);
+        } else {
+            var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+            answer_logs.get(function(error, answer_arr) {
+                if (error) {
+                    reject(error);
+                } else {
+                    var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
+                    resolve(question);
+                }
+            });
+        }
+    });
+}
+
 // question_log is optional, pass it in when we already have it
-function ensureQuestionDetailFetched(question_id, question_log) {
+function ensureQuestionDetailFetched(question_id, params) {
+
+// TODO: Check for params somehow
 
     var called_block = current_block_number;
     console.log('ensureQuestionDetailFetched with called_block', called_block);
     return new Promise((resolve, reject)=>{
-        if (false && question_detail_list[question_id]) {
-            console.log('returning from cache', question_id);
-            resolve(question_detail_list[question_id]);
-        } else {
-            var question;
-            rc.questions.call(question_id).then(function(result){
-                question = filledQuestionDetail(question_id, 'question_call', called_block, result);
-                console.log('call made', question);
-                var question_json_ipfs = question[Qi_question_ipfs];
-                console.log('fetching ipfs for ipfs addr', question_json_ipfs);
-                return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-            }).then(function (res) {
-                if (res.length > IPFS_MAX_SIZE) {
-                    reject(new Error('IPFS file too large'));
-                }
-                // TODO: We will probably move question_ipfs out of the contract data, in which case the logs will have to come first
-                question = filledQuestionDetail(question_id, 'question_json', called_block, parseQuestionJSON(res.toString()));
-                return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
-            // TODO: Update this in real time as the answers come in
-            }).then(function(answer_logs) {
-                answer_logs.get(function(error, answers) {
-                    if (error === null && typeof answers !== 'undefined') {
-                        // TODO: Get the latest block from the list of answers
-                        question = filledQuestionDetail(question_id, 'answers', called_block, answers);
-                        // We need the question log for the creation datetime
-                        // Often we are populating in response to a question log event, so we had it passed in
-                        // If we didn't, grab it before we return
-                        if (question_log) {
-                            question = filledQuestionDetail(question_id, 'question_log', called_block, question_log);
-                            resolve(question);
-                        } else {
-                            var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
-                            question_logs.get(function(error, question_arr) {
-                                if (error || question_arr.length != 1) {
-                                    reject(error);
-                                } else {
-                                    question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
-                                    resolve(question);
-                                }
-                            });
-                        }
-                    } else {
-                        reject(error);
-                    }
-                });
-            }).catch(function(e) {
-                console.log('error fetching', e);
-                reject(e);
-            });
-        }
+        _ensureQuestionLogFetched(question_id).then(function(q) {
+            return _ensureQuestionDataFetched(question_id, called_block);
+        }).then(function(q) {
+            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs]);
+        }).then(function(q) {
+            return _ensureAnswersFetched(question_id, called_block)
+        }).then(function(q) {
+            resolve(q);
+        }).catch(function(e) {
+            console.log('error fetching question', question_id, e);
+            reject(e);
+        });
     });
-
 }
 
 // TODO: Fire this on a timer, and also on the withdrawal event
@@ -958,7 +1005,14 @@ function handleQuestionLog(item) {
 
     // TODO: We may not need everything fetched
     // ...was doing just call + ipfs
-    ensureQuestionDetailFetched(question_id).then(function(question_data) {
+    question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+    var fetch_params = {
+        'question_call': current_block_number,
+        'question_ipfs': 1,
+        'question_log': 1
+    };
+    ensureQuestionDetailFetched(question_id, fetch_params).then(function(question_data) {
+        console.log('handleQuestionLog has ', question_data)
 
         if (category && question_data[Qi_question_json].category != category) {
             //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
