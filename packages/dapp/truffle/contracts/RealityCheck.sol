@@ -277,6 +277,7 @@ contract RealityCheck {
             evidence_ipfs
         );
 
+        questions[question_id].bond = 0;
         questions[question_id].best_answer = answer;
         questions[question_id].history_hash = new_state;
 
@@ -474,32 +475,37 @@ contract RealityCheck {
     */
 
 
-
-    /*
-    // Convenience function to claim multiple bounties and bonds in 1 go
-    // bond_question_ids are the question ids you want to claim for
-    // bond_answers are the answers you want to claim for
-    // TODO: This could probably be more efficient, as some checks are being duplicated
-    function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
+    // Convenience function to claim for multile questions in one go.
+    // question_ids are the question_ids, lengths are the number of history items for each.
+    // The rest of the arguments are all the history items put together
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32 answers) 
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
-    returns (bool withdrawal_completed) {
+        //stateAny(...) // The finalization checks are done in the claimWinnings function
+    {
         
-        require(bond_question_ids.length == bond_answers.length);
-
+        uint256 qi;
         uint256 i;
-        for(i=0; i<bounty_question_ids.length; i++) {
-            claimBounty(bounty_question_ids[i]);
+        for(qi=0; qi<question_ids.length; qi++) {
+            bytes32 qid = question_ids[qi];
+            uint256 l = lengths[qi];
+            bytes32[] memory hh = new bytes32[](l);
+            address[] memory ad = new address[](l);
+            uint256[] memory bo = new uint256[](l);
+            bytes32[] memory an = new bytes32[](l);
+            uint256 j;
+            for(j=0; j<l; j++) {
+                hh[j] = hist_hashes[i];
+                ad[j] = addrs[i];
+                bo[j] = bonds[i];
+                an[j] = answers[i];
+                i++;
+            }
+            claimWinnings(qid, hh, ad, bo, an);
         }
 
-        for(i=0; i<bond_question_ids.length; i++) {
-            claimWinnings(bond_question_ids[i], bond_answers[i]);
-        }
-
-        return msg.sender.send(balances[msg.sender]);
+        withdraw(balances[msg.sender]);
 
     }
-    */
 
     function fundAnswerBounty(bytes32 question_id) 
         // actorAnyone(question_id)
