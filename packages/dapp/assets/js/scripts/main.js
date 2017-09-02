@@ -1,5 +1,4 @@
-// TODO: Check if there was a reason to do this instead of import
-//require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
+// TODO: Check if there was a reason to do this instead of import //require('../../../node_modules/gsap/src/uncompressed/plugins/ScrollToPlugin.js');
 
 'use strict';
 
@@ -40,7 +39,7 @@ const QUESTION_MAX_OUTCOMES = 128;
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
 var last_displayed_block_number = 0;
-var current_block_number = 0;
+var current_block_number = 1;
 
 // Struct array offsets
 // Assumes we unshift the ID onto the start
@@ -627,7 +626,6 @@ function handleUserAction(entry, is_watch) {
 }
 
 function scheduleFinalizationDisplayUpdate(question) {
-
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
@@ -695,50 +693,129 @@ function purgeQuestionDetail(question_id) {
     delete question_detail_list[question_id];
 }
 
+
+function filledQuestionDetail(question_id, data_type, freshness, data) {
+
+    if (!question_id) {
+        console.log(question_id, data_type, freshness, data);
+        throw Error("filledQuestionDetail called without question_id, wtf")
+    }
+
+    // Freshness should look like this:
+    // {question_log: 0, question_call: 12345, answers: -1} 
+
+    // Data should look like this:
+    // {question_log: {}, question_call: {}, answers: []} )
+
+    // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
+
+    var question = {'freshness': {'question_log': 0, 'question_json': 0, 'question_call': 0, 'answers': 0}};
+    question[Qi_question_id] = question_id;
+    if (question_detail_list[question_id]) {
+        question = question_detail_list[question_id];
+    }
+
+    switch (data_type) {
+            
+        case 'question_log':
+            if (data && freshness > question.freshness.question_log) {
+                question.freshness.question_log = freshness;
+                //question[Qi_question_id] = data.args['question_id'];
+                question[Qi_creation_ts] = data.args['created'];
+                question[Qi_question_ipfs] = data.args['question_ipfs'];
+                question[Qi_bounty] = data.args['bounty'];
+            }
+            break;
+
+        case 'question_json':
+            if (data && freshness > question.freshness.question_json) {
+                question.freshness.question_json = freshness;
+                question[Qi_question_json] = data;
+            }
+            break;
+
+        case 'question_call':
+        console.log('in case question_call');
+            if (data && freshness > question.freshness.question_call) {
+                console.log('call data new, not setting', freshness, ' vs ', question.freshness.question_call, question)
+                // Question ID is tacked on after the call.
+                // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
+                question.freshness.question_call = freshness.question_call;
+                //question[Qi_question_id] = question_id;
+                question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
+                question[Qi_arbitrator] = data[Qi_arbitrator-1];
+                question[Qi_step_delay] = data[Qi_step_delay-1];
+                question[Qi_question_ipfs] = data[Qi_question_ipfs-1];
+                question[Qi_bounty] = data[Qi_bounty-1];
+                question[Qi_best_answer] = data[Qi_best_answer-1];
+            console.log('set question', question_id, question);
+            }  else {
+                console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
+            }
+            break;
+
+        case 'answers':
+            if (data && freshness > question.freshness.answers) {
+                question.freshness.answers = freshness;
+                question['history'] = data;
+            }
+            break;
+    }
+
+    question_detail_list[question_id] = question;
+
+
+    console.log('was called filledQuestionDetail', question_id, data_type, freshness, data); 
+    console.log('returning question', question);
+
+    return question;
+
+}
+
 // question_log is optional, pass it in when we already have it
 function ensureQuestionDetailFetched(question_id, question_log) {
 
+    var called_block = current_block_number;
+    console.log('ensureQuestionDetailFetched with called_block', called_block);
     return new Promise((resolve, reject)=>{
-        if (question_detail_list[question_id]) {
+        if (false && question_detail_list[question_id]) {
             console.log('returning from cache', question_id);
             resolve(question_detail_list[question_id]);
         } else {
-            //console.log('not in cache, fetching', question_id);
-            var current_question;
+            var question;
             rc.questions.call(question_id).then(function(result){
-                current_question = result;
-                current_question.unshift(question_id);
-
-                var question_json_ipfs = current_question[Qi_question_ipfs];
+                question = filledQuestionDetail(question_id, 'question_call', called_block, result);
+                console.log('call made', question);
+                var question_json_ipfs = question[Qi_question_ipfs];
+                console.log('fetching ipfs for ipfs addr', question_json_ipfs);
                 return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
             }).then(function (res) {
                 if (res.length > IPFS_MAX_SIZE) {
                     reject(new Error('IPFS file too large'));
                 }
-                current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+                // TODO: We will probably move question_ipfs out of the contract data, in which case the logs will have to come first
+                question = filledQuestionDetail(question_id, 'question_json', called_block, parseQuestionJSON(res.toString()));
                 return rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'})
             // TODO: Update this in real time as the answers come in
             }).then(function(answer_logs) {
                 answer_logs.get(function(error, answers) {
                     if (error === null && typeof answers !== 'undefined') {
+                        // TODO: Get the latest block from the list of answers
+                        question = filledQuestionDetail(question_id, 'answers', called_block, answers);
                         // We need the question log for the creation datetime
                         // Often we are populating in response to a question log event, so we had it passed in
                         // If we didn't, grab it before we return
                         if (question_log) {
-                            current_question[Qi_creation_ts] = question_log.args['created'];
-                            question_detail_list[question_id] = current_question;
-                            question_detail_list[question_id]['history'] = answers;
-                            resolve(question_detail_list[question_id]);
+                            question = filledQuestionDetail(question_id, 'question_log', called_block, question_log);
+                            resolve(question);
                         } else {
                             var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
                             question_logs.get(function(error, question_arr) {
                                 if (error || question_arr.length != 1) {
                                     reject(error);
                                 } else {
-                                    current_question[Qi_creation_ts] = question_arr[0].args['created'];
-                                    question_detail_list[question_id] = current_question;
-                                    question_detail_list[question_id]['history'] = answers;
-                                    resolve(question_detail_list[question_id]);
+                                    question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
+                                    resolve(question);
                                 }
                             });
                         }
@@ -879,22 +956,9 @@ function handleQuestionLog(item) {
     var created = item.args.created
     var question_data;
 
-    rc.questions.call(question_id).then( function(qdata) {
-        //console.log('here is result', question_data, question_id)
-        question_data = qdata;
-        question_data.unshift(question_id);
-        question_data[Qi_creation_ts] = created;
-        var question_json_ipfs = question_data[Qi_question_ipfs];
-        return ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true})
-    }).then(function (res) {
-        if (res.length > IPFS_MAX_SIZE) {
-            throw new Error('IPFS file too large');
-        }
-        if (!res) {
-            //console.log('ipfs cat error', err, res)
-            return;
-        }
-        question_data[Qi_question_json] = parseQuestionJSON(res.toString());
+    // TODO: We may not need everything fetched
+    // ...was doing just call + ipfs
+    ensureQuestionDetailFetched(question_id).then(function(question_data) {
 
         if (category && question_data[Qi_question_json].category != category) {
             //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
