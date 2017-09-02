@@ -320,6 +320,7 @@ contract RealityCheck {
     struct Claim {
         address payee;
         uint256 last_bond;
+        uint256 take;
     }
 
     mapping(bytes32 => Claim) question_claims;
@@ -344,10 +345,9 @@ contract RealityCheck {
         // They are only set if we split our claim over multiple tranactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
         address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
+        uint256 take = question_claims[question_id].take; // Money we can pay out
 
         bytes32 best_answer = questions[question_id].best_answer;
-
-        uint256 take = 0; // Money we can pay out
 
         // History entries should have been sent from last to first.
         // We work up the chain and assign bonds to the person who gave the right answer
@@ -419,17 +419,27 @@ contract RealityCheck {
 
         }
 
+                 
         if (last_history_hash == "") {
-            // All done, there is nothing left below us so we can keep what remains
+            // There is nothing left below us so we can keep what remains
             take += last_bond;
+            balances[payee] += take;
             delete question_claims[question_id];
         } else {
             // We haven't yet got to the null hash (1st answer), so store the details to pick up later
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
-        }
 
-        balances[payee] += take;
+            // If we're still waiting for the winner, we have to persist their winnings.
+            // These will remain in the pool until they submit enough history to tell use who they are.
+            // Otherwise we can go ahead and pay them out, only keeping back last_bond
+            if (payee == 0x0) {
+                question_claims[question_id].take = take;
+            } else {
+                balances[payee] += take;
+                question_claims[question_id].take = 0;
+            }
+        }
         questions[question_id].history_hash = last_history_hash;
 
         LogClaimBond(question_id, best_answer, payee, take);
