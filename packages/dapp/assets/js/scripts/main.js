@@ -772,7 +772,11 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
 }
 
-function isDataFresh(question_id, data_type, freshness) {
+function isDataFreshEnough(question_id, data_type, freshness) {
+    // We set -1 when we don't need the data at all
+    if (freshness == -1) {
+        return true;
+    }
     if (!question_detail_list[question_id]) {
         return false;
     }
@@ -783,7 +787,7 @@ function isDataFresh(question_id, data_type, freshness) {
 function _ensureQuestionLogFetched(question_id, freshness) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFresh(question_id, 'question_ipfs', freshness)) {
+        if (isDataFreshEnough(question_id, 'question_ipfs', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
@@ -802,7 +806,7 @@ function _ensureQuestionLogFetched(question_id, freshness) {
 function _ensureQuestionDataFetched(question_id, freshness) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFresh(question_id, 'question_call', freshness)) {
+        if (isDataFreshEnough(question_id, 'question_call', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             rc.questions.call(question_id).then(function(result){
@@ -818,7 +822,7 @@ function _ensureQuestionDataFetched(question_id, freshness) {
 function _ensureQuestionIPFSFetched(question_id, question_json_ipfs) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFresh(question_id, 'question_ipfs', 1)) {
+        if (isDataFreshEnough(question_id, 'question_ipfs', 1)) {
             resolve(question_detail_list[question_id]);
         } else {
             console.log('fetching ipfs for ipfs addr', question_json_ipfs);
@@ -840,7 +844,7 @@ function _ensureQuestionIPFSFetched(question_id, question_json_ipfs) {
 function _ensureAnswersFetched(question_id, freshness) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFresh(question_id, 'answers', freshness)) {
+        if (isDataFreshEnough(question_id, 'answers', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
@@ -860,12 +864,16 @@ function _ensureAnswersFetched(question_id, freshness) {
 function ensureQuestionDetailFetched(question_id, params) {
 
 // TODO: Check for params somehow
+    if (!params) {
+        params = {};
+    }
 
     var called_block = current_block_number;
     console.log('ensureQuestionDetailFetched with called_block', called_block);
     return new Promise((resolve, reject)=>{
         _ensureQuestionLogFetched(question_id).then(function(q) {
-            return _ensureQuestionDataFetched(question_id, called_block);
+            var freshness = ('question_log' in params) ? params['question_log'] : called_block;
+            return _ensureQuestionDataFetched(question_id, freshness);
         }).then(function(q) {
             return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs]);
         }).then(function(q) {
@@ -1001,17 +1009,12 @@ function handleQuestionLog(item) {
     var question_id = item.args.question_id;
     //console.log('in handleQuestionLog', question_id);
     var created = item.args.created
-    var question_data;
 
-    // TODO: We may not need everything fetched
-    // ...was doing just call + ipfs
-    question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
-    var fetch_params = {
-        'question_call': current_block_number,
-        'question_ipfs': 1,
-        'question_log': 1
-    };
-    ensureQuestionDetailFetched(question_id, fetch_params).then(function(question_data) {
+    // Populate with the data we got
+    var question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+
+    // Then fetch anything else we need to display
+    ensureQuestionDetailFetched(question_id, {'answers': -1}).then(function(question_data) {
         console.log('handleQuestionLog has ', question_data)
 
         if (category && question_data[Qi_question_json].category != category) {
