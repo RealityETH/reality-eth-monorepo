@@ -11,8 +11,16 @@ contract ArbitratorAPI {
 contract RealityCheck {
 
     // To make it hard for us to forget to set one of these, every non-constant function should specify:
-    //    actorArbitrator or //actorAnyone
-    //    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or //stateAny
+    //    actorArbitrator or actorAnyone
+    //    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
+
+    modifier actorAnyone() {
+        _;
+    }
+
+    modifier stateAny() {
+        _;
+    }
 
     modifier actorArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator);
@@ -37,7 +45,6 @@ contract RealityCheck {
         require(isFinalized(question_id));
         _;
     }
-
 
     mapping (address => uint256) balances;
 
@@ -167,7 +174,6 @@ contract RealityCheck {
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-        //actorAnyone
         //stateNotCreated: See inline check below
     payable returns (bytes32) {
 
@@ -206,8 +212,8 @@ contract RealityCheck {
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
-        //actorAnyone(question_id)
-        //stateAny(question_id) 
+        actorAnyone()
+        stateAny() 
         // You can make a callback request before question registration, or repeat a previous one
         // If your calling contract expects only one, it should handle the duplication check itself.
     payable {
@@ -278,7 +284,7 @@ contract RealityCheck {
     }
 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, bytes32 evidence_ipfs, uint256 max_previous) 
-        //actorAnyone(question_id) - but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        actorAnyone() // ...but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
         stateOpen(question_id)
         bondMustDouble(question_id, max_previous)
     payable returns (bytes32) {
@@ -301,7 +307,7 @@ contract RealityCheck {
     // NB The bond is the amount you sent in submitAnswerCommitment.
     // This is used to recreate the history hash so we can check whether your answer is still current.
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, bytes32 history_hash, uint256 bond) 
-        //actorAnyone(question_id) - but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        actorAnyone() // ... but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
         stateOpen(question_id)
     {
         bytes32 answer_hash = keccak256(answer, nonce);
@@ -326,7 +332,7 @@ contract RealityCheck {
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
-        //actorAnyone(question_id)
+        actorAnyone()
         stateOpen(question_id)
         bondMustDouble(question_id, max_previous)
     payable returns (bytes32) {
@@ -396,7 +402,7 @@ contract RealityCheck {
     // If you only supply part of the then chain the data we need to carry on later will be stored.
     //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-        //actorAnyone(question_id) // Doesn't matter who calls it, it only pays the winner(s).
+        actorAnyone() // Doesn't matter who calls it, it only pays the winner(s).
         stateFinalized(question_id)
     {
 
@@ -514,8 +520,8 @@ contract RealityCheck {
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history items put together
     function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32 answers) 
-        //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks are done in the claimWinnings function
+        actorAnyone() // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        stateAny() // The finalization checks are done in the claimWinnings function
     {
         
         uint256 qi;
@@ -543,7 +549,7 @@ contract RealityCheck {
     }
 
     function fundAnswerBounty(bytes32 question_id) 
-        // actorAnyone(question_id)
+        actorAnyone()
         stateOpen(question_id)
     payable {
         questions[question_id].bounty += msg.value;
@@ -555,7 +561,7 @@ contract RealityCheck {
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
     function requestArbitration(bytes32 question_id) 
-        // actorAnyone(question_id)
+        actorAnyone()
         stateOpen(question_id)
     payable returns (bool) {
 
@@ -582,7 +588,7 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
-        //actorAnyone(question_id)
+        actorAnyone()
         stateFinalized(question_id)
     returns (bool) {
 
@@ -616,8 +622,8 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) 
-        //actorAnyone: Only withdraws your own balance 
-        //stateAny: You can always withdraw your balance
+        actorAnyone // Only withdraws your own balance 
+        stateAny // You can always withdraw your balance
     returns (bool success) {
         uint256 orig_bal = balances[msg.sender];
         require(orig_bal >= _value);
