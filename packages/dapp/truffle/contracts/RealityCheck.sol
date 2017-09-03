@@ -31,8 +31,7 @@ contract RealityCheck {
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].step_delay > 0); // Check existence
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts != 1 && finalization_ts != 2); // arbitration pending
-        require(!isFinalized(question_id));
+        require(finalization_ts == 0 || finalization_ts > now);
         _;
     }
 
