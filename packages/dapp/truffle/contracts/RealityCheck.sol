@@ -382,21 +382,6 @@ contract RealityCheck {
         return questions[question_id].best_answer;
     }
 
-    function isArbitrationPaidFor(bytes32 question_id) 
-        constant 
-        external
-    returns (bool) {
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts == 2) || (finalization_ts == 1) );
-    }
-
-    function getEarliestFinalizationTS(bytes32 question_id) 
-        constant 
-        external
-    returns (uint256) {
-        return questions[question_id].finalization_ts;
-    }
-   
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
     //

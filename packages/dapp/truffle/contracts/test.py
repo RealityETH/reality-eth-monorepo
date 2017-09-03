@@ -143,11 +143,11 @@ class TestRealityCheck(TestCase):
     def test_earliest_finalization_ts(self):
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
-        ts1 = self.rc0.getEarliestFinalizationTS(self.question_id)
+        ts1 = self.rc0.questions(self.question_id)[QINDEX_FINALIZATION_TS]
 
         self.s.timestamp = self.s.timestamp + 8
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(54321), to_question_for_contract(("my conflicting evidence")), value=10) 
-        ts2 = self.rc0.getEarliestFinalizationTS(self.question_id)
+        ts2 = self.rc0.questions(self.question_id)[QINDEX_FINALIZATION_TS]
 
         self.assertTrue(ts2 > ts1, "Submitting an answer advances the finalization timestamp") 
 
