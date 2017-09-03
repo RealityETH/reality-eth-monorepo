@@ -205,7 +205,6 @@ contract RealityCheck {
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].step_delay ==  0); // Check existence
 
-        questions[question_id].finalization_ts = 0;
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].step_delay = step_delay;
         questions[question_id].question_ipfs = question_ipfs;
