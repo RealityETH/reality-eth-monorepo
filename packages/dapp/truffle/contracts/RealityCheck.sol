@@ -245,10 +245,11 @@ contract RealityCheck {
 
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_state;
-        questions[question_id].finalization_ts = finalization_ts;
 
         if (!is_commitment) {
+            // For a commit-reveal, we leave these until the reveal
             questions[question_id].best_answer = answer;
+            questions[question_id].finalization_ts = finalization_ts;
         }
 
         LogNewAnswer(
@@ -290,11 +291,10 @@ contract RealityCheck {
         require(commitments[commitment_id].deadline_ts == 0);
 
         uint256 step_delay = questions[question_id].step_delay;
-        uint256 finalization_ts = now + questions[question_id].step_delay;
 
         commitments[commitment_id].deadline_ts = now + (step_delay/8);
 
-        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, finalization_ts);
+        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, 0);
 
     }
 
@@ -305,6 +305,7 @@ contract RealityCheck {
         stateOpen(question_id)
         external
     {
+
         bytes32 answer_hash = keccak256(answer, nonce);
         bytes32 commitment_id = keccak256(answer_hash, msg.sender);
 
@@ -316,11 +317,13 @@ contract RealityCheck {
         commitments[commitment_id].revealed_answer = answer;
 
         // If the question still has the same final answer as when you committed, your are still top.
-        // This means you can update best_answer.
+        // This means you can update best_answer, and take responsibility for advancing the finalization_ts
+        // If somebody has already beaten this option, it's no longer relevant, so leave finalization_ts alone
         bytes32 recreate_state = keccak256(history_hash, answer_hash, bond, msg.sender);
         if (recreate_state == questions[question_id].history_hash) {
             questions[question_id].best_answer = answer;
         }
+        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
 

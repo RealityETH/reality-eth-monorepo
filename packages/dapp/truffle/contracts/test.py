@@ -365,6 +365,28 @@ class TestRealityCheck(TestCase):
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_no_answer_no_commit(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "",  0,  1, t.k3, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        with self.assertRaises(TransactionFailed):
+            q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+
+        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3, startgas=200000)
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+        self.assertEqual(from_answer_for_contract(q), 1002)
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 1001)
+
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_expired(self):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "",  0,  1, t.k3, True)
