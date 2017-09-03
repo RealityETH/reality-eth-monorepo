@@ -429,6 +429,7 @@ contract RealityCheck {
 
             if (commitments[keccak256(answers[i],addrs[i])].deadline_ts == 1) {
                 answers[i] = commitments[keccak256(answers[i],addrs[i])].revealed_answer;
+                delete commitments[keccak256(answers[i],addrs[i])];
             }
 
             if (answers[i] == best_answer) {
