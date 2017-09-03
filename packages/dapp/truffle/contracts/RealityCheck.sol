@@ -61,6 +61,14 @@ contract RealityCheck {
         bytes32 evidence_ipfs
     );
 
+    event LogAnswerReveal(
+        bytes32 indexed question_id, 
+        bytes32 answer_hash, 
+        address indexed answerer, 
+        uint256 nonce, 
+        uint256 bond
+    );
+
     event LogFundAnswerBounty(
         bytes32 indexed question_id,
         uint256 bounty_added,
@@ -131,7 +139,26 @@ contract RealityCheck {
         bytes32 history_hash;
     }
 
+    // Only used when claiming more bonds than fits into a transaction
+    // Will probably never actually be used.
+    // Stored in a mapping indexed by question_id.
+    struct Claim {
+        address payee;
+        uint256 last_bond;
+        uint256 take;
+    }
+
+    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash and the sender.
+    struct Commitment {
+        // Deadline for the reveal.
+        // Will use a magic number of 1 to mean "revealed".
+        uint256 deadline_ts; 
+        bytes32 revealed_answer;
+    }
+
     mapping(bytes32 => Question) public questions;
+    mapping(bytes32 => Claim) question_claims;
+    mapping(bytes32 => Commitment) public commitments;
 
     // Arbitration requests should be unusual, so to save gas don't assign space in the Question struct
     mapping(bytes32 => uint256) public arbitration_bounties;
@@ -241,6 +268,63 @@ contract RealityCheck {
 
     }
 
+    // TODO: Delete this before release, you shouldn't use it.
+    // Just using it for now while we make sure we calculate the hash right in python and javascript
+    function calculateCommitmentHash(bytes32 answer, uint256 nonce) 
+        constant 
+    returns (bytes32)
+    {
+        return keccak256(answer, nonce);
+    }
+
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, bytes32 evidence_ipfs, uint256 max_previous) 
+        //actorAnyone(question_id) - but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        stateOpen(question_id)
+        bondMustDouble(question_id, max_previous)
+    payable returns (bytes32) {
+
+        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+
+        // You can only use the same commitment once.
+        // If you want to submit the same answer again, use a new nonce.
+        require(commitments[commitment_id].deadline_ts == 0);
+
+        uint256 step_delay = questions[question_id].step_delay;
+        uint256 finalization_ts = now + step_delay;
+
+        commitments[commitment_id].deadline_ts = now + (step_delay/8);
+
+        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, finalization_ts);
+
+    }
+
+    // NB The bond is the amount you sent in submitAnswerCommitment.
+    // This is used to recreate the history hash so we can check whether your answer is still current.
+    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, bytes32 history_hash, uint256 bond) 
+        //actorAnyone(question_id) - but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        stateOpen(question_id)
+    {
+        bytes32 answer_hash = keccak256(answer, nonce);
+        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+
+        uint256 deadline_ts = commitments[commitment_id].deadline_ts;
+        require(deadline_ts > 1); // Commitment must exist, and not be in already-answered state
+        require(deadline_ts > now); 
+
+        commitments[commitment_id].deadline_ts = 1;
+        commitments[commitment_id].revealed_answer = answer;
+
+        // If the question still has the same final answer as when you committed, your are still top.
+        // This means you can update best_answer.
+        bytes32 recreate_state = keccak256(history_hash, answer_hash, bond, msg.sender);
+        if (recreate_state == questions[question_id].history_hash) {
+            questions[question_id].best_answer = answer;
+        }
+
+        LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
+
+    }
+
     function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
         //actorAnyone(question_id)
         stateOpen(question_id)
@@ -299,17 +383,7 @@ contract RealityCheck {
     constant returns (uint256) {
         return questions[question_id].finalization_ts;
     }
-
-    struct Claim {
-        address payee;
-        uint256 last_bond;
-        uint256 take;
-    }
-
-    mapping(bytes32 => Claim) question_claims;
-
-    mapping(bytes32 => bytes32) commitments;
-    
+   
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
     //
@@ -327,7 +401,7 @@ contract RealityCheck {
     {
 
         // The following are usually 0 / null.
-        // They are only set if we split our claim over multiple tranactions.
+        // They are only set if we split our claim over multiple transactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
         address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
         uint256 take = question_claims[question_id].take; // Money we can pay out
@@ -353,8 +427,8 @@ contract RealityCheck {
             take += last_bond; 
             assert(take >= last_bond);
 
-            if (commitments[answers[i]] != "") {
-                answers[i] = commitments[answers[i]];
+            if (commitments[keccak256(answers[i],addrs[i])].deadline_ts == 1) {
+                answers[i] = commitments[keccak256(answers[i],addrs[i])].revealed_answer;
             }
 
             if (answers[i] == best_answer) {

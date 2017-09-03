@@ -5,7 +5,7 @@ from ethereum.tools import tester as t
 from ethereum.tools.tester import TransactionFailed
 from ethereum.tools import keys
 import time
-from sha3 import sha3_256
+from sha3 import keccak_256
 from hashlib import sha256
 
 import os
@@ -215,19 +215,29 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
-    def submitAnswerReturnUpdatedState(self, st, qid, ans, evid, max_last, bond, sdr):
+    def submitAnswerReturnUpdatedState(self, st, qid, ans, evid, max_last, bond, sdr, is_commitment = False):
         if st is None:
             st = {
                 'addr': [],
                 'bond': [],
                 'answer': [],
-                'hash': []
+                'hash': [],
+                'nonce': [], # only for commitments
             }
         st['hash'].insert(0, self.rc0.questions(qid)[QINDEX_HISTORY_HASH])
         st['bond'].insert(0, bond)
         st['answer'].insert(0, to_answer_for_contract(ans))
         st['addr'].insert(0, keys.privtoaddr(sdr))
-        self.rc0.submitAnswer(qid, to_answer_for_contract(ans), to_question_for_contract(evid), max_last, value=bond, sender=sdr)
+        nonce = None
+        if is_commitment:
+            nonce = 1234
+            answer_hash = self.rc0.calculateCommitmentHash(to_answer_for_contract(ans), nonce)
+            self.rc0.submitAnswerCommitment(qid, answer_hash, to_question_for_contract(evid), max_last, value=bond, sender=sdr)
+            st['answer'][0] = answer_hash
+        else:
+            self.rc0.submitAnswer(qid, to_answer_for_contract(ans), to_question_for_contract(evid), max_last, value=bond, sender=sdr)
+        st['nonce'].insert(0, nonce)
+
         return st
 
 
@@ -327,6 +337,43 @@ class TestRealityCheck(TestCase):
         self.rc0.claimWinnings(self.question_id, st['hash'][2:], st['addr'][2:], st['bond'][2:], st['answer'][2:], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 32+16+8+4+2-1+1000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 1+1)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_reveal_calculation(self):
+        h = self.rc0.calculateCommitmentHash(to_answer_for_contract(1003), to_answer_for_contract(94989))
+        self.assertEqual(encode_hex(h), '23e796d2bf4f5f890b1242934a636f4802aadd480b6f83c754d2bd5920f78845')
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_commit_normal(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "",  0,  1, t.k3, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        with self.assertRaises(TransactionFailed):
+            q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+
+        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3, startgas=200000)
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+        self.assertEqual(from_answer_for_contract(q), 1002)
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 1001)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_commit_expired(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "",  0,  1, t.k3, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        self.s.timestamp = self.s.timestamp + 5
+        with self.assertRaises(TransactionFailed):
+            st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3)
 
 
 
