@@ -38,7 +38,7 @@ Example:
 
  * Bounty: 100
 
- * Alice:   A  1 [ Wight, will be returned ]
+ * Alice:   A  1 [ Right, will be returned ]
  * Bob:     B  2 [ Wrong, will go to Alice ]
  * Alice:   A  4 [ Right, will be returned ] 
  * Bob:     B  8 [ Wrong, 4 will go to Alice, the rest (4) will go to Charlie ]
