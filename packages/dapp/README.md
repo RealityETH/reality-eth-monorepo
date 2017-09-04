@@ -1,6 +1,8 @@
 # Reality Check Design
 Edmund Edgar, 2017-09-01
 
+Reality Check is a crowd-sourced on-chain smart contract oracle system by Reality Keys.
+
 ## Goals
 
  * You or your contract can ask an arbitrary question and get an answer to it.
@@ -18,7 +20,6 @@ Edmund Edgar, 2017-09-01
      * The "step delay", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
      * Optionally, a minimum bond to start with.
-
  * Anyone can post an answer by calling the `submitAnswer()` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
  * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the clock.
  * Once the "step delay" from the last answer has elapsed, the system considers it final.
@@ -34,9 +35,7 @@ The system requires people to post useful information. It also requires people t
 
 We allow people to post an answer already posted by someone else. However, we require them to pay the person who posted the previous answer some of their winnings. This payment is set at the equivalent of the bond posted by the previous answerer, plus any bonds posted before that answer. The earlier answerer also collects any bonds from people who posted incorrect answers before their correct answer.
 
-Example:
-
- * Bounty: 100
+Example: Question with a bounty of 100, and no minimum bond:
 
  * Alice:   A  1 [ Right, will be returned ]
  * Bob:     B  2 [ Wrong, will go to Alice ]
