@@ -54,7 +54,7 @@ Payout:
 
 As described above the system rewards answerers for being first with the right answer. However, in Ethereum being the first to send information does not guarantee that you will be the first to get that information into the blockchain. Other users could listen for transactions sent by frequently reliable answerers, and get the same answer into the blockchain before them.
 
-To allow users to prevent this, we allow answers to be supplied by commit-and-reveal. The first transaction, `submitAnswerCommitment()`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal()`, provides the actual answer, and the nonce used to create the hash. 
+To allow users to prevent this, we allow answers to be supplied by a commit-and-reveal process. This replaces the single-step `submitAnswer()` with two transactions. The first transaction, `submitAnswerCommitment()`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal()`, provides the actual answer, and the nonce used to create the hash. 
 
 To give other users a chance to respond to their answer, the time allowed for the reveal is limited to 1/8 of the step delay. During this time, other users are free to post their own answers. However, these answers will be listed after the previous user's commit, and if the commit turns out to have been the same as the answer they are submitting, they will have to share their rewards with them, as in the payout example above. Submitting an answer immediately after someone else has given the same answer may not be profitable.
 
@@ -68,7 +68,7 @@ Like other interactive protocols, this system relies on the blockchain being ava
 
 Users and contracts relying on the system for accurate information should bear possible network unavailability in mind when setting their Step Delay parameter. 
 
-The system has been implemented with the goal of making it as cheap as practical to send answers that correct previous answers. The full answer history is not held in contract storage, so giving a new answer does not expand storage, which is a particularly expensive operation. Instead the contract stores only the hash of the latest answer in the history, combined with the hash of the previous answer in the history to establish an untamperable chain. Since the answer history is not held by the contract, it instead has to be supplied to the 'claimWinnings` transaction at the end of the process. 
+The system has been implemented with the goal of making it as cheap as practical to send answers that correct previous answers. The full answer history is not held in contract storage, so giving a new answer does not expand storage, which is a particularly expensive operation. Instead the contract stores only the hash of the latest answer in the history, combined with the hash of the previous answer in the history to establish an untamperable chain. Since the answer history is not held by the contract, it instead has to be supplied to the `claimWinnings` transaction at the end of the process. 
 
 In future it may be also useful to use an on-chain gas price oracle to detect conditions of low availability.
 
