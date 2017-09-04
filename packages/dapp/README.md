@@ -22,11 +22,11 @@ Edmund Edgar, 2017-09-01
  * Anyone can post an answer by calling the `submitAnswer()` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
  * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the clock.
  * Once the "step delay" from the last answer has elapsed, the system considers it final.
- * Anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator()` transaction to the contract.
+ * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator()` transaction to the contract.
  * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
  * Users can call `withdraw()` to take ETH held in their balance out of the contract.
 
-## Problems and mitigations
+## Incentive problems and mitigations
 
 ### Large ETH holders getting rewarded over useful information providers
  
@@ -59,9 +59,9 @@ To allow users to prevent this, we allow answers to be supplied by commit-and-re
 
 To give other users a chance to respond to their answer, the time allowed for the reveal is limited to 1/8 of the step delay. During this time, other users are free to post their own answers. However, these answers will be listed after the previous user's commit, and if the commit turns out to have been the same as the answer they are submitting, they will have to share their rewards with them, as in the payout example above. Submitting an answer immediately after someone else has given the same answer may not be profitable.
 
-The reveal will update the answer in the same way that a normal answer would have, unless a new answer has already been posted.
+The reveal will update the "current best" answer in the same way that a normal answer would have, unless a new answer has already been posted with a higher bond by the time the reveal comes, in which case the answer posted after the commit will stand. 
 
-Whether they use the commit-reveal process or not, if the user is sending a bond more than 4x the previous bond, it is possible that someone else will get a transaction into the blockchain before theirs. They can control this by specifying a maximum bond level beyond which their transaction should be rejected.
+Whether they use the commit-reveal process or not, there is always a possibility that someone will get an answer into the system ahead of you that you were not aware of when you sent it. Unless you have substantially increased the bond, this will cause your answer to be rejected. If you have substantially increased the bond, you can choose whether you 
 
 ### Network unavailability and congestion
 
@@ -69,13 +69,17 @@ Like other interactive protocols, this system relies on the blockchain being ava
 
 Users and contracts relying on the system for accurate information should bear possible network unavailability in mind when setting their Step Delay parameter. 
 
-The system has been implemented with the goal of making it as cheap as practical to send answers that correct previous answers. The answer history is not held in contract storage, so giving a new answer does not expand storage, which is a particularly expensive operation. Instead the contract stores only the hash of each answer in the history, combined with the hash of the previous answer in the history to establish an untamperable chain. Since the answer history is not held by the contract, it instead has to be supplied to the 'claimWinnings` transaction at the end of the process. 
+The system has been implemented with the goal of making it as cheap as practical to send answers that correct previous answers. The full answer history is not held in contract storage, so giving a new answer does not expand storage, which is a particularly expensive operation. Instead the contract stores only the hash of the latest answer in the history, combined with the hash of the previous answer in the history to establish an untamperable chain. Since the answer history is not held by the contract, it instead has to be supplied to the 'claimWinnings` transaction at the end of the process. 
+
+In future it may be also useful to use an on-chain gas price oracle to detect conditions of low availability.
 
 ### Gas exhaustion and bonds that are uneconomical to claim.
 
 Unless specified by the creator of a question, the system does not force a minimum value on the size of any given bond. Although the doubling process puts a practical limit on the number of answers it may reasonably be expected to handle, there may still be a number of very small bonds submitted before the recoverable bonds reach the value of the gas required to recover them. In theory the gas required to claim bonds for all the answers that have been supplied may exceed the Block Gas Limit.
 
 This is handled by starting the claim process from the most expensive end, and allowing the claimer to stop before getting to the first answer in the series. It also allows the claim to be split over multiple transactions, each leaving the contract with an earlier transaction history hash.
+
+## Managing and fetching information
 
 ### Encoding questions and answers
 
@@ -89,5 +93,8 @@ A contract consuming this data should be prepared to make the necessary type con
 
 The issue of at what point a question is decided, and in what ways it may be reported as undecided, is quite complex. Some uses require reporters to provide the best information available to them at the time, while others are not interested in an answer until it is reasonably clear. Many contracts will only be interested in a positive answer, eg an insurance contract might be interested in finding out when your house has burned down, but have no interest in the infinite number of occasions on which it did not burn down.
 
-This question is considered beyond the scope of the system. The handling of null, undecided or unclear answers is left to the terms of each individual question. There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided", these values may be returned by responders. The terms of the question may designate a particular value or range of values to mean things like "undecided" or "uncertain".
+The handling of null, undecided or unclear answers is considered outside the scopoe of the system and left to the terms of each individual question. The terms of the question may designate a particular value or range of values to mean things like "undecided" or "uncertain". They may also specify the level of certainty and/or finality that should be applied when evaluating the result at any given time.
 
+There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be returned by responders. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
+
+After settlement Reality Check will preserve information about the IPFS hash, arbitrator, step delay, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return from a fee, on a similar model to the Ethereum Alarm Clock.
