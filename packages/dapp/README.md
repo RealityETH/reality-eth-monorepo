@@ -97,3 +97,27 @@ The handling of null, undecided or unclear answers is considered outside the sco
 There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be returned by responders. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
 
 After settlement Reality Check will preserve information about the IPFS hash, arbitrator, step delay, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return from a fee, on a similar model to the Ethereum Alarm Clock.
+
+## Arbitration mechanisms
+
+When they post bonds, users are ultimately betting that, in the event that the bonds are escalated to a high level and arbitration is requested, the arbitrator will decide in their favour. Reality Check does not solve the fundamental problem of getting true information on the blockchain (or at all); It instead passes the problem on to an arbitrator contract of the user's choice. However, the system of escalating bonds should mean that the arbitration contract can use slow, expensive processes for arbitration, while preserving low costs and fast resolution times for the typical case, and passing the cost of arbitration onto "untruthful" participants.
+
+### Centralized trusted arbitrators
+
+Intially we provide a centralized arbitration service, run by Reality Keys, similar to the model we have been operating with since 2013.
+
+### Jury pools
+
+Pools of trusted have often been used successfully in Ethereum, particularly for contract resolution, where pools of keyholders, named "curators" or "custodians", are able to report on the equivalent of "Does contract x have a serious bug that justifies letting its developers upgrade it" or "Is X a legitimate upgrade to contract Y?". These share the same basic security risks as centralized trusted arbitrators (coercion, bribery, blackmail, key leakage, key loss) but will substantially decrease their likelihood for many use-cases.
+
+### Stakeholder voting
+
+Where a consumer contract has their own token, they may choose 
+
+### Coordination games
+
+Some designs have attempted to leverage coordination games to encourage reporters to report correctly. This is done in Augur, which also contains elements of Subjectivocracy (see below). A system like this, or Augur itself, could be used as an arbitrator via a simple bridge contract.
+
+### Subjectivocracy
+
+We plan to pursue a system along the lines described here: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
