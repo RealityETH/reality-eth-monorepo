@@ -47,6 +47,7 @@ Example:
  * Charlie: A 64 [ Right, will be returned ]
 
 Payout:
+
  * Alice:   Returned bonds:  1 +  4, losers' bonds: 2, Answer takeover fee + 4
  * Charlie: Returned bonds: 16 + 64, losers' bonds: 8 + 32, answer fee to Alice -4, question bounty 100
 
