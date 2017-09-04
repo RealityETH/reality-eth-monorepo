@@ -112,7 +112,7 @@ Pools of trusted have often been used successfully in Ethereum, particularly for
 
 ### Stakeholder voting
 
-Where a consumer contract has their own token, they may choose 
+Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote.
 
 ### Coordination games
 
