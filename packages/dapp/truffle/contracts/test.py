@@ -549,35 +549,57 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_bond_bulk_withdrawal(self):
+    def test_bond_bulk_withdrawal_other_user(self):
 
-        return
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
-
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
-
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=22+5, sender=t.k5, startgas=200000) 
-
-        self.c.mine()
-        self.s = self.c.head_state
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        claimable = 64+32+16+8+4+2+1000
 
         self.s.timestamp = self.s.timestamp + 11
-        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
-
-        starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
-
-        # Mine to reset the gas used to 0
         self.c.mine()
         self.s = self.c.head_state
 
-        self.rc0.claimMultipleAndWithdrawBalance([self.question_id], [self.question_id, self.question_id], [a22, a1], sender=t.k5, startgas=200000)
+        self.assertEqual(selfrc0.balanceOf(keys.privtoaddr(t.k3)), 0)
+
+        # Have an unconnected user do the claim
+        # This will leave the balance in the contract rather than withdrawing it
+        self.rc0.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer'], sender=t.k5, startgas=200000)
+        
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), claimable)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_bulk_withdrawal_other_user(self):
+
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        claimable = 64+32+16+8+4+2+1000
+
+        self.s.timestamp = self.s.timestamp + 11
+        self.c.mine()
+        self.s = self.c.head_state
+
+        starting_bal = self.s.get_balance(keys.privtoaddr(t.k3))
+
+        # Have the user who gets all the cash do the claim
+        # This will empty their balance from the contract and assign it to their normal account
+        self.rc0.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer'], sender=t.k3, startgas=200000)
+        ending_bal = self.s.get_balance(keys.privtoaddr(t.k3))
         gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
 
-        ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
-        self.assertEqual(starting_bal+1000+2+22-gas_used, ending_bal)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0, "All funds are gone from the contract once withdrawal is complete")
+        self.assertEqual(starting_bal+claimable-gas_used, ending_bal)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 0, "All funds are gone from the contract once withdrawal is complete")
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks_unbundled(self):

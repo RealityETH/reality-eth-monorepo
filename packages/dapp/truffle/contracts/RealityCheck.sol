@@ -533,7 +533,7 @@ contract RealityCheck {
             }
             claimWinnings(qid, hh, ad, bo, an);
         }
-
+        withdraw(balances[msg.sender]);
     }
 
     function fundAnswerBounty(bytes32 question_id) 
