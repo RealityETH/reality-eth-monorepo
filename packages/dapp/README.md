@@ -15,17 +15,17 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 
 ## Basic Process
 
- * You post a question to the `askQuestion()` function, specifiying:
+ * You post a question to the `askQuestion` function, specifiying:
      * The question text and terms, in the form of an IPFS document hash.
      * The "step delay", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
      * Optionally, a minimum bond to start with.
- * Anyone can post an answer by calling the `submitAnswer()` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
+ * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
  * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the clock.
  * Once the "step delay" from the last answer has elapsed, the system considers it final.
- * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator()` transaction to the contract.
+ * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator` transaction to the contract.
  * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
- * Users can call `withdraw()` to take ETH held in their balance out of the contract.
+ * Users can call `withdraw` to take ETH held in their balance out of the contract.
 
 ## Incentive problems and mitigations
 
@@ -54,7 +54,7 @@ Payout:
 
 As described above the system rewards answerers for being first with the right answer. However, in Ethereum being the first to send information does not guarantee that you will be the first to get that information into the blockchain. Other users could listen for transactions sent by frequently reliable answerers, and get the same answer into the blockchain before them.
 
-To allow users to prevent this, we allow answers to be supplied by a commit-and-reveal process. This replaces the single-step `submitAnswer()` with two transactions. The first transaction, `submitAnswerCommitment()`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal()`, provides the actual answer, and the nonce used to create the hash. 
+To allow users to prevent this, we allow answers to be supplied by a commit-and-reveal process. This replaces the single-step `submitAnswer` with two transactions. The first transaction, `submitAnswerCommitment`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal`, provides the actual answer, and the nonce used to create the hash. 
 
 To give other users a chance to respond to their answer, the time allowed for the reveal is limited to 1/8 of the step delay. During this time, other users are free to post their own answers. However, these answers will be listed after the previous user's commit, and if the commit turns out to have been the same as the answer they are submitting, they will have to share their rewards with them, as in the payout example above. Submitting an answer immediately after someone else has given the same answer may not be profitable.
 
@@ -102,7 +102,7 @@ After settlement Reality Check will preserve information about the IPFS hash, ar
 
 When they post bonds, users are ultimately betting that, in the event that the bonds are escalated to a high level and arbitration is requested, the arbitrator will decide in their favour. Reality Check does not solve the fundamental problem of getting true information on the blockchain (or at all); It instead passes the problem on to an arbitrator contract of the user's choice. However, the system of escalating bonds should mean that the arbitration contract can use slow, expensive processes for arbitration, while preserving low costs and fast resolution times for the typical case, and passing the cost of arbitration onto "untruthful" participants.
 
-An arbitrator can be any contract that exposes a public method `getFee(bytes32)` telling users the fee it charges for a particular question, and the ability to call `submitAnswerByArbitrator()` against the Reality Check contract to report the correct answer. We anticipate the following models:
+An arbitrator can be any contract that exposes a public method `getFee(bytes32)` telling users the fee it charges for a particular question, and the ability to call `submitAnswerByArbitrator` against the Reality Check contract to report the correct answer. We anticipate the following models:
 
 ### Centralized trusted arbitrators
 
