@@ -54,8 +54,10 @@ const Qi_step_delay = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_best_answer = 6;
-const Qi_question_json = 7; // We add this manually after we load the ipfs data
-const Qi_creation_ts = 8; // We add this manually from the event log
+const Qi_bond = 7;
+const Qi_history_hash = 8;
+const Qi_question_json = 9; // We add this manually after we load the ipfs data
+const Qi_creation_ts = 10; // We add this manually from the event log
 
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
@@ -2043,16 +2045,6 @@ $(document).on('click', '.post-answer-button', function(e){
     var current_question;
     var is_err = false;
 
-    var payable = new BigNumber(0);
-    if (parent_div.hasClass('has-someone-elses-answer')) {
-        payable = new BigNumber(parent_div.attr('data-answer-payment-value')); 
-        //console.log('is someone elses answer');
-    } else if (parent_div.hasClass('has-your-answer')) {
-        payable = new BigNumber(parent_div.attr('data-answer-payment-value')).neg()
-        //console.log('is your answer');
-    }
-    //console.log('payable is ', payable.toString());
-
     rc.questions.call(question_id).then(function(cq) {
         current_question = cq;
         current_question.unshift(question_id);
@@ -2122,11 +2114,8 @@ $(document).on('click', '.post-answer-button', function(e){
                 break;
         }
 
-        // check bond
-        return rc.getMinimumBondForAnswer.call(question_id, formatForAnswer(new_answer, question_json['type']), account);
-    }).then(function(min_amount){
-        //console.log('got min_amount', min_amount.toString(), 'vs bond ', bond.toString());
-        if (bond.plus(payable).lt(min_amount)) {
+        var min_amount = current_question[Qi_bond] * 2;
+        if (bond.lt(min_amount)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3.fromWei(min_amount, 'ether'));
             is_err = true;
@@ -2136,12 +2125,8 @@ $(document).on('click', '.post-answer-button', function(e){
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        var min_payable_param = new BigNumber(0);
-        if (payable > 0) {
-            min_payable_param = payable;
-        }
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', payable, {from:account, value:bond.plus(payable)});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), '', current_question[Qi_bond], {from:account, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
