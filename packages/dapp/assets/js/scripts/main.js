@@ -752,6 +752,8 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_question_ipfs] = data[Qi_question_ipfs-1];
                 question[Qi_bounty] = data[Qi_bounty-1];
                 question[Qi_best_answer] = data[Qi_best_answer-1];
+                question[Qi_bond] = data[Qi_bond-1];
+                question[Qi_history_hash] = data[Qi_history_hash-1];
             console.log('set question', question_id, question);
             }  else {
                 console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
@@ -1443,6 +1445,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 function totalClaimable(question_detail) {
     return new Promise((resolve, reject)=>{
         var poss = possibleClaimableItems(question_detail);
+        console.log('got poss', poss);
+        return;
         if (poss['total'].isZero()) {
             resolve(poss['total']);
         } else {
