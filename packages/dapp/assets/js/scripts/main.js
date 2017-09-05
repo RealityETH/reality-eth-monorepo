@@ -454,6 +454,8 @@ $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
     ensureQuestionDetailFetched(question_id).then(function(question_detail){
+        console.log(question_detail);
+        return;
         var claimable = possibleClaimableItems(question_detail);
         //console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
@@ -1456,52 +1458,87 @@ function totalClaimable(question_detail) {
 
 function possibleClaimableItems(question_detail) {
 
-    //console.log('in claimableItems', question_detail);
     var ttl = new BigNumber(0); 
     var is_your_claim = false;
 
-    var your_question_ids = [];
-    var claimable_question_ids = [];
-    var claimable_answers = [];
+    var question_ids = [];
+    var answer_lengths = [];
 
-    if (isFinalized(question_detail)) {
-        for(var i=0; i<question_detail['history'].length; i++) {
-            if (question_detail[Qi_best_answer] == question_detail['history'][i].args.answer) {
-                is_your_claim = true;
-            }
-            break; 
-        }
+    if (new BigNumber(question_detail[Qi_history_hash]).equals(0)) {
+        console.log('everything already claimed', question[Qi_history_hash]);
+        return;
     }
-    
-    if (is_your_claim) {
-        var claimable_bonds = {};
-        for(var i=0; i<question_detail['history'].length; i++) {
-            var a = question_detail['history'][i].args.answer;
-            var b = question_detail['history'][i].args.bond;
-            if (typeof claimable_answers[a] != 'BigNumber') {
-                claimable_bonds[a] = new BigNumber(0);
+
+    if (!isFinalized(question_detail)) {
+        console.log('not finalized', question_detail);
+        return;
+    }
+
+    for(var i=0; i<question_detail['history'].length; i++) {
+        if (question_detail[Qi_best_answer] == question_detail['history'][i].args.answer) {
+            is_your_claim = true;
+        }
+        break; 
+    }
+
+    if (!is_your_claim) {
+        console.log('nothing for you', question_detail['history']);
+        return;
+    }
+
+    var claimable_bonds = [];
+    var claimable_answers = [];
+    var claimable_history_hashes = [];
+    var is_first = true;
+    var num_claimed = 0;
+    var is_yours = false;
+    var final_answer = question_detail[Qi_best_answer];
+    for(var i = question_detail['history'].length-1; i >= 0; i--) {
+        var answer = question_detail['history'][i].args.answer;
+        var answerer = question_detail['history'][i].args.answerer;
+        var bond = question_detail['history'][i].args.bond;
+
+        if (is_yours) {
+            // Somebody takes over your answer
+            if (answerer != account && final_answer == answer) {
+                is_yours = false; 
+                ttl = ttl.minus(bond); // pay them their bond
+            } else {
+                ttl = ttl.plus(bond); // take their bond
             }
-            claimable_bonds[a] = claimable_bonds[a].plus(b);
-            ttl = ttl.plus(b);
+        } else {
+            // You take over someone else's answer
+            if (final_answer == answer) {
+                is_yours = true;
+                ttl = ttl.plus(bond); // your bond back
+                ttl = ttl.plus(bond); // their takeover payment to you
+            }
+            if (is_first) {
+                ttl = ttl.plus(question_detail[Qi_bounty]);
+            }
         }
 
-        ttl = ttl.plus(question_detail[Qi_bounty]);
-        if (!question_detail[Qi_bounty].isZero()) {
-            your_question_ids.push(question_detail[Qi_question_id]);
-        }
+        // Ours or not, we still have to supply the history to claim
+        var h = question_detail['history'][i].args.history_hash; 
+        claimable_bonds.push(b);
+        claimable_answers.push(a);
+        claimable_history_hashes.push(h);
 
-        claimable_answers = Object.keys(your_question_ids);
-        for(var i = 0; i<claimable_answers.length; i++) {
-            claimable_question_ids.push(question_detail[Qi_question_id]);
-        }
+        is_first = false;
+    }
 
+    if (ttl.gt(0)) {
+        your_question_ids.push(question_detail[Qi_question_id]);
+        answer_lengths.push(claimable_bonds.length);
     }
 
     return {
         'total': ttl,
-        'bounty_question_ids': your_question_ids,
-        'bond_question_ids': claimable_question_ids,
-        'bond_answers': claimable_answers
+        'question_ids': your_question_ids,
+        'answer_lengths': answer_lengths,
+        'answers': claimable_answers,
+        'bonds': claimable_bonds,
+        'history_hashes': claimable_history_hashes
     }
     
 }
