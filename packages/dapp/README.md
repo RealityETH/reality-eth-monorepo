@@ -60,6 +60,8 @@ To give other users a chance to respond to their answer, the time allowed for th
 
 The reveal will update the "current best" answer in the same way that a normal answer would have, unless a new answer has already been posted with a higher bond by the time the reveal comes, in which case the answer posted after the commit will stand. 
 
+In the event that the user fails to send the reveal transaction by the reveal deadline, the system will consider their answer incorrect, and they will lose their bond as if they had simply posted an incorrect answer.
+
 Whether they use the commit-reveal process or not, there is always a possibility that someone will get an answer into the system ahead of you that you were not aware of when you sent it. Unless you have substantially increased the bond, this will cause your answer to be rejected. If you have substantially increased the bond, you can choose whether you 
 
 ### Network unavailability and congestion
