@@ -62,7 +62,7 @@ The reveal will update the "current best" answer in the same way that a normal a
 
 In the event that the user fails to send the reveal transaction by the reveal deadline, the system will consider their answer incorrect, and they will lose their bond as if they had simply posted an incorrect answer.
 
-Whether they use the commit-reveal process or not, there is always a possibility that someone will get an answer into the system ahead of you that you were not aware of when you sent it. Unless you have substantially increased the bond, this will cause your answer to be rejected. If you have substantially increased the bond, you can choose whether you 
+Whether they use the commit-reveal process or not, there is always a possibility that someone will get an answer into the system ahead of you that you were not aware of when you sent it. Unless you have substantially increased the bond, this will cause your answer to be rejected. If you have substantially increased the bond, your transaction can either be accepted or rejected, according to a setting (minimum existing bond) made when you sent the transaction.
 
 ### Network unavailability and congestion
 
