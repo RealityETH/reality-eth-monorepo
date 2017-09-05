@@ -11,8 +11,17 @@ contract ArbitratorAPI {
 contract RealityCheck {
 
     // To make it hard for us to forget to set one of these, every non-constant function should specify:
-    //    actorArbitrator or //actorAnyone
-    //    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or //stateAny
+    //    actorArbitrator or actorAnyone
+    //    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
+    //    internal or external or public
+
+    modifier actorAnyone() {
+        _;
+    }
+
+    modifier stateAny() {
+        _;
+    }
 
     modifier actorArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator);
@@ -22,8 +31,7 @@ contract RealityCheck {
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].step_delay > 0); // Check existence
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts != 1 && finalization_ts != 2); // arbitration pending
-        require(!isFinalized(question_id));
+        require(finalization_ts == 0 || finalization_ts > now);
         _;
     }
 
@@ -38,6 +46,21 @@ contract RealityCheck {
         _;
     }
 
+    modifier bondMustDouble(bytes32 question_id, uint256 max_previous) {
+
+        require(msg.value > 0); 
+
+        uint256 bond_to_beat = questions[question_id].bond;
+
+        // You can specify that you don't want to beat a bond bigger than x
+        require(max_previous == 0 || bond_to_beat <= max_previous);
+
+        // You have to double the bond every time
+        require(msg.value >= (bond_to_beat * 2));
+
+        _;
+
+    }
 
     mapping (address => uint256) balances;
 
@@ -57,7 +80,16 @@ contract RealityCheck {
         address indexed answerer,
         uint256 bond,
         uint256 ts,
+        bool is_commitment,
         bytes32 evidence_ipfs
+    );
+
+    event LogAnswerReveal(
+        bytes32 indexed question_id, 
+        bytes32 answer_hash, 
+        address indexed answerer, 
+        uint256 nonce, 
+        uint256 bond
     );
 
     event LogFundAnswerBounty(
@@ -130,7 +162,26 @@ contract RealityCheck {
         bytes32 history_hash;
     }
 
+    // Only used when claiming more bonds than fits into a transaction
+    // Will probably never actually be used.
+    // Stored in a mapping indexed by question_id.
+    struct Claim {
+        address payee;
+        uint256 last_bond;
+        uint256 take;
+    }
+
+    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash and the sender.
+    struct Commitment {
+        // Deadline for the reveal.
+        // Will use a magic number of 1 to mean "revealed".
+        uint256 deadline_ts; 
+        bytes32 revealed_answer;
+    }
+
     mapping(bytes32 => Question) public questions;
+    mapping(bytes32 => Claim) question_claims;
+    mapping(bytes32 => Commitment) public commitments;
 
     // Arbitration requests should be unusual, so to save gas don't assign space in the Question struct
     mapping(bytes32 => uint256) public arbitration_bounties;
@@ -139,8 +190,9 @@ contract RealityCheck {
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-        //actorAnyone
+        actorAnyone()
         //stateNotCreated: See inline check below
+        external
     payable returns (bytes32) {
 
         // A step delay of 0 makes no sense, and we will use this to check existence
@@ -152,7 +204,6 @@ contract RealityCheck {
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].step_delay ==  0); // Check existence
 
-        questions[question_id].finalization_ts = 0;
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].step_delay = step_delay;
         questions[question_id].question_ipfs = question_ipfs;
@@ -164,22 +215,18 @@ contract RealityCheck {
 
     }
 
-    /*
-    function getAnswer(bytes32 question_id, bytes32 answer) 
-    constant returns (address answerer, uint256 bond) {
-        return (questions[question_id].answers[answer].answerer, questions[question_id].answers[answer].bond); 
-    }
-    */
-
     // Predict the ID for a given question
     function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-    constant returns (bytes32) {
+        constant 
+        external
+    returns (bytes32) {
         return keccak256(question_ipfs, arbitrator, step_delay);
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
-        //actorAnyone(question_id)
-        //stateAny(question_id) 
+        actorAnyone()
+        stateAny() 
+        external
         // You can make a callback request before question registration, or repeat a previous one
         // If your calling contract expects only one, it should handle the duplication check itself.
     payable {
@@ -187,65 +234,109 @@ contract RealityCheck {
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
     }
 
-    /*
-    // TODO: Write tests for this
-    function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) 
-    constant returns (uint256) {
 
-        // The bond we have to beat
-        bytes32 old_best_answer = questions[question_id].best_answer;
-        uint256 old_bond = questions[question_id].answers[old_best_answer].bond;
+    function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bytes32 evidence_ipfs, bool is_commitment, uint256 finalization_ts) 
+        internal
+    returns (bytes32)
+    {
 
-        // The address that previously gave the answer you intend to give
-        address previous_answerer = questions[question_id].answers[answer].answerer;
+        bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer);
 
-        address NULL_ADDRESS;
-        if (previous_answerer == NULL_ADDRESS) {
-            return old_bond * 2;
-        }
-        
-        uint256 previous_bond = questions[question_id].answers[answer].bond;
-        if (previous_answerer == answerer) {
-            return (old_bond * 2) - previous_bond;
-        } else {
-            return (old_bond * 2) + previous_bond;
-        }
-    }
-    */
-
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
-        //actorAnyone(question_id)
-        stateOpen(question_id)
-    payable returns (bytes32) {
-
-        uint256 bond_to_beat = questions[question_id].bond;
-
-        // You can specify that you don't want to beat a bond bigger than x
-        require(max_previous == 0 || bond_to_beat <= max_previous);
-
-        require(msg.value > 0); 
-
-        // You have to double the bond every time
-        require(msg.value >= (bond_to_beat * 2));
-
-        bytes32 new_state = keccak256(questions[question_id].history_hash, msg.sender, msg.value, answer);
-
-        questions[question_id].bond = msg.value;
+        questions[question_id].bond = bond;
         questions[question_id].history_hash = new_state;
-        questions[question_id].best_answer = answer;
-        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
+
+        if (!is_commitment) {
+            // For a commit-reveal, we leave these until the reveal
+            questions[question_id].best_answer = answer;
+            questions[question_id].finalization_ts = finalization_ts;
+        }
 
         LogNewAnswer(
             answer,
             question_id,
             new_state,
-            msg.sender,
-            msg.value,
+            answerer,
+            bond,
             now,
+            is_commitment,
             evidence_ipfs
         );
 
         return answer;
+
+    }
+
+    // TODO: Delete this before release, you shouldn't use it.
+    // Just using it for now while we make sure we calculate the hash right in python and javascript
+    function calculateCommitmentHash(bytes32 answer, uint256 nonce) 
+        constant 
+        public
+    returns (bytes32)
+    {
+        return keccak256(answer, nonce);
+    }
+
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, bytes32 evidence_ipfs, uint256 max_previous) 
+        actorAnyone() // ...but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        stateOpen(question_id)
+        bondMustDouble(question_id, max_previous)
+        external
+    payable returns (bytes32) {
+
+        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+
+        // You can only use the same commitment once.
+        // If you want to submit the same answer again, use a new nonce.
+        require(commitments[commitment_id].deadline_ts == 0);
+
+        uint256 step_delay = questions[question_id].step_delay;
+
+        commitments[commitment_id].deadline_ts = now + (step_delay/8);
+
+        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, 0);
+
+    }
+
+    // NB The bond is the amount you sent in submitAnswerCommitment.
+    // This is used to recreate the history hash so we can check whether your answer is still current.
+    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, bytes32 history_hash, uint256 bond) 
+        actorAnyone() // ... but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        stateOpen(question_id)
+        external
+    {
+
+        bytes32 answer_hash = keccak256(answer, nonce);
+        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+
+        uint256 deadline_ts = commitments[commitment_id].deadline_ts;
+        require(deadline_ts > 1); // Commitment must exist, and not be in already-answered state
+        require(deadline_ts > now); 
+
+        commitments[commitment_id].deadline_ts = 1;
+        commitments[commitment_id].revealed_answer = answer;
+
+        // If the question still has the same final answer as when you committed, your are still top.
+        // This means you can update best_answer, and take responsibility for advancing the finalization_ts
+        // If somebody has already beaten this option, it's no longer relevant, so leave finalization_ts alone
+        bytes32 recreate_state = keccak256(history_hash, answer_hash, bond, msg.sender);
+        if (recreate_state == questions[question_id].history_hash) {
+            questions[question_id].best_answer = answer;
+        }
+        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
+
+        LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
+
+    }
+
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
+        actorAnyone()
+        stateOpen(question_id)
+        external
+        bondMustDouble(question_id, max_previous)
+    payable returns (bytes32) {
+
+        uint256 finalization_ts = now + questions[question_id].step_delay;
+        return _addAnswer(question_id, answer, msg.sender, msg.value, evidence_ipfs, false, finalization_ts);
 
     }
 
@@ -258,41 +349,25 @@ contract RealityCheck {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer, bytes32 evidence_ipfs) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
+        external
     returns (bytes32) {
 
-        // TODO: Put this logic back in
-        // If the answer is already there, just go ahead and finalize on it
-        // If this is a new answer, submit it first with a bond of zero
-        // This will allow us to claim the other bonds
         require(answerer != 0x0);
 
-        bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, uint256(0), answer);
-        LogNewAnswer(
-            answer,
-            question_id,
-            new_state,
-            msg.sender,
-            0,
-            now,
-            evidence_ipfs
-        );
-
-        questions[question_id].best_answer = answer;
-        questions[question_id].history_hash = new_state;
-
-        // Set this to 1 second ago so that "did we finalize" checks will immediately pass
-        questions[question_id].finalization_ts = now - 1;
+        uint256 finalization_ts = now - 1;
 
         balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
         delete arbitration_bounties[question_id];
 
         LogFinalize(question_id, answer);
-        
-        return answer;
+
+        return _addAnswer(question_id, answer, answerer, uint256(0), evidence_ipfs, false, finalization_ts);
 
     }
 
     function isFinalized(bytes32 question_id) 
+        constant
+        public
     returns (bool) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
         // 0, 1, 2 are magic numbers meaning "unanswered, unanswered pending arbitration, answered pending arbitration"
@@ -301,28 +376,11 @@ contract RealityCheck {
 
     function getFinalAnswer(bytes32 question_id) 
         stateFinalized(question_id)
+        external
     returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
-    function isArbitrationPaidFor(bytes32 question_id) 
-    constant returns (bool) {
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts == 2) || (finalization_ts == 1) );
-    }
-
-    function getEarliestFinalizationTS(bytes32 question_id) 
-    constant returns (uint256) {
-        return questions[question_id].finalization_ts;
-    }
-
-    struct Claim {
-        address payee;
-        uint256 last_bond;
-    }
-
-    mapping(bytes32 => Claim) question_claims;
-    
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
     //
@@ -335,18 +393,18 @@ contract RealityCheck {
     // If you only supply part of the then chain the data we need to carry on later will be stored.
     //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-        //actorAnyone(question_id) // Doesn't matter who calls it, it only pays the winner(s).
+        actorAnyone() // Doesn't matter who calls it, it only pays the winner(s).
         stateFinalized(question_id)
+        public 
     {
 
         // The following are usually 0 / null.
-        // They are only set if we split our claim over multiple tranactions.
+        // They are only set if we split our claim over multiple transactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
         address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
+        uint256 take = question_claims[question_id].take; // Money we can pay out
 
         bytes32 best_answer = questions[question_id].best_answer;
-
-        uint256 take = 0; // Money we can pay out
 
         // History entries should have been sent from last to first.
         // We work up the chain and assign bonds to the person who gave the right answer
@@ -362,10 +420,15 @@ contract RealityCheck {
         uint256 i;
         for (i=0; i<history_hashes.length; i++) {
 
-            require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
+            require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i]));
 
             take += last_bond; 
             assert(take >= last_bond);
+
+            if (commitments[keccak256(answers[i],addrs[i])].deadline_ts == 1) {
+                answers[i] = commitments[keccak256(answers[i],addrs[i])].revealed_answer;
+                delete commitments[keccak256(answers[i],addrs[i])];
+            }
 
             if (answers[i] == best_answer) {
 
@@ -417,94 +480,69 @@ contract RealityCheck {
             last_history_hash = history_hashes[i];
 
         }
-
+                 
         if (last_history_hash == "") {
-            // All done, there is nothing left below us so we can keep what remains
+            // There is nothing left below us so we can keep what remains
             take += last_bond;
+            balances[payee] += take;
             delete question_claims[question_id];
         } else {
             // We haven't yet got to the null hash (1st answer), so store the details to pick up later
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
+
+            // If we're still waiting for the winner, we have to persist their winnings.
+            // These will remain in the pool until they submit enough history to tell use who they are.
+            // Otherwise we can go ahead and pay them out, only keeping back last_bond
+            if (payee == 0x0) {
+                question_claims[question_id].take = take;
+            } else {
+                balances[payee] += take;
+                question_claims[question_id].take = 0;
+            }
         }
 
-        balances[payee] += take;
         questions[question_id].history_hash = last_history_hash;
 
         LogClaimBond(question_id, best_answer, payee, take);
 
     }
 
-
-    /*
-    function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
-    constant
-        //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
-    returns (uint256) {
+    // Convenience function to claim for multiple questions in one go.
+    // question_ids are the question_ids, lengths are the number of history items for each.
+    // The rest of the arguments are all the history item arrays stuck together
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32 answers) 
+        actorAnyone() // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        stateAny() // The finalization checks are done in the claimWinnings function
+        public
+    {
         
-        require(bond_question_ids.length == bond_answers.length);
-        uint256 ttl;
-
+        uint256 qi;
         uint256 i;
-        address payee;
-        bytes32 best_answer;
-        bytes32 question_id;
-        for(i=0; i<bounty_question_ids.length; i++) {
-            question_id = bounty_question_ids[i];
-            best_answer = questions[question_id].best_answer;
-            payee = questions[question_id].answers[best_answer].answerer;
-            if (payee == claimer) {
-                ttl += questions[question_id].bounty;
+        for(qi=0; qi<question_ids.length; qi++) {
+            bytes32 qid = question_ids[qi];
+            uint256 l = lengths[qi];
+            bytes32[] memory hh = new bytes32[](l);
+            address[] memory ad = new address[](l);
+            uint256[] memory bo = new uint256[](l);
+            bytes32[] memory an = new bytes32[](l);
+            uint256 j;
+            for(j=0; j<l; j++) {
+                hh[j] = hist_hashes[i];
+                ad[j] = addrs[i];
+                bo[j] = bonds[i];
+                an[j] = answers[i];
+                i++;
             }
+            claimWinnings(qid, hh, ad, bo, an);
         }
-
-        for(i=0; i<bond_question_ids.length; i++) {
-            question_id = bond_question_ids[i];
-            best_answer = questions[question_id].best_answer;
-            payee = questions[question_id].answers[best_answer].answerer;
-            if (payee == claimer) {
-                ttl += questions[question_id].answers[bond_answers[i]].bond;
-            }
-        }
-
-        return ttl;
 
     }
-    */
-
-
-
-    /*
-    // Convenience function to claim multiple bounties and bonds in 1 go
-    // bond_question_ids are the question ids you want to claim for
-    // bond_answers are the answers you want to claim for
-    // TODO: This could probably be more efficient, as some checks are being duplicated
-    function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
-        //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
-    returns (bool withdrawal_completed) {
-        
-        require(bond_question_ids.length == bond_answers.length);
-
-        uint256 i;
-        for(i=0; i<bounty_question_ids.length; i++) {
-            claimBounty(bounty_question_ids[i]);
-        }
-
-        for(i=0; i<bond_question_ids.length; i++) {
-            claimWinnings(bond_question_ids[i], bond_answers[i]);
-        }
-
-        msg.sender.transfer(balances[msg.sender]);
-        balances[msg.sender] = 0;
-
-    }
-    */
 
     function fundAnswerBounty(bytes32 question_id) 
-        // actorAnyone(question_id)
+        actorAnyone()
         stateOpen(question_id)
+        external
     payable {
         questions[question_id].bounty += msg.value;
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
@@ -515,8 +553,9 @@ contract RealityCheck {
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
     function requestArbitration(bytes32 question_id) 
-        // actorAnyone(question_id)
+        actorAnyone()
         stateOpen(question_id)
+        external
     payable returns (bool) {
 
         uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
@@ -542,8 +581,9 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
-        //actorAnyone(question_id)
+        actorAnyone()
         stateFinalized(question_id)
+        external
     returns (bool) {
 
         // By default we return false if there is no bounty, because it has probably already been taken.
@@ -576,8 +616,9 @@ contract RealityCheck {
     }
 
     function withdraw(uint256 _value) 
-        //actorAnyone: Only withdraws your own balance 
-        //stateAny: You can always withdraw your balance
+        actorAnyone() // Only withdraws your own balance 
+        stateAny() // You can always withdraw your balance
+        public
     returns (bool success) {
         uint256 orig_bal = balances[msg.sender];
         require(orig_bal >= _value);
@@ -592,7 +633,9 @@ contract RealityCheck {
     }
 
     function balanceOf(address _owner) 
-    constant returns (uint256 balance) {
+        constant 
+        external
+    returns (uint256 balance) {
         return balances[_owner];
     }
 
