@@ -102,6 +102,8 @@ After settlement Reality Check will preserve information about the IPFS hash, ar
 
 When they post bonds, users are ultimately betting that, in the event that the bonds are escalated to a high level and arbitration is requested, the arbitrator will decide in their favour. Reality Check does not solve the fundamental problem of getting true information on the blockchain (or at all); It instead passes the problem on to an arbitrator contract of the user's choice. However, the system of escalating bonds should mean that the arbitration contract can use slow, expensive processes for arbitration, while preserving low costs and fast resolution times for the typical case, and passing the cost of arbitration onto "untruthful" participants.
 
+An arbitrator can be any contract that exposes a public method `getFee(bytes32)` telling users the fee it charges for a particular question, and the ability to call `submitAnswerByArbitrator()` against the Reality Check contract to report the correct answer. We anticipate the following models:
+
 ### Centralized trusted arbitrators
 
 Intially we provide a centralized arbitration service, run by Reality Keys, similar to the model we have been operating with since 2013.
