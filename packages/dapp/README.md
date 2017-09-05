@@ -15,7 +15,7 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 
 ## Basic Process
 
- * You post a question to the `askQuestion` function, specifiying:
+ * You post a question to the `askQuestion()` function, specifiying:
      * The question text and terms, in the form of an IPFS document hash.
      * The "step delay", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
@@ -33,22 +33,22 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
  
 The system requires people to post useful information. It also requires people to spot bad information, and if necessary post fairly large bonds to beat the bonds posted by people posting bad information. These roles will not necessarily be played by the same people, and both should be rewarded.
 
-We allow people to post an answer already posted by someone else. However, we require them to pay the person who posted the previous answer some of their winnings. This payment is set at the equivalent of the bond posted by the previous answerer, plus any bonds posted before that answer. The earlier answerer also collects any bonds from people who posted incorrect answers before their correct answer.
+To fulfill the second goal, we do not require answers to be original. You can post an answer that someone else has given, and this will entitle you to the bounty (if nobody then posts something higher than you) and any bonds for wrong answers posted since the last person posted the same answer. However, when doing this you are required to pay the person who posted the previous answer some of your subsequent winnings. This payment is set at the equivalent of the bond posted by the previous answerer, plus any bonds posted before that answer. The earlier answerer also collects any bonds from people who posted incorrect answers before their correct answer.
 
 Example: Question with a bounty of 100, and no minimum bond:
 
  * Alice:   A  1 [ Right, will be returned ]
  * Bob:     B  2 [ Wrong, will go to Alice ]
- * Alice:   A  4 [ Right, will be returned ] 
- * Bob:     B  8 [ Wrong, 4 will go to Alice, the rest (4) will go to Charlie ]
- * Charlie: A 16 [ Right, will be returned ]
+ * Alice:   A  4 [ Right, will be returned. Also entitles Alice to an additional payment of 4 ] 
+ * Bob:     B  8 [ Wrong, will got to Charlie ]
+ * Charlie: A 16 [ Right, will be returned, minus 4, which is paid to Alice, who gave this answer previously. ]
  * Dave:    B 32 [ Wrong, will go to Charlie ]
  * Charlie: A 64 [ Right, will be returned ]
 
 Payout:
 
  * Alice:   Returned bonds:  1 +  4, losers' bonds: 2, Answer takeover fee + 4
- * Charlie: Returned bonds: 16 + 64, losers' bonds: 8 + 32, answer fee to Alice -4, question bounty 100
+ * Charlie: Returned bonds: 16 + 64, losers' bonds: 8 + 32, answer takeover fee to Alice -4, question bounty + 100
 
 ### Transaction front-running
 
