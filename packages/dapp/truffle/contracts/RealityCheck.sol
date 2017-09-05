@@ -277,20 +277,19 @@ contract RealityCheck {
     }
 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, bytes32 evidence_ipfs, uint256 max_previous) 
-        actorAnyone() // ...but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        actorAnyone() 
         stateOpen(question_id)
         bondMustDouble(question_id, max_previous)
         external
     payable returns (bytes32) {
 
-        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+        bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
         // You can only use the same commitment once.
         // If you want to submit the same answer again, use a new nonce.
         require(commitments[commitment_id].deadline_ts == 0);
 
         uint256 step_delay = questions[question_id].step_delay;
-
         commitments[commitment_id].deadline_ts = now + (step_delay/8);
 
         return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, 0);
@@ -300,13 +299,15 @@ contract RealityCheck {
     // NB The bond is the amount you sent in submitAnswerCommitment.
     // This is used to recreate the history hash so we can check whether your answer is still current.
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, bytes32 history_hash, uint256 bond) 
-        actorAnyone() // ... but the commitment IDs are hashed by msg.sender, so you can only manipulate your own data
+        actorAnyone() // Let anyone do the reveal if they know the nonce. Clients may want to offload this to a service.
         stateOpen(question_id)
         external
     {
 
         bytes32 answer_hash = keccak256(answer, nonce);
-        bytes32 commitment_id = keccak256(answer_hash, msg.sender);
+
+        // The question ID + bond will uniquely identify the answer.
+        bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
 
         uint256 deadline_ts = commitments[commitment_id].deadline_ts;
         require(deadline_ts > 1); // Commitment must exist, and not be in already-answered state
@@ -315,14 +316,10 @@ contract RealityCheck {
         commitments[commitment_id].deadline_ts = 1;
         commitments[commitment_id].revealed_answer = answer;
 
-        // If the question still has the same final answer as when you committed, your are still top.
-        // This means you can update best_answer, and take responsibility for advancing the finalization_ts
-        // If somebody has already beaten this option, it's no longer relevant, so leave finalization_ts alone
-        bytes32 recreate_state = keccak256(history_hash, answer_hash, bond, msg.sender);
-        if (recreate_state == questions[question_id].history_hash) {
+        if (bond == questions[question_id].bond) {
             questions[question_id].best_answer = answer;
+            questions[question_id].finalization_ts = now + questions[question_id].step_delay;
         }
-        questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
 
@@ -425,9 +422,9 @@ contract RealityCheck {
             take += last_bond; 
             assert(take >= last_bond);
 
-            if (commitments[keccak256(answers[i],addrs[i])].deadline_ts == 1) {
-                answers[i] = commitments[keccak256(answers[i],addrs[i])].revealed_answer;
-                delete commitments[keccak256(answers[i],addrs[i])];
+            if (commitments[keccak256(question_id, answers[i], bonds[i])].deadline_ts == 1) {
+                answers[i] = commitments[keccak256(question_id, answers[i], bonds[i])].revealed_answer;
+                delete commitments[keccak256(question_id, answers[i], bonds[i])];
             }
 
             if (answers[i] == best_answer) {
