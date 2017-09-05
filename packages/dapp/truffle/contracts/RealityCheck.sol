@@ -508,7 +508,7 @@ contract RealityCheck {
     // Convenience function to claim for multiple questions in one go.
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
-    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32 answers) 
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
         actorAnyone() // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
         stateAny() // The finalization checks are done in the claimWinnings function
         public
