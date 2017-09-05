@@ -53,6 +53,7 @@ contract RealityCheck {
     event LogNewAnswer(
         bytes32 indexed answer,
         bytes32 indexed question_id,
+        bytes32 history_hash,
         address indexed answerer,
         uint256 bond,
         uint256 ts,
@@ -109,6 +110,7 @@ contract RealityCheck {
     );
 
     struct Answer{
+        bytes32 answer;
         address answerer;
         uint256 bond;
     }
@@ -124,7 +126,8 @@ contract RealityCheck {
         // Mutable data
         uint256 bounty;
         bytes32 best_answer;
-        mapping(bytes32 => Answer) answers; // answer to answer ownership details
+        uint256 bond;
+        bytes32 history_hash;
     }
 
     mapping(bytes32 => Question) public questions;
@@ -136,8 +139,8 @@ contract RealityCheck {
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
-        // actorAnyone
-        // stateNotCreated: See inline check below
+        //actorAnyone
+        //stateNotCreated: See inline check below
     payable returns (bytes32) {
 
         // A step delay of 0 makes no sense, and we will use this to check existence
@@ -149,15 +152,11 @@ contract RealityCheck {
         // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
         require(questions[question_id].step_delay ==  0); // Check existence
 
-        bytes32 NULL_BYTES;
-        questions[question_id] = Question(
-            0,
-            arbitrator,
-            step_delay,
-            question_ipfs,
-            msg.value,
-            NULL_BYTES 
-        );
+        questions[question_id].finalization_ts = 0;
+        questions[question_id].arbitrator = arbitrator;
+        questions[question_id].step_delay = step_delay;
+        questions[question_id].question_ipfs = question_ipfs;
+        questions[question_id].bounty = msg.value;
 
         LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_ipfs, now);
 
@@ -165,10 +164,12 @@ contract RealityCheck {
 
     }
 
+    /*
     function getAnswer(bytes32 question_id, bytes32 answer) 
     constant returns (address answerer, uint256 bond) {
         return (questions[question_id].answers[answer].answerer, questions[question_id].answers[answer].bond); 
     }
+    */
 
     // Predict the ID for a given question
     function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
@@ -186,6 +187,7 @@ contract RealityCheck {
         LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
     }
 
+    /*
     // TODO: Write tests for this
     function getMinimumBondForAnswer(bytes32 question_id, bytes32 answer, address answerer) 
     constant returns (uint256) {
@@ -209,61 +211,36 @@ contract RealityCheck {
             return (old_bond * 2) + previous_bond;
         }
     }
+    */
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_payable) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
         //actorAnyone(question_id)
         stateOpen(question_id)
     payable returns (bytes32) {
 
-        uint256 remaining_val = msg.value;
-        bytes32 old_best_answer = questions[question_id].best_answer;
+        uint256 bond_to_beat = questions[question_id].bond;
+
+        // You can specify that you don't want to beat a bond bigger than x
+        require(max_previous == 0 || bond_to_beat <= max_previous);
 
         require(msg.value > 0); 
 
-        address NULL_ADDRESS;
-        address previous_answerer = questions[question_id].answers[answer].answerer;
-        
-        if (previous_answerer == msg.sender) {
-
-            // If you gave the previous answer, credit your previous bond to the remaining value
-            // Your previous bond will then be over-written with the combined value
-
-            remaining_val += questions[question_id].answers[answer].bond;
-
-        } else if (previous_answerer != NULL_ADDRESS) { 
-
-            // If the answer you submit is already submitted, you have to pay its owner the value of their bond 
-            // They also get their original bond back
-            // Their previous bond and answerer record will then be over-written with new answerer and their remaining value
-
-            uint256 previous_bond = questions[question_id].answers[answer].bond;
-            require(max_payable >= previous_bond);
-
-            remaining_val -= previous_bond;
-
-            // The previous answerer ends up with twice their bond.
-            // Half comes from the new answerer, half is their original bond back
-            balances[previous_answerer] += previous_bond + previous_bond;
-
-        } 
-
         // You have to double the bond every time
-        require(remaining_val >= (questions[question_id].answers[old_best_answer].bond * 2));
+        require(msg.value >= (bond_to_beat * 2));
 
-        // If the previous answer already exists it will be overwritten, replacing its value with the new value
-        questions[question_id].answers[answer] = Answer(
-            msg.sender,
-            remaining_val
-        );
+        bytes32 new_state = keccak256(questions[question_id].history_hash, msg.sender, msg.value, answer);
 
+        questions[question_id].bond = msg.value;
+        questions[question_id].history_hash = new_state;
         questions[question_id].best_answer = answer;
         questions[question_id].finalization_ts = now + questions[question_id].step_delay;
 
         LogNewAnswer(
             answer,
             question_id,
+            new_state,
             msg.sender,
-            remaining_val,
+            msg.value,
             now,
             evidence_ipfs
         );
@@ -275,35 +252,33 @@ contract RealityCheck {
     // Used if the arbitrator has been asked to arbitrate but no correct answer is supplied
     // Allows the arbitrator to submit the correct answer themselves
     // The arbitrator doesn't need to send a bond.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs) 
+    // NB They are trusted not to leave the top answer, but change the answerer
+    // If they do this, they break the assumption that if you have the right answer, you get paid out of the higher person's bond.
+    // TODO: Should we require that they send the previous data, and actually enforce this condition?
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer, bytes32 evidence_ipfs) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
     returns (bytes32) {
 
+        // TODO: Put this logic back in
         // If the answer is already there, just go ahead and finalize on it
         // If this is a new answer, submit it first with a bond of zero
         // This will allow us to claim the other bonds
+        require(answerer != 0x0);
 
-        address NULL_ADDRESS;
-        if (questions[question_id].answers[answer].answerer == NULL_ADDRESS ) {
-
-            questions[question_id].answers[answer] = Answer(
-                msg.sender,
-                0 
-            );
-
-            LogNewAnswer(
-                answer,
-                question_id,
-                msg.sender,
-                0,
-                now,
-                evidence_ipfs
-            );
-
-        }
+        bytes32 new_state = keccak256(questions[question_id].history_hash, answerer, uint256(0), answer);
+        LogNewAnswer(
+            answer,
+            question_id,
+            new_state,
+            msg.sender,
+            0,
+            now,
+            evidence_ipfs
+        );
 
         questions[question_id].best_answer = answer;
+        questions[question_id].history_hash = new_state;
 
         // Set this to 1 second ago so that "did we finalize" checks will immediately pass
         questions[question_id].finalization_ts = now - 1;
@@ -341,56 +316,131 @@ contract RealityCheck {
         return questions[question_id].finalization_ts;
     }
 
-    // Assigns the bond for a particular answer to either:
-    // ...the original answerer, if they had the final answer
-    // ...or the highest-bonded person with the right answer, if they were wrong
-    function claimBond(bytes32 question_id, bytes32 answer) 
-        // actorAnyone(question_id)
+    struct Claim {
+        address payee;
+        uint256 last_bond;
+    }
+
+    mapping(bytes32 => Claim) question_claims;
+    
+    // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
+    // The caller must provide the answer history, in reverse order.
+    //
+    // The first answer is authenticated by checking against the stored history_hash.
+    // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
+    // Once we get to an empty hash we'll know we're done and there are no more answers.
+    //
+    // Usually you would call the whole thing in a single transaction.
+    // But in theory the chain of answers can be arbitrarily long, so you may run out of gas.
+    // If you only supply part of the then chain the data we need to carry on later will be stored.
+    //
+    function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
+        //actorAnyone(question_id) // Doesn't matter who calls it, it only pays the winner(s).
         stateFinalized(question_id)
     {
 
+        // The following are usually 0 / null.
+        // They are only set if we split our claim over multiple tranactions.
+        uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
+        address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
+
         bytes32 best_answer = questions[question_id].best_answer;
 
-        // The bond goes to whoever had the correct answer
-        address payee = questions[question_id].answers[best_answer].answerer;
+        uint256 take = 0; // Money we can pay out
 
-        uint256 bond = questions[question_id].answers[answer].bond;
+        // History entries should have been sent from last to first.
+        // We work up the chain and assign bonds to the person who gave the right answer
+        // However, if someone gave our answer before they did, we make them the payee for subsequent (lower) bonds
+        // They also get the equivalent (x1) of their bond from the higher-up right-answerer
+        // We won't know that we have to pay them until we get to their entry.
+        // So we don't pay out the bond added at x until we have looked at x-1
 
-        LogClaimBond(question_id, answer, payee, bond);
+        // Usually the final hash. It'll be cleared when we're done.
+        // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
+        bytes32 last_history_hash = questions[question_id].history_hash;
 
-        balances[payee] += bond;
+        uint256 i;
+        for (i=0; i<history_hashes.length; i++) {
 
-        // We no longer need answer data except for the best answer.
-        // (We may still need the best answer because there may be other unclaimed bonds)
-        if (answer == best_answer) {
-            questions[question_id].answers[answer].bond = 0;
-        } else {
-            delete questions[question_id].answers[answer];
+            require(last_history_hash == keccak256(history_hashes[i], addrs[i], bonds[i], answers[i]));
+
+            take += last_bond; 
+            assert(take >= last_bond);
+
+            if (answers[i] == best_answer) {
+
+                if (payee == 0x0) {
+
+                    // The highest right answer
+
+                    payee = addrs[i];
+                    take += questions[question_id].bounty;
+                    questions[question_id].bounty = 0;
+
+                } else if (addrs[i] != payee) {
+
+                    // Answerer has changed, ie we found someone lower down who needs to be paid
+
+                    // The lower answerer will take over receiving bonds from higher answerer.
+                    // They should also be paid the equivalent of their bond. 
+                    // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
+
+                    // Normally there should be enough (x2) from the higher user's last_bond to pay the lower user.
+                    // There's an edge case involving weird arbitrator behaviour where there may not a higher bond.
+                    // If we hit that, just pay them as much as we've got, which is 0...
+
+                    uint256 payment = 0;
+                    if (last_bond >= bonds[i]) {
+                        payment = bonds[i];
+                    } else {
+                        payment = last_bond;
+                    }
+
+                    assert(take >= last_bond);
+                    assert(take >= payment);
+
+                    // Settle up with the old payee
+                    take -= payment;
+                    balances[payee] += take;
+                    take = 0;
+
+                    // Now start take again for the new payee
+                    payee = addrs[i];
+                    take = payment;
+
+                }
+
+            } 
+
+            // Line the bond up for next time, when it will be added to somebody's take
+            last_bond = bonds[i];
+            last_history_hash = history_hashes[i];
+
         }
 
-    }
+        if (last_history_hash == "") {
+            // All done, there is nothing left below us so we can keep what remains
+            take += last_bond;
+            delete question_claims[question_id];
+        } else {
+            // We haven't yet got to the null hash (1st answer), so store the details to pick up later
+            question_claims[question_id].payee = payee;
+            question_claims[question_id].last_bond = last_bond;
+        }
 
-    function claimBounty(bytes32 question_id) 
-        // actorAnyone(question_id) // Anyone can call this as it just reassigns the bounty, they don't withdraw it
-        stateFinalized(question_id)
-    {
+        balances[payee] += take;
+        questions[question_id].history_hash = last_history_hash;
 
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        address payee = questions[question_id].answers[best_answer].answerer;
-        uint256 bounty = questions[question_id].bounty;
-
-        LogClaimBounty(question_id, payee, bounty);
-
-        balances[payee] += bounty;
-        questions[question_id].bounty = 0;
+        LogClaimBond(question_id, best_answer, payee, take);
 
     }
 
+
+    /*
     function totalClaimable(address claimer, bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
     constant
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
     returns (uint256) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -421,16 +471,18 @@ contract RealityCheck {
         return ttl;
 
     }
+    */
 
 
 
+    /*
     // Convenience function to claim multiple bounties and bonds in 1 go
     // bond_question_ids are the question ids you want to claim for
     // bond_answers are the answers you want to claim for
     // TODO: This could probably be more efficient, as some checks are being duplicated
     function claimMultipleAndWithdrawBalance(bytes32[] bounty_question_ids, bytes32[] bond_question_ids, bytes32[] bond_answers) 
         //actorAnyone(...) // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
-        //stateAny(...) // The finalization checks should be done in the claimBounty and claimBond functions
+        //stateAny(...) // The finalization checks should be done in the claimBounty and claimWinnings functions
     returns (bool withdrawal_completed) {
         
         require(bond_question_ids.length == bond_answers.length);
@@ -441,13 +493,14 @@ contract RealityCheck {
         }
 
         for(i=0; i<bond_question_ids.length; i++) {
-            claimBond(bond_question_ids[i], bond_answers[i]);
+            claimWinnings(bond_question_ids[i], bond_answers[i]);
         }
 
         msg.sender.transfer(balances[msg.sender]);
         balances[msg.sender] = 0;
 
     }
+    */
 
     function fundAnswerBounty(bytes32 question_id) 
         // actorAnyone(question_id)
@@ -457,7 +510,7 @@ contract RealityCheck {
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
-    // Sends money to the arbitration bounty pool
+    // Sends money to the arbitration bounty last_bond
     // Returns true if enough was paid to trigger arbitration
     // Once triggered, only the arbitrator can finalize
     // This may take longer than the normal step_delay
@@ -489,7 +542,7 @@ contract RealityCheck {
     }
 
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
-        // actorAnyone(question_id)
+        //actorAnyone(question_id)
         stateFinalized(question_id)
     returns (bool) {
 

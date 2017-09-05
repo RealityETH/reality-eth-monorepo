@@ -20,6 +20,7 @@ QINDEX_QUESTION_TEXT = 3
 QINDEX_BOUNTY = 4
 QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_BEST_ANSWER_ID = 6
+QINDEX_HISTORY_HASH = 7
 
 def ipfs_hex(txt):
     return sha256(txt).hexdigest()
@@ -126,12 +127,16 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
+        gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
+
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
+        #self.assertEqual(gas_used - self.s.gas_used, 100000)
 
         self.s.timestamp = self.s.timestamp + 11
         self.assertTrue(self.rc0.isFinalized(self.question_id, startgas=200000))
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
+
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
@@ -169,7 +174,7 @@ class TestRealityCheck(TestCase):
         # The arbitrator cannot submit an answer that has not been requested. 
         # (If they really want to do this, they can always pay themselves for arbitration.)
         with self.assertRaises(TransactionFailed):
-            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
@@ -179,12 +184,12 @@ class TestRealityCheck(TestCase):
 
         # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), to_question_for_contract(("my evidence")), startgas=200000) 
 
 
         self.c.mine()
         self.s = self.c.head_state
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
@@ -193,7 +198,7 @@ class TestRealityCheck(TestCase):
     def test_arbitrator_answering_unanswered(self):
 
         with self.assertRaises(TransactionFailed):
-            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), self.arb0.address, to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
@@ -203,62 +208,212 @@ class TestRealityCheck(TestCase):
 
         # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, to_question_for_contract(("my evidence")), startgas=200000) 
 
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), to_question_for_contract(("my evidence")), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), self.arb0.address, to_question_for_contract(("my evidence")), startgas=200000) 
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
+    def submitAnswerReturnUpdatedState(self, st, qid, ans, evid, max_last, bond, sdr):
+        if st is None:
+            st = {
+                'addr': [],
+                'bond': [],
+                'answer': [],
+                'hash': []
+            }
+        st['hash'].insert(0, self.rc0.questions(qid)[QINDEX_HISTORY_HASH])
+        st['bond'].insert(0, bond)
+        st['answer'].insert(0, to_answer_for_contract(ans))
+        st['addr'].insert(0, keys.privtoaddr(sdr))
+        self.rc0.submitAnswer(qid, to_answer_for_contract(ans), to_question_for_contract(evid), max_last, value=bond, sender=sdr)
+        return st
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_same_person_repeating_self(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_same_person_contradicting_self(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004, "", 8, 16, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003, "", 16, 32, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 32, 64, t.k3)
+        self.s.timestamp = self.s.timestamp + 11
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_arbitration_existing_none(self):
+        self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000)
+        st_hash = self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH]
+
+        self.assertEqual(encode_hex(st_hash), "0"*64)
+
+        st_addr = keys.privtoaddr(t.k4)
+        st_bond = 0
+        st_answer = to_answer_for_contract(1001)
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
+        hh = self.rc0.claimWinnings(self.question_id, [st_hash], [st_addr], [st_bond], [st_answer], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 1000)
+        return
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_arbitration_existing_final(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k4)
+
+        self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000)
+
+        st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        st['addr'].insert(0, keys.privtoaddr(t.k4))
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, to_answer_for_contract(1001))
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+8+4+2+1000)
+
+
     #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_split_over_transactions(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 4, 8, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k4)
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        self.rc0.claimWinnings(self.question_id, st['hash'][:2], st['addr'][:2], st['bond'][:2], st['answer'][:2], startgas=400000)
+
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+1000)
+
+        self.rc0.claimWinnings(self.question_id, st['hash'][2:], st['addr'][2:], st['bond'][2:], st['answer'][2:], startgas=400000)
+
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+8+4+2+1000)
+
+
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_arbitration_existing_not_final(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 2, 4, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, "", 4, 8, t.k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, "", 8, 16, t.k4)
+
+        self.rc0.requestArbitration(self.question_id, value=self.arb0.getFee(), startgas=200000)
+
+        st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        st['addr'].insert(0, keys.privtoaddr(t.k3))
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, to_answer_for_contract(1002))
+        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1002), keys.privtoaddr(t.k3), to_question_for_contract(("my evidence")), startgas=200000) 
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 16+8+4+2+1000)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_min_payment_with_bond_param(self):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
         a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
 
-        # The extra amount you have to send should be passed in a parameters
-        with self.assertRaises(TransactionFailed): 
-            a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=(22+5), sender=t.k5, startgas=200000) 
-
         a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_simple_bond_claim(self):
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=3) 
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+        self.s.timestamp = self.s.timestamp + 11
+
+        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
+
+        self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k0)], [3], [to_answer_for_contract(12345)] , startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000, "Winner gets their bond back plus the bounty")
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
+        claim_args_state = []
+        claim_args_addrs = []
+        claim_args_bonds = []
+        claim_args_answs = []
 
-        # "You must increase from zero"
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 0)
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=0, startgas=200000) 
+
+        claim_args_state.append("")
+        claim_args_addrs.append(keys.privtoaddr(t.k0))
+        claim_args_bonds.append(1)
+        claim_args_answs.append(to_answer_for_contract(12345))
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1, startgas=200000) 
+        
+
+        # "You must increase"
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=1, sender=t.k3, startgas=200000) 
 
+
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k3))
+        claim_args_bonds.append(2)
+        claim_args_answs.append(to_answer_for_contract(10001))
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
 
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=5, sender=t.k4, startgas=200000) 
+        # We will ultimately finalize on this answer
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k4))
+        claim_args_bonds.append(4)
+        claim_args_answs.append(to_answer_for_contract(10002))
+        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=4, sender=t.k4, startgas=200000) 
 
         # You have to at least double
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10003), to_question_for_contract(("my evidence")), 0, value=6, startgas=200000) 
+            self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10003), to_question_for_contract(("my evidence")), 0, value=7, startgas=200000) 
 
         # You definitely can't drop back to zero
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10004), to_question_for_contract(("my evidence")), 0, value=0, startgas=200000) 
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3, startgas=200000) 
-
-        # When picking up somebody else's answer, you have to pay extra for their bond
-        with self.assertRaises(TransactionFailed):
-            a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=22, sender=t.k5, startgas=200000) 
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k3))
+        claim_args_bonds.append(11)
+        claim_args_answs.append(to_answer_for_contract(10005))
+        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=11, sender=t.k3, startgas=200000) 
 
         # The extra amount you have to send should be passed in a parameters
         #with self.assertRaises(TransactionFailed): 
         #    a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=(22+5), sender=t.k5, startgas=200000) 
 
-        earlier_owner_bal = self.rc0.balanceOf(keys.privtoaddr(t.k4))
-
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 5, value=(22+5), sender=t.k5, startgas=200000) 
-
-        self.assertEqual(earlier_owner_bal + (5*2), self.rc0.balanceOf(keys.privtoaddr(t.k4)), "After submitting an answer, the previous owner gets their bond * 2")
+        claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
+        claim_args_addrs.append(keys.privtoaddr(t.k5))
+        claim_args_bonds.append(22)
+        claim_args_answs.append(to_answer_for_contract(10002))
+        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 11, value=22, sender=t.k5, startgas=200000) 
 
         ts = self.s.timestamp
 
@@ -271,30 +426,31 @@ class TestRealityCheck(TestCase):
 
         #You can't claim the bond until the thing is finalized
         with self.assertRaises(TransactionFailed):
-            self.rc0.claimBond(self.question_id, a22, startgas=200000)
+            self.rc0.claimWinnings(self.question_id, claim_args_state[::-1], claim_args_addrs[::-1], claim_args_bonds[::-1], claim_args_answs[::-1], startgas=200000)
 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 10002)
 
-        k5bal = 22
+        # First right answerer gets:
+        #  - their bond back (4)
+        #  - their bond again (4)
+        #  - the accumulated bonds until their last answer (1 + 2)
 
-        self.rc0.claimBond(self.question_id, a22, startgas=200000)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Winner gets their bond back")
+        k4bal = 4 + 4 + 1 + 2
+        self.rc0.claimWinnings(self.question_id, claim_args_state[::-1], claim_args_addrs[::-1], claim_args_bonds[::-1], claim_args_answs[::-1], startgas=400000)
 
-        self.rc0.claimBond(self.question_id, a22, startgas=200000)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Calling to claim the bond twice is legal but it doesn't make you any richer")
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), k4bal, "First answerer gets double their bond, plus earlier bonds")
 
-        self.rc0.claimBond(self.question_id, a1, startgas=200000)
-        k5bal = k5bal + 2
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Winner can claim somebody else's bond if they were wrong")
+        # Final answerer gets:
+        #  - their bond back (22)
+        #  - the bond of the previous guy, who was wrong (11)
+        #  - ...minus the payment to the lower guy (-4)
+        k5bal = 22 + 11 - 4 + 1000
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), k5bal, "Final answerer gets the bounty, plus their bond, plus earlier bonds up to when they took over the answer, minus the bond of the guy lower down with the right answer")
 
-        self.rc0.claimBond(self.question_id, a5, startgas=200000)
-        k4bal = 5
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 0, "Wrong answerers get nothing")
 
-        # self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), k4bal, "If you got the right answer you get your money back, even if it was not the final answer")
-
-    
         # You cannot withdraw more than you have
         with self.assertRaises(TransactionFailed):
             self.rc0.withdraw(k5bal + 1, sender=t.k5, startgas=200000)
@@ -308,6 +464,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_bulk_withdrawal(self):
 
+        return
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), to_question_for_contract(("my evidence")), 0, value=1) 
 
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), to_question_for_contract(("my conflicting evidence")), 0, value=2, sender=t.k3, startgas=200000) 
@@ -334,21 +491,6 @@ class TestRealityCheck(TestCase):
         ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
         self.assertEqual(starting_bal+1000+2+22-gas_used, ending_bal)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0, "All funds are gone from the contract once withdrawal is complete")
-
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_bounty(self):
-
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), to_question_for_contract(("my evidence")), 0, value=10, sender=t.k3) 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), to_question_for_contract(("my evidence")), 0, value=22, sender=t.k5) 
-
-        self.s.timestamp = self.s.timestamp + 11
-
-        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
-        self.rc0.claimBounty(self.question_id);        
-        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000)
-        self.rc0.claimBounty(self.question_id);        
-        self.assertEqual( self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1000, "Claiming a bounty twice is legal, but you only get paid once")
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks_unbundled(self):
@@ -433,8 +575,7 @@ class TestRealityCheck(TestCase):
 
         self.s.timestamp = self.s.timestamp + 11
 
-        self.rc0.claimBounty(self.question_id, sender=t.k5, startgas=200000);
-        self.rc0.claimBond(self.question_id, a1, sender=t.k5, startgas=200000)
+        self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k5)], [100], [to_answer_for_contract(12345)], sender=t.k5, startgas=200000)
 
         starting_deposited = self.rc0.balanceOf(keys.privtoaddr(t.k5))
         self.assertEqual(starting_deposited, 1100)
