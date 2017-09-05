@@ -538,7 +538,7 @@ $('div.loadmore-button').on('click', function(e) {
             previd = display_entries[sec]['ids'][i-1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
-        ensureQuestionDetailFetched(nextid).then(function(qdata) {
+        ensureQuestionDetailFetched(nextid, {'answers': -1}).then(function(qdata) {
             populateSection(sec, qdata, previd);
         });
     }
@@ -819,10 +819,10 @@ function _ensureQuestionDataFetched(question_id, freshness) {
     });
 }
 
-function _ensureQuestionIPFSFetched(question_id, question_json_ipfs) {
+function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFreshEnough(question_id, 'question_ipfs', 1)) {
+        if (isDataFreshEnough(question_id, 'question_ipfs', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             console.log('fetching ipfs for ipfs addr', question_json_ipfs);
@@ -861,12 +861,13 @@ function _ensureAnswersFetched(question_id, freshness) {
 }
 
 // question_log is optional, pass it in when we already have it
-function ensureQuestionDetailFetched(question_id, params) {
+function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
 
-// TODO: Check for params somehow
-    if (!params) {
-        params = {};
-    }
+    var params = {};
+    if (ql != undefined) params['question_log'] = ql;
+    if (qi != undefined) params['question_ipfs'] = qi;
+    if (qc != undefined) params['question_call'] = qc;
+    if (al != undefined) params['answer_logs'] = al;
 
     var called_block = current_block_number;
     console.log('ensureQuestionDetailFetched with called_block', called_block);
@@ -875,9 +876,9 @@ function ensureQuestionDetailFetched(question_id, params) {
             var freshness = ('question_log' in params) ? params['question_log'] : called_block;
             return _ensureQuestionDataFetched(question_id, freshness);
         }).then(function(q) {
-            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs]);
+            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs], params['question_ipfs']);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, called_block)
+            return _ensureAnswersFetched(question_id, called_block, params['answer_logs'])
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
@@ -973,8 +974,28 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').append(entry);
     }
 
-    $('#' + question_item_id).find('.timeago').attr('datetime', convertTsToString(posted_ts));
-    timeAgo.render($('#' + question_item_id).find('.timeago'));
+    var is_answered = isAnswered(question_data);
+
+    if (is_answered) {
+        entry.addClass('has-answers').removeClass('no-answers');
+    } else {
+        entry.removeClass('has-answers').addClass('no-answers');
+    }
+
+
+    timeago.cancel($('#' + question_item_id).find('.timeago'));
+    if (isArbitrationPending(question_data)) {
+        entry.addClass('arbitration-pending');
+    } else {
+        entry.removeClass('arbitration-pending');
+        if (is_answered) {
+            $('#' + question_item_id).find('.closing-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_finalization_ts]));
+            timeAgo.render($('#' + question_item_id).find('.closing-time-label .timeago'));
+        } else {
+            $('#' + question_item_id).find('.created-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_creation_ts]));
+            timeAgo.render($('#' + question_item_id).find('.created-time-label .timeago'));
+        }
+    }
 
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
         //console.log('too long, removing');
@@ -1014,8 +1035,7 @@ function handleQuestionLog(item) {
     var question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
 
     // Then fetch anything else we need to display
-    ensureQuestionDetailFetched(question_id, {'answers': -1}).then(function(question_data) {
-        console.log('handleQuestionLog has ', question_data)
+    ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question_data) {
 
         if (category && question_data[Qi_question_json].category != category) {
             //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
@@ -2459,9 +2479,7 @@ function pageInit(account) {
                 var question_id = result.args.question_id;
 
                 if (evt == 'LogNewAnswer') {
-                    // TODO: Tighten this up, we don't always need all this
-                    purgeQuestionDetail(question_id);
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
+                    ensureQuestionDetailFetched(question_id, 1, 1, evt.blockNumber, 1).then(function(question) {
                         //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
                         scheduleFinalizationDisplayUpdate(question);
                         updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
@@ -2469,7 +2487,7 @@ function pageInit(account) {
                 }
 
                 if (evt == 'LogFundAnswerBounty') {
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
+                    ensureQuestionDetailFetched(question_id, 1, 1, evt.blockNumber, -1).then(function(question) {
                         question[Qi_bounty] = result.args.bounty; // TODO: find a cleaner way to handle this
                         updateQuestionWindowIfOpen(question);
                         updateRankingSections(question, Qi_bounty, question[Qi_bounty])

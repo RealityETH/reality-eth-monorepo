@@ -2058,3 +2058,11 @@ a.less-link{ font-style: italic !important}
 
 #filter-header span { visibility: hidden }
 body.is-page-loaded #filter-header span { visibility: visible !important }
+
+div.questions__item .arbitration-pending-label{ display: none }
+div.questions__item.arbitration-pending .arbitration-pending-label{ display:block !important}
+div.questions__item.arbitration-pending .closing-time-label { display:none }
+div.questions__item.arbitration-pending .created-time-label { display:none }
+
+div.questions__item.no-answers .closing-time-label { display:none  }
+div.questions__item.has-answers .created-time-label { display:none  }
