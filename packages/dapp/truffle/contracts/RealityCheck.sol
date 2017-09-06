@@ -167,9 +167,6 @@ contract RealityCheck {
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
 
-    // Arbitration requests should be unusual, so to save gas don't assign space in the Question struct
-    mapping(bytes32 => uint256) public arbitration_bounties;
-
     // question => ctrct => gas => bounty
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_step_delay) 
@@ -323,12 +320,7 @@ contract RealityCheck {
     returns (bytes32) {
 
         require(answerer != 0x0);
-
         uint256 finalization_ts = now - 1;
-
-        balances[msg.sender] = balances[msg.sender] + arbitration_bounties[question_id];
-        delete arbitration_bounties[question_id];
-
         LogFinalize(question_id, answer);
 
         return _addAnswer(question_id, answer, answerer, uint256(0), false, finalization_ts);

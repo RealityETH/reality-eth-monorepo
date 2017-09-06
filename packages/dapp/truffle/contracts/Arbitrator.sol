@@ -44,6 +44,7 @@ contract Arbitrator {
     }
 
     function submitAnswerByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer, address answerer) onlyOwner returns (bytes32) {
+        delete arbitration_bounties[question_id];
         return RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
