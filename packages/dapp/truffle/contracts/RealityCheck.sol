@@ -507,7 +507,7 @@ contract RealityCheck {
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
     function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-        actorAnyone() // Anyone can call this as it just reassigns the bounty, then they withdraw their own balance
+        actorAnyone() // Anyone can call this as it just reassigns the bounty to whoever should have it, then they withdraw their own balance
         stateAny() // The finalization checks are done in the claimWinnings function
         public
     {
@@ -531,7 +531,7 @@ contract RealityCheck {
             }
             claimWinnings(qid, hh, ad, bo, an);
         }
-        withdraw(balances[msg.sender]);
+        withdraw();
     }
 
     function fundAnswerBounty(bytes32 question_id) 
@@ -610,21 +610,14 @@ contract RealityCheck {
 
     }
 
-    function withdraw(uint256 _value) 
+    function withdraw() 
         actorAnyone() // Only withdraws your own balance 
         stateAny() // You can always withdraw your balance
         public
-    returns (bool success) {
-        uint256 orig_bal = balances[msg.sender];
-        require(orig_bal >= _value);
-        uint256 new_bal = balances[msg.sender] - _value;
-
-        // Overflow shouldn't be possible here but check anyhow
-        require(orig_bal > new_bal); 
-
-        balances[msg.sender] = new_bal;
-        msg.sender.transfer(_value);
-        return true;
+    {
+        uint256 bal = balances[msg.sender];
+        balances[msg.sender] = 0;
+        msg.sender.transfer(bal);
     }
 
     function balanceOf(address _owner) 

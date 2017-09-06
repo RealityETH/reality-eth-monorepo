@@ -440,7 +440,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000, "Winner gets their bond back plus the bounty")
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
         claim_args_state = []
@@ -538,15 +538,20 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 0, "Wrong answerers get nothing")
 
-        # You cannot withdraw more than you have
-        with self.assertRaises(TransactionFailed):
-            self.rc0.withdraw(k5bal + 1, sender=t.k5, startgas=200000)
+        starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
 
-        self.rc0.withdraw(k5bal - 2, sender=t.k5)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 2)
+        starting_gas_used = self.s.gas_used
+        self.rc0.withdraw(sender=t.k5)
+        gas_spent = self.s.gas_used - starting_gas_used
 
-        self.rc0.withdraw(2, sender=t.k5)
+        ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+
+        self.assertEqual(ending_bal, starting_bal + k5bal - gas_spent)
+
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
+
+        
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_bulk_withdrawal_other_user(self):
@@ -564,7 +569,7 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
-        self.assertEqual(selfrc0.balanceOf(keys.privtoaddr(t.k3)), 0)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 0)
 
         # Have an unconnected user do the claim
         # This will leave the balance in the contract rather than withdrawing it
@@ -674,24 +679,18 @@ class TestRealityCheck(TestCase):
         self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
     
         
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=100, sender=t.k5) 
 
         self.c.mine()
-        self.s = self.c.head_state
-
         self.s.timestamp = self.s.timestamp + 11
 
         self.rc0.claimWinnings(self.question_id, [""], [keys.privtoaddr(t.k5)], [100], [to_answer_for_contract(12345)], sender=t.k5, startgas=200000)
 
         starting_deposited = self.rc0.balanceOf(keys.privtoaddr(t.k5))
         self.assertEqual(starting_deposited, 1100)
-
-        # Withdrawing more than you have should fail
-        with self.assertRaises(TransactionFailed):
-            self.rc0.withdraw((starting_deposited + 1), sender=t.k5, startgas=100000)
 
         # Mine to reset the gas used to 0
         self.c.mine()
@@ -700,23 +699,13 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.s.gas_used, 0)
 
         starting_bal = self.s.get_balance(keys.privtoaddr(t.k5))
-
-        self.rc0.withdraw(1, sender=t.k5, startgas=100000)
+        self.rc0.withdraw(sender=t.k5, startgas=100000)
+        ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
 
         gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
 
-        self.assertEqual(self.s.get_balance(keys.privtoaddr(t.k5)), starting_bal+1 - gas_used)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), starting_deposited-1)
-
-        self.rc0.withdraw((starting_deposited - 1 -1), sender=t.k5, startgas=100000)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 1)
-
-        with self.assertRaises(TransactionFailed):
-            self.rc0.withdraw(2, sender=t.k5, startgas=100000)
-
-        self.rc0.withdraw(1, sender=t.k5, startgas=100000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k5)), 0)
-        # ending_bal = self.s.get_balance(keys.privtoaddr(t.k5))
+        self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
 
         return
 
