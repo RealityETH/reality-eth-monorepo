@@ -353,7 +353,7 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
 
-        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3, startgas=200000)
+        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3, startgas=200000)
 
         self.s.timestamp = self.s.timestamp + 11
 
@@ -374,7 +374,7 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
 
-        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3, startgas=200000)
+        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3, startgas=200000)
 
         self.s.timestamp = self.s.timestamp + 11
 
@@ -395,7 +395,7 @@ class TestRealityCheck(TestCase):
 
         self.s.timestamp = self.s.timestamp + 5
         with self.assertRaises(TransactionFailed):
-            st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, hh, 1, sender=t.k3)
+            st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
 
 
 
