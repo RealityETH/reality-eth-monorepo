@@ -1,8 +1,8 @@
 pragma solidity ^0.4.6;
 
 /*
-This is an example of the callback code separated into its own contract.
-We intend to bundle it in the RealityCheck contract as this produces a slight gas saving:
+Contract to accept requests for question callbacks.
+This was originally bundled into the RealityCheck contract as this produces a slight gas saving:
  * About 20,000 gas for calling the contract
  * Potentially a little bit extra in the caller for managing 2 contract addresses (RealityCheck + CallerBacker)
  * Potentially a little bit extra when withdrawing if the same address has been used for answering and calling back
@@ -17,6 +17,23 @@ contract CallerBacker {
     address realitycheck;
     mapping (address => uint256) balances;
 
+    event LogFundCallbackRequest(
+        bytes32 indexed question_id,
+        address indexed ctrct,
+        address indexed caller,
+        uint256 gas,
+        uint256 bounty
+    );
+
+    event LogSendCallback(
+        bytes32 indexed question_id,
+        address indexed ctrct,
+        address indexed caller,
+        uint256 gas,
+        uint256 bounty,
+        bool callback_result
+    );
+
     // question => ctrct => gas => bounty
     mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
@@ -27,13 +44,18 @@ contract CallerBacker {
     }
 
     function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) payable {
+        LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
         callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) returns (bool) {
+
+        uint256 bounty = callback_requests[question_id][client_ctrct][gas];
 
         if (!no_bounty) {
-            require(callback_requests[question_id][client_ctrct][gas] > 0);   
+            if (callback_requests[question_id][client_ctrct][gas] == 0) {
+                return false;
+            }
         }
         require(msg.gas >= gas);
 
@@ -45,10 +67,14 @@ contract CallerBacker {
 
         // Call signature argument hard-codes the result of:
         // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-        bool ignore = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
+        bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
 
-        balances[msg.sender] += callback_requests[question_id][client_ctrct][gas];
+        balances[msg.sender] += bounty;
         callback_requests[question_id][client_ctrct][gas] = 0;
+
+        LogSendCallback(question_id, client_ctrct, msg.sender, gas, bounty, callback_result);
+        return callback_result;
+
     }
 
     function withdraw(uint256 _value) returns (bool success) {

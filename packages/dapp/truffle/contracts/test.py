@@ -440,7 +440,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k0)), 3+1000, "Winner gets their bond back plus the bounty")
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bonds(self):
 
         claim_args_state = []
@@ -616,7 +616,6 @@ class TestRealityCheck(TestCase):
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
-
         
         gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
         self.caller_backer.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
@@ -624,43 +623,19 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.cb.address, 3000000), 100)
 
-        # Fail an unregistered amount of gas
-        with self.assertRaises(TransactionFailed):
-            self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000)
+        # Return false on an unregistered amount of gas
+        self.assertFalse(self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))
 
         self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000000)
         self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         
-
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_callbacks(self):
-     
-        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
-
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
-        self.s.timestamp = self.s.timestamp + 11
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-
-        self.rc0.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
-
-
-        # For comparing with the version with unbundled 
-        gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.assertEqual(self.rc0.callback_requests(self.question_id, self.cb.address, 3000000), 100)
-        gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
-
-        # Return false with an unregistered or spent amount of gas
-        self.assertFalse(self.rc0.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))
-
-        self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
-        self.rc0.sendCallback(self.question_id, self.cb.address, 3000000)
-        self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_exploding_callbacks(self):
+
+        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
+        self.caller_backer.setRealityCheck(self.rc0.address)
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
 
@@ -669,17 +644,17 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
 
-        self.rc0.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
-        self.assertEqual(self.rc0.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
+        self.caller_backer.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
+        self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
 
         # return false with an unregistered or spent amount of gas
-        self.assertFalse(self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000001, startgas=200000))
+        self.assertFalse(self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000001, startgas=200000))
 
         # should complete with no error, even though the client threw an error
-        self.rc0.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
+        self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
     
         
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
         a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=100, sender=t.k5) 

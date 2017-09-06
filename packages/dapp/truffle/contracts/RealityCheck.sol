@@ -1,9 +1,5 @@
 pragma solidity ^0.4.6;
 
-contract CallerAPI {
-    function __factcheck_callback(bytes32 question_id, bytes32 question_answer); 
-}
-
 contract ArbitratorAPI {
     function getFee(bytes32 question_id) constant returns (uint256); 
 }
@@ -123,23 +119,6 @@ contract RealityCheck {
         uint256 amount
     );
 
-    event LogFundCallbackRequest(
-        bytes32 indexed question_id,
-        address indexed ctrct,
-        address indexed caller,
-        uint256 gas,
-        uint256 bounty
-    );
-
-    event LogSendCallback(
-        bytes32 indexed question_id,
-        address indexed ctrct,
-        address indexed caller,
-        uint256 gas,
-        uint256 bounty,
-        bool callback_result
-    );
-
     struct Answer{
         bytes32 answer;
         address answerer;
@@ -186,7 +165,6 @@ contract RealityCheck {
     mapping(bytes32 => uint256) public arbitration_bounties;
 
     // question => ctrct => gas => bounty
-    mapping(bytes32=>mapping(address=>mapping(uint256=>uint256))) public callback_requests; 
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 step_delay) 
         actorAnyone()
@@ -221,18 +199,6 @@ contract RealityCheck {
     returns (bytes32) {
         return keccak256(question_ipfs, arbitrator, step_delay);
     }
-
-    function fundCallbackRequest(bytes32 question_id, address client_ctrct, uint256 gas) 
-        actorAnyone()
-        stateAny() 
-        external
-        // You can make a callback request before question registration, or repeat a previous one
-        // If your calling contract expects only one, it should handle the duplication check itself.
-    payable {
-        callback_requests[question_id][client_ctrct][gas] += msg.value;
-        LogFundCallbackRequest(question_id, client_ctrct, msg.sender, gas, msg.value);
-    }
-
 
     function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
         internal
@@ -572,41 +538,6 @@ contract RealityCheck {
             LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
             return false;
         }
-
-    }
-
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) 
-        actorAnyone()
-        stateFinalized(question_id)
-        external
-    returns (bool) {
-
-        // By default we return false if there is no bounty, because it has probably already been taken.
-        // You can override this behaviour with the no_bounty flag
-        if (!no_bounty && (callback_requests[question_id][client_ctrct][gas] == 0)) {
-            return false;
-        }
-
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        require(msg.gas >= gas);
-
-        // We call the callback with the low-level call() interface
-        // We don't care if it errors out or not:
-        // This is the responsibility of the requestor.
-
-        // Call signature argument hard-codes the result of:
-        // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-        bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
-
-        uint256 bounty = callback_requests[question_id][client_ctrct][gas];
-
-        delete callback_requests[question_id][client_ctrct][gas];
-        balances[msg.sender] += bounty;
-
-        LogSendCallback(question_id, client_ctrct, msg.sender, gas, bounty, callback_result);
-
-        return callback_result;
 
     }
 
