@@ -1,9 +1,4 @@
 pragma solidity ^0.4.6;
-
-contract ArbitratorAPI {
-    function getFee(bytes32 question_id) constant returns (uint256); 
-}
-
 /*
 To make it hard for us to forget to set one of these, every non-constant function should specify:
 * actorArbitrator or actorAnyone
@@ -12,8 +7,6 @@ To make it hard for us to forget to set one of these, every non-constant functio
 
 Things that take answers should specify
 * bondMustDouble or BondMustBeZero
-
-    
 
 Any number that may be used in arithmetic not from a trusted source like now or msg.value
 ...should be prefixed US_ for UnSafe until explicitly bounds-checked.
@@ -110,11 +103,8 @@ contract RealityCheck {
         address funder
     );
 
-    event LogRequestArbitration(
-        bytes32 indexed question_id,
-        uint256 fee_paid,
-        address requester,
-        uint256 remaining
+    event LogNotifyOfArbitrationRequest(
+        bytes32 indexed question_id
     );
 
     event LogFinalize(
@@ -528,35 +518,17 @@ contract RealityCheck {
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
-    // Sends money to the arbitration bounty last_bond
-    // Returns true if enough was paid to trigger arbitration
-    // Once triggered, only the arbitrator can finalize
-    // This may take longer than the normal step_delay
-    function requestArbitration(bytes32 question_id) 
-        actorAnyone()
+    function notifyOfArbitrationRequest(bytes32 question_id) 
+        actorArbitrator(question_id)
         stateOpen(question_id)
-        external
     payable returns (bool) {
 
-        uint256 arbitration_fee = ArbitratorAPI(questions[question_id].arbitrator).getFee(question_id);
-
-        arbitration_bounties[question_id] += msg.value;
-        uint256 paid = arbitration_bounties[question_id];
-
-        if (paid >= arbitration_fee) {
-            // It's useful for the UI to be able to differentiate between "answered" and "unanswered"
-            // So assign a different magic number for each
-            if (questions[question_id].finalization_ts == 0) {
-                questions[question_id].finalization_ts = 1;
-            } else {
-                questions[question_id].finalization_ts = 2;
-            }
-            LogRequestArbitration(question_id, msg.value, msg.sender, 0);
-            return true;
+        if (questions[question_id].finalization_ts == 0) {
+            questions[question_id].finalization_ts = 1;
         } else {
-            LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
-            return false;
+            questions[question_id].finalization_ts = 2;
         }
+        LogNotifyOfArbitrationRequest(question_id);
 
     }
 
