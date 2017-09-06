@@ -6,9 +6,14 @@ contract ArbitratorAPI {
 
 /*
 To make it hard for us to forget to set one of these, every non-constant function should specify:
-    actorArbitrator or actorAnyone
-    stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
-    internal or external or public
+* actorArbitrator or actorAnyone
+* stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
+* internal or external or public
+
+Things that take answers should specify
+* bondMustDouble or BondMustBeZero
+
+    
 
 Any number that may be used in arithmetic not from a trusted source like now or msg.value
 ...should be prefixed US_ for UnSafe until explicitly bounds-checked.
@@ -62,6 +67,11 @@ contract RealityCheck {
 
         _;
 
+    }
+
+    modifier bondMustBeZero() {
+        require(msg.value == 0);
+        _;
     }
 
     mapping (address => uint256) balances;
@@ -318,6 +328,7 @@ contract RealityCheck {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
+        bondMustBeZero
         external
     returns (bytes32) {
 
