@@ -80,8 +80,7 @@ contract RealityCheck {
         address indexed answerer,
         uint256 bond,
         uint256 ts,
-        bool is_commitment,
-        bytes32 evidence_ipfs
+        bool is_commitment
     );
 
     event LogAnswerReveal(
@@ -235,7 +234,7 @@ contract RealityCheck {
     }
 
 
-    function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bytes32 evidence_ipfs, bool is_commitment, uint256 finalization_ts) 
+    function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
         internal
     returns (bytes32)
     {
@@ -258,8 +257,7 @@ contract RealityCheck {
             answerer,
             bond,
             now,
-            is_commitment,
-            evidence_ipfs
+            is_commitment
         );
 
         return answer;
@@ -276,7 +274,7 @@ contract RealityCheck {
         return keccak256(answer, nonce);
     }
 
-    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, bytes32 evidence_ipfs, uint256 max_previous) 
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
         actorAnyone() 
         stateOpen(question_id)
         bondMustDouble(question_id, max_previous)
@@ -292,7 +290,7 @@ contract RealityCheck {
         uint256 step_delay = questions[question_id].step_delay;
         commitments[commitment_id].deadline_ts = now + (step_delay/8);
 
-        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, evidence_ipfs, true, 0);
+        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, true, 0);
 
     }
 
@@ -325,7 +323,7 @@ contract RealityCheck {
 
     }
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, bytes32 evidence_ipfs, uint256 max_previous) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
         actorAnyone()
         stateOpen(question_id)
         external
@@ -333,7 +331,7 @@ contract RealityCheck {
     payable returns (bytes32) {
 
         uint256 finalization_ts = now + questions[question_id].step_delay;
-        return _addAnswer(question_id, answer, msg.sender, msg.value, evidence_ipfs, false, finalization_ts);
+        return _addAnswer(question_id, answer, msg.sender, msg.value, false, finalization_ts);
 
     }
 
@@ -343,7 +341,7 @@ contract RealityCheck {
     // NB They are trusted not to leave the top answer, but change the answerer
     // If they do this, they break the assumption that if you have the right answer, you get paid out of the higher person's bond.
     // TODO: Should we require that they send the previous data, and actually enforce this condition?
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer, bytes32 evidence_ipfs) 
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         actorArbitrator(question_id)
         statePendingArbitration(question_id)
         external
@@ -358,7 +356,7 @@ contract RealityCheck {
 
         LogFinalize(question_id, answer);
 
-        return _addAnswer(question_id, answer, answerer, uint256(0), evidence_ipfs, false, finalization_ts);
+        return _addAnswer(question_id, answer, answerer, uint256(0), false, finalization_ts);
 
     }
 

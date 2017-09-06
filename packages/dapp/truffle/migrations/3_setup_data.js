@@ -28,10 +28,10 @@ module.exports = function(deployer) {
            rc.sendTransaction({from: accs[0], to: accs[2], value: web3.toWei(1, 'ether')});
        }).then(function(){
            console.log("asked question");
-           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000004", "basic maths", 0, {from: accs[2]}, {value: web3.toWei(0.0002, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000004", 0, {from: accs[2]}, {value: web3.toWei(0.0002, 'ether')});
        }).then(function(){
            console.log("submitted answer");
-           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000008", "basic maths", 0, {from: accs[1]}, {value: web3.toWei(0.0004, 'ether')});
+           rc.submitAnswer(question_id1, "0x0000000000000000000000000000000000000000000000000000000000000008", 0, {from: accs[1]}, {value: web3.toWei(0.0004, 'ether')});
        });
 
         RealityCheck.deployed().then(function (instance) {
