@@ -454,18 +454,36 @@ $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
     ensureQuestionDetailFetched(question_id).then(function(question_detail){
-        console.log(question_detail);
-        return;
+        //console.log(question_detail);
         var claimable = possibleClaimableItems(question_detail);
+
         //console.log('try9ing to claim ', claimable['total'].toString());
         if (claimable['total'].isZero()) {
-            //console.log('nothing to claim');
+            console.log('nothing to claim');
             // Nothing there, so force a refresh
             openQuestionWindow(question_id);
         }
-        //console.log('claimMultipleAndWithdrawBalance', claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers']);
-        rc.claimMultipleAndWithdrawBalance(claimable['bounty_question_ids'], claimable['bond_question_ids'], claimable['bond_answers'], {from: account}).then(function(claim_result){
-            //console.log('claim result', claim_result);
+        console.log('claiming with:', claimable)
+
+        // estimateGas gives us a number that credits the eventual storage refund.
+        // However, this is only supplied at the end of the transaction, so we need to send more to get us to that point.
+        // MetaMask seems to add a bit extra, but it's not enough.
+        // Get the number via estimateGas, then add 60000 per question, which should be the max storage we free.
+
+        // For now hard-code a fairly generous allowance
+        // Tried earlier with single answerer:
+        //  1 answer 48860
+        //  2 answers 54947
+        //  5 answers 73702
+        var gas = 70000 + (10000 * claimable['history_hashes'].length);
+
+        //rc.claimMultipleAndWithdrawBalance.estimateGas(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account})
+        //.then(function(gas_amount){
+         //   console.log('got gas_amount', gas_amount);
+         //   var gas = gas_amount + (claimable['question_ids'].length * 60000);
+        rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
+        .then(function(claim_result){
+            console.log('claim result', claim_result);
         });
     });
 });
@@ -770,9 +788,8 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     question_detail_list[question_id] = question;
 
-
-    console.log('was called filledQuestionDetail', question_id, data_type, freshness, data); 
-    console.log('returning question', question);
+    //console.log('was called filledQuestionDetail', question_id, data_type, freshness, data); 
+    //console.log('returning question', question);
 
     return question;
 
@@ -1424,14 +1441,12 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     rcqa = updateQuestionState(question_detail, rcqa);
 
     if (isFinalized(question_detail)) {    
-        totalClaimable(question_detail).then(function(tot) {
-            //console.log('tot is ', tot.toNumber());
-            if (tot.toNumber() == 0) {
-                rcqa.removeClass('is-claimable');
-            } else {
-                rcqa.addClass('is-claimable');
-            } 
-        });
+        var tot = totalClaimable(question_detail);
+        if (tot.toNumber() == 0) {
+            rcqa.removeClass('is-claimable');
+        } else {
+            rcqa.addClass('is-claimable');
+        } 
     } else {
         rcqa.removeClass('is-claimable');
     }
@@ -1443,21 +1458,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 }
 
 function totalClaimable(question_detail) {
-    return new Promise((resolve, reject)=>{
-        var poss = possibleClaimableItems(question_detail);
-        console.log('got poss', poss);
-        return;
-        if (poss['total'].isZero()) {
-            resolve(poss['total']);
-        } else {
-            rc.totalClaimable.call(account, poss['bounty_question_ids'], poss['bounty_question_ids'], poss['bond_answers'])
-            .then(function(tot) {
-                resolve(tot);
-            }).catch(function(err) {
-                reject(err);
-            });
-        }
-    });
+    var poss = possibleClaimableItems(question_detail);
+    return poss['total'];
 }
 
 function possibleClaimableItems(question_detail) {
@@ -1465,42 +1467,35 @@ function possibleClaimableItems(question_detail) {
     var ttl = new BigNumber(0); 
     var is_your_claim = false;
 
-    var question_ids = [];
-    var answer_lengths = [];
-
     if (new BigNumber(question_detail[Qi_history_hash]).equals(0)) {
-        console.log('everything already claimed', question[Qi_history_hash]);
-        return;
+        console.log('everything already claimed', question_detail[Qi_history_hash]);
+        return {total: new BigNumber(0)};
     }
 
     if (!isFinalized(question_detail)) {
         console.log('not finalized', question_detail);
-        return;
+        return {total: new BigNumber(0)};
     }
 
-    for(var i=0; i<question_detail['history'].length; i++) {
-        if (question_detail[Qi_best_answer] == question_detail['history'][i].args.answer) {
-            is_your_claim = true;
-        }
-        break; 
-    }
+    console.log('should be able to claim question ', question_detail);
 
-    if (!is_your_claim) {
-        console.log('nothing for you', question_detail['history']);
-        return;
-    }
-
+    var question_ids = [];
+    var answer_lengths = [];
     var claimable_bonds = [];
     var claimable_answers = [];
+    var claimable_answerers = [];
     var claimable_history_hashes = [];
+
     var is_first = true;
     var num_claimed = 0;
     var is_yours = false;
+
     var final_answer = question_detail[Qi_best_answer];
     for(var i = question_detail['history'].length-1; i >= 0; i--) {
         var answer = question_detail['history'][i].args.answer;
         var answerer = question_detail['history'][i].args.answerer;
         var bond = question_detail['history'][i].args.bond;
+        var history_hash = question_detail['history'][i].args.history_hash; 
 
         if (is_yours) {
             // Somebody takes over your answer
@@ -1515,32 +1510,43 @@ function possibleClaimableItems(question_detail) {
             if (final_answer == answer) {
                 is_yours = true;
                 ttl = ttl.plus(bond); // your bond back
-                ttl = ttl.plus(bond); // their takeover payment to you
+                if (!is_first) {
+                    ttl = ttl.plus(bond); // their takeover payment to you
+                }
             }
             if (is_first) {
                 ttl = ttl.plus(question_detail[Qi_bounty]);
             }
         }
 
-        // Ours or not, we still have to supply the history to claim
-        var h = question_detail['history'][i].args.history_hash; 
-        claimable_bonds.push(b);
-        claimable_answers.push(a);
-        claimable_history_hashes.push(h);
+        claimable_bonds.push(bond);
+        claimable_answers.push(answer);
+        claimable_answerers.push(answerer);
+        claimable_history_hashes.push(history_hash);
 
         is_first = false;
     }
 
     if (ttl.gt(0)) {
-        your_question_ids.push(question_detail[Qi_question_id]);
+        question_ids.push(question_detail[Qi_question_id]);
         answer_lengths.push(claimable_bonds.length);
     }
 
+    console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
+
+    // For the history hash, each time we need to provide the previous hash in the history
+    // So delete the first item, and add 0x0 to the end.
+    claimable_history_hashes.shift();
+    claimable_history_hashes.push(0x0);
+
+    // TODO: Someone may have claimed partway, so we should really be checking against the contract state
+
     return {
         'total': ttl,
-        'question_ids': your_question_ids,
+        'question_ids': question_ids,
         'answer_lengths': answer_lengths,
         'answers': claimable_answers,
+        'answerers': claimable_answerers,
         'bonds': claimable_bonds,
         'history_hashes': claimable_history_hashes
     }
