@@ -261,6 +261,7 @@ interact('.rcbrowser-header').draggable({
     // call this function on every dragmove event
     onmove: dragMoveListener
 });
+
 function dragMoveListener (event) {
     var target = event.target.parentNode.parentNode;
     // keep the dragged position in the data-x/data-y attributes
@@ -627,11 +628,10 @@ function handleUserAction(entry, is_watch) {
     // User action
     if (entry['event'] == 'LogNewAnswer') {
         // force refresh
-        purgeQuestionDetail(question_id);
         if ( submitted_question_id_timestamp[question_id] > 0) {
-            
             delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
             ensureQuestionDetailFetched(question_id).then(function(question) {
+                question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
                 displayQuestionDetail(question);
             });
         }
@@ -711,11 +711,6 @@ function scheduleFinalizationDisplayUpdate(question) {
 
 }
 
-function purgeQuestionDetail(question_id) {
-    delete question_detail_list[question_id];
-}
-
-
 function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     if (!question_id) {
@@ -731,7 +726,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {'freshness': {'question_log': 0, 'question_json': 0, 'question_call': 0, 'answers': 0}};
+    var question = {'freshness': {'question_log': 0, 'question_json': 0, 'question_call': 0, 'answers': 0}, 'history': []};
     question[Qi_question_id] = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
@@ -740,29 +735,29 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
     switch (data_type) {
             
         case 'question_log':
-            if (data && freshness > question.freshness.question_log) {
+            if (data && (freshness >= question.freshness.question_log)) {
                 question.freshness.question_log = freshness;
                 //question[Qi_question_id] = data.args['question_id'];
                 question[Qi_creation_ts] = data.args['created'];
                 question[Qi_question_ipfs] = data.args['question_ipfs'];
-                question[Qi_bounty] = data.args['bounty'];
+                //question[Qi_bounty] = data.args['bounty'];
             }
             break;
 
         case 'question_json':
-            if (data && freshness > question.freshness.question_json) {
+            if (data && (freshness >= question.freshness.question_json)) {
                 question.freshness.question_json = freshness;
                 question[Qi_question_json] = data;
             }
             break;
 
         case 'question_call':
-        console.log('in case question_call');
-            if (data && freshness > question.freshness.question_call) {
+            console.log('in case question_call');
+            if (data && (freshness >= question.freshness.question_call)) {
                 console.log('call data new, not setting', freshness, ' vs ', question.freshness.question_call, question)
                 // Question ID is tacked on after the call.
                 // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
-                question.freshness.question_call = freshness.question_call;
+                question.freshness.question_call = freshness;
                 //question[Qi_question_id] = question_id;
                 question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
                 question[Qi_arbitrator] = data[Qi_arbitrator-1];
@@ -779,7 +774,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
             break;
 
         case 'answers':
-            if (data && freshness > question.freshness.answers) {
+            if (data && (freshness >= question.freshness.answers)) {
                 question.freshness.answers = freshness;
                 question['history'] = data;
             }
@@ -796,21 +791,30 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 }
 
 function isDataFreshEnough(question_id, data_type, freshness) {
+    //console.log('looking at isDataFreshEnough for ', question_id, data_type, freshness);
     // We set -1 when we don't need the data at all
     if (freshness == -1) {
+        //console.log('-1, not needed');
         return true;
     }
     if (!question_detail_list[question_id]) {
+        //console.log('question not found, definitely fetch');
         return false;
     }
-    return (question_detail_list[question_id].freshness >= freshness);
+    if (question_detail_list[question_id].freshness[data_type] >= freshness) {
+        console.log('is fresh', question_detail_list[question_id].freshness, freshness) 
+        return true;
+    } else {
+        console.log('is not fresh', question_detail_list[question_id].freshness[data_type], freshness) 
+        return false;
+    }
 }
 
 // No freshness as this only happens once per question
 function _ensureQuestionLogFetched(question_id, freshness) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFreshEnough(question_id, 'question_ipfs', freshness)) {
+        if (isDataFreshEnough(question_id, 'question_log', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
@@ -843,9 +847,8 @@ function _ensureQuestionDataFetched(question_id, freshness) {
 }
 
 function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) {
-    var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
-        if (isDataFreshEnough(question_id, 'question_ipfs', freshness)) {
+        if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             console.log('fetching ipfs for ipfs addr', question_json_ipfs);
@@ -854,7 +857,7 @@ function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) 
                     reject(new Error('IPFS file too large'));
                 } else {
                     // TODO: We will probably move question_ipfs out of the contract data, in which case the logs will have to come first
-                    var question = filledQuestionDetail(question_id, 'question_json', called_block, parseQuestionJSON(res.toString()));
+                    var question = filledQuestionDetail(question_id, 'question_json', 1, parseQuestionJSON(res.toString()));
                     resolve(question);
                 }
             }).catch(function(err) {
@@ -887,21 +890,20 @@ function _ensureAnswersFetched(question_id, freshness) {
 function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
 
     var params = {};
-    if (ql != undefined) params['question_log'] = ql;
-    if (qi != undefined) params['question_ipfs'] = qi;
-    if (qc != undefined) params['question_call'] = qc;
-    if (al != undefined) params['answer_logs'] = al;
+    if (ql == undefined) ql = 1;
+    if (qi == undefined) qi = 1;
+    if (qc == undefined) qc = current_block_number;
+    if (al == undefined) al = current_block_number;
 
     var called_block = current_block_number;
-    console.log('ensureQuestionDetailFetched with called_block', called_block);
+    //console.log('ensureQuestionDetailFetched with called_block', called_block);
     return new Promise((resolve, reject)=>{
-        _ensureQuestionLogFetched(question_id).then(function(q) {
-            var freshness = ('question_log' in params) ? params['question_log'] : called_block;
-            return _ensureQuestionDataFetched(question_id, freshness);
+        _ensureQuestionLogFetched(question_id, ql).then(function(q) {
+            return _ensureQuestionDataFetched(question_id, qc);
         }).then(function(q) {
-            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs], params['question_ipfs']);
+            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs], qi);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, called_block, params['answer_logs'])
+            return _ensureAnswersFetched(question_id, al);
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
@@ -925,7 +927,6 @@ function updateUserBalanceDisplay() {
 function populateSection(section_name, question_data, before_item) {
 
     var question_id = question_data[Qi_question_id];
-    var question_json = question_data[Qi_question_json];
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
@@ -958,36 +959,11 @@ function populateSection(section_name, question_data, before_item) {
     }
 
     var is_found = (section.find('#' + before_item_id).length > 0);
-
-    var options = '';
-    if (typeof question_json['outcomes'] !== 'undefined') {
-        for (var i = 0; i < question_json['outcomes'].length; i++) {
-            options = options + i + ':' + question_json['outcomes'][i] + ', ';
-        }
-    }
-
-    var posted_ts = question_data[Qi_creation_ts];
-    var arbitrator = question_data[Qi_arbitrator];
-    var step_delay = question_data[Qi_step_delay];
-    var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
-    var is_arbitration_pending = isArbitrationPending(question_data);
-    var is_finalized = isFinalized(question_data);
-    var best_answer = question_data[Qi_best_answer];
-
     var entry = $('.questions__item.template-item').clone();
-    entry.attr('data-question-id', question_id);
-    entry.attr('id', question_item_id).removeClass('template-item');
-    entry.find('.questions__item__title').attr('data-target-id', target_question_id);
-    if (isAnswered(question_data)) {
-        entry.find('.questions__item__answer').text(getAnswerString(question_json, best_answer));
-        entry.addClass('has-answer');
-    } else {
-        entry.find('.questions__item__answer').text('');
-        entry.removeClass('has-answer');
-    }
 
-    entry.find('.question-title').text(question_json['title']).expander({expandText: '', slicePoint:140});
-    entry.find('.question-bounty').text(bounty);
+    entry = populateSectionEntry(entry, question_data);
+
+    entry.attr('id', question_item_id).removeClass('template-item');
     entry.css('display', 'block');
 
     //console.log('adding entry', question_item_id, 'before item', before_item);
@@ -997,6 +973,56 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').append(entry);
     }
 
+
+    while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
+        //console.log('too long, removing');
+        section.children('.questions-list').find('.questions__item:last-child').remove()
+    }
+
+
+}
+
+function updateSectionEntryDisplay(question) {
+    $('div.questions__item[data-question-id="'+question[Qi_question_id]+'"]').each(function() {
+        console.log('updateSectionEntryDisplay update question', question[Qi_question_id]);
+        populateSectionEntry($(this), question);
+    });
+}
+
+function populateSectionEntry(entry, question_data) {
+
+    var question_id = question_data[Qi_question_id];
+    var question_json = question_data[Qi_question_json];
+    var posted_ts = question_data[Qi_creation_ts];
+    var arbitrator = question_data[Qi_arbitrator];
+    var step_delay = question_data[Qi_step_delay];
+    var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
+    var is_arbitration_pending = isArbitrationPending(question_data);
+    var is_finalized = isFinalized(question_data);
+    var best_answer = question_data[Qi_best_answer];
+
+    var options = '';
+    if (typeof question_json['outcomes'] !== 'undefined') {
+        for (var i = 0; i < question_json['outcomes'].length; i++) {
+            options = options + i + ':' + question_json['outcomes'][i] + ', ';
+        }
+    }
+
+    entry.attr('data-question-id', question_id);
+    //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
+
+    entry.find('.question-title').text(question_json['title']).expander({expandText: '', slicePoint:140});
+    entry.find('.question-bounty').text(bounty);
+
+    if (isAnswered(question_data)) {
+        entry.find('.questions__item__answer').text(getAnswerString(question_json, best_answer));
+        entry.addClass('has-answer');
+    } else {
+        entry.find('.questions__item__answer').text('');
+        entry.removeClass('has-answer');
+    }
+
+
     var is_answered = isAnswered(question_data);
 
     if (is_answered) {
@@ -1005,25 +1031,21 @@ function populateSection(section_name, question_data, before_item) {
         entry.removeClass('has-answers').addClass('no-answers');
     }
 
-
-    timeago.cancel($('#' + question_item_id).find('.timeago'));
+    timeago.cancel(entry.find('.timeago'));
     if (isArbitrationPending(question_data)) {
         entry.addClass('arbitration-pending');
     } else {
         entry.removeClass('arbitration-pending');
         if (is_answered) {
-            $('#' + question_item_id).find('.closing-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_finalization_ts]));
-            timeAgo.render($('#' + question_item_id).find('.closing-time-label .timeago'));
+            entry.find('.closing-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_finalization_ts]));
+            timeAgo.render(entry.find('.closing-time-label .timeago'));
         } else {
-            $('#' + question_item_id).find('.created-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_creation_ts]));
-            timeAgo.render($('#' + question_item_id).find('.created-time-label .timeago'));
+            entry.find('.created-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_creation_ts]));
+            timeAgo.render(entry.find('.created-time-label .timeago'));
         }
     }
 
-    while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
-        //console.log('too long, removing');
-        section.children('.questions-list').find('.questions__item:last-child').remove()
-    }
+    return entry;
 
 }
 
@@ -1241,8 +1263,14 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 function openQuestionWindow(question_id) {
 
-    ensureQuestionDetailFetched(question_id).then(function(question) {
+    // To respond quickly, start by fetching with even fairly old data and no logs
+    ensureQuestionDetailFetched(question_id, 1, 1, 1, 0).then(function(question) {
         displayQuestionDetail(question);
+        // Get the window open first with whatever data we have
+        // Then repopulate with the most recent of everything anything has changed
+        ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+            updateQuestionWindowIfOpen(question);
+        });
     });
     /*
     .catch(function(e){
@@ -2453,6 +2481,8 @@ console.log('insert_before was', insert_before);
         }
     }
 
+    // Things that don't need adding or removing, but may still need the content updating
+    updateSectionEntryDisplay(question);
     // TODO: Need to update sections that haven't changed position, but changed data
 
 }
@@ -2497,7 +2527,7 @@ function pageInit(account) {
 
     evts.watch(function (error, result) {
         if (!error && result) {
-            //console.log('got event', error, result);
+            console.log('got watch event', error, result);
 
             // Check the action to see if it is interesting, if it is then populate notifications etc
             handleUserAction(result, true);
@@ -2510,40 +2540,34 @@ function pageInit(account) {
             } else {
                 var question_id = result.args.question_id;
 
-                if (evt == 'LogNewAnswer') {
-                    ensureQuestionDetailFetched(question_id, 1, 1, evt.blockNumber, 1).then(function(question) {
-                        //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
-                        scheduleFinalizationDisplayUpdate(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                    });
-                }
+                switch (evt) {
 
-                if (evt == 'LogFundAnswerBounty') {
-                    ensureQuestionDetailFetched(question_id, 1, 1, evt.blockNumber, -1).then(function(question) {
-                        question[Qi_bounty] = result.args.bounty; // TODO: find a cleaner way to handle this
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_bounty, question[Qi_bounty])
-                        updateAnyDisplay(question_id, web3.fromWei(result.args.bounty, 'ether'), 'question-bounty');
-                    });
+                    case ('LogNewAnswer'):
+                        console.log('got LogNewAnswer, block ', result.blockNumber);
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            console.log('should be getting latest', question, result.blockNumber);
+                            //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
+                            //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
+                            scheduleFinalizationDisplayUpdate(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
+                        break;
 
-                } 
+                    case ('LogFundAnswerBounty'): 
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                            console.log('updating with question', question);
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                        });
+                        break;
 
-                // This is only done by the arbitrator, otherwise it happens on the timer
-                if (evt == 'LogFinalize') {
-                    purgeQuestionDetail(question_id);
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                    });
-                }
+                    default:
+                        ensureQuestionDetailFetched(question_id).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
 
-                // TODO: We shouldn't really need a full refresh for what may be a small event
-                var window_id = 'qadetail-' + question_id;
-                if (document.getElementById(window_id)) {
-                    purgeQuestionDetail(question_id);
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
-                        displayQuestionDetail(question);
-                    });
                 }
 
             }
