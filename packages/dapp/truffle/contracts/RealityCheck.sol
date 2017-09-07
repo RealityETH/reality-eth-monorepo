@@ -174,18 +174,17 @@ contract RealityCheck {
         // A step delay of 0 makes no sense, and we will use this to check existence
         require(US_step_delay > 0); 
         require(US_step_delay < 365 days); 
-        uint256 step_delay = US_step_delay;
 
         bytes32 question_id = keccak256(question_ipfs, arbitrator, US_step_delay);
 
         require(questions[question_id].step_delay ==  0); // Check existence (stateNotCreated)
 
         questions[question_id].arbitrator = arbitrator;
-        questions[question_id].step_delay = step_delay;
+        questions[question_id].step_delay = US_step_delay;
         questions[question_id].question_ipfs = question_ipfs;
         questions[question_id].bounty = msg.value;
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, step_delay, question_ipfs, now);
+        LogNewQuestion( question_id, msg.sender, arbitrator, US_step_delay, question_ipfs, now);
 
         return question_id;
 
