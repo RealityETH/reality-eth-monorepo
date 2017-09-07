@@ -10,7 +10,6 @@ Things that take answers should specify
 
 Any number that may be used in arithmetic not from a trusted source like now or msg.value
 ...should be prefixed US_ for UnSafe until explicitly bounds-checked.
-
 */
 
 contract RealityCheck {
@@ -166,8 +165,6 @@ contract RealityCheck {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
-
-    // question => ctrct => gas => bounty
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_step_delay) 
         actorAnyone()
@@ -513,7 +510,7 @@ contract RealityCheck {
     function notifyOfArbitrationRequest(bytes32 question_id) 
         actorArbitrator(question_id)
         stateOpen(question_id)
-    payable returns (bool) {
+    returns (bool) {
 
         if (questions[question_id].finalization_ts == 0) {
             questions[question_id].finalization_ts = 1;
