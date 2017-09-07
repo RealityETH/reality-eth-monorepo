@@ -44,7 +44,8 @@ contract RealityCheck {
 
     modifier statePendingArbitration(bytes32 question_id) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(questions[question_id].finalization_ts == ANSWERED_PENDING_ARBITRATION || questions[question_id].finalization_ts == UNANSWERED_PENDING_ARBITRATION);
+        require(questions[question_id].finalization_ts == ANSWERED_PENDING_ARBITRATION 
+            || questions[question_id].finalization_ts == UNANSWERED_PENDING_ARBITRATION);
         _;
     }
 
