@@ -123,12 +123,6 @@ contract RealityCheck {
         uint256 amount
     );
 
-    struct Answer{
-        bytes32 answer;
-        address answerer;
-        uint256 bond;
-    }
-
     struct Question {
         uint256 finalization_ts; // Special magic values: 0 for unanswered, 1 for pending arbitration
 
