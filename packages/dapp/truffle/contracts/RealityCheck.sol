@@ -14,6 +14,14 @@ Any number that may be used in arithmetic not from a trusted source like now or 
 
 contract RealityCheck {
 
+    // finalization_ts states. Anything above this is a timestamp.
+    uint256 constant UNANSWERED = 0;
+    uint256 constant UNANSWERED_PENDING_ARBITRATION = 1;
+    uint256 constant ANSWERED_PENDING_ARBITRATION = 2;
+
+    // commitment deadline_ts state. Anything above this is a timestamp.
+    uint256 constant COMMITMENT_REVEALED = 1;
+
     modifier actorAnyone() {
         _;
     }
@@ -30,13 +38,13 @@ contract RealityCheck {
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].step_delay > 0); // Check existence
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts == 0 || finalization_ts > now);
+        require(finalization_ts == UNANSWERED || finalization_ts > now);
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(questions[question_id].finalization_ts == 1 || questions[question_id].finalization_ts == 2);
+        require(questions[question_id].finalization_ts == ANSWERED_PENDING_ARBITRATION || questions[question_id].finalization_ts == UNANSWERED_PENDING_ARBITRATION);
         _;
     }
 
@@ -124,7 +132,7 @@ contract RealityCheck {
     );
 
     struct Question {
-        uint256 finalization_ts; // Special magic values: 0 for unanswered, 1 for pending arbitration
+        uint256 finalization_ts;
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
@@ -140,9 +148,7 @@ contract RealityCheck {
 
     // Stored in a mapping indexed by commitment_id, which hashes the commitment hash and the sender.
     struct Commitment {
-        // Deadline for the reveal.
-        // Will use a magic number of 1 to mean "revealed".
-        uint256 deadline_ts; 
+        uint256 deadline_ts; // Deadline for the reveal.
         bytes32 revealed_answer;
     }
 
@@ -280,7 +286,7 @@ contract RealityCheck {
         bytes32 commitment_id = keccak256(question_id, answer_hash, US_bond);
 
         uint256 deadline_ts = commitments[commitment_id].deadline_ts;
-        require(deadline_ts > 1); // Commitment must exist, and not be in already-answered state
+        require(deadline_ts > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
         require(deadline_ts > now); 
 
         commitments[commitment_id].deadline_ts = 1;
@@ -300,10 +306,10 @@ contract RealityCheck {
         stateOpen(question_id)
     returns (bool) {
 
-        if (questions[question_id].finalization_ts == 0) {
-            questions[question_id].finalization_ts = 1;
+        if (questions[question_id].finalization_ts == UNANSWERED) {
+            questions[question_id].finalization_ts = UNANSWERED_PENDING_ARBITRATION;
         } else {
-            questions[question_id].finalization_ts = 2;
+            questions[question_id].finalization_ts = ANSWERED_PENDING_ARBITRATION;
         }
         LogNotifyOfArbitrationRequest(question_id);
 
@@ -332,8 +338,7 @@ contract RealityCheck {
         public
     returns (bool) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        // 0, 1, 2 are magic numbers meaning "unanswered, unanswered pending arbitration, answered pending arbitration"
-        return ( (finalization_ts > 2) && (finalization_ts < now) );
+        return ( (finalization_ts > ANSWERED_PENDING_ARBITRATION) && (finalization_ts < now) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
@@ -386,7 +391,7 @@ contract RealityCheck {
             take += last_bond; 
             assert(take >= last_bond);
 
-            if (commitments[keccak256(question_id, answers[i], US_bonds[i])].deadline_ts == 1) {
+            if (commitments[keccak256(question_id, answers[i], US_bonds[i])].deadline_ts == COMMITMENT_REVEALED) {
                 answers[i] = commitments[keccak256(question_id, answers[i], US_bonds[i])].revealed_answer;
                 delete commitments[keccak256(question_id, answers[i], US_bonds[i])];
             }
