@@ -273,7 +273,7 @@ contract RealityCheck {
     }
 
     // NB The bond is the amount you sent in submitAnswerCommitment.
-    // This is used to recreate the history hash so we can check whether your answer is still current.
+    // Since the bond must always increase, we can use this to confirm whether you still have the top answer.
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 US_bond) 
         actorAnyone() // Let anyone do the reveal if they know the nonce. Clients may want to offload this to a service.
         stateOpen(question_id)
