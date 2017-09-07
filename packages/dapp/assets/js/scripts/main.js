@@ -740,7 +740,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 //question[Qi_question_id] = data.args['question_id'];
                 question[Qi_creation_ts] = data.args['created'];
                 question[Qi_question_ipfs] = data.args['question_ipfs'];
-                question[Qi_bounty] = data.args['bounty'];
+                //question[Qi_bounty] = data.args['bounty'];
             }
             break;
 
@@ -1269,7 +1269,7 @@ function openQuestionWindow(question_id) {
         // Get the window open first with whatever data we have
         // Then repopulate with the most recent of everything anything has changed
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
-                updateQuestionWindowIfOpen(question);
+            updateQuestionWindowIfOpen(question);
         });
     });
     /*
@@ -2540,41 +2540,34 @@ function pageInit(account) {
             } else {
                 var question_id = result.args.question_id;
 
-                if (evt == 'LogNewAnswer') {
-                    console.log('got LogNewAnswer, block ', result.blockNumber);
-                    ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
-                        console.log('should be getting latest', question, result.blockNumber);
-                        //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
-                        //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
-                        scheduleFinalizationDisplayUpdate(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                    });
-                }
+                switch (evt) {
 
-                if (evt == 'LogFundAnswerBounty') {
-                    ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                        question[Qi_bounty] = result.args.bounty; // TODO: find a cleaner way to handle this
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_bounty, question[Qi_bounty])
-                        updateAnyDisplay(question_id, web3.fromWei(result.args.bounty, 'ether'), 'question-bounty');
-                    });
+                    case ('LogNewAnswer'):
+                        console.log('got LogNewAnswer, block ', result.blockNumber);
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            console.log('should be getting latest', question, result.blockNumber);
+                            //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
+                            //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
+                            scheduleFinalizationDisplayUpdate(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
+                        break;
 
-                } 
+                    case ('LogFundAnswerBounty'): 
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                            console.log('updating with question', question);
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                        });
+                        break;
 
-                // This is only done by the arbitrator, otherwise it happens on the timer
-                if (evt == 'LogFinalize') {
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                    });
-                }
+                    default:
+                        ensureQuestionDetailFetched(question_id).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
 
-                // TODO: We shouldn't really need a full refresh for what may be a small event
-                var window_id = 'qadetail-' + question_id;
-                if (document.getElementById(window_id)) {
-                    ensureQuestionDetailFetched(question_id).then(function(question) {
-                        displayQuestionDetail(question);
-                    });
                 }
 
             }
