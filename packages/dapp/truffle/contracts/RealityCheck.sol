@@ -66,7 +66,6 @@ contract RealityCheck {
         _;
     }
 
-    mapping (address => uint256) balances;
 
     event LogNewQuestion(
         bytes32 indexed question_id,
@@ -165,6 +164,7 @@ contract RealityCheck {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
+    mapping(address => uint256) public balanceOf;
 
     function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_step_delay) 
         actorAnyone()
@@ -416,7 +416,7 @@ contract RealityCheck {
 
                     // Settle up with the old payee
                     take -= payment;
-                    balances[payee] += take;
+                    balanceOf[payee] += take;
                     take = 0;
 
                     // Now start take again for the new payee
@@ -436,7 +436,7 @@ contract RealityCheck {
         if (last_history_hash == "") {
             // There is nothing left below us so we can keep what remains
             take += last_bond;
-            balances[payee] += take;
+            balanceOf[payee] += take;
             delete question_claims[question_id];
         } else {
             // We haven't yet got to the null hash (1st answer), so store the details to pick up later
@@ -449,7 +449,7 @@ contract RealityCheck {
             if (payee == 0x0) {
                 question_claims[question_id].take = take;
             } else {
-                balances[payee] += take;
+                balanceOf[payee] += take;
                 question_claims[question_id].take = 0;
             }
         }
@@ -519,16 +519,9 @@ contract RealityCheck {
         stateAny() // You can always withdraw your balance
         public
     {
-        uint256 bal = balances[msg.sender];
-        balances[msg.sender] = 0;
+        uint256 bal = balanceOf[msg.sender];
+        balanceOf[msg.sender] = 0;
         msg.sender.transfer(bal);
-    }
-
-    function balanceOf(address _owner) 
-        constant 
-        external
-    returns (uint256 balance) {
-        return balances[_owner];
     }
 
 } 
