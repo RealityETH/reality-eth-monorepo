@@ -179,9 +179,7 @@ contract RealityCheck {
 
         bytes32 question_id = keccak256(question_ipfs, arbitrator, US_step_delay);
 
-        // Should not already exist (equivalent to stateNotCreated)
-        // If you legitimately want to ask the same question again, use a nonce or timestamp in the question json
-        require(questions[question_id].step_delay ==  0); // Check existence
+        require(questions[question_id].step_delay ==  0); // Check existence (stateNotCreated)
 
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].step_delay = step_delay;
@@ -252,7 +250,6 @@ contract RealityCheck {
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
         // You can only use the same commitment once.
-        // If you want to submit the same answer again, use a new nonce.
         require(commitments[commitment_id].deadline_ts == 0);
 
         uint256 step_delay = questions[question_id].step_delay;
@@ -272,7 +269,7 @@ contract RealityCheck {
 
         bytes32 answer_hash = keccak256(answer, nonce);
 
-        // The question ID + bond will uniquely identify the answer.
+        // The question ID + bond will uniquely identify the commitment.
         bytes32 commitment_id = keccak256(question_id, answer_hash, US_bond);
 
         uint256 deadline_ts = commitments[commitment_id].deadline_ts;
@@ -342,6 +339,9 @@ contract RealityCheck {
 
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
+    // We work up the chain and assign bonds to the person who gave the right answer
+    // If someone gave the winning answer earlier, they must get paid from the higher bond
+    // So we don't pay out the bond added at n until we have looked at n-1
     //
     // The first answer is authenticated by checking against the stored history_hash.
     // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
@@ -349,7 +349,9 @@ contract RealityCheck {
     //
     // Usually you would call the whole thing in a single transaction.
     // But in theory the chain of answers can be arbitrarily long, so you may run out of gas.
-    // If you only supply part of the then chain the data we need to carry on later will be stored.
+    // If you only supply part of the then chain the data we need to carry on later will be stored:
+    // Question holds the history_hash. It'll be zeroed once everything has been claimed.
+    // The rest goes in a dedicated struct, which is only set if you split the claim over multiple transactions.
     //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
         actorAnyone() // Doesn't matter who calls it, it only pays the winner(s).
@@ -357,24 +359,16 @@ contract RealityCheck {
         public 
     {
 
-        // The following are usually 0 / null.
-        // They are only set if we split our claim over multiple transactions.
+        // These are only set if we split our claim over multiple transactions.
         uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. This hasn't been spent yet.
         address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
         uint256 take = question_claims[question_id].take; // Money we can pay out
 
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        // History entries should have been sent from last to first.
-        // We work up the chain and assign bonds to the person who gave the right answer
-        // However, if someone gave our answer before they did, we make them the payee for subsequent (lower) bonds
-        // They also get the equivalent (x1) of their bond from the higher-up right-answerer
-        // We won't know that we have to pay them until we get to their entry.
-        // So we don't pay out the bond added at x until we have looked at x-1
-
         // Usually the final hash. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
         bytes32 last_history_hash = questions[question_id].history_hash;
+
+        bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
         for (i=0; i<history_hashes.length; i++) {
@@ -393,8 +387,7 @@ contract RealityCheck {
 
                 if (payee == 0x0) {
 
-                    // The highest right answer
-
+                    // The highest right answer, they get the question bounty.
                     payee = addrs[i];
                     take += questions[question_id].bounty;
                     questions[question_id].bounty = 0;
@@ -452,7 +445,7 @@ contract RealityCheck {
 
             // If we're still waiting for the winner, we have to persist their winnings.
             // These will remain in the pool until they submit enough history to tell use who they are.
-            // Otherwise we can go ahead and pay them out, only keeping back last_bond
+            // If we have the winner we can go ahead and pay them out, only keeping back last_bond
             if (payee == 0x0) {
                 question_claims[question_id].take = take;
             } else {
