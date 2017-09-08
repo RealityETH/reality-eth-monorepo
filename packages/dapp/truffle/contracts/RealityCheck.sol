@@ -78,7 +78,7 @@ contract RealityCheck {
 
     event LogNewQuestion(
         bytes32 indexed question_id,
-        address indexed questioner, 
+        address indexed user, 
         address indexed arbitrator, 
         uint256 step_delay,
         bytes32 question_ipfs,
@@ -89,7 +89,7 @@ contract RealityCheck {
         bytes32 indexed answer,
         bytes32 indexed question_id,
         bytes32 history_hash,
-        address indexed answerer,
+        address indexed user,
         uint256 bond,
         uint256 ts,
         bool is_commitment
@@ -98,7 +98,7 @@ contract RealityCheck {
     event LogAnswerReveal(
         bytes32 indexed question_id, 
         bytes32 answer_hash, 
-        address indexed answerer, 
+        address indexed user, 
         uint256 nonce, 
         uint256 bond
     );
@@ -107,12 +107,12 @@ contract RealityCheck {
         bytes32 indexed question_id,
         uint256 bounty_added,
         uint256 bounty,
-        address funder
+        address user 
     );
 
     event LogNotifyOfArbitrationRequest(
         bytes32 indexed question_id,
-        address indexed requester
+        address indexed user 
     );
 
     event LogFinalize(
@@ -122,14 +122,14 @@ contract RealityCheck {
 
     event LogClaimBounty(
         bytes32 indexed question_id,
-        address indexed receiver,
+        address indexed user,
         uint256 amount
     );
 
     event LogClaimBond(
         bytes32 indexed question_id,
         bytes32 indexed answer,
-        address indexed receiver,
+        address indexed user,
         uint256 amount
     );
 
@@ -148,18 +148,18 @@ contract RealityCheck {
         bytes32 history_hash;
     }
 
-    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash and the sender.
-    struct Commitment {
-        uint256 deadline_ts; // Deadline for the reveal.
-        bytes32 revealed_answer;
-    }
-
     // Only used when claiming more bonds than fits into a transaction
     // Stored in a mapping indexed by question_id.
     struct Claim {
         address payee;
         uint256 last_bond;
         uint256 take;
+    }
+
+    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash, question and bond. 
+    struct Commitment {
+        uint256 deadline_ts; // COMMITMENT_REVEALED, or the deadline for the reveal
+        bytes32 revealed_answer;
     }
 
     mapping(bytes32 => Question) public questions;
@@ -305,6 +305,7 @@ contract RealityCheck {
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
         actorArbitrator(question_id)
         stateOpen(question_id)
+        external
     returns (bool) {
 
         if (questions[question_id].finalization_ts == UNANSWERED) {
@@ -333,7 +334,6 @@ contract RealityCheck {
 
     }
 
-
     function isFinalized(bytes32 question_id) 
         constant
         public
@@ -361,12 +361,12 @@ contract RealityCheck {
     //
     // Usually you would call the whole thing in a single transaction.
     // But in theory the chain of answers can be arbitrarily long, so you may run out of gas.
-    // If you only supply part of chain then the data we need to carry on later will be stored:
-    // Question holds the history_hash. It'll be zeroed once everything has been claimed.
-    // The rest goes in a dedicated struct, which is only set if you split the claim over multiple transactions.
+    // If you only supply part of chain then the data we need to pick up again later will be stored:
+    // * Question holds the history_hash. It'll be zeroed once everything has been claimed.
+    // * The rest goes in a dedicated Claim struct. This is only filled if you stop a claim before the end.
     //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
-        actorAnyone() // Doesn't matter who calls it, it assigns funds the winner(s) regardless.
+        actorAnyone() // Doesn't matter who calls it, it assigns funds to the winner(s) regardless.
         stateFinalized(question_id)
         public 
     {
@@ -401,7 +401,8 @@ contract RealityCheck {
 
                 if (payee == 0x0) {
 
-                    // The highest right answer, they get the question bounty.
+                    // The first payee we come too, ie the winner. They get the question bounty.
+
                     payee = addrs[i];
                     take += questions[question_id].bounty;
                     questions[question_id].bounty = 0;
@@ -414,15 +415,11 @@ contract RealityCheck {
                     // They should also be paid the equivalent of their bond. 
                     // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
-                    // Normally there should be enough (x2) from the higher user's last_bond to pay the lower user.
-                    // There's an edge case involving weird arbitrator behaviour where there may not a higher bond.
-                    // If we hit that, just pay them as much as we've got, which is 0...
-
                     uint256 payment = 0;
                     if (last_bond >= US_bonds[i]) {
-                        payment = US_bonds[i];
+                        payment = US_bonds[i]; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
                     } else {
-                        payment = last_bond;
+                        payment = last_bond; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
                     }
 
                     assert(take >= last_bond);
@@ -474,7 +471,7 @@ contract RealityCheck {
 
     }
 
-    // Convenience function to claim for multiple questions in one go.
+    // Convenience function to claim for multiple questions in one go, then withdraw all funds.
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
     function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 

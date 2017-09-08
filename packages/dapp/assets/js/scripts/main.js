@@ -22,14 +22,12 @@ var submitted_question_id_timestamp = {};
 var category = null;
 
 const EVENT_ACTOR_ARGS = {
-    'LogNewQuestion': 'questioner',
-    'LogNewAnswer': 'answerer',
-    'LogFundAnswerBounty': 'funder',
-    'LogNotifyOfArbitrationRequest': 'requester',
-    'LogClaimBounty': 'receiver',
-    'LogClaimBond': 'receiver',
-    'LogFundCallbackRequest': 'caller',
-    'LogSendCallback': 'caller',
+    'LogNewQuestion': 'user',
+    'LogNewAnswer': 'user',
+    'LogFundAnswerBounty': 'user',
+    'LogNotifyOfArbitrationRequest': 'user',
+    'LogClaimBounty': 'user',
+    'LogClaimBond': 'user'
 };
 
 const IPFS_MAX_SIZE = 8192; // max size of an ipfs file in characters
@@ -1405,10 +1403,10 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
         // answerer data
         var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-        ans_data.find('.answerer').text(latest_answer.answerer);
-        var avjazzicon = jazzicon(32, parseInt(latest_answer.answerer.toLowerCase().slice(2,10), 16) );
+        ans_data.find('.answerer').text(latest_answer.user);
+        var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2,10), 16) );
         ans_data.find('.answer-data__avatar').html(avjazzicon);
-        if (latest_answer.answerer == account) {
+        if (latest_answer.user == account) {
             ans_data.addClass('current-account');
         } else {
             ans_data.removeClass('current-account');
@@ -1431,9 +1429,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
             var hist_item = hist_tmpl.clone();
             hist_item.attr('id', hist_id);
-            hist_item.find('.answerer').text(ans['answerer']);
+            hist_item.find('.answerer').text(ans['user']);
 
-            var avjazzicon = jazzicon(32, parseInt(ans['answerer'].toLowerCase().slice(2,10), 16) );
+            var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2,10), 16) );
 
             hist_item.find('.answer-data__avatar').html(avjazzicon);
             hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
@@ -1521,7 +1519,7 @@ function possibleClaimableItems(question_detail) {
     var final_answer = question_detail[Qi_best_answer];
     for(var i = question_detail['history'].length-1; i >= 0; i--) {
         var answer = question_detail['history'][i].args.answer;
-        var answerer = question_detail['history'][i].args.answerer;
+        var answerer = question_detail['history'][i].args.user;
         var bond = question_detail['history'][i].args.bond;
         var history_hash = question_detail['history'][i].args.history_hash; 
 
@@ -1730,8 +1728,8 @@ function renderNotifications(qdata, entry) {
 
         case 'LogNewAnswer':
             var is_positive = true;
-            var notification_id = web3.sha3('LogNewAnswer' + entry.args.question_id + entry.args.answerer + entry.args.bond.toString());
-            if (entry.args.answerer == account) {
+            var notification_id = web3.sha3('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toString());
+            if (entry.args.user == account) {
                 ntext = 'You answered a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
@@ -1741,9 +1739,9 @@ function renderNotifications(qdata, entry) {
                 });
                 answered_question.get(function (error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
-                        if (result2[0].args.questioner == account) {
+                        if (result2[0].args.user == account) {
                             ntext = 'Someone answered to your question';
-                        } else if (qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                        } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
                             is_positive = false;
                             ntext = 'Your answer was overwritten';
                         }
@@ -1757,8 +1755,8 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogFundAnswerBounty':
-            var notification_id = web3.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.funder);
-            if (entry.args.funder == account) {
+            var notification_id = web3.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.user);
+            if (entry.args.user == account) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
@@ -1769,11 +1767,11 @@ function renderNotifications(qdata, entry) {
                 // TODO: Should this really always be index 0?
                 funded_question.get(function (error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
-                        if (result2[0].args.questioner == account) {
+                        if (result2[0].args.user == account) {
                             ntext = 'Someone added reward to your question';
                         } else {
                             var prev_hist_idx = qdata['history'].length - 2;
-                            if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.answerer == account) ) {
+                            if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.user == account) ) {
                                 ntext = 'Someone added reward to the question you answered';
                             }
                         }
@@ -1789,7 +1787,7 @@ function renderNotifications(qdata, entry) {
         case 'LogNotifyOfArbitrationRequest':
             var notification_id = web3.sha3('LogNotifyOfArbitrationRequest' + entry.args.question_id);
             var is_positive = true;
-            if (entry.args.requester == account) {
+            if (entry.args.user == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
@@ -1797,10 +1795,10 @@ function renderNotifications(qdata, entry) {
                 arbitration_requested_question.get(function (error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         var history_idx = qdata['history'].length - 2;
-                        if (result2[0].args.questioner == account) {
+                        if (result2[0].args.user == account) {
                             ntext = 'Someone requested arbitration to your question';
                         } else {
-                            if ( (history_idx >= 0) && (qdata['history'][history_idx].args.answerer == account) ) {
+                            if ( (history_idx >= 0) && (qdata['history'][history_idx].args.user == account) ) {
                                 ntext = 'Someone requested arbitration to the question you answered';
                                 is_positive = false;
                             } else {
@@ -1831,9 +1829,9 @@ function renderNotifications(qdata, entry) {
             finalized_question.get(function (error, result2) {
             //console.log('gotquestion_id', question_id)
                 if (error === null && typeof result2 !== 'undefined') {
-                    if (result2[0].args.questioner == account) {
+                    if (result2[0].args.user == account) {
                         ntext = 'Your question is finalized';
-                    } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.answerer == account) {
+                    } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == account) {
                         ntext = 'The question you answered is finalized';
                     } else {
                         ntext = 'Some question was finalized';
@@ -1885,7 +1883,7 @@ function renderQAItemAnswer(question_id, answer_history, question_json, is_final
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0 ; i--) {
-                if (answer_history[i].args.answerer == account) {
+                if (answer_history[i].args.user == account) {
                     user_answer = answer_history[i].args.answer;
                     break;
                 }
@@ -2350,7 +2348,7 @@ function show_bond_payments(ctrl) {
         //console.log('existing_answers', existing_answers);
         if (existing_answers[new_answer]) {
             payable = existing_answers[new_answer].args.bond;
-            if (existing_answers[new_answer].args.answerer == account) {
+            if (existing_answers[new_answer].args.user == account) {
                 frm.addClass('has-your-answer').removeClass('has-someone-elses-answer');
                 frm.find('.answer-credit-info .answer-payment-value').text( web3.fromWei(payable, 'ether'))
             } else {
