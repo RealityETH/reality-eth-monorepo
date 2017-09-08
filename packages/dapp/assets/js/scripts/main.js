@@ -566,11 +566,12 @@ $('div.loadmore-button').on('click', function(e) {
 
 });
 
-// This gets called when we discover an event related to the user.
+// This gets called when we discover an event that may be related to the user.
 // We may or may not have already seen this event.
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
-function handleUserAction(entry, is_watch) {
+function handlePotentialUserAction(entry, is_watch) {
+    //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
         console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
@@ -587,27 +588,20 @@ function handleUserAction(entry, is_watch) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
-            //console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
+            // console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
             return;
         } 
 
         q_min_activity_blocks[question_id] = entry.blockNumber;
-        var all_evts = rc.allEvents({question_id: question_id});
-        all_evts.get(function(error, evts) {
-            if (error === null && typeof evts !== 'undefined') {
-                for(var i=0; i<evts.length; i++) {
-                    handleUserAction(evts[i]);
-                }
-            } else {
-                console.log('error getting all_evts', error);
-            }
-        });
+
+        fetchUserEventsAndHandle({question_id: question_id}, START_BLOCK, 'latest');
 
         updateUserBalanceDisplay();
 
     }
 
     //console.log('handling', entry.args['question_id'], 'entry', entry, account);
+    //console.log('handlePotentialUserAction looks interesting, continuing', entry.args.user, entry,is_watch);
 
     if (window.localStorage) {
         var lastViewedBlockNumber = 0;
@@ -712,7 +706,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     if (!question_id) {
-        console.log(question_id, data_type, freshness, data);
+        //console.log(question_id, data_type, freshness, data);
         throw Error("filledQuestionDetail called without question_id, wtf")
     }
 
@@ -750,9 +744,9 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
             break;
 
         case 'question_call':
-            console.log('in case question_call');
+            //console.log('in case question_call');
             if (data && (freshness >= question.freshness.question_call)) {
-                console.log('call data new, not setting', freshness, ' vs ', question.freshness.question_call, question)
+                //console.log('call data new, not setting', freshness, ' vs ', question.freshness.question_call, question)
                 // Question ID is tacked on after the call.
                 // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
                 question.freshness.question_call = freshness;
@@ -765,9 +759,9 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_best_answer] = data[Qi_best_answer-1];
                 question[Qi_bond] = data[Qi_bond-1];
                 question[Qi_history_hash] = data[Qi_history_hash-1];
-            console.log('set question', question_id, question);
+                //console.log('set question', question_id, question);
             }  else {
-                console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
+                //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
             }
             break;
 
@@ -800,10 +794,10 @@ function isDataFreshEnough(question_id, data_type, freshness) {
         return false;
     }
     if (question_detail_list[question_id].freshness[data_type] >= freshness) {
-        console.log('is fresh', question_detail_list[question_id].freshness, freshness) 
+        //console.log('is fresh', question_detail_list[question_id].freshness, freshness) 
         return true;
     } else {
-        console.log('is not fresh', question_detail_list[question_id].freshness[data_type], freshness) 
+        //console.log('is not fresh', question_detail_list[question_id].freshness[data_type], freshness) 
         return false;
     }
 }
@@ -849,7 +843,7 @@ function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) 
         if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
-            console.log('fetching ipfs for ipfs addr', question_json_ipfs);
+            //console.log('fetching ipfs for ipfs addr', question_json_ipfs);
             ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true}).then(function(res) {
                 if (res.length > IPFS_MAX_SIZE) {
                     reject(new Error('IPFS file too large'));
@@ -982,7 +976,7 @@ function populateSection(section_name, question_data, before_item) {
 
 function updateSectionEntryDisplay(question) {
     $('div.questions__item[data-question-id="'+question[Qi_question_id]+'"]').each(function() {
-        console.log('updateSectionEntryDisplay update question', question[Qi_question_id]);
+        //console.log('updateSectionEntryDisplay update question', question[Qi_question_id]);
         populateSectionEntry($(this), question);
     });
 }
@@ -2464,9 +2458,9 @@ function updateRankingSections(question, changed_field, changed_val) {
                 populateSection('questions-resolved', question, insert_before);
             }
         } else {
-console.log('updating closing soon with timestamp', question_id, question[Qi_finalization_ts].toString());
+            //console.log('updating closing soon with timestamp', question_id, question[Qi_finalization_ts].toString());
             var insert_before = update_ranking_data('questions-closing-soon', question_id, question[Qi_finalization_ts], 'asc');
-console.log('insert_before was', insert_before);
+            //console.log('insert_before was', insert_before);
             if (insert_before !== -1) {
                 populateSection('questions-closing-soon', question, insert_before);
             }
@@ -2530,7 +2524,7 @@ function pageInit(account) {
             console.log('got watch event', error, result);
 
             // Check the action to see if it is interesting, if it is then populate notifications etc
-            handleUserAction(result, true);
+            handlePotentialUserAction(result, true);
 
             // Handles front page event changes.
             // NB We need to reflect other changes too...
@@ -2546,7 +2540,7 @@ function pageInit(account) {
                         console.log('got LogNewAnswer, block ', result.blockNumber);
                         ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
                             updateQuestionWindowIfOpen(question);
-                            console.log('should be getting latest', question, result.blockNumber);
+                            //console.log('should be getting latest', question, result.blockNumber);
                             //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
                             //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
                             scheduleFinalizationDisplayUpdate(question);
@@ -2574,57 +2568,14 @@ function pageInit(account) {
         }
     });
 
-    var answer_posted = rc.LogNewAnswer({}, {fromBlock: START_BLOCK, toBlock:'latest'})
-    answer_posted.get(function (error, result) {
-        var answers = result;
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < answers.length; i++) {
-                handleUserAction(answers[i]);
-            }
-        } else {
-            console.log(error);
-        }
-    });
-
-    var bounty_funded = rc.LogFundAnswerBounty({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-    bounty_funded.get(function (error, result) {
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < result.length; i++) {
-                handleUserAction(result[i]);
-            }
-        } else {
-            console.log(error);
-        }
-    });
-
-    var arbitration_requested = rc.LogNotifyOfArbitrationRequest({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-    arbitration_requested.get(function (error, result) {
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < result.length; i++) {
-                handleUserAction(result[i]);
-            }
-        } else {
-            console.log(error);
-        }
-    });
-
-    var finalized = rc.LogFinalize({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-    finalized.get(function (error, result) {
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < result.length; i++) {
-                handleUserAction(result[i]);
-            }
-        } else {
-            console.log(error);
-        }
-    });
+    fetchUserEventsAndHandle({user: account}, START_BLOCK, 'latest');
 
     // Now the rest of the questions
     var question_posted = rc.LogNewQuestion({}, {fromBlock: START_BLOCK, toBlock:'latest'});
     question_posted.get(function (error, result) {
         if (error === null && typeof result !== 'undefined') {
             for(var i=0; i<result.length; i++) {
-                handleUserAction(result[i]);
+                handlePotentialUserAction(result[i]);
                 handleQuestionLog(result[i]);
             }
         } else {
@@ -2634,6 +2585,69 @@ function pageInit(account) {
     });
 
 };
+
+function fetchUserEventsAndHandle(filter, start_block, end_block) {
+    //console.log('fetching for filter', filter);
+
+    var answer_posted = rc.LogNewAnswer(filter, {fromBlock: start_block, toBlock: end_block})
+    answer_posted.get(function (error, result) {
+        var answers = result;
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < answers.length; i++) {
+                handlePotentialUserAction(answers[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var bounty_funded = rc.LogFundAnswerBounty(filter, {fromBlock: start_block, toBlock: end_block});
+    bounty_funded.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handlePotentialUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var arbitration_requested = rc.LogNotifyOfArbitrationRequest(filter, {fromBlock: start_block, toBlock: end_block});
+    arbitration_requested.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handlePotentialUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var finalized = rc.LogFinalize(filter, {fromBlock: start_block, toBlock: end_block});
+    finalized.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handlePotentialUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    // Now the rest of the questions
+    var question_posted = rc.LogNewQuestion(filter, {fromBlock: START_BLOCK, toBlock:'latest'});
+    question_posted.get(function (error, result) {
+        if (error === null && typeof result !== 'undefined') {
+            for(var i=0; i<result.length; i++) {
+                handlePotentialUserAction(result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+
+    });
+
+}
 
 function isForCurrentUser(entry) {
     var actor_arg = EVENT_ACTOR_ARGS[entry['event']];
