@@ -269,7 +269,7 @@ contract RealityCheck {
         uint256 step_delay = questions[question_id].step_delay;
         commitments[commitment_id].deadline_ts = now + (step_delay/8);
 
-        return _addAnswer(question_id, answer_hash, msg.sender, msg.value, true, 0);
+        return _addAnswer(question_id, commitment_id, msg.sender, msg.value, true, 0);
 
     }
 
@@ -392,9 +392,9 @@ contract RealityCheck {
             take += last_bond; 
             assert(take >= last_bond);
 
-            if (commitments[keccak256(question_id, answers[i], US_bonds[i])].deadline_ts == COMMITMENT_REVEALED) {
-                answers[i] = commitments[keccak256(question_id, answers[i], US_bonds[i])].revealed_answer;
-                delete commitments[keccak256(question_id, answers[i], US_bonds[i])];
+            if (commitments[answers[i]].deadline_ts == COMMITMENT_REVEALED) {
+                answers[i] = commitments[answers[i]].revealed_answer;
+                delete commitments[answers[i]];
             }
 
             if (answers[i] == best_answer) {
@@ -522,6 +522,13 @@ contract RealityCheck {
     returns (bytes32)
     {
         return keccak256(answer, nonce);
+    }
+    function calculateCommitmentID(bytes32 question_id, bytes32 answer_hash, uint256 bond) 
+        constant 
+        public
+    returns (bytes32)
+    {
+        return keccak256(question_id, answer_hash, bond);
     }
 
 }

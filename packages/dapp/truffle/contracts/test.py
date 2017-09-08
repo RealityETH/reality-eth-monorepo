@@ -163,7 +163,7 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 54321)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_answered(self):
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=1) 
@@ -231,8 +231,9 @@ class TestRealityCheck(TestCase):
         if is_commitment:
             nonce = 1234
             answer_hash = self.rc0.calculateCommitmentHash(to_answer_for_contract(ans), nonce)
+            commitment_id = self.rc0.calculateCommitmentID(self.question_id, answer_hash, bond)
             self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, value=bond, sender=sdr)
-            st['answer'][0] = answer_hash
+            st['answer'][0] = commitment_id
         else:
             self.rc0.submitAnswer(qid, to_answer_for_contract(ans), max_last, value=bond, sender=sdr)
         st['nonce'].insert(0, nonce)
