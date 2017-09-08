@@ -36,6 +36,8 @@ const QUESTION_MAX_OUTCOMES = 128;
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
+const FETCH_NUMBERS = [2500, 5000, 10000, 20000, 40000];
+
 var last_displayed_block_number = 0;
 var current_block_number = 1;
 
@@ -956,7 +958,6 @@ function populateSection(section_name, question_data, before_item) {
     entry = populateSectionEntry(entry, question_data);
 
     entry.attr('id', question_item_id).removeClass('template-item');
-    //entry.css('display', 'block');
 
     //console.log('adding entry', question_item_id, 'before item', before_item);
     if (before_item && is_found) {
@@ -2570,7 +2571,33 @@ function pageInit(account) {
     fetchUserEventsAndHandle({user: account}, START_BLOCK, 'latest');
 
     // Now the rest of the questions
-    var question_posted = rc.LogNewQuestion({}, {fromBlock: START_BLOCK, toBlock:'latest'});
+    fetchAndDisplayQuestions(current_block_number, 0);
+
+
+};
+
+function fetchAndDisplayQuestions(end_block, fetch_i) {
+
+    // get how many to fetch off fetch_numbers, until we run off the end then use the last num
+    var fetch_num;
+    if (fetch_i < FETCH_NUMBERS.length) {
+        fetch_num = FETCH_NUMBERS[fetch_i];
+    } else {
+        fetch_num = FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
+    }
+
+    var start_block = end_block - fetch_num;
+    if (start_block < START_BLOCK) {
+        start_block = START_BLOCK;
+    }
+    if (end_block <= START_BLOCK) {
+        console.log('all done');
+        return;
+    }
+
+    console.log('fetchAndDisplayQuestions', start_block, end_block, fetch_i);
+
+    var question_posted = rc.LogNewQuestion({}, {fromBlock: start_block, toBlock: end_block});
     question_posted.get(function (error, result) {
         if (error === null && typeof result !== 'undefined') {
             for(var i=0; i<result.length; i++) {
@@ -2581,9 +2608,10 @@ function pageInit(account) {
             console.log(error);
         }
 
+        console.log('fetch start end ', start_block, end_block, fetch_i);
+        fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
     });
-
-};
+}
 
 function fetchUserEventsAndHandle(filter, start_block, end_block) {
     //console.log('fetching for filter', filter);
