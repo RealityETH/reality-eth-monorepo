@@ -36,7 +36,7 @@ const QUESTION_MAX_OUTCOMES = 128;
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
-const FETCH_NUMBERS = [2500, 5000, 10000, 20000, 40000];
+const FETCH_NUMBERS = [2500, 5000, 10000];
 
 var last_displayed_block_number = 0;
 var current_block_number = 1;
