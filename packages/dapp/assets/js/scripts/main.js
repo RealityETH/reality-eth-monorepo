@@ -374,14 +374,18 @@ $('#post-a-question-button,#post-a-question-link').on('click', function(e){
     }
 });
 
-$('#browse-question-button').on('click', function(){
+$('#browse-question-button').on('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
     $('body').addClass('page-qa');
     $('#site-slogan-normal').css('display', 'none');
     $('#site-slogan-browse-qa').css('display', 'block');
     $('#site-introduction__buttons').css('display', 'none');
 });
 
-$('#site-logo').on('click', function(){
+$('#site-logo').on('click', function(e){
+    e.preventDefault();
+    e.stopPropagation();
     $('body').removeClass('page-qa');
     $('#site-slogan-normal').css('display', 'block');
     $('#site-slogan-browse-qa').css('display', 'none');
