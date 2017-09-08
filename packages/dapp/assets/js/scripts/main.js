@@ -956,7 +956,7 @@ function populateSection(section_name, question_data, before_item) {
     entry = populateSectionEntry(entry, question_data);
 
     entry.attr('id', question_item_id).removeClass('template-item');
-    entry.css('display', 'block');
+    //entry.css('display', 'block');
 
     //console.log('adding entry', question_item_id, 'before item', before_item);
     if (before_item && is_found) {
@@ -964,7 +964,6 @@ function populateSection(section_name, question_data, before_item) {
     } else {
         section.children('.questions-list').append(entry);
     }
-
 
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
         //console.log('too long, removing');
