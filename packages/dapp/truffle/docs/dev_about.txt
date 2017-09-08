@@ -136,20 +136,20 @@ In the previous examples, we created the question ourselves, then put the questi
 
 Instead of sending our contract a question ID, we send it the parameters needed to register the question with RealityCheck: 
    * IPFS address of the question, 
-   * The step delay, which is how long someone will have to create a new answer
+   * The timeout, which is how long someone will have to create a new answer
    * address of the arbitrator.
 
     bytes32 question_id;
 
-    function NaziWalkathon(address _realitycheck, bytes32 _question_ipfs, address arbitrator, uint256 step_delay, address _charity, uint256 _wei_per_nazi) {
+    function NaziWalkathon(address _realitycheck, bytes32 _question_ipfs, address arbitrator, uint256 , address _charity, uint256 _wei_per_nazi) {
 		realitycheck = _realitycheck;
 		question_id = _question_id;
 		anti_racist_charity = _charity;
 		wei_per_nazi = _wei_per_nazi;
 		owner = msg.sender;
 
-        uint256 step_delay = 1 day;
-        question_id = realitycheck.askQuestion(question_ipfs, step_delay, arbitrator, 0);
+        uint256  = 1 day;
+        question_id = realitycheck.askQuestion(question_ipfs, , arbitrator, 0);
 	}
 
 Why would you want to register the question with your just registering the question with our website and sending the resulting ID to your contract? One reason might be because you want control of the timing of the registration of the question. You want to set up your contract before the walkathon takes place, but you don't want the question answered too early; If somebody asks the question before the march happens, the only way to pause it until the march actually happens will be to request arbitration, which is expensive.
@@ -158,7 +158,7 @@ So let's change our walkathon contract so that nobody can register the question 
 
     function registerQuestion() {
         require(now > 1492646400);
-        question_id = realitycheck.askQuestion(question_ipfs, step_delay, arbitrator, 0);
+        question_id = realitycheck.askQuestion(question_ipfs, , arbitrator, 0);
     }
 
 
@@ -195,7 +195,7 @@ certain date. For instance, if you want the exchange rate of ETH to USD on 2018-
 contract FutureQuestion {
 
     bytes32 question_ipfs = 0xdeadbeef;
-    uint256 step_delay = 1 day;
+    uint256  = 1 day;
     address arbitrator = 0xbabebabe;
 
     bytes32 question_id;
@@ -203,7 +203,7 @@ contract FutureQuestion {
     function askQuestion() {
        require(now < 1514764800);
        bytes32 our_code = question_ipfs;
-       bytes32 question_id = realitycheck.askQuestion(question_ipfs, step_delay, arbitrator, our_code);
+       bytes32 question_id = realitycheck.askQuestion(question_ipfs, , arbitrator, our_code);
     }
 
 }

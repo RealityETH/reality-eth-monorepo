@@ -50,7 +50,7 @@ const Qi_question_id = 0;
 // NB This has magic values - 0 for no answer, 1 for pending arbitration, 2 for pending arbitration with answer, otherwise timestamp
 const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
-const Qi_step_delay = 3;
+const Qi_timeout = 3;
 const Qi_question_ipfs = 4;
 const Qi_bounty = 5;
 const Qi_best_answer = 6;
@@ -401,8 +401,8 @@ $('#post-question-submit').on('click', function(e){
 
     var question_body = $('#question-body');
     var reward = $('#question-reward');
-    var step_delay = $('#step-delay');
-    var step_delay_val = step_delay.val();
+    var timeout = $('#step-delay');
+    var timeout_val = timeout.val();
     var arbitrator =$('#arbitrator');
     var question_type = $('#question-type');
     var answer_options = $('.answer-option');
@@ -428,10 +428,10 @@ $('#post-question-submit').on('click', function(e){
                 return;
             }
             var question_id;
-            rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val)
+            rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
             .then(function(qid) {
                 question_id = qid;
-                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), step_delay_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
                 openQuestionWindow(question_id);
@@ -769,7 +769,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 //question[Qi_question_id] = question_id;
                 question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
                 question[Qi_arbitrator] = data[Qi_arbitrator-1];
-                question[Qi_step_delay] = data[Qi_step_delay-1];
+                question[Qi_timeout] = data[Qi_timeout-1];
                 question[Qi_question_ipfs] = data[Qi_question_ipfs-1];
                 question[Qi_bounty] = data[Qi_bounty-1];
                 question[Qi_best_answer] = data[Qi_best_answer-1];
@@ -1004,7 +1004,7 @@ function populateSectionEntry(entry, question_data) {
     var question_json = question_data[Qi_question_json];
     var posted_ts = question_data[Qi_creation_ts];
     var arbitrator = question_data[Qi_arbitrator];
-    var step_delay = question_data[Qi_step_delay];
+    var timeout = question_data[Qi_timeout];
     var bounty = web3.fromWei(question_data[Qi_bounty], 'ether');
     var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
@@ -1732,7 +1732,7 @@ function renderNotifications(qdata, entry) {
     var evt = entry['event'] 
     switch (evt) {
         case 'LogNewQuestion':
-            var notification_id = web3.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + entry.args.step_delay.toString());
+            var notification_id = web3.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + entry.args.timeout.toString());
             ntext  = 'You asked a question - "' + question_json['title'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             break;
@@ -2075,7 +2075,7 @@ function updateQuestionState(question, question_window) {
 
 /*
     var id = setInterval(function(){
-        if (Date.now() - answer_created.toNumber() * 1000 > step_delay.toNumber() * 1000) {
+        if (Date.now() - answer_created.toNumber() * 1000 > timeout.toNumber() * 1000) {
             $(section_name).find('.final-answer-button').css('display', 'block');
             clearInterval(id);
         }
@@ -2559,7 +2559,7 @@ function pageInit(account) {
                             updateQuestionWindowIfOpen(question);
                             //console.log('should be getting latest', question, result.blockNumber);
                             //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
-                            //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_step_delay]); // TODO: find a cleaner way to handle this
+                            //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_timeout]); // TODO: find a cleaner way to handle this
                             scheduleFinalizationDisplayUpdate(question);
                             updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                         });

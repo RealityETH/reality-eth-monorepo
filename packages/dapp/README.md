@@ -17,12 +17,12 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 
  * You post a question to the `askQuestion` function, specifiying:
      * The question text and terms, in the form of an IPFS document hash.
-     * The "step delay", which is how many seconds since the last answer the system will wait before finalizing on it.
+     * The "timeout", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
      * Optionally, a minimum bond to start with.
  * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
  * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the clock.
- * Once the "step delay" from the last answer has elapsed, the system considers it final.
+ * Once the "timeout" from the last answer has elapsed, the system considers it final.
  * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator` transaction to the contract.
  * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
  * Users can call `withdraw` to take ETH held in their balance out of the contract.
@@ -56,7 +56,7 @@ As described above the system rewards answerers for being first with the right a
 
 To allow users to prevent this, we allow answers to be supplied by a commit-and-reveal process. This replaces the single-step `submitAnswer` with two transactions. The first transaction, `submitAnswerCommitment`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal`, provides the actual answer, and the nonce used to create the hash. 
 
-To give other users a chance to respond to their answer, the time allowed for the reveal is limited to `1/8` of the step delay. During this time, other users are free to post their own answers. However, these answers will be listed after the previous user's commit, and if the commit turns out to have been the same as the answer they are submitting, they will have to share their rewards with them, as in the payout example above. Depending on the relative sizes of the question bounty and the answer bond, submitting an answer immediately after someone else has given the same answer may or may not be a profitable strategy.
+To give other users a chance to respond to their answer, the time allowed for the reveal is limited to `1/8` of the timeout. During this time, other users are free to post their own answers. However, these answers will be listed after the previous user's commit, and if the commit turns out to have been the same as the answer they are submitting, they will have to share their rewards with them, as in the payout example above. Depending on the relative sizes of the question bounty and the answer bond, submitting an answer immediately after someone else has given the same answer may or may not be a profitable strategy.
 
 The reveal will update the "current best" answer in the same way that a normal answer would have, unless a new answer has already been posted with a higher bond by the time the reveal comes, in which case the answer posted after the commit will stand. 
 
@@ -68,7 +68,7 @@ Whether they use the commit-reveal process or not, there is always a possibility
 
 Like other interactive protocols, this system relies on the blockchain being available. Users must be able to get transactions though to the blockchain to prevent incorrect answers from being accepted without challenge. 
 
-Users and contracts relying on the system for accurate information should bear possible network unavailability in mind when setting their Step Delay parameter. 
+Users and contracts relying on the system for accurate information should bear possible network unavailability in mind when setting their Timeout parameter. 
 
 The system has been implemented with the goal of making it as cheap as practical to send answers that correct previous answers. The full answer history is not held in contract storage, so giving a new answer does not expand storage, which is a particularly expensive operation. Instead the contract stores only the hash of the latest answer in the history, combined with the hash of the previous answer in the history to establish an untamperable chain. Since the answer history is not held by the contract, it instead has to be supplied to the `claimWinnings` transaction at the end of the process. The result is that although posting a question and giving the first answer both cost around 100,000 gas, posting the subsequent answer can be done for around 50,000 gas, a little over twice the cost of a simple ETH send.
 
@@ -102,7 +102,7 @@ The handling of null, undecided or unclear answers is considered outside the sco
 
 There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be returned by responders. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
 
-After settlement Reality Check will preserve information about the IPFS hash, arbitrator, step delay, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
+After settlement Reality Check will preserve information about the IPFS hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
 ## Arbitration mechanisms
 

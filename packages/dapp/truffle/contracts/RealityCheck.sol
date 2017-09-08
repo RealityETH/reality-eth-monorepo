@@ -36,7 +36,7 @@ contract RealityCheck {
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].step_delay > 0); // Check existence
+        require(questions[question_id].timeout > 0); // Check existence
         uint256 finalization_ts = questions[question_id].finalization_ts;
         require(finalization_ts == UNANSWERED || finalization_ts > now);
         _;
@@ -80,7 +80,7 @@ contract RealityCheck {
         bytes32 indexed question_id,
         address indexed user, 
         address indexed arbitrator, 
-        uint256 step_delay,
+        uint256 timeout,
         bytes32 question_ipfs,
         uint256 created
     );
@@ -138,7 +138,7 @@ contract RealityCheck {
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
-        uint256 step_delay;
+        uint256 timeout;
         bytes32 question_ipfs;
 
         // Mutable data
@@ -167,26 +167,26 @@ contract RealityCheck {
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public balanceOf;
 
-    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_step_delay) 
+    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_timeout) 
         actorAnyone()
         //stateNotCreated: See inline check below
         external
     payable returns (bytes32) {
 
-        // A step delay of 0 makes no sense, and we will use this to check existence
-        require(US_step_delay > 0); 
-        require(US_step_delay < 365 days); 
+        // A timeout of 0 makes no sense, and we will use this to check existence
+        require(US_timeout > 0); 
+        require(US_timeout < 365 days); 
 
-        bytes32 question_id = keccak256(question_ipfs, arbitrator, US_step_delay);
+        bytes32 question_id = keccak256(question_ipfs, arbitrator, US_timeout);
 
-        require(questions[question_id].step_delay ==  0); // Check existence (stateNotCreated)
+        require(questions[question_id].timeout ==  0); // Check existence (stateNotCreated)
 
         questions[question_id].arbitrator = arbitrator;
-        questions[question_id].step_delay = US_step_delay;
+        questions[question_id].timeout = US_timeout;
         questions[question_id].question_ipfs = question_ipfs;
         questions[question_id].bounty = msg.value;
 
-        LogNewQuestion( question_id, msg.sender, arbitrator, US_step_delay, question_ipfs, now);
+        LogNewQuestion( question_id, msg.sender, arbitrator, US_timeout, question_ipfs, now);
 
         return question_id;
 
@@ -203,11 +203,11 @@ contract RealityCheck {
     }
 
     // Predict the ID for a given question
-    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 US_step_delay) 
+    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 US_timeout) 
         constant 
         external
     returns (bytes32) {
-        return keccak256(question_ipfs, arbitrator, US_step_delay);
+        return keccak256(question_ipfs, arbitrator, US_timeout);
     }
 
     function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
@@ -247,7 +247,7 @@ contract RealityCheck {
         bondMustDouble(question_id, US_max_previous)
     payable returns (bytes32) {
 
-        uint256 finalization_ts = now + questions[question_id].step_delay;
+        uint256 finalization_ts = now + questions[question_id].timeout;
         return _addAnswer(question_id, answer, msg.sender, msg.value, false, finalization_ts);
 
     }
@@ -266,8 +266,8 @@ contract RealityCheck {
         // You can only use the same commitment once.
         require(commitments[commitment_id].deadline_ts == 0);
 
-        uint256 step_delay = questions[question_id].step_delay;
-        commitments[commitment_id].deadline_ts = now + (step_delay/8);
+        uint256 timeout = questions[question_id].timeout;
+        commitments[commitment_id].deadline_ts = now + (timeout/8);
 
         return _addAnswer(question_id, commitment_id, msg.sender, msg.value, true, 0);
 
@@ -295,7 +295,7 @@ contract RealityCheck {
 
         if (US_bond == questions[question_id].bond) {
             questions[question_id].best_answer = answer;
-            questions[question_id].finalization_ts = now + questions[question_id].step_delay;
+            questions[question_id].finalization_ts = now + questions[question_id].timeout;
         }
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, US_bond);

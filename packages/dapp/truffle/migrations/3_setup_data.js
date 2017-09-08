@@ -10,18 +10,18 @@ module.exports = function(deployer) {
        var question_id1, question_id2;
        var d = new Date();
        var deadline = Math.floor(d.getTime() / 1000) + 30 * 24 * 60 * 60;
-       var step_delay = 7 * 24 * 60 * 60;
+       var timeout = 7 * 24 * 60 * 60;
 
        var question1 = '0xddeba17826d59eeb072802782bca9869aee48454d094359780d5825c02115f09'; // '{"title":"What is 2 + 2?", "type":"number"}';
        var question2 = '0x215a9b47a549259edab8a31436c42146a24a035d4ade5fc84d37353791c74ebd'; // '{"title":"Who won the presidential election in the US?", "type":"single-select", "outcomes":["Hillary","Trump","Other"]}';
 
        RealityCheck.deployed().then(function (instance) {
            rc = instance;
-           return rc.getQuestionID(question1, arb.address, step_delay, deadline, 5);
+           return rc.getQuestionID(question1, arb.address, timeout, deadline, 5);
        }).then(function (result) {
            question_id1 = result;
            console.log("getQuestionID is", question_id1);
-           return rc.askQuestion(question1, arb.address, step_delay, {from: accs[0], value: web3.toWei(1, 'ether')});
+           return rc.askQuestion(question1, arb.address, timeout, {from: accs[0], value: web3.toWei(1, 'ether')});
        }).then(function(){
            web3.eth.sendTransaction({from: accs[0], to: accs[1], value: web3.toWei(1, 'ether')});
        }).then(function(){
@@ -35,11 +35,11 @@ module.exports = function(deployer) {
        }).then(function(){
            web3.eth.sendTransaction({from: accs[0], to: accs[1], value: web3.toWei(1, 'ether')});
        }).then(function() {
-            return rc.getQuestionID(question2, arb.address, step_delay, deadline, 1);
+            return rc.getQuestionID(question2, arb.address, timeout, deadline, 1);
         }).then(function (result) {
             question_id2 = result;
             console.log("getQuestionID 2 is", question_id2);
-            return rc.askQuestion(question2, arb.address, step_delay, {from: accs[1], value: web3.toWei(0.0008, 'ether')});
+            return rc.askQuestion(question2, arb.address, timeout, {from: accs[1], value: web3.toWei(0.0008, 'ether')});
         }).then(function(){
             console.log("asked question 2");
         });
