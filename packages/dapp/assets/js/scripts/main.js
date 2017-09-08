@@ -25,7 +25,7 @@ const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'questioner',
     'LogNewAnswer': 'answerer',
     'LogFundAnswerBounty': 'funder',
-    'LogRequestArbitration': 'requester',
+    'LogNotifyOfArbitrationRequest': 'requester',
     'LogClaimBounty': 'receiver',
     'LogClaimBond': 'receiver',
     'LogFundCallbackRequest': 'caller',
@@ -1786,8 +1786,8 @@ function renderNotifications(qdata, entry) {
             }
             break;
 
-        case 'LogRequestArbitration':
-            var notification_id = web3.sha3('LogRequestArbitration' + entry.args.question_id + entry.args.fee_paid.toString() + entry.args.requester);
+        case 'LogNotifyOfArbitrationRequest':
+            var notification_id = web3.sha3('LogNotifyOfArbitrationRequest' + entry.args.question_id);
             var is_positive = true;
             if (entry.args.requester == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
@@ -2297,14 +2297,16 @@ $(document).on('click', '.arbitration-button', function(e) {
 
     var arbitration_fee;
     //if (!question_detail[Qi_is_arbitration_due]) {}
+    var arbitrator;
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+        arbitrator = arb;
         return arb.getFee.call(question_id);
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
-        rc.requestArbitration(question_id, {from:account, value: fee})
+        arbitrator.requestArbitration(rc.address, question_id, {from:account, value: fee})
         .then(function(result){
-            //console.log('arbitration is requestd.', result);
+            console.log('arbitration is requested.', result);
         });
     });
 });
@@ -2563,7 +2565,7 @@ function pageInit(account) {
                         break;
 
                     default:
-                        ensureQuestionDetailFetched(question_id).then(function(question) {
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                             updateQuestionWindowIfOpen(question);
                             updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                         });
@@ -2597,7 +2599,7 @@ function pageInit(account) {
         }
     });
 
-    var arbitration_requested = rc.LogRequestArbitration({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+    var arbitration_requested = rc.LogNotifyOfArbitrationRequest({}, {fromBlock: START_BLOCK, toBlock: 'latest'});
     arbitration_requested.get(function (error, result) {
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < result.length; i++) {
