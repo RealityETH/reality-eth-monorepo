@@ -931,6 +931,9 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
 
 // TODO: Fire this on a timer, and also on the withdrawal event
 function updateUserBalanceDisplay() {
+    if (!account) {
+        return;
+    }
     //console.log('updating balacne for', account);
     web3.eth.getBalance(account, function(error, result){
         //console.log('got updated balacne for', account, result.toNumber());
@@ -2726,51 +2729,73 @@ function parseHash() {
 
 window.onload = function() {
 
-    // Set up a filter so we always know the latest block number.
-    // This helps us keep track of how fresh our question data etc is.
-    web3.eth.filter('latest').watch( function(err, res) {
-        web3.eth.getBlock('latest', function(err, result) {
-            if (result.number > current_block_number) {
-                current_block_number = result.number;
-            }
-            // Should we do this?
-            // Potentially calls later but grows indefinitely...
-            // block_timestamp_cache[result.number] = result.timestamp;
-        })
-    });
+    // Checking if Web3 has been injected by the browser (Mist/MetaMask)
+    if (typeof web3 !== 'undefined') {
+        // Use Mist/MetaMask's provider
+        console.log('got web3, go ahead');
+        window.web3 = new Web3(web3.currentProvider);
 
-    web3.eth.getAccounts((err, acc) => {
-
-        web3.eth.getBlock('latest', function(err, result) {
-            if (result.number > current_block_number) {
-                current_block_number = result.number;
-            }
-
-            //console.log('accounts', acc);
-            account = acc[0];
-            var args = parseHash();
-            if (args['category']) {
-                category = args['category'];
-                $('body').addClass('category-' + category);
-                var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
-                $('#filterby').text(cat_txt);
-            }
-            //console.log('args:', args);
-
-
-            RealityCheck = contract(rc_json);
-            RealityCheck.setProvider(web3.currentProvider);
-            RealityCheck.deployed().then(function(instance) {
-                rc = instance;
-                updateUserBalanceDisplay();
-                pageInit(account);
-                if (args['question']) {
-                    //console.log('fetching question');
-                    ensureQuestionDetailFetched(args['question']).then(function(question){
-                        openQuestionWindow(question[Qi_question_id]);
-                    })
+        // Set up a filter so we always know the latest block number.
+        // This helps us keep track of how fresh our question data etc is.
+        web3.eth.filter('latest').watch( function(err, res) {
+            web3.eth.getBlock('latest', function(err, result) {
+                if (result.number > current_block_number) {
+                    current_block_number = result.number;
                 }
-            });
-        })
-    });
+                // Should we do this?
+                // Potentially calls later but grows indefinitely...
+                // block_timestamp_cache[result.number] = result.timestamp;
+            })
+        });
+
+        web3.eth.getAccounts((err, acc) => {
+            web3.eth.getBlock('latest', function(err, result) {
+                if (result.number > current_block_number) {
+                    current_block_number = result.number;
+                }
+
+                if (acc && acc.length > 0) {
+
+
+                    //console.log('accounts', acc);
+                    account = acc[0];
+                    
+                } else {
+                    console.log('no accounts');
+                    $('body').addClass('error-no-metamask-accounts').addClass('error');
+                }
+
+                var args = parseHash();
+                if (args['category']) {
+                    category = args['category'];
+                    $('body').addClass('category-' + category);
+                    var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
+                    $('#filterby').text(cat_txt);
+                }
+                //console.log('args:', args);
+
+
+                RealityCheck = contract(rc_json);
+                RealityCheck.setProvider(web3.currentProvider);
+                RealityCheck.deployed().then(function(instance) {
+                    rc = instance;
+                    updateUserBalanceDisplay();
+                    pageInit(account);
+                    if (args['question']) {
+                        //console.log('fetching question');
+                        ensureQuestionDetailFetched(args['question']).then(function(question){
+                            openQuestionWindow(question[Qi_question_id]);
+                        })
+                    }
+                });
+            })
+        });
+
+
+    } else {
+// fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
+        window.web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"));
+        console.log('no web3, using infura');
+        $('body').addClass('error-no-metamask-plugin').addClass('error');
+    }
 }
