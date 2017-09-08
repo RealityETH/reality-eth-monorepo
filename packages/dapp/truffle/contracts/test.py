@@ -184,7 +184,7 @@ class TestRealityCheck(TestCase):
 
         # You cannot notify realitycheck of arbitration unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
-            self.rc0.notifyOfArbitrationRequest(self.question_id, startgas=200000) 
+            self.rc0.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), startgas=200000) 
 
         self.c.mine()
         self.s = self.c.head_state

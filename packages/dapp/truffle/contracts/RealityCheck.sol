@@ -111,7 +111,8 @@ contract RealityCheck {
     );
 
     event LogNotifyOfArbitrationRequest(
-        bytes32 indexed question_id
+        bytes32 indexed question_id,
+        address indexed requester
     );
 
     event LogFinalize(
@@ -301,7 +302,7 @@ contract RealityCheck {
 
     }
 
-    function notifyOfArbitrationRequest(bytes32 question_id) 
+    function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
         actorArbitrator(question_id)
         stateOpen(question_id)
     returns (bool) {
@@ -311,7 +312,7 @@ contract RealityCheck {
         } else {
             questions[question_id].finalization_ts = ANSWERED_PENDING_ARBITRATION;
         }
-        LogNotifyOfArbitrationRequest(question_id);
+        LogNotifyOfArbitrationRequest(question_id, requester);
 
     }
 

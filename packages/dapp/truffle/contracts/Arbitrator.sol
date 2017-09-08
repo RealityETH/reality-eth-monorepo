@@ -5,7 +5,7 @@ contract RealityCheckAPI {
     function claimBond(bytes32 answer_id);
     function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty);
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) returns (bytes32);
-    function notifyOfArbitrationRequest(bytes32 question_id);
+    function notifyOfArbitrationRequest(bytes32 question_id, address requester);
     function isFinalized(bytes32 question_id) returns (bool);
 }
 
@@ -60,7 +60,7 @@ contract Arbitrator {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            RealityCheckAPI(realitycheck).notifyOfArbitrationRequest(question_id);
+            RealityCheckAPI(realitycheck).notifyOfArbitrationRequest(question_id, msg.sender);
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
