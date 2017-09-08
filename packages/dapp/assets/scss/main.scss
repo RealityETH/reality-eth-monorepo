@@ -190,20 +190,20 @@ body.pushing .page-qa #push-icon {
     text-align: center;
 }
 
-#site-slogan,
-#page-title {
+#page-title,
+.site-slogan {
     font-size: 48px;
     color: $white;
     font-weight: 300;
     margin: 0;
 }
 
-.page-qa #site-slogan,
+.page-qa .site-slogan,
 .page-qa #page-title {
     color: $black;
 }
 
-#site-slogan > span,
+#site-slogan-normal > span,
 #page-title > span {
     font-weight: 500;
 }

@@ -375,25 +375,17 @@ $('#post-a-question-button,#post-a-question-link').on('click', function(e){
 });
 
 $('#browse-question-button').on('click', function(){
-    $('#site-slogan').text('Browse Questions');
-    $('#site-slogan').css('color', '#565656');
-    $('#site-description').css('color', '#757b82');
+    $('body').addClass('page-qa');
+    $('#site-slogan-normal').css('display', 'none');
+    $('#site-slogan-browse-qa').css('display', 'block');
     $('#site-introduction__buttons').css('display', 'none');
-    $('#cover').css('background-image', 'none');
-    $('#primary-container').css('background-color', '#ffffff');
-    $('#site-header-inner > a').css('color', '#565656');
-    $('.search-button').css('background-image', 'url(\'../assets/image/icon-search--dark.svg\')');
-    $('#your-qa-button').css('background-image', 'url(\'../assets/image/icon-identity--dark.svg\')');
 });
 
 $('#site-logo').on('click', function(){
-    $('#site-slogan').text('<span>Reality Check</span> is not finished.');
+    $('body').removeClass('page-qa');
+    $('#site-slogan-normal').css('display', 'block');
+    $('#site-slogan-browse-qa').css('display', 'none');
     $('#site-introduction__buttons').css('display', 'block');
-    $('#cover').css('background-image', 'url(\'../image/cover-image.jpg\')');
-    $('#primary-container').css('background-color', '#000');
-    $('#site-header-inner > a').css('color', '#ffffff');
-    $('.search-button').css('background-image', 'url(\'../assets/image/icon-search--light.svg\')');
-    $('#your-qa-button').css('background-image', 'url(\'../assets/image/icon-identity--light.svg\')');
 });
 
 $('#close-question-window').on('click', function(e){
