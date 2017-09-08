@@ -107,7 +107,7 @@ contract RealityCheck {
         bytes32 indexed question_id,
         uint256 bounty_added,
         uint256 bounty,
-        address user 
+        address indexed user 
     );
 
     event LogNotifyOfArbitrationRequest(
