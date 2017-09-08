@@ -44,8 +44,8 @@ contract RealityCheck {
 
     modifier statePendingArbitration(bytes32 question_id) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(questions[question_id].finalization_ts == ANSWERED_PENDING_ARBITRATION 
-            || questions[question_id].finalization_ts == UNANSWERED_PENDING_ARBITRATION);
+        require(finalization_ts == ANSWERED_PENDING_ARBITRATION 
+            || finalization_ts == UNANSWERED_PENDING_ARBITRATION);
         _;
     }
 
@@ -401,8 +401,7 @@ contract RealityCheck {
 
                 if (payee == 0x0) {
 
-                    // The first payee we come too, ie the winner. They get the question bounty.
-
+                    // The first payee we come to, ie the winner. They get the question bounty.
                     payee = addrs[i];
                     take += questions[question_id].bounty;
                     questions[question_id].bounty = 0;
