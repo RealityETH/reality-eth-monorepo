@@ -2105,3 +2105,26 @@ body.error-no-metamask-plugin div.error-bar span.error-label.no-metamask-plugin 
 
 div.error-label.no-metamask-plugin-image { display:none}
 body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-image { margin-right:8px; margin-top:-5px; float:right; display:inline !important}
+
+#footer-notification-bar {
+    width: 100%;
+    padding: 24px 0;
+    background-color: #33373c;
+    color: $white;
+    font-size: 16px;
+    text-align: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    height: 20px;
+    z-index: 5;
+}
+
+#got-it-button {
+    padding: 8px 16px;
+    background-color: $blue;
+    color: $white;
+    text-decoration: none;
+    margin-left: 24px;
+    border-radius: 3px;
+}

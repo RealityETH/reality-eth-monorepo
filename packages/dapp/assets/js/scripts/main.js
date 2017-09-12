@@ -2802,4 +2802,16 @@ window.onload = function() {
         console.log('no web3, using infura');
         $('body').addClass('error-no-metamask-plugin').addClass('error');
     }
+
+    // Notification bar(footer)
+    if (window.localStorage.getItem('got-it') == null) {
+        $('#footer-notification-bar').css('display', 'block');
+    }
+    $('#got-it-button').on('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        window.localStorage.setItem('got-it', true);
+        $('#footer-notification-bar').css('display', 'none');
+    });
+
 }
