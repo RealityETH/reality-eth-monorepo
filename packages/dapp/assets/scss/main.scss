@@ -1651,14 +1651,19 @@ label > span {
     margin: 0 0 15px;
 }
 
-.notifications-item {
+.notifications-item,
+.no-notifications-item {
     width: 100%;
     background-color: $rcBrowserDarkBg;
-    cursor: pointer;
     margin-bottom: 1px;
 }
 
-.notifications-item-inner {
+.notifications-item {
+    cursor: pointer;
+}
+
+.notifications-item-inner,
+.no-notifications-item-inner {
     padding: 9px;
     display: flex;
     justify-content: flex-start;
@@ -1680,7 +1685,8 @@ label > span {
     background-color: $red;
 }
 
-.notifications-item-body > p {
+.notifications-item-body > p,
+.no-notifications-item-body > p {
     margin: -0.1em 0 0;
     line-height: 1.4;
     font-size: 13px;
@@ -1742,7 +1748,8 @@ label > span {
     margin-left: -0.5px;
 }
 
-.your-qa__questions__item {
+.your-qa__questions__item,
+.no-your-qa__questions__item {
     margin: 15px 0 0;
     border-bottom: solid 1px lighten($rcBrowserBg, 10%);
 }
@@ -1753,13 +1760,17 @@ label > span {
     color: $rcBrowserSubText;
 }
 
-.your-qa__questions__item-title {
+.your-qa__questions__item-title,
+.no-your-qa__questions__item-title {
     display: block;
     margin: 6px 0;
     font-size: inherit;
     color: $rcBrowserBodyText;
-    cursor: pointer;
     text-decoration: none;
+}
+
+.your-qa__questions__item-title {
+    cursor: pointer;
 }
 
 .your-qa__questions__item-status {

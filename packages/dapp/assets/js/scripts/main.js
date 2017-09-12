@@ -1673,6 +1673,11 @@ function answersByMaxBond(answer_logs) {
 
 function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
 
+    if ($('.no-notifications-item').length > 0) {
+        $('.no-notifications-item').remove();
+        $('.see-all-notifications').css('visibility', 'visible');
+    }
+
     var notifications = $('#your-question-answer-window').find('.notifications');
     if (document.getElementById(notification_id)) {
         // Already in the doc;
@@ -1943,6 +1948,9 @@ function renderUserQandA(qdata, entry) {
         question_section = $('#your-question-answer-window').find('.your-qa__questions .your-qa__questions-inner');
     } else if (entry['event'] == 'LogNewAnswer') {
         question_section = $('#your-question-answer-window').find('.your-qa__answers .your-qa__answers-inner');
+    }
+    if (question_section.find('.no-your-qa__questions__item').length > 0) {
+        question_section.find('.no-your-qa__questions__item').remove();
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
