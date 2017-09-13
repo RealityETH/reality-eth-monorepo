@@ -443,7 +443,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
             .then(function(qid) {
                 question_id = qid;
-                return rc.askQuestion.sendTransaction(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
                 //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
@@ -479,6 +479,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 console.log('rcqa', win);
 
                 win.find('.rcbrowser__close-button').on('click', function(){
+                    console.log('closing');
                     let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
                     let left = parseInt(parent_div.css('left').replace('px', ''));
                     let top = parseInt(parent_div.css('top').replace('px', ''));
@@ -488,7 +489,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     window_position[question_id] = {};
                     window_position[question_id]['x'] = left;
                     window_position[question_id]['y'] = top;
-                    rcqa.remove();
+                    win.remove();
                     document.documentElement.style.cursor = ""; // Work around Interact draggable bug
                 });
 
@@ -496,6 +497,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
                 win.attr('id', window_id);
                 win.attr('data-question-id', question_id);
+                Ps.initialize(win.find('.rcbrowser-inner').get(0));
 
             }).catch(function (e) {
                 console.log(e);
@@ -554,7 +556,7 @@ $(document).on('click', '.answer-claim-button', function(){
         var gas = 70000 + (10000 * claimable['history_hashes'].length);
 
         //rc.claimMultipleAndWithdrawBalance.estimateGas(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account})
-        //.then(function(gas_amount){
+        //.then(function(gskas_amount){
          //   console.log('got gas_amount', gas_amount);
          //   var gas = gas_amount + (claimable['question_ids'].length * 60000);
         rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
@@ -2269,7 +2271,7 @@ $(document).on('click', '.post-answer-button', function(e) {
         console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
+        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});
     }).then(function(result){
         parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
         parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
