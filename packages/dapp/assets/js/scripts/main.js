@@ -443,7 +443,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
             .then(function(qid) {
                 question_id = qid;
-                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                return rc.askQuestion.sendTransaction(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
                 //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
@@ -467,16 +467,20 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 fake_call[Qi_question_ipfs-1] = res[0].hash;
                 fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
                 fake_call[Qi_history_hash-1] = "0x0";
+
                 var q = filledQuestionDetail(question_id, 'question_log', 1, fake_log); 
                 q = filledQuestionDetail(question_id, 'question_call', 1, fake_call); 
                 q = filledQuestionDetail(question_id, 'question_json', 1, parseQuestionJSON(question_json)); 
-                console.log('made q', q);
 
                 // Turn the post question window into a question detail window
                 var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
                 win.html(rcqa.html());
                 win = populateQuestionWindow(win, q, false);
                 console.log('rcqa', win);
+		
+		win.find('.pending-txid').text(txid);
+		win.addClass('unconfirmed-transaction');
+		win.attr('data-pending-txid', txid);
 
                 win.find('.rcbrowser__close-button').on('click', function(){
                     console.log('closing');
@@ -1379,6 +1383,8 @@ function updateQuestionWindowIfOpen(question) {
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
+    // TODO: This should probably be happening in populateQuestionWindow, based on some data indicated confirmed
+    rcqa.removeClass('unconfirmed-transaction');
 
 }
 

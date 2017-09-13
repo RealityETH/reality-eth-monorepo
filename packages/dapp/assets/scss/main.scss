@@ -2128,3 +2128,6 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     margin-left: 24px;
     border-radius: 3px;
 }
+
+div.rcbrowser--qa-detail .rcbrowser-main-header-unconfirmed-box { display:none}
+div.rcbrowser--qa-detail.unconfirmed-transaction .rcbrowser-main-header-unconfirmed-box { display:block !important}
