@@ -1681,6 +1681,10 @@ label > span {
     background-color: $red;
 }
 
+.no-notifications-item-body {
+    margin: 0 auto;
+}
+
 .notifications-item-body > p,
 .no-notifications-item-body > p {
     margin: -0.1em 0 0;
@@ -1688,7 +1692,6 @@ label > span {
     font-size: 13px;
     color: $rcBrowserBodyText;
 }
-
 
 .notifications-item-body > span {
     font-size: 12px;
@@ -1763,6 +1766,7 @@ label > span {
     font-size: inherit;
     color: $rcBrowserBodyText;
     text-decoration: none;
+    text-align: center;
 }
 
 .your-qa__questions__item-title {
