@@ -414,7 +414,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     var question_body = win.find('.question-body');
     var reward = win.find('.question-reward');
     var timeout = win.find('.step-delay');
-    var timeout_val = timeout.val();
+    var timeout_val = parseInt(timeout.val());
     var arbitrator = win.find('.arbitrator');
     var question_type = win.find('.question-type');
     var answer_options = win.find('.answer-option');
@@ -443,11 +443,60 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
             .then(function(qid) {
                 question_id = qid;
-                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                return rc.askQuestion.sendTransaction(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
-                openQuestionWindow(question_id);
-                win.find('.close-question-window').trigger('click');
+                
+                // Make a fake log entry
+                var fake_log = {
+                    'entry': 'LogNewQuestion',
+                    'args': {
+                        'question_id': question_id,
+                        'user': account,
+                        'arbitrator': arbitrator.val(),
+                        'timeout': new BigNumber(timeout_val),
+                        'question_ipfs': res[0].hash,
+                        'created': new BigNumber(parseInt(new Date().getTime() / 1000))
+                    }
+                }
+                var fake_call = [];
+                fake_call[Qi_finalization_ts-1] = new BigNumber(0);
+                fake_call[Qi_arbitrator-1] = arbitrator.val();
+                fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
+                fake_call[Qi_question_ipfs-1] = res[0].hash;
+                fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
+                fake_call[Qi_history_hash-1] = "0x0";
+                var q = filledQuestionDetail(question_id, 'question_log', 1, fake_log); 
+                q = filledQuestionDetail(question_id, 'question_call', 1, fake_call); 
+                q = filledQuestionDetail(question_id, 'question_json', 1, parseQuestionJSON(question_json)); 
+                console.log('made q', q);
+
+                // Turn the post question window into a question detail window
+                var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                win.html(rcqa.html());
+                win = populateQuestionWindow(win, q, false);
+                console.log('rcqa', win);
+
+                win.find('.rcbrowser__close-button').on('click', function(){
+                    let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                    let left = parseInt(parent_div.css('left').replace('px', ''));
+                    let top = parseInt(parent_div.css('top').replace('px', ''));
+                    let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                    let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                    left += data_x; top += data_y;
+                    window_position[question_id] = {};
+                    window_position[question_id]['x'] = left;
+                    window_position[question_id]['y'] = top;
+                    rcqa.remove();
+                    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                });
+
+                var window_id = 'qadetail-' + question_id;
+                win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                win.attr('id', window_id);
+                win.attr('data-question-id', question_id);
+
             }).catch(function (e) {
                 console.log(e);
             });
@@ -1360,8 +1409,7 @@ function displayQuestionDetail(question_detail) {
             let data_x = (parseInt(parent_div.attr('data-x')) || 0);
             let data_y = (parseInt(parent_div.attr('data-y')) || 0);
             left += data_x; top += data_y;
-            window_position[question_id]['x'] = left;
-            window_position[question_id]['y'] = top;
+            window_position[question_id] = {'x': left, 'y': top};
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
             //console.log('clicked close');
@@ -1388,6 +1436,8 @@ function displayQuestionDetail(question_detail) {
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
+console.log('populateQuestionWindow with detail ', question_detail);
+console.log('populateQuestionWindow question_json', question_detail[Qi_question_json]);
     var question_id = question_detail[Qi_question_id];
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
@@ -1481,6 +1531,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     rcqa.find('.rcbrowser-input--number--bond.form-item').val(web3.fromWei(bond.toNumber(), 'ether') * 2);
 
+console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
 
     if (isFinalized(question_detail)) {    
@@ -2052,7 +2103,6 @@ function makeSelectAnswerInput(question_json) {
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
 function updateQuestionState(question, question_window) {
-
     if (question[Qi_finalization_ts] > 2) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
@@ -2130,7 +2180,7 @@ $(document).on('click', '.answer-item', function(){
 });
 
 // post an answer
-$(document).on('click', '.post-answer-button', function(e){
+$(document).on('click', '.post-answer-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2143,16 +2193,9 @@ $(document).on('click', '.post-answer-button', function(e){
     var current_question;
     var is_err = false;
 
-    rc.questions.call(question_id).then(function(cq) {
-        current_question = cq;
-        current_question.unshift(question_id);
-        var question_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(bytes32ToIPFSHash(question_ipfs), {buffer: true})
-    }).then(function (res) {
-        if (res.length > IPFS_MAX_SIZE) {
-            throw new Error('IPFS file too large');
-        }
-        current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+    var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+    .then(function(current_question) {
+
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
 
@@ -2222,6 +2265,8 @@ $(document).on('click', '.post-answer-button', function(e){
         if (is_err) throw('err on submitting answer');
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
+
+        console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
         return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
