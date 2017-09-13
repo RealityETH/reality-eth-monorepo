@@ -478,9 +478,10 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 win = populateQuestionWindow(win, q, false);
                 console.log('rcqa', win);
 		
-		win.find('.pending-txid').text(txid);
-		win.addClass('unconfirmed-transaction');
-		win.attr('data-pending-txid', txid);
+                // TODO: Once we have code to know which network we're on, link to a block explorer
+                win.find('.pending-txid').text(txid.substr(0, 12) + "...");
+                win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                win.attr('data-pending-txid', txid);
 
                 win.find('.rcbrowser__close-button').on('click', function(){
                     console.log('closing');
@@ -1384,7 +1385,7 @@ function updateQuestionWindowIfOpen(question) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
     // TODO: This should probably be happening in populateQuestionWindow, based on some data indicated confirmed
-    rcqa.removeClass('unconfirmed-transaction');
+    rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
 
 }
 
