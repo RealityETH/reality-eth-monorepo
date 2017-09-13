@@ -360,9 +360,16 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
 });
 
 $('#post-a-question-button,#post-a-question-link').on('click', function(e){
+    //console.log('click post');
     e.preventDefault();
     e.stopPropagation();
-    let question_window = $('#post-a-question-window');
+    let question_window = $('#post-a-question-window-template').clone().attr('id', 'post-a-question-window');
+    question_window.find('.rcbrowser__close-button').click(function(){
+        question_window.remove();
+    });
+
+    $('#post-a-question-window-template').before(question_window);
+    //console.log('cloned window', question_window);
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
@@ -392,31 +399,32 @@ $('#site-logo').on('click', function(e){
     $('#site-introduction__buttons').css('visibility', 'visible');
 });
 
-$('#close-question-window').on('click', function(e){
+$(document).on('click', '#post-a-question-window .close-question-window', function(e){
     e.preventDefault();
     e.stopPropagation();
     $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
 });
 
-$('#post-question-submit').on('click', function(e){
+$(document).on('click', '#post-a-question-window .post-question-submit', function(e){
     e.preventDefault();
     e.stopPropagation();
 
-    var question_body = $('#question-body');
-    var reward = $('#question-reward');
-    var timeout = $('#step-delay');
+    var win = $('#post-a-question-window');
+    var question_body = win.find('.question-body');
+    var reward = win.find('.question-reward');
+    var timeout = win.find('.step-delay');
     var timeout_val = timeout.val();
-    var arbitrator =$('#arbitrator');
-    var question_type = $('#question-type');
-    var answer_options = $('.answer-option');
-    var category = $('div.select-container--question-category select');
+    var arbitrator = win.find('.arbitrator');
+    var question_type = win.find('.question-type');
+    var answer_options = win.find('.answer-option');
+    var category = win.find('div.select-container--question-category select');
     var outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
 
-    if (validate()) {
+    if (validate(win)) {
         var question = {
             title: question_body.val(),
             type: question_type.val(),
@@ -439,7 +447,7 @@ $('#post-question-submit').on('click', function(e){
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
                 openQuestionWindow(question_id);
-                $('#close-question-window').trigger('click');
+                win.find('.close-question-window').trigger('click');
             }).catch(function (e) {
                 console.log(e);
             });
@@ -507,10 +515,10 @@ $(document).on('click', '.answer-claim-button', function(){
     });
 });
 
-function validate() {
+function validate(win) {
     var valid = true;
 
-    var qtext = $('#question-body');
+    var qtext = win.find('.question-body');
     if (qtext.val() == '') {
         qtext.closest('div').addClass('is-error');
         valid = false;
@@ -518,7 +526,7 @@ function validate() {
         qtext.closest('div').removeClass('is-error');
     }
 
-    var reward = $('#question-reward');
+    var reward = win.find('.question-reward');
     if (reward.val() === '' || reward.val() <= 0) {
         reward.parent().parent().addClass('is-error');
         valid = false;
@@ -527,27 +535,27 @@ function validate() {
     }
 
     var options_num = 0;
-    var question_type = $('#question-type');
+    var question_type = win.find('.question-type');
     var answer_options = $('.answer-option').toArray();
     for (var i = 0; i < answer_options.length; i++) {
         if (answer_options[i].value !== '') {
             options_num += 1;
         }
     }
-    if ($('#answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
+    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
         $('.edit-option-inner').addClass('is-error');
         valid = false;
     } else {
         $('.edit-option-inner').removeClass('is-error');
     }
 
-    var select_ids = ['#question-type', '#arbitrator', '#step-delay'];
+    var select_ids = ['.question-type', '.arbitrator', '.step-delay'];
     for (var id of select_ids) {
-        if ($(id).prop('selectedIndex') == 0) {
-            $(id).parent().addClass('is-error');
+        if (win.find(id).prop('selectedIndex') == 0) {
+            win.find(id).parent().addClass('is-error');
             valid = false;
         } else {
-            $(id).parent().removeClass('is-error');
+            win.find(id).parent().removeClass('is-error');
         }
     }
 
@@ -1217,10 +1225,10 @@ function update_ranking_data(arr_name, id, val, ord) {
 // question detail window
 
 (function() {
-
-    $('#question-type').on('change', function(e){
-        var container = $('#answer-option-container');
-        if ($('#question-type').val() == 'single-select' || $('#question-type').val() == 'multiple-select') {
+    $(document).on('change', '.question-type', function(e){
+        var win = $(this).closest('.rcbrowser');
+        var container = win.find('.answer-option-container');
+        if (win.find('.question-type').val() == 'single-select' || win.find('.question-type').val() == 'multiple-select') {
             if (!container.hasClass('is-open')) {
                 container.css('display', 'block');
                 container.addClass('is-open');
@@ -1230,17 +1238,18 @@ function update_ranking_data(arr_name, id, val, ord) {
             container.css('display', 'none');
             container.removeClass('is-open');
             container.removeClass('is-bounce');
-            $('#first-answer-option').children().val('');
-            $('.input-container--answer-option').remove();
+            win.find('.first-answer-option').children().val('');
+            win.find('.input-container--answer-option').remove();
         }
     });
 
-    $('.add-option-button').on('click', function(e){
+    $(document).on('click', '.add-option-button', function(e){
+        var win = $(this).closest('.rcbrowser');
         var element = $('<div>');
         element.addClass('input-container input-container--answer-option');
         var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">';
         element.append(input);
-        $('#error-container--answer-option').before(element);
+        win.find('.error-container--answer-option').before(element);
         element.addClass('is-bounce');
     });
 })();
@@ -1291,13 +1300,6 @@ function openQuestionWindow(question_id) {
     });
     */
 }
-
-$('#post-a-question-window .rcbrowser__close-button').on('click', function(){
-    let win = $('#post-a-question-window');
-    win.css('z-index', 0);
-    win.removeClass('is-open');
-    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
-});
 
 function parseQuestionJSON(data) {
 
@@ -2415,7 +2417,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
         $(this).parent().parent().removeClass('is-error');
     }
 });
-$('#question-type,#step-delay,#arbitrator').on('change', function (e) {
+$(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function (e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
     }
