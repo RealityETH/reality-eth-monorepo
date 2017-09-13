@@ -155,6 +155,20 @@ function convertTsToString(ts) {
     return date.toISOString();
 }
 
+function secondsTodHms(sec) {
+    sec = Number(sec);
+    let d = Math.floor(sec / (3600 * 24));
+    let h = Math.floor(sec % (3600 * 24) / 3600);
+    let m = Math.floor(sec % (3600 * 24) % 3600 / 60);
+    let s = Math.floor(sec % (3600 * 24) % 3600 % 60);
+
+    let dDisplay = d > 0 ? d + (d == 1 ? " day " : " days ") : "";
+    let hDisplay = h > 0 ? h + (h == 1 ? " hour " : " hours ") : "";
+    let mDisplay = m > 0 ? m + (m == 1 ? " minute " : " minutes ") : "";
+    let sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+    return dDisplay + hDisplay + mDisplay + sDisplay;
+}
+
 // set rcBrowser height
 function rcbrowserHeight() {
 console.log('skipping auto rcbrowserHeight');
@@ -286,6 +300,8 @@ function dragMoveListener (event) {
 }
 $(document).on('click', '.rcbrowser', function(){
     $(this).css('z-index', ++zindex);
+    $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
+    $(this).find('.question-setting-info').find('.balloon').css('z-index', zindex);
 });
 
 // see all notifications
@@ -992,6 +1008,30 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').find('.questions__item:last-child').remove()
     }
 
+    // question settings warning balloon
+    let balloon_html = '';
+    if (question_data[Qi_timeout] < 86400) {
+        balloon_html += 'The timeout is very low.<br>';
+    }
+    if (web3.fromWei(question_data[Qi_bounty], 'ether') < 0.01) {
+        balloon_html += 'The reward is very low.<br>';
+    }
+    let arbitrator_addrs = $('#arbitrator').children();
+    let valid_arbirator = false;
+    for (let i = 0; i < arbitrator_addrs.length; i++) {
+        if (question_data[Qi_arbitrator] == arbitrator_addrs[i].value) {
+            valid_arbirator = true;
+            break;
+        }
+    }
+    if (!valid_arbirator) {
+        balloon_html += 'This arbitrator is unknown.';
+    }
+    if (balloon_html) {
+        $('div[data-question-id='+question_id+']').find('.question-setting-warning').css('display', 'block');
+        $('div[data-question-id='+question_id+']').find('.question-setting-warning').css('z-index', 5);
+        $('div[data-question-id='+question_id+']').find('.question-setting-warning').find('.balloon').html(balloon_html);
+    }
 
 }
 
@@ -1458,6 +1498,46 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }
 
     } 
+
+    // question settings warning balloon
+    let balloon_html = '';
+    if (question_detail[Qi_timeout] < 86400) {
+        balloon_html += 'The timeout is very low.<br>';
+    }
+    if (web3.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
+        balloon_html += 'The reward is very low.<br>';
+    }
+    let arbitrator_addrs = $('#arbitrator').children();
+    let valid_arbirator = false;
+    for (let i = 0; i < arbitrator_addrs.length; i++) {
+        if (question_detail[Qi_arbitrator] == arbitrator_addrs[i].value) {
+            valid_arbirator = true;
+            break;
+        }
+    }
+    if (!valid_arbirator) {
+        balloon_html += 'This arbitrator is unknown.';
+    }
+    if (balloon_html) {
+        rcqa.find('.question-setting-warning').css('display', 'block');
+        rcqa.find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
+        rcqa.find('.question-setting-warning').find('.balloon').html(balloon_html);
+    }
+
+    // question setting info balloon
+    let question_to_show =  rc.LogNewQuestion({question_id: question_id}, {fromBlock:START_BLOCK, toBlock:'latest'});
+    question_to_show.get(function (err, result) {
+        if (err === null && typeof result !== 'undefined') {
+            let questioner = result[0].args.user;
+            let timeout = question_detail[Qi_timeout];
+            balloon_html = 'User ID: <br>' + questioner + '<br><br>'
+                + 'Reward: ' + web3.fromWei(question_detail[Qi_bounty], 'ether') + 'ETH<br><br>'
+                + 'Bond: ' + web3.fromWei(question_detail[Qi_bond], 'ether') + 'ETH<br><br>'
+                + 'Timeout: ' + secondsTodHms(question_detail[Qi_timeout]);
+            rcqa.find('.question-setting-info').find('.balloon').css('z-index', ++zindex);
+            rcqa.find('.question-setting-info').find('.balloon').html(balloon_html);
+        }
+    });
 
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {

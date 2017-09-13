@@ -7,6 +7,7 @@
     <title>RealityCheck Demo</title>
     <meta name="description" content="RealityCheck Demo">
 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,500,500i,700,700i" rel="stylesheet">
     <link rel='shortcut icon' href='assets/image/favicon.ico' type='image/x-icon' />
     <!--
@@ -500,19 +501,24 @@
     </div><!-- /.rcbrowser-postaquestion  -->
 
     <div class="questions__item template-item">
-                        <div class="questions__item-inner">
-                            <a class="questions__item__title rcbrowser__open-button" href="#">
+        <div class="questions__item-inner">
+            <div style="position: relative; height: 15px;">
+            <div class="question-setting-warning" style="display: none;">
+                <i class="material-icons purple">announcement</i>
+                <div class="balloon"></div>
+            </div></div>
+            <a class="questions__item__title rcbrowser__open-button" href="#">
                                 <span class="question-title"></span>
-                            </a>
-                            <div class="questions__item__answer"></div>
-                            <div class="questions__item__footer">
-                                <span class="question-bounty-container"><span class="question-bounty"></span> ETH</span>
-                                <span class="closing-time-label">Closing <time class="timeago" datetime=""></time></span>
-                                <span class="created-time-label">Posted <time class="timeago" datetime=""></time></span>
-                                <span class="arbitration-pending-label">Arbitration pending</span>
-                            </div>
-                        </div>
-                    </div>
+            </a>
+            <div class="questions__item__answer"></div>
+                <div class="questions__item__footer">
+                    <span class="question-bounty-container"><span class="question-bounty"></span> ETH</span>
+                    <span class="closing-time-label">Closing <time class="timeago" datetime=""></time></span>
+                    <span class="created-time-label">Posted <time class="timeago" datetime=""></time></span>
+                    <span class="arbitration-pending-label">Arbitration pending</span>
+                </div>
+            </div>
+    </div>
 
     <div class="answer-form-container multiple-select template-item" style="display:none;">
         <div class="answer-form-header">
@@ -689,6 +695,16 @@
                     <div class="rcbrowser-main-header-date"></div>
 
                     <h2 class="rcbrowser-main-header-title question-title"></h2>
+
+                    <div class="question-setting-warning" style="text-align: right; display: none;">
+                        <i class="material-icons purple">announcement</i>
+                        <div class="balloon"></div>
+                    </div>
+
+                    <div class="question-setting-info" style="text-align: right">
+                        <i class="material-icons gray">more_horiz</i>
+                        <div class="balloon"></div>
+                    </div>
 
                     <div class="rcbrowser-main-header-subtitle">
                         <span class="reward-value-container">Reward: <span class="reward-value">1.25</span> ETH</span>

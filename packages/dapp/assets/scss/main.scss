@@ -484,7 +484,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:first-child {
-    z-index: 1;
     transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back 200ms;
 }
@@ -494,7 +493,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:nth-child(2) {
-    z-index: 3;
     transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back;
 }
@@ -505,7 +503,6 @@ body.pushing .page-qa #push-icon {
 
 .questions:nth-child(3) {
     transform: translate3d(0, 7%, 0);
-    z-index: 2;
     transition: all 600ms $ease-in-out-back 100ms;
 }
 .is-page-loaded .questions:nth-child(3),
@@ -515,7 +512,6 @@ body.pushing .page-qa #push-icon {
 
 .questions:last-child {
     transform: translate3d(0, 7%, 0);
-    z-index: 1;
     transition: all 600ms $ease-in-out-back 300ms;
 }
 .is-page-loaded .questions:last-child,
@@ -2127,4 +2123,76 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     text-decoration: none;
     margin-left: 24px;
     border-radius: 3px;
+}
+
+
+.question-setting-info {
+    position: absolute;
+    top: 105px;
+    right: 13px;
+}
+
+.rcbrowser--qa-detail .question-setting-warning {
+    position: absolute;
+    top: 40px;
+    right: 13px;
+}
+
+.questions__item .question-setting-warning {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    width: 24px;
+}
+
+.question-setting-info .balloon {
+    width: 270px;
+    position: absolute;
+    right: 0;
+    background-color: #41464c;
+    padding: 16px 12px;
+    color: $rcBrowserBodyText;
+    font-size: 12px;
+    display: none;
+    box-shadow: 0px 10px 50px 0px rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    text-align: left;
+}
+
+.question-setting-warning .balloon {
+    width: 150px;
+    position: absolute;
+    right: 0;
+    background-color: #41464c;
+    padding: 16px 12px;
+    color: $rcBrowserBodyText;
+    font-size: 12px;
+    display: none;
+    box-shadow: 0px 10px 50px 0px rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+    text-align: left;
+}
+
+.balloon::after {
+    display: block;
+    content: "";
+    border-top: solid 6px transparent;
+    border-left: solid 6px transparent;
+    border-right: solid 6px transparent;
+    border-bottom: solid 6px #41464c;
+    position: absolute;
+    top: -12px;
+    right: 12px;
+}
+
+.material-icons.gray { color: #41464c; }
+.material-icons.purple { color: #8a6bff}
+
+.question-setting-info:hover .balloon,
+.question-setting-warning:hover .balloon {
+    display: block;
+    animation-duration: .3s;
+    transition-timing-function: $ease-in-out-expo;
+    animation-fill-mode: both;
+    animation-name: bounce;
 }
