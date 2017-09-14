@@ -484,7 +484,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:first-child {
-    transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back 200ms;
 }
 .is-page-loaded .questions:first-child,
@@ -493,7 +492,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:nth-child(2) {
-    transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back;
 }
 .is-page-loaded .questions:nth-child(2),
@@ -502,7 +500,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:nth-child(3) {
-    transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back 100ms;
 }
 .is-page-loaded .questions:nth-child(3),
@@ -511,7 +508,6 @@ body.pushing .page-qa #push-icon {
 }
 
 .questions:last-child {
-    transform: translate3d(0, 7%, 0);
     transition: all 600ms $ease-in-out-back 300ms;
 }
 .is-page-loaded .questions:last-child,
