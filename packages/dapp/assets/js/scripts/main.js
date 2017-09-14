@@ -802,7 +802,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {'freshness': {'question_log': -1, 'question_json': -1, 'question_call': -1, 'answers': -1}, 'history': []};
+    var question = {'freshness': {'question_log': -1, 'question_json': -1, 'question_call': -1, 'answers': -1}, 'history': [], 'history_unconfirmed': []};
     question[Qi_question_id] = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
@@ -854,7 +854,30 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question.freshness.answers = freshness;
                 question['history'] = data;
             }
+            if (data.length && question['history_unconfirmed'].length) {
+                for(var j=0; j<question['history_unconfirmed'].length; j++) {
+                    var ubond = question['history_unconfirmed'][j].args.bond;
+                    for(var i=0; i<question['history'].length; i++) {
+                        // If there's something unconfirmed with an equal or lower bond, remove it
+                        if (data[i].args.bond.gte( ubond )) {
+                            question['history_unconfirmed'].splice(j, 1);
+                        }
+                    }
+                }
+            }
             break;
+
+        case 'answers_unconfirmed':
+            // Ignore the age and just see if we have it already
+            for(var i=0; i<question['history'].length; i++) {
+                // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
+                if (question['history'][i].args.bond.gte( data.args.bond )) {
+                    break;
+                }
+            }
+            question['history_unconfirmed'].push(data);
+            break;
+
     }
 
     question_detail_list[question_id] = question;
@@ -2203,6 +2226,9 @@ $(document).on('click', '.post-answer-button', function(e) {
     var current_question;
     var is_err = false;
 
+    var block_before_send = current_block_number;
+    var question_json;
+
     var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
     .then(function(current_question) {
 
@@ -2279,30 +2305,25 @@ $(document).on('click', '.post-answer-button', function(e) {
         console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});
-    }).then(function(result){
-        parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
-        parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
-        parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
-        parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
-        parent_div.find('.answer-payment-value').text('');
-        parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
-
-        switch (question_json['type']) {
-            case 'binary':
-                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-                break;
-            case 'number':
-                parent_div.find('input[name="input-answer"]').val('');
-                break;
-            case 'single-select':
-                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-                break;
-            case 'multiple-select':
-                var container = parent_div.find('div.input-container.input-container--checkbox');
-                container.find('input[name="input-answer"]:checked').prop('checked', false);
-                break;
-        }
+        return rc.submitAnswer.sendTransaction(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});
+    }).then(function(txid){
+        clearForm(parent_div, question_json);
+        var fake_history = {
+            'args': {
+                'answer': formatForAnswer(new_answer, question_json['type']),
+                'question_id': question_id,
+                'history_hash': null, // TODO Do we need this?
+                'user': account,
+                'bond': bond,
+                'ts': new BigNumber(parseInt(new Date().getTime()/1000)),
+                'is_commitment': false
+            },
+            'event': 'LogNewAnswer',
+            'blockNumber': block_before_send,
+            'txid': txid
+        };
+        var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+        console.log('made question_data', question_data);
     });
     /*
     .catch(function(e){
@@ -2310,6 +2331,32 @@ $(document).on('click', '.post-answer-button', function(e) {
     });
     */
 });
+
+function clearForm(parent_div, question_json) {
+    parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
+    parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
+    parent_div.find('.answer-payment-value').text('');
+    parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
+
+    switch (question_json['type']) {
+        case 'binary':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'number':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'single-select':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'multiple-select':
+            var container = parent_div.find('div.input-container.input-container--checkbox');
+            container.find('input[name="input-answer"]:checked').prop('checked', false);
+            break;
+    }
+}
+
 
 // open/close/add reward
 $(document).on('click', '.add-reward-button', function(e){
