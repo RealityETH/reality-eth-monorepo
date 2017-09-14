@@ -2043,6 +2043,9 @@ div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-current{
 div.rcbrowser--qa-detail .current-answer-container { display:none }
 div.rcbrowser--qa-detail.has-answer .current-answer-container { display: block !important }
 
+div.rcbrowser--qa-detail .unconfirmed-answer-container { display:none }
+div.rcbrowser--qa-detail.has-unconfirmed-answer .unconfirmed-answer-container { display: block !important }
+
 div.rcbrowser--qa-detail .answered-history-container { display:none }
 div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block !important }
 

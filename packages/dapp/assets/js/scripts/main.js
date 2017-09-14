@@ -468,9 +468,9 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
                 fake_call[Qi_history_hash-1] = "0x0";
 
-                var q = filledQuestionDetail(question_id, 'question_log', 1, fake_log); 
-                q = filledQuestionDetail(question_id, 'question_call', 1, fake_call); 
-                q = filledQuestionDetail(question_id, 'question_json', 1, parseQuestionJSON(question_json)); 
+                var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
+                q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
+                q = filledQuestionDetail(question_id, 'question_json', 0, parseQuestionJSON(question_json)); 
 
                 // Turn the post question window into a question detail window
                 var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -802,7 +802,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {'freshness': {'question_log': 0, 'question_json': 0, 'question_call': 0, 'answers': 0}, 'history': []};
+    var question = {'freshness': {'question_log': -1, 'question_json': -1, 'question_call': -1, 'answers': -1}, 'history': []};
     question[Qi_question_id] = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
@@ -983,7 +983,6 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
-            console.log('error fetching question', question_id, e);
             reject(e);
         });
     });
@@ -1158,6 +1157,8 @@ function handleQuestionLog(item) {
 
     // Then fetch anything else we need to display
     ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question_data) {
+
+        updateQuestionWindowIfOpen(question_data);
 
         if (category && question_data[Qi_question_json].category != category) {
             //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
@@ -2449,24 +2450,25 @@ $('.rcbrowser-textarea').on('keyup', function(e){
     }
 });
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
-    let value = $(this).val();
-    show_bond_payments($(this));
+    let value = new BigNumber(web3.toWei($(this).val()));
+    console.log($(this));
     if (value === '') {
         $(this).parent().parent().addClass('is-error');
-    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
+    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)){
         $(this).parent().parent().addClass('is-error');
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
         let current_bond = 0;
         if (current_idx >= 0) {
-            web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+            current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
-        if (value < current_bond * 2) {
+        if (value.lt(current_bond.times(2))) {
             $(this).parent().parent().addClass('is-error');
         } else {
             $(this).parent().parent().removeClass('is-error');
         }
+        show_bond_payments($(this));
     } else {
         $(this).parent().parent().removeClass('is-error');
     }
