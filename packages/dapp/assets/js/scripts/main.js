@@ -860,6 +860,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                     for(var i=0; i<question['history'].length; i++) {
                         // If there's something unconfirmed with an equal or lower bond, remove it
                         if (data[i].args.bond.gte( ubond )) {
+                            //console.log('removing unconfirmed entry due to higher bond from confirmed');
                             question['history_unconfirmed'].splice(j, 1);
                         }
                     }
@@ -868,13 +869,16 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
             break;
 
         case 'answers_unconfirmed':
+            //console.log('adding answers_unconfirmed');
             // Ignore the age and just see if we have it already
             for(var i=0; i<question['history'].length; i++) {
+                //console.log('already have a higher bond, removing');
                 // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
                 if (question['history'][i].args.bond.gte( data.args.bond )) {
                     break;
                 }
             }
+            //console.log('adding data to history_unconfirmed');
             question['history_unconfirmed'].push(data);
             break;
 
@@ -1176,7 +1180,9 @@ function handleQuestionLog(item) {
     var created = item.args.created
 
     // Populate with the data we got
+    //console.log('before filling in handleQuestionLog', question_detail_list[question_id]);
     var question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+    //console.log('after filling in handleQuestionLog', question_detail_list[question_id]);
 
     // Then fetch anything else we need to display
     ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question_data) {
@@ -1543,6 +1549,41 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
         }
 
     } 
+
+    var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
+    if (question_detail['history_unconfirmed'].length) {
+
+        var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].args;
+
+        //unconfirmed_container.attr('id', 'answer-unconfirmed-' + unconfirmed_answer.answer);
+
+        timeago.cancel(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+        unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago').attr('datetime', convertTsToString(unconfirmed_answer.ts));
+        timeAgo.render(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago'));
+
+        // answerer data
+        var ans_data = rcqa.find('.unconfirmed-answer-container').find('.answer-data');
+        ans_data.find('.answerer').text(unconfirmed_answer.user);
+        var avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2,10), 16) );
+        ans_data.find('.answer-data__avatar').html(avjazzicon);
+        if (unconfirmed_answer.user == account) {
+            ans_data.addClass('unconfirmed-account');
+        } else {
+            ans_data.removeClass('unconfirmed-account');
+        }
+        ans_data.find('.answer-bond-value').text(web3.fromWei(unconfirmed_answer.bond.toNumber(), 'ether'));
+
+        // label for show the unconfirmed answer.
+        var label = getAnswerString(question_json, unconfirmed_answer.answer);
+        unconfirmed_container.find('.unconfirmed-answer-body').find('.unconfirmed-answer').text(label);
+
+        rcqa.addClass('has-unconfirmed-answer');
+
+    } else {
+
+        rcqa.removeClass('has-unconfirmed-answer');
+
+    }
 
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
@@ -2323,7 +2364,12 @@ $(document).on('click', '.post-answer-button', function(e) {
             'txid': txid
         };
         var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
-        console.log('made question_data', question_data);
+        console.log('after answer made question_data', question_data);
+
+        ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+            updateQuestionWindowIfOpen(question);
+        });
+
     });
     /*
     .catch(function(e){
