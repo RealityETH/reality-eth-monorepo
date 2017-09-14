@@ -1045,6 +1045,10 @@ span.rcbrowser__close-button {
     padding: 27px 0;
 }
 
+.rcbrowser-warning-header {
+    padding-top: 8px;
+}
+
 .rcbrowser-main-header-title {
     font-size: 18px;
     font-weight: 600;
@@ -1212,6 +1216,63 @@ span.rcbrowser__close-button {
     position: relative;
     overflow: hidden;
 }
+
+// unconfirmed answer
+.unconfirmed-answer-container {
+    margin: 15px 0;
+    opacity: 0.5;
+}
+
+.unconfirmed-answer-container.is-open .unconfirmed-answer-inner {
+    opacity: 1;
+}
+
+.unconfirmed-answer-header {
+    font-size: 13px;
+}
+
+.unconfirmed-answer-header::before {
+    display: inline-block;
+    content: "";
+    width: 8px;
+    height: 8px;
+    background-color: $purple;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.unconfirmed-answer-item {
+    background-color: $rcBrowserDarkBg;
+    margin: 9px 0 15px;
+    padding: 15px;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+}
+
+.unconfirmed-answer-body {
+    color: $rcBrowserBodyText;
+    line-height: 1.2;
+    margin-top: -0.2em;
+    font-size: 18px;
+}
+
+.unconfirmed-answer-body > p {
+    margin: 0 0 9px;
+}
+
+.unconfirmed-answer-body > p:last-of-type {
+    margin: 0;
+}
+
+// date
+.unconfirmed-answer-item > span {
+    color: $rcBrowserSubText;
+    font-size: 12px;
+}
+
+
+
 
 .current-answer-body {
     color: $rcBrowserBodyText;
@@ -2035,6 +2096,9 @@ div.rcbrowser--qa-detail.question-state-finalized .current-answer-label-current{
 div.rcbrowser--qa-detail .current-answer-container { display:none }
 div.rcbrowser--qa-detail.has-answer .current-answer-container { display: block !important }
 
+div.rcbrowser--qa-detail .unconfirmed-answer-container { display:none }
+div.rcbrowser--qa-detail.has-unconfirmed-answer .unconfirmed-answer-container { display: block !important }
+
 div.rcbrowser--qa-detail .answered-history-container { display:none }
 div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block !important }
 
@@ -2079,8 +2143,8 @@ div.error-bar { display:none }
 body.error div.error-bar {
     /* container */
     padding: 8px 0;
-    background-color: #544A91; // $RCS-dark-purple
-    color: #ffffff; // $RC-white
+    background-color: $dark-purple;
+    color: $white;
     font-size: 14px;
     position: static;
     display: block !important;
@@ -2105,7 +2169,7 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
 #footer-notification-bar {
     width: 100%;
     padding: 24px 0;
-    background-color: #33373c;
+    background-color: $dark-blue-gray;
     color: $white;
     font-size: 16px;
     text-align: center;
@@ -2124,7 +2188,6 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     margin-left: 24px;
     border-radius: 3px;
 }
-
 
 .question-setting-info {
     position: absolute;
@@ -2196,3 +2259,37 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     animation-fill-mode: both;
     animation-name: bounce;
 }
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header { display:none; }
+div.rcbrowser--qa-detail.has-warnings .rcbrowser-warning-header{ display:block !important; }
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { display:none}
+div.rcbrowser--qa-detail.unconfirmed-transaction .rcbrowser-warning-header-unconfirmed-box { display:block !important}
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { 
+    margin-top: 6px;
+    padding: 4px 6px 6px;
+    line-height: 1.3;
+    border-radius: 3px;
+    background-color: $purple;
+    box-shadow: inset 0 0 0 1px $dark-purple;
+    color: #ffffff; // $RC-white
+    font-size: 14px;
+    position: static;
+}
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { display:none}
+div.rcbrowser--qa-detail.failed-transaction .rcbrowser-warning-header-failed-box { display:block !important}
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { 
+    margin-top: 6px;
+    padding: 4px 6px 6px;
+    line-height: 1.3;
+    border-radius: 3px;
+    background-color: $red; // $RCS-dark-purple
+    color: #ffffff; // $RC-white
+    font-size: 14px;
+    position: static;
+}
+
+div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box div.pending-txid { float:right }

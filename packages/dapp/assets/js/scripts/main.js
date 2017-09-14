@@ -375,9 +375,16 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
 });
 
 $('#post-a-question-button,#post-a-question-link').on('click', function(e){
+    //console.log('click post');
     e.preventDefault();
     e.stopPropagation();
-    let question_window = $('#post-a-question-window');
+    let question_window = $('#post-a-question-window-template').clone().attr('id', 'post-a-question-window');
+    question_window.find('.rcbrowser__close-button').click(function(){
+        question_window.remove();
+    });
+
+    $('#post-a-question-window-template').before(question_window);
+    //console.log('cloned window', question_window);
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
@@ -407,31 +414,32 @@ $('#site-logo').on('click', function(e){
     $('#site-introduction__buttons').css('visibility', 'visible');
 });
 
-$('#close-question-window').on('click', function(e){
+$(document).on('click', '#post-a-question-window .close-question-window', function(e){
     e.preventDefault();
     e.stopPropagation();
     $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
 });
 
-$('#post-question-submit').on('click', function(e){
+$(document).on('click', '#post-a-question-window .post-question-submit', function(e){
     e.preventDefault();
     e.stopPropagation();
 
-    var question_body = $('#question-body');
-    var reward = $('#question-reward');
-    var timeout = $('#step-delay');
-    var timeout_val = timeout.val();
-    var arbitrator =$('#arbitrator');
-    var question_type = $('#question-type');
-    var answer_options = $('.answer-option');
-    var category = $('div.select-container--question-category select');
+    var win = $('#post-a-question-window');
+    var question_body = win.find('.question-body');
+    var reward = win.find('.question-reward');
+    var timeout = win.find('.step-delay');
+    var timeout_val = parseInt(timeout.val());
+    var arbitrator = win.find('.arbitrator');
+    var question_type = win.find('.question-type');
+    var answer_options = win.find('.answer-option');
+    var category = win.find('div.select-container--question-category select');
     var outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
 
-    if (validate()) {
+    if (validate(win)) {
         var question = {
             title: question_body.val(),
             type: question_type.val(),
@@ -450,11 +458,67 @@ $('#post-question-submit').on('click', function(e){
             rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
             .then(function(qid) {
                 question_id = qid;
-                return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                return rc.askQuestion.sendTransaction(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+                //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
             }).then(function(txid) {
                 console.log('sent tx with id', txid);
-                openQuestionWindow(question_id);
-                $('#close-question-window').trigger('click');
+                
+                // Make a fake log entry
+                var fake_log = {
+                    'entry': 'LogNewQuestion',
+                    'args': {
+                        'question_id': question_id,
+                        'user': account,
+                        'arbitrator': arbitrator.val(),
+                        'timeout': new BigNumber(timeout_val),
+                        'question_ipfs': res[0].hash,
+                        'created': new BigNumber(parseInt(new Date().getTime() / 1000))
+                    }
+                }
+                var fake_call = [];
+                fake_call[Qi_finalization_ts-1] = new BigNumber(0);
+                fake_call[Qi_arbitrator-1] = arbitrator.val();
+                fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
+                fake_call[Qi_question_ipfs-1] = res[0].hash;
+                fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
+                fake_call[Qi_history_hash-1] = "0x0";
+
+                var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
+                q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
+                q = filledQuestionDetail(question_id, 'question_json', 0, parseQuestionJSON(question_json)); 
+
+                // Turn the post question window into a question detail window
+                var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                win.html(rcqa.html());
+                win = populateQuestionWindow(win, q, false);
+                console.log('rcqa', win);
+		
+                // TODO: Once we have code to know which network we're on, link to a block explorer
+                win.find('.pending-txid').text(txid.substr(0, 12) + "...");
+                win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                win.attr('data-pending-txid', txid);
+
+                win.find('.rcbrowser__close-button').on('click', function(){
+                    console.log('closing');
+                    let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                    let left = parseInt(parent_div.css('left').replace('px', ''));
+                    let top = parseInt(parent_div.css('top').replace('px', ''));
+                    let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                    let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                    left += data_x; top += data_y;
+                    window_position[question_id] = {};
+                    window_position[question_id]['x'] = left;
+                    window_position[question_id]['y'] = top;
+                    win.remove();
+                    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                });
+
+                var window_id = 'qadetail-' + question_id;
+                win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                win.attr('id', window_id);
+                win.attr('data-question-id', question_id);
+                Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
             }).catch(function (e) {
                 console.log(e);
             });
@@ -512,7 +576,7 @@ $(document).on('click', '.answer-claim-button', function(){
         var gas = 70000 + (10000 * claimable['history_hashes'].length);
 
         //rc.claimMultipleAndWithdrawBalance.estimateGas(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account})
-        //.then(function(gas_amount){
+        //.then(function(gskas_amount){
          //   console.log('got gas_amount', gas_amount);
          //   var gas = gas_amount + (claimable['question_ids'].length * 60000);
         rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
@@ -522,10 +586,10 @@ $(document).on('click', '.answer-claim-button', function(){
     });
 });
 
-function validate() {
+function validate(win) {
     var valid = true;
 
-    var qtext = $('#question-body');
+    var qtext = win.find('.question-body');
     if (qtext.val() == '') {
         qtext.closest('div').addClass('is-error');
         valid = false;
@@ -533,7 +597,7 @@ function validate() {
         qtext.closest('div').removeClass('is-error');
     }
 
-    var reward = $('#question-reward');
+    var reward = win.find('.question-reward');
     if (reward.val() === '' || reward.val() <= 0) {
         reward.parent().parent().addClass('is-error');
         valid = false;
@@ -542,27 +606,27 @@ function validate() {
     }
 
     var options_num = 0;
-    var question_type = $('#question-type');
+    var question_type = win.find('.question-type');
     var answer_options = $('.answer-option').toArray();
     for (var i = 0; i < answer_options.length; i++) {
         if (answer_options[i].value !== '') {
             options_num += 1;
         }
     }
-    if ($('#answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
+    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
         $('.edit-option-inner').addClass('is-error');
         valid = false;
     } else {
         $('.edit-option-inner').removeClass('is-error');
     }
 
-    var select_ids = ['#question-type', '#arbitrator', '#step-delay'];
+    var select_ids = ['.question-type', '.arbitrator', '.step-delay'];
     for (var id of select_ids) {
-        if ($(id).prop('selectedIndex') == 0) {
-            $(id).parent().addClass('is-error');
+        if (win.find(id).prop('selectedIndex') == 0) {
+            win.find(id).parent().addClass('is-error');
             valid = false;
         } else {
-            $(id).parent().removeClass('is-error');
+            win.find(id).parent().removeClass('is-error');
         }
     }
 
@@ -753,7 +817,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {'freshness': {'question_log': 0, 'question_json': 0, 'question_call': 0, 'answers': 0}, 'history': []};
+    var question = {'freshness': {'question_log': -1, 'question_json': -1, 'question_call': -1, 'answers': -1}, 'history': [], 'history_unconfirmed': []};
     question[Qi_question_id] = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
@@ -805,7 +869,34 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question.freshness.answers = freshness;
                 question['history'] = data;
             }
+            if (data.length && question['history_unconfirmed'].length) {
+                for(var j=0; j<question['history_unconfirmed'].length; j++) {
+                    var ubond = question['history_unconfirmed'][j].args.bond;
+                    for(var i=0; i<question['history'].length; i++) {
+                        // If there's something unconfirmed with an equal or lower bond, remove it
+                        if (data[i].args.bond.gte( ubond )) {
+                            //console.log('removing unconfirmed entry due to higher bond from confirmed');
+                            question['history_unconfirmed'].splice(j, 1);
+                        }
+                    }
+                }
+            }
             break;
+
+        case 'answers_unconfirmed':
+            //console.log('adding answers_unconfirmed');
+            // Ignore the age and just see if we have it already
+            for(var i=0; i<question['history'].length; i++) {
+                //console.log('already have a higher bond, removing');
+                // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
+                if (question['history'][i].args.bond.gte( data.args.bond )) {
+                    break;
+                }
+            }
+            //console.log('adding data to history_unconfirmed');
+            question['history_unconfirmed'].push(data);
+            break;
+
     }
 
     question_detail_list[question_id] = question;
@@ -934,7 +1025,6 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
-            console.log('error fetching question', question_id, e);
             reject(e);
         });
     });
@@ -1129,10 +1219,14 @@ function handleQuestionLog(item) {
     var created = item.args.created
 
     // Populate with the data we got
+    //console.log('before filling in handleQuestionLog', question_detail_list[question_id]);
     var question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+    //console.log('after filling in handleQuestionLog', question_detail_list[question_id]);
 
     // Then fetch anything else we need to display
     ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question_data) {
+
+        updateQuestionWindowIfOpen(question_data);
 
         if (category && question_data[Qi_question_json].category != category) {
             //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
@@ -1256,10 +1350,10 @@ function update_ranking_data(arr_name, id, val, ord) {
 // question detail window
 
 (function() {
-
-    $('#question-type').on('change', function(e){
-        var container = $('#answer-option-container');
-        if ($('#question-type').val() == 'single-select' || $('#question-type').val() == 'multiple-select') {
+    $(document).on('change', '.question-type', function(e){
+        var win = $(this).closest('.rcbrowser');
+        var container = win.find('.answer-option-container');
+        if (win.find('.question-type').val() == 'single-select' || win.find('.question-type').val() == 'multiple-select') {
             if (!container.hasClass('is-open')) {
                 container.css('display', 'block');
                 container.addClass('is-open');
@@ -1269,17 +1363,18 @@ function update_ranking_data(arr_name, id, val, ord) {
             container.css('display', 'none');
             container.removeClass('is-open');
             container.removeClass('is-bounce');
-            $('#first-answer-option').children().val('');
-            $('.input-container--answer-option').remove();
+            win.find('.first-answer-option').children().val('');
+            win.find('.input-container--answer-option').remove();
         }
     });
 
-    $('.add-option-button').on('click', function(e){
+    $(document).on('click', '.add-option-button', function(e){
+        var win = $(this).closest('.rcbrowser');
         var element = $('<div>');
         element.addClass('input-container input-container--answer-option');
         var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">';
         element.append(input);
-        $('#error-container--answer-option').before(element);
+        win.find('.error-container--answer-option').before(element);
         element.addClass('is-bounce');
     });
 })();
@@ -1331,13 +1426,6 @@ function openQuestionWindow(question_id) {
     */
 }
 
-$('#post-a-question-window .rcbrowser__close-button').on('click', function(){
-    let win = $('#post-a-question-window');
-    win.css('z-index', 0);
-    win.removeClass('is-open');
-    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
-});
-
 function parseQuestionJSON(data) {
 
     var question_json;
@@ -1365,6 +1453,8 @@ function updateQuestionWindowIfOpen(question) {
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
+    // TODO: This should probably be happening in populateQuestionWindow, based on some data indicated confirmed
+    rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
 
 }
 
@@ -1397,8 +1487,7 @@ function displayQuestionDetail(question_detail) {
             let data_x = (parseInt(parent_div.attr('data-x')) || 0);
             let data_y = (parseInt(parent_div.attr('data-y')) || 0);
             left += data_x; top += data_y;
-            window_position[question_id]['x'] = left;
-            window_position[question_id]['y'] = top;
+            window_position[question_id] = {'x': left, 'y': top};
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
             //console.log('clicked close');
@@ -1425,6 +1514,8 @@ function displayQuestionDetail(question_detail) {
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
+console.log('populateQuestionWindow with detail ', question_detail);
+console.log('populateQuestionWindow question_json', question_detail[Qi_question_json]);
     var question_id = question_detail[Qi_question_id];
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
@@ -1538,6 +1629,41 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }
     });
 
+    var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
+    if (question_detail['history_unconfirmed'].length) {
+
+        var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].args;
+
+        //unconfirmed_container.attr('id', 'answer-unconfirmed-' + unconfirmed_answer.answer);
+
+        timeago.cancel(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+        unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago').attr('datetime', convertTsToString(unconfirmed_answer.ts));
+        timeAgo.render(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago'));
+
+        // answerer data
+        var ans_data = rcqa.find('.unconfirmed-answer-container').find('.answer-data');
+        ans_data.find('.answerer').text(unconfirmed_answer.user);
+        var avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2,10), 16) );
+        ans_data.find('.answer-data__avatar').html(avjazzicon);
+        if (unconfirmed_answer.user == account) {
+            ans_data.addClass('unconfirmed-account');
+        } else {
+            ans_data.removeClass('unconfirmed-account');
+        }
+        ans_data.find('.answer-bond-value').text(web3.fromWei(unconfirmed_answer.bond.toNumber(), 'ether'));
+
+        // label for show the unconfirmed answer.
+        var label = getAnswerString(question_json, unconfirmed_answer.answer);
+        unconfirmed_container.find('.unconfirmed-answer-body').find('.unconfirmed-answer').text(label);
+
+        rcqa.addClass('has-unconfirmed-answer');
+
+    } else {
+
+        rcqa.removeClass('has-unconfirmed-answer');
+
+    }
+
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
@@ -1558,6 +1684,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     rcqa.find('.rcbrowser-input--number--bond.form-item').val(web3.fromWei(bond.toNumber(), 'ether') * 2);
 
+    //console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
 
     if (isFinalized(question_detail)) {    
@@ -2129,7 +2256,6 @@ function makeSelectAnswerInput(question_json) {
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
 function updateQuestionState(question, question_window) {
-
     if (question[Qi_finalization_ts] > 2) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
@@ -2207,7 +2333,7 @@ $(document).on('click', '.answer-item', function(){
 });
 
 // post an answer
-$(document).on('click', '.post-answer-button', function(e){
+$(document).on('click', '.post-answer-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2220,16 +2346,12 @@ $(document).on('click', '.post-answer-button', function(e){
     var current_question;
     var is_err = false;
 
-    rc.questions.call(question_id).then(function(cq) {
-        current_question = cq;
-        current_question.unshift(question_id);
-        var question_ipfs = current_question[Qi_question_ipfs];
-        return ipfs.cat(bytes32ToIPFSHash(question_ipfs), {buffer: true})
-    }).then(function (res) {
-        if (res.length > IPFS_MAX_SIZE) {
-            throw new Error('IPFS file too large');
-        }
-        current_question[Qi_question_json] = parseQuestionJSON(res.toString());
+    var block_before_send = current_block_number;
+    var question_json;
+
+    var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+    .then(function(current_question) {
+
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
 
@@ -2300,31 +2422,33 @@ $(document).on('click', '.post-answer-button', function(e){
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
-    }).then(function(result){
-        parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
-        parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
-        parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
-        parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
-        parent_div.find('.answer-payment-value').text('');
-        parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
+        console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
-        switch (question_json['type']) {
-            case 'binary':
-                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-                break;
-            case 'number':
-                parent_div.find('input[name="input-answer"]').val('');
-                break;
-            case 'single-select':
-                parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-                break;
-            case 'multiple-select':
-                var container = parent_div.find('div.input-container.input-container--checkbox');
-                container.find('input[name="input-answer"]:checked').prop('checked', false);
-                break;
-        }
+        // Converting to BigNumber here - ideally we should probably doing this when we parse the form
+        return rc.submitAnswer.sendTransaction(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});
+    }).then(function(txid){
+        clearForm(parent_div, question_json);
+        var fake_history = {
+            'args': {
+                'answer': formatForAnswer(new_answer, question_json['type']),
+                'question_id': question_id,
+                'history_hash': null, // TODO Do we need this?
+                'user': account,
+                'bond': bond,
+                'ts': new BigNumber(parseInt(new Date().getTime()/1000)),
+                'is_commitment': false
+            },
+            'event': 'LogNewAnswer',
+            'blockNumber': block_before_send,
+            'txid': txid
+        };
+        var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+        console.log('after answer made question_data', question_data);
+
+        ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+            updateQuestionWindowIfOpen(question);
+        });
+
     });
     /*
     .catch(function(e){
@@ -2332,6 +2456,32 @@ $(document).on('click', '.post-answer-button', function(e){
     });
     */
 });
+
+function clearForm(parent_div, question_json) {
+    parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
+    parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
+    parent_div.find('.answer-payment-value').text('');
+    parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
+
+    switch (question_json['type']) {
+        case 'binary':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'number':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'single-select':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'multiple-select':
+            var container = parent_div.find('div.input-container.input-container--checkbox');
+            container.find('input[name="input-answer"]:checked').prop('checked', false);
+            break;
+    }
+}
+
 
 // open/close/add reward
 $(document).on('click', '.add-reward-button', function(e){
@@ -2472,29 +2622,30 @@ $('.rcbrowser-textarea').on('keyup', function(e){
     }
 });
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
-    let value = $(this).val();
-    show_bond_payments($(this));
+    let value = new BigNumber(web3.toWei($(this).val()));
+    console.log($(this));
     if (value === '') {
         $(this).parent().parent().addClass('is-error');
-    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0 || value.substr(0,1) === '0')) {
+    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)){
         $(this).parent().parent().addClass('is-error');
     } else if($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
         let current_bond = 0;
         if (current_idx >= 0) {
-            web3.fromWei(question_detail_list[question_id]['history'][current_idx].args.bond.toNumber(), 'ether');
+            current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
-        if (value < current_bond * 2) {
+        if (value.lt(current_bond.times(2))) {
             $(this).parent().parent().addClass('is-error');
         } else {
             $(this).parent().parent().removeClass('is-error');
         }
+        show_bond_payments($(this));
     } else {
         $(this).parent().parent().removeClass('is-error');
     }
 });
-$('#question-type,#step-delay,#arbitrator').on('change', function (e) {
+$(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function (e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
     }
