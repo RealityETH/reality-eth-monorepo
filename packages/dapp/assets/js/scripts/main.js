@@ -36,7 +36,7 @@ const QUESTION_MAX_OUTCOMES = 128;
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
 const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
-const FETCH_NUMBERS = [2500, 5000, 10000];
+const FETCH_NUMBERS = [100, 2500, 5000];
 
 var last_displayed_block_number = 0;
 var current_block_number = 1;
@@ -1115,10 +1115,10 @@ function populateSection(section_name, question_data, before_item) {
     // question settings warning balloon
     let balloon_html = '';
     if (question_data[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br>This means there may not be enough time for people to correct mistakes or lies.';
+        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.';
     }
     if (web3.fromWei(question_data[Qi_bounty], 'ether') < 0.01) {
-        balloon_html += 'The reward is very low.<br>';
+        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.';
     }
     let arbitrator_addrs = $('#arbitrator').children();
     let valid_arbirator = isArbitratorValid(question_data[Qi_arbitrator]);
@@ -1539,6 +1539,7 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
     rcqa.find('.question-title').text(question_json['title']).expander({slicePoint: 200});
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
 
+    var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
     if (isAnswered(question_detail)) {
 
         var current_container = rcqa.find('.current-answer-container');
@@ -1547,12 +1548,12 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
         var label = getAnswerString(question_json, question_detail[Qi_best_answer]);
         current_container.find('.current-answer-body').find('.current-answer').text(label);
 
+        bond = question_detail[Qi_bond];
+
         // Default to something non-zero but very low
-        var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
             var latest_answer = question_detail['history'][idx].args;
-            bond = latest_answer.bond;
 
             current_container.attr('id', 'answer-' + latest_answer.answer);
 
@@ -1603,10 +1604,10 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
     // question settings warning balloon
     let balloon_html = '';
     if (question_detail[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br>This means there may not be enough time for people to correct mistakes or lies.';
+        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.';
     }
     if (web3.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
-        balloon_html += 'The reward is very low.<br>';
+        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.';
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
     
