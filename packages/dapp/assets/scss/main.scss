@@ -2266,6 +2266,8 @@ div.rcbrowser--qa-detail.has-warnings .rcbrowser-warning-header{ display:block !
 div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { display:none}
 div.rcbrowser--qa-detail.unconfirmed-transaction .rcbrowser-warning-header-unconfirmed-box { display:block !important}
 
+div.rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning { display:none !important }
+
 div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { 
     margin-top: 6px;
     padding: 4px 6px 6px;
