@@ -527,6 +527,18 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
 
 });
 
+function isArbitratorValid(arb) {
+    var found = false;
+    let arbitrator_addrs = $('select.arbitrator').children();
+    arbitrator_addrs.each(function() {
+        if ( $(this).val() == arb) {
+            found = true;
+            return false;
+        } 
+    });
+    return found;
+}
+
 function isArbitrationPending(question) {
     // finalization_ts has a magical timestamp of 1 meaning pending arbitration (unanswered) or 2 meaning pending arbitration (answered)
     return ( (question[Qi_finalization_ts].toNumber() == 1) || (question[Qi_finalization_ts].toNumber() == 2) );
@@ -1106,13 +1118,7 @@ function populateSection(section_name, question_data, before_item) {
         balloon_html += 'The reward is very low.<br>';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = false;
-    for (let i = 0; i < arbitrator_addrs.length; i++) {
-        if (question_data[Qi_arbitrator] == arbitrator_addrs[i].value) {
-            valid_arbirator = true;
-            break;
-        }
-    }
+    let valid_arbirator = isArbitratorValid(question_data[Qi_arbitrator]);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -1597,16 +1603,10 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
     if (web3.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
         balloon_html += 'The reward is very low.<br>';
     }
-    let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = false;
-    for (let i = 0; i < arbitrator_addrs.length; i++) {
-        if (question_detail[Qi_arbitrator] == arbitrator_addrs[i].value) {
-            valid_arbirator = true;
-            break;
-        }
-    }
+    let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
+    
     if (!valid_arbirator) {
-        balloon_html += 'This arbitrator is unknown.';
+        balloon_html += 'We do not recognize this arbitrator.<br />Do not believe this information unless you trust them.';
     }
     if (balloon_html) {
         rcqa.find('.question-setting-warning').css('display', 'block');
