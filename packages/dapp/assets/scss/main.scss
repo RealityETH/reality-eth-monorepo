@@ -1046,7 +1046,9 @@ span.rcbrowser__close-button {
 }
 
 .rcbrowser-warning-header {
-    padding-top: 8px;
+    padding-top: 0px;
+    margin-left: -15px;
+    margin-right: -15px;
 }
 
 .rcbrowser-main-header-title {
@@ -2268,16 +2270,18 @@ div.rcbrowser--qa-detail.unconfirmed-transaction .rcbrowser-warning-header-uncon
 
 div.rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning { display:none !important }
 
+div.rcbrowser--qa-detail.unconfirmed-transaction div.rcbrowser-main { opacity: 0.9 }
+
 div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { 
     margin-top: 6px;
     padding: 4px 6px 6px;
     line-height: 1.3;
-    border-radius: 3px;
-    background-color: $purple;
-    box-shadow: inset 0 0 0 1px $dark-purple;
+    border-radius: 0px;
+    background-color: $dark-gray;
     color: #ffffff; // $RC-white
     font-size: 14px;
     position: static;
+    text-align: center;
 }
 
 div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { display:none}

@@ -495,7 +495,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 console.log('rcqa', win);
 		
                 // TODO: Once we have code to know which network we're on, link to a block explorer
-                win.find('.pending-txid').text(txid.substr(0, 12) + "...");
+                win.find('.pending-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+                win.find('.pending-txid a').text(txid.substr(0, 12) + "..." + txid.substr(txid.length-12));
                 win.addClass('unconfirmed-transaction').addClass('has-warnings');
                 win.attr('data-pending-txid', txid);
 
