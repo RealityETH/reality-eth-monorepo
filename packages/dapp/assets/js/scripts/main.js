@@ -1115,7 +1115,7 @@ function populateSection(section_name, question_data, before_item) {
     // question settings warning balloon
     let balloon_html = '';
     if (question_data[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br>';
+        balloon_html += 'The timeout is very low.<br>This means there may not be enough time for people to correct mistakes or lies.';
     }
     if (web3.fromWei(question_data[Qi_bounty], 'ether') < 0.01) {
         balloon_html += 'The reward is very low.<br>';
@@ -1539,69 +1539,71 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
     rcqa.find('.question-title').text(question_json['title']).expander({slicePoint: 200});
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
 
-    //console.log('question_detail is', question_detail);
-
-    // Default to something non-zero but very low
-    var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
-    if (question_detail['history'].length) {
-        //console.log('updateing aunswer');
-        var latest_answer = question_detail['history'][idx].args;
-        bond = latest_answer.bond;
+    if (isAnswered(question_detail)) {
 
         var current_container = rcqa.find('.current-answer-container');
-        current_container.attr('id', 'answer-' + latest_answer.answer);
-
-        timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
-        current_container.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
-        timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
-
-        // answerer data
-        var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-        ans_data.find('.answerer').text(latest_answer.user);
-        var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2,10), 16) );
-        ans_data.find('.answer-data__avatar').html(avjazzicon);
-        if (latest_answer.user == account) {
-            ans_data.addClass('current-account');
-        } else {
-            ans_data.removeClass('current-account');
-        }
-        ans_data.find('.answer-bond-value').text(web3.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
         // label for show the current answer.
-        var label = getAnswerString(question_json, latest_answer.answer);
+        var label = getAnswerString(question_json, question_detail[Qi_best_answer]);
         current_container.find('.current-answer-body').find('.current-answer').text(label);
 
-        // TODO: Do duplicate checks and ensure order in case stuff comes in weird
-        for (var i = 0; i < idx; i++) {
-            var ans = question_detail['history'][i].args;
-            var hist_id = 'question-window-history-item-' + web3.sha3(question_id + ans.answer + ans.bond.toString());
-            if (rcqa.find('#'+hist_id).length) {
-                //console.log('already in list, skipping', hist_id, ans);
-                continue;
+        // Default to something non-zero but very low
+        var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
+        if (question_detail['history'].length) {
+            //console.log('updateing aunswer');
+            var latest_answer = question_detail['history'][idx].args;
+            bond = latest_answer.bond;
+
+            current_container.attr('id', 'answer-' + latest_answer.answer);
+
+            timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+            current_container.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+            timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
+
+            // answerer data
+            var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+            ans_data.find('.answerer').text(latest_answer.user);
+            var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2,10), 16) );
+            ans_data.find('.answer-data__avatar').html(avjazzicon);
+            if (latest_answer.user == account) {
+                ans_data.addClass('current-account');
+            } else {
+                ans_data.removeClass('current-account');
             }
-            //console.log('not already in list, adding', hist_id, ans);
-            var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
-            var hist_item = hist_tmpl.clone();
-            hist_item.attr('id', hist_id);
-            hist_item.find('.answerer').text(ans['user']);
+            ans_data.find('.answer-bond-value').text(web3.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
-            var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2,10), 16) );
+            // TODO: Do duplicate checks and ensure order in case stuff comes in weird
+            for (var i = 0; i < idx; i++) {
+                var ans = question_detail['history'][i].args;
+                var hist_id = 'question-window-history-item-' + web3.sha3(question_id + ans.answer + ans.bond.toString());
+                if (rcqa.find('#'+hist_id).length) {
+                    //console.log('already in list, skipping', hist_id, ans);
+                    continue;
+                }
+                //console.log('not already in list, adding', hist_id, ans);
+                var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
+                var hist_item = hist_tmpl.clone();
+                hist_item.attr('id', hist_id);
+                hist_item.find('.answerer').text(ans['user']);
 
-            hist_item.find('.answer-data__avatar').html(avjazzicon);
-            hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
-            hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
-            hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
-            timeAgo.render(hist_item.find('.answer-time.timeago'));
-            hist_item.removeClass('template-item');
-            hist_tmpl.before(hist_item); 
-        }
+                var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2,10), 16) );
 
-    } 
+                hist_item.find('.answer-data__avatar').html(avjazzicon);
+                hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
+                hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
+                hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
+                timeAgo.render(hist_item.find('.answer-time.timeago'));
+                hist_item.removeClass('template-item');
+                hist_tmpl.before(hist_item); 
+            }
+
+        } 
+    }
 
     // question settings warning balloon
     let balloon_html = '';
     if (question_detail[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br>';
+        balloon_html += 'The timeout is very low.<br>This means there may not be enough time for people to correct mistakes or lies.';
     }
     if (web3.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
         balloon_html += 'The reward is very low.<br>';
