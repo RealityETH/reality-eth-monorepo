@@ -1639,6 +1639,11 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
 
         var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].args;
 
+        var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].txid;
+        unconfirmed_container.find('.pending-answer-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+        unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
+        unconfirmed_container.attr('data-pending-txid', txid);
+
         //unconfirmed_container.attr('id', 'answer-unconfirmed-' + unconfirmed_answer.answer);
 
         timeago.cancel(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
@@ -2447,6 +2452,7 @@ $(document).on('click', '.post-answer-button', function(e) {
             'blockNumber': block_before_send,
             'txid': txid
         };
+
         var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
         console.log('after answer made question_data', question_data);
 
