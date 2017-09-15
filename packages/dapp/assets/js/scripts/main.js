@@ -658,7 +658,7 @@ $('div.loadmore-button').on('click', function(e) {
             previd = display_entries[sec]['ids'][i-1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
-        ensureQuestionDetailFetched(nextid, {'answers': -1}).then(function(qdata) {
+        ensureQuestionDetailFetched(nextid, 1, 1, 1, -1).then(function(qdata) {
             populateSection(sec, qdata, previd);
         });
     }
@@ -732,7 +732,7 @@ function handlePotentialUserAction(entry, is_watch) {
     // If not, we will need to load it and put it there
     // This is duplicated when you click on a question to view it
 
-    ensureQuestionDetailFetched(question_id).then(function(question) {
+    ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
         renderUserAction(question, entry, is_watch);
     });
 
@@ -763,7 +763,7 @@ function scheduleFinalizationDisplayUpdate(question) {
                 clearTimeout(question_event_times[question_id].timeout_id);
                 delete question_event_times[question_id];
 
-                ensureQuestionDetailFetched(question_id, question).then(function(question) {
+                ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
 
                     if (isFinalized(question)) { 
                         updateQuestionWindowIfOpen(question);
@@ -1411,7 +1411,7 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 function openQuestionWindow(question_id) {
 
     // To respond quickly, start by fetching with even fairly old data and no logs
-    ensureQuestionDetailFetched(question_id, 1, 1, 1, 0).then(function(question) {
+    ensureQuestionDetailFetched(question_id, 1, 1, 1, -1).then(function(question) {
         displayQuestionDetail(question);
         // Get the window open first with whatever data we have
         // Then repopulate with the most recent of everything anything has changed
