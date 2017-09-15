@@ -59,6 +59,7 @@ const Qi_history_hash = 8;
 const Qi_question_json = 9; // We add this manually after we load the ipfs data
 const Qi_creation_ts = 10; // We add this manually from the event log
 const Qi_question_creator = 11; // We add this manually from the event log
+const Qi_question_created_block = 12;
 
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
@@ -845,6 +846,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 //question[Qi_question_id] = data.args['question_id'];
                 question[Qi_creation_ts] = data.args['created'];
                 question[Qi_question_creator] = data.args['user'];
+                question[Qi_question_created_block] = data.blockNumber;
                 question[Qi_question_ipfs] = data.args['question_ipfs'];
                 //question[Qi_bounty] = data.args['bounty'];
             }
@@ -1000,13 +1002,14 @@ function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) 
     });
 }
 
-function _ensureAnswersFetched(question_id, freshness) {
+function _ensureAnswersFetched(question_id, freshness, start_block) {
     var called_block = current_block_number;
     return new Promise((resolve, reject)=>{
         if (isDataFreshEnough(question_id, 'answers', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
-            var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+            //console.log('fetching answers from start_block', start_block);
+            var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: start_block, toBlock:'latest'});
             answer_logs.get(function(error, answer_arr) {
                 if (error) {
                     reject(error);
@@ -1036,7 +1039,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         }).then(function(q) {
             return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs], qi);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, al);
+            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block]);
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
