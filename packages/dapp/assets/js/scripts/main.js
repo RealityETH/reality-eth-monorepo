@@ -670,7 +670,7 @@ $('div.loadmore-button').on('click', function(e) {
         var nextid = display_entries[sec]['ids'][i];
         var previd;
         if (i > 0) {
-            previd = display_entries[sec]['ids'][i-1];
+            previd = display_entries[sec]['ids'][i+1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
         ensureQuestionDetailFetched(nextid, 1, 1, 1, -1).then(function(qdata) {
@@ -1102,6 +1102,7 @@ function populateSection(section_name, question_data, before_item) {
     entry = populateSectionEntry(entry, question_data);
 
     entry.attr('id', question_item_id).removeClass('template-item');
+    entry.css('display', 'none');
 
     //console.log('adding entry', question_item_id, 'before item', before_item);
     if (before_item && is_found) {
@@ -1110,6 +1111,17 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').append(entry);
     }
 
+    entry.fadeIn(1000);
+    if (display_entries[section_name]['ids'].length > 3) {
+        if (section.find('.loadmore-button').css('display') == 'none') {
+            section.children('.questions-list').find('.questions__item:last-child').remove();
+        }
+    }
+    if (section.children('.questions-list').find('.questions__item').length >= display_entries[section_name]['ids'].length) {
+        section.find('.loadmore-button').css('display', 'none');
+    } else {
+        section.find('.loadmore-button').css('display', 'block');
+    }
     while (section.children('.questions-list').find('.questions__item').length > display_entries[section_name].max_show) {
         //console.log('too long, removing');
         section.children('.questions-list').find('.questions__item:last-child').remove()
@@ -1256,6 +1268,9 @@ function handleQuestionLog(item) {
                 // TODO: If we include this we have to handle the history too
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-resolved', question_data, insert_before);
+                if (display_entries['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
+                    $('#questions-resolved').find('.loadmore-button').css('display', 'block');
+                }
             }
 
         } else {
@@ -1263,18 +1278,27 @@ function handleQuestionLog(item) {
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
+                if (display_entries['questions-latest']['ids'].length > 3 && $('#questions-latest').find('.loadmore-button').css('display') == 'none') {
+                    $('#questions-latest').find('.loadmore-button').css('display', 'block');
+                }
             }
 
             var insert_before = update_ranking_data('questions-high-reward', question_id, bounty, 'desc');
             if (insert_before !== -1) {
                 // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
+                if (display_entries['questions-high-reward']['ids'].length > 3 && $('#questions-high-reward').find('.loadmore-button').css('display') == 'none') {
+                    $('#questions-high-reward').find('.loadmore-button').css('display', 'block');
+                }
             }
             
             if (isAnswered(question_data)) {
                 var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data[Qi_finalization_ts], 'asc');
                 if (insert_before !== -1) {
                     populateSection('questions-closing-soon', question_data, insert_before);
+                    if (display_entries['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
+                        $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
+                    }
                 }
             }
 
