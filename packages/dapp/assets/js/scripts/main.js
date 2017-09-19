@@ -21,6 +21,8 @@ var jazzicon = require('jazzicon');
 var submitted_question_id_timestamp = {};
 var category = null;
 
+var network_id = null;
+
 const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'user',
     'LogNewAnswer': 'user',
@@ -350,12 +352,32 @@ $('#help-center-button').on('click', function(e) {
     //$('#help-center-window').css('height', $('#help-center-window').height()+'px');
 });
 
+function setViewedBlockNumber(network_id, block_number) {
+    if (network_id == 1) {
+        window.localStorage.setItem('viewedBlockNumberMain', block_number);
+    } else if (network_id == 3) {
+        window.localStorage.setItem('viewedBlockNumberRopsten', block_number);
+    } else {
+        window.localStorage.setItem('viewedBlockNumberOther', block_number);
+    }
+}
+
+function getViewedBlockNumber(network_id) {
+    if (network_id == 1) {
+        return window.localStorage.getItem('viewedBlockNumberMain');
+    } else if (network_id == 3) {
+        return window.localStorage.getItem('viewedBlockNumberRopsten');
+    } else {
+        return window.localStorage.getItem('viewedBlockNumberOther');
+    }
+}
+
 function markViewedToDate() {
-    var vbn = parseInt(window.localStorage.getItem('viewedBlockNumber'));
+    var vbn = parseInt(getViewedBlockNumber(network_id));
     if (vbn >= last_displayed_block_number) {
         last_displayed_block_number = vbn;
     } else {
-        window.localStorage.setItem('viewedBlockNumber', last_displayed_block_number);
+        setViewedBlockNumber(network_id, last_displayed_block_number);
     }
 }
 
@@ -717,16 +739,14 @@ function handlePotentialUserAction(entry, is_watch) {
     //console.log('handling', entry.args['question_id'], 'entry', entry, account);
     //console.log('handlePotentialUserAction looks interesting, continuing', entry.args.user, entry,is_watch);
 
-    if (window.localStorage) {
-        var lastViewedBlockNumber = 0;
-        if (window.localStorage.getItem('viewedBlockNumber')) {
-            lastViewedBlockNumber = parseInt(window.localStorage.getItem('viewedBlockNumber'));
-        }
-        //console.log(lastViewedBlockNumber);
-        if (entry.blockNumber > lastViewedBlockNumber) {
-            //$('body').attr('last-update-block-number', entry.blockNumber);
-            $('body').addClass('pushing');
-        }
+    var lastViewedBlockNumber = 0;
+    if (getViewedBlockNumber(network_id)) {
+        lastViewedBlockNumber = parseInt(getViewedBlockNumber(network_id));
+    }
+    //console.log(lastViewedBlockNumber);
+    if (entry.blockNumber > lastViewedBlockNumber) {
+        //$('body').attr('last-update-block-number', entry.blockNumber);
+        $('body').addClass('pushing');
     }
 
     var is_population_done = false;
@@ -1888,7 +1908,7 @@ function renderUserAction(question, entry, is_watch) {
         if (isForCurrentUser(entry)) {
             renderUserQandA(question, entry);
             if (is_watch) {
-                if (entry.blockNumber > parseInt(window.localStorage.getItem('viewedBlockNumber'))) {
+                if (entry.blockNumber > parseInt(getViewedBlockNumber(network_id))) {
                     $('.tooltip').addClass('is-visible');
                 }
             }
@@ -3081,4 +3101,16 @@ window.onload = function() {
     });
 
     setTimeout(bounceEffect, 8000);
+
+    web3.version.getNetwork((err, net_id) => {
+        let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
+
+        if (err === null) {
+            if (valid_ids.indexOf(net_id) === -1) {
+                $('body').addClass('invalid-network').addClass('error');
+            } else {
+                network_id = net_id;
+            }
+        }
+    });
 }
