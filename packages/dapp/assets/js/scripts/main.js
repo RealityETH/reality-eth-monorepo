@@ -1130,10 +1130,10 @@ function populateSection(section_name, question_data, before_item) {
     // question settings warning balloon
     let balloon_html = '';
     if (question_data[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.';
+        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
     if (web3.fromWei(question_data[Qi_bounty], 'ether') < 0.01) {
-        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.';
+        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
     let valid_arbirator = isArbitratorValid(question_data[Qi_arbitrator]);
@@ -1631,10 +1631,10 @@ console.log('populateQuestionWindow question_json', question_detail[Qi_question_
     // question settings warning balloon
     let balloon_html = '';
     if (question_detail[Qi_timeout] < 86400) {
-        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.';
+        balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
     if (web3.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
-        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.';
+        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
     
