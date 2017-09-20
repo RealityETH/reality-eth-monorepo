@@ -751,25 +751,27 @@ function handlePotentialUserAction(entry, is_watch) {
 
     var is_population_done = false;
 
-    // User action
-    if (entry['event'] == 'LogNewAnswer') {
-        // force refresh
-        if ( submitted_question_id_timestamp[question_id] > 0) {
-            delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
-            ensureQuestionDetailFetched(question_id).then(function(question) {
-                question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
-                displayQuestionDetail(question);
-            });
-        }
-    } 
- 
-    // If we have already viewed the question, it should be loaded in the question_detail_list array
-    // If not, we will need to load it and put it there
-    // This is duplicated when you click on a question to view it
+    //console.log('fetching', question_id);
 
-    ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
-        renderUserAction(question, entry, is_watch);
-    });
+    // User action
+    if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
+        delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
+        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry,blockNumber).then(function(question) {
+            //question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
+            displayQuestionDetail(question);
+            renderUserAction(question, entry, is_watch);
+        });
+    } else {
+     
+        //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
+        ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+            //console.log('rendering');
+            renderUserAction(question, entry, is_watch);
+        }).catch(function(e) {
+            console.log('got error fetching: ', question_id, e);
+        });
+
+    }
 
 }
 
@@ -975,6 +977,7 @@ function _ensureQuestionLogFetched(question_id, freshness) {
             var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
             question_logs.get(function(error, question_arr) {
                 if (error || question_arr.length != 1) {
+                    console.log('error in question log', error, question_arr, question_id, START_BLOCK);
                     reject(error);
                 } else {
                     var question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
@@ -995,6 +998,7 @@ function _ensureQuestionDataFetched(question_id, freshness) {
                 var question = filledQuestionDetail(question_id, 'question_call', called_block, result);
                 resolve(question);
             }).catch(function(err) {
+                console.log('error in data');
                 reject(err);
             });
         }
@@ -1016,6 +1020,7 @@ function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) 
                     resolve(question);
                 }
             }).catch(function(err) {
+                console.log('error in ipfs');
                 reject(err);
             });
         }
@@ -1032,6 +1037,7 @@ function _ensureAnswersFetched(question_id, freshness, start_block) {
             var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: start_block, toBlock:'latest'});
             answer_logs.get(function(error, answer_arr) {
                 if (error) {
+                    console.log('error in get');
                     reject(error);
                 } else {
                     var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
@@ -1063,6 +1069,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
+            console.log('cauught error', question_id, e);
             reject(e);
         });
     });
@@ -1570,8 +1577,8 @@ function displayQuestionDetail(question_detail) {
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
-console.log('populateQuestionWindow with detail ', question_detail);
-console.log('populateQuestionWindow question_json', question_detail[Qi_question_json]);
+    //console.log('populateQuestionWindow with detail ', question_detail);
+    //console.log('populateQuestionWindow question_json', question_detail[Qi_question_json]);
     var question_id = question_detail[Qi_question_id];
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
@@ -2910,7 +2917,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         return;
     }
 
-    console.log('fetchAndDisplayQuestions', start_block, end_block, fetch_i);
+    //console.log('fetchAndDisplayQuestions', start_block, end_block, fetch_i);
 
     var question_posted = rc.LogNewQuestion({}, {fromBlock: start_block, toBlock: end_block});
     question_posted.get(function (error, result) {
@@ -2923,7 +2930,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
             console.log(error);
         }
 
-        console.log('fetch start end ', start_block, end_block, fetch_i);
+        //console.log('fetch start end ', start_block, end_block, fetch_i);
         fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
     });
 }
@@ -2936,6 +2943,7 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         var answers = result;
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < answers.length; i++) {
+                //console.log('handlePotentialUserAction', i, answers[i]);
                 handlePotentialUserAction(answers[i]);
             }
         } else {
