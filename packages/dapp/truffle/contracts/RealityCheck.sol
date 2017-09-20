@@ -35,6 +35,11 @@ contract RealityCheck {
         _;
     }
 
+    modifier stateNotCreated(bytes32 question_id) {
+        require(questions[question_id].timeout == 0);
+        _;
+    }
+
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].timeout > 0); // Check existence
         uint256 finalization_ts = questions[question_id].finalization_ts;
@@ -75,13 +80,22 @@ contract RealityCheck {
         _;
     }
 
+    event LogNewTemplate(
+        uint256 indexed template_id,
+        address indexed user, 
+        string question_text
+    );
+
     event LogNewQuestion(
         bytes32 indexed question_id,
-        address indexed user, 
         address indexed arbitrator, 
         uint256 timeout,
-        bytes32 question_ipfs,
-        uint256 created
+        uint256 template_id,
+        string question,
+        bytes32 question_hash,
+        uint256 created,
+        address indexed user, 
+        uint256 nonce
     );
 
     event LogNewAnswer(
@@ -138,7 +152,7 @@ contract RealityCheck {
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 timeout;
-        bytes32 question_ipfs;
+        bytes32 question_hash;
 
         // Mutable data
         uint256 bounty;
@@ -161,30 +175,96 @@ contract RealityCheck {
         bytes32 revealed_answer;
     }
 
+    function RealityCheck() {
+        // We create
+        createTemplate('{title: "%s", type: "binary"}');
+        createTemplate('{title: "%s", type: "multiple"}');
+        createTemplate('{title: "%s", type: "uint256"}');
+        createTemplate('{title: "%s", type: "int256"}');
+    }
+
+    // Templates are assigned sequential IDs.
+    uint256 nextTemplateID = 0;
+    // The data in them is stored in event logs, but we hold a mapping telling us which block that is for faster log querying.
+    mapping(uint256 => uint256) public templates;
+
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public balanceOf;
 
-    function askQuestion(bytes32 question_ipfs, address arbitrator, uint256 US_timeout) 
+    function createTemplate(string content) 
+    public returns (uint256) {
+        uint256 id = nextTemplateID;
+        templates[id] = block.number;
+        LogNewTemplate(id, msg.sender, content);
+        nextTemplateID = id + 1;
+        return id;
+    }
+
+    /*
+    // Think about whether to do this
+    function askQuestionBool(string question, address arbitrator, uint256 US_timeout) 
+    public payable returns (bytes32) {
+        return _askQuestion(0, question, arbitrator, US_timeout, 0x0;
+    }
+
+    function askQuestionMultipleChoice(string question, address arbitrator, uint256 US_timeout) 
+    public payable returns (bytes32) {
+        return _askQuestion(1, question, arbitrator, US_timeout, 0x0);
+    }
+
+    function askQuestionUnsignedNumber(string question, address arbitrator, uint256 US_timeout) 
+    public payable returns (bytes32) {
+        return _askQuestion(2, question, arbitrator, US_timeout, 0x0);
+    }
+
+    function askQuestionSignedNumber(string question, address arbitrator, uint256 US_timeout) 
+    public payable returns (bytes32) {
+        return _askQuestion(3, question, arbitrator, US_timeout, 0x0);
+    }
+    */
+
+    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
+    public payable returns (bytes32) {
+
+        require(templates[template_id] > 0);
+
+        bytes32 question_hash = keccak256(template_id, question);
+        bytes32 question_id = keccak256(question_hash, arbitrator, US_timeout, msg.sender, nonce);
+
+        LogNewQuestion( question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, nonce);
+
+        return _askQuestion(question_id, question_hash, arbitrator, US_timeout);
+    }
+
+    function askQuestionUnique(uint256 template_id, string question, address arbitrator, uint256 US_timeout) 
+    public payable returns (bytes32) {
+
+        require(templates[template_id] > 0);
+
+        bytes32 question_hash = keccak256(template_id, question);
+        bytes32 question_id = keccak256(question_hash, arbitrator, US_timeout);
+
+        LogNewQuestion( question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, 0);
+
+        return _askQuestion(question_id, question_hash, arbitrator, US_timeout);
+
+    }
+
+    function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 US_timeout) 
     actorAnyone()
-    //stateNotCreated: See inline check below
-    external payable returns (bytes32) {
+    stateNotCreated(question_id)
+    internal returns (bytes32) {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(US_timeout > 0); 
         require(US_timeout < 365 days); 
 
-        bytes32 question_id = keccak256(question_ipfs, arbitrator, US_timeout);
-
-        require(questions[question_id].timeout ==  0); // Check existence (stateNotCreated)
-
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].timeout = US_timeout;
-        questions[question_id].question_ipfs = question_ipfs;
+        questions[question_id].question_hash = question_hash;
         questions[question_id].bounty = msg.value;
-
-        LogNewQuestion( question_id, msg.sender, arbitrator, US_timeout, question_ipfs, now);
 
         return question_id;
 
@@ -200,9 +280,9 @@ contract RealityCheck {
     }
 
     // Predict the ID for a given question
-    function getQuestionID(bytes32 question_ipfs, address arbitrator, uint256 US_timeout) 
+    function getQuestionID(bytes32 question_hash, address arbitrator, uint256 US_timeout) 
     external constant returns (bytes32) {
-        return keccak256(question_ipfs, arbitrator, US_timeout);
+        return keccak256(question_hash, arbitrator, US_timeout);
     }
 
     function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
