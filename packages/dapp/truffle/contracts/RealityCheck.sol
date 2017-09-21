@@ -177,10 +177,10 @@ contract RealityCheck {
 
     function RealityCheck() {
         // We create
-        createTemplate('{title: "%s", type: "binary"}');
-        createTemplate('{title: "%s", type: "multiple"}');
-        createTemplate('{title: "%s", type: "uint256"}');
-        createTemplate('{title: "%s", type: "int256"}');
+        createTemplate('{"title": "%s", "type": "binary"}');
+        createTemplate('{"title": "%s", "type": "multiple"}');
+        createTemplate('{"title": "%s", "type": "uint256"}');
+        createTemplate('{"title": "%s", "type": "int256"}');
     }
 
     // Templates are assigned sequential IDs.
@@ -224,6 +224,12 @@ contract RealityCheck {
         return _askQuestion(3, question, arbitrator, US_timeout, 0x0);
     }
     */
+
+    function askQuestionNewTemplate(string template, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
+    public payable returns (bytes32) {
+        uint256 template_id = createTemplate(template); 
+        return askQuestion(template_id, question, arbitrator, US_timeout, nonce);
+    }
 
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
     public payable returns (bytes32) {
@@ -280,9 +286,10 @@ contract RealityCheck {
     }
 
     // Predict the ID for a given question
-    function getQuestionID(bytes32 question_hash, address arbitrator, uint256 US_timeout) 
+    function getQuestionID(uint256 template_id, string question, address arbitrator, uint256 US_timeout, address sender, uint256 nonce) 
     external constant returns (bytes32) {
-        return keccak256(question_hash, arbitrator, US_timeout);
+        bytes32 question_hash = keccak256(template_id, question);
+        return keccak256(question_hash, arbitrator, US_timeout, sender, nonce);
     }
 
     function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
