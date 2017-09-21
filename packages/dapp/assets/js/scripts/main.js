@@ -5,12 +5,6 @@
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
-var ipfsAPI = require('ipfs-api')
-//var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
-var ipfs = ipfsAPI({host: 'ipfs.infura.io', port: '5001', protocol: 'https'})
-
-var bs58 = require('bs58');
-
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
@@ -21,7 +15,14 @@ var jazzicon = require('jazzicon');
 var submitted_question_id_timestamp = {};
 var category = null;
 var template_blocks = {};
-var template_content = {};
+var template_content = {
+    /*
+    0: '{"title": "%s", "type": "binary"}',
+    1: '{"title": "%s", "type": "single-select", "options": [%s]}',
+    2: '{"title": "%s", "type": "multiple-select", "options": [%s]}',
+    3: '{"title": "%s", "type": "number", "decimals": 13}'
+    */
+};
 
 var network_id = null;
 
@@ -59,7 +60,7 @@ const Qi_bounty = 5;
 const Qi_best_answer = 6;
 const Qi_bond = 7;
 const Qi_history_hash = 8;
-const Qi_question_json = 9; // We add this manually after we load the ipfs data
+const Qi_question_json = 9; // We add this manually after we load the template data
 const Qi_creation_ts = 10; // We add this manually from the event log
 const Qi_question_creator = 11; // We add this manually from the event log
 const Qi_question_created_block = 12;
@@ -470,7 +471,6 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             console.log('made qid', qid);
             question_id = qid;
             return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
-            //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         }).then(function(txid) {
             console.log('sent tx with id', txid);
             
@@ -498,7 +498,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
 
             var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
             q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
-            q = filledQuestionDetail(question_id, 'question_json', 0, parseQuestionJSON(question_json)); 
+            q = filledQuestionDetail(question_id, 'question_json', 0, populatedJSONForTemplate(template_content[template_id], qtext));
 
             // Turn the post question window into a question detail window
             var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -742,7 +742,7 @@ function handlePotentialUserAction(entry, is_watch) {
     // User action
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
         delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
-        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry,blockNumber).then(function(question) {
+        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
             //question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
             displayQuestionDetail(question);
             renderUserAction(question, entry, is_watch);
@@ -1005,7 +1005,7 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
             resolve(question_detail_list[question_id]);
         } else {
             if (template_content[template_id]) {
-                var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id].args.question_text, qtext));
+                var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
                 resolve(question);
             } else {
                 // The category text should be in the log, but the contract has the block number
@@ -1016,8 +1016,8 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
                     cat_logs.get(function(error, cat_arr) {
                         if (cat_arr.length == 1) {
                             console.log('adding template content', cat_arr);
-                            template_content[template_id] = cat_arr[0];
-                            var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id].args.question_text, qtext));
+                            template_content[template_id] = cat_arr[0].args.question_text;
+                            var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
                             resolve(question);
                         } else {
                             console.log('error fetching template - unexpected cat length');
