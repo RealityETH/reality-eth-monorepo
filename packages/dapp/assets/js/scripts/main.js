@@ -15,6 +15,8 @@ var vsprintf = require("sprintf-js").vsprintf
 //console.log('jazzicon', jazzicon);
 
 var submitted_question_id_timestamp = {};
+var user_claimable = {}; 
+
 var category = null;
 var template_blocks = {};
 var template_content = {
@@ -485,14 +487,14 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         }
         */
 
-        console.log('getQuestionID', template_id, qtext, arbitrator.val(), timeout_val, account, 0);
+        //console.log('getQuestionID', template_id, qtext, arbitrator.val(), timeout_val, account, 0);
         var question_id;
         rc.getQuestionID.call(template_id, qtext, arbitrator.val(), timeout_val, account, 0)
         .then(function(qid) {
             //console.log('made qid', qid);
             question_id = qid;
-            console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator.val(), timeout_val, 0)
-            console.log('reward', reward.val());
+            //console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator.val(), timeout_val, 0)
+            //console.log('reward', reward.val());
             return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         }).then(function(txid) {
             //console.log('sent tx with id', txid);
@@ -597,39 +599,49 @@ function isFinalized(question) {
 $(document).on('click', '.answer-claim-button', function(){
     var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
-    ensureQuestionDetailFetched(question_id).then(function(question_detail){
-        //console.log(question_detail);
-        var claimable = possibleClaimableItems(question_detail);
+    if ($(this).hasClass('claim-all')) {
 
-        //console.log('try9ing to claim ', claimable['total'].toString());
-        if (claimable['total'].isZero()) {
-            console.log('nothing to claim');
-            // Nothing there, so force a refresh
-            openQuestionWindow(question_id);
-        }
-        console.log('claiming with:', claimable)
-
-        // estimateGas gives us a number that credits the eventual storage refund.
-        // However, this is only supplied at the end of the transaction, so we need to send more to get us to that point.
-        // MetaMask seems to add a bit extra, but it's not enough.
-        // Get the number via estimateGas, then add 60000 per question, which should be the max storage we free.
-
-        // For now hard-code a fairly generous allowance
-        // Tried earlier with single answerer:
-        //  1 answer 48860
-        //  2 answers 54947
-        //  5 answers 73702
-        var gas = 70000 + (10000 * claimable['history_hashes'].length);
-
-        //rc.claimMultipleAndWithdrawBalance.estimateGas(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account})
-        //.then(function(gskas_amount){
-         //   console.log('got gas_amount', gas_amount);
-         //   var gas = gas_amount + (claimable['question_ids'].length * 60000);
-        rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
+        var claimable = mergePossibleClaimable(user_claimable);
+        var gas = 140000 + (10000 * claimable['history_hashes'].length);
+        gas = 600000
+        rc.claimMultipleAndWithdrawBalance.sendTransaction(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
         .then(function(claim_result){
-            console.log('claim result', claim_result);
+            console.log('claim result txid', claim_result);
         });
-    });
+
+    } else {
+
+        ensureQuestionDetailFetched(question_id).then(function(question_detail){
+            //console.log(question_detail);
+            var claimable = possibleClaimableItems(question_detail);
+
+            //console.log('try9ing to claim ', claimable['total'].toString());
+            if (claimable['total'].isZero()) {
+                //console.log('nothing to claim');
+                // Nothing there, so force a refresh
+                openQuestionWindow(question_id);
+                delete user_claimable[question_id];
+            }
+            console.log('claiming with:', claimable)
+
+            // estimateGas gives us a number that credits the eventual storage refund.
+            // However, this is only supplied at the end of the transaction, so we need to send more to get us to that point.
+            // MetaMask seems to add a bit extra, but it's not enough.
+            // Get the number via estimateGas, then add 60000 per question, which should be the max storage we free.
+
+            // For now hard-code a fairly generous allowance
+            // Tried earlier with single answerer:
+            //  1 answer 48860
+            //  2 answers 54947
+            //  5 answers 73702
+            //var gas = 70000 + (10000 * claimable['history_hashes'].length);
+            var gas = 140000 + (10000 * claimable['history_hashes'].length);
+            rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
+        .then(function(claim_result){
+                //console.log('claim result', claim_result);
+            });
+        });
+    }
 });
 
 function validate(win) {
@@ -764,7 +776,7 @@ function handlePotentialUserAction(entry, is_watch) {
 
     // User action
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
-        delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
+        delete submitted_question_id_timestamp[question_id];
         ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
             //question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
             displayQuestionDetail(question);
@@ -774,6 +786,9 @@ function handlePotentialUserAction(entry, is_watch) {
      
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+            if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaimBond') || (entry['event'] == 'LogClaimBounty' ) || (entry['event'] == 'LogFinalize') ) {
+                updateClaimableData(question, entry, is_watch);    
+            }
             //console.log('rendering');
             renderUserAction(question, entry, is_watch);
         }).catch(function(e) {
@@ -782,6 +797,54 @@ function handlePotentialUserAction(entry, is_watch) {
 
     }
 
+}
+
+function updateClaimableData(question, answer_entry, is_watch) {
+    var poss = possibleClaimableItems(question);
+    if (poss['total'].isZero()) {
+        delete user_claimable[question[Qi_question_id]];
+    } else {
+        user_claimable[question[Qi_question_id]] = poss;
+    }
+    //console.log('user_claimable', user_claimable);
+    var merged = mergePossibleClaimable(user_claimable);
+    //console.log('merged', merged);
+    //console.log('total merge:', merged.total.toNumber());
+
+    rc.balanceOf.call(account).then(function(result) {
+        var ttl = result.plus(merged.total);
+        if (ttl.gt(0)) {
+            $('.answer-claim-button.claim-all').find('.claimable-eth').text(web3.fromWei(ttl.toNumber(), 'ether'));
+            $('.answer-claim-button.claim-all').show();
+        } else {
+            $('.answer-claim-button.claim-all').fadeOut();
+        }
+    });
+
+}
+
+function mergePossibleClaimable(posses) {
+    var combined = {
+        'total': new BigNumber(0),
+        'question_ids': [],
+        'answer_lengths': [],
+        'answers': [],
+        'answerers': [],
+        'bonds': [],
+        'history_hashes': [] 
+    }
+    for(var qid in posses) {
+        if (posses.hasOwnProperty(qid)) {
+            combined['total'] = combined['total'].plus(posses[qid].total);
+            combined['question_ids'].push(...posses[qid].question_ids);
+            combined['answer_lengths'].push(...posses[qid].answer_lengths);
+            combined['answers'].push(...posses[qid].answers);
+            combined['answerers'].push(...posses[qid].answerers);
+            combined['bonds'].push(...posses[qid].bonds);
+            combined['history_hashes'].push(...posses[qid].history_hashes);
+        }
+    }
+    return combined;
 }
 
 function scheduleFinalizationDisplayUpdate(question) {
@@ -1018,15 +1081,15 @@ function _ensureQuestionDataFetched(question_id, freshness) {
 
 function populatedJSONForTemplate(template, question) {
     var qbits = question.split(QUESTION_DELIMITER);
-    console.log('pp', template);
-    console.log('qbits', qbits);
+    //console.log('pp', template);
+    //console.log('qbits', qbits);
     var interpolated = vsprintf(template, qbits);
-    console.log('resulting template', interpolated);
+    //console.log('resulting template', interpolated);
     return parseQuestionJSON(interpolated);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
-    console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
+    //console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
     return new Promise((resolve, reject)=>{
         if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
@@ -1042,9 +1105,9 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
                     var cat_logs = rc.LogNewTemplate({template_id:template_id}, {fromBlock: block_num, toBlock:block_num});
                     cat_logs.get(function(error, cat_arr) {
                         if (cat_arr.length == 1) {
-                            console.log('adding template content', cat_arr, 'template_id', template_id);
+                            //console.log('adding template content', cat_arr, 'template_id', template_id);
                             template_content[template_id] = cat_arr[0].args.question_text;
-                            console.log(template_content);
+                            //console.log(template_content);
                             var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
                             resolve(question);
                         } else {
@@ -1811,16 +1874,17 @@ function possibleClaimableItems(question_detail) {
     var is_your_claim = false;
 
     if (new BigNumber(question_detail[Qi_history_hash]).equals(0)) {
-        console.log('everything already claimed', question_detail[Qi_history_hash]);
+        //console.log('everything already claimed', question_detail[Qi_history_hash]);
         return {total: new BigNumber(0)};
     }
 
     if (!isFinalized(question_detail)) {
-        console.log('not finalized', question_detail);
+        //console.log('not finalized', question_detail);
         return {total: new BigNumber(0)};
     }
 
-    console.log('should be able to claim question ', question_detail);
+    //console.log('should be able to claim question ', question_detail);
+    //console.log('history_hash', question_detail[Qi_history_hash]);
 
     var question_ids = [];
     var answer_lengths = [];
@@ -1875,7 +1939,7 @@ function possibleClaimableItems(question_detail) {
         answer_lengths.push(claimable_bonds.length);
     }
 
-    console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
+    //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
 
     // For the history hash, each time we need to provide the previous hash in the history
     // So delete the first item, and add 0x0 to the end.
@@ -2542,7 +2606,7 @@ $(document).on('click', '.post-answer-button', function(e) {
         };
 
         var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
-        console.log('after answer made question_data', question_data);
+        //console.log('after answer made question_data', question_data);
 
         ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
             updateQuestionWindowIfOpen(question);
@@ -2725,7 +2789,7 @@ $('.rcbrowser-textarea').on('keyup', function(e){
 });
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
     let value = new BigNumber(web3.toWei($(this).val()));
-    console.log($(this));
+    //console.log($(this));
     if (value === '') {
         $(this).parent().parent().addClass('is-error');
     } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)){
@@ -2807,7 +2871,7 @@ function updateRankingSections(question, changed_field, changed_val) {
                 if (existing_idx !== -1) {
                     display_entries[s].ids.splice(existing_idx, 1);
                     display_entries[s].vals.splice(existing_idx, 1);
-                    console.log('depopulating', s, question_id);
+                    //console.log('depopulating', s, question_id);
                     depopulateSection(s, question_id);
                 }
             }
@@ -2882,7 +2946,7 @@ function pageInit(account) {
 
     evts.watch(function (error, result) {
         if (!error && result) {
-            console.log('got watch event', error, result);
+            //console.log('got watch event', error, result);
 
             // Check the action to see if it is interesting, if it is then populate notifications etc
             handlePotentialUserAction(result, true);
@@ -2898,7 +2962,7 @@ function pageInit(account) {
                 switch (evt) {
 
                     case ('LogNewAnswer'):
-                        console.log('got LogNewAnswer, block ', result.blockNumber);
+                        //console.log('got LogNewAnswer, block ', result.blockNumber);
                         ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
                             updateQuestionWindowIfOpen(question);
                             //console.log('should be getting latest', question, result.blockNumber);
@@ -2911,7 +2975,7 @@ function pageInit(account) {
 
                     case ('LogFundAnswerBounty'): 
                         ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                            console.log('updating with question', question);
+                            //console.log('updating with question', question);
                             updateQuestionWindowIfOpen(question);
                             updateRankingSections(question, Qi_bounty, question[Qi_bounty])
                         });
@@ -2952,7 +3016,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         start_block = START_BLOCK;
     }
     if (end_block <= START_BLOCK) {
-        console.log('all done');
+        console.log('History read complete back to block', START_BLOCK);
         setTimeout(bounceEffect, 500);
         return;
     }
