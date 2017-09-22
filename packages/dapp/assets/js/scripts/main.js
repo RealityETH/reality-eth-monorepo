@@ -18,18 +18,20 @@ var submitted_question_id_timestamp = {};
 var category = null;
 var template_blocks = {};
 var template_content = {
-    0: '{"title": "%s", "type": "binary"}',
-    1: '{"title": "%s", "type": "single-select", "outcomes": [%s]}',
-    2: '{"title": "%s", "type": "multiple-select", "outcomes": [%s]}',
-    3: '{"title": "%s", "type": "number", "decimals": 13}'
+    0: '{"title": "%s", "type": "bool", "category": "%s"}',
+    1: '{"title": "%s", "type": "uint", "decimals": 13, "category": "%s"}',
+    2: '{"title": "%s", "type": "int", "decimals": 13, "category": "%s"}',
+    3: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}',
+    4: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}'
 };
 var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const QUESTION_TYPE_TEMPLATES = {
-    'binary': 0,
-    'single-select': 1,
-    'multiple-select': 2,
-    'number': 3
+    'bool': 0,
+    'uint': 1,
+    'int': 2,
+    'single-select': 3,
+    'multiple-select': 4
 };
 
 var network_id = null;
@@ -464,6 +466,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         // TODO: Handle other types etc
         var qtext = question_body.val();
         var qtype = question_type.val()
+        qtext = qtext + QUESTION_DELIMITER + category.val();
         var template_id = QUESTION_TYPE_TEMPLATES[qtype];
         //console.log('using template_id', template_id);
         if (qtype == 'single-select' || qtype == 'multiple-select') {
@@ -472,7 +475,6 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             qtext = qtext + QUESTION_DELIMITER + outcome_str;
             //console.log('made qtext', qtext);
         }
-
         /*
         var question = {
             title: question_body.val(),
@@ -482,11 +484,15 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             outcomes: outcomes
         }
         */
+
+        console.log('getQuestionID', template_id, qtext, arbitrator.val(), timeout_val, account, 0);
         var question_id;
         rc.getQuestionID.call(template_id, qtext, arbitrator.val(), timeout_val, account, 0)
         .then(function(qid) {
             //console.log('made qid', qid);
             question_id = qid;
+            console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator.val(), timeout_val, 0)
+            console.log('reward', reward.val());
             return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         }).then(function(txid) {
             //console.log('sent tx with id', txid);
@@ -1526,7 +1532,7 @@ function parseQuestionJSON(data) {
         console.log('parse fail', e);
         question_json = {
             'title': data,
-            'type': 'binary'
+            'type': 'bool'
         };
     }
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
@@ -2272,10 +2278,10 @@ function renderUserQandA(qdata, entry) {
 function getAnswerString(question_json, answer) {
     var label = '';
     switch (question_json['type']) {
-        case 'number':
+        case 'uint':
             label = new BigNumber(answer).toString();
             break;
-        case 'binary':
+        case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
                 label = 'Yes';
             } else if (new BigNumber(answer).toNumber() === 0) {
@@ -2461,20 +2467,22 @@ $(document).on('click', '.post-answer-button', function(e) {
                 }
             }
             new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'number') {
+        } else if (question_json['type'] == 'uint') {
+            new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
+        } else if (question_json['type'] == 'int') {
             new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
 
         switch (question_json['type']) {
-            case 'binary':
+            case 'bool':
                 if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
                     parent_div.find('div.select-container.select-container--answer').addClass('is-error');
                     is_err = true;
                 }
                 break;
-            case 'number':
+            case 'uint':
                 if (new_answer.isNaN()) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
                     is_err = true;
@@ -2557,10 +2565,13 @@ function clearForm(parent_div, question_json) {
     parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
 
     switch (question_json['type']) {
-        case 'binary':
+        case 'bool':
             parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
             break;
-        case 'number':
+        case 'uint':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'int':
             parent_div.find('input[name="input-answer"]').val('');
             break;
         case 'single-select':
@@ -2680,7 +2691,7 @@ function show_bond_payments(ctrl) {
                 }
             }
             new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'number') {
+        } else if (question_json['type'] == 'uint') {
             new_answer = new BigNumber(frm.find('[name="input-answer"]').val());
         } else {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());

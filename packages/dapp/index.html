@@ -409,10 +409,11 @@
                         <div class="select-container  select-container--has-quick-help">
                             <select name="question-type" class="question-type rcbrowser-select form-item">
                                 <option value="default">Question Type</option>
-                                <option value="binary" SELECTED>Binary (Yes/No)</option>
+                                <option value="bool" SELECTED>Binary (Yes/No)</option>
                                 <option value="single-select">Select (Single)</option>
                                 <option value="multiple-select">Select (Multiple)</option>
-                                <option value="number">Number</option>
+                                <option value="uint">Number (Positive)</option>
+                                <option value="int">Number (Positive or Negative)</option>
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
@@ -584,7 +585,7 @@
             <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
         </form>
     </div >
-    <div class="answer-form-container number template-item" style="display:none">
+    <div class="answer-form-container uint template-item" style="display:none">
         <div class="answer-form-header">
             Do you know the answer to this question?
         </div>
@@ -615,7 +616,7 @@
             <span class="rcbrowser-form-footer">By post you agree to the <a href="">Terms &amp; Conditions</a></span>
         </form>
     </div>
-    <div class="answer-form-container binary template-item" style="display:none">
+    <div class="answer-form-container bool template-item" style="display:none">
         <div class="answer-form-header">
             Do you know the answer to this question?
         </div>
