@@ -92,11 +92,11 @@ To preserve the ability to pay for an answer that was taken over from another us
 Questions consist of a JSON string, like the following:
     `{"title": "Did Trump win the 2016 presidential election?", "type": "bool", "category": "politics"}`
 
-This text is not parsed or in any way understood by the contract. Its hash is stored in contract storage. The text itself is written to the event logs. (Event logs are chosen here over purely off-chain systems like IPFS to allow the contract to enforce the availability of the text.)
+This text is not parsed or in any way understood by the contract. Its hash is stored in contract storage, which the text itself is written to the event logs. (Event logs are chosen here for the question plaintext over purely off-chain systems like IPFS to allow the contract to enforce the availability of the text.)
 
 To avoid the need to send repeated data to the blockchain, the content is split into a reusable template, and parameters that will be interpolated into the template. Parameters are treated like sprintf arguments.
 
-Multiple parameters can be assigned by delimiting with ␟ (\u241f), which is a Unicode record separator character.
+Multiple parameters can be assigned by delimiting with `␟` (`\u241f{), which is a Unicode record separator character.
 
 The following template is pre-created with ID 0:
     `{"title": "%s", "type": "bool", "category": "%s"}`
@@ -126,7 +126,7 @@ The handling of null, undecided or unclear answers is considered outside the sco
 
 There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be returned by responders. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
 
-After settlement Reality Check will preserve information about the IPFS hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
+After settlement Reality Check will preserve information about the question hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
 ## Arbitration mechanisms
 
