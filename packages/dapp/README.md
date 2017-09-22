@@ -8,8 +8,8 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
  * You or your contract can ask an arbitrary question and get an answer to it.
  * People who give the right answer make profits.
  * People who give the wrong answer make losses.
- * Resolution is cheap and reasonably fast for the typical case.
  * Gas costs are reasonably low, particularly for correcting false information.
+ * Resolution is cheap and reasonably fast for the typical case.
  * Resource-intensive resolution processes are possible, and are funded by people who are wrong.
  * Dispute-resolution procedures can be chosen freely and switched in easily, whether centralized, distributed or experimental-game-theoretical.
 
@@ -53,7 +53,7 @@ Payout:
 
 ### Transaction front-running
 
-As described above the system rewards answerers for being first with the right answer. However, in Ethereum being the first to send information does not guarantee that you will be the first to get that information into the blockchain. Other users could listen for transactions sent by frequently reliable answerers, and get the same answer into the blockchain before them.
+As described above the system rewards answerers for being first with the right answer. However, in Ethereum, being the first to send information does not guarantee that you will be the first to get that information into the blockchain. Other users could listen for transactions sent by frequently reliable answerers, and get the same answer into the blockchain before them.
 
 To allow users to prevent this, we allow answers to be supplied by a commit-and-reveal process. This replaces the single-step `submitAnswer()` with two transactions. The first transaction, `submitAnswerCommitment()`, provides a hash of the answer, combined with a nonce, and pays the bond. This takes their place in the answer history. The second transaction, the `submitAnswerReveal()`, provides the actual answer, and the nonce used to create the hash. 
 
