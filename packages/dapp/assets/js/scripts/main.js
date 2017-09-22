@@ -16,14 +16,12 @@ var submitted_question_id_timestamp = {};
 var category = null;
 var template_blocks = {};
 var template_content = {
-    /*
     0: '{"title": "%s", "type": "binary"}',
     1: '{"title": "%s", "type": "single-select", "outcomes": [%s]}',
     2: '{"title": "%s", "type": "multiple-select", "outcomes": [%s]}',
     3: '{"title": "%s", "type": "number", "decimals": 13}'
-    */
 };
-var QUESTION_DELIMITER = 'ZZ'; // "\u0000"
+var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const QUESTION_TYPE_TEMPLATES = {
     'binary': 0,
