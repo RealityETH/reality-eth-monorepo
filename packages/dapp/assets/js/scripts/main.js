@@ -603,7 +603,6 @@ $(document).on('click', '.answer-claim-button', function(){
 
         var claimable = mergePossibleClaimable(user_claimable);
         var gas = 140000 + (10000 * claimable['history_hashes'].length);
-        gas = 600000
         rc.claimMultipleAndWithdrawBalance.sendTransaction(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
         .then(function(claim_result){
             console.log('claim result txid', claim_result);
@@ -2510,7 +2509,18 @@ $(document).on('click', '.post-answer-button', function(e) {
     var question_json;
 
     var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+    .catch(function() {
+        // If the question is unconfirmed, go with what we have
+        console.log('caught failure, trying unconfirmed');
+        return ensureQuestionDetailFetched(question_id, 0, 0, 0, -1)
+    })
     .then(function(current_question) {
+        console.log('got current_question', current_question);
+
+        // This may not be defined for an unconfirmed question
+        if (current_question[Qi_bond] == null) {
+            current_question[Qi_bond] = new BigNumber(0);
+        }
 
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
@@ -2610,6 +2620,11 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
             updateQuestionWindowIfOpen(question);
+        }).catch(function() {
+            // Question may be unconfirmed, if so go with what we have
+            ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
+                updateQuestionWindowIfOpen(question);
+            });
         });
 
     });
