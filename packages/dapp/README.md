@@ -8,10 +8,10 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
  * You or your contract can ask an arbitrary question and get an answer to it.
  * People who give the right answer make profits.
  * People who give the wrong answer make losses.
- * Cheap, reasonably fast resolution for the typical case.
- * Low gas costs, particularly for correcting false information.
+ * Resolution is cheap and reasonably fast for the typical case.
+ * Gas costs are reasonably low, particularly for correcting false information.
  * Resource-intensive resolution processes are possible, and are funded by people who are wrong.
- * Flexibility in choosing dispute-resolution procedures, whether centralized, distributed or experimental-game-theoretical.
+ * Dispute-resolution procedures can be chosen freely and switched in easily, whether centralized, distributed or experimental-game-theoretical.
 
 ## Basic Process
 
