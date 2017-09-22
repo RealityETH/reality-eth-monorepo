@@ -769,7 +769,7 @@ $loder-border-size: 3px;
     cursor: pointer;
 }
 
-#result-number {
+#result-uint,#result-int{
     display: block;
     padding: 12px 0 0;
     position: absolute;

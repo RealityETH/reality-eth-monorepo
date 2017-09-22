@@ -5,21 +5,34 @@
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
-var ipfsAPI = require('ipfs-api')
-//var ipfs = ipfsAPI({host: 'localhost', port: '5001', protocol: 'http'})
-var ipfs = ipfsAPI({host: 'ipfs.infura.io', port: '5001', protocol: 'https'})
-
-var bs58 = require('bs58');
-
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 var jazzicon = require('jazzicon');
+var vsprintf = require("sprintf-js").vsprintf
+
 //console.log('jazzicon', jazzicon);
 
 var submitted_question_id_timestamp = {};
 var category = null;
+var template_blocks = {};
+var template_content = {
+    0: '{"title": "%s", "type": "bool", "category": "%s"}',
+    1: '{"title": "%s", "type": "uint", "decimals": 13, "category": "%s"}',
+    2: '{"title": "%s", "type": "int", "decimals": 13, "category": "%s"}',
+    3: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}',
+    4: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}'
+};
+var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
+
+const QUESTION_TYPE_TEMPLATES = {
+    'bool': 0,
+    'uint': 1,
+    'int': 2,
+    'single-select': 3,
+    'multiple-select': 4
+};
 
 var network_id = null;
 
@@ -32,7 +45,6 @@ const EVENT_ACTOR_ARGS = {
     'LogClaimBond': 'user'
 };
 
-const IPFS_MAX_SIZE = 8192; // max size of an ipfs file in characters
 const QUESTION_MAX_OUTCOMES = 128; 
 
 // Assume we don't need blocks earlier than this, eg is when the contract was deployed.
@@ -53,15 +65,17 @@ const Qi_question_id = 0;
 const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
 const Qi_timeout = 3;
-const Qi_question_ipfs = 4;
+const Qi_question_hash = 4;
 const Qi_bounty = 5;
 const Qi_best_answer = 6;
 const Qi_bond = 7;
 const Qi_history_hash = 8;
-const Qi_question_json = 9; // We add this manually after we load the ipfs data
+const Qi_question_json = 9; // We add this manually after we load the template data
 const Qi_creation_ts = 10; // We add this manually from the event log
 const Qi_question_creator = 11; // We add this manually from the event log
 const Qi_question_created_block = 12;
+const Qi_question_text = 13;
+const Qi_template_id = 14;
 
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
@@ -121,21 +135,6 @@ const monthList = [
     'Nov',
     'Dec'
 ];
-
-function ipfsHashToBytes32(ipfs_hash) {
-    var h = bs58.decode(ipfs_hash).toString('hex').replace(/^1220/, '');
-    if (h.length != 64) {
-        console.log('invalid ipfs format', ipfs_hash, h);
-        return null;
-    }
-    return '0x' + h;
-}
-
-function bytes32ToIPFSHash(hash_hex) {
-    //console.log('bytes32ToIPFSHash starts with hash_buffer', hash_hex.replace(/^0x/, ''));
-    var buf = new Buffer(hash_hex.replace(/^0x/, '1220'), 'hex')
-    return bs58.encode(buf)
-}
 
 function formatForAnswer(answer, qtype) {
     if (typeof answer == 'BigNumber') {
@@ -464,6 +463,19 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     }
 
     if (validate(win)) {
+        // TODO: Handle other types etc
+        var qtext = question_body.val();
+        var qtype = question_type.val()
+        qtext = qtext + QUESTION_DELIMITER + category.val();
+        var template_id = QUESTION_TYPE_TEMPLATES[qtype];
+        //console.log('using template_id', template_id);
+        if (qtype == 'single-select' || qtype == 'multiple-select') {
+            var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
+            //console.log('made outcome_str', outcome_str);
+            qtext = qtext + QUESTION_DELIMITER + outcome_str;
+            //console.log('made qtext', qtext);
+        }
+        /*
         var question = {
             title: question_body.val(),
             type: question_type.val(),
@@ -471,82 +483,79 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             category: category.val(),
             outcomes: outcomes
         }
-        var question_json = JSON.stringify(question);
-        ipfs.add(new Buffer(question_json), function(err, res) {
-            if (err) {
-                alert('ipfs save failed');
-                //console.log('ipfs result', err, res)
-                return;
-            }
-            var question_id;
-            rc.getQuestionID.call(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val)
-            .then(function(qid) {
-                question_id = qid;
-                return rc.askQuestion.sendTransaction(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
-                //return rc.askQuestion(ipfsHashToBytes32(res[0].hash), arbitrator.val(), timeout_val, {from: account, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
-            }).then(function(txid) {
-                console.log('sent tx with id', txid);
-                
-                // Make a fake log entry
-                var fake_log = {
-                    'entry': 'LogNewQuestion',
-                    'args': {
-                        'question_id': question_id,
-                        'user': account,
-                        'arbitrator': arbitrator.val(),
-                        'timeout': new BigNumber(timeout_val),
-                        'question_ipfs': res[0].hash,
-                        'created': new BigNumber(parseInt(new Date().getTime() / 1000))
-                    }
+        */
+
+        console.log('getQuestionID', template_id, qtext, arbitrator.val(), timeout_val, account, 0);
+        var question_id;
+        rc.getQuestionID.call(template_id, qtext, arbitrator.val(), timeout_val, account, 0)
+        .then(function(qid) {
+            //console.log('made qid', qid);
+            question_id = qid;
+            console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator.val(), timeout_val, 0)
+            console.log('reward', reward.val());
+            return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+        }).then(function(txid) {
+            //console.log('sent tx with id', txid);
+            
+            // Make a fake log entry
+            var fake_log = {
+                'entry': 'LogNewQuestion',
+                'args': {
+                    'question_id': question_id,
+                    'user': account,
+                    'arbitrator': arbitrator.val(),
+                    'timeout': new BigNumber(timeout_val),
+                    'question_hash': 'TODO',
+                    'template_id': new BigNumber(template_id),
+                    'question': qtext,
+                    'created': new BigNumber(parseInt(new Date().getTime() / 1000))
                 }
-                var fake_call = [];
-                fake_call[Qi_finalization_ts-1] = new BigNumber(0);
-                fake_call[Qi_arbitrator-1] = arbitrator.val();
-                fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-                fake_call[Qi_question_ipfs-1] = res[0].hash;
-                fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
-                fake_call[Qi_history_hash-1] = "0x0";
+            }
+            var fake_call = [];
+            fake_call[Qi_finalization_ts-1] = new BigNumber(0);
+            fake_call[Qi_arbitrator-1] = arbitrator.val();
+            fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
+            fake_call[Qi_question_hash-1] = 'TODO';
+            fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
+            fake_call[Qi_history_hash-1] = "0x0";
 
-                var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
-                q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
-                q = filledQuestionDetail(question_id, 'question_json', 0, parseQuestionJSON(question_json)); 
+            var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
+            q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
+            q = filledQuestionDetail(question_id, 'question_json', 0, populatedJSONForTemplate(template_content[template_id], qtext));
 
-                // Turn the post question window into a question detail window
-                var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-                win.html(rcqa.html());
-                win = populateQuestionWindow(win, q, false);
-                console.log('rcqa', win);
-		
-                // TODO: Once we have code to know which network we're on, link to a block explorer
-                win.find('.pending-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
-                win.find('.pending-txid a').text(txid.substr(0, 12) + "..." + txid.substr(txid.length-12));
-                win.addClass('unconfirmed-transaction').addClass('has-warnings');
-                win.attr('data-pending-txid', txid);
+            // Turn the post question window into a question detail window
+            var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+            win.html(rcqa.html());
+            win = populateQuestionWindow(win, q, false);
+            //console.log('rcqa', win);
+    
+            // TODO: Once we have code to know which network we're on, link to a block explorer
+            win.find('.pending-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+            win.find('.pending-txid a').text(txid.substr(0, 12) + "..." + txid.substr(txid.length-12));
+            win.addClass('unconfirmed-transaction').addClass('has-warnings');
+            win.attr('data-pending-txid', txid);
 
-                win.find('.rcbrowser__close-button').on('click', function(){
-                    console.log('closing');
-                    let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-                    let left = parseInt(parent_div.css('left').replace('px', ''));
-                    let top = parseInt(parent_div.css('top').replace('px', ''));
-                    let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-                    let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-                    left += data_x; top += data_y;
-                    window_position[question_id] = {};
-                    window_position[question_id]['x'] = left;
-                    window_position[question_id]['y'] = top;
-                    win.remove();
-                    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
-                });
-
-                var window_id = 'qadetail-' + question_id;
-                win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
-                win.attr('id', window_id);
-                win.attr('data-question-id', question_id);
-                Ps.initialize(win.find('.rcbrowser-inner').get(0));
-
-            }).catch(function (e) {
-                console.log(e);
+            win.find('.rcbrowser__close-button').on('click', function(){
+                //console.log('closing');
+                let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                let left = parseInt(parent_div.css('left').replace('px', ''));
+                let top = parseInt(parent_div.css('top').replace('px', ''));
+                let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                left += data_x; top += data_y;
+                window_position[question_id] = {};
+                window_position[question_id]['x'] = left;
+                window_position[question_id]['y'] = top;
+                win.remove();
+                document.documentElement.style.cursor = ""; // Work around Interact draggable bug
             });
+
+            var window_id = 'qadetail-' + question_id;
+            win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+            win.attr('id', window_id);
+            win.attr('data-question-id', question_id);
+            Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
         });
     }
 
@@ -756,7 +765,7 @@ function handlePotentialUserAction(entry, is_watch) {
     // User action
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
         delete submitted_question_id_timestamp[question_id]; // Delete to force a new fetch
-        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry,blockNumber).then(function(question) {
+        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
             //question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
             displayQuestionDetail(question);
             renderUserAction(question, entry, is_watch);
@@ -869,7 +878,9 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_creation_ts] = data.args['created'];
                 question[Qi_question_creator] = data.args['user'];
                 question[Qi_question_created_block] = data.blockNumber;
-                question[Qi_question_ipfs] = data.args['question_ipfs'];
+                question[Qi_question_hash] = data.args['question_hash'];
+                question[Qi_question_text] = data.args['question'];
+                question[Qi_template_id] = data.args['template_id'].toNumber();
                 //question[Qi_bounty] = data.args['bounty'];
             }
             break;
@@ -892,7 +903,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
                 question[Qi_arbitrator] = data[Qi_arbitrator-1];
                 question[Qi_timeout] = data[Qi_timeout-1];
-                question[Qi_question_ipfs] = data[Qi_question_ipfs-1];
+                question[Qi_question_hash] = data[Qi_question_hash-1];
                 question[Qi_bounty] = data[Qi_bounty-1];
                 question[Qi_best_answer] = data[Qi_best_answer-1];
                 question[Qi_bond] = data[Qi_bond-1];
@@ -1005,24 +1016,47 @@ function _ensureQuestionDataFetched(question_id, freshness) {
     });
 }
 
-function _ensureQuestionIPFSFetched(question_id, question_json_ipfs, freshness) {
+function populatedJSONForTemplate(template, question) {
+    var qbits = question.split(QUESTION_DELIMITER);
+    console.log('pp', template);
+    console.log('qbits', qbits);
+    var interpolated = vsprintf(template, qbits);
+    console.log('resulting template', interpolated);
+    return parseQuestionJSON(interpolated);
+}
+
+function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
+    console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
     return new Promise((resolve, reject)=>{
         if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
-            //console.log('fetching ipfs for ipfs addr', question_json_ipfs);
-            ipfs.cat(bytes32ToIPFSHash(question_json_ipfs), {buffer: true}).then(function(res) {
-                if (res.length > IPFS_MAX_SIZE) {
-                    reject(new Error('IPFS file too large'));
-                } else {
-                    // TODO: We will probably move question_ipfs out of the contract data, in which case the logs will have to come first
-                    var question = filledQuestionDetail(question_id, 'question_json', 1, parseQuestionJSON(res.toString()));
-                    resolve(question);
-                }
-            }).catch(function(err) {
-                console.log('error in ipfs');
-                reject(err);
-            });
+            if (template_content[template_id]) {
+                var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
+                resolve(question);
+            } else {
+                // The category text should be in the log, but the contract has the block number
+                // This allows us to make a more efficient pin-point log call for the template content
+                rc.templates.call(template_id)
+                .then(function(block_num) {
+                    var cat_logs = rc.LogNewTemplate({template_id:template_id}, {fromBlock: block_num, toBlock:block_num});
+                    cat_logs.get(function(error, cat_arr) {
+                        if (cat_arr.length == 1) {
+                            console.log('adding template content', cat_arr, 'template_id', template_id);
+                            template_content[template_id] = cat_arr[0].args.question_text;
+                            console.log(template_content);
+                            var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
+                            resolve(question);
+                        } else {
+                            console.log('error fetching template - unexpected cat length');
+                            reject(new Error("Category response unexpected length"));
+                        }
+                    });
+                }).catch(function(err) {
+                    console.log('error fetching template');
+                    reject(err);
+                });
+            }
         }
     });
 }
@@ -1063,7 +1097,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         _ensureQuestionLogFetched(question_id, ql).then(function(q) {
             return _ensureQuestionDataFetched(question_id, qc);
         }).then(function(q) {
-            return _ensureQuestionIPFSFetched(question_id, q[Qi_question_ipfs], qi);
+            return _ensureQuestionTemplateFetched(question_id, q[Qi_template_id], q[Qi_question_text], qi);
         }).then(function(q) {
             return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block]);
         }).then(function(q) {
@@ -1495,9 +1529,10 @@ function parseQuestionJSON(data) {
     try {
         question_json = JSON.parse(data);
     } catch(e) {
+        console.log('parse fail', e);
         question_json = {
             'title': data,
-            'type': 'binary'
+            'type': 'bool'
         };
     }
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
@@ -2243,10 +2278,10 @@ function renderUserQandA(qdata, entry) {
 function getAnswerString(question_json, answer) {
     var label = '';
     switch (question_json['type']) {
-        case 'number':
+        case 'uint':
             label = new BigNumber(answer).toString();
             break;
-        case 'binary':
+        case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
                 label = 'Yes';
             } else if (new BigNumber(answer).toNumber() === 0) {
@@ -2432,20 +2467,22 @@ $(document).on('click', '.post-answer-button', function(e) {
                 }
             }
             new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'number') {
+        } else if (question_json['type'] == 'uint') {
+            new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
+        } else if (question_json['type'] == 'int') {
             new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
 
         switch (question_json['type']) {
-            case 'binary':
+            case 'bool':
                 if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
                     parent_div.find('div.select-container.select-container--answer').addClass('is-error');
                     is_err = true;
                 }
                 break;
-            case 'number':
+            case 'uint':
                 if (new_answer.isNaN()) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
                     is_err = true;
@@ -2528,10 +2565,13 @@ function clearForm(parent_div, question_json) {
     parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
 
     switch (question_json['type']) {
-        case 'binary':
+        case 'bool':
             parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
             break;
-        case 'number':
+        case 'uint':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'int':
             parent_div.find('input[name="input-answer"]').val('');
             break;
         case 'single-select':
@@ -2651,7 +2691,7 @@ function show_bond_payments(ctrl) {
                 }
             }
             new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'number') {
+        } else if (question_json['type'] == 'uint') {
             new_answer = new BigNumber(frm.find('[name="input-answer"]').val());
         } else {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());
@@ -3116,6 +3156,7 @@ window.onload = function() {
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
                 $('body').addClass('invalid-network').addClass('error');
+                console.log('net id was', net_id);
             } else {
                 network_id = net_id;
             }
