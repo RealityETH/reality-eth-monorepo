@@ -95,16 +95,18 @@ This text is not parsed or in any way understood by the contract. Its hash is st
 
 To avoid the need to send repeated data to the blockchain, the content is split into a reusable template, and parameters that will be interpolated into the template. Parameters are treated like sprintf arguments.
 
-Multiple parameters can be assigned by delimiting with \u241f, which is a Unicode record separator character.
+Multiple parameters can be assigned by delimiting with ␟ (\u241f), which is a Unicode record separator character.
 
 The following template is pre-created with ID 0:
     `{"title": "%s", "type": "bool", "category": "%s"}`
+
 The `category` parameter is optional, so a simple binary question can be created with the Template ID 0 and the question text as the single paramter.
 
 If you want to create many similar requests, it will be more efficient to create your own template. For example, a flight insurance app might have:
     `{"title": "Was flight %s on date %s delayed by more than 3 hours?", "type": "bool", "category": "flight-information"}`
 
 This can then by called with a string including only the flight number, the delimiter and the date.
+    `MH17␟2017-12-01`
 
 A template can be created by calling createTemplate("template"), where "template" is the JSON template. This returns a numerical ID.
 
