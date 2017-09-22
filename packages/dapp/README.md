@@ -105,11 +105,10 @@ The `category` parameter is optional, so a simple binary question can be created
 If you want to create many similar requests, it will be more efficient to create your own template. For example, a flight insurance app might have:
     `{"title": "Was flight %s on date %s delayed by more than 3 hours?", "type": "bool", "category": "flight-information"}`
 
-This can then by called with a string including only the flight number, the delimiter and the date.
+A template can be created by calling `createTemplate("template")`, where "template" is the JSON template. This returns a numerical ID.
+
+This can then by called with a string including only the flight number, the delimiter and the date, eg:
     `MH17␟2017-12-01`
-
-A template can be created by calling createTemplate("template"), where "template" is the JSON template. This returns a numerical ID.
-
 
 
 ### Encoding answers
