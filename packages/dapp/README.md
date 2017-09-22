@@ -40,7 +40,7 @@ Example: Question with a bounty of 100, and no minimum bond:
  * Alice:   A  1 [ Right, will be returned ]
  * Bob:     B  2 [ Wrong, will go to Alice ]
  * Alice:   A  4 [ Right, will be returned. Also entitles Alice to an additional payment of 4 ] 
- * Bob:     B  8 [ Wrong, will got to Charlie ]
+ * Bob:     B  8 [ Wrong, will go to Charlie ]
  * Charlie: A 16 [ Right, will be returned, minus 4, which is paid to Alice, who gave this answer previously. ]
  * Dave:    B 32 [ Wrong, will go to Charlie ]
  * Charlie: A 64 [ Right, will be returned ]
