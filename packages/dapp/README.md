@@ -91,7 +91,7 @@ To preserve the ability to pay for an answer that was taken over from another us
 Questions consist of a JSON string, like the following:
     `{"title": "Did Trump win the 2016 presidential election?", "type": "bool", "category": "politics"}`
 
-This text is not parsed or in any way understood by the contract. Its hash is stored in contract storage. The text itself is written to the event logs.
+This text is not parsed or in any way understood by the contract. Its hash is stored in contract storage. The text itself is written to the event logs. (Event logs are chosen here over purely off-chain systems like IPFS to allow the contract to enforce the availability of the text.)
 
 To avoid the need to send repeated data to the blockchain, the content is split into a reusable template, and parameters that will be interpolated into the template. Parameters are treated like sprintf arguments.
 
