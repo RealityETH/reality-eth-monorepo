@@ -47,6 +47,7 @@
     "perfect-scrollbar": "^0.6.16",
     "postcss-cli": "^2.6.0",
     "sass-lint": "^1.10.2",
+    "sprintf-js": "^1.1.1",
     "timeago.js": "^3.0.1",
     "truffle-contract": "^2.0.0",
     "uglify-js": "^2.7.5",

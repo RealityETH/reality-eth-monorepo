@@ -10,6 +10,8 @@ var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 var jazzicon = require('jazzicon');
+var vsprintf = require("sprintf-js").vsprintf
+
 //console.log('jazzicon', jazzicon);
 
 var submitted_question_id_timestamp = {};
@@ -1012,12 +1014,9 @@ function populatedJSONForTemplate(template, question) {
     var qbits = question.split(QUESTION_DELIMITER);
     console.log('pp', template);
     console.log('qbits', qbits);
-    for(var i=0; i<qbits.length; i++) {
-        // TODO: Handle escaping literal %s'es
-        template = template.replace("%s", qbits[i]);
-    }
-    console.log('resulting template', template);
-    return parseQuestionJSON(template);
+    var interpolated = vsprintf(template, qbits);
+    console.log('resulting template', interpolated);
+    return parseQuestionJSON(interpolated);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
