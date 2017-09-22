@@ -19,13 +19,13 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
      * The question text and terms. 
      * The "timeout", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
-     * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. 
-     * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the `timeout` elapses and system finalizes on that answer.
-     * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the `timeout` clock.
-     * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator` transaction to the contract.
-     * Once the `timeout` from the last answer has elapsed, the system considers it final.
-     * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
-     * Users can call `withdraw` to take ETH held in their balance out of the contract.
+ * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. 
+ * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the `timeout` elapses and system finalizes on that answer.
+ * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the `timeout` clock.
+ * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator` transaction to the contract.
+ * Once the `timeout` from the last answer has elapsed, the system considers it final.
+ * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
+ * Users can call `withdraw` to take ETH held in their balance out of the contract.
 
 
 ## Incentive problems and mitigations
