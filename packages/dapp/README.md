@@ -96,7 +96,7 @@ This text is not parsed or in any way understood by the contract. Its hash is st
 
 To avoid the need to send repeated data to the blockchain, the content is split into a reusable template, and parameters that will be interpolated into the template. Parameters are treated like sprintf arguments.
 
-Multiple parameters can be assigned by delimiting with `␟` (`\u241f{), which is a Unicode record separator character.
+Multiple parameters can be assigned by delimiting with `␟` (`\u241f`), which is the Unicode unit separator character.
 
 The following template is pre-created with ID 0:
     `{"title": "%s", "type": "bool", "category": "%s"}`
