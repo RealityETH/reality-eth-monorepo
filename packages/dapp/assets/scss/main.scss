@@ -407,7 +407,7 @@ body.pushing .page-qa #push-icon {
     position: absolute;
     top: 57px;
     right: 0;
-    z-index: 2;
+    z-index: 99999;
     visibility: hidden;
     opacity: 0;
 }
