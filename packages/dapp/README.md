@@ -16,16 +16,16 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 ## Basic Process
 
  * You post a question to the `askQuestion` function, specifiying:
-     * The question text and terms, in the form of an IPFS document hash.
+     * The question text and terms. 
      * The "timeout", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
-     * Optionally, a minimum bond to start with.
  * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until system finalizes on that answer.
  * Anyone can post the same answer again, or a different answer. Each time they must supply at least double the previous bond. Each new answer resets the clock.
  * Once the "timeout" from the last answer has elapsed, the system considers it final.
  * Prior to finalization, anyone can pay an arbitrator contract to make a final judgement. Doing this freezes the system until the arbitrator makes their judgement and sends a `submitAnswerByArbitrator` transaction to the contract.
  * Once finalized, anyone can run the `claimWinnings` function to distribute the bounty and bonds to each owner's balance, still held in the contract.
  * Users can call `withdraw` to take ETH held in their balance out of the contract.
+
 
 ## Incentive problems and mitigations
 
@@ -86,9 +86,31 @@ To preserve the ability to pay for an answer that was taken over from another us
 
 ## Structuring and fetching information
 
-### Encoding questions and answers
+### Encoding questions 
 
-Questions are specified in the form of an IPFS hash, which is intended to identify a JSON file containing the text of the question, and any terms required in answering it.
+Questions consist of a JSON string, like the following:
+    `{"title": "Did Trump win the 2016 presidential election?", "type": "bool", "category": "politics"}`
+
+This text is not parsed or in any way understood by the contract. Its hash is stored in contract storage. The text itself is written to the event logs.
+
+To avoid the need to send repeated data to the blockchain, the content is split into a reusable template, and parameters that will be interpolated into the template. Parameters are treated like sprintf arguments.
+
+Multiple parameters can be assigned by delimiting with \u241f, which is a Unicode record separator character.
+
+The following template is pre-created with ID 0:
+    `{"title": "%s", "type": "bool", "category": "%s"}`
+The `category` parameter is optional, so a simple binary question can be created with the Template ID 0 and the question text as the single paramter.
+
+If you want to create many similar requests, it will be more efficient to create your own template. For example, a flight insurance app might have:
+    `{"title": "Was flight %s on date %s delayed by more than 3 hours?", "type": "bool", "category": "flight-information"}`
+
+This can then by called with a string including only the flight number, the delimiter and the date.
+
+A template can be created by calling createTemplate("template"), where "template" is the JSON template. This returns a numerical ID.
+
+
+
+### Encoding answers
 
 The answer must be expressed in terms of `bytes32` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
