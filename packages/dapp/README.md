@@ -17,8 +17,8 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 
  * You post a question to the `askQuestion` function, specifiying:
      * The question text and terms. (See "Encoding questions" below.)
-     * The "timeout", which is how many seconds since the last answer the system will wait before finalizing on it.
-     * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
+     * The `timeout`, which is how many seconds since the last answer the system will wait before finalizing on it.
+     * The `arbitrator`, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
  * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. 
  * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the `timeout` elapses and system finalizes on that answer.
  * Anyone can either a different answer or the same answer again. Each time they must supply at least double the previous bond. Each new answer resets the `timeout` clock.
