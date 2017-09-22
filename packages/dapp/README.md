@@ -81,7 +81,7 @@ Unless specified by the creator of a question, the system does not force a minim
 
 In theory the gas required to claim bonds for all the answers that have been supplied may exceed the Block Gas Limit.
 
-This is handled by starting the claim process from the most expensive end, and allowing the claimer to stop before getting to the first answer in the series. It also allows the claim to be split over multiple transactions, each leaving the contract with an earlier transaction history hash.
+This is handled by starting the claim process from the latest (highest-value) end, and allowing the claimer to stop before getting to the first answer in the series and leave bonds unclaimed. It also allows the claim to be split over multiple transactions, each leaving the contract with an earlier transaction history hash.
 
 To preserve the ability to pay for an answer that was taken over from another user, the claimer is not paid for transaction n until the system has seen transaction n-1. Since the bond always decreases as we follow the history backwards, it can safely pay out for n+1 and higher.
 
