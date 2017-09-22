@@ -16,7 +16,7 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
 ## Basic Process
 
  * You post a question to the `askQuestion` function, specifiying:
-     * The question text and terms. 
+     * The question text and terms. (See "Encoding questions" below.)
      * The "timeout", which is how many seconds since the last answer the system will wait before finalizing on it.
      * The arbitrator, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
  * Anyone can post an answer by calling the `submitAnswer` function. They must supply a bond with their answer. 
