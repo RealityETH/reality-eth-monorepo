@@ -178,8 +178,8 @@ contract RealityCheck {
     function RealityCheck() {
         // We create a few basic templates with predictable IDs
         createTemplate('{"title": "%s", "type": "binary"}');
-        createTemplate('{"title": "%s", "type": "single-select", "options": [%s]}');
-        createTemplate('{"title": "%s", "type": "multiple-select", "options": [%s]}');
+        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s]}');
+        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s]}');
         createTemplate('{"title": "%s", "type": "number", "decimals": 13}');
     }
 

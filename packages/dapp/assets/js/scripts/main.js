@@ -18,10 +18,18 @@ var template_blocks = {};
 var template_content = {
     /*
     0: '{"title": "%s", "type": "binary"}',
-    1: '{"title": "%s", "type": "single-select", "options": [%s]}',
-    2: '{"title": "%s", "type": "multiple-select", "options": [%s]}',
+    1: '{"title": "%s", "type": "single-select", "outcomes": [%s]}',
+    2: '{"title": "%s", "type": "multiple-select", "outcomes": [%s]}',
     3: '{"title": "%s", "type": "number", "decimals": 13}'
     */
+};
+var QUESTION_DELIMITER = 'ZZ'; // "\u0000"
+
+const QUESTION_TYPE_TEMPLATES = {
+    'binary': 0,
+    'single-select': 1,
+    'multiple-select': 2,
+    'number': 3
 };
 
 var network_id = null;
@@ -455,7 +463,16 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     if (validate(win)) {
         // TODO: Handle other types etc
         var qtext = question_body.val();
-        var template_id = 0;
+        var qtype = question_type.val()
+        var template_id = QUESTION_TYPE_TEMPLATES[qtype];
+        //console.log('using template_id', template_id);
+        if (qtype == 'single-select' || qtype == 'multiple-select') {
+            var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
+            //console.log('made outcome_str', outcome_str);
+            qtext = qtext + QUESTION_DELIMITER + outcome_str;
+            //console.log('made qtext', qtext);
+        }
+
         /*
         var question = {
             title: question_body.val(),
@@ -468,11 +485,11 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         var question_id;
         rc.getQuestionID.call(template_id, qtext, arbitrator.val(), timeout_val, account, 0)
         .then(function(qid) {
-            console.log('made qid', qid);
+            //console.log('made qid', qid);
             question_id = qid;
             return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         }).then(function(txid) {
-            console.log('sent tx with id', txid);
+            //console.log('sent tx with id', txid);
             
             // Make a fake log entry
             var fake_log = {
@@ -483,7 +500,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'arbitrator': arbitrator.val(),
                     'timeout': new BigNumber(timeout_val),
                     'question_hash': 'TODO',
-                    'template_id': template_id,
+                    'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000))
                 }
@@ -504,7 +521,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
             win.html(rcqa.html());
             win = populateQuestionWindow(win, q, false);
-            console.log('rcqa', win);
+            //console.log('rcqa', win);
     
             // TODO: Once we have code to know which network we're on, link to a block explorer
             win.find('.pending-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
@@ -513,7 +530,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             win.attr('data-pending-txid', txid);
 
             win.find('.rcbrowser__close-button').on('click', function(){
-                console.log('closing');
+                //console.log('closing');
                 let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
                 let left = parseInt(parent_div.css('left').replace('px', ''));
                 let top = parseInt(parent_div.css('top').replace('px', ''));
@@ -857,7 +874,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_question_created_block] = data.blockNumber;
                 question[Qi_question_hash] = data.args['question_hash'];
                 question[Qi_question_text] = data.args['question'];
-                question[Qi_template_id] = data.args['template_id'];
+                question[Qi_template_id] = data.args['template_id'].toNumber();
                 //question[Qi_bounty] = data.args['bounty'];
             }
             break;
@@ -993,13 +1010,20 @@ function _ensureQuestionDataFetched(question_id, freshness) {
     });
 }
 
-function populatedJSONForTemplate(template_content, question) {
-    console.log('pp', template_content);
-    // TODO: Make this more sophisticated eg handle a literal %s etc
-    return parseQuestionJSON(template_content.replace("%s", question));
+function populatedJSONForTemplate(template, question) {
+    var qbits = question.split(QUESTION_DELIMITER);
+    console.log('pp', template);
+    console.log('qbits', qbits);
+    for(var i=0; i<qbits.length; i++) {
+        // TODO: Handle escaping literal %s'es
+        template = template.replace("%s", qbits[i]);
+    }
+    console.log('resulting template', template);
+    return parseQuestionJSON(template);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
+    console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
     return new Promise((resolve, reject)=>{
         if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
@@ -1015,8 +1039,9 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
                     var cat_logs = rc.LogNewTemplate({template_id:template_id}, {fromBlock: block_num, toBlock:block_num});
                     cat_logs.get(function(error, cat_arr) {
                         if (cat_arr.length == 1) {
-                            console.log('adding template content', cat_arr);
+                            console.log('adding template content', cat_arr, 'template_id', template_id);
                             template_content[template_id] = cat_arr[0].args.question_text;
+                            console.log(template_content);
                             var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
                             resolve(question);
                         } else {
