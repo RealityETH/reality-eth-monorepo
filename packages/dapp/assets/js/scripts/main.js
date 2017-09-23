@@ -64,8 +64,7 @@ const EVENT_ACTOR_ARGS = {
     'LogNewAnswer': 'user',
     'LogFundAnswerBounty': 'user',
     'LogNotifyOfArbitrationRequest': 'user',
-    'LogClaimBounty': 'user',
-    'LogClaimBond': 'user'
+    'LogClaim': 'user'
 };
 
 const QUESTION_MAX_OUTCOMES = 128; 
@@ -589,7 +588,8 @@ function isArbitrationPending(question) {
 }
 
 function isAnswered(question) {
-    return (new BigNumber(question[Qi_history_hash]).gt(0));
+    var finalization_ts = question[Qi_finalization_ts].toNumber();
+    return ((finalization_ts > 1) || (finalization_ts == 1 && new BigNumber(question[Qi_history_hash]).gt(0)));
 }
 
 function isFinalized(question) {
@@ -815,7 +815,7 @@ function handlePotentialUserAction(entry, is_watch) {
      
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
-            if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaimBond') || (entry['event'] == 'LogClaimBounty' ) || (entry['event'] == 'LogFinalize') ) {
+            if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize') ) {
                 //console.log('got event, checking effect on claims', entry);
                 if (updateClaimableDataForQuestion(question, entry, is_watch)) {
                     updateClaimableDisplay();

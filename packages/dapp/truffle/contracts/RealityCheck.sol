@@ -129,15 +129,8 @@ contract RealityCheck {
         bytes32 indexed answer
     );
 
-    event LogClaimBounty(
+    event LogClaim(
         bytes32 indexed question_id,
-        address indexed user,
-        uint256 amount
-    );
-
-    event LogClaimBond(
-        bytes32 indexed question_id,
-        bytes32 indexed answer,
         address indexed user,
         uint256 amount
     );
@@ -483,6 +476,7 @@ contract RealityCheck {
                     // Settle up with the old payee
                     take -= payment;
                     balanceOf[payee] += take;
+                    LogClaim(question_id, payee, take);
                     take = 0;
 
                     // Now start take again for the new payee
@@ -515,14 +509,13 @@ contract RealityCheck {
             if (payee == 0x0) {
                 question_claims[question_id].take = take;
             } else {
-                balanceOf[payee] += take;
                 question_claims[question_id].take = 0;
+                balanceOf[payee] += take;
+                LogClaim(question_id, payee, take);
             }
         }
 
         questions[question_id].history_hash = last_history_hash;
-
-        LogClaimBond(question_id, best_answer, payee, take);
 
     }
 
