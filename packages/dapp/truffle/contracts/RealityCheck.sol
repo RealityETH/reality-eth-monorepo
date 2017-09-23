@@ -317,18 +317,16 @@ contract RealityCheck {
             is_commitment
         );
 
-        return answer;
-
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 US_max_previous) 
     actorAnyone()
     stateOpen(question_id)
     bondMustDouble(question_id, US_max_previous)
-    external payable returns (bytes32) {
+    external payable {
 
         uint256 finalization_ts = now + questions[question_id].timeout;
-        return _addAnswer(question_id, answer, msg.sender, msg.value, false, finalization_ts);
+        _addAnswer(question_id, answer, msg.sender, msg.value, false, finalization_ts);
 
     }
 
@@ -338,7 +336,7 @@ contract RealityCheck {
     actorAnyone() 
     stateOpen(question_id)
     bondMustDouble(question_id, US_max_previous)
-    external payable returns (bytes32) {
+    external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
@@ -348,7 +346,7 @@ contract RealityCheck {
         uint256 timeout = questions[question_id].timeout;
         commitments[commitment_id].deadline_ts = now + (timeout/8);
 
-        return _addAnswer(question_id, commitment_id, msg.sender, msg.value, true, 0);
+        _addAnswer(question_id, commitment_id, msg.sender, msg.value, true, 0);
 
     }
 
@@ -406,7 +404,7 @@ contract RealityCheck {
         uint256 finalization_ts = now - 1;
         LogFinalize(question_id, answer);
 
-        return _addAnswer(question_id, answer, answerer, uint256(0), false, finalization_ts);
+        _addAnswer(question_id, answer, answerer, uint256(0), false, finalization_ts);
 
     }
 

@@ -424,10 +424,10 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_min_payment_with_bond_param(self):
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=1) 
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), 0, value=2, sender=t.k3, startgas=200000) 
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=5, sender=t.k4, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), 0, value=2, sender=t.k3, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=5, sender=t.k4, startgas=200000) 
 
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 5, value=(22+5), sender=t.k5, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 5, value=(22+5), sender=t.k5, startgas=200000) 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_bond_claim(self):
@@ -470,14 +470,14 @@ class TestRealityCheck(TestCase):
         claim_args_addrs.append(keys.privtoaddr(t.k3))
         claim_args_bonds.append(2)
         claim_args_answs.append(to_answer_for_contract(10001))
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), 0, value=2, sender=t.k3, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10001), 0, value=2, sender=t.k3, startgas=200000) 
 
         # We will ultimately finalize on this answer
         claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         claim_args_addrs.append(keys.privtoaddr(t.k4))
         claim_args_bonds.append(4)
         claim_args_answs.append(to_answer_for_contract(10002))
-        a5 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=4, sender=t.k4, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=4, sender=t.k4, startgas=200000) 
 
         # You have to at least double
         with self.assertRaises(TransactionFailed):
@@ -491,17 +491,17 @@ class TestRealityCheck(TestCase):
         claim_args_addrs.append(keys.privtoaddr(t.k3))
         claim_args_bonds.append(11)
         claim_args_answs.append(to_answer_for_contract(10005))
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=11, sender=t.k3, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=11, sender=t.k3, startgas=200000) 
 
         # The extra amount you have to send should be passed in a parameters
         #with self.assertRaises(TransactionFailed): 
-        #    a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=(22+5), sender=t.k5, startgas=200000) 
+        #    self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 0, value=(22+5), sender=t.k5, startgas=200000) 
 
         claim_args_state.append(self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         claim_args_addrs.append(keys.privtoaddr(t.k5))
         claim_args_bonds.append(22)
         claim_args_answs.append(to_answer_for_contract(10002))
-        a22 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 11, value=22, sender=t.k5, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10002), 11, value=22, sender=t.k5, startgas=200000) 
 
         ts = self.s.timestamp
 
@@ -613,7 +613,7 @@ class TestRealityCheck(TestCase):
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
         self.caller_backer.setRealityCheck(self.rc0.address)
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -640,7 +640,7 @@ class TestRealityCheck(TestCase):
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
 
-        a10 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
@@ -658,7 +658,7 @@ class TestRealityCheck(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
-        a1 = self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=100, sender=t.k5) 
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=100, sender=t.k5) 
 
         self.c.mine()
         self.s.timestamp = self.s.timestamp + 11
