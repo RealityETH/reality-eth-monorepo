@@ -426,6 +426,7 @@ $('#post-a-question-button,#post-a-question-link').on('click', function(e){
     if (category) {
         question_window.find("[name='question-category']").val(category);
     }
+    Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 });
 
 $('#browse-question-button,#browse-question-link').on('click', function(e){
@@ -1591,6 +1592,7 @@ function update_ranking_data(arr_name, id, val, ord) {
             win.find('.first-answer-option').children().val('');
             win.find('.input-container--answer-option').remove();
         }
+        Ps.update(win.find('.rcbrowser-inner').get(0));
     });
 
     $(document).on('click', '.add-option-button', function(e){
@@ -1601,6 +1603,7 @@ function update_ranking_data(arr_name, id, val, ord) {
         element.append(input);
         win.find('.error-container--answer-option').before(element);
         element.addClass('is-bounce');
+        Ps.update(win.find('.rcbrowser-inner').get(0));
     });
 })();
 
@@ -3314,7 +3317,7 @@ window.onload = function() {
                     block_explorer = BLOCK_EXPLORERS[1];
                 }
                 if (START_BLOCKS[net_id]) {
-                    START_BLOCK = START_BLOCK[net_id];
+                    START_BLOCK = START_BLOCKS[net_id];
                 } else {
                     START_BLOCK = 1;
                 }
