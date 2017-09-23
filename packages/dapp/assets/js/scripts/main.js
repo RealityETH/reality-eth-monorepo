@@ -116,10 +116,10 @@ var account;
 var rc;
 
 var display_entries = {
-    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
-    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
-    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3},
-    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 3}
+    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 10},
+    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 10},
+    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 10},
+    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 10}
 }
 
 // data for question detail window
