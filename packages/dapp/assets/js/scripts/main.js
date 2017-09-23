@@ -584,18 +584,17 @@ function isArbitratorValid(arb) {
 }
 
 function isArbitrationPending(question) {
-    // finalization_ts has a magical timestamp of 1 meaning pending arbitration (unanswered) or 2 meaning pending arbitration (answered)
-    return ( (question[Qi_finalization_ts].toNumber() == 1) || (question[Qi_finalization_ts].toNumber() == 2) );
+    // finalization_ts has a magical timestamp of 1 meaning pending arbitration 
+    return (question[Qi_finalization_ts].toNumber() == 1)
 }
 
 function isAnswered(question) {
-    // TODO: Change contract to be able to differentiate when in pending-arbitration state
-    return (question[Qi_finalization_ts].toNumber() > 1);
+    return (new BigNumber(question[Qi_history_hash]).gt(0));
 }
 
 function isFinalized(question) {
     var fin = question[Qi_finalization_ts].toNumber() 
-    var res = ( (fin > 2) && (fin * 1000 < new Date().getTime()) );  
+    var res = ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
     // 0: Unanswered
     // 1: Pending arbitration (unanswered)
     // 2: Pending arbitration (answered)
@@ -2486,7 +2485,7 @@ function makeSelectAnswerInput(question_json) {
 // show final answer button
 // TODO: Pass in the current data from calling question if we have it to avoid the unnecessary call
 function updateQuestionState(question, question_window) {
-    if (question[Qi_finalization_ts] > 2) {
+    if (isAnswered(question)) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
             timeago.cancel(question_window.find('.resolved-at-value.timeago'));

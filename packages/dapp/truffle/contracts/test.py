@@ -181,7 +181,7 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[QINDEX_FINALIZATION_TS], 2, "When arbitration is pending for an answered question, we set the finalization_ts to 2")
+        self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
 
         # You cannot notify realitycheck of arbitration unless you are the arbitrator
         with self.assertRaises(TransactionFailed):

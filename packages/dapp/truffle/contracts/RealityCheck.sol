@@ -19,8 +19,7 @@ contract RealityCheck {
 
     // finalization_ts states. Anything above this is a timestamp.
     uint256 constant UNANSWERED = 0;
-    uint256 constant UNANSWERED_PENDING_ARBITRATION = 1;
-    uint256 constant ANSWERED_PENDING_ARBITRATION = 2;
+    uint256 constant PENDING_ARBITRATION = 1;
 
     // commitment deadline_ts state. Anything above this is a timestamp.
     uint256 constant COMMITMENT_REVEALED = 1;
@@ -48,8 +47,7 @@ contract RealityCheck {
 
     modifier statePendingArbitration(bytes32 question_id) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts == ANSWERED_PENDING_ARBITRATION 
-            || finalization_ts == UNANSWERED_PENDING_ARBITRATION);
+        require(finalization_ts == PENDING_ARBITRATION);
         _;
     }
 
@@ -377,11 +375,7 @@ contract RealityCheck {
     stateOpen(question_id)
     external returns (bool) {
 
-        if (questions[question_id].finalization_ts == UNANSWERED) {
-            questions[question_id].finalization_ts = UNANSWERED_PENDING_ARBITRATION;
-        } else {
-            questions[question_id].finalization_ts = ANSWERED_PENDING_ARBITRATION;
-        }
+        questions[question_id].finalization_ts = PENDING_ARBITRATION;
         LogNotifyOfArbitrationRequest(question_id, requester);
 
     }
@@ -405,7 +399,7 @@ contract RealityCheck {
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts > ANSWERED_PENDING_ARBITRATION) && (finalization_ts < now) );
+        return ( (finalization_ts > PENDING_ARBITRATION) && (finalization_ts < now) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
