@@ -1,12 +1,15 @@
 pragma solidity ^0.4.6;
 /*
 To make it hard for us to forget to set one of these, every non-constant function should specify:
-* actorArbitrator or actorAnyone
 * stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
 * internal or external or public
 
 Things that take answers should specify
 * bondMustDouble or BondMustBeZero
+
+Things that can be done by the arbitrator should specify
+* actorArbitrator 
+(All other functions can be run by anyone.)
 
 Any number that may be used in arithmetic not from a trusted source like now or msg.value
 ...should be prefixed US_ for UnSafe until explicitly bounds-checked.
@@ -22,16 +25,12 @@ contract RealityCheck {
     // commitment deadline_ts state. Anything above this is a timestamp.
     uint256 constant COMMITMENT_REVEALED = 1;
 
-    modifier actorAnyone() {
+    modifier actorArbitrator(bytes32 question_id) {
+        require(msg.sender == questions[question_id].arbitrator);
         _;
     }
 
     modifier stateAny() {
-        _;
-    }
-
-    modifier actorArbitrator(bytes32 question_id) {
-        require(msg.sender == questions[question_id].arbitrator);
         _;
     }
 
@@ -259,7 +258,6 @@ contract RealityCheck {
     }
 
     function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 US_timeout) 
-    actorAnyone()
     stateNotCreated(question_id)
     internal returns (bytes32) {
 
@@ -278,7 +276,6 @@ contract RealityCheck {
 
     // Normally the bounty is paid on question creation, but if you like you can add to it later.
     function fundAnswerBounty(bytes32 question_id) 
-    actorAnyone()
     stateOpen(question_id)
     external payable {
         questions[question_id].bounty += msg.value;
@@ -320,7 +317,6 @@ contract RealityCheck {
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 US_max_previous) 
-    actorAnyone()
     stateOpen(question_id)
     bondMustDouble(question_id, US_max_previous)
     external payable {
@@ -333,7 +329,6 @@ contract RealityCheck {
     // If you're worried about front-running, you can use submitAnswerCommitment then submitAnswerReveal instead of submitAnswer.
     // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 US_max_previous) 
-    actorAnyone() 
     stateOpen(question_id)
     bondMustDouble(question_id, US_max_previous)
     external payable {
@@ -353,7 +348,6 @@ contract RealityCheck {
     // NB The bond is the amount you sent in submitAnswerCommitment.
     // Since the bond must always increase, we can use this to confirm whether you still have the top answer.
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 US_bond) 
-    actorAnyone() // Let anyone do the reveal if they know the nonce. Clients may want to offload this to a service.
     stateOpen(question_id)
     external {
 
@@ -437,7 +431,6 @@ contract RealityCheck {
     // * The rest goes in a dedicated Claim struct. This is only filled if you stop a claim before the end.
     //
     function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
-    actorAnyone() // Doesn't matter who calls it, it assigns funds to the winner(s) regardless.
     stateFinalized(question_id)
     public {
 
@@ -544,7 +537,6 @@ contract RealityCheck {
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
     function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
-    actorAnyone() // Anyone can call this as it just reassigns the bounty to whoever should have it, then they withdraw their own balance
     stateAny() // The finalization checks are done in the claimWinnings function
     public {
         
@@ -571,7 +563,6 @@ contract RealityCheck {
     }
 
     function withdraw() 
-    actorAnyone() // Only withdraws your own balance 
     stateAny() // You can always withdraw your balance
     public {
         uint256 bal = balanceOf[msg.sender];
