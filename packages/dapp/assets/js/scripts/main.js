@@ -476,7 +476,6 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         // TODO: Handle other types etc
         var qtext = question_body.val();
         var qtype = question_type.val()
-        qtext = qtext + QUESTION_DELIMITER + category.val();
         var template_id = QUESTION_TYPE_TEMPLATES[qtype];
         //console.log('using template_id', template_id);
         if (qtype == 'single-select' || qtype == 'multiple-select') {
@@ -485,6 +484,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             qtext = qtext + QUESTION_DELIMITER + outcome_str;
             //console.log('made qtext', qtext);
         }
+        qtext = qtext + QUESTION_DELIMITER + category.val();
         /*
         var question = {
             title: question_body.val(),
