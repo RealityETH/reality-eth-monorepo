@@ -1059,6 +1059,13 @@ span.rcbrowser__close-button {
     color: $rcBrowserSubText;
 }
 
+.answer-claiming-container {
+    float:right;
+    font-size: 13px;
+    font-weight: 400;
+    color: $rcBrowserSubText;
+}
+
 .rcbrowser-main-header-subtitle > span {
     color: $white;
 }
@@ -2101,6 +2108,7 @@ div.rcbrowser--qa-detail.has-answer .current-answer-container { display: block !
 
 div.rcbrowser--qa-detail .unconfirmed-answer-container { display:none }
 div.rcbrowser--qa-detail.has-unconfirmed-answer .unconfirmed-answer-container { display: block !important }
+div.rcbrowser--qa-detail.question-state-finalized.has-unconfirmed-answer .unconfirmed-answer-container { display: none!important }
 
 div.rcbrowser--qa-detail .answered-history-container { display:none }
 div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block !important }
@@ -2305,3 +2313,4 @@ div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
 }
 
 div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box div.pending-txid { float:right }
+

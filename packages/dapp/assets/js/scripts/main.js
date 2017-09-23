@@ -597,50 +597,72 @@ function isFinalized(question) {
 }
 
 $(document).on('click', '.answer-claim-button', function(){
-    var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
 
-    if ($(this).hasClass('claim-all')) {
+    var is_single_question = !$(this).hasClass('claim-all');
 
-        var claimable = mergePossibleClaimable(user_claimable);
-        var gas = 140000 + (10000 * claimable['history_hashes'].length);
-        rc.claimMultipleAndWithdrawBalance.sendTransaction(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
-        .then(function(claim_result){
-            console.log('claim result txid', claim_result);
-        });
+    var doClaim = function(is_single_question, question_detail) {
 
-    } else {
+        var claim_args;
+        var claiming;
+        if (is_single_question) {
 
-        ensureQuestionDetailFetched(question_id).then(function(question_detail){
-            //console.log(question_detail);
-            var claimable = possibleClaimableItems(question_detail);
+
+            claiming = possibleClaimableItems(question_detail);
+            claim_args = claiming;
 
             //console.log('try9ing to claim ', claimable['total'].toString());
-            if (claimable['total'].isZero()) {
+            if (claim_args['total'].isZero()) {
                 //console.log('nothing to claim');
                 // Nothing there, so force a refresh
                 openQuestionWindow(question_id);
                 delete user_claimable[question_id];
             }
-            console.log('claiming with:', claimable)
 
-            // estimateGas gives us a number that credits the eventual storage refund.
-            // However, this is only supplied at the end of the transaction, so we need to send more to get us to that point.
-            // MetaMask seems to add a bit extra, but it's not enough.
-            // Get the number via estimateGas, then add 60000 per question, which should be the max storage we free.
+        } else {
 
-            // For now hard-code a fairly generous allowance
-            // Tried earlier with single answerer:
-            //  1 answer 48860
-            //  2 answers 54947
-            //  5 answers 73702
-            //var gas = 70000 + (10000 * claimable['history_hashes'].length);
-            var gas = 140000 + (10000 * claimable['history_hashes'].length);
-            rc.claimMultipleAndWithdrawBalance(claimable['question_ids'], claimable['answer_lengths'], claimable['history_hashes'], claimable['answerers'], claimable['bonds'], claimable['answers'], {from: account, gas:gas})
-        .then(function(claim_result){
-                //console.log('claim result', claim_result);
-            });
+            claiming = user_claimable;
+            claim_args = mergePossibleClaimable(claiming);
+
+        }
+
+        // estimateGas gives us a number that credits the eventual storage refund.
+        // However, this is only supplied at the end of the transaction, so we need to send more to get us to that point.
+        // MetaMask seems to add a bit extra, but it's not enough.
+        // Get the number via estimateGas, then add 60000 per question, which should be the max storage we free.
+
+        // For now hard-code a fairly generous allowance
+        // Tried earlier with single answerer:
+        //  1 answer 48860
+        //  2 answers 54947
+        //  5 answers 73702
+
+        var gas = 140000 + (20000 * claim_args['history_hashes'].length);
+        rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {from: account, gas:gas})
+        .then(function(txid){
+            console.log('claiming is ',claiming);
+            console.log('claim result txid', txid);
+            for (var qid in claiming) {
+                if (claiming.hasOwnProperty(qid)) {
+                    if (user_claimable[qid]) {
+                        user_claimable[qid].txid = txid;
+                    }
+                }
+            }
+            updateClaimableDisplay();
+            updateUserBalanceDisplay();
         });
     }
+
+    if (is_single_question) {
+        var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
+        ensureQuestionDetailFetched(question_id).then(function(qdata) {
+            doClaim(is_single_question, qdata);        
+        });
+    } else {
+        // TODO: Should we be refetching all the questions we plan to claim for?
+        doClaim(is_single_question);
+    }
+
 });
 
 function validate(win) {
@@ -774,6 +796,7 @@ function handlePotentialUserAction(entry, is_watch) {
     //console.log('fetching', question_id);
 
     // User action
+    console.log('got event as user action', entry);
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
         delete submitted_question_id_timestamp[question_id];
         ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
@@ -786,7 +809,11 @@ function handlePotentialUserAction(entry, is_watch) {
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
             if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaimBond') || (entry['event'] == 'LogClaimBounty' ) || (entry['event'] == 'LogFinalize') ) {
-                updateClaimableData(question, entry, is_watch);    
+                console.log('got event, checking effect on claims', entry);
+                if (updateClaimableDataForQuestion(question, entry, is_watch)) {
+                    updateClaimableDisplay();
+                    updateUserBalanceDisplay();
+                }
             }
             //console.log('rendering');
             renderUserAction(question, entry, is_watch);
@@ -798,20 +825,36 @@ function handlePotentialUserAction(entry, is_watch) {
 
 }
 
-function updateClaimableData(question, answer_entry, is_watch) {
+function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     var poss = possibleClaimableItems(question);
     if (poss['total'].isZero()) {
         delete user_claimable[question[Qi_question_id]];
     } else {
         user_claimable[question[Qi_question_id]] = poss;
     }
-    //console.log('user_claimable', user_claimable);
-    var merged = mergePossibleClaimable(user_claimable);
+    return true; // TODO: Make this only return true if it changed something
+}
+
+function updateClaimableDisplay() {
+    console.log('updateClaimableDisplay with user_claimable', user_claimable);
+    var unclaimed = mergePossibleClaimable(user_claimable, false);
+    var claiming  = mergePossibleClaimable(user_claimable, true);
     //console.log('merged', merged);
     //console.log('total merge:', merged.total.toNumber());
+    console.log('claiming', claiming);
+    if (claiming.total.gt(0)) {
+        var txids = claiming.txids;
+        $('.answer-claiming-container').find('.claimable-eth').text(web3.fromWei(claiming.total.toNumber(), 'ether'));
+        var txid = txids.join(', '); // TODO: Handle multiple links properly
+        $('.answer-claiming-container').find('a.txid').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+        $('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
+        $('.answer-claiming-container').show();
+    } else {
+        $('.answer-claiming-container').fadeOut();
+    }
 
     rc.balanceOf.call(account).then(function(result) {
-        var ttl = result.plus(merged.total);
+        var ttl = result.plus(unclaimed.total);
         if (ttl.gt(0)) {
             $('.answer-claim-button.claim-all').find('.claimable-eth').text(web3.fromWei(ttl.toNumber(), 'ether'));
             $('.answer-claim-button.claim-all').show();
@@ -822,8 +865,9 @@ function updateClaimableData(question, answer_entry, is_watch) {
 
 }
 
-function mergePossibleClaimable(posses) {
+function mergePossibleClaimable(posses, pending) {
     var combined = {
+        'txids': [],
         'total': new BigNumber(0),
         'question_ids': [],
         'answer_lengths': [],
@@ -834,6 +878,12 @@ function mergePossibleClaimable(posses) {
     }
     for(var qid in posses) {
         if (posses.hasOwnProperty(qid)) {
+            if (!pending && posses[qid].txid) {
+                continue;
+            }
+            if (pending && !posses[qid].txid) {
+                continue;
+            }
             combined['total'] = combined['total'].plus(posses[qid].total);
             combined['question_ids'].push(...posses[qid].question_ids);
             combined['answer_lengths'].push(...posses[qid].answer_lengths);
@@ -841,6 +891,11 @@ function mergePossibleClaimable(posses) {
             combined['answerers'].push(...posses[qid].answerers);
             combined['bonds'].push(...posses[qid].bonds);
             combined['history_hashes'].push(...posses[qid].history_hashes);
+            if (posses[qid].txid) {
+                if (combined['txids'].indexOf(posses[qid].txid) === -1) {
+                    combined['txids'].push(posses[qid].txid);
+                }
+            }
         }
     }
     return combined;
@@ -893,6 +948,10 @@ function scheduleFinalizationDisplayUpdate(question) {
                                 }
                             }
                             //console.log('sending fake entry', fake_entry, question);
+                            if (updateClaimableDataForQuestion(question, fake_entry, true)) {
+                                updateClaimableDisplay();
+                                updateUserBalanceDisplay();
+                            }
              
                             renderNotifications(question, fake_entry);
                         });
@@ -1851,6 +1910,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             rcqa.removeClass('is-claimable');
         } else {
             rcqa.addClass('is-claimable');
+            rcqa.find('.answer-claim-button .claimable-eth').text(web3.fromWei(tot.toNumber(), 'ether'));
         } 
     } else {
         rcqa.removeClass('is-claimable');
@@ -1948,6 +2008,7 @@ function possibleClaimableItems(question_detail) {
     // TODO: Someone may have claimed partway, so we should really be checking against the contract state
 
     return {
+        'txid': null,
         'total': ttl,
         'question_ids': question_ids,
         'answer_lengths': answer_lengths,
