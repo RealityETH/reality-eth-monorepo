@@ -532,8 +532,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             //console.log('rcqa', win);
     
             // TODO: Once we have code to know which network we're on, link to a block explorer
-            win.find('.pending-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
-            win.find('.pending-txid a').text(txid.substr(0, 12) + "..." + txid.substr(txid.length-12));
+            win.find('.pending-question-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+            win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
             win.addClass('unconfirmed-transaction').addClass('has-warnings');
             win.attr('data-pending-txid', txid);
 
@@ -639,8 +639,8 @@ $(document).on('click', '.answer-claim-button', function(){
         var gas = 140000 + (20000 * claim_args['history_hashes'].length);
         rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {from: account, gas:gas})
         .then(function(txid){
-            console.log('claiming is ',claiming);
-            console.log('claim result txid', txid);
+            //console.log('claiming is ',claiming);
+            //console.log('claim result txid', txid);
             for (var qid in claiming) {
                 if (claiming.hasOwnProperty(qid)) {
                     if (user_claimable[qid]) {
@@ -796,7 +796,7 @@ function handlePotentialUserAction(entry, is_watch) {
     //console.log('fetching', question_id);
 
     // User action
-    console.log('got event as user action', entry);
+    //console.log('got event as user action', entry);
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
         delete submitted_question_id_timestamp[question_id];
         ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
@@ -809,7 +809,7 @@ function handlePotentialUserAction(entry, is_watch) {
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
             if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaimBond') || (entry['event'] == 'LogClaimBounty' ) || (entry['event'] == 'LogFinalize') ) {
-                console.log('got event, checking effect on claims', entry);
+                //console.log('got event, checking effect on claims', entry);
                 if (updateClaimableDataForQuestion(question, entry, is_watch)) {
                     updateClaimableDisplay();
                     updateUserBalanceDisplay();
@@ -836,12 +836,12 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 }
 
 function updateClaimableDisplay() {
-    console.log('updateClaimableDisplay with user_claimable', user_claimable);
+    //console.log('updateClaimableDisplay with user_claimable', user_claimable);
     var unclaimed = mergePossibleClaimable(user_claimable, false);
     var claiming  = mergePossibleClaimable(user_claimable, true);
     //console.log('merged', merged);
     //console.log('total merge:', merged.total.toNumber());
-    console.log('claiming', claiming);
+    //console.log('claiming', claiming);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
         $('.answer-claiming-container').find('.claimable-eth').text(web3.fromWei(claiming.total.toNumber(), 'ether'));
@@ -2576,7 +2576,7 @@ $(document).on('click', '.post-answer-button', function(e) {
         return ensureQuestionDetailFetched(question_id, 0, 0, 0, -1)
     })
     .then(function(current_question) {
-        console.log('got current_question', current_question);
+        //console.log('got current_question', current_question);
 
         // This may not be defined for an unconfirmed question
         if (current_question[Qi_bond] == null) {
@@ -2655,7 +2655,7 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
+        //console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
         return rc.submitAnswer.sendTransaction(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});

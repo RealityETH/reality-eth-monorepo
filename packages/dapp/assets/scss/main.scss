@@ -1222,10 +1222,17 @@ span.rcbrowser__close-button {
     overflow: hidden;
 }
 
+
+
 // unconfirmed answer
 .unconfirmed-answer-container {
     margin: 15px 0;
     opacity: 0.5;
+    display: none;
+}
+
+div.rcbrowser--qa-detail.unconfirmed-transaction .unconfirmed-question-header {
+    display: block !important;
 }
 
 .unconfirmed-answer-container.is-open .unconfirmed-answer-inner {
@@ -1237,6 +1244,22 @@ span.rcbrowser__close-button {
 }
 
 .unconfirmed-answer-header::before {
+    display: inline-block;
+    content: "";
+    width: 8px;
+    height: 8px;
+    background-color: $purple;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.unconfirmed-question-header {
+    font-size: 13px;
+    margin-bottom: 18px;
+    display:none;
+}
+
+.unconfirmed-question-header::before {
     display: inline-block;
     content: "";
     width: 8px;
@@ -1279,6 +1302,11 @@ span.rcbrowser__close-button {
 div.unconfirmed-answer-container span.pending-answer-txid {
     float:right;
 }
+
+div.unconfirmed-question-header span.pending-question-txid {
+    float:right;
+}
+
 
 
 .current-answer-body {
@@ -2173,6 +2201,9 @@ div.error-bar .metamask-icon {
     margin-left: 24px;
 }
 
+span.error-label.invalid-network{ display:none}
+body.error-invalid-network div.error-bar span.error-label.invalid-network{ display:inline !important}
+
 span.error-label.no-metamask-accounts { display:none}
 body.error-no-metamask-accounts div.error-bar span.error-label.no-metamask-accounts { display:inline !important}
 
@@ -2215,6 +2246,10 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     position: absolute;
     top: 40px;
     right: 13px;
+}
+
+.rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning {
+    top: 82px !important;
 }
 
 .questions__item .question-setting-warning {
@@ -2279,14 +2314,14 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
 div.rcbrowser--qa-detail .rcbrowser-warning-header { display:none; }
 div.rcbrowser--qa-detail.has-warnings .rcbrowser-warning-header{ display:block !important; }
 
-div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { display:none}
-div.rcbrowser--qa-detail.unconfirmed-transaction .rcbrowser-warning-header-unconfirmed-box { display:block !important}
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { display:none}
+div.rcbrowser--qa-detail.failed-transaction .rcbrowser-warning-header-failed-box { display:block !important}
 
-div.rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning { display:none !important }
+div.rcbrowser--qa-detail.failed-transaction .question-setting-warning { display:none !important }
 
-div.rcbrowser--qa-detail.unconfirmed-transaction div.rcbrowser-main { opacity: 0.9 }
+div.rcbrowser--qa-detail.unconfirmed-transaction div.rcbrowser-main { opacity: 0.6 }
 
-div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box { 
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { 
     margin-top: 6px;
     padding: 4px 6px 6px;
     line-height: 1.3;
@@ -2312,5 +2347,5 @@ div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
     position: static;
 }
 
-div.rcbrowser--qa-detail .rcbrowser-warning-header-unconfirmed-box div.pending-txid { float:right }
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box div.pending-txid { float:right }
 
