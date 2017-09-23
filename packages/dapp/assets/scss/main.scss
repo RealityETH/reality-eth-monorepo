@@ -2260,7 +2260,7 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
 }
 
 .question-setting-info .balloon {
-    width: 270px;
+    width: 320px;
     position: absolute;
     right: 0;
     background-color: #41464c;
@@ -2349,3 +2349,4 @@ div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
 
 div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box div.pending-txid { float:right }
 
+div.question-setting-info .setting-info-question-hash { font-size: 9px; }

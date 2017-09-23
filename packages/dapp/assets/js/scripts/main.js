@@ -1842,14 +1842,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     let questioner = question_detail[Qi_question_creator]
     let timeout = question_detail[Qi_timeout];
-    balloon_html = ''
-        + 'Reward: ' + web3.fromWei(question_detail[Qi_bounty], 'ether') + ' ETH<br>'
-        + 'Bond: ' + web3.fromWei(question_detail[Qi_bond], 'ether') + ' ETH<br>'
-        + 'Timeout: ' + secondsTodHms(question_detail[Qi_timeout]) + '<br /><br />'
-        + 'Created by: <br />' + questioner;
-    rcqa.find('.question-setting-info').find('.balloon').css('z-index', ++zindex);
-    rcqa.find('.question-setting-info').find('.balloon').html(balloon_html);
-
+    var balloon = rcqa.find('.question-setting-info').find('.balloon')
+    balloon.find('.setting-info-bounty').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
+    balloon.find('.setting-info-bond').text(web3.fromWei(question_detail[Qi_bond], 'ether'));
+    balloon.find('.setting-info-timeout').text(secondsTodHms(question_detail[Qi_timeout]));
+    balloon.find('.setting-info-question-hash').text(question_detail[Qi_question_hash]);
+    balloon.find('.setting-info-arbitrator').text(question_detail[Qi_arbitrator]);
+    balloon.find('.setting-info-questioner').text(questioner);
+    balloon.css('z-index', ++zindex);
 
     var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
     if (question_detail['history_unconfirmed'].length) {
