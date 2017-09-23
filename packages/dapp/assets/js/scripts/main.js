@@ -36,7 +36,28 @@ const QUESTION_TYPE_TEMPLATES = {
     'multiple-select': 4
 };
 
+const BLOCK_EXPLORERS = {
+    1: 'https://etherscan.io',
+    3: 'https://ropsten.etherscan.io',
+    4: 'https://rinkeby.etherscan.io',
+    42: 'https://kovan.etherscan.io'
+};
+
+const INFURA_NODES = {
+    1: 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK'
+};
+
+// The point where we deployed the contract on the network
+// No point in looking for questions any further back than that
+const START_BLOCKS = {
+    3: 1714975
+}
+var START_BLOCK; 
+
+
 var network_id = null;
+var block_explorer = null;
 
 const EVENT_ACTOR_ARGS = {
     'LogNewQuestion': 'user',
@@ -49,8 +70,6 @@ const EVENT_ACTOR_ARGS = {
 
 const QUESTION_MAX_OUTCOMES = 128; 
 
-// Assume we don't need blocks earlier than this, eg is when the contract was deployed.
-const START_BLOCK = parseInt(document.body.getAttribute('data-start-block'));
 
 const FETCH_NUMBERS = [100, 2500, 5000];
 
@@ -354,23 +373,11 @@ $('#help-center-button').on('click', function(e) {
 });
 
 function setViewedBlockNumber(network_id, block_number) {
-    if (network_id == 1) {
-        window.localStorage.setItem('viewedBlockNumberMain', block_number);
-    } else if (network_id == 3) {
-        window.localStorage.setItem('viewedBlockNumberRopsten', block_number);
-    } else {
-        window.localStorage.setItem('viewedBlockNumberOther', block_number);
-    }
+    window.localStorage.setItem('viewedBlockNumber' + network_id, block_number);
 }
 
 function getViewedBlockNumber(network_id) {
-    if (network_id == 1) {
-        return window.localStorage.getItem('viewedBlockNumberMain');
-    } else if (network_id == 3) {
-        return window.localStorage.getItem('viewedBlockNumberRopsten');
-    } else {
-        return window.localStorage.getItem('viewedBlockNumberOther');
-    }
+    return window.localStorage.getItem('viewedBlockNumber' + network_id);
 }
 
 function markViewedToDate() {
@@ -532,7 +539,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             //console.log('rcqa', win);
     
             // TODO: Once we have code to know which network we're on, link to a block explorer
-            win.find('.pending-question-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+            win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
             win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
             win.addClass('unconfirmed-transaction').addClass('has-warnings');
             win.attr('data-pending-txid', txid);
@@ -846,7 +853,7 @@ function updateClaimableDisplay() {
         var txids = claiming.txids;
         $('.answer-claiming-container').find('.claimable-eth').text(web3.fromWei(claiming.total.toNumber(), 'ether'));
         var txid = txids.join(', '); // TODO: Handle multiple links properly
-        $('.answer-claiming-container').find('a.txid').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+        $('.answer-claiming-container').find('a.txid').attr('href', block_explorer + '/tx/' + txid);
         $('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
         $('.answer-claiming-container').show();
     } else {
@@ -1847,7 +1854,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].args;
 
         var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].txid;
-        unconfirmed_container.find('.pending-answer-txid a').attr('href', 'https://ropsten.etherscan.io/tx/' + txid);
+        unconfirmed_container.find('.pending-answer-txid a').attr('href', block_explorer + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
 
@@ -3207,6 +3214,8 @@ function parseHash() {
 
 window.onload = function() {
 
+    let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
+
     // Checking if Web3 has been injected by the browser (Mist/MetaMask)
     if (typeof web3 !== 'undefined') {
         // Use Mist/MetaMask's provider
@@ -3272,8 +3281,8 @@ window.onload = function() {
 
     } else {
 // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        window.web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"));
-        console.log('no web3, using infura');
+        window.web3 = new Web3(new Web3.providers.HttpProvider(INFURA_NODES[valid_ids[0]]));
+        console.log('no web3, using infura on network', valid_ids[0]);
         $('body').addClass('error-no-metamask-plugin').addClass('error');
     }
 
@@ -3291,7 +3300,6 @@ window.onload = function() {
     setTimeout(bounceEffect, 8000);
 
     web3.version.getNetwork((err, net_id) => {
-        let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
 
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
@@ -3299,6 +3307,17 @@ window.onload = function() {
                 console.log('net id was', net_id);
             } else {
                 network_id = net_id;
+                if (BLOCK_EXPLORERS[network_id]) {
+                    block_explorer = BLOCK_EXPLORERS[net_id];
+                } else {
+                    // If you've got some unknown test network then we'll just link to main net
+                    block_explorer = BLOCK_EXPLORERS[1];
+                }
+                if (START_BLOCKS[net_id]) {
+                    START_BLOCK = START_BLOCK[net_id];
+                } else {
+                    START_BLOCK = 1;
+                }
             }
         }
     });
