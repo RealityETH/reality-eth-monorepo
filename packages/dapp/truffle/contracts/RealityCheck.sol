@@ -84,18 +84,18 @@ contract RealityCheck {
 
     event LogNewQuestion(
         bytes32 indexed question_id,
-        address indexed arbitrator, 
+        address arbitrator, 
         uint256 timeout,
         uint256 template_id,
         string question,
-        bytes32 question_hash,
+        bytes32 indexed question_hash,
         uint256 created,
         address indexed user, 
         uint256 nonce
     );
 
     event LogNewAnswer(
-        bytes32 indexed answer,
+        bytes32 answer,
         bytes32 indexed question_id,
         bytes32 history_hash,
         address indexed user,
