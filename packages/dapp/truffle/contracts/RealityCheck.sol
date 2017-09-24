@@ -450,7 +450,7 @@ contract RealityCheck {
                 delete commitments[answers[i]];
             }
 
-            if (answers[i] == best_answer) {
+            if ( (answers[i] == best_answer) && (commitments[answers[i]].deadline_ts <= COMMITMENT_REVEALED) ) {
 
                 if (payee == 0x0) {
 
