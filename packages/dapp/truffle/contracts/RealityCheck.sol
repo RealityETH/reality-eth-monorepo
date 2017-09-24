@@ -280,7 +280,7 @@ contract RealityCheck {
     }
 
     function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
-    internal returns (bytes32)
+    internal 
     {
 
         bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer);
