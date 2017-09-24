@@ -352,14 +352,14 @@ contract RealityCheck {
         LogFinalize(question_id, answer);
 
         _addAnswerToHistory(question_id, answer, answerer, uint256(0), false);
-        _updateCurrentAnswer(question_id, answer, now.sub(1));
+        _updateCurrentAnswer(question_id, answer, now);
 
     }
 
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
         uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts > PENDING_ARBITRATION) && (finalization_ts < now) );
+        return ( (finalization_ts > PENDING_ARBITRATION) && (finalization_ts <= now) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
