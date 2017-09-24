@@ -50,6 +50,11 @@ class TestRealityCheck(TestCase):
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
         caller_backer_code_raw = open('CallerBacker.sol').read()
 
+        # Not sure what the right way is to get pyethereum to import the dependencies
+        # Pretty sure it's not this, but it does the job:
+        safemath = open('SafeMath.sol').read()
+        realitycheck_code = realitycheck_code.replace("import './SafeMath.sol';", safemath);
+
         self.rc_code = realitycheck_code
         self.arb_code = arb_code_raw
         self.client_code = client_code_raw

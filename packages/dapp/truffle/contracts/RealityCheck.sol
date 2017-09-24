@@ -12,7 +12,13 @@ Things that can be done by the arbitrator should specify
 (All other functions can be run by anyone.)
 */
 
+import './SafeMath.sol';
+
 contract RealityCheck {
+
+    // We probably don't really need this as arithmetic inputs are always either msg.value or bounds-checked
+    // Doesn't do any harm to have it, though.
+    using SafeMath for uint256;
 
     // finalization_ts states. Anything above this is a timestamp.
     uint256 constant UNANSWERED = 0;
@@ -190,7 +196,7 @@ contract RealityCheck {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
         LogNewTemplate(id, msg.sender, content);
-        nextTemplateID = id + 1;
+        nextTemplateID = id.add(1);
         return id;
     }
 
@@ -229,7 +235,7 @@ contract RealityCheck {
     function fundAnswerBounty(bytes32 question_id) 
     stateOpen(question_id)
     external payable {
-        questions[question_id].bounty += msg.value;
+        questions[question_id].bounty = questions[question_id].bounty.add(msg.value);
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
@@ -274,7 +280,7 @@ contract RealityCheck {
     external payable {
         
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
-        _updateCurrentAnswer(question_id, answer, now + questions[question_id].timeout);
+        _updateCurrentAnswer(question_id, answer, now.add(questions[question_id].timeout));
 
     }
 
@@ -291,7 +297,7 @@ contract RealityCheck {
         require(commitments[commitment_id].deadline_ts == 0);
 
         uint256 timeout = questions[question_id].timeout;
-        commitments[commitment_id].deadline_ts = now + (timeout/8);
+        commitments[commitment_id].deadline_ts = now.add((timeout.div(8)));
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
         // We don't do _updateCurrentAnswer, this is left until the reveal
@@ -317,7 +323,7 @@ contract RealityCheck {
         commitments[commitment_id].revealed_answer = answer;
 
         if (bond == questions[question_id].bond) {
-            _updateCurrentAnswer(question_id, answer, now + questions[question_id].timeout);
+            _updateCurrentAnswer(question_id, answer, now.add(questions[question_id].timeout));
         }
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
@@ -346,7 +352,7 @@ contract RealityCheck {
         LogFinalize(question_id, answer);
 
         _addAnswerToHistory(question_id, answer, answerer, uint256(0), false);
-        _updateCurrentAnswer(question_id, answer, now - 1);
+        _updateCurrentAnswer(question_id, answer, now.sub(1));
 
     }
 
@@ -400,8 +406,7 @@ contract RealityCheck {
             // So we can be sure that the data here is what was sent in submitAnswer().
             require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i]));
 
-            take += last_bond; 
-            assert(take >= last_bond);
+            take = take.add(last_bond); 
 
             if (commitments[answers[i]].deadline_ts == COMMITMENT_REVEALED) {
                 answers[i] = commitments[answers[i]].revealed_answer;
@@ -414,7 +419,7 @@ contract RealityCheck {
 
                     // The first payee we come to, ie the winner. They get the question bounty.
                     payee = addrs[i];
-                    take += questions[question_id].bounty;
+                    take = take.add(questions[question_id].bounty);
                     questions[question_id].bounty = 0;
 
                 } else if (addrs[i] != payee) {
@@ -436,8 +441,8 @@ contract RealityCheck {
                     assert(take >= payment);
 
                     // Settle up with the old payee
-                    take -= payment;
-                    balanceOf[payee] += take;
+                    take = take.sub(payment);
+                    balanceOf[payee] = balanceOf[payee].add(take);
                     LogClaim(question_id, payee, take);
                     take = 0;
 
@@ -467,13 +472,13 @@ contract RealityCheck {
                 question_claims[question_id].take = take;
             } else {
                 question_claims[question_id].take = 0;
-                balanceOf[payee] += take;
+                balanceOf[payee] = balanceOf[payee].add(take);
                 LogClaim(question_id, payee, take);
             }
         } else {
             // There is nothing left below us so we can keep what remains
-            take += last_bond;
-            balanceOf[payee] += take;
+            take = take.add(last_bond);
+            balanceOf[payee] = balanceOf[payee].add(take);
             LogClaim(question_id, payee, take);
             delete question_claims[question_id];
         }
