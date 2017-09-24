@@ -165,11 +165,11 @@ contract RealityCheck {
     }
 
     function RealityCheck() {
-		createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
-		createTemplate('{"title": "%s", "type": "uint", "decimals": 13, "category": "%s"}');
-		createTemplate('{"title": "%s", "type": "int", "decimals": 13, "category": "%s"}');
-		createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
-		createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "uint", "decimals": 13, "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "int", "decimals": 13, "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
     }
 
     // Templates are assigned sequential IDs.
