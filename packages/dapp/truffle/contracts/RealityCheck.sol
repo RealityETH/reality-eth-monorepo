@@ -135,6 +135,11 @@ contract RealityCheck {
         uint256 amount
     );
 
+    event LogWithdraw(
+        address indexed user,
+        uint256 amount
+    );
+
     struct Question {
         uint256 finalization_ts;
 
@@ -515,6 +520,7 @@ contract RealityCheck {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
         msg.sender.transfer(bal);
+        LogWithdraw(msg.sender, bal);
     }
 
 }
