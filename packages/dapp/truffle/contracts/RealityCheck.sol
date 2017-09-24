@@ -517,19 +517,4 @@ contract RealityCheck {
         msg.sender.transfer(bal);
     }
 
-
-    //////////////////
-    // TODO: Delete this before release, you shouldn't use it.
-    // Just using it for now while we make sure we calculate the hash right in python and javascript
-    function calculateCommitmentHash(bytes32 answer, uint256 nonce) 
-    public constant returns (bytes32)
-    {
-        return keccak256(answer, nonce);
-    }
-    function calculateCommitmentID(bytes32 question_id, bytes32 answer_hash, uint256 bond) 
-    public constant returns (bytes32)
-    {
-        return keccak256(question_id, answer_hash, bond);
-    }
-
 }

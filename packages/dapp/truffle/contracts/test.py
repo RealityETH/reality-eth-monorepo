@@ -22,12 +22,11 @@ QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_BEST_ANSWER_ID = 6
 QINDEX_HISTORY_HASH = 7
 
-def ipfs_hex(txt):
-    return sha256(txt).hexdigest()
+def calculate_commitment_hash(answer, nonce):
+    return decode_hex(keccak_256(answer + decode_hex(hex(nonce)[2:].zfill(64))).hexdigest())
 
-def to_question_for_contract(txt):
-    # to_question_for_contract(("my question")),
-    return decode_hex(ipfs_hex(txt)[2:].zfill(64))
+def calculate_commitment_id(question_id, answer_hash, bond):
+    return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
 
 def from_question_for_contract(txt):
     return txt
@@ -232,8 +231,8 @@ class TestRealityCheck(TestCase):
         nonce = None
         if is_commitment:
             nonce = 1234
-            answer_hash = self.rc0.calculateCommitmentHash(to_answer_for_contract(ans), nonce)
-            commitment_id = self.rc0.calculateCommitmentID(self.question_id, answer_hash, bond)
+            answer_hash = calculate_commitment_hash(to_answer_for_contract(ans), nonce)
+            commitment_id = calculate_commitment_id(self.question_id, answer_hash, bond)
             self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, value=bond, sender=sdr)
             st['answer'][0] = commitment_id
         else:
@@ -342,7 +341,7 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_reveal_calculation(self):
-        h = self.rc0.calculateCommitmentHash(to_answer_for_contract(1003), to_answer_for_contract(94989))
+        h = calculate_commitment_hash(to_answer_for_contract(1003), 94989)
         self.assertEqual(encode_hex(h), '23e796d2bf4f5f890b1242934a636f4802aadd480b6f83c754d2bd5920f78845')
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
