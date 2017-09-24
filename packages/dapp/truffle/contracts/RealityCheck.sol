@@ -97,6 +97,17 @@ contract RealityCheck {
         uint256 nonce
     );
 
+    event LogRepeatQuestion(
+        bytes32 indexed question_id,
+        bytes32 repeat_question_id,
+        address arbitrator, 
+        uint256 timeout,
+        bytes32 indexed question_hash,
+        uint256 created,
+        address indexed user, 
+        uint256 nonce
+    );
+
     event LogNewAnswer(
         bytes32 answer,
         bytes32 indexed question_id,
@@ -214,6 +225,29 @@ contract RealityCheck {
 
         return question_id;
     }
+
+    function repeatQuestion(bytes32 repeat_question_id, uint256 nonce, address arbitrator, uint256 timeout) 
+    // stateNotCreated is enforced by the internal _askQuestion
+    public payable returns (bytes32) {
+
+        require(questions[repeat_question_id].timeout > 0);
+
+        bytes32 question_hash = questions[repeat_question_id].question_hash;
+        if (arbitrator == 0x0) {
+            arbitrator = questions[repeat_question_id].arbitrator;
+        }
+        if (timeout == 0) {
+            timeout = questions[repeat_question_id].timeout;
+        }
+
+        bytes32 question_id = keccak256(question_hash, arbitrator, timeout, msg.sender, nonce);
+
+        _askQuestion(question_id, question_hash, arbitrator, timeout);
+        LogRepeatQuestion(question_id, repeat_question_id, arbitrator, timeout, question_hash, now, msg.sender, nonce);
+
+        return question_id;
+    }
+
 
     function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 timeout) 
     stateNotCreated(question_id)
