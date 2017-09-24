@@ -191,35 +191,6 @@ contract RealityCheck {
         return id;
     }
 
-    /*
-    // Think about whether to do this
-    function askQuestionBool(string question, address arbitrator, uint256 US_timeout) 
-    public payable returns (bytes32) {
-        return _askQuestion(0, question, arbitrator, US_timeout, 0x0;
-    }
-
-    function askQuestionMultipleChoice(string question, address arbitrator, uint256 US_timeout) 
-    public payable returns (bytes32) {
-        return _askQuestion(1, question, arbitrator, US_timeout, 0x0);
-    }
-
-    function askQuestionUnsignedNumber(string question, address arbitrator, uint256 US_timeout) 
-    public payable returns (bytes32) {
-        return _askQuestion(2, question, arbitrator, US_timeout, 0x0);
-    }
-
-    function askQuestionSignedNumber(string question, address arbitrator, uint256 US_timeout) 
-    public payable returns (bytes32) {
-        return _askQuestion(3, question, arbitrator, US_timeout, 0x0);
-    }
-    */
-
-    function askQuestionNewTemplate(string template, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
-    public payable returns (bytes32) {
-        uint256 template_id = createTemplate(template); 
-        return askQuestion(template_id, question, arbitrator, US_timeout, nonce);
-    }
-
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
     public payable returns (bytes32) {
 
@@ -231,20 +202,6 @@ contract RealityCheck {
         LogNewQuestion( question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, nonce);
 
         return _askQuestion(question_id, question_hash, arbitrator, US_timeout);
-    }
-
-    function askQuestionUnique(uint256 template_id, string question, address arbitrator, uint256 US_timeout) 
-    public payable returns (bytes32) {
-
-        require(templates[template_id] > 0);
-
-        bytes32 question_hash = keccak256(template_id, question);
-        bytes32 question_id = keccak256(question_hash, arbitrator, US_timeout);
-
-        LogNewQuestion( question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, 0);
-
-        return _askQuestion(question_id, question_hash, arbitrator, US_timeout);
-
     }
 
     function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 US_timeout) 

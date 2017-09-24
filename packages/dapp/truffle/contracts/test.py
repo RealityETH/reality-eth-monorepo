@@ -66,11 +66,12 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
-        self.question_id = self.rc0.askQuestionUnique(
+        self.question_id = self.rc0.askQuestion(
             0,
             "my question",
             self.arb0.address,
             10,
+            0,
             value=1000
         )
 
