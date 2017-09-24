@@ -10,9 +10,6 @@ Things that take answers should specify
 Things that can be done by the arbitrator should specify
 * actorArbitrator 
 (All other functions can be run by anyone.)
-
-Any number that may be used in arithmetic not from a trusted source like now or msg.value
-...should be prefixed US_ for UnSafe until explicitly bounds-checked.
 */
 
 contract RealityCheck {
@@ -55,14 +52,14 @@ contract RealityCheck {
         _;
     }
 
-    modifier bondMustDouble(bytes32 question_id, uint256 US_max_previous) {
+    modifier bondMustDouble(bytes32 question_id, uint256 max_previous) {
 
         require(msg.value > 0); 
 
         uint256 bond_to_beat = questions[question_id].bond;
 
         // You can specify that you don't want to beat a bond bigger than x
-        require(US_max_previous == 0 || bond_to_beat <= US_max_previous);
+        require(max_previous == 0 || bond_to_beat <= max_previous);
 
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
@@ -197,32 +194,32 @@ contract RealityCheck {
         return id;
     }
 
-    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
+    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
     // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
         require(templates[template_id] > 0);
 
         bytes32 question_hash = keccak256(template_id, question);
-        bytes32 question_id = keccak256(question_hash, arbitrator, US_timeout, msg.sender, nonce);
+        bytes32 question_id = keccak256(question_hash, arbitrator, timeout, msg.sender, nonce);
 
-        _askQuestion(question_id, question_hash, arbitrator, US_timeout);
-        LogNewQuestion(question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, nonce);
+        _askQuestion(question_id, question_hash, arbitrator, timeout);
+        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, question_hash, now, msg.sender, nonce);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 US_timeout) 
+    function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 timeout) 
     stateNotCreated(question_id)
     internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
-        require(US_timeout > 0); 
-        require(US_timeout < 365 days); 
+        require(timeout > 0); 
+        require(timeout < 365 days); 
         require(arbitrator != 0x0);
 
         questions[question_id].arbitrator = arbitrator;
-        questions[question_id].timeout = US_timeout;
+        questions[question_id].timeout = timeout;
         questions[question_id].question_hash = question_hash;
         questions[question_id].bounty = msg.value;
 
@@ -237,10 +234,10 @@ contract RealityCheck {
     }
 
     // Predict the ID for a given question
-    function getQuestionID(uint256 template_id, string question, address arbitrator, uint256 US_timeout, address sender, uint256 nonce) 
+    function getQuestionID(uint256 template_id, string question, address arbitrator, uint256 timeout, address sender, uint256 nonce) 
     external constant returns (bytes32) {
         bytes32 question_hash = keccak256(template_id, question);
-        return keccak256(question_hash, arbitrator, US_timeout, sender, nonce);
+        return keccak256(question_hash, arbitrator, timeout, sender, nonce);
     }
 
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
@@ -271,9 +268,9 @@ contract RealityCheck {
     }
 
 
-    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 US_max_previous) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
     stateOpen(question_id)
-    bondMustDouble(question_id, US_max_previous)
+    bondMustDouble(question_id, max_previous)
     external payable {
         
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
@@ -283,9 +280,9 @@ contract RealityCheck {
 
     // If you're worried about front-running, you can use submitAnswerCommitment then submitAnswerReveal instead of submitAnswer.
     // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
-    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 US_max_previous) 
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
     stateOpen(question_id)
-    bondMustDouble(question_id, US_max_previous)
+    bondMustDouble(question_id, max_previous)
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
@@ -303,14 +300,14 @@ contract RealityCheck {
 
     // NB The bond is the amount you sent in submitAnswerCommitment.
     // Since the bond must always increase, we can use this to confirm whether you still have the top answer.
-    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 US_bond) 
+    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
     stateOpen(question_id)
     external {
 
         bytes32 answer_hash = keccak256(answer, nonce);
 
         // The question ID + bond will uniquely identify the commitment.
-        bytes32 commitment_id = keccak256(question_id, answer_hash, US_bond);
+        bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
 
         uint256 deadline_ts = commitments[commitment_id].deadline_ts;
         require(deadline_ts > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
@@ -319,11 +316,11 @@ contract RealityCheck {
         commitments[commitment_id].deadline_ts = COMMITMENT_REVEALED;
         commitments[commitment_id].revealed_answer = answer;
 
-        if (US_bond == questions[question_id].bond) {
+        if (bond == questions[question_id].bond) {
             _updateCurrentAnswer(question_id, answer, now + questions[question_id].timeout);
         }
 
-        LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, US_bond);
+        LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
 
     }
 
@@ -381,7 +378,7 @@ contract RealityCheck {
     // * Question holds the history_hash. It'll be zeroed once everything has been claimed.
     // * The rest goes in a dedicated Claim struct. This is only filled if you stop a claim before the end.
     //
-    function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
+    function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
     stateFinalized(question_id)
     public {
 
@@ -401,7 +398,7 @@ contract RealityCheck {
 
             // The hash comes from the Question struct, and the rest is checked against the hash.
             // So we can be sure that the data here is what was sent in submitAnswer().
-            require(last_history_hash == keccak256(history_hashes[i], answers[i], US_bonds[i], addrs[i]));
+            require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i]));
 
             take += last_bond; 
             assert(take >= last_bond);
@@ -429,8 +426,8 @@ contract RealityCheck {
                     // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
                     uint256 payment = 0;
-                    if (last_bond >= US_bonds[i]) {
-                        payment = US_bonds[i]; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
+                    if (last_bond >= bonds[i]) {
+                        payment = bonds[i]; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
                     } else {
                         payment = last_bond; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
                     }
@@ -453,7 +450,7 @@ contract RealityCheck {
             } 
 
             // Line the bond up for next time, when it will be added to somebody's take
-            last_bond = US_bonds[i];
+            last_bond = bonds[i];
             last_history_hash = history_hashes[i];
 
         }
@@ -488,7 +485,7 @@ contract RealityCheck {
     // Convenience function to claim for multiple questions in one go, then withdraw all funds.
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
-    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] US_bonds, bytes32[] answers) 
+    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
     stateAny() // The finalization checks are done in the claimWinnings function
     public {
         
@@ -505,7 +502,7 @@ contract RealityCheck {
             for(j=0; j<l; j++) {
                 hh[j] = hist_hashes[i];
                 ad[j] = addrs[i];
-                bo[j] = US_bonds[i];
+                bo[j] = bonds[i];
                 an[j] = answers[i];
                 i++;
             }
