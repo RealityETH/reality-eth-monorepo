@@ -493,12 +493,7 @@ contract RealityCheck {
 
         }
                  
-        if (last_history_hash == "") {
-            // There is nothing left below us so we can keep what remains
-            take += last_bond;
-            balanceOf[payee] += take;
-            delete question_claims[question_id];
-        } else {
+        if (last_history_hash != "") {
             // We haven't yet got to the null hash (1st answer), so store the details to pick up later
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
@@ -513,6 +508,12 @@ contract RealityCheck {
                 balanceOf[payee] += take;
                 LogClaim(question_id, payee, take);
             }
+        } else {
+            // There is nothing left below us so we can keep what remains
+            take += last_bond;
+            balanceOf[payee] += take;
+            LogClaim(question_id, payee, take);
+            delete question_claims[question_id];
         }
 
         questions[question_id].history_hash = last_history_hash;
