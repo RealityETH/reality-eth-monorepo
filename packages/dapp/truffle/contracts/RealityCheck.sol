@@ -279,7 +279,7 @@ contract RealityCheck {
         return keccak256(question_hash, arbitrator, US_timeout, sender, nonce);
     }
 
-    function _addAnswer(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment, uint256 finalization_ts) 
+    function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
     internal 
     {
 
@@ -287,12 +287,6 @@ contract RealityCheck {
 
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_state;
-
-        if (!is_commitment) {
-            // For a commit-reveal, we leave these until the reveal
-            questions[question_id].best_answer = answer;
-            questions[question_id].finalization_ts = finalization_ts;
-        }
 
         LogNewAnswer(
             answer,
@@ -306,13 +300,20 @@ contract RealityCheck {
 
     }
 
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 finalization_ts)
+    internal {
+        questions[question_id].best_answer = answer;
+        questions[question_id].finalization_ts = finalization_ts;
+    }
+
+
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 US_max_previous) 
     stateOpen(question_id)
     bondMustDouble(question_id, US_max_previous)
     external payable {
-
-        uint256 finalization_ts = now + questions[question_id].timeout;
-        _addAnswer(question_id, answer, msg.sender, msg.value, false, finalization_ts);
+        
+        _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
+        _updateCurrentAnswer(question_id, answer, now + questions[question_id].timeout);
 
     }
 
@@ -331,7 +332,8 @@ contract RealityCheck {
         uint256 timeout = questions[question_id].timeout;
         commitments[commitment_id].deadline_ts = now + (timeout/8);
 
-        _addAnswer(question_id, commitment_id, msg.sender, msg.value, true, 0);
+        _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
+        // We don't do _updateCurrentAnswer, this is left until the reveal
 
     }
 
@@ -354,8 +356,7 @@ contract RealityCheck {
         commitments[commitment_id].revealed_answer = answer;
 
         if (US_bond == questions[question_id].bond) {
-            questions[question_id].best_answer = answer;
-            questions[question_id].finalization_ts = now + questions[question_id].timeout;
+            _updateCurrentAnswer(question_id, answer, now + questions[question_id].timeout);
         }
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, US_bond);
@@ -381,10 +382,10 @@ contract RealityCheck {
     external returns (bytes32) {
 
         require(answerer != 0x0);
-        uint256 finalization_ts = now - 1;
         LogFinalize(question_id, answer);
 
-        _addAnswer(question_id, answer, answerer, uint256(0), false, finalization_ts);
+        _addAnswerToHistory(question_id, answer, answerer, uint256(0), false);
+        _updateCurrentAnswer(question_id, answer, now - 1);
 
     }
 
