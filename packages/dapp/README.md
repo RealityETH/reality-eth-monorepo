@@ -34,7 +34,7 @@ Reality Check is a crowd-sourced on-chain smart contract oracle system by Realit
  
 The system requires people to post useful information. It also requires people to spot bad information, and if necessary post fairly large bonds to beat the bonds posted by people posting bad information. These roles will not necessarily be played by the same people, and both should be rewarded.
 
-To fulfill the second goal, we do not require answers to be original. You can post an answer that someone else has given, and this will entitle you to the bounty (if nobody then posts something higher than you) and any bonds for wrong answers posted since the last person posted the same answer. However, when doing this you are required to pay the person who posted the previous answer some of your subsequent winnings. This payment is set at the equivalent of the bond posted by the previous answerer. The earlier answerer also collects any bonds from people who posted incorrect answers before their correct answer.
+To fulfill the second goal, we allow answers to be unoriginal. You can post an answer that someone else has given, and this will entitle you to the bounty (if nobody then posts something higher than you) and any bonds for wrong answers posted since the last person posted the same answer. However, when doing this you are required to pay the person who posted the previous answer some of your subsequent winnings. This payment is set at the equivalent of the bond posted by the previous answerer. The earlier answerer also collects any bonds from people who posted incorrect answers before their correct answer.
 
 Example: Question with a bounty of 100, and no minimum bond:
 
