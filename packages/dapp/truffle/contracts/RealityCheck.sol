@@ -495,7 +495,8 @@ contract RealityCheck {
         }
                  
         if (last_history_hash != "") {
-            // We haven't yet got to the null hash (1st answer), so store the details to pick up later
+            // We haven't yet got to the null hash (1st answer), ie the user didn't supply the full answer chain.
+            // Persist the details to pick up later where we left off.
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
 
