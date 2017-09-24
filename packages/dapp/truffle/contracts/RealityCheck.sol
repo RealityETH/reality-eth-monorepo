@@ -352,7 +352,7 @@ contract RealityCheck {
         require(deadline_ts > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
         require(deadline_ts > now); 
 
-        commitments[commitment_id].deadline_ts = 1;
+        commitments[commitment_id].deadline_ts = COMMITMENT_REVEALED;
         commitments[commitment_id].revealed_answer = answer;
 
         if (US_bond == questions[question_id].bond) {
