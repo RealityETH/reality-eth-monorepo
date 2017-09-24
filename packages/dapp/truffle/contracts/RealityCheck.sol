@@ -183,6 +183,7 @@ contract RealityCheck {
     mapping(address => uint256) public balanceOf;
 
     function createTemplate(string content) 
+    stateAny()
     public returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
@@ -192,6 +193,7 @@ contract RealityCheck {
     }
 
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 US_timeout, uint256 nonce) 
+    // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
         require(templates[template_id] > 0);
@@ -199,25 +201,25 @@ contract RealityCheck {
         bytes32 question_hash = keccak256(template_id, question);
         bytes32 question_id = keccak256(question_hash, arbitrator, US_timeout, msg.sender, nonce);
 
-        LogNewQuestion( question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, nonce);
+        _askQuestion(question_id, question_hash, arbitrator, US_timeout);
+        LogNewQuestion(question_id, arbitrator, US_timeout, template_id, question, question_hash, now, msg.sender, nonce);
 
-        return _askQuestion(question_id, question_hash, arbitrator, US_timeout);
+        return question_id;
     }
 
     function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 US_timeout) 
     stateNotCreated(question_id)
-    internal returns (bytes32) {
+    internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(US_timeout > 0); 
         require(US_timeout < 365 days); 
+        require(arbitrator != 0x0);
 
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].timeout = US_timeout;
         questions[question_id].question_hash = question_hash;
         questions[question_id].bounty = msg.value;
-
-        return question_id;
 
     }
 
