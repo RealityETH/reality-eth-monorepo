@@ -442,6 +442,9 @@ contract RealityCheck {
 
             take = take.add(last_bond); 
 
+            // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
+            // We look at the referenced commitment ID and switch in the actual answer.
+            // If the user didn't reveal, we'll leave the commitment ID there, which will be the wrong answer
             if (commitments[answers[i]].deadline_ts == COMMITMENT_REVEALED) {
                 answers[i] = commitments[answers[i]].revealed_answer;
                 delete commitments[answers[i]];
@@ -493,9 +496,9 @@ contract RealityCheck {
             last_history_hash = history_hashes[i];
 
         }
-                 
+ 
         if (last_history_hash != "") {
-            // We haven't yet got to the null hash (1st answer), ie the user didn't supply the full answer chain.
+            // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details to pick up later where we left off.
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
