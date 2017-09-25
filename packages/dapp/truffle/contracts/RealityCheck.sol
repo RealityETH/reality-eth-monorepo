@@ -27,58 +27,6 @@ contract RealityCheck {
     // commitment deadline_ts state. Anything above this is a timestamp.
     uint256 constant COMMITMENT_REVEALED = 1;
 
-    modifier actorArbitrator(bytes32 question_id) {
-        require(msg.sender == questions[question_id].arbitrator);
-        _;
-    }
-
-    modifier stateAny() {
-        _;
-    }
-
-    modifier stateNotCreated(bytes32 question_id) {
-        require(questions[question_id].timeout == 0);
-        _;
-    }
-
-    modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].timeout > 0); // Check existence
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts == UNANSWERED || finalization_ts > now);
-        _;
-    }
-
-    modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].finalization_ts == PENDING_ARBITRATION);
-        _;
-    }
-
-    modifier stateFinalized(bytes32 question_id) {
-        require(isFinalized(question_id));
-        _;
-    }
-
-    modifier bondMustDouble(bytes32 question_id, uint256 max_previous) {
-
-        require(msg.value > 0); 
-
-        uint256 bond_to_beat = questions[question_id].bond;
-
-        // You can specify that you don't want to beat a bond bigger than x
-        require(max_previous == 0 || bond_to_beat <= max_previous);
-
-        // You have to double the bond every time
-        require(msg.value >= (bond_to_beat * 2));
-
-        _;
-
-    }
-
-    modifier bondMustBeZero() {
-        require(msg.value == 0);
-        _;
-    }
-
     event LogNewTemplate(
         uint256 indexed template_id,
         address indexed user, 
@@ -169,6 +117,12 @@ contract RealityCheck {
         bytes32 history_hash;
     }
 
+    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash, question and bond. 
+    struct Commitment {
+        uint256 deadline_ts; // COMMITMENT_REVEALED, or the deadline for the reveal
+        bytes32 revealed_answer;
+    }
+
     // Only used when claiming more bonds than fits into a transaction
     // Stored in a mapping indexed by question_id.
     struct Claim {
@@ -177,10 +131,63 @@ contract RealityCheck {
         uint256 take;
     }
 
-    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash, question and bond. 
-    struct Commitment {
-        uint256 deadline_ts; // COMMITMENT_REVEALED, or the deadline for the reveal
-        bytes32 revealed_answer;
+    uint256 nextTemplateID = 0;
+    mapping(uint256 => uint256) public templates;
+    mapping(bytes32 => Question) public questions;
+    mapping(bytes32 => Claim) question_claims;
+    mapping(bytes32 => Commitment) public commitments;
+    mapping(address => uint256) public balanceOf;
+
+    modifier actorArbitrator(bytes32 question_id) {
+        require(msg.sender == questions[question_id].arbitrator);
+        _;
+    }
+
+    modifier stateAny() {
+        _;
+    }
+
+    modifier stateNotCreated(bytes32 question_id) {
+        require(questions[question_id].timeout == 0);
+        _;
+    }
+
+    modifier stateOpen(bytes32 question_id) {
+        require(questions[question_id].timeout > 0); // Check existence
+        uint256 finalization_ts = questions[question_id].finalization_ts;
+        require(finalization_ts == UNANSWERED || finalization_ts > now);
+        _;
+    }
+
+    modifier statePendingArbitration(bytes32 question_id) {
+        require(questions[question_id].finalization_ts == PENDING_ARBITRATION);
+        _;
+    }
+
+    modifier stateFinalized(bytes32 question_id) {
+        require(isFinalized(question_id));
+        _;
+    }
+
+    modifier bondMustDouble(bytes32 question_id, uint256 max_previous) {
+
+        require(msg.value > 0); 
+
+        uint256 bond_to_beat = questions[question_id].bond;
+
+        // You can specify that you don't want to beat a bond bigger than x
+        require(max_previous == 0 || bond_to_beat <= max_previous);
+
+        // You have to double the bond every time
+        require(msg.value >= (bond_to_beat * 2));
+
+        _;
+
+    }
+
+    modifier bondMustBeZero() {
+        require(msg.value == 0);
+        _;
     }
 
     function RealityCheck() {
@@ -190,16 +197,6 @@ contract RealityCheck {
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
     }
-
-    // Templates are assigned sequential IDs.
-    uint256 nextTemplateID = 0;
-    // The data in them is stored in event logs, but we hold a mapping telling us which block that is for faster log querying.
-    mapping(uint256 => uint256) public templates;
-
-    mapping(bytes32 => Question) public questions;
-    mapping(bytes32 => Claim) question_claims;
-    mapping(bytes32 => Commitment) public commitments;
-    mapping(address => uint256) public balanceOf;
 
     function createTemplate(string content) 
     stateAny()
