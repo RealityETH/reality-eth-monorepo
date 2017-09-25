@@ -515,7 +515,7 @@ contract RealityCheck {
             // Persist the details so we can pick up later where we left off later.
 
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
-            // (We always know who to pay unless there are lots of unrevealed commits)
+            // (We always know who to pay unless all we saw were unrevealed commits)
             if (payee != 0x0) {
                 balanceOf[payee] = balanceOf[payee].add(take);
                 LogClaim(question_id, payee, take);
