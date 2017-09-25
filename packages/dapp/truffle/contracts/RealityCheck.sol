@@ -403,6 +403,18 @@ contract RealityCheck {
         return questions[question_id].best_answer;
     }
 
+    function isUnrevealedCommitment(bytes32 potential_commitment_id) 
+    internal returns (bool)
+    {
+        return (commitments[potential_commitment_id].deadline_ts > COMMITMENT_REVEALED);
+    }
+
+    function isRevealedCommitment(bytes32 potential_commitment_id) 
+    internal returns (bool)
+    {
+        return commitments[potential_commitment_id].deadline_ts == COMMITMENT_REVEALED;
+    }
+
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
     // We work up the chain and assign bonds to the person who gave the right answer
@@ -445,13 +457,12 @@ contract RealityCheck {
 
             // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
             // We look at the referenced commitment ID and switch in the actual answer.
-            // If the user didn't reveal, we'll leave the commitment ID there, which will be the wrong answer
-            if (commitments[answers[i]].deadline_ts == COMMITMENT_REVEALED) {
+            if (isRevealedCommitment(answers[i])) {
                 answers[i] = commitments[answers[i]].revealed_answer;
                 delete commitments[answers[i]];
             }
 
-            if ( (answers[i] == best_answer) && (commitments[answers[i]].deadline_ts <= COMMITMENT_REVEALED) ) {
+            if ( (answers[i] == best_answer) && (!isUnrevealedCommitment(answers[i])) ) {
 
                 if (payee == 0x0) {
 
