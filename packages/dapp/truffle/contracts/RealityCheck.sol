@@ -300,10 +300,10 @@ contract RealityCheck {
 
     }
 
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 finalization_ts)
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalization_ts = finalization_ts;
+        questions[question_id].finalization_ts = now.add(timeout_secs);
     }
 
 
@@ -313,7 +313,7 @@ contract RealityCheck {
     external payable {
         
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
-        _updateCurrentAnswer(question_id, answer, now.add(questions[question_id].timeout));
+        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
 
     }
 
@@ -356,7 +356,7 @@ contract RealityCheck {
         commitments[commitment_id].revealed_answer = answer;
 
         if (bond == questions[question_id].bond) {
-            _updateCurrentAnswer(question_id, answer, now.add(questions[question_id].timeout));
+            _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
         }
 
         LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
@@ -387,7 +387,7 @@ contract RealityCheck {
         LogFinalize(question_id, answer);
 
         _addAnswerToHistory(question_id, answer, answerer, uint256(0), false);
-        _updateCurrentAnswer(question_id, answer, now);
+        _updateCurrentAnswer(question_id, answer, 0);
 
     }
 
