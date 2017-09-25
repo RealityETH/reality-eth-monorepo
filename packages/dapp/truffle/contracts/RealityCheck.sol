@@ -265,7 +265,6 @@ contract RealityCheck {
 
     }
 
-    // Normally the bounty is paid on question creation, but if you like you can add to it later.
     function fundAnswerBounty(bytes32 question_id) 
     stateOpen(question_id)
     external payable {
@@ -375,7 +374,9 @@ contract RealityCheck {
     }
 
     // Answer sent by the arbitrator contract, without a bond.
-    // It will be added to the history, with their opinion on who gave it last. (We don't check.)
+    // We don't check the answerer, but for incentives to work right it should be:
+    // - the person who submitted the current final answer if they were right.
+    // - the person who paid for arbitration if the current fial answer was wrong.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
     actorArbitrator(question_id)
     statePendingArbitration(question_id)
@@ -406,7 +407,7 @@ contract RealityCheck {
     // The caller must provide the answer history, in reverse order.
     // We work up the chain and assign bonds to the person who gave the right answer
     // If someone gave the winning answer earlier, they must get paid from the higher bond
-    // So we don't pay out the bond added at n until we have looked at n-1
+    // That means we can't pay out the bond added at n until we have looked at n-1
     //
     // The first answer is authenticated by checking against the stored history_hash.
     // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
