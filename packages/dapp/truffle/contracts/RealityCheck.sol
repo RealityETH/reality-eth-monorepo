@@ -499,22 +499,21 @@ contract RealityCheck {
  
         if (last_history_hash != "") {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
-            // Persist the details to pick up later where we left off.
-            question_claims[question_id].payee = payee;
-            question_claims[question_id].last_bond = last_bond;
+            // Persist the details so we can pick up later where we left off later.
 
-            // If we're still waiting for the winner, we have to persist their winnings.
-            // These will remain in the pool until they submit enough history to tell use who they are.
-            // If we have the winner we can go ahead and pay them out, only keeping back last_bond
-            if (payee == 0x0) {
-                question_claims[question_id].take = take;
-            } else {
-                question_claims[question_id].take = 0;
+            // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
+            // (We always know who to pay unless there are lots of unrevealed commits)
+            if (payee != 0x0) {
                 balanceOf[payee] = balanceOf[payee].add(take);
                 LogClaim(question_id, payee, take);
+                take = 0;
             }
+
+            question_claims[question_id].payee = payee;
+            question_claims[question_id].last_bond = last_bond;
+            question_claims[question_id].take = take;
         } else {
-            // There is nothing left below us so we can keep what remains
+            // There is nothing left below us so the payee can keep what remains
             take = take.add(last_bond);
             balanceOf[payee] = balanceOf[payee].add(take);
             LogClaim(question_id, payee, take);
