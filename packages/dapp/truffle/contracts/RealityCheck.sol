@@ -457,6 +457,7 @@ contract RealityCheck {
 
             // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
             // We look at the referenced commitment ID and switch in the actual answer.
+            // If it's a commit but it hasn't been revealed, it will always be considered wrong.
             if (isRevealedCommitment(answers[i])) {
                 answers[i] = commitments[answers[i]].revealed_answer;
                 delete commitments[answers[i]];
