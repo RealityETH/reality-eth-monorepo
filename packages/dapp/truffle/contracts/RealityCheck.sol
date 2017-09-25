@@ -450,7 +450,7 @@ contract RealityCheck {
         for (i=0; i<history_hashes.length; i++) {
 
             // The hash comes from the Question struct, and the rest is checked against the hash.
-            // So we can be sure that the data here is what was sent in submitAnswer().
+            // So we can be sure that the data supplied here is what was set in submitAnswer().
             require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i]));
 
             take = take.add(last_bond); 
@@ -486,9 +486,6 @@ contract RealityCheck {
                     } else {
                         payment = last_bond; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
                     }
-
-                    assert(take >= last_bond);
-                    assert(take >= payment);
 
                     // Settle up with the old payee
                     take = take.sub(payment);
