@@ -375,8 +375,8 @@ contract RealityCheck {
     }
 
     function _applyPayeeChanges(
-        bytes32 question_id, 
-        uint256 take, bytes32 best_answer, address payee, 
+        bytes32 question_id, bytes32 best_answer, 
+        uint256 take, address payee, 
         address addr, uint256 bond, bytes32 answer, bool is_commitment)
     internal returns (uint256, address)
     {
@@ -472,13 +472,13 @@ contract RealityCheck {
             } else if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)){
                 is_commitment = false;
             } else {
-                // Data supplied doesn't match what was set in submitAnswer() / submitAnswerCommitment().
-                revert;
+                // Params not what was set in submitAnswer() / submitAnswerCommitment() at this point in the history.
+                revert();
             }
 
             take = take.add(last_bond); 
 
-            (take, payee) = _applyPayeeChanges(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i], is_commitment);
+            (take, payee) = _applyPayeeChanges(question_id, best_answer, take, payee, addrs[i], bonds[i], answers[i], is_commitment);
  
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
