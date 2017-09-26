@@ -1,16 +1,4 @@
 pragma solidity ^0.4.6;
-/*
-To make it hard for us to forget to set one of these, every non-constant function should specify:
-* stateNotCreated or stateOpen or statePendingArbitration or stateFinalized or stateAny
-* internal or external or public
-
-Things that take answers should specify
-* bondMustDouble or BondMustBeZero
-
-Things that can be done by the arbitrator should specify
-* actorArbitrator 
-(All other functions can be run by anyone.)
-*/
 
 import './SafeMath.sol';
 
