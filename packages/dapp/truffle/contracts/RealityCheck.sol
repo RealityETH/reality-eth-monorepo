@@ -4,11 +4,9 @@ import './SafeMath.sol';
 
 contract RealityCheck {
 
-    // We probably don't really need this as arithmetic inputs are always either msg.value or bounds-checked
-    // Doesn't do any harm to have it, though.
     using SafeMath for uint256;
 
-    // finalize_state options . Anything above this is a deadline timestamp.
+    // finalize_state options. Anything above this is a deadline timestamp.
     uint256 constant UNANSWERED = 0;
     uint256 constant PENDING_ARBITRATION = 1;
 
@@ -96,13 +94,9 @@ contract RealityCheck {
 
     struct Question {
         uint256 finalize_state;
-
-        // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
         uint256 timeout;
         bytes32 question_hash;
-
-        // Mutable data
         uint256 bounty;
         bytes32 best_answer;
         uint256 bond;
@@ -167,11 +161,11 @@ contract RealityCheck {
 
         uint256 bond_to_beat = questions[question_id].bond;
 
-        // You can specify that you don't want to beat a bond bigger than x
-        require(max_previous == 0 || bond_to_beat <= max_previous);
-
         // You have to double the bond every time
         require(msg.value >= (bond_to_beat * 2));
+
+        // You can specify that you don't want to beat a bond bigger than x
+        require(max_previous == 0 || bond_to_beat <= max_previous);
 
         _;
 
@@ -219,7 +213,7 @@ contract RealityCheck {
     // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
-        require(questions[repeat_question_id].timeout > 0);
+        require(questions[repeat_question_id].timeout > 0); // check existence
 
         bytes32 question_hash = questions[repeat_question_id].question_hash;
         if (arbitrator == 0x0) {
@@ -270,22 +264,12 @@ contract RealityCheck {
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
     internal 
     {
-
         bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer);
 
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_state;
 
-        LogNewAnswer(
-            answer,
-            question_id,
-            new_state,
-            answerer,
-            bond,
-            now,
-            is_commitment
-        );
-
+        LogNewAnswer(answer, question_id, new_state, answerer, bond, now, is_commitment);
     }
 
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 timeout_secs)
@@ -299,10 +283,8 @@ contract RealityCheck {
     stateOpen(question_id)
     bondMustDouble(question_id, max_previous)
     external payable {
-        
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
-
     }
 
     // If you're worried about front-running, you can use submitAnswerCommitment then submitAnswerReveal instead of submitAnswer.
@@ -321,7 +303,7 @@ contract RealityCheck {
         commitments[commitment_id].reveal_state = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
-        // We don't do _updateCurrentAnswer, this is left until the reveal
+        // We don't call _updateCurrentAnswer, this is left until the reveal
 
     }
 
@@ -334,10 +316,10 @@ contract RealityCheck {
 
         uint256 reveal_state = commitments[commitment_id].reveal_state;
         require(reveal_state > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
-        require(reveal_state > now); 
+        require(reveal_state > now); // Reveal deadline must not have passed
 
-        commitments[commitment_id].reveal_state = COMMITMENT_REVEALED;
         commitments[commitment_id].revealed_answer = answer;
+        commitments[commitment_id].reveal_state = COMMITMENT_REVEALED;
 
         if (bond == questions[question_id].bond) {
             _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
@@ -351,10 +333,8 @@ contract RealityCheck {
     actorArbitrator(question_id)
     stateOpen(question_id)
     external returns (bool) {
-
         questions[question_id].finalize_state = PENDING_ARBITRATION;
         LogNotifyOfArbitrationRequest(question_id, requester);
-
     }
 
     // Answer sent by the arbitrator contract, without a bond.
@@ -400,6 +380,7 @@ contract RealityCheck {
 
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
+        // NB This will produce a false positive if someone asks question "What was the commitment ID of the previous question?"...
         uint256 reveal_state = commitments[answer].reveal_state;
         if (reveal_state > 0) {
             bytes32 commitment_id = answer;
@@ -426,7 +407,7 @@ contract RealityCheck {
                 // Answerer has changed, ie we found someone lower down who needs to be paid
 
                 // The lower answerer will take over receiving bonds from higher answerer.
-                // They should also be paid the equivalent of their bond. 
+                // They should also be paid the takeover fee, which is set at a rate equivalent to their bond. 
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
                 uint256 answer_takeover_fee = 0;
