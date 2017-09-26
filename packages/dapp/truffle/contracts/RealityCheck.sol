@@ -299,8 +299,8 @@ contract RealityCheck {
 
         require(commitments[commitment_id].reveal_state == COMMITMENT_NON_EXISTENT);
 
-        uint256 timeout = questions[question_id].timeout;
-        commitments[commitment_id].reveal_state = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
+        uint256 commitment_timeout = questions[question_id].timeout.div(COMMITMENT_TIMEOUT_RATIO);
+        commitments[commitment_id].reveal_state = now.add(commitment_timeout);
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
         // We don't call _updateCurrentAnswer, this is left until the reveal
@@ -479,7 +479,6 @@ contract RealityCheck {
  
         if (last_history_hash != "") {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
-            // Persist the details so we can pick up later where we left off later.
 
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
@@ -488,6 +487,7 @@ contract RealityCheck {
                 take = 0;
             }
 
+            // Persist the details so we can pick up later where we left off later.
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
             question_claims[question_id].take = take;
