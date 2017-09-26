@@ -485,9 +485,9 @@ contract RealityCheck {
     public {
 
         // These are only set if we split our claim over multiple transactions.
-        address payee = question_claims[question_id].payee; // The person with the highest correct answer, working back down.
-        uint256 last_bond = question_claims[question_id].last_bond; // The last bond we saw. Some of this may be owed to the next guy up.
-        uint256 take = question_claims[question_id].take; // Money we can pay out.
+        address payee = question_claims[question_id].payee; 
+        uint256 last_bond = question_claims[question_id].last_bond; 
+        uint256 take = question_claims[question_id].take; 
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
