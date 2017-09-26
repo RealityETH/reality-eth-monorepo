@@ -288,7 +288,7 @@ contract RealityCheck {
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
-    // If you're worried about front-running, you can use submitAnswerCommitment then submitAnswerReveal instead of submitAnswer.
+    // To prevent front-running, you can replace submitAnswer with submitAnswerCommitment -> submitAnswerReveal
     // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
     stateOpen(question_id)
