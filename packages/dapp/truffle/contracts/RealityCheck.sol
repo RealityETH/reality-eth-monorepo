@@ -20,11 +20,11 @@ contract RealityCheck {
     // Doesn't do any harm to have it, though.
     using SafeMath for uint256;
 
-    // finalization_ts states. Anything above this is a timestamp.
+    // finalize_state options . Anything above this is a deadline timestamp.
     uint256 constant UNANSWERED = 0;
     uint256 constant PENDING_ARBITRATION = 1;
 
-    // commitment deadline_ts state. Anything above this is a timestamp.
+    // commitment state. Anything above this is a reveal deadline timestamp.
     uint256 constant COMMITMENT_REVEALED = 1;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
@@ -106,7 +106,7 @@ contract RealityCheck {
     );
 
     struct Question {
-        uint256 finalization_ts;
+        uint256 finalize_state;
 
         // Identity fields - if these are the same, it's a duplicate
         address arbitrator;
@@ -122,7 +122,7 @@ contract RealityCheck {
 
     // Stored in a mapping indexed by commitment_id, which hashes the commitment hash, question and bond. 
     struct Commitment {
-        uint256 deadline_ts; // COMMITMENT_REVEALED, or the deadline for the reveal
+        uint256 reveal_state; // COMMITMENT_REVEALED, or the deadline for the reveal
         bytes32 revealed_answer;
     }
 
@@ -157,13 +157,13 @@ contract RealityCheck {
 
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].timeout > 0); // Check existence
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        require(finalization_ts == UNANSWERED || finalization_ts > now);
+        uint256 finalize_state = questions[question_id].finalize_state;
+        require(finalize_state == UNANSWERED || finalize_state > now);
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].finalization_ts == PENDING_ARBITRATION);
+        require(questions[question_id].finalize_state == PENDING_ARBITRATION);
         _;
     }
 
@@ -302,7 +302,7 @@ contract RealityCheck {
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalization_ts = now.add(timeout_secs);
+        questions[question_id].finalize_state = now.add(timeout_secs);
     }
 
 
@@ -326,10 +326,10 @@ contract RealityCheck {
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
         // You can only use the same commitment once.
-        require(commitments[commitment_id].deadline_ts == 0);
+        require(commitments[commitment_id].reveal_state == 0);
 
         uint256 timeout = questions[question_id].timeout;
-        commitments[commitment_id].deadline_ts = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
+        commitments[commitment_id].reveal_state = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
         // We don't do _updateCurrentAnswer, this is left until the reveal
@@ -343,11 +343,11 @@ contract RealityCheck {
         bytes32 answer_hash = keccak256(answer, nonce);
         bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
 
-        uint256 deadline_ts = commitments[commitment_id].deadline_ts;
-        require(deadline_ts > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
-        require(deadline_ts > now); 
+        uint256 reveal_state = commitments[commitment_id].reveal_state;
+        require(reveal_state > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
+        require(reveal_state > now); 
 
-        commitments[commitment_id].deadline_ts = COMMITMENT_REVEALED;
+        commitments[commitment_id].reveal_state = COMMITMENT_REVEALED;
         commitments[commitment_id].revealed_answer = answer;
 
         if (bond == questions[question_id].bond) {
@@ -363,7 +363,7 @@ contract RealityCheck {
     stateOpen(question_id)
     external returns (bool) {
 
-        questions[question_id].finalization_ts = PENDING_ARBITRATION;
+        questions[question_id].finalize_state = PENDING_ARBITRATION;
         LogNotifyOfArbitrationRequest(question_id, requester);
 
     }
@@ -388,8 +388,8 @@ contract RealityCheck {
 
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
-        uint256 finalization_ts = questions[question_id].finalization_ts;
-        return ( (finalization_ts > PENDING_ARBITRATION) && (finalization_ts <= now) );
+        uint256 finalize_state = questions[question_id].finalize_state;
+        return ( (finalize_state > PENDING_ARBITRATION) && (finalize_state <= now) );
     }
 
     function getFinalAnswer(bytes32 question_id) 
@@ -411,14 +411,14 @@ contract RealityCheck {
 
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
-        uint256 commitment_deadline = commitments[answer].deadline_ts;
-        if (commitment_deadline > 0) {
+        uint256 reveal_state = commitments[answer].reveal_state;
+        if (reveal_state > 0) {
             bytes32 commitment_id = answer;
             answer = commitments[answer].revealed_answer;
             delete commitments[commitment_id];
 
             // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-            if (commitment_deadline != COMMITMENT_REVEALED) {
+            if (reveal_state != COMMITMENT_REVEALED) {
                 return (take, payee);
             } 
         }
