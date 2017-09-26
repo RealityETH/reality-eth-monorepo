@@ -400,31 +400,32 @@ contract RealityCheck {
         return questions[question_id].best_answer;
     }
 
-    function isUnrevealedCommitment(bytes32 potential_commitment_id) 
-    internal returns (bool)
+    function _payPayee(bytes32 question_id, address payee, uint256 take) 
+    internal
     {
-        return (commitments[potential_commitment_id].deadline_ts > COMMITMENT_REVEALED);
+        balanceOf[payee] = balanceOf[payee].add(take);
+        LogClaim(question_id, payee, take);
     }
 
-    function isRevealedCommitment(bytes32 potential_commitment_id) 
-    internal returns (bool)
-    {
-        return commitments[potential_commitment_id].deadline_ts == COMMITMENT_REVEALED;
-    }
-
-    function _processClaim(bytes32 question_id, uint256 take, bytes32 best_answer, address payee, address addr, uint256 bond, bytes32 answer) 
+    function _applyPayeeChanges(bytes32 question_id, uint256 take, bytes32 best_answer, address payee, address addr, uint256 bond, bytes32 answer) 
     internal returns (uint256, address)
     {
 
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
-        // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-        if (isRevealedCommitment(answer)) {
+        uint256 commitment_deadline = commitments[answer].deadline_ts;
+        if (commitment_deadline > 0) {
+            bytes32 commitment_id = answer;
             answer = commitments[answer].revealed_answer;
-            delete commitments[answer];
+            delete commitments[commitment_id];
+
+            // If it's a commit but it hasn't been revealed, it will always be considered wrong.
+            if (commitment_deadline != COMMITMENT_REVEALED) {
+                return (take, payee);
+            } 
         }
 
-        if ( (answer == best_answer) && (!isUnrevealedCommitment(answer)) ) {
+        if (answer == best_answer) {
 
             if (payee == 0x0) {
 
@@ -441,22 +442,19 @@ contract RealityCheck {
                 // They should also be paid the equivalent of their bond. 
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
-                uint256 payment = 0;
+                uint256 answer_takeover_fee = 0;
                 if (take >= bond) {
-                    payment = bond; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
+                    answer_takeover_fee = bond; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
                 } else {
-                    payment = take; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
+                    answer_takeover_fee = take; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
                 }
 
                 // Settle up with the old payee
-                take = take.sub(payment);
-                balanceOf[payee] = balanceOf[payee].add(take);
-                LogClaim(question_id, payee, take);
-                take = 0;
+                _payPayee(question_id, payee, take.sub(answer_takeover_fee));
 
                 // Now start take again for the new payee
                 payee = addr;
-                take = payment;
+                take = answer_takeover_fee;
 
             }
 
@@ -506,7 +504,7 @@ contract RealityCheck {
 
             take = take.add(last_bond); 
 
-            (take, payee) = _processClaim(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i]);
+            (take, payee) = _applyPayeeChanges(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i]);
  
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
@@ -521,8 +519,7 @@ contract RealityCheck {
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
             if (payee != 0x0) {
-                balanceOf[payee] = balanceOf[payee].add(take);
-                LogClaim(question_id, payee, take);
+                _payPayee(question_id, payee, take);
                 take = 0;
             }
 
@@ -531,9 +528,7 @@ contract RealityCheck {
             question_claims[question_id].take = take;
         } else {
             // There is nothing left below us so the payee can keep what remains
-            take = take.add(last_bond);
-            balanceOf[payee] = balanceOf[payee].add(take);
-            LogClaim(question_id, payee, take);
+            _payPayee(question_id, payee, take.add(last_bond));
             delete question_claims[question_id];
         }
 
