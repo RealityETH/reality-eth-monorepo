@@ -245,7 +245,6 @@ contract RealityCheck {
         return question_id;
     }
 
-
     function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 timeout) 
     stateNotCreated(question_id)
     internal {
@@ -334,15 +333,11 @@ contract RealityCheck {
 
     }
 
-    // NB The bond is the amount you sent in submitAnswerCommitment.
-    // Since the bond must always increase, we can use this to confirm whether you still have the top answer.
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
     stateOpen(question_id)
     external {
 
         bytes32 answer_hash = keccak256(answer, nonce);
-
-        // The question ID + bond will uniquely identify the commitment.
         bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
 
         uint256 deadline_ts = commitments[commitment_id].deadline_ts;
@@ -373,7 +368,7 @@ contract RealityCheck {
     // Answer sent by the arbitrator contract, without a bond.
     // We don't check the answerer, but for incentives to work right it should be:
     // - the person who submitted the current final answer if they were right.
-    // - the person who paid for arbitration if the current fial answer was wrong.
+    // - the person who paid for arbitration if the current final answer is wrong.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
     actorArbitrator(question_id)
     statePendingArbitration(question_id)
