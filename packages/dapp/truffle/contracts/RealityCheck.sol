@@ -468,11 +468,13 @@ contract RealityCheck {
             // The hash comes from the Question struct, and the rest is checked against the hash.
             // So we can be sure that the data supplied here is what was set in submitAnswer().
 
-            // We don't pass in is_commitment (stack too deep) so try the hash with and without.
-            bool is_commitment = false;
-            if (last_history_hash != keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)) {
-                require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], true));
+            bool is_commitment; 
+            if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], true)) {
                 is_commitment = true;
+            } else if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)){
+                is_commitment = false;
+            } else {
+                revert;
             }
 
             take = take.add(last_bond); 
