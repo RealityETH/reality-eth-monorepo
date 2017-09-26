@@ -104,7 +104,7 @@ contract RealityCheck {
         bytes32 history_hash;
     }
 
-    // Stored in a mapping indexed by commitment_id, which hashes the commitment hash, question and bond. 
+    // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
     struct Commitment {
         uint256 reveal_state; // COMMITMENT_REVEALED, or the deadline for the reveal
         bytes32 revealed_answer;
@@ -193,6 +193,12 @@ contract RealityCheck {
         LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id.add(1);
         return id;
+    }
+
+    function createTemplateAndAskQuestion(string template, string question, address arbitrator, uint256 timeout, uint256 nonce) 
+    public payable returns (bytes32) {
+        uint256 template_id = createTemplate(template);
+        return askQuestion(template_id, question, arbitrator, timeout, nonce);
     }
 
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
@@ -447,7 +453,9 @@ contract RealityCheck {
     // * Question holds the history_hash. It'll be zeroed once everything has been claimed.
     // * The rest goes in a dedicated Claim struct. This is only filled if you stop a claim before the end.
     //
-    function claimWinnings(bytes32 question_id, bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
+    function claimWinnings(
+        bytes32 question_id, 
+        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
     stateFinalized(question_id)
     public {
 
@@ -472,7 +480,7 @@ contract RealityCheck {
             } else if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)){
                 is_commitment = false;
             } else {
-                // Params not what was set in submitAnswer() / submitAnswerCommitment() at this point in the history.
+                // Params don't recreate data stored by submitAnswer() / submitAnswerCommitment() at this point in the history.
                 revert();
             }
 
