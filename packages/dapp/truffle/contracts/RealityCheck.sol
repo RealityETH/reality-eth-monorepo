@@ -58,8 +58,9 @@ contract RealityCheck {
 
     event LogAnswerReveal(
         bytes32 indexed question_id, 
-        bytes32 answer_hash, 
         address indexed user, 
+        bytes32 indexed answer_hash, 
+        bytes32 answer, 
         uint256 nonce, 
         uint256 bond
     );
@@ -325,7 +326,7 @@ contract RealityCheck {
             _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
         }
 
-        LogAnswerReveal(question_id, answer_hash, msg.sender, nonce, bond);
+        LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
 
     }
 
