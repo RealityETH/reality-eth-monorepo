@@ -465,15 +465,14 @@ contract RealityCheck {
         uint256 i;
         for (i=0; i<history_hashes.length; i++) {
 
-            // The hash comes from the Question struct, and the rest is checked against the hash.
-            // So we can be sure that the data supplied here is what was set in submitAnswer().
-
+            // is_commitment is 1 of only 2 options, so try them both rather than making the user pass in a parameter
             bool is_commitment; 
             if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], true)) {
                 is_commitment = true;
             } else if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)){
                 is_commitment = false;
             } else {
+                // Data supplied doesn't match what was set in submitAnswer() / submitAnswerCommitment().
                 revert;
             }
 
