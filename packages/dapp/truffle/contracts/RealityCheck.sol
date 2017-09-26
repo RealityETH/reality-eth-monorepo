@@ -350,7 +350,7 @@ contract RealityCheck {
         require(answerer != 0x0);
         LogFinalize(question_id, answer);
 
-        _addAnswerToHistory(question_id, answer, answerer, uint256(0), false);
+        _addAnswerToHistory(question_id, answer, answerer, 0, false);
         _updateCurrentAnswer(question_id, answer, 0);
 
     }
