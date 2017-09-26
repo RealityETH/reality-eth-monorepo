@@ -10,8 +10,8 @@ contract RealityCheck {
     uint256 constant UNANSWERED = 0;
     uint256 constant PENDING_ARBITRATION = 1;
 
-    // commitment state. Anything above this is a reveal deadline timestamp.
-    // This is always set, so 0 proves non-existence.
+    // reveal_state options. Anything above this is a reveal deadline timestamp.
+    uint256 constant COMMITMENT_NON_EXISTENT = 0;
     uint256 constant COMMITMENT_REVEALED = 1;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
@@ -297,8 +297,7 @@ contract RealityCheck {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
-        // You can only use the same commitment once.
-        require(commitments[commitment_id].reveal_state == 0);
+        require(commitments[commitment_id].reveal_state == COMMITMENT_NON_EXISTENT);
 
         uint256 timeout = questions[question_id].timeout;
         commitments[commitment_id].reveal_state = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
@@ -383,7 +382,7 @@ contract RealityCheck {
         // We look at the referenced commitment ID and switch in the actual answer.
         // NB This will produce a false positive if someone asks question "What was the commitment ID of the previous question?"...
         uint256 reveal_state = commitments[answer].reveal_state;
-        if (reveal_state > 0) {
+        if (reveal_state > COMMITMENT_NON_EXISTENT) {
             bytes32 commitment_id = answer;
             answer = commitments[answer].revealed_answer;
             delete commitments[commitment_id];
