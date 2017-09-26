@@ -25,6 +25,7 @@ contract RealityCheck {
     uint256 constant PENDING_ARBITRATION = 1;
 
     // commitment state. Anything above this is a reveal deadline timestamp.
+    // This is always set, so 0 proves non-existence.
     uint256 constant COMMITMENT_REVEALED = 1;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
