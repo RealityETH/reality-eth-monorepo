@@ -265,7 +265,7 @@ contract RealityCheck {
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
     internal 
     {
-        bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer);
+        bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer, is_commitment);
 
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_state;
@@ -374,23 +374,25 @@ contract RealityCheck {
         LogClaim(question_id, payee, take);
     }
 
-    function _applyPayeeChanges(bytes32 question_id, uint256 take, bytes32 best_answer, address payee, address addr, uint256 bond, bytes32 answer) 
+    function _applyPayeeChanges(
+        bytes32 question_id, 
+        uint256 take, bytes32 best_answer, address payee, 
+        address addr, uint256 bond, bytes32 answer, bool is_commitment)
     internal returns (uint256, address)
     {
 
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
-        // NB This will produce a false positive if someone asks question "What was the commitment ID of the previous question?"...
-        uint256 reveal_state = commitments[answer].reveal_state;
-        if (reveal_state > COMMITMENT_NON_EXISTENT) {
+        if (is_commitment) {
             bytes32 commitment_id = answer;
-            answer = commitments[answer].revealed_answer;
-            delete commitments[commitment_id];
-
             // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-            if (reveal_state != COMMITMENT_REVEALED) {
+            if (commitments[commitment_id].reveal_state != COMMITMENT_REVEALED) {
+                delete commitments[commitment_id];
                 return (take, payee);
-            } 
+            } else {
+                answer = commitments[commitment_id].revealed_answer;
+                delete commitments[commitment_id];
+            }
         }
 
         if (answer == best_answer) {
@@ -465,11 +467,17 @@ contract RealityCheck {
 
             // The hash comes from the Question struct, and the rest is checked against the hash.
             // So we can be sure that the data supplied here is what was set in submitAnswer().
-            require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i]));
+
+            // We don't pass in is_commitment (stack too deep) so try the hash with and without.
+            bool is_commitment = false;
+            if (last_history_hash != keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)) {
+                require(last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], true));
+                is_commitment = true;
+            }
 
             take = take.add(last_bond); 
 
-            (take, payee) = _applyPayeeChanges(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i]);
+            (take, payee) = _applyPayeeChanges(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i], is_commitment);
  
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
@@ -479,6 +487,7 @@ contract RealityCheck {
  
         if (last_history_hash != "") {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
+            // Persist the details so we can pick up later where we left off later.
 
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
@@ -487,7 +496,6 @@ contract RealityCheck {
                 take = 0;
             }
 
-            // Persist the details so we can pick up later where we left off later.
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
             question_claims[question_id].take = take;
