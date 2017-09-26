@@ -27,6 +27,9 @@ contract RealityCheck {
     // commitment deadline_ts state. Anything above this is a timestamp.
     uint256 constant COMMITMENT_REVEALED = 1;
 
+    // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
+    uint256 constant COMMITMENT_TIMEOUT_RATIO = 8;
+
     event LogNewTemplate(
         uint256 indexed template_id,
         address indexed user, 
@@ -326,7 +329,7 @@ contract RealityCheck {
         require(commitments[commitment_id].deadline_ts == 0);
 
         uint256 timeout = questions[question_id].timeout;
-        commitments[commitment_id].deadline_ts = now.add((timeout.div(8)));
+        commitments[commitment_id].deadline_ts = now.add((timeout.div(COMMITMENT_TIMEOUT_RATIO)));
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
         // We don't do _updateCurrentAnswer, this is left until the reveal
