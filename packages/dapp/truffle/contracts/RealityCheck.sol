@@ -412,6 +412,60 @@ contract RealityCheck {
         return commitments[potential_commitment_id].deadline_ts == COMMITMENT_REVEALED;
     }
 
+    function _processClaim(bytes32 question_id, uint256 take, bytes32 best_answer, address payee, address addr, uint256 bond, bytes32 answer) 
+    internal returns (uint256, address)
+    {
+
+        // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
+        // We look at the referenced commitment ID and switch in the actual answer.
+        // If it's a commit but it hasn't been revealed, it will always be considered wrong.
+        if (isRevealedCommitment(answer)) {
+            answer = commitments[answer].revealed_answer;
+            delete commitments[answer];
+        }
+
+        if ( (answer == best_answer) && (!isUnrevealedCommitment(answer)) ) {
+
+            if (payee == 0x0) {
+
+                // The first payee we come to, ie the winner. They get the question bounty.
+                payee = addr;
+                take = take.add(questions[question_id].bounty);
+                questions[question_id].bounty = 0;
+
+            } else if (addr != payee) {
+
+                // Answerer has changed, ie we found someone lower down who needs to be paid
+
+                // The lower answerer will take over receiving bonds from higher answerer.
+                // They should also be paid the equivalent of their bond. 
+                // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
+
+                uint256 payment = 0;
+                if (take >= bond) {
+                    payment = bond; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
+                } else {
+                    payment = take; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
+                }
+
+                // Settle up with the old payee
+                take = take.sub(payment);
+                balanceOf[payee] = balanceOf[payee].add(take);
+                LogClaim(question_id, payee, take);
+                take = 0;
+
+                // Now start take again for the new payee
+                payee = addr;
+                take = payment;
+
+            }
+
+        }
+
+        return (take, payee);
+
+    }
+
     // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
     // The caller must provide the answer history, in reverse order.
     // We work up the chain and assign bonds to the person who gave the right answer
@@ -452,52 +506,8 @@ contract RealityCheck {
 
             take = take.add(last_bond); 
 
-            // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
-            // We look at the referenced commitment ID and switch in the actual answer.
-            // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-            if (isRevealedCommitment(answers[i])) {
-                answers[i] = commitments[answers[i]].revealed_answer;
-                delete commitments[answers[i]];
-            }
-
-            if ( (answers[i] == best_answer) && (!isUnrevealedCommitment(answers[i])) ) {
-
-                if (payee == 0x0) {
-
-                    // The first payee we come to, ie the winner. They get the question bounty.
-                    payee = addrs[i];
-                    take = take.add(questions[question_id].bounty);
-                    questions[question_id].bounty = 0;
-
-                } else if (addrs[i] != payee) {
-
-                    // Answerer has changed, ie we found someone lower down who needs to be paid
-
-                    // The lower answerer will take over receiving bonds from higher answerer.
-                    // They should also be paid the equivalent of their bond. 
-                    // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
-
-                    uint256 payment = 0;
-                    if (last_bond >= bonds[i]) {
-                        payment = bonds[i]; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
-                    } else {
-                        payment = last_bond; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
-                    }
-
-                    // Settle up with the old payee
-                    take = take.sub(payment);
-                    balanceOf[payee] = balanceOf[payee].add(take);
-                    LogClaim(question_id, payee, take);
-                    take = 0;
-
-                    // Now start take again for the new payee
-                    payee = addrs[i];
-                    take = payment;
-
-                }
-
-            } 
-
+            (take, payee) = _processClaim(question_id, take, best_answer, payee, addrs[i], bonds[i], answers[i]);
+ 
             // Line the bond up for next time, when it will be added to somebody's take
             last_bond = bonds[i];
             last_history_hash = history_hashes[i];
