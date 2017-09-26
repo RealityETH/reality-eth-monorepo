@@ -410,12 +410,9 @@ contract RealityCheck {
                 // They should also be paid the takeover fee, which is set at a rate equivalent to their bond. 
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
-                uint256 answer_takeover_fee = 0;
-                if (take >= bond) {
-                    answer_takeover_fee = bond; // Normal pattern: Have more than enough (2x) to pay their bond equivalent
-                } else {
-                    answer_takeover_fee = take; // Could be zero if the arbitrator sets a weird answerer address, if so tough.
-                }
+                // There should be enough for the fee, but if not, take what we have.
+                // There's an edge case involving weird arbitrator behaviour where we may be short.
+                uint256 answer_takeover_fee = (take >= bond) ? bond : take;
 
                 // Settle up with the old payee
                 _payPayee(question_id, payee, take.sub(answer_takeover_fee));
