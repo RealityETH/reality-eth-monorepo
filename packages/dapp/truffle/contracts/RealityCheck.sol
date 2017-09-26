@@ -124,7 +124,7 @@ contract RealityCheck {
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public balanceOf;
 
-    modifier actorArbitrator(bytes32 question_id) {
+    modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator);
         _;
     }
@@ -330,7 +330,7 @@ contract RealityCheck {
     }
 
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
-    actorArbitrator(question_id)
+    onlyArbitrator(question_id)
     stateOpen(question_id)
     external returns (bool) {
         questions[question_id].finalize_state = PENDING_ARBITRATION;
@@ -342,7 +342,7 @@ contract RealityCheck {
     // - the person who submitted the current final answer if they were right.
     // - the person who paid for arbitration if the current final answer is wrong.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
-    actorArbitrator(question_id)
+    onlyArbitrator(question_id)
     statePendingArbitration(question_id)
     bondMustBeZero
     external returns (bytes32) {
