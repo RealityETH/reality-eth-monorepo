@@ -195,9 +195,12 @@ contract RealityCheck {
         return id;
     }
 
-    function createTemplateAndAskQuestion(string template, string question, address arbitrator, uint256 timeout, uint256 nonce) 
+    function createTemplateAndAskQuestion(
+        string content, 
+        string question, address arbitrator, uint256 timeout, uint256 nonce) 
+    // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
-        uint256 template_id = createTemplate(template);
+        uint256 template_id = createTemplate(content);
         return askQuestion(template_id, question, arbitrator, timeout, nonce);
     }
 
