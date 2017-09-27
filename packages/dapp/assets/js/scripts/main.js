@@ -28,6 +28,8 @@ var template_content = {
 };
 var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
+const BN = require('bn.js');
+
 const QUESTION_TYPE_TEMPLATES = {
     'bool': 0,
     'uint': 1,
@@ -68,7 +70,6 @@ const EVENT_ACTOR_ARGS = {
 };
 
 const QUESTION_MAX_OUTCOMES = 128; 
-
 
 const FETCH_NUMBERS = [100, 2500, 5000];
 
@@ -157,11 +158,18 @@ const monthList = [
 ];
 
 function formatForAnswer(answer, qtype) {
-    if (typeof answer == 'BigNumber') {
-        return answer;
+    if (qtype == 'int') {
+        if (typeof answer == 'BN') {
+            return answer;
+        }
+        return numToBytes32Signed(answer);
+    } else {
+        if (typeof answer == 'BigNumber') {
+            return answer;
+        }
+        //console.log('formatForAnswer', answer, qtype, typeof answer);
+        return numToBytes32(new BigNumber(answer));
     }
-    //console.log('formatForAnswer', answer, qtype, typeof answer);
-    return numToBytes32(new BigNumber(answer));
 }
 
 function numToBytes32(bignum) {
@@ -170,6 +178,21 @@ function numToBytes32(bignum) {
         n = "0" + n;
     }
     return "0x" + n;
+}
+
+function numToBytes32Signed(twos) {
+    var n = twos.toString(16);
+    while (n.length < 64) {
+        n = "0" + n;
+    }
+    return "0x" + n;
+}
+
+function bytes32ToSignedBN(str) {
+    //console.log('bytes32ToSignedBN', str);
+    str = str.replace(/^0x/, '');
+    var bn = new BN(str, 16).fromTwos(256);
+    return bn;
 }
 
 function convertTsToString(ts) {
@@ -2414,6 +2437,9 @@ function getAnswerString(question_json, answer) {
         case 'uint':
             label = new BigNumber(answer).toString();
             break;
+        case 'int':
+            label = bytes32ToSignedBN(answer).toString();
+            break;
         case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
                 label = 'Yes';
@@ -2614,7 +2640,7 @@ $(document).on('click', '.post-answer-button', function(e) {
         } else if (question_json['type'] == 'uint') {
             new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
         } else if (question_json['type'] == 'int') {
-            new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
+            new_answer = new BN(parent_div.find('[name="input-answer"]').val()).toTwos(256);
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
@@ -2634,6 +2660,9 @@ $(document).on('click', '.post-answer-button', function(e) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
                     is_err = true;
                 }
+                break;
+            case 'int':
+                //TODO
                 break;
             case 'single-select':
                 var container = parent_div.find('div.select-container.select-container--answer');
@@ -2842,6 +2871,8 @@ function show_bond_payments(ctrl) {
             new_answer = parseInt(answer_bits, 2);
         } else if (question_json['type'] == 'uint') {
             new_answer = new BigNumber(frm.find('[name="input-answer"]').val());
+        } else if (question_json['type'] == 'int') {
+            new_answer = new BN(frm.find('[name="input-answer"]').val()).toTwos(256);
         } else {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());
         }
@@ -3324,3 +3355,4 @@ window.onload = function() {
         }
     });
 }
+
