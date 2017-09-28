@@ -86,7 +86,7 @@ const Qi_question_id = 0;
 const Qi_finalization_ts = 1; 
 const Qi_arbitrator = 2;
 const Qi_timeout = 3;
-const Qi_question_hash = 4;
+const Qi_content_hash = 4;
 const Qi_bounty = 5;
 const Qi_best_answer = 6;
 const Qi_bond = 7;
@@ -553,7 +553,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'user': account,
                     'arbitrator': arbitrator.val(),
                     'timeout': new BigNumber(timeout_val),
-                    'question_hash': 'TODO',
+                    'content_hash': 'TODO',
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
@@ -563,7 +563,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_finalization_ts-1] = new BigNumber(0);
             fake_call[Qi_arbitrator-1] = arbitrator.val();
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-            fake_call[Qi_question_hash-1] = 'TODO';
+            fake_call[Qi_content_hash-1] = 'TODO';
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
             fake_call[Qi_history_hash-1] = "0x0";
 
@@ -1045,7 +1045,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_creation_ts] = data.args['created'];
                 question[Qi_question_creator] = data.args['user'];
                 question[Qi_question_created_block] = data.blockNumber;
-                question[Qi_question_hash] = data.args['question_hash'];
+                question[Qi_content_hash] = data.args['content_hash'];
                 question[Qi_question_text] = data.args['question'];
                 question[Qi_template_id] = data.args['template_id'].toNumber();
                 question[Qi_block_mined] = data.blockNumber;
@@ -1071,7 +1071,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
                 question[Qi_arbitrator] = data[Qi_arbitrator-1];
                 question[Qi_timeout] = data[Qi_timeout-1];
-                question[Qi_question_hash] = data[Qi_question_hash-1];
+                question[Qi_content_hash] = data[Qi_content_hash-1];
                 question[Qi_bounty] = data[Qi_bounty-1];
                 question[Qi_best_answer] = data[Qi_best_answer-1];
                 question[Qi_bond] = data[Qi_bond-1];
@@ -1887,7 +1887,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-bounty').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
     balloon.find('.setting-info-bond').text(web3.fromWei(question_detail[Qi_bond], 'ether'));
     balloon.find('.setting-info-timeout').text(secondsTodHms(question_detail[Qi_timeout]));
-    balloon.find('.setting-info-question-hash').text(question_detail[Qi_question_hash]);
+    balloon.find('.setting-info-question-hash').text(question_detail[Qi_content_hash]);
     balloon.find('.setting-info-arbitrator').text(question_detail[Qi_arbitrator]);
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.css('z-index', ++zindex);

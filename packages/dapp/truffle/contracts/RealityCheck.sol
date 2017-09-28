@@ -29,7 +29,7 @@ contract RealityCheck {
         uint256 timeout,
         uint256 template_id,
         string question,
-        bytes32 indexed question_hash,
+        bytes32 indexed content_hash,
         uint256 created,
         address indexed user, 
         uint256 nonce
@@ -40,7 +40,7 @@ contract RealityCheck {
         bytes32 repeat_question_id,
         address arbitrator, 
         uint256 timeout,
-        bytes32 indexed question_hash,
+        bytes32 indexed content_hash,
         uint256 created,
         address indexed user, 
         uint256 nonce
@@ -97,7 +97,7 @@ contract RealityCheck {
         uint256 finalize_state;
         address arbitrator;
         uint256 timeout;
-        bytes32 question_hash;
+        bytes32 content_hash;
         uint256 bounty;
         bytes32 best_answer;
         uint256 bond;
@@ -210,11 +210,11 @@ contract RealityCheck {
 
         require(templates[template_id] > 0);
 
-        bytes32 question_hash = keccak256(template_id, question);
-        bytes32 question_id = keccak256(question_hash, arbitrator, timeout, msg.sender, nonce);
+        bytes32 content_hash = keccak256(template_id, question);
+        bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
-        _askQuestion(question_id, question_hash, arbitrator, timeout);
-        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, question_hash, now, msg.sender, nonce);
+        _askQuestion(question_id, content_hash, arbitrator, timeout);
+        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, content_hash, now, msg.sender, nonce);
 
         return question_id;
     }
@@ -225,7 +225,7 @@ contract RealityCheck {
 
         require(questions[repeat_question_id].timeout > 0); // check existence
 
-        bytes32 question_hash = questions[repeat_question_id].question_hash;
+        bytes32 content_hash = questions[repeat_question_id].content_hash;
         if (arbitrator == 0x0) {
             arbitrator = questions[repeat_question_id].arbitrator;
         }
@@ -233,15 +233,15 @@ contract RealityCheck {
             timeout = questions[repeat_question_id].timeout;
         }
 
-        bytes32 question_id = keccak256(question_hash, arbitrator, timeout, msg.sender, nonce);
+        bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
-        _askQuestion(question_id, question_hash, arbitrator, timeout);
-        LogRepeatQuestion(question_id, repeat_question_id, arbitrator, timeout, question_hash, now, msg.sender, nonce);
+        _askQuestion(question_id, content_hash, arbitrator, timeout);
+        LogRepeatQuestion(question_id, repeat_question_id, arbitrator, timeout, content_hash, now, msg.sender, nonce);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 question_hash, address arbitrator, uint256 timeout) 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 timeout) 
     stateNotCreated(question_id)
     internal {
 
@@ -252,7 +252,7 @@ contract RealityCheck {
 
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].timeout = timeout;
-        questions[question_id].question_hash = question_hash;
+        questions[question_id].content_hash = content_hash;
         questions[question_id].bounty = msg.value;
 
     }
@@ -267,8 +267,8 @@ contract RealityCheck {
     // Predict the ID for a given question
     function getQuestionID(uint256 template_id, string question, address arbitrator, uint256 timeout, address sender, uint256 nonce) 
     external constant returns (bytes32) {
-        bytes32 question_hash = keccak256(template_id, question);
-        return keccak256(question_hash, arbitrator, timeout, sender, nonce);
+        bytes32 content_hash = keccak256(template_id, question);
+        return keccak256(content_hash, arbitrator, timeout, sender, nonce);
     }
 
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
