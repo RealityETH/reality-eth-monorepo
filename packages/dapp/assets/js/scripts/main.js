@@ -157,42 +157,56 @@ const monthList = [
     'Dec'
 ];
 
-function formatForAnswer(answer, qtype) {
+function stringToBytes32(answer, qjson) {
+    var qtype = qjson['type'];
+    var decimals = parseInt(qjson['decimals']);
+    if (!decimals) {
+        decimals = 0;
+    }
+    if (decimals > 0) {
+        var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
+        answer = new BigNumber(answer).times(multiplier).toString();
+    }
+    console.log('muliplied to ',answer.toString());
     if (qtype == 'int') {
-        if (typeof answer == 'BN') {
-            return answer;
-        }
-        return numToBytes32Signed(answer);
+        var bn = new BN(answer).toTwos(256);
+        return padToBytes32(bn.toString(16));
+    } else if (qtype == 'uint') {
+        return padToBytes32(new BN(answer).toString(16));
     } else {
-        if (typeof answer == 'BigNumber') {
-            return answer;
-        }
-        //console.log('formatForAnswer', answer, qtype, typeof answer);
-        return numToBytes32(new BigNumber(answer));
+        throw Error("Unrecognized answer type " + qtype);
     }
 }
 
-function numToBytes32(bignum) {
-    var n = bignum.toString(16);
+function bytes32ToString(bytes32str, qjson) {
+    var qtype = qjson['type'];
+    var decimals = parseInt(qjson['decimals']);
+    if (!decimals) {
+        decimals = 0;
+    }
+    bytes32str = bytes32str.replace(/^0x/, '');
+    var bn;
+    if (qtype == 'int') {
+        var bn = new BN(bytes32str, 16).fromTwos(256);
+    } else if (qtype == 'uint') {
+        var bn = new BN(bytes32str, 16);
+    } else {
+        throw Error("Unrecognized answer type " + qtype);
+    }
+    var ans = bn.toString();
+    // Do the decimals with BigNumber as it seems to work better
+    if (decimals > 0) {
+        var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
+        ans = new BigNumber(ans).dividedBy(multiplier).toString();
+    }
+    return ans.toString();
+}
+
+function padToBytes32(n) {
     while (n.length < 64) {
         n = "0" + n;
     }
     return "0x" + n;
-}
-
-function numToBytes32Signed(twos) {
-    var n = twos.toString(16);
-    while (n.length < 64) {
-        n = "0" + n;
-    }
-    return "0x" + n;
-}
-
-function bytes32ToSignedBN(str) {
-    //console.log('bytes32ToSignedBN', str);
-    str = str.replace(/^0x/, '');
-    var bn = new BN(str, 16).fromTwos(256);
-    return bn;
 }
 
 function convertTsToString(ts) {
@@ -2435,10 +2449,10 @@ function getAnswerString(question_json, answer) {
     var label = '';
     switch (question_json['type']) {
         case 'uint':
-            label = new BigNumber(answer).toString();
+            label = bytes32ToString(answer, question_json);
             break;
         case 'int':
-            label = bytes32ToSignedBN(answer).toString();
+            label = bytes32ToString(answer, question_json);
             break;
         case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
@@ -2638,9 +2652,9 @@ $(document).on('click', '.post-answer-button', function(e) {
             }
             new_answer = parseInt(answer_bits, 2);
         } else if (question_json['type'] == 'uint') {
-            new_answer = new BigNumber(parent_div.find('[name="input-answer"]').val());
+            new_answer = parent_div.find('[name="input-answer"]').val();
         } else if (question_json['type'] == 'int') {
-            new_answer = new BN(parent_div.find('[name="input-answer"]').val()).toTwos(256);
+            new_answer = parent_div.find('[name="input-answer"]').val();
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
@@ -2653,16 +2667,30 @@ $(document).on('click', '.post-answer-button', function(e) {
                 }
                 break;
             case 'uint':
-                if (new_answer.isNaN()) {
-                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                    is_err = true;
-                } else if (new_answer.lt(MIN_NUMBER) || new_answer.gt(MAX_NUMBER)) {
+                var ans = new BigNumber(new_answer);
+                var err = false;
+                if (ans.isNaN()) {
+                    err = true;
+                } else if (ans.lt(MIN_NUMBER) || ans.gt(MAX_NUMBER)) {
+                    err = true;
+                }
+                if (err) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
                     is_err = true;
                 }
                 break;
             case 'int':
-                //TODO
+                var ans = new BigNumber(new_answer);
+                var err = false;
+                if (ans.isNaN()) {
+                    err = true;
+                //} else if (ans.lt(new BigNumber(MIN_NUMBER).times(-1)) || ans.gt(MAX_NUMBER)) {
+                //    err = true;
+                }
+                if (err) {
+                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                    is_err = true;
+                }
                 break;
             case 'single-select':
                 var container = parent_div.find('div.select-container.select-container--answer');
@@ -2693,15 +2721,15 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        //console.log('submitAnswer',question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
+        //console.log('submitAnswer',question_id, stringToBytes32(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer.sendTransaction(question_id, formatForAnswer(new_answer, question_json['type']), current_question[Qi_bond], {from:account, gas:200000, value:bond});
+        return rc.submitAnswer.sendTransaction(question_id, stringToBytes32(new_answer, question_json), current_question[Qi_bond], {from:account, gas:200000, value:bond});
     }).then(function(txid){
         clearForm(parent_div, question_json);
         var fake_history = {
             'args': {
-                'answer': formatForAnswer(new_answer, question_json['type']),
+                'answer': stringToBytes32(new_answer, question_json),
                 'question_id': question_id,
                 'history_hash': null, // TODO Do we need this?
                 'user': account,
@@ -2870,13 +2898,13 @@ function show_bond_payments(ctrl) {
             }
             new_answer = parseInt(answer_bits, 2);
         } else if (question_json['type'] == 'uint') {
-            new_answer = new BigNumber(frm.find('[name="input-answer"]').val());
+            new_answer = frm.find('[name="input-answer"]').val();
         } else if (question_json['type'] == 'int') {
-            new_answer = new BN(frm.find('[name="input-answer"]').val()).toTwos(256);
+            new_answer = frm.find('[name="input-answer"]').val();
         } else {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());
         }
-        new_answer = formatForAnswer(new_answer, question_json['type'])
+        new_answer = stringToBytes32(new_answer, question_json)
         //console.log('new_answer', new_answer);
 
         //console.log('existing_answers', existing_answers);
