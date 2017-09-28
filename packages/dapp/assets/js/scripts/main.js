@@ -97,6 +97,7 @@ const Qi_question_creator = 11; // We add this manually from the event log
 const Qi_question_created_block = 12;
 const Qi_question_text = 13;
 const Qi_template_id = 14;
+const Qi_block_mined = 15;
 
 BigNumber.config({ RABGE: 256});
 const MIN_NUMBER = 0.000000000001;
@@ -167,14 +168,14 @@ function stringToBytes32(answer, qjson) {
         var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
         answer = new BigNumber(answer).times(multiplier).toString();
     }
-    console.log('muliplied to ',answer.toString());
+    //console.log('muliplied to ',answer.toString());
     if (qtype == 'int') {
         var bn = new BN(answer).toTwos(256);
         return padToBytes32(bn.toString(16));
     } else if (qtype == 'uint') {
         return padToBytes32(new BN(answer).toString(16));
     } else {
-        throw Error("Unrecognized answer type " + qtype);
+        return padToBytes32(new BigNumber(answer).toString(16));
     }
 }
 
@@ -546,6 +547,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             // Make a fake log entry
             var fake_log = {
                 'entry': 'LogNewQuestion',
+                'blockNumber': 0, // unconfirmed
                 'args': {
                     'question_id': question_id,
                     'user': account,
@@ -554,7 +556,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'question_hash': 'TODO',
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
-                    'created': new BigNumber(parseInt(new Date().getTime() / 1000))
+                    'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
                 }
             }
             var fake_call = [];
@@ -1046,6 +1048,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_question_hash] = data.args['question_hash'];
                 question[Qi_question_text] = data.args['question'];
                 question[Qi_template_id] = data.args['template_id'].toNumber();
+                question[Qi_block_mined] = data.blockNumber;
                 //question[Qi_bounty] = data.args['bounty'];
             }
             break;
@@ -1718,8 +1721,6 @@ function updateQuestionWindowIfOpen(question) {
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
-    // TODO: This should probably be happening in populateQuestionWindow, based on some data indicated confirmed
-    rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
 
 }
 
@@ -1794,6 +1795,10 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']).expander({slicePoint: 200});
     rcqa.find('.reward-value').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
+
+    if (question_detail[Qi_block_mined] > 0) {
+        rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
+    }
 
     var bond = new BigNumber(web3.toWei(0.0001, 'ether'));
     if (isAnswered(question_detail)) {
@@ -2923,7 +2928,10 @@ function show_bond_payments(ctrl) {
             frm.find('.answer-payment-value').text('');
             frm.attr('data-answer-payment-value', '');
         }
+    }).catch(function(e) {
+        console.log('Could not fetch question, but continuing as it may be unconfirmed', question_id, e);
     });
+
 }
 
 $('.rcbrowser-textarea').on('keyup', function(e){
