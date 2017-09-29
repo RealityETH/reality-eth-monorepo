@@ -50,14 +50,14 @@ If you want to create many similar requests, it will be more efficient to create
 Having deployed this template and got its numerical ID, this can then be called with a string including only the flight number, the delimiter and the date, eg: MH17␟2017-12-01
 
 Encoding answers
-------------------
+----------------
 
 The answer must be expressed in terms of `bytes32` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
 A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a `bytes32` value into `uint` (for an unsigned number) or `int` (for a signed number).
 
 Information unavailability and "null" responses
----------------
+-----------------------------------------------
 
 The issue of at what point a question is decided, and in what ways it may be reported as undecided, is quite complex. Some uses require reporters to provide the best information available to them at the time, while others are not interested in an answer until it is reasonably clear. Many contracts will only be interested in a positive answer, eg an insurance contract might be interested in finding out when your house has burned down, but have no interest in the infinite number of occasions on which it did not burn down.
 

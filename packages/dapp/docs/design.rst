@@ -1,5 +1,5 @@
 The Design In Detail
-=============
+====================
 
 Goals
 -------------
@@ -16,9 +16,10 @@ Basic Process
 -------------
 
 * You post a question to the ``askQuestion()`` function, specifiying:
- * The question text and terms. (See "Encoding questions" below.)
- * The ``timeout``, which is how many seconds since the last answer the system will wait before finalizing on it.
- * The ``arbitrator``, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
+   * The question text and terms. (See "Encoding questions" below.)
+   * The ``timeout``, which is how many seconds since the last answer the system will wait before finalizing on it.
+   * The ``arbitrator``, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
+
 * Anyone can post an answer by calling the ``submitAnswer()`` function. They must supply a bond with their answer. 
 * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the ``timeout`` elapses and system finalizes on that answer.
 * Anyone can either a different answer or the same answer again. Each time they must supply at least double the previous bond. Each new answer resets the ``timeout`` clock.
@@ -28,10 +29,10 @@ Basic Process
 * Users can call ``withdraw()`` to take ETH held in their balance out of the contract.
 
 Incentive problems and mitigations
--------------
+----------------------------------
 
 Large ETH holders getting rewarded over useful information providers
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  
 The system requires people to post useful information. It also requires people to spot bad information, and if necessary post fairly large bonds to beat the bonds posted by people posting bad information. These roles will not necessarily be played by the same people, and both should be rewarded.
 
@@ -68,7 +69,7 @@ In the event that the user fails to send the reveal transaction by the reveal de
 Whether they use the commit-reveal process or not, there is always a possibility that someone will get an answer into the system ahead of you that you were not aware of when you sent it. Unless you have substantially increased the bond, this will cause your answer to be rejected. If you have substantially increased the bond, your transaction can either be accepted or rejected, according to a setting (minimum existing bond) made when you sent the transaction.
 
 Network unavailability and congestion
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Like other interactive protocols, this system relies on the blockchain being available. Users must be able to get transactions though to the blockchain to prevent incorrect answers from being accepted without challenge. 
 
@@ -79,7 +80,7 @@ The system has been implemented with the goal of making it as cheap as practical
 In future it may be also useful to use an on-chain gas price oracle to detect conditions of low availability.
 
 Gas exhaustion and bonds that are uneconomical to claim.
-------------------------------
+--------------------------------------------------------
 
 Unless specified by the creator of a question, the system does not force a minimum value on the size of any given bond. Although the doubling process puts a practical limit on the number of answers it may reasonably be expected to handle, there may still be a number of very small bonds submitted before the recoverable bonds reach the value of the gas required to recover them. 
 
@@ -90,10 +91,10 @@ This is handled by starting the claim process from the latest (highest-value) en
 To make sure there is enough money left to pay for an answer that was taken over from another user, the claimer is not paid for transaction ``n`` until the system has seen transaction ``n-1``. Since the bond always decreases as we follow the history backwards, it can safely pay out for ``n+1`` and higher.
 
 Structuring and fetching information
-----------------------------
+------------------------------------
 
 Encoding questions 
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Questions consist of a JSON string, like the following:
     ``{"title": "Did Trump win the 2016 presidential election?", "type": "bool", "category": "politics"}``
@@ -119,14 +120,14 @@ This can then by called with a string including only the flight number, the deli
 
 
 Encoding answers
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 The answer must be expressed in terms of ``bytes32`` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
 A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a ``bytes32`` value into ``uint`` (for an unsigned number) or ``int`` (for a signed number).
 
 Information unavailability and "null" responses
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The issue of at what point a question is decided, and in what ways it may be reported as undecided, is quite complex. Some uses require reporters to provide the best information available to them at the time, while others are not interested in an answer until it is reasonably clear. Many contracts will only be interested in a positive answer, eg an insurance contract might be interested in finding out when your house has burned down, but have no interest in the infinite number of occasions on which it did not burn down.
 
@@ -137,7 +138,7 @@ There is no way to pause a question once it has been asked, so if the answer to 
 After settlement Reality Check will preserve information about the question hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
 Arbitration mechanisms
---------------------------
+----------------------
 
 When they post bonds, users are ultimately betting that, in the event that the bonds are escalated to a high level and arbitration is requested, the arbitrator will decide in their favour. Reality Check does not solve the fundamental problem of getting true information on the blockchain (or at all); It instead passes the problem on to an arbitrator contract of the user's choice. However, the system of escalating bonds should mean that the arbitration contract can use slow, expensive processes for arbitration, while preserving low costs and fast resolution times for the typical case, and passing the cost of arbitration onto "untruthful" participants.
 

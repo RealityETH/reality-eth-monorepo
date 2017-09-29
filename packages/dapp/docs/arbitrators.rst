@@ -45,7 +45,7 @@ We plan to pursue a system along the lines described here: https://decentralize.
 
 
 Creating and using an arbitration contract
------------------
+------------------------------------------
 
 Arbitrator contracts should expose the following functions to users:
 

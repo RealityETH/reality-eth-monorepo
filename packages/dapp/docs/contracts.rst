@@ -1,8 +1,8 @@
 Calling Reality Check From A Contract
-=============
+=====================================
 
 Fetching information
--------------------
+--------------------
 
 The simplest way use for Reality Check is to fetch some information for a question that has already been posted using the DApp.
 
@@ -11,7 +11,7 @@ Hovering your mouse over the "..." mark in the upper right-hand corner of a ques
 IMAGE GOES HERE
 
 Fetching the answer to a particular question
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each question can be referred to by its ``question_id``. 
 
@@ -61,7 +61,7 @@ TODO: Example
 
 
 Asking questions
--------------------
+----------------
 
 You can ask a new question by calling the ``askQuestion()`` function. 
 
@@ -69,7 +69,7 @@ The content of the question defined as a combination of a numerical ``template_i
 
 
 Asking questions
--------------------
+----------------
 
 You can ask a question again by calling the ``repeatQuestion()`` function. 
 
@@ -83,16 +83,14 @@ This can then by called with a string including only the flight number, the deli
     `MH17␟2017-12-01`
 
 
-
-
-
-
-
-### Encoding answers
+Interpreting the answers
+------------------------
 
 The answer must be expressed in terms of `bytes32` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
 A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a `bytes32` value into `uint` (for an unsigned number) or `int` (for a signed number).
+
+See :ref:`encoding` for more detail about how different data types are encoded.
 
 ### Information unavailability and "null" responses
 
@@ -104,28 +102,3 @@ There is no way to pause a question once it has been asked, so if the answer to 
 
 After settlement Reality Check will preserve information about the question hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
-## Arbitration mechanisms
-
-When they post bonds, users are ultimately betting that, in the event that the bonds are escalated to a high level and arbitration is requested, the arbitrator will decide in their favour. Reality Check does not solve the fundamental problem of getting true information on the blockchain (or at all); It instead passes the problem on to an arbitrator contract of the user's choice. However, the system of escalating bonds should mean that the arbitration contract can use slow, expensive processes for arbitration, while preserving low costs and fast resolution times for the typical case, and passing the cost of arbitration onto "untruthful" participants.
-
-An arbitrator can be any contract that exposes a public method `getFee()` telling users the fee it charges for a particular question, and the ability to call `submitAnswerByArbitrator()` against the Reality Check contract to report the correct answer. We anticipate the following models:
-
-### Centralized trusted arbitrators
-
-Intially we provide a centralized arbitration service, run by Reality Keys, similar to the model we have been operating with since 2013.
-
-### Jury pools
-
-Pools of trusted have often been used successfully in Ethereum, particularly for contract resolution, where pools of keyholders, named "curators" or "custodians", are able to report on the equivalent of "Does contract x have a serious bug that justifies letting its developers upgrade it" or "Is X a legitimate upgrade to contract Y?". These share the same basic security risks as centralized trusted arbitrators (coercion, bribery, blackmail, key leakage, key loss) but will substantially decrease their likelihood for many use-cases.
-
-### Stakeholder voting
-
-Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote.
-
-### Coordination games
-
-Some designs have attempted to leverage coordination games to encourage reporters to report correctly. This is done in Augur, which also contains elements of Subjectivocracy (see below). A system like this, or Augur itself, could be used as an arbitrator via a simple bridge contract.
-
-### Subjectivocracy
-
-We plan to pursue a system along the lines described here: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd

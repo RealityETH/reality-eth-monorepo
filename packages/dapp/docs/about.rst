@@ -1,5 +1,5 @@
 About Reality Check
-==================
+===================
 
 Reality Check was created by KK Social Minds founded by Edmund Edgar in 2009.
 
