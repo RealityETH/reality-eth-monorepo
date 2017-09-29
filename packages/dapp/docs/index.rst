@@ -3,18 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Reality Check's documentation!
+Reality Check
 =========================================
+
+Reality Check is a crowd-sourced on-chain smart contract oracle system by Reality Keys.
+
+Reality Check can be used either from our web application or by calling our contracts directly.
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   dapp
+   encoding 
+   contracts
+   arbitrators
+   design
