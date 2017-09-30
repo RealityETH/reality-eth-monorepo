@@ -1891,7 +1891,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-bounty').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
     balloon.find('.setting-info-bond').text(web3.fromWei(question_detail[Qi_bond], 'ether'));
     balloon.find('.setting-info-timeout').text(secondsTodHms(question_detail[Qi_timeout]));
-    balloon.find('.setting-info-question-hash').text(question_detail[Qi_content_hash]);
+    balloon.find('.setting-info-content-hash').text(question_detail[Qi_content_hash]);
+    balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
     balloon.find('.setting-info-arbitrator').text(question_detail[Qi_arbitrator]);
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.css('z-index', ++zindex);
