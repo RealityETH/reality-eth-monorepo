@@ -1,4 +1,4 @@
-Calling Reality Check From A Contract
+Using Reality Check from a contract
 =====================================
 
 Fetching information
@@ -90,7 +90,7 @@ The answer must be expressed in terms of `bytes32` data. This may encode a numbe
 
 A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a `bytes32` value into `uint` (for an unsigned number) or `int` (for a signed number).
 
-See :ref:`encoding` for more detail about how different data types are encoded.
+See :doc:`encoding` for more detail about how different data types are encoded.
 
 ### Information unavailability and "null" responses
 

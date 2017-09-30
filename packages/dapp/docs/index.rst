@@ -16,7 +16,7 @@ Reality Check can be used either from our web application or by calling our cont
    :caption: Contents:
 
    dapp
-   encoding 
    contracts
+   encoding 
    arbitrators
    design

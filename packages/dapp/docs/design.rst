@@ -1,4 +1,4 @@
-The Design In Detail
+The design in detail
 ====================
 
 Goals

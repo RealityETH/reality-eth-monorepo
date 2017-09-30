@@ -1,5 +1,5 @@
-How Data Is Encoded
-=============
+How data is encoded
+===================
 
 Encoding questions
 ------------------

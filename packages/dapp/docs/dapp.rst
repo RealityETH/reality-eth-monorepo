@@ -1,4 +1,4 @@
-Using the Reality Check Dapp
+Using the Reality Check dapp
 =============
 
 .. local::
