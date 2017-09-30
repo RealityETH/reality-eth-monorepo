@@ -47,13 +47,15 @@ const BLOCK_EXPLORERS = {
 
 const INFURA_NODES = {
     1: 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK'
+    3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    4: 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK'
 };
 
 // The point where we deployed the contract on the network
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
-    3: 1728899
+    3: 1728899,
+    4: 982000
 }
 var START_BLOCK; 
 
