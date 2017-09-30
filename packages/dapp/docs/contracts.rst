@@ -13,13 +13,19 @@ IMAGE GOES HERE
 Fetching the answer to a particular question
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each question can be referred to by its ``question_id``. 
+Each question can be referred to by its ``question_id``, which is a ``bytes32``. 
 
 There is only one question with any given ``question_id``, and there can only be one corresponding answer.
 
-You can fetch the final answer for a question by calling ``getFinalAnswer(bytes32 question_id)``.
+You can fetch the final answer for a question by calling 
 
-This will return ``bytes32`` data. 
+.. code-block:: javascript
+   :linenos:
+
+   bytes32 response = getFinalAnswer(bytes32 question_id);
+
+
+This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. 
 
 If you want numerical data, you will usually cast the result to either ``uint256`` or ``int256``.
 
@@ -50,10 +56,21 @@ This will fetch the answer to the question, if it is available, or revert the tr
 
 Once a question has been created, it can be answered immediately. In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house doesn't burn down.
 
-In this situation you can require the user who wants to make a claim to provide the ID of a question, with the minimum settings that your contract requires to be convinced that it is accurate.
+In this situation, rather than storing a ``question_id`` and waiting for the result of that particular question asked on one particular occasion, your contract should store the ``content_hash``, along with the mimimum settings that it requires to consider information reliable. When someone provides a ``question_id``, it can then fetch the information about the ``content_hash`` and other settings for that question and confirm that they are acceptable.
 
-You can send additional arguments to ``getFinalAnswer()`` to filter for these settings:
-``getFinalAnswer(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond)`` 
+A contract can short-cut this check by sending additional arguments to ``getFinalAnswer()``. If the minimum requirements are not met, the Reality Check contract will throw an error (``revert``).
+
+.. code-block:: javascript
+   :linenos:
+
+   getFinalAnswer(
+      question_id,
+      content_hash,
+      arbitrator,
+      min_timeout,
+      min_bond
+   ) 
+   returns (bytes32 answer);
 
 This will throw an error if the ``content_hash`` or ``arbitrator`` doesn't match, or if the ``timeout`` or ``bond`` is too low.
 
@@ -66,6 +83,24 @@ Asking questions
 You can ask a new question by calling the ``askQuestion()`` function. 
 
 The content of the question defined as a combination of a numerical ``template_id`` and a ``string`` of parameters.
+
+.. code-block:: javascript
+   :linenos:
+
+   function askQuestion(
+      uint256 template_id, 
+      string question, 
+      address arbitrator, 
+      uint256 timeout, 
+      uint256 nonce
+   )
+   returns (bytes32 question_id);
+
+
+The ``bytes32`` ID that will be returned is made by hashing the parameters, plus ``msg.sender``.
+
+The ``nonce`` is a user-supplied number that can be used to disambiguated deliberate repeated uses of the same question. You can use ``0`` if you never intend to ask the same question with the same settings twice.
+
 
 
 Asking questions
