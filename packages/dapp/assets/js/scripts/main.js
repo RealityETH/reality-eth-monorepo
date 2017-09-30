@@ -797,8 +797,12 @@ $('div.loadmore-button').on('click', function(e) {
 function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
+    if (entry['event'] == 'LogNewTemplate') {
+        return;
+    }
+
     if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
-        console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber);
+        console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber, entry);
         return;
     }
 
@@ -3106,7 +3110,12 @@ function pageInit(account) {
             // Handles front page event changes.
             // NB We need to reflect other changes too...
             var evt = result['event'];
-            if (evt == 'LogNewQuestion') {
+            if (evt == 'LogNewTemplate') { 
+                var template_id = result.args.template_id;
+                var question_text = result.args.question_text;
+                template_content[template_id] = question_text;
+                return;
+            } else if (evt == 'LogNewQuestion') {
                 handleQuestionLog(result);
             } else {
                 var question_id = result.args.question_id;
