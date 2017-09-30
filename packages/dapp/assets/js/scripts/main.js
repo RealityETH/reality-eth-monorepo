@@ -68,7 +68,8 @@ const EVENT_ACTOR_ARGS = {
     'LogNewAnswer': 'user',
     'LogFundAnswerBounty': 'user',
     'LogNotifyOfArbitrationRequest': 'user',
-    'LogClaim': 'user'
+    'LogClaim': 'user',
+    'LogWithdraw': 'user'
 };
 
 const QUESTION_MAX_OUTCOMES = 128; 
@@ -799,7 +800,7 @@ $('div.loadmore-button').on('click', function(e) {
 function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
-    if (entry['event'] == 'LogNewTemplate') {
+    if ( (entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
         return;
     }
 
@@ -1024,7 +1025,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     if (!question_id) {
-        //console.log(question_id, data_type, freshness, data);
+        console.log(question_id, data_type, freshness, data);
         throw Error("filledQuestionDetail called without question_id, wtf")
     }
 
@@ -1264,6 +1265,10 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
     if (qi == undefined) qi = 1;
     if (qc == undefined) qc = current_block_number;
     if (al == undefined) al = current_block_number;
+
+    if (!question_id) {
+        throw new Error('no questin_id, wtf');
+    }
 
     var called_block = current_block_number;
     //console.log('ensureQuestionDetailFetched with called_block', called_block);
@@ -3120,6 +3125,8 @@ function pageInit(account) {
                 return;
             } else if (evt == 'LogNewQuestion') {
                 handleQuestionLog(result);
+            } else if (evt == 'LogWithdraw') {
+                updateUserBalanceDisplay();
             } else {
                 var question_id = result.args.question_id;
 
