@@ -8,12 +8,12 @@ Requirements
 
 You will need the Metamask_ Chrome extension. 
 
-Reality Check is currently deployed to the Ropsten testnet. Select the Ropsten testnet, make sure your account is unlocked and refresh the page. 
+Reality Check is currently deployed to the Rinkeby testnet. Select the Rinkeby testnet, make sure your account is unlocked and refresh the page. 
 
-You will need Ropsten testnet coins to use the application. You can get these at the `Ropsten Faucet`_.
+You will need Rinkeby testnet coins to use the application. You can get these at the `Rinkeby Faucet`_.
 
 .. _Metamask: http://metamask.io/
-.. _`Ropsten Faucet`: http://faucet.ropsten.be:3001/
+.. _`Rinkeby Faucet`: https://faucet.rinkeby.io/
 
 
 Asking a question
