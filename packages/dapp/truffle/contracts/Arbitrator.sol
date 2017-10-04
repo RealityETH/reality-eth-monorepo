@@ -3,10 +3,13 @@ pragma solidity ^0.4.6;
 contract RealityCheckAPI {
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer);
     function claimBond(bytes32 answer_id);
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty);
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) returns (bytes32);
     function notifyOfArbitrationRequest(bytes32 question_id, address requester);
     function isFinalized(bytes32 question_id) returns (bool);
+}
+
+contract CallerBackerAPI {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty);
 }
 
 contract Arbitrator {
@@ -34,13 +37,8 @@ contract Arbitrator {
         return 10000000000000000; // 0.001 ETH
     }
 
-    // TODO: Update this to claimWinnings, write tests
-    function claimBond(address realitycheck, bytes32 answer_id) onlyOwner {
-        RealityCheckAPI(realitycheck).claimBond(answer_id);
-    }
-
-    function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) onlyOwner {
-        RealityCheckAPI(realitycheck).sendCallback(question_id, client_ctrct, gas, no_bounty);
+    function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) onlyOwner {
+        CallerBackerAPI(realitycheck).sendCallback(question_id, client_ctrct, gas, min_bounty);
     }
 
     function submitAnswerByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer, address answerer) onlyOwner returns (bytes32) {

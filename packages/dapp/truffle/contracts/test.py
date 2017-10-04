@@ -108,7 +108,7 @@ class TestRealityCheck(TestCase):
     #    )
     #    self.assertEqual(regen_question_id, self.question_id)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
         question = self.rc0.questions(self.question_id)
@@ -630,10 +630,11 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.cb.address, 3000000), 100)
 
         # Return false on an unregistered amount of gas
-        self.assertFalse(self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, startgas=200000))
+        with self.assertRaises(TransactionFailed):
+            self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, 0, startgas=200000)
 
         self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
-        self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000000)
+        self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000000, 0)
         self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
         
         
@@ -654,10 +655,15 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
 
         # return false with an unregistered or spent amount of gas
-        self.assertFalse(self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000001, startgas=200000))
+        with self.assertRaises(TransactionFailed):
+            self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000001, 0, startgas=200000)
+
+        # fail if the bounty is less than we demand
+        with self.assertRaises(TransactionFailed):
+            self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000, 999999999999999, startgas=400000) 
 
         # should complete with no error, even though the client threw an error
-        self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000) 
+        self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000, 0) 
     
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")

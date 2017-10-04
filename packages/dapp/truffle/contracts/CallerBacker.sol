@@ -48,15 +48,12 @@ contract CallerBacker {
         callback_requests[question_id][client_ctrct][gas] += msg.value;
     }
 
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, bool no_bounty) returns (bool) {
+    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) returns (bool) {
 
         uint256 bounty = callback_requests[question_id][client_ctrct][gas];
 
-        if (!no_bounty) {
-            if (callback_requests[question_id][client_ctrct][gas] == 0) {
-                return false;
-            }
-        }
+        require(callback_requests[question_id][client_ctrct][gas] >= min_bounty);
+
         require(msg.gas >= gas);
 
         bytes32 best_answer = RealityCheckAPI(realitycheck).getFinalAnswer(question_id);      
