@@ -513,8 +513,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     }
 
     if (validate(win)) {
-        // TODO: Handle other types etc
-        var qtext = question_body.val();
+        var qtext = JSON.stringify(question_body.val()).replace(/^"|"$/g, '');
         var qtype = question_type.val()
         var template_id = QUESTION_TYPE_TEMPLATES[qtype];
         //console.log('using template_id', template_id);
