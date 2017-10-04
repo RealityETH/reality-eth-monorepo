@@ -41,7 +41,14 @@ Some designs have attempted to leverage coordination games to encourage reporter
 Subjectivocracy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We plan to pursue a system along the lines described here: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
+We are developing a system along the lines described in `Get the facts, hard-fork all the things`_.
+
+You can join the conversation in `our Gitter channel`_.
+
+.. _`Get the facts, hard-fork all the things`: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
+.. _`our Gitter channel`: https://gitter.im/realitykeys/token
+
+
 
 
 Creating and using an arbitration contract

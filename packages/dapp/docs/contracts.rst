@@ -102,9 +102,8 @@ The ``bytes32`` ID that will be returned is made by hashing the parameters, plus
 The ``nonce`` is a user-supplied number that can be used to disambiguated deliberate repeated uses of the same question. You can use ``0`` if you never intend to ask the same question with the same settings twice.
 
 
-
-Asking questions
-----------------
+Repeating questions
+-------------------
 
 You can ask a question again by calling the ``repeatQuestion()`` function. 
 
@@ -127,13 +126,13 @@ A contract consuming this data should be prepared to make the necessary type con
 
 See :doc:`encoding` for more detail about how different data types are encoded.
 
-### Information unavailability and "null" responses
 
-The issue of at what point a question is decided, and in what ways it may be reported as undecided, is quite complex. Some uses require reporters to provide the best information available to them at the time, while others are not interested in an answer until it is reasonably clear. Many contracts will only be interested in a positive answer, eg an insurance contract might be interested in finding out when your house has burned down, but have no interest in the infinite number of occasions on which it did not burn down.
+Making sure a question has an answer
+------------------------------------
 
-The handling of null, undecided or unclear answers is considered outside the scope of the system and left to the terms of each individual question. The terms of the question may designate a particular value or range of values to mean things like "undecided" or "uncertain". They may also specify the level of certainty and/or finality that should be applied when evaluating the result at any given time.
+As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality Check for information need to be designed to take account of this possibility.
 
-There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be be settled on as the final result. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
+After settlement Reality Check will preserve information about the ``content_hash_, ``arbitrator``, ``timeout``, finalization date (in ``finalization_state`` and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswer()``.
 
-After settlement Reality Check will preserve information about the question hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
+We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 

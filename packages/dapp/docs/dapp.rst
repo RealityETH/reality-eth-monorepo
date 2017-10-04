@@ -1,7 +1,5 @@
 Using the Reality Check dapp
-=============
-
-.. local::
+============================
 
 Requirements
 ------------
@@ -68,6 +66,8 @@ Your bond
 ~~~~~~~~~
 
 This is money that you will get back if your answer is accepted as the final answer, and lose if your answer is not accepted. 
+
+Posting a bond stakes a claim to the answer you are giving: Even if someone else later reposts the same answer, you will get your bond back, and also be paid, as a mimimum, an amount equal to the bond you have posted.
 
 .. note:: When you send a transaction to the Ethereum network, it can takes seconds, minutes or even hours to confirm.
 
