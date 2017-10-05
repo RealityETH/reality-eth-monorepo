@@ -462,6 +462,8 @@ contract RealityCheck {
     stateFinalized(question_id)
     public {
 
+        require(history_hashes.length > 0);
+
         // These are only set if we split our claim over multiple transactions.
         address payee = question_claims[question_id].payee; 
         uint256 last_bond = question_claims[question_id].last_bond; 
