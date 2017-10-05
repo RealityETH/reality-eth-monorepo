@@ -55,7 +55,7 @@ const INFURA_NODES = {
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
     3: 1728899,
-    4: 982000
+    4: 1009000 
 }
 var START_BLOCK; 
 
