@@ -103,8 +103,6 @@ const Qi_template_id = 14;
 const Qi_block_mined = 15;
 
 BigNumber.config({ RABGE: 256});
-const MIN_NUMBER = 0.000000000001;
-const MAX_NUMBER = (2 ** 256 / 1000000000000) / 2;
 const ONE_ETH = 1000000000000000000;
 
 var block_timestamp_cache = {};
