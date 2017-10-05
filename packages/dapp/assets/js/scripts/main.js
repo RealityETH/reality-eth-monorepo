@@ -161,6 +161,26 @@ const monthList = [
     'Dec'
 ];
 
+function minNumber(qjson) {
+    var is_signed = (qjson['type'] == 'int');
+    if (!is_signed) {
+        return new BigNumber(0);
+    }
+    return maxNumber(qjson).neg();
+}
+
+function maxNumber(qjson) {
+    var is_signed = (qjson['type'] == 'int');
+    var divby = new BigNumber(1);
+    if (qjson['decimals']) {
+        divby = new BigNumber(10).pow(new BigNumber(qjson['decimals']));
+    }
+    if (is_signed) {
+        divby = divby.times(2);
+    }
+    return new BigNumber("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").dividedBy(divby);
+}
+
 function stringToBytes32(answer, qjson) {
     var qtype = qjson['type'];
     var decimals = parseInt(qjson['decimals']);
@@ -2687,7 +2707,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                } else if (ans.lt(MIN_NUMBER) || ans.gt(MAX_NUMBER)) {
+                } else if (ans.lt(minNumber(question_json)) || ans.gt(maxNumber(question_json))) {
                     err = true;
                 }
                 if (err) {
@@ -2700,8 +2720,8 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                //} else if (ans.lt(new BigNumber(MIN_NUMBER).times(-1)) || ans.gt(MAX_NUMBER)) {
-                //    err = true;
+                } else if (ans.lt(minNumber(question_json)) || ans.gt(maxNumber(question_json))) {
+                    err = true;
                 }
                 if (err) {
                     parent_div.find('div.input-container.input-container--answer').addClass('is-error');
