@@ -63,8 +63,8 @@ contract CallerBacker {
         // This is the responsibility of the requestor.
 
         // Call signature argument hard-codes the result of:
-        // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-        bool callback_result = client_ctrct.call.gas(gas)(0xbc8a3697, question_id, best_answer); 
+        // bytes4(bytes32(sha3("__realitycheck_callback(bytes32,bytes32)"))
+        bool callback_result = client_ctrct.call.gas(gas)(0x1d7dbb43, question_id, best_answer); 
 
         balances[msg.sender] += bounty;
         callback_requests[question_id][client_ctrct][gas] = 0;

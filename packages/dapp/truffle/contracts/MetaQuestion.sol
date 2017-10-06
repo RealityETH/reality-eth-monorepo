@@ -19,7 +19,7 @@ contract MetaQuestion is BalanceHolder {
     mapping(bytes32 => uint256) public question_requests;
     mapping(bytes32 => address) public question_owners;
 
-    function requestAnswer(
+    function askQuestion(
         uint256 template_id,
         string question,
         address arbitrator,
@@ -83,8 +83,8 @@ contract MetaQuestion is BalanceHolder {
             // We don't care if it errors out or not - this is the responsibility of the requestor.
             // If we called it with enough gas, we did our job.
             // Call signature argument hard-codes the result of:
-            // bytes4(bytes32(sha3("__factcheck_callback(bytes32,bytes32)"))
-            bool callback_result = caller.call.gas(callback_gas)(0xbc8a3697, request_id, answer); 
+            // bytes4(bytes32(sha3("__realitycheck_callback(bytes32,bytes32)"))
+            bool callback_result = caller.call.gas(callback_gas)(0x1d7dbb43, request_id, answer); 
         }
 
     }
