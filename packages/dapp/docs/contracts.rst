@@ -8,8 +8,6 @@ The simplest way use for Reality Check is to fetch some information for a questi
 
 Hovering your mouse over the "..." mark in the upper right-hand corner of a question will show you the question ID and the hash of the question content.
 
-IMAGE GOES HERE
-
 Fetching the answer to a particular question
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -44,37 +42,7 @@ Which of the following words did Donald Trump use in his inauguration speech?
  * 4: Hillary
  * 8: Twitter
 
-For example, a response of 9 would indicate the answers Bigly and Twitter.
-
-
-
-
-The content of the question can be referred to by its ``content_hash``. 
-The same ``content_hash`` may be repeated many times, asking the same question repeatedly.
-
-This will fetch the answer to the question, if it is available, or revert the transaction does not yet have a final answer.
-
-Once a question has been created, it can be answered immediately. In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house doesn't burn down.
-
-In this situation, rather than storing a ``question_id`` and waiting for the result of that particular question asked on one particular occasion, your contract should store the ``content_hash``, along with the mimimum settings that it requires to consider information reliable. When someone provides a ``question_id``, it can then fetch the information about the ``content_hash`` and other settings for that question and confirm that they are acceptable.
-
-A contract can short-cut this check by sending additional arguments to ``getFinalAnswer()``. If the minimum requirements are not met, the Reality Check contract will throw an error (``revert``).
-
-.. code-block:: javascript
-   :linenos:
-
-   getFinalAnswer(
-      question_id,
-      content_hash,
-      arbitrator,
-      min_timeout,
-      min_bond
-   ) 
-   returns (bytes32 answer);
-
-This will throw an error if the ``content_hash`` or ``arbitrator`` doesn't match, or if the ``timeout`` or ``bond`` is too low.
-
-TODO: Example
+For example, a response of 9 would indicate the answers Bigly and Twitter. See :doc:`encoding` for more information on what the response to various different types of contract will look like.
 
 
 Asking questions
@@ -96,33 +64,103 @@ The content of the question defined as a combination of a numerical ``template_i
    )
    returns (bytes32 question_id);
 
+Any ETH you send with this call will be assigned as a reward to whoever answers the question.
 
 The ``bytes32`` ID that will be returned is made by hashing the parameters, plus ``msg.sender``.
 
 The ``nonce`` is a user-supplied number that can be used to disambiguated deliberate repeated uses of the same question. You can use ``0`` if you never intend to ask the same question with the same settings twice.
 
 
-Repeating questions
--------------------
+Accepting an answer only if something has happened
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can ask a question again by calling the ``repeatQuestion()`` function. 
+Once a question has been created, it can be answered immediately. In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house didn't burn down. 
 
+You may also want to screen out results indicating "unknown" or "no way to tell" or "hasn't happened yet".
+
+One approach is that instead of waiting for the result of a specific ``question_id``, you specify the type of question you want, then wait for a user to send you a question ID with the appropriate content and settings.
+
+To make this easier, we allow you to pass some extra arguments to ``getFinalAnswer()``. This will throw an error not only if the question is not yet answered, but also if the content doesn't match, the bond or timeout is too low, or the arbitrator is not the one you expect.
+
+.. code-block:: javascript
+   :linenos:
+
+    function getFinalAnswer(
+        bytes32 question_id, 
+        bytes32 content_hash, 
+        address arbitrator, 
+        uint256 min_timeout, 
+        uint256 min_bond
+    ) returns (bytes32 answer)
+
+You can then screen ``answer`` in your contract and only act on results that your contract is interested in.
+
+Getting someone else to ask the question at the right time
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You may also want to incentivize someone to ask the question at the appropriate time, post the initial answer with a sufficient bond, and (optionally) send the result to your contract.
+
+For these situations we provide a separate contract called a `MetaQuestion`.
+
+This allows you to say, "I will pay to get an answer to this question, with a minimum bond of x and timeout of y, but only once it has an answer in a particular range".
+
+.. code-block:: javascript
+   :linenos:
+
+   function askQuestion(
+      uint256 template_id, 
+      string question, 
+      address arbitrator, 
+      uint256 timeout, 
+      uint256 min_bond, 
+      uint256 min_answer, 
+      uint256 max_answer, 
+      uint256 callback_gas
+   )
+   returns (bytes32 meta_question_id);
+
+The ETH you send with this call will be assigned as a reward to whoever asks the question, and supplies the first answer, along with a bond.
+
+This also includes a ``callback_gas`` parameter. If specified, this allows you to request that somebody calls your contract with the result, once it is known. It should specify the amount of gas required to call your contract with the result, and make it do whatever you need it to do.
+
+Your callback function should look like this:
+
+.. code-block:: javascript
+   :linenos:
+
+   function __realitycheck_callback(
+      bytes32 meta_question_id,
+      bytes32 answer
+   )
 
 Creating templates
 ------------------
 
-A template can be created by calling `createTemplate("template")`, where "template" is the JSON template. This returns a numerical ID.
+A template can be created by calling ``createTemplate("template")``, where "template" is the JSON template. This returns a numerical ID.
+
+
+If you want to create many similar requests, it will be more efficient to create your own template. For example, a flight insurance app might have:
+
+.. code-block:: json
+   :linenos:
+
+    {
+        "title": "Was flight %s on date %s delayed by more than 3 hours?", 
+        "type": "bool", 
+        "category": "flight-information"
+    }
+
 
 This can then by called with a string including only the flight number, the delimiter and the date, eg:
-    `MH17␟2017-12-01`
+    ``MH17␟2017-12-01``
 
 
 Interpreting the answers
 ------------------------
 
-The answer must be expressed in terms of `bytes32` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
+The answer must be expressed in terms of ``bytes32`` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
-A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a `bytes32` value into `uint` (for an unsigned number) or `int` (for a signed number).
+A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a ``bytes32`` value into ``uint`` (for an unsigned number) or ``int`` (for a signed number).
 
 See :doc:`encoding` for more detail about how different data types are encoded.
 
