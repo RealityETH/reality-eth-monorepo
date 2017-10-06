@@ -25,7 +25,7 @@
             <span class="error-label no-metamask-plugin">You need to <a href="https://metamask.io">install the MetaMask plugin</a> to use Reality Check. </span>
             <span class="error-label no-metamask-accounts">No accounts found. Please make sure MetaMask is unlocked then refresh the page.</span>
             <span class="error-label invalid-network">Invalid network.</span>
-            <span data-network-id="3,4,8995"></span>
+            <span data-network-id="4,8995"></span>
         </div>
         <header id="site-header">
             <div id="site-header-inner">
@@ -33,8 +33,8 @@
                     <a href=""><img id="site-logo" src="assets/image/logomark.svg"></a>
                 </h1>
 
-                <a id="post-a-question-link" href="" class="rcbrowser__open-button ">Post a Question</a>
-                <a id="browse-question-link" href="">Browse Questions</a>
+                <a href="" class="rcbrowser__open-button post-a-question-link">Post a Question</a>
+                <a class="browse-question-link" href="">Browse Questions</a>
                 <a id="help-center-button" href="">How it works</a>
                 <a style="visibility:hidden" class="search-button" href="#search"></a> 
 
@@ -156,11 +156,11 @@
     <footer id="site-footer">
         <nav id="site-footer-nav">
             <ul>
-                <li><a href="" class="rcbrowser__open-button" data-target-id="id0">Post a Question</a></li>
-                <li><a href="questions-and-answers.html">Browse Questions</a></li>
-                <li><a href="" class="rcbrowser__open-button" data-target-id="id2">Your Q&amp;A</a></li>
-                <li><a href="">Help Center</a></li>
-                <li><a href="">Developers</a></li>
+                <li><a href="" class="rcbrowser__open-button post-a-question-link" data-target-id="id0">Post a Question</a></li>
+                <li><a href="" class="browse-question-link">Browse Questions</a></li>
+                <li><a href="" class="rcbrowser__open-button your-qa-link" data-target-id="id2">Your Q&amp;A</a></li>
+                <li><a href="docs/html">Documentation</a></li>
+                <li><a href="docs/html/contracts.html">Developers</a></li>
 
             </ul>
         </nav>
@@ -885,7 +885,7 @@
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
 
-    <script src="assets/js/bundle.min.js"></script>
+    <script src="assets/js/bundle.js"></script>
 
 </body>
 </html>

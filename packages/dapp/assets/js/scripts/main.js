@@ -412,7 +412,7 @@ let bounceEffect = function() {
 /*-------------------------------------------------------------------------------------*/
 // window for posting a question
 
-$('#your-qa-button').on('click', function(e) {
+$('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#your-question-answer-window').css('z-index', ++zindex);
@@ -464,7 +464,7 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
     markViewedToDate();
 });
 
-$('#post-a-question-button,#post-a-question-link').on('click', function(e){
+$('#post-a-question-button,.post-a-question-link').on('click', function(e){
     //console.log('click post');
     e.preventDefault();
     e.stopPropagation();
@@ -487,7 +487,7 @@ $('#post-a-question-button,#post-a-question-link').on('click', function(e){
     Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 });
 
-$('#browse-question-button,#browse-question-link').on('click', function(e){
+$('#browse-question-button,.browse-question-link').on('click', function(e){
     e.preventDefault();
     e.stopPropagation();
     $('body').addClass('page-qa');
@@ -3321,75 +3321,72 @@ window.onload = function() {
 
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
 
-    // Checking if Web3 has been injected by the browser (Mist/MetaMask)
-    if (typeof web3 !== 'undefined') {
-        // Use Mist/MetaMask's provider
-        console.log('got web3, go ahead');
-        window.web3 = new Web3(web3.currentProvider);
-
-        // Set up a filter so we always know the latest block number.
-        // This helps us keep track of how fresh our question data etc is.
-        web3.eth.filter('latest').watch( function(err, res) {
-            web3.eth.getBlock('latest', function(err, result) {
-                if (result.number > current_block_number) {
-                    current_block_number = result.number;
-                }
-                // Should we do this?
-                // Potentially calls later but grows indefinitely...
-                // block_timestamp_cache[result.number] = result.timestamp;
-            })
-        });
-
-        web3.eth.getAccounts((err, acc) => {
-            web3.eth.getBlock('latest', function(err, result) {
-                if (result.number > current_block_number) {
-                    current_block_number = result.number;
-                }
-
-                if (acc && acc.length > 0) {
-
-
-                    //console.log('accounts', acc);
-                    account = acc[0];
-                    
-                } else {
-                    console.log('no accounts');
-                    $('body').addClass('error-no-metamask-accounts').addClass('error');
-                }
-
-                var args = parseHash();
-                if (args['category']) {
-                    category = args['category'];
-                    $('body').addClass('category-' + category);
-                    var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
-                    $('#filterby').text(cat_txt);
-                }
-                //console.log('args:', args);
-
-
-                RealityCheck = contract(rc_json);
-                RealityCheck.setProvider(web3.currentProvider);
-                RealityCheck.deployed().then(function(instance) {
-                    rc = instance;
-                    updateUserBalanceDisplay();
-                    pageInit(account);
-                    if (args['question']) {
-                        //console.log('fetching question');
-                        ensureQuestionDetailFetched(args['question']).then(function(question){
-                            openQuestionWindow(question[Qi_question_id]);
-                        })
-                    }
-                });
-            })
-        });
-
-
-    } else {
-// fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
+    if (typeof web3 === 'undefined') {
+        // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
         window.web3 = new Web3(new Web3.providers.HttpProvider(INFURA_NODES[valid_ids[0]]));
         console.log('no web3, using infura on network', valid_ids[0]);
         $('body').addClass('error-no-metamask-plugin').addClass('error');
+    } else {
+        // Use Mist/MetaMask's provider
+        console.log('got web3, go ahead');
+        window.web3 = new Web3(web3.currentProvider);
     }
+    
+    // Set up a filter so we always know the latest block number.
+    // This helps us keep track of how fresh our question data etc is.
+    web3.eth.filter('latest').watch( function(err, res) {
+        web3.eth.getBlock('latest', function(err, result) {
+            if (result.number > current_block_number) {
+                current_block_number = result.number;
+            }
+            // Should we do this?
+            // Potentially calls later but grows indefinitely...
+            // block_timestamp_cache[result.number] = result.timestamp;
+        })
+    });
+
+    web3.eth.getAccounts((err, acc) => {
+        web3.eth.getBlock('latest', function(err, result) {
+            if (result.number > current_block_number) {
+                current_block_number = result.number;
+            }
+
+            if (acc && acc.length > 0) {
+
+
+                //console.log('accounts', acc);
+                account = acc[0];
+                
+            } else {
+                console.log('no accounts');
+                $('body').addClass('error-no-metamask-accounts').addClass('error');
+            }
+
+            var args = parseHash();
+            if (args['category']) {
+                category = args['category'];
+                $('body').addClass('category-' + category);
+                var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
+                $('#filterby').text(cat_txt);
+            }
+            //console.log('args:', args);
+
+
+            RealityCheck = contract(rc_json);
+            RealityCheck.setProvider(web3.currentProvider);
+            RealityCheck.deployed().then(function(instance) {
+                rc = instance;
+                updateUserBalanceDisplay();
+                pageInit(account);
+                if (args['question']) {
+                    //console.log('fetching question');
+                    ensureQuestionDetailFetched(args['question']).then(function(question){
+                        openQuestionWindow(question[Qi_question_id]);
+                    })
+                }
+            });
+        });
+    }); 
 
     // Notification bar(footer)
     if (window.localStorage.getItem('got-it') == null) {
