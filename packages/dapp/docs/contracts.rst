@@ -25,6 +25,8 @@ You can fetch the final answer for a question by calling
 
 This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. 
 
+A (yes/no) question would normally be cast to a ``bool`` type, resulting in ``true`` or ``false``.
+
 If you want numerical data, you will usually cast the result to either ``uint256`` or ``int256``.
 
 A single choice from a list of options will return an ID representing a zero-based index.
@@ -34,6 +36,8 @@ Who won the US presidential election?
  * 1: Donald Trump
  * 2: Other
 
+A response of ``1`` would indicate the result `Donald Trump`.
+
 A multiple-choice list will be indexed as follows:
 
 Which of the following words did Donald Trump use in his inauguration speech?
@@ -42,7 +46,7 @@ Which of the following words did Donald Trump use in his inauguration speech?
  * 4: Hillary
  * 8: Twitter
 
-For example, a response of 9 would indicate the answers Bigly and Twitter. See :doc:`encoding` for more information on what the response to various different types of contract will look like.
+For example, a response of ``9`` would indicate the answers Bigly (``1``) and Twitter (``8``).
 
 
 Asking questions
@@ -74,7 +78,9 @@ The ``nonce`` is a user-supplied number that can be used to disambiguated delibe
 Accepting an answer only if something has happened
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once a question has been created, it can be answered immediately. In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house didn't burn down. 
+Once a question has been created, it can be answered immediately. 
+
+In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house didn't burn down. 
 
 You may also want to screen out results indicating "unknown" or "no way to tell" or "hasn't happened yet".
 
@@ -153,16 +159,6 @@ If you want to create many similar requests, it will be more efficient to create
 
 This can then by called with a string including only the flight number, the delimiter and the date, eg:
     ``MH17␟2017-12-01``
-
-
-Interpreting the answers
-------------------------
-
-The answer must be expressed in terms of ``bytes32`` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
-
-A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a ``bytes32`` value into ``uint`` (for an unsigned number) or ``int`` (for a signed number).
-
-See :doc:`encoding` for more detail about how different data types are encoded.
 
 
 Making sure a question has an answer
