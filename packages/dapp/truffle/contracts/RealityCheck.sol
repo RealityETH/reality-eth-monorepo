@@ -1,8 +1,9 @@
 pragma solidity ^0.4.6;
 
 import './SafeMath.sol';
+import './BalanceHolder.sol';
 
-contract RealityCheck {
+contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
 
@@ -373,6 +374,16 @@ contract RealityCheck {
     function getFinalAnswer(bytes32 question_id) 
     stateFinalized(question_id)
     external constant returns (bytes32) {
+        return questions[question_id].best_answer;
+    }
+
+    function getFinalAnswer(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
+    stateFinalized(question_id)
+    external constant returns (bytes32) {
+        require(content_hash == questions[question_id].content_hash);
+        require(arbitrator == questions[question_id].arbitrator);
+        require(min_timeout <= questions[question_id].timeout);
+        require(min_bond <= questions[question_id].bond);
         return questions[question_id].best_answer;
     }
 
