@@ -3320,8 +3320,10 @@ function parseHash() {
 window.onload = function() {
 
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
+    var is_web3_fallback = false;
 
     if (typeof web3 === 'undefined') {
+        var is_web3_fallback = true;
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
         window.web3 = new Web3(new Web3.providers.HttpProvider(INFURA_NODES[valid_ids[0]]));
         console.log('no web3, using infura on network', valid_ids[0]);
@@ -3352,14 +3354,13 @@ window.onload = function() {
             }
 
             if (acc && acc.length > 0) {
-
-
                 //console.log('accounts', acc);
                 account = acc[0];
-                
             } else {
-                console.log('no accounts');
-                $('body').addClass('error-no-metamask-accounts').addClass('error');
+                if (!is_web3_fallback) {
+                    console.log('no accounts');
+                    $('body').addClass('error-no-metamask-accounts').addClass('error');
+                }
             }
 
             var args = parseHash();
@@ -3370,7 +3371,6 @@ window.onload = function() {
                 $('#filterby').text(cat_txt);
             }
             //console.log('args:', args);
-
 
             RealityCheck = contract(rc_json);
             RealityCheck.setProvider(web3.currentProvider);
