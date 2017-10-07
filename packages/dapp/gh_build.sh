@@ -31,5 +31,4 @@ rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
 cd $BUILD_DIR
 git add .
 git commit -m "Update to latest build"
-#git push
-
+git push
