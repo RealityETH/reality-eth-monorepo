@@ -124,7 +124,6 @@ contract RealityCheck is BalanceHolder {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
-    mapping(address => uint256) public balanceOf;
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator);
@@ -561,15 +560,6 @@ contract RealityCheck is BalanceHolder {
             claimWinnings(qid, hh, ad, bo, an);
         }
         withdraw();
-    }
-
-    function withdraw() 
-    stateAny() // You can always withdraw your balance
-    public {
-        uint256 bal = balanceOf[msg.sender];
-        balanceOf[msg.sender] = 0;
-        msg.sender.transfer(bal);
-        LogWithdraw(msg.sender, bal);
     }
 
 }
