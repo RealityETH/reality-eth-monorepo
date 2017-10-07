@@ -3,12 +3,9 @@ pragma solidity ^0.4.6;
 import './BalanceHolder.sol';
 
 contract RealityCheckAPI {
-    function getFinalAnswer(bytes32 question_id) constant returns (bytes32); 
     function getFinalAnswer(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) returns (bytes32);
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) payable returns (bytes32); 
-    function repeatQuestion(bytes32 repeat_question_id, uint256 nonce, address arbitrator, uint256 timeout) returns (bytes32); 
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) payable;
-    function isFinalized(bytes32 question_id) returns (bool);
     function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers);
 }
 
@@ -105,7 +102,6 @@ contract MetaQuestion is BalanceHolder {
         uint256 bounty,
         bool callback_result
     );
-
 
     function setRealityCheck(address addr) {
         address NULL_ADDRESS;
