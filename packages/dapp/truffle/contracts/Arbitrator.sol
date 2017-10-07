@@ -2,7 +2,6 @@ pragma solidity ^0.4.6;
 
 contract RealityCheckAPI {
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer);
-    function claimBond(bytes32 answer_id);
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) returns (bytes32);
     function notifyOfArbitrationRequest(bytes32 question_id, address requester);
     function isFinalized(bytes32 question_id) returns (bool);
