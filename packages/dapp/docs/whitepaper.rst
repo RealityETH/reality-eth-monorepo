@@ -1,5 +1,5 @@
-The design in detail
-====================
+White paper
+===========
 
 Goals
 -------------
