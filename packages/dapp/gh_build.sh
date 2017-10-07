@@ -22,6 +22,9 @@ fi
 
 pushd $BUILD_DIR
 git pull
+git checkout master
+git pull
+git checkout gh-pages
 git merge master -m "Update to latest master"
 popd
 rsync -avz --delete $SRC_DIR/docs/ $BUILD_DIR/docs/
