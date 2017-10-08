@@ -1,5 +1,6 @@
 pragma solidity ^0.4.6;
 
+import './SafeMath.sol';
 import './BalanceHolder.sol';
 
 contract RealityCheckAPI {
@@ -7,6 +8,8 @@ contract RealityCheckAPI {
 }
 
 contract FireInsuranceExample is BalanceHolder {
+
+    using SafeMath for uint256;
 
     struct Policy {
         address realitycheck;
@@ -65,13 +68,14 @@ contract FireInsuranceExample is BalanceHolder {
         require(policies[policy_id].premium > 0);
         require(policies[policy_id].claimable_amount == 0);
         require(policies[policy_id].insuree == msg.sender);
-        balanceOf[msg.sender] += policies[policy_id].premium;
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(policies[policy_id].premium);
         delete policies[policy_id];
     }
 
     function claim(bytes32 policy_id, bytes32 question_id) 
     public {
         require(policies[policy_id].claimable_amount > 0);
+        require(now <= policies[policy_id].coverage_start + policies[policy_id].coverage_period);
         bytes32 response = RealityCheckAPI(policies[policy_id].realitycheck).getFinalAnswer(
             question_id,
             policies[policy_id].content_hash,
@@ -86,10 +90,14 @@ contract FireInsuranceExample is BalanceHolder {
 
     function complete(bytes32 policy_id) 
     public {
-        require(policies[policy_id].claimable_amount > 0);
-        require(policies[policy_id].premium > 0);
         require(now > policies[policy_id].coverage_start + policies[policy_id].coverage_period);
-        balanceOf[policies[policy_id].insurer] += policies[policy_id].premium + policies[policy_id].claimable_amount;
+        uint256 claimable_amount = policies[policy_id].claimable_amount;
+        uint256 premium = policies[policy_id].premium;
+        address insurer = policies[policy_id].insurer;
+        require(claimable_amount > 0);
+        require(premium > 0);
+        assert(insurer != 0x0);
+        balanceOf[insurer] = balanceOf[insurer].add(premium).add(claimable_amount);
         delete policies[policy_id];
     }
 
