@@ -25,7 +25,7 @@ You can fetch the final answer for a question by calling
 
 This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. 
 
-A (yes/no) question would normally be cast to a ``bool`` type, resulting in ``true`` or ``false``.
+A (yes/no) question would normally be cast to a ``uint256`` type, resulting in ``1`` or ``0``.
 
 If you want numerical data, you will usually cast the result to either ``uint256`` or ``int256``.
 
