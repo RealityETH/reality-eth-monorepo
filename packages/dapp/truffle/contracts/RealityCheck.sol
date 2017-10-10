@@ -343,7 +343,7 @@ contract RealityCheck is BalanceHolder {
         return questions[question_id].best_answer;
     }
 
-    function getFinalAnswer(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
+    function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
     stateFinalized(question_id)
     external constant returns (bytes32) {
         require(content_hash == questions[question_id].content_hash);

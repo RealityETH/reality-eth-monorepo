@@ -4,7 +4,7 @@ import './SafeMath.sol';
 import './BalanceHolder.sol';
 
 contract RealityCheckAPI {
-    function getFinalAnswer(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) public returns (bytes32);
+    function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) public returns (bytes32);
 }
 
 contract FireInsuranceExample is BalanceHolder {
@@ -76,7 +76,7 @@ contract FireInsuranceExample is BalanceHolder {
     public {
         require(policies[policy_id].face_value > 0);
         require(now <= policies[policy_id].coverage_start + policies[policy_id].coverage_period);
-        bytes32 response = RealityCheckAPI(policies[policy_id].realitycheck).getFinalAnswer(
+        bytes32 response = RealityCheckAPI(policies[policy_id].realitycheck).getFinalAnswerIfMatches(
             question_id,
             policies[policy_id].content_hash,
             policies[policy_id].arbitrator,

@@ -86,12 +86,12 @@ You may also want to screen out results indicating "unknown" or "no way to tell"
 
 One approach is that instead of waiting for the result of a specific ``question_id``, you specify the type of question you want, then wait for a user to send you a question ID with the appropriate content and settings.
 
-To make this easier, we allow you to pass some extra arguments to ``getFinalAnswer()``. This will throw an error not only if the question is not yet answered, but also if the content doesn't match, the bond or timeout is too low, or the arbitrator is not the one you expect.
+To make this easier, we provide a method called ``getFinalAnswerIfMatches()``. This will throw an error not only if the question is not yet answered, but also if the content doesn't match, the bond or timeout is too low, or the arbitrator is not the one you expect.
 
 .. code-block:: javascript
    :linenos:
 
-    function getFinalAnswer(
+    function getFinalAnswerIfMatches(
         bytes32 question_id, 
         bytes32 content_hash, 
         address arbitrator, 
@@ -166,7 +166,7 @@ Making sure a question has an answer
 
 As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality Check for information need to be designed to take account of this possibility.
 
-After settlement Reality Check will preserve information about the ``content_hash_, ``arbitrator``, ``timeout``, finalization date (in ``finalization_state`` and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswer()``.
+After settlement Reality Check will preserve information about the ``content_hash_, ``arbitrator``, ``timeout``, finalization date (in ``finalization_state`` and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
 
 We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
