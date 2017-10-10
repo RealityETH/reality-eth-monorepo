@@ -1064,6 +1064,7 @@ span.rcbrowser__close-button {
     font-size: 13px;
     font-weight: 400;
     color: $rcBrowserSubText;
+    display:none;
 }
 
 .rcbrowser-main-header-subtitle > span {
@@ -2144,7 +2145,6 @@ div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block
 div.rcbrowser--qa-detail .answer-claim-button { display: none}
 
 .answer-claim-button {display:none}
-div.rcbrowser--qa-detail.question-state-finalized.is-claimable .answer-claim-button { display: block !important }
 
 .answer-debit-info,.answer-credit-info {
     font-size: 13px;
