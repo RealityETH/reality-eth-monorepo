@@ -380,6 +380,16 @@ function dragMoveListener (event) {
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);
 }
+
+$(document).on('change', 'select.arbitrator', function() {
+    console.log($(this).val());
+    if ($(this).val() == 'other') {
+        $(this).closest('form').find('input.arbitrator-other').show();
+    } else {
+        $(this).closest('form').find('input.arbitrator-other').hide();
+    } 
+});
+
 $(document).on('click', '.rcbrowser', function(){
     $(this).css('z-index', ++zindex);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
@@ -521,7 +531,10 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     var reward = win.find('.question-reward');
     var timeout = win.find('.step-delay');
     var timeout_val = parseInt(timeout.val());
-    var arbitrator = win.find('.arbitrator');
+    var arbitrator = win.find('.arbitrator').val();
+    if (arbitrator == 'other') {
+        arbitrator = win.find('input.arbitrator-other').val();
+    }
     var question_type = win.find('.question-type');
     var answer_options = win.find('.answer-option');
     var category = win.find('div.select-container--question-category select');
@@ -552,15 +565,15 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         }
         */
 
-        //console.log('getQuestionID', template_id, qtext, arbitrator.val(), timeout_val, account, 0);
+        //console.log('getQuestionID', template_id, qtext, arbitrator, timeout_val, account, 0);
         var question_id;
-        rc.getQuestionID.call(template_id, qtext, arbitrator.val(), timeout_val, account, 0)
+        rc.getQuestionID.call(template_id, qtext, arbitrator, timeout_val, account, 0)
         .then(function(qid) {
             //console.log('made qid', qid);
             question_id = qid;
-            //console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator.val(), timeout_val, 0)
+            //console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator, timeout_val, 0)
             //console.log('reward', reward.val());
-            return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator.val(), timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+            return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         }).then(function(txid) {
             //console.log('sent tx with id', txid);
             
@@ -571,7 +584,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 'args': {
                     'question_id': question_id,
                     'user': account,
-                    'arbitrator': arbitrator.val(),
+                    'arbitrator': arbitrator,
                     'timeout': new BigNumber(timeout_val),
                     'content_hash': 'TODO',
                     'template_id': new BigNumber(template_id),
@@ -581,7 +594,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             }
             var fake_call = [];
             fake_call[Qi_finalization_ts-1] = new BigNumber(0);
-            fake_call[Qi_arbitrator-1] = arbitrator.val();
+            fake_call[Qi_arbitrator-1] = arbitrator;
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
             fake_call[Qi_content_hash-1] = 'TODO';
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');

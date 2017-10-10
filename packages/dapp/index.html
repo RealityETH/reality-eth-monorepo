@@ -455,7 +455,13 @@
                             <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
                                 <option value="default">Arbitrator</option>
                                 <option class="default-arbitrator-option" value="" SELECTED>Reality Keys</option>
+                                <option class="arbitrator-other-select" value="other" >Other (enter address)</option>
                             </select>
+
+                            <div class="input-container arbitrator-other">
+                                <input type="text" name="arbitrator-other" class="rcbrowser-input arbitrator-other option form-item" placeholder="Enter an address...">
+                            </div>
+
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
                                 <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
