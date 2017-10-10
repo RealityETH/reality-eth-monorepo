@@ -37,6 +37,7 @@
     "browserify": "^13.3.0",
     "csso": "^2.3.1",
     "eslint": "^3.15.0",
+    "ethereumjs-abi": "^0.6.4",
     "gsap": "^1.19.1",
     "imagesloaded": "^4.1.1",
     "interactjs": "https://github.com/taye/interact.js/archive/v1.2.9.tar.gz",

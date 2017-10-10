@@ -92,24 +92,6 @@ class TestRealityCheck(TestCase):
         #self.assertEqual(question[QINDEX_QUESTION_HASH], to_question_for_contract(("my question")))
         self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
-    #def test_question_id(self):
-    #    expected_question_id = self.rc0.getQuestionID(
-    #        to_question_for_contract(("my question")),
-    #        self.arb0.address,
-    #        10,
-    #    )
-    #    self.assertEqual(self.question_id, expected_question_id)
-
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
-    #def test_question_id_generation(self):
-    #    regen_question_id = self.rc0.getQuestionID(
-    #        to_question_for_contract(("my question")),
-    #        self.arb0.address,
-    #        10
-    #    )
-    #    self.assertEqual(regen_question_id, self.question_id)
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 

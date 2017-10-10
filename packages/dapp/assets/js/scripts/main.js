@@ -2,6 +2,8 @@
 
 'use strict';
 
+const ethereumjs_abi = require('ethereumjs-abi')
+
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
@@ -159,6 +161,23 @@ const monthList = [
     'Dec'
 ];
 
+function contentHash(template_id, content) {
+    return "0x" + ethereumjs_abi.soliditySHA3(
+        ["uint256", "string"],
+        [ new BN(template_id), content]
+    ).toString('hex');
+}
+
+function questionID(template_id, question, arbitrator, timeout, sender, nonce) {
+    var content_hash = contentHash(template_id, question);
+    // The seems to be something wrong with how soliditySHA3 handles bytes32, so tell it we gave it uint256
+    return "0x" + ethereumjs_abi.soliditySHA3(
+        //["bytes32", "address", "uint256", "address", "uint256"],
+        ["uint256", "address", "uint256", "address", "uint256"],
+        [ new BN(content_hash.replace(/^0x/, ''), 16), arbitrator, new BN(timeout), sender, new BN(nonce)]
+    ).toString('hex');
+}
+
 function minNumber(qjson) {
     var is_signed = (qjson['type'] == 'int');
     if (!is_signed) {
@@ -224,9 +243,12 @@ function bytes32ToString(bytes32str, qjson) {
     return ans.toString();
 }
 
-function padToBytes32(n) {
+function padToBytes32(n, raw) {
     while (n.length < 64) {
         n = "0" + n;
+    }
+    if (raw) {
+        return n;
     }
     return "0x" + n;
 }
@@ -555,26 +577,10 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             //console.log('made qtext', qtext);
         }
         qtext = qtext + QUESTION_DELIMITER + category.val();
-        /*
-        var question = {
-            title: question_body.val(),
-            type: question_type.val(),
-            decimals: 13,
-            category: category.val(),
-            outcomes: outcomes
-        }
-        */
 
-        //console.log('getQuestionID', template_id, qtext, arbitrator, timeout_val, account, 0);
-        var question_id;
-        rc.getQuestionID.call(template_id, qtext, arbitrator, timeout_val, account, 0)
-        .then(function(qid) {
-            //console.log('made qid', qid);
-            question_id = qid;
-            //console.log('rc.askQuestion.sendTransaction(',template_id, qtext, arbitrator, timeout_val, 0)
-            //console.log('reward', reward.val());
-            return rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
-        }).then(function(txid) {
+        var question_id = questionID(template_id, qtext, arbitrator, timeout_val, account, 0);
+        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+        .then(function(txid) {
             //console.log('sent tx with id', txid);
             
             // Make a fake log entry
@@ -586,7 +592,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'user': account,
                     'arbitrator': arbitrator,
                     'timeout': new BigNumber(timeout_val),
-                    'content_hash': 'TODO',
+                    'content_hash': contentHash(template_id, qtext),
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
@@ -596,7 +602,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_finalization_ts-1] = new BigNumber(0);
             fake_call[Qi_arbitrator-1] = arbitrator;
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-            fake_call[Qi_content_hash-1] = 'TODO';
+            fake_call[Qi_content_hash-1] = contentHash(template_id, qtext),
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
             fake_call[Qi_history_hash-1] = "0x0";
 
