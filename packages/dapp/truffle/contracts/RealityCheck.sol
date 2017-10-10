@@ -168,8 +168,8 @@ contract RealityCheck is BalanceHolder {
 
     function RealityCheck() {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "uint", "decimals": 13, "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "int", "decimals": 13, "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
     }
