@@ -86,7 +86,7 @@ contract FireInsuranceExample is BalanceHolder {
         require(uint256(response) == 1);
         address insuree = policies[policy_id].insuree;
         assert(insuree != 0x0);
-        balanceOf[insuree] += policies[policy_id].face_value;
+        balanceOf[insuree] = balanceOf[insuree].add(policies[policy_id].face_value);
         delete policies[policy_id];
     }
 
