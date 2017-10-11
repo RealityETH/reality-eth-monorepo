@@ -206,17 +206,16 @@ function stringToBytes32(answer, qjson) {
     }
     if (decimals > 0) {
         var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
-        answer = new BigNumber(answer).times(multiplier).toString();
+        answer = new BigNumber(answer).times(multiplier).toString(16);
     }
     //console.log('muliplied to ',answer.toString());
+    var bn;
     if (qtype == 'int') {
-        var bn = new BN(answer).toTwos(256);
-        return padToBytes32(bn.toString(16));
+        bn = new BN(answer, 16).toTwos(256);
     } else if (qtype == 'uint') {
-        return padToBytes32(new BN(answer).toString(16));
-    } else {
-        return padToBytes32(new BigNumber(answer).toString(16));
+        bn = new BN(answer, 16);
     }
+    return padToBytes32(bn.toString(16));
 }
 
 function bytes32ToString(bytes32str, qjson) {
@@ -3443,4 +3442,3 @@ window.onload = function() {
         }
     });
 }
-
