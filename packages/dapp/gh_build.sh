@@ -11,6 +11,12 @@ then
     exit 1
 fi
 
+if [ ! -f "$SRC_DIR/LIVE" ]
+then
+    echo "Expected file not found in $SRC_DIR. Create a file called LIVE if you really intend to deploy from this directory"
+    exit 1
+fi
+
 if [ ! -d $BUILD_DIR ]
 then 
     mkdir $BUILD_DIR
