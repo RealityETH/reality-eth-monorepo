@@ -214,7 +214,12 @@ function stringToBytes32(answer, qjson) {
         bn = new BN(answer, 16).toTwos(256);
     } else if (qtype == 'uint') {
         bn = new BN(answer, 16);
+    } else {
+        return padToBytes32(new BigNumber(answer).toString(16));
     }
+
+
+
     return padToBytes32(bn.toString(16));
 }
 
