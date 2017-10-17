@@ -399,7 +399,10 @@ contract RealityCheck is BalanceHolder {
     /// @param min_timeout The timeout set in the initial question settings must be this high or higher
     /// @param min_bond The bond sent with the final answer must be this high or higher
     /// @return The answer formatted as a bytes32
-    function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
+    function getFinalAnswerIfMatches(
+        bytes32 question_id, 
+        bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond
+    ) 
         stateFinalized(question_id)
     external constant returns (bytes32) {
         require(content_hash == questions[question_id].content_hash);
@@ -474,7 +477,7 @@ contract RealityCheck is BalanceHolder {
 
     }
 
-    /// @notice Assigns the winnings (bounty and bonds) to the people who gave the "right" (ie same as finally accepted) answer
+    /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
     /// Caller must provide the answer history, in reverse order
     /// @dev Works up the chain and assign bonds to the person who gave the right answer
     /// If someone gave the winning answer earlier, they must get paid from the higher bond
