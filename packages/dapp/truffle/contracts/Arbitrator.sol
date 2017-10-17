@@ -2,7 +2,7 @@ pragma solidity ^0.4.6;
 
 contract RealityCheckAPI {
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer);
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) returns (bytes32);
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer);
     function notifyOfArbitrationRequest(bytes32 question_id, address requester);
     function isFinalized(bytes32 question_id) returns (bool);
 }
@@ -40,9 +40,9 @@ contract Arbitrator {
         CallerBackerAPI(realitycheck).sendCallback(question_id, client_ctrct, gas, min_bounty);
     }
 
-    function submitAnswerByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer, address answerer) onlyOwner returns (bytes32) {
+    function submitAnswerByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer, address answerer) onlyOwner {
         delete arbitration_bounties[question_id];
-        return RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
+        RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
     // Sends money to the arbitration bounty last_bond, returns true if enough was paid to trigger arbitration

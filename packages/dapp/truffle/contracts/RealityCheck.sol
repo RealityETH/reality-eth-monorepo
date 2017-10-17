@@ -175,6 +175,7 @@ contract RealityCheck is BalanceHolder {
     /// Placeholders should use gettext() syntax, eg %s.
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
+    /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(string content) 
         stateAny()
     public returns (uint256) {
@@ -346,7 +347,7 @@ contract RealityCheck is BalanceHolder {
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
         onlyArbitrator(question_id)
         stateOpen(question_id)
-    external returns (bool) {
+    external {
         questions[question_id].finalize_state = PENDING_ARBITRATION;
         LogNotifyOfArbitrationRequest(question_id, requester);
     }
@@ -363,7 +364,7 @@ contract RealityCheck is BalanceHolder {
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
         bondMustBeZero
-    external returns (bytes32) {
+    external {
 
         require(answerer != 0x0);
         LogFinalize(question_id, answer);
