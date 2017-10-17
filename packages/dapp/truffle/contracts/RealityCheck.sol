@@ -171,6 +171,10 @@ contract RealityCheck is BalanceHolder {
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
     }
 
+    /// @notice Create a reusable template, which should be a JSON document.
+    /// Placeholders should use gettext() syntax, eg %s.
+    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @param content The template content
     function createTemplate(string content) 
         stateAny()
     public returns (uint256) {
@@ -181,6 +185,14 @@ contract RealityCheck is BalanceHolder {
         return id;
     }
 
+    /// @notice Create a new reusable template and use it to a question
+    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @param content The template content
+    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
+    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
+    /// @param nonce A user-specified nonce that will be used in creating the question ID. Without it you can only ask a question once.
+    /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
         string question, address arbitrator, uint256 timeout, uint256 nonce
@@ -191,6 +203,14 @@ contract RealityCheck is BalanceHolder {
         return askQuestion(template_id, question, arbitrator, timeout, nonce);
     }
 
+    /// @notice Ask a new question and return the ID
+    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @param template_id The ID number of the template the question will use
+    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
+    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
+    /// @param nonce A user-specified nonce that will be used in creating the question ID. Without it you can only ask a question once.
+    /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
@@ -222,6 +242,9 @@ contract RealityCheck is BalanceHolder {
 
     }
 
+    /// @notice Add funds to the bounty for a question
+    /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
+    /// @param question_id The ID of the question you wish to fund
     function fundAnswerBounty(bytes32 question_id) 
         stateOpen(question_id)
     external payable {
@@ -246,6 +269,12 @@ contract RealityCheck is BalanceHolder {
         questions[question_id].finalize_state = now.add(timeout_secs);
     }
 
+    /// @notice Submit an answer for a question.
+    /// @dev Adds the answer to the history and updates the current "best" answer.
+    /// May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.
+    /// @param question_id The ID of the question
+    /// @param answer The answer, encoded into bytes32
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
         stateOpen(question_id)
         bondMustDouble(question_id)
@@ -255,8 +284,13 @@ contract RealityCheck is BalanceHolder {
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
-    // To prevent front-running, you can replace submitAnswer with submitAnswerCommitment -> submitAnswerReveal
-    // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
+    /// @notice Submit the hash of an answer, laying your claim to that answer but allowing you to reveal it in a subsequent transaction.
+    /// @dev Creates a hash, commitment_id, uniquely identifying this answer, to this question, with this bond.
+    /// The commitment_id is stored in the answer history where the answer would normally go.
+    /// Does not update the current best answer - this is left to the later submitAnswerReveal() transaction.
+    /// @param question_id The ID of the question
+    /// @param answer_hash The hash of your answer, plus a nonce that you will later reveal
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
         stateOpen(question_id)
         bondMustDouble(question_id)
@@ -271,10 +305,18 @@ contract RealityCheck is BalanceHolder {
         commitments[commitment_id].reveal_state = now.add(commitment_timeout);
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
-        // We don't call _updateCurrentAnswer, this is left until the reveal
 
     }
 
+    /// @notice Submit the answer whose hash you sent in a previous submitAnswerCommitment() transaction
+    /// @dev Checks the parameters supplied recreate an existing commitment, and stores the revealed answer
+    /// Updates the current answer unless someone has since supplied a new answer with a higher bond
+    /// msg.sender is intentionally not restricted to the user who originally sent the commitment; 
+    /// For example, the user may want to provide the answer+nonce to a third-party service and let them send the tx
+    /// @param question_id The ID of the question
+    /// @param answer The answer, encoded as bytes32
+    /// @param nonce The nonce that, combined with the answer, recreates the answer_hash you gave in submitAnswerCommitment()
+    /// @param bond The bond that you paid in your submitAnswerCommitment() transaction
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
         stateOpen(question_id)
     external {
@@ -297,6 +339,10 @@ contract RealityCheck is BalanceHolder {
 
     }
 
+    /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
+    /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
+    /// @param question_id The ID of the question
+    /// @param requester The account that requested arbitration
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
         onlyArbitrator(question_id)
         stateOpen(question_id)
@@ -305,10 +351,14 @@ contract RealityCheck is BalanceHolder {
         LogNotifyOfArbitrationRequest(question_id, requester);
     }
 
-    // Answer sent by the arbitrator contract, without a bond.
-    // We don't check the answerer, but for incentives to work right it should be:
-    // - the person who submitted the current final answer if they were right.
-    // - the person who paid for arbitration if the current final answer is wrong.
+    /// @notice Submit the answer for a question, for use by the arbitrator.
+    /// @dev Doesn't require (or allow) a bond.
+    /// If the current final answer is correct, the account should be whoever submitted it.
+    /// If the current final answer is wrong, the account should be whoever paid for arbitration.
+    /// However, the answerer stipulations are not enforced by the contract.
+    /// @param question_id The ID of the question
+    /// @param answer The answer, encoded into bytes32
+    /// @param answerer The account credited with this answer for the purpose of bond claims
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
@@ -323,18 +373,32 @@ contract RealityCheck is BalanceHolder {
 
     }
 
+    /// @notice Report whether the answer to the specified question is finalized
+    /// @param question_id The ID of the question
+    /// @return Return true if finalized
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
         uint256 finalize_state = questions[question_id].finalize_state;
         return ( (finalize_state > PENDING_ARBITRATION) && (finalize_state <= now) );
     }
 
+    /// @notice Return the final answer to the specified question, or revert if there isn't one
+    /// @param question_id The ID of the question
+    /// @return The answer formatted as a bytes32
     function getFinalAnswer(bytes32 question_id) 
         stateFinalized(question_id)
     external constant returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
+    /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
+    /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
+    /// @param question_id The ID of the question
+    /// @param content_hash The hash of the question content (template ID + question parameter string)
+    /// @param arbitrator The arbitrator chosen for the question (regardless of whether they are asked to arbitrate)
+    /// @param min_timeout The timeout set in the initial question settings must be this high or higher
+    /// @param min_bond The bond sent with the final answer must be this high or higher
+    /// @return The answer formatted as a bytes32
     function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
         stateFinalized(question_id)
     external constant returns (bytes32) {
@@ -410,22 +474,20 @@ contract RealityCheck is BalanceHolder {
 
     }
 
-    // Assigns the winnings (bounty and bonds) to the people who gave the final accepted answer.
-    // The caller must provide the answer history, in reverse order.
-    // We work up the chain and assign bonds to the person who gave the right answer
-    // If someone gave the winning answer earlier, they must get paid from the higher bond
-    // That means we can't pay out the bond added at n until we have looked at n-1
-    //
-    // The first answer is authenticated by checking against the stored history_hash.
-    // One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
-    // Once we get to a null hash we'll know we're done and there are no more answers.
-    //
-    // Usually you would call the whole thing in a single transaction.
-    // But in theory the chain of answers can be arbitrarily long, so you may run out of gas.
-    // If you only supply part of chain then the data we need to pick up again later will be stored:
-    // * Question holds the history_hash. It'll be zeroed once everything has been claimed.
-    // * The rest goes in a dedicated Claim struct. This is only filled if you stop a claim before the end.
-    //
+    /// @notice Assigns the winnings (bounty and bonds) to the people who gave the "right" (ie same as finally accepted) answer
+    /// Caller must provide the answer history, in reverse order
+    /// @dev Works up the chain and assign bonds to the person who gave the right answer
+    /// If someone gave the winning answer earlier, they must get paid from the higher bond
+    /// That means we can't pay out the bond added at n until we have looked at n-1
+    /// The first answer is authenticated by checking against the stored history_hash.
+    /// One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
+    /// Once we get to a null hash we'll know we're done and there are no more answers.
+    /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
+    /// @param question_id The ID of the question
+    /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
+    /// @param addrs Last-to-first, the address of each answerer or commitment sender
+    /// @param bonds Last-to-first, the bond supplied with each answer or commitment
+    /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
     function claimWinnings(
         bytes32 question_id, 
         bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
@@ -494,9 +556,15 @@ contract RealityCheck is BalanceHolder {
 
     }
 
-    // Convenience function to claim for multiple questions in one go, then withdraw all funds.
-    // question_ids are the question_ids, lengths are the number of history items for each.
-    // The rest of the arguments are all the history item arrays stuck together
+    /// @notice Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds.
+    /// Caller must provide the answer history for each question, in reverse order
+    /// @dev Can be called by anyone to assign bonds/bounties, but funds are only withdrawed for the user making the call.
+    /// @param question_ids The IDs of the questions you want to claim for
+    /// @param lengths The number of history entries you will supply for each question ID
+    /// @param hist_hashes In a single list for all supplied questions, the hash of each history entry.
+    /// @param addrs In a single list for all supplied questions, the address of each answerer or commitment sender
+    /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
+    /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID 
     function claimMultipleAndWithdrawBalance(
         bytes32[] question_ids, uint256[] lengths, 
         bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
