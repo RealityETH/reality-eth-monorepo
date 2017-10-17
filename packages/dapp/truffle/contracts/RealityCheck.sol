@@ -284,7 +284,7 @@ contract RealityCheck is BalanceHolder {
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
-    /// @notice Submit the hash of an answer, laying your claim to that answer but allowing you to reveal it in a subsequent transaction.
+    /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
     /// @dev Creates a hash, commitment_id, uniquely identifying this answer, to this question, with this bond.
     /// The commitment_id is stored in the answer history where the answer would normally go.
     /// Does not update the current best answer - this is left to the later submitAnswerReveal() transaction.
@@ -558,7 +558,7 @@ contract RealityCheck is BalanceHolder {
 
     /// @notice Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds.
     /// Caller must provide the answer history for each question, in reverse order
-    /// @dev Can be called by anyone to assign bonds/bounties, but funds are only withdrawed for the user making the call.
+    /// @dev Can be called by anyone to assign bonds/bounties, but funds are only withdrawn for the user making the call.
     /// @param question_ids The IDs of the questions you want to claim for
     /// @param lengths The number of history entries you will supply for each question ID
     /// @param hist_hashes In a single list for all supplied questions, the hash of each history entry.
