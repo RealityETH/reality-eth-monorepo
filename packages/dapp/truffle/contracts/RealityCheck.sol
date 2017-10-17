@@ -576,13 +576,13 @@ contract RealityCheck is BalanceHolder {
         uint256 i;
         for(qi=0; qi<question_ids.length; qi++) {
             bytes32 qid = question_ids[qi];
-            uint256 l = lengths[qi];
-            bytes32[] memory hh = new bytes32[](l);
-            address[] memory ad = new address[](l);
-            uint256[] memory bo = new uint256[](l);
-            bytes32[] memory an = new bytes32[](l);
+            uint256 ln = lengths[qi];
+            bytes32[] memory hh = new bytes32[](ln);
+            address[] memory ad = new address[](ln);
+            uint256[] memory bo = new uint256[](ln);
+            bytes32[] memory an = new bytes32[](ln);
             uint256 j;
-            for(j=0; j<l; j++) {
+            for(j=0; j<ln; j++) {
                 hh[j] = hist_hashes[i];
                 ad[j] = addrs[i];
                 bo[j] = bonds[i];
