@@ -145,20 +145,17 @@ contract RealityCheck is BalanceHolder {
         _;
     }
 
-    modifier bondMustDouble(bytes32 question_id, uint256 max_previous) {
-
+    modifier bondMustDouble(bytes32 question_id) {
         require(msg.value > 0); 
-
-        uint256 bond_to_beat = questions[question_id].bond;
-
-        // You have to double the bond every time
-        require(msg.value >= (bond_to_beat * 2));
-
-        // You can specify that you don't want to beat a bond bigger than x
-        require(max_previous == 0 || bond_to_beat <= max_previous);
-
+        require(msg.value >= (questions[question_id].bond.mul(2)));
         _;
+    }
 
+    modifier previousBondMustNotBeatMaxPrevious(bytes32 question_id, uint256 max_previous) {
+        if (max_previous > 0) {
+            require(questions[question_id].bond <= max_previous);
+        }
+        _;
     }
 
     modifier bondMustBeZero() {
@@ -248,10 +245,10 @@ contract RealityCheck is BalanceHolder {
         questions[question_id].finalize_state = now.add(timeout_secs);
     }
 
-
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
     stateOpen(question_id)
-    bondMustDouble(question_id, max_previous)
+    bondMustDouble(question_id)
+    previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
@@ -261,7 +258,8 @@ contract RealityCheck is BalanceHolder {
     // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
     stateOpen(question_id)
-    bondMustDouble(question_id, max_previous)
+    bondMustDouble(question_id)
+    previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
