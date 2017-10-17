@@ -172,7 +172,7 @@ contract RealityCheck is BalanceHolder {
     }
 
     function createTemplate(string content) 
-    stateAny()
+        stateAny()
     public returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
@@ -183,15 +183,16 @@ contract RealityCheck is BalanceHolder {
 
     function createTemplateAndAskQuestion(
         string content, 
-        string question, address arbitrator, uint256 timeout, uint256 nonce) 
-    // stateNotCreated is enforced by the internal _askQuestion
+        string question, address arbitrator, uint256 timeout, uint256 nonce
+    ) 
+        // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
         uint256 template_id = createTemplate(content);
         return askQuestion(template_id, question, arbitrator, timeout, nonce);
     }
 
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
-    // stateNotCreated is enforced by the internal _askQuestion
+        // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
         require(templates[template_id] > 0);
@@ -206,7 +207,7 @@ contract RealityCheck is BalanceHolder {
     }
 
     function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 timeout) 
-    stateNotCreated(question_id)
+        stateNotCreated(question_id)
     internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
@@ -222,7 +223,7 @@ contract RealityCheck is BalanceHolder {
     }
 
     function fundAnswerBounty(bytes32 question_id) 
-    stateOpen(question_id)
+        stateOpen(question_id)
     external payable {
         questions[question_id].bounty = questions[question_id].bounty.add(msg.value);
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
@@ -246,9 +247,9 @@ contract RealityCheck is BalanceHolder {
     }
 
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
-    stateOpen(question_id)
-    bondMustDouble(question_id)
-    previousBondMustNotBeatMaxPrevious(question_id, max_previous)
+        stateOpen(question_id)
+        bondMustDouble(question_id)
+        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
@@ -257,9 +258,9 @@ contract RealityCheck is BalanceHolder {
     // To prevent front-running, you can replace submitAnswer with submitAnswerCommitment -> submitAnswerReveal
     // The result is the same assuming you reveal. If you don't reveal in time, we just assume you're wrong. 
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
-    stateOpen(question_id)
-    bondMustDouble(question_id)
-    previousBondMustNotBeatMaxPrevious(question_id, max_previous)
+        stateOpen(question_id)
+        bondMustDouble(question_id)
+        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
@@ -275,7 +276,7 @@ contract RealityCheck is BalanceHolder {
     }
 
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
-    stateOpen(question_id)
+        stateOpen(question_id)
     external {
 
         bytes32 answer_hash = keccak256(answer, nonce);
@@ -297,8 +298,8 @@ contract RealityCheck is BalanceHolder {
     }
 
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
-    onlyArbitrator(question_id)
-    stateOpen(question_id)
+        onlyArbitrator(question_id)
+        stateOpen(question_id)
     external returns (bool) {
         questions[question_id].finalize_state = PENDING_ARBITRATION;
         LogNotifyOfArbitrationRequest(question_id, requester);
@@ -309,9 +310,9 @@ contract RealityCheck is BalanceHolder {
     // - the person who submitted the current final answer if they were right.
     // - the person who paid for arbitration if the current final answer is wrong.
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
-    onlyArbitrator(question_id)
-    statePendingArbitration(question_id)
-    bondMustBeZero
+        onlyArbitrator(question_id)
+        statePendingArbitration(question_id)
+        bondMustBeZero
     external returns (bytes32) {
 
         require(answerer != 0x0);
@@ -329,13 +330,13 @@ contract RealityCheck is BalanceHolder {
     }
 
     function getFinalAnswer(bytes32 question_id) 
-    stateFinalized(question_id)
+        stateFinalized(question_id)
     external constant returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
     function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond) 
-    stateFinalized(question_id)
+        stateFinalized(question_id)
     external constant returns (bytes32) {
         require(content_hash == questions[question_id].content_hash);
         require(arbitrator == questions[question_id].arbitrator);
@@ -354,7 +355,8 @@ contract RealityCheck is BalanceHolder {
     function _applyPayeeChanges(
         bytes32 question_id, bytes32 best_answer, 
         uint256 take, address payee, 
-        address addr, uint256 bond, bytes32 answer, bool is_commitment)
+        address addr, uint256 bond, bytes32 answer, bool is_commitment
+    )
     internal returns (uint256, address)
     {
 
@@ -426,8 +428,9 @@ contract RealityCheck is BalanceHolder {
     //
     function claimWinnings(
         bytes32 question_id, 
-        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-    stateFinalized(question_id)
+        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+    ) 
+        stateFinalized(question_id)
     public {
 
         require(history_hashes.length > 0);
@@ -494,8 +497,11 @@ contract RealityCheck is BalanceHolder {
     // Convenience function to claim for multiple questions in one go, then withdraw all funds.
     // question_ids are the question_ids, lengths are the number of history items for each.
     // The rest of the arguments are all the history item arrays stuck together
-    function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers) 
-    stateAny() // The finalization checks are done in the claimWinnings function
+    function claimMultipleAndWithdrawBalance(
+        bytes32[] question_ids, uint256[] lengths, 
+        bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+    ) 
+        stateAny() // The finalization checks are done in the claimWinnings function
     public {
         
         uint256 qi;
