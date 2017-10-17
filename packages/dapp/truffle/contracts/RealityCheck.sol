@@ -234,12 +234,12 @@ contract RealityCheck is BalanceHolder {
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond, bool is_commitment) 
     internal 
     {
-        bytes32 new_state = keccak256(questions[question_id].history_hash, answer, bond, answerer, is_commitment);
+        bytes32 new_history_hash = keccak256(questions[question_id].history_hash, answer, bond, answerer, is_commitment);
 
         questions[question_id].bond = bond;
-        questions[question_id].history_hash = new_state;
+        questions[question_id].history_hash = new_history_hash;
 
-        LogNewAnswer(answer, question_id, new_state, answerer, bond, now, is_commitment);
+        LogNewAnswer(answer, question_id, new_history_hash, answerer, bond, now, is_commitment);
     }
 
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 timeout_secs)
