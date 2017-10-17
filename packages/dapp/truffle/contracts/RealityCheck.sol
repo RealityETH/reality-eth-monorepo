@@ -185,13 +185,13 @@ contract RealityCheck is BalanceHolder {
         return id;
     }
 
-    /// @notice Create a new reusable template and use it to a question
+    /// @notice Create a new reusable template and use it to ask a question
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param nonce A user-specified nonce that will be used in creating the question ID. Without it you can only ask a question once.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
@@ -209,7 +209,7 @@ contract RealityCheck is BalanceHolder {
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param nonce A user-specified nonce that will be used in creating the question ID. Without it you can only ask a question once.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
