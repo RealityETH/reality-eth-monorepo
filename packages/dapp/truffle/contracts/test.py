@@ -137,6 +137,80 @@ class TestRealityCheck(TestCase):
         ch = "0x" + encode_hex(self.rc0.questions(self.question_id)[QINDEX_CONTENT_HASH])
         self.assertEqual(expect_ch, ch)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_get_final_answer_if_match(self):
+
+        expect_ch = calculate_content_hash(0, "my question")
+        wrong_ch = calculate_content_hash(0, "not my question")
+
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=1) 
+
+        # Not finalized yet
+        with self.assertRaises(TransactionFailed):
+            ans = self.rc0.getFinalAnswerIfMatches(
+                self.question_id,
+                decode_hex(expect_ch[2:]),
+                self.arb0.address,
+                0,
+                25,
+                startgas=100000
+            )
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.getFinalAnswerIfMatches(
+                self.question_id,
+                decode_hex(expect_ch[2:]),
+                keys.privtoaddr(t.k2),
+                0,
+                25,
+                startgas=100000
+            )
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.getFinalAnswerIfMatches(
+                self.question_id,
+                decode_hex(wrong_ch[2:]),
+                self.arb0.address,
+                0,
+                25,
+                startgas=100000
+            )
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.getFinalAnswerIfMatches(
+                self.question_id,
+                decode_hex(expect_ch[2:]),
+                self.arb0.address,
+                25,
+                99999999999,
+                startgas=100000
+            )
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.getFinalAnswerIfMatches(
+                self.question_id,
+                decode_hex(expect_ch[2:]),
+                self.arb0.address,
+                1893459661, # 2030-01-01
+                25,
+                startgas=100000
+            )
+
+        ans = self.rc0.getFinalAnswerIfMatches(
+            self.question_id,
+            decode_hex(expect_ch[2:]),
+            self.arb0.address,
+            0,
+            0,
+            startgas=100000
+        )
+        self.assertEqual(from_answer_for_contract(ans), 12345)
+
+
+
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
