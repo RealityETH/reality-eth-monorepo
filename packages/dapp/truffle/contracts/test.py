@@ -7,6 +7,7 @@ from ethereum.tools import keys
 import time
 from sha3 import keccak_256
 from hashlib import sha256
+from web3 import Web3
 
 import os
 
@@ -16,7 +17,7 @@ WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 QINDEX_FINALIZATION_TS = 0
 QINDEX_ARBITRATOR = 1
 QINDEX_STEP_DELAY = 2
-QINDEX_QUESTION_HASH = 3
+QINDEX_CONTENT_HASH = 3
 QINDEX_BOUNTY = 4
 QINDEX_ARBITRATION_BOUNTY = 5
 QINDEX_BEST_ANSWER_ID = 6
@@ -27,6 +28,9 @@ def calculate_commitment_hash(answer, nonce):
 
 def calculate_commitment_id(question_id, answer_hash, bond):
     return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
+
+def calculate_content_hash(template_id, question_str):
+    return Web3.soliditySha3(['uint256', 'string'], [template_id, question_str])
 
 def from_question_for_contract(txt):
     return txt
@@ -89,7 +93,7 @@ class TestRealityCheck(TestCase):
         self.assertEqual(decode_hex(question[QINDEX_ARBITRATOR][2:]), self.arb0.address)
 
         self.assertEqual(question[QINDEX_STEP_DELAY], 10)
-        #self.assertEqual(question[QINDEX_QUESTION_HASH], to_question_for_contract(("my question")))
+        #self.assertEqual(question[QINDEX_CONTENT_HASH], to_question_for_contract(("my question")))
         self.assertEqual(question[QINDEX_BOUNTY], 1000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
@@ -127,6 +131,11 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_content_hash(self):
+        expect_ch = calculate_content_hash(0, "my question")
+        ch = "0x" + encode_hex(self.rc0.questions(self.question_id)[QINDEX_CONTENT_HASH])
+        self.assertEqual(expect_ch, ch)
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
