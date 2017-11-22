@@ -3,6 +3,10 @@ pragma solidity ^0.4.6;
 import './SafeMath.sol';
 import './BalanceHolder.sol';
 
+contract Arbitrator {
+    function getQuestionFee(bytes32 content_hash) public returns (uint256); 
+}
+
 contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
@@ -236,10 +240,15 @@ contract RealityCheck is BalanceHolder {
         require(timeout < 365 days); 
         require(arbitrator != 0x0);
 
+        uint256 question_fee = Arbitrator(arbitrator).getQuestionFee(content_hash);
+        require(msg.value >= question_fee); 
+        uint256 reward = msg.value.sub(question_fee);
+        balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
+
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].timeout = timeout;
         questions[question_id].content_hash = content_hash;
-        questions[question_id].bounty = msg.value;
+        questions[question_id].bounty = reward;
 
     }
 

@@ -16,6 +16,9 @@ contract Arbitrator {
     address owner;
     mapping(bytes32 => uint256) public arbitration_bounties;
 
+    uint256 question_fee;
+    uint256 dispute_fee;
+
     event LogRequestArbitration(
         bytes32 indexed question_id,
         uint256 fee_paid,
@@ -30,10 +33,24 @@ contract Arbitrator {
 
     function Arbitrator() {
         owner = msg.sender;
+        question_fee = 10000000000000000; // 0.001 ETH
+        dispute_fee = 10000000000000000; // 0.001 ETH
     }
 
-    function getFee(bytes32 question_id) constant returns (uint256) {
-        return 10000000000000000; // 0.001 ETH
+    function setDisputeFee(uint256 _fee) public onlyOwner {
+        dispute_fee = _fee;
+    }
+
+    function getDisputeFee(bytes32 question_id) constant returns (uint256) {
+        return dispute_fee;
+    }
+
+    function setQuestionFee(uint256 _fee) public onlyOwner {
+        question_fee= _fee;
+    }
+
+    function getQuestionFee(bytes32 content_hash) constant returns (uint256) {
+        return 0;
     }
 
     function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) onlyOwner {
@@ -51,7 +68,7 @@ contract Arbitrator {
         external
     payable returns (bool) {
 
-        uint256 arbitration_fee = getFee(question_id);
+        uint256 arbitration_fee = getDisputeFee(question_id);
 
         arbitration_bounties[question_id] += msg.value;
         uint256 paid = arbitration_bounties[question_id];
