@@ -3,10 +3,6 @@ pragma solidity ^0.4.6;
 import './SafeMath.sol';
 import './BalanceHolder.sol';
 
-contract Arbitrator {
-    function getQuestionFee(bytes32 content_hash) public returns (uint256); 
-}
-
 contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
@@ -87,6 +83,11 @@ contract RealityCheck is BalanceHolder {
         uint256 amount
     );
 
+    event LogSetQuestionFee(
+        address arbitrator,
+        uint256 amount
+    );
+
     struct Question {
         uint256 finalize_state;
         address arbitrator;
@@ -117,6 +118,7 @@ contract RealityCheck is BalanceHolder {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
+    mapping(address => uint256) public arbitrator_question_fees; 
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator);
@@ -240,7 +242,9 @@ contract RealityCheck is BalanceHolder {
         require(timeout < 365 days); 
         require(arbitrator != 0x0);
 
-        uint256 question_fee = Arbitrator(arbitrator).getQuestionFee(content_hash);
+        // The arbitrator can set a fee for asking a question. 
+        // This is intended as an anti-spam defence.
+        uint256 question_fee = arbitrator_question_fees[arbitrator];
         require(msg.value >= question_fee); 
         uint256 reward = msg.value.sub(question_fee);
         balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
@@ -605,6 +609,15 @@ contract RealityCheck is BalanceHolder {
             claimWinnings(qid, hh, ad, bo, an);
         }
         withdraw();
+    }
+
+    /// @notice Function for arbitrator to set their per-question fee. 
+    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
+    /// @param fee The fee to be charged by the arbitrator when a question is asked
+    function setQuestionFee(uint256 fee) 
+        stateAny() 
+    public {
+        arbitrator_question_fees[msg.sender] = fee;
     }
 
 }

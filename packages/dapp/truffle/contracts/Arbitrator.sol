@@ -1,6 +1,7 @@
 pragma solidity ^0.4.6;
 
 contract RealityCheckAPI {
+    function setQuestionFee(uint256 fee);
     function finalizeByArbitrator(bytes32 question_id, bytes32 answer);
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer);
     function notifyOfArbitrationRequest(bytes32 question_id, address requester);
@@ -45,12 +46,8 @@ contract Arbitrator {
         return dispute_fee;
     }
 
-    function setQuestionFee(uint256 _fee) public onlyOwner {
-        question_fee= _fee;
-    }
-
-    function getQuestionFee(bytes32 content_hash) constant returns (uint256) {
-        return 0;
+    function setQuestionFee(address realitycheck, uint256 _fee) public onlyOwner {
+        RealityCheckAPI(realitycheck).setQuestionFee(_fee);
     }
 
     function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) onlyOwner {
