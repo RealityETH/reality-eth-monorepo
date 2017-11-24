@@ -97,6 +97,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 best_answer;
         uint256 bond;
         bytes32 history_hash;
+        uint256 opening_ts;
     }
 
     // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
@@ -138,6 +139,8 @@ contract RealityCheck is BalanceHolder {
         require(questions[question_id].timeout > 0); // Check existence
         uint256 finalize_state = questions[question_id].finalize_state;
         require(finalize_state == UNANSWERED || finalize_state > now);
+        uint256 opening_ts = questions[question_id].opening_ts;
+        require(opening_ts ==  0 || opening_ts <= now); 
         _;
     }
 
@@ -202,12 +205,12 @@ contract RealityCheck is BalanceHolder {
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
-        string question, address arbitrator, uint256 timeout, uint256 nonce
+        string question, address arbitrator, uint256 timeout, uint256 nonce, uint256 opening_ts
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
         uint256 template_id = createTemplate(content);
-        return askQuestion(template_id, question, arbitrator, timeout, nonce);
+        return askQuestion(template_id, question, arbitrator, timeout, nonce, opening_ts);
     }
 
     /// @notice Ask a new question and return the ID
@@ -218,22 +221,22 @@ contract RealityCheck is BalanceHolder {
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce) 
+    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce, uint256 opening_ts) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
         require(templates[template_id] > 0);
 
-        bytes32 content_hash = keccak256(template_id, question);
+        bytes32 content_hash = keccak256(template_id, opening_ts, question);
         bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
-        _askQuestion(question_id, content_hash, arbitrator, timeout);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
         LogNewQuestion(question_id, arbitrator, timeout, template_id, question, content_hash, now, msg.sender, nonce);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 timeout) 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 timeout, uint256 opening_ts) 
         stateNotCreated(question_id)
     internal {
 
@@ -253,6 +256,7 @@ contract RealityCheck is BalanceHolder {
         questions[question_id].timeout = timeout;
         questions[question_id].content_hash = content_hash;
         questions[question_id].bounty = reward;
+        questions[question_id].opening_ts = opening_ts;
 
     }
 

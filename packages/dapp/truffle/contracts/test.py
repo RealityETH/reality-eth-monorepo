@@ -29,8 +29,8 @@ def calculate_commitment_hash(answer, nonce):
 def calculate_commitment_id(question_id, answer_hash, bond):
     return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
 
-def calculate_content_hash(template_id, question_str):
-    return Web3.soliditySha3(['uint256', 'string'], [template_id, question_str])
+def calculate_content_hash(template_id, question_str, opening_ts):
+    return Web3.soliditySha3(['uint256', 'uint256', 'string'], [template_id, opening_ts, question_str])
 
 def from_question_for_contract(txt):
     return txt
@@ -84,6 +84,7 @@ class TestRealityCheck(TestCase):
             self.arb0.address,
             10,
             0,
+            0,
             value=1100
         )
 
@@ -133,17 +134,17 @@ class TestRealityCheck(TestCase):
 
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 12345)
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_content_hash(self):
-        expect_ch = calculate_content_hash(0, "my question")
+        expect_ch = calculate_content_hash(0, "my question", 0)
         ch = "0x" + encode_hex(self.rc0.questions(self.question_id)[QINDEX_CONTENT_HASH])
         self.assertEqual(expect_ch, ch)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_get_final_answer_if_match(self):
 
-        expect_ch = calculate_content_hash(0, "my question")
-        wrong_ch = calculate_content_hash(0, "not my question")
+        expect_ch = calculate_content_hash(0, "my question", 0)
+        wrong_ch = calculate_content_hash(0, "not my question", 0)
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=1) 
 
@@ -765,8 +766,27 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_fee_received(self):
-        self.assertEqual(self.rc0.balanceOf(self.arb0.address, 100)
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address, 100))
         
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_ask_question_gas(self):
+
+        self.c.mine()
+        self.s = self.c.head_state
+        self.assertEqual(self.s.gas_used, 0)
+
+        self.question_id = self.rc0.askQuestion(
+            0,
+            "my question 2",
+            self.arb0.address,
+            10,
+            0,
+            value=1100
+        )
+        gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
+        self.assertEqual(gas_used, 120000)
+        self.assertTrue(gas_used < 120000)
 
 if __name__ == '__main__':
     main()
