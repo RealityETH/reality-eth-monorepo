@@ -76,13 +76,15 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
+        self.arb0.setQuestionFee(self.rc0.address, 100)
+
         self.question_id = self.rc0.askQuestion(
             0,
             "my question",
             self.arb0.address,
             10,
             0,
-            value=1000
+            value=1100
         )
 
         ts = self.s.timestamp
@@ -470,9 +472,6 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
 
-
-
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_not_final(self):
         st = None
@@ -763,6 +762,11 @@ class TestRealityCheck(TestCase):
 
         return
 
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_fee_received(self):
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address, 100)
+        
 
 if __name__ == '__main__':
     main()
