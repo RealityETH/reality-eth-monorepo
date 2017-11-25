@@ -311,20 +311,23 @@ contract RealityCheck is BalanceHolder {
     /// @param question_id The ID of the question
     /// @param answer_hash The hash of your answer, plus a nonce that you will later reveal
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous) 
+    /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
+    /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) 
         stateOpen(question_id)
         bondMustDouble(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
+        address answerer = (_answerer == 0x0) ? _answerer: msg.sender;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
         commitments[commitment_id].reveal_ts = uint32(now) + commitment_timeout;
 
-        _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
+        _addAnswerToHistory(question_id, commitment_id, answerer, msg.value, true);
 
     }
 

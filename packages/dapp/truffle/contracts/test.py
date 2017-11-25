@@ -314,7 +314,7 @@ class TestRealityCheck(TestCase):
             nonce = 1234
             answer_hash = calculate_commitment_hash(to_answer_for_contract(ans), nonce)
             commitment_id = calculate_commitment_id(self.question_id, answer_hash, bond)
-            self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, value=bond, sender=sdr)
+            self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, keys.privtoaddr(sdr), value=bond, sender=sdr)
             st['answer'][0] = commitment_id
         else:
             self.rc0.submitAnswer(qid, to_answer_for_contract(ans), max_last, value=bond, sender=sdr)
