@@ -14,14 +14,15 @@ import os
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
-QINDEX_FINALIZATION_TS = 0
+QINDEX_CONTENT_HASH = 0
 QINDEX_ARBITRATOR = 1
-QINDEX_STEP_DELAY = 2
-QINDEX_CONTENT_HASH = 3
-QINDEX_BOUNTY = 4
-QINDEX_ARBITRATION_BOUNTY = 5
+QINDEX_OPENING_TS = 2
+QINDEX_STEP_DELAY = 3
+QINDEX_FINALIZATION_TS = 4
+QINDEX_BOUNTY = 5
 QINDEX_BEST_ANSWER_ID = 6
 QINDEX_HISTORY_HASH = 7
+QINDEX_BOND = 8
 
 def calculate_commitment_hash(answer, nonce):
     return decode_hex(keccak_256(answer + decode_hex(hex(nonce)[2:].zfill(64))).hexdigest())
@@ -30,7 +31,7 @@ def calculate_commitment_id(question_id, answer_hash, bond):
     return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
 
 def calculate_content_hash(template_id, question_str, opening_ts):
-    return Web3.soliditySha3(['uint256', 'uint256', 'string'], [template_id, opening_ts, question_str])
+    return Web3.soliditySha3(['uint256', 'uint64', 'string'], [template_id, opening_ts, question_str])
 
 def from_question_for_contract(txt):
     return txt
