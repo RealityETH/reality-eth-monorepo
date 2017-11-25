@@ -6,17 +6,18 @@ import './BalanceHolder.sol';
 contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
+    using SafeMath for uint64;
 
     // finalize_state options. Anything above this is a deadline timestamp.
-    uint256 constant UNANSWERED = 0;
-    uint256 constant PENDING_ARBITRATION = 1;
+    uint64 constant UNANSWERED = 0;
+    uint64 constant PENDING_ARBITRATION = 1;
 
     // reveal_state options. Anything above this is a reveal deadline timestamp.
     uint256 constant COMMITMENT_NON_EXISTENT = 0;
     uint256 constant COMMITMENT_REVEALED = 1;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
-    uint256 constant COMMITMENT_TIMEOUT_RATIO = 8;
+    uint64 constant COMMITMENT_TIMEOUT_RATIO = 8;
 
     event LogNewTemplate(
         uint256 indexed template_id,
@@ -27,7 +28,7 @@ contract RealityCheck is BalanceHolder {
     event LogNewQuestion(
         bytes32 indexed question_id,
         address arbitrator, 
-        uint256 timeout,
+        uint64 timeout,
         uint256 template_id,
         string question,
         bytes32 indexed content_hash,
@@ -92,8 +93,8 @@ contract RealityCheck is BalanceHolder {
         bytes32 content_hash;
         address arbitrator;
         uint64 opening_ts;
-        uint256 timeout;
-        uint256 finalize_state;
+        uint64 timeout;
+        uint64 finalize_state;
         uint256 bounty;
         bytes32 best_answer;
         bytes32 history_hash;
@@ -137,7 +138,7 @@ contract RealityCheck is BalanceHolder {
 
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].timeout > 0); // Check existence
-        uint256 finalize_state = questions[question_id].finalize_state;
+        uint64 finalize_state = questions[question_id].finalize_state;
         require(finalize_state == UNANSWERED || finalize_state > now);
         uint64 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint64(now)); 
@@ -205,7 +206,7 @@ contract RealityCheck is BalanceHolder {
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
-        string question, address arbitrator, uint256 timeout, uint256 nonce, uint64 opening_ts
+        string question, address arbitrator, uint64 timeout, uint256 nonce, uint64 opening_ts
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
@@ -221,7 +222,7 @@ contract RealityCheck is BalanceHolder {
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string question, address arbitrator, uint256 timeout, uint256 nonce, uint64 opening_ts) 
+    function askQuestion(uint256 template_id, string question, address arbitrator, uint64 timeout, uint256 nonce, uint64 opening_ts) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
@@ -236,7 +237,7 @@ contract RealityCheck is BalanceHolder {
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint256 timeout, uint64 opening_ts) 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint64 timeout, uint64 opening_ts) 
         stateNotCreated(question_id)
     internal {
 
@@ -281,10 +282,10 @@ contract RealityCheck is BalanceHolder {
         LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
     }
 
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint256 timeout_secs)
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint64 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_state = now.add(timeout_secs);
+        questions[question_id].finalize_state = uint64(now)+ timeout_secs;
     }
 
     /// @notice Submit an answer for a question.
@@ -319,8 +320,8 @@ contract RealityCheck is BalanceHolder {
 
         require(commitments[commitment_id].reveal_state == COMMITMENT_NON_EXISTENT);
 
-        uint256 commitment_timeout = questions[question_id].timeout.div(COMMITMENT_TIMEOUT_RATIO);
-        commitments[commitment_id].reveal_state = now.add(commitment_timeout);
+        uint64 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
+        commitments[commitment_id].reveal_state = uint64(now).add(commitment_timeout);
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
 
@@ -396,8 +397,8 @@ contract RealityCheck is BalanceHolder {
     /// @return Return true if finalized
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
-        uint256 finalize_state = questions[question_id].finalize_state;
-        return ( (finalize_state > PENDING_ARBITRATION) && (finalize_state <= now) );
+        uint64 finalize_state = questions[question_id].finalize_state;
+        return ( (finalize_state > PENDING_ARBITRATION) && (finalize_state <= uint64(now)) );
     }
 
     /// @notice Return the final answer to the specified question, or revert if there isn't one
@@ -419,7 +420,7 @@ contract RealityCheck is BalanceHolder {
     /// @return The answer formatted as a bytes32
     function getFinalAnswerIfMatches(
         bytes32 question_id, 
-        bytes32 content_hash, address arbitrator, uint256 min_timeout, uint256 min_bond
+        bytes32 content_hash, address arbitrator, uint64 min_timeout, uint256 min_bond
     ) 
         stateFinalized(question_id)
     external constant returns (bytes32) {
