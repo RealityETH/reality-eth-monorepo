@@ -19,10 +19,11 @@ QINDEX_ARBITRATOR = 1
 QINDEX_OPENING_TS = 2
 QINDEX_STEP_DELAY = 3
 QINDEX_FINALIZATION_TS = 4
-QINDEX_BOUNTY = 5
-QINDEX_BEST_ANSWER_ID = 6
-QINDEX_HISTORY_HASH = 7
-QINDEX_BOND = 8
+QINDEX_IS_PENDING_ARBITRATION = 5
+QINDEX_BOUNTY = 6
+QINDEX_BEST_ANSWER_ID = 7
+QINDEX_HISTORY_HASH = 8
+QINDEX_BOND = 9
 
 def calculate_commitment_hash(answer, nonce):
     return decode_hex(keccak_256(answer + decode_hex(hex(nonce)[2:].zfill(64))).hexdigest())
@@ -257,7 +258,8 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
+        #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
+        self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
 
         # You cannot notify realitycheck of arbitration unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
@@ -280,13 +282,16 @@ class TestRealityCheck(TestCase):
 
         self.assertTrue(self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
-        self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
+        self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the arbitration flag to True")
 
         # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
 
         self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
+
+        question = self.rc0.questions(self.question_id)
+        self.assertFalse(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is done, we set the arbitration flag to False")
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
@@ -769,7 +774,7 @@ class TestRealityCheck(TestCase):
     def test_arbitrator_fee_received(self):
         self.assertEqual(self.rc0.balanceOf(self.arb0.address), 100)
         
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_ask_question_gas(self):
 
         self.c.mine()

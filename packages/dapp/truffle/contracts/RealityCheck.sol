@@ -8,13 +8,11 @@ contract RealityCheck is BalanceHolder {
     using SafeMath for uint256;
     using SafeMath for uint32;
 
-    // finalize_state options. Anything above this is a deadline timestamp.
+    // finalize_ts options. Anything above this is a deadline timestamp.
     uint32 constant UNANSWERED = 0;
-    uint32 constant PENDING_ARBITRATION = 1;
 
-    // reveal_state options. Anything above this is a reveal deadline timestamp.
+    // reveal_ts options. Anything above this is a reveal deadline timestamp.
     uint256 constant COMMITMENT_NON_EXISTENT = 0;
-    uint256 constant COMMITMENT_REVEALED = 1;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
     uint32 constant COMMITMENT_TIMEOUT_RATIO = 8;
@@ -94,7 +92,8 @@ contract RealityCheck is BalanceHolder {
         address arbitrator;
         uint32 opening_ts;
         uint32 timeout;
-        uint32 finalize_state;
+        uint32 finalize_ts;
+        bool is_pending_arbitration;
         uint256 bounty;
         bytes32 best_answer;
         bytes32 history_hash;
@@ -103,7 +102,8 @@ contract RealityCheck is BalanceHolder {
 
     // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
     struct Commitment {
-        uint256 reveal_state; // COMMITMENT_REVEALED, or the deadline for the reveal
+        uint32 reveal_ts;
+        bool is_revealed;
         bytes32 revealed_answer;
     }
 
@@ -138,15 +138,16 @@ contract RealityCheck is BalanceHolder {
 
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].timeout > 0); // Check existence
-        uint32 finalize_state = questions[question_id].finalize_state;
-        require(finalize_state == UNANSWERED || finalize_state > now);
+        uint32 finalize_ts = questions[question_id].finalize_ts;
+        require(!questions[question_id].is_pending_arbitration);
+        require(finalize_ts == UNANSWERED || finalize_ts > now);
         uint32 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint32(now)); 
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].finalize_state == PENDING_ARBITRATION);
+        require(questions[question_id].is_pending_arbitration);
         _;
     }
 
@@ -285,7 +286,7 @@ contract RealityCheck is BalanceHolder {
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_state = uint32(now)+ timeout_secs;
+        questions[question_id].finalize_ts = uint32(now)+ timeout_secs;
     }
 
     /// @notice Submit an answer for a question.
@@ -318,10 +319,10 @@ contract RealityCheck is BalanceHolder {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
 
-        require(commitments[commitment_id].reveal_state == COMMITMENT_NON_EXISTENT);
+        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_state = uint32(now).add(commitment_timeout);
+        commitments[commitment_id].reveal_ts = uint32(now) + commitment_timeout;
 
         _addAnswerToHistory(question_id, commitment_id, msg.sender, msg.value, true);
 
@@ -343,12 +344,11 @@ contract RealityCheck is BalanceHolder {
         bytes32 answer_hash = keccak256(answer, nonce);
         bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
 
-        uint256 reveal_state = commitments[commitment_id].reveal_state;
-        require(reveal_state > COMMITMENT_REVEALED); // Commitment must exist, and not be in already-answered state
-        require(reveal_state > now); // Reveal deadline must not have passed
+        require(!commitments[commitment_id].is_revealed);
+        require(commitments[commitment_id].reveal_ts > uint32(now)); // Reveal deadline must not have passed
 
         commitments[commitment_id].revealed_answer = answer;
-        commitments[commitment_id].reveal_state = COMMITMENT_REVEALED;
+        commitments[commitment_id].is_revealed = true;
 
         if (bond == questions[question_id].bond) {
             _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
@@ -366,7 +366,7 @@ contract RealityCheck is BalanceHolder {
         onlyArbitrator(question_id)
         stateOpen(question_id)
     external {
-        questions[question_id].finalize_state = PENDING_ARBITRATION;
+        questions[question_id].is_pending_arbitration = true;
         LogNotifyOfArbitrationRequest(question_id, requester);
     }
 
@@ -387,6 +387,7 @@ contract RealityCheck is BalanceHolder {
         require(answerer != 0x0);
         LogFinalize(question_id, answer);
 
+        questions[question_id].is_pending_arbitration = false;
         _addAnswerToHistory(question_id, answer, answerer, 0, false);
         _updateCurrentAnswer(question_id, answer, 0);
 
@@ -397,8 +398,8 @@ contract RealityCheck is BalanceHolder {
     /// @return Return true if finalized
     function isFinalized(bytes32 question_id) 
     constant public returns (bool) {
-        uint32 finalize_state = questions[question_id].finalize_state;
-        return ( (finalize_state > PENDING_ARBITRATION) && (finalize_state <= uint32(now)) );
+        uint32 finalize_ts = questions[question_id].finalize_ts;
+        return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(now)) );
     }
 
     /// @notice Return the final answer to the specified question, or revert if there isn't one
@@ -451,7 +452,7 @@ contract RealityCheck is BalanceHolder {
         if (is_commitment) {
             bytes32 commitment_id = answer;
             // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-            if (commitments[commitment_id].reveal_state != COMMITMENT_REVEALED) {
+            if (!commitments[commitment_id].is_revealed) {
                 delete commitments[commitment_id];
                 return (take, payee);
             } else {
