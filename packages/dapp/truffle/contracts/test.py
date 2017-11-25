@@ -31,7 +31,7 @@ def calculate_commitment_id(question_id, answer_hash, bond):
     return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
 
 def calculate_content_hash(template_id, question_str, opening_ts):
-    return Web3.soliditySha3(['uint256', 'uint64', 'string'], [template_id, opening_ts, question_str])
+    return Web3.soliditySha3(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])
 
 def from_question_for_contract(txt):
     return txt
