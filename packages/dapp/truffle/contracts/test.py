@@ -787,6 +787,29 @@ class TestRealityCheck(TestCase):
         gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
         #self.assertEqual(gas_used, 120000)
         self.assertTrue(gas_used < 100000)
+    
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_question_gas(self):
+
+        self.c.mine()
+        self.s = self.c.head_state
+        self.assertEqual(self.s.gas_used, 0)
+
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12345), 0, value=1) 
+
+        gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
+        #self.assertEqual(gas_used, 120000)
+        self.assertTrue(gas_used < 100000)
+
+        # NB The second answer should be cheaper than the first.
+        # This is what we want, because you may need to be able to get a challenge through at busy times
+
+        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(12346), 0, value=2) 
+
+        gas_used = self.s.gas_used - gas_used
+        #self.assertEqual(gas_used, 120000)
+        self.assertTrue(gas_used < 52000)
+
 
 if __name__ == '__main__':
     main()
