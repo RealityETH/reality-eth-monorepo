@@ -786,8 +786,8 @@ class TestRealityCheck(TestCase):
             value=1100
         )
         gas_used = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 120000)
+        #self.assertEqual(gas_used, 120000)
+        self.assertTrue(gas_used < 100000)
 
 if __name__ == '__main__':
     main()
