@@ -769,8 +769,7 @@ class TestRealityCheck(TestCase):
     def test_arbitrator_fee_received(self):
         self.assertEqual(self.rc0.balanceOf(self.arb0.address), 100)
         
-
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_ask_question_gas(self):
 
         self.c.mine()
