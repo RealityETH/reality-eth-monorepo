@@ -552,10 +552,12 @@ contract RealityCheck is BalanceHolder {
         uint256 i;
         for (i=0; i<history_hashes.length; i++) {
         
+            // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
             
             queued_funds = queued_funds.add(last_bond); 
-            (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, addrs[i], bonds[i], answers[i], is_commitment);
+            (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, 
+                addrs[i], bonds[i], answers[i], is_commitment);
  
             // Line the bond up for next time, when it will be added to somebody's queued_funds
             last_bond = bonds[i];
