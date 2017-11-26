@@ -112,7 +112,7 @@ contract RealityCheck is BalanceHolder {
     struct Claim {
         address payee;
         uint256 last_bond;
-        uint256 take;
+        uint256 queued_funds;
     }
 
     uint256 nextTemplateID = 0;
@@ -435,16 +435,31 @@ contract RealityCheck is BalanceHolder {
         return questions[question_id].best_answer;
     }
 
-    function _payPayee(bytes32 question_id, address payee, uint256 take) 
+    function _payPayee(bytes32 question_id, address payee, uint256 value) 
     internal
     {
-        balanceOf[payee] = balanceOf[payee].add(take);
-        LogClaim(question_id, payee, take);
+        balanceOf[payee] = balanceOf[payee].add(value);
+        LogClaim(question_id, payee, value);
     }
 
-    function _applyPayeeChanges(
+    function _verifyHistoryInputOrRevert(
+        bytes32 last_history_hash,
+        bytes32 history_hash, bytes32 answer, uint256 bond, address addr
+    )
+    internal returns (bool)
+    {
+        if (last_history_hash == keccak256(history_hash, answer, bond, addr, true) ) {
+            return true;
+        }
+        if (last_history_hash == keccak256(history_hash, answer, bond, addr, false) ) {
+            return false;
+        } 
+        revert();
+    }
+
+    function _processHistoryItem(
         bytes32 question_id, bytes32 best_answer, 
-        uint256 take, address payee, 
+        uint256 queued_funds, address payee, 
         address addr, uint256 bond, bytes32 answer, bool is_commitment
     )
     internal returns (uint256, address)
@@ -457,7 +472,7 @@ contract RealityCheck is BalanceHolder {
             // If it's a commit but it hasn't been revealed, it will always be considered wrong.
             if (!commitments[commitment_id].is_revealed) {
                 delete commitments[commitment_id];
-                return (take, payee);
+                return (queued_funds, payee);
             } else {
                 answer = commitments[commitment_id].revealed_answer;
                 delete commitments[commitment_id];
@@ -470,33 +485,33 @@ contract RealityCheck is BalanceHolder {
 
                 // The first payee we come to, ie the winner. They get the question bounty.
                 payee = addr;
-                take = take.add(questions[question_id].bounty);
+                queued_funds = queued_funds.add(questions[question_id].bounty);
                 questions[question_id].bounty = 0;
 
             } else if (addr != payee) {
 
                 // Answerer has changed, ie we found someone lower down who needs to be paid
 
-                // The lower answerer will take over receiving bonds from higher answerer.
-                // They should also be paid the takeover fee, which is set at a rate equivalent to their bond. 
+                // The lower answerer will queued_funds over receiving bonds from higher answerer.
+                // They should also be paid the queued_fundsover fee, which is set at a rate equivalent to their bond. 
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
                 // There should be enough for the fee, but if not, take what we have.
                 // There's an edge case involving weird arbitrator behaviour where we may be short.
-                uint256 answer_takeover_fee = (take >= bond) ? bond : take;
+                uint256 answer_takeover_fee = (queued_funds >= bond) ? bond : queued_funds;
 
                 // Settle up with the old payee
-                _payPayee(question_id, payee, take.sub(answer_takeover_fee));
+                _payPayee(question_id, payee, queued_funds.sub(answer_takeover_fee));
 
-                // Now start take again for the new payee
+                // Now start queued_funds again for the new payee
                 payee = addr;
-                take = answer_takeover_fee;
+                queued_funds = answer_takeover_fee;
 
             }
 
         }
 
-        return (take, payee);
+        return (queued_funds, payee);
 
     }
 
@@ -526,7 +541,7 @@ contract RealityCheck is BalanceHolder {
         // These are only set if we split our claim over multiple transactions.
         address payee = question_claims[question_id].payee; 
         uint256 last_bond = question_claims[question_id].last_bond; 
-        uint256 take = question_claims[question_id].take; 
+        uint256 queued_funds = question_claims[question_id].queued_funds; 
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
@@ -536,23 +551,13 @@ contract RealityCheck is BalanceHolder {
 
         uint256 i;
         for (i=0; i<history_hashes.length; i++) {
-
-            // is_commitment is 1 of only 2 options, so try them both rather than making the user pass in a parameter
-            bool is_commitment; 
-            if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], true)) {
-                is_commitment = true;
-            } else if (last_history_hash == keccak256(history_hashes[i], answers[i], bonds[i], addrs[i], false)){
-                is_commitment = false;
-            } else {
-                // Params don't recreate data stored by submitAnswer() / submitAnswerCommitment() at this point in the history.
-                revert();
-            }
-
-            take = take.add(last_bond); 
-
-            (take, payee) = _applyPayeeChanges(question_id, best_answer, take, payee, addrs[i], bonds[i], answers[i], is_commitment);
+        
+            bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
+            
+            queued_funds = queued_funds.add(last_bond); 
+            (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, addrs[i], bonds[i], answers[i], is_commitment);
  
-            // Line the bond up for next time, when it will be added to somebody's take
+            // Line the bond up for next time, when it will be added to somebody's queued_funds
             last_bond = bonds[i];
             last_history_hash = history_hashes[i];
 
@@ -565,16 +570,16 @@ contract RealityCheck is BalanceHolder {
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
             if (payee != 0x0) {
-                _payPayee(question_id, payee, take);
-                take = 0;
+                _payPayee(question_id, payee, queued_funds);
+                queued_funds = 0;
             }
 
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
-            question_claims[question_id].take = take;
+            question_claims[question_id].queued_funds = queued_funds;
         } else {
             // There is nothing left below us so the payee can keep what remains
-            _payPayee(question_id, payee, take.add(last_bond));
+            _payPayee(question_id, payee, queued_funds.add(last_bond));
             delete question_claims[question_id];
         }
 
