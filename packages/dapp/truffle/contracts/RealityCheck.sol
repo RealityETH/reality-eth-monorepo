@@ -492,7 +492,7 @@ contract RealityCheck is BalanceHolder {
 
                 // Answerer has changed, ie we found someone lower down who needs to be paid
 
-                // The lower answerer will queued_funds over receiving bonds from higher answerer.
+                // The lower answerer will take over receiving bonds from higher answerer.
                 // They should also be paid the takeover fee, which is set at a rate equivalent to their bond. 
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
