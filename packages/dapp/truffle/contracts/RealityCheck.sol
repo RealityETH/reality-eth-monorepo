@@ -1,12 +1,13 @@
 pragma solidity ^0.4.6;
 
 import './SafeMath.sol';
+import './SafeMath32.sol';
 import './BalanceHolder.sol';
 
 contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
-    using SafeMath for uint32;
+    using SafeMath32 for uint32;
 
     // finalize_ts options. Anything above this is a deadline timestamp.
     uint32 constant UNANSWERED = 0;
@@ -140,7 +141,7 @@ contract RealityCheck is BalanceHolder {
         require(questions[question_id].timeout > 0); // Check existence
         uint32 finalize_ts = questions[question_id].finalize_ts;
         require(!questions[question_id].is_pending_arbitration);
-        require(finalize_ts == UNANSWERED || finalize_ts > now);
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now));
         uint32 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint32(now)); 
         _;
@@ -286,7 +287,7 @@ contract RealityCheck is BalanceHolder {
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(now)+ timeout_secs;
+        questions[question_id].finalize_ts = uint32(now).add(timeout_secs);
     }
 
     /// @notice Submit an answer for a question.
@@ -325,7 +326,7 @@ contract RealityCheck is BalanceHolder {
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(now) + commitment_timeout;
+        commitments[commitment_id].reveal_ts = uint32(now).add(commitment_timeout);
 
         _addAnswerToHistory(question_id, commitment_id, answerer, msg.value, true);
 
