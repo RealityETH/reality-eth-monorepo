@@ -181,6 +181,7 @@ contract RealityCheck is BalanceHolder {
         createTemplate('{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "datetime", "category": "%s"}');
     }
 
     /// @notice Create a reusable template, which should be a JSON document.
