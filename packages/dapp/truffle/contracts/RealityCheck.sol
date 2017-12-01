@@ -1,4 +1,4 @@
-pragma solidity ^0.4.6;
+pragma solidity ^0.4.18;
 
 import './SafeMath.sol';
 import './SafeMath32.sol';
@@ -175,7 +175,8 @@ contract RealityCheck is BalanceHolder {
         _;
     }
 
-    function RealityCheck() {
+    function RealityCheck() 
+    public {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}');
         createTemplate('{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}');
@@ -448,7 +449,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 last_history_hash,
         bytes32 history_hash, bytes32 answer, uint256 bond, address addr
     )
-    internal returns (bool)
+    internal pure returns (bool)
     {
         if (last_history_hash == keccak256(history_hash, answer, bond, addr, true) ) {
             return true;
@@ -635,6 +636,7 @@ contract RealityCheck is BalanceHolder {
     function setQuestionFee(uint256 fee) 
         stateAny() 
     public {
+        LogSetQuestionFee(msg.sender, fee);
         arbitrator_question_fees[msg.sender] = fee;
     }
 
