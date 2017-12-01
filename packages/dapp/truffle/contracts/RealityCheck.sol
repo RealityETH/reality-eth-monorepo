@@ -19,6 +19,11 @@ contract RealityCheck is BalanceHolder {
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
     uint32 constant COMMITMENT_TIMEOUT_RATIO = 8;
 
+    event LogSetQuestionFee(
+        address arbitrator,
+        uint256 amount
+    );
+
     event LogNewTemplate(
         uint256 indexed template_id,
         address indexed user, 
@@ -35,6 +40,13 @@ contract RealityCheck is BalanceHolder {
         uint256 created,
         address indexed user, 
         uint256 nonce
+    );
+
+    event LogFundAnswerBounty(
+        bytes32 indexed question_id,
+        uint256 bounty_added,
+        uint256 bounty,
+        address indexed user 
     );
 
     event LogNewAnswer(
@@ -56,13 +68,6 @@ contract RealityCheck is BalanceHolder {
         uint256 bond
     );
 
-    event LogFundAnswerBounty(
-        bytes32 indexed question_id,
-        uint256 bounty_added,
-        uint256 bounty,
-        address indexed user 
-    );
-
     event LogNotifyOfArbitrationRequest(
         bytes32 indexed question_id,
         address indexed user 
@@ -76,16 +81,6 @@ contract RealityCheck is BalanceHolder {
     event LogClaim(
         bytes32 indexed question_id,
         address indexed user,
-        uint256 amount
-    );
-
-    event LogWithdraw(
-        address indexed user,
-        uint256 amount
-    );
-
-    event LogSetQuestionFee(
-        address arbitrator,
         uint256 amount
     );
 
