@@ -239,7 +239,7 @@ contract RealityCheck is BalanceHolder {
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
-        require(templates[template_id] > 0);
+        require(templates[template_id] > 0); // Template must exist
 
         bytes32 content_hash = keccak256(template_id, opening_ts, question);
         bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
