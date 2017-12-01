@@ -4,6 +4,7 @@ import './SafeMath.sol';
 import './SafeMath32.sol';
 import './BalanceHolder.sol';
 
+
 contract RealityCheck is BalanceHolder {
 
     using SafeMath for uint256;
@@ -553,13 +554,14 @@ contract RealityCheck is BalanceHolder {
         bytes32 best_answer = questions[question_id].best_answer;
 
         uint256 i;
-        for (i=0; i<history_hashes.length; i++) {
+        for (i = 0; i < history_hashes.length; i++) {
         
             // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
             
             queued_funds = queued_funds.add(last_bond); 
-            (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, 
+            (queued_funds, payee) = _processHistoryItem(
+                question_id, best_answer, queued_funds, payee, 
                 addrs[i], bonds[i], answers[i], is_commitment);
  
             // Line the bond up for next time, when it will be added to somebody's queued_funds
@@ -610,7 +612,7 @@ contract RealityCheck is BalanceHolder {
         
         uint256 qi;
         uint256 i;
-        for(qi=0; qi<question_ids.length; qi++) {
+        for (qi = 0; qi < question_ids.length; qi++) {
             bytes32 qid = question_ids[qi];
             uint256 ln = lengths[qi];
             bytes32[] memory hh = new bytes32[](ln);
@@ -618,7 +620,7 @@ contract RealityCheck is BalanceHolder {
             uint256[] memory bo = new uint256[](ln);
             bytes32[] memory an = new bytes32[](ln);
             uint256 j;
-            for(j=0; j<ln; j++) {
+            for (j = 0; j < ln; j++) {
                 hh[j] = hist_hashes[i];
                 ad[j] = addrs[i];
                 bo[j] = bonds[i];
