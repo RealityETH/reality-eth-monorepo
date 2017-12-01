@@ -39,7 +39,8 @@ contract RealityCheck is BalanceHolder {
         bytes32 indexed content_hash,
         uint256 created,
         address indexed user, 
-        uint256 nonce
+        uint256 nonce,
+        uint32 opening_ts
     );
 
     event LogFundAnswerBounty(
@@ -242,7 +243,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
-        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, content_hash, now, msg.sender, nonce);
+        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, content_hash, now, msg.sender, nonce, opening_ts);
 
         return question_id;
     }
