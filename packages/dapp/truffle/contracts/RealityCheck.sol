@@ -158,6 +158,11 @@ contract RealityCheck is BalanceHolder {
         _;
     }
 
+    modifier bondMustBeZero() {
+        require(msg.value == 0);
+        _;
+    }
+
     modifier bondMustDouble(bytes32 question_id) {
         require(msg.value > 0); 
         require(msg.value >= (questions[question_id].bond.mul(2)));
@@ -171,11 +176,6 @@ contract RealityCheck is BalanceHolder {
         _;
     }
 
-    modifier bondMustBeZero() {
-        require(msg.value == 0);
-        _;
-    }
-
     function RealityCheck() 
     public {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
@@ -184,6 +184,16 @@ contract RealityCheck is BalanceHolder {
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s"}');
+    }
+
+    /// @notice Function for arbitrator to set an optional per-question fee. 
+    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
+    /// @param fee The fee to be charged by the arbitrator when a question is asked
+    function setQuestionFee(uint256 fee) 
+        stateAny() 
+    external {
+        arbitrator_question_fees[msg.sender] = fee;
+        LogSetQuestionFee(msg.sender, fee);
     }
 
     /// @notice Create a reusable template, which should be a JSON document.
@@ -276,23 +286,6 @@ contract RealityCheck is BalanceHolder {
         LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
-    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
-    internal 
-    {
-        bytes32 new_history_hash = keccak256(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment);
-
-        questions[question_id].bond = bond;
-        questions[question_id].history_hash = new_history_hash;
-
-        LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
-    }
-
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
-    internal {
-        questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(now).add(timeout_secs);
-    }
-
     /// @notice Submit an answer for a question.
     /// @dev Adds the answer to the history and updates the current "best" answer.
     /// May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.
@@ -363,6 +356,23 @@ contract RealityCheck is BalanceHolder {
 
         LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
 
+    }
+
+    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
+    internal 
+    {
+        bytes32 new_history_hash = keccak256(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment);
+
+        questions[question_id].bond = bond;
+        questions[question_id].history_hash = new_history_hash;
+
+        LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
+    }
+
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
+    internal {
+        questions[question_id].best_answer = answer;
+        questions[question_id].finalize_ts = uint32(now).add(timeout_secs);
     }
 
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -437,6 +447,81 @@ contract RealityCheck is BalanceHolder {
         require(min_timeout <= questions[question_id].timeout);
         require(min_bond <= questions[question_id].bond);
         return questions[question_id].best_answer;
+    }
+
+    /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
+    /// Caller must provide the answer history, in reverse order
+    /// @dev Works up the chain and assign bonds to the person who gave the right answer
+    /// If someone gave the winning answer earlier, they must get paid from the higher bond
+    /// That means we can't pay out the bond added at n until we have looked at n-1
+    /// The first answer is authenticated by checking against the stored history_hash.
+    /// One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
+    /// Once we get to a null hash we'll know we're done and there are no more answers.
+    /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
+    /// @param question_id The ID of the question
+    /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
+    /// @param addrs Last-to-first, the address of each answerer or commitment sender
+    /// @param bonds Last-to-first, the bond supplied with each answer or commitment
+    /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
+    function claimWinnings(
+        bytes32 question_id, 
+        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+    ) 
+        stateFinalized(question_id)
+    public {
+
+        require(history_hashes.length > 0);
+
+        // These are only set if we split our claim over multiple transactions.
+        address payee = question_claims[question_id].payee; 
+        uint256 last_bond = question_claims[question_id].last_bond; 
+        uint256 queued_funds = question_claims[question_id].queued_funds; 
+
+        // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
+        // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
+        bytes32 last_history_hash = questions[question_id].history_hash;
+
+        bytes32 best_answer = questions[question_id].best_answer;
+
+        uint256 i;
+        for (i = 0; i < history_hashes.length; i++) {
+        
+            // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
+            bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
+            
+            queued_funds = queued_funds.add(last_bond); 
+            (queued_funds, payee) = _processHistoryItem(
+                question_id, best_answer, queued_funds, payee, 
+                addrs[i], bonds[i], answers[i], is_commitment);
+ 
+            // Line the bond up for next time, when it will be added to somebody's queued_funds
+            last_bond = bonds[i];
+            last_history_hash = history_hashes[i];
+
+        }
+ 
+        if (last_history_hash != "") {
+            // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
+            // Persist the details so we can pick up later where we left off later.
+
+            // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
+            // (We always know who to pay unless all we saw were unrevealed commits)
+            if (payee != 0x0) {
+                _payPayee(question_id, payee, queued_funds);
+                queued_funds = 0;
+            }
+
+            question_claims[question_id].payee = payee;
+            question_claims[question_id].last_bond = last_bond;
+            question_claims[question_id].queued_funds = queued_funds;
+        } else {
+            // There is nothing left below us so the payee can keep what remains
+            _payPayee(question_id, payee, queued_funds.add(last_bond));
+            delete question_claims[question_id];
+        }
+
+        questions[question_id].history_hash = last_history_hash;
+
     }
 
     function _payPayee(bytes32 question_id, address payee, uint256 value) 
@@ -519,81 +604,6 @@ contract RealityCheck is BalanceHolder {
 
     }
 
-    /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
-    /// Caller must provide the answer history, in reverse order
-    /// @dev Works up the chain and assign bonds to the person who gave the right answer
-    /// If someone gave the winning answer earlier, they must get paid from the higher bond
-    /// That means we can't pay out the bond added at n until we have looked at n-1
-    /// The first answer is authenticated by checking against the stored history_hash.
-    /// One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
-    /// Once we get to a null hash we'll know we're done and there are no more answers.
-    /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
-    /// @param question_id The ID of the question
-    /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
-    /// @param addrs Last-to-first, the address of each answerer or commitment sender
-    /// @param bonds Last-to-first, the bond supplied with each answer or commitment
-    /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
-    function claimWinnings(
-        bytes32 question_id, 
-        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
-    ) 
-        stateFinalized(question_id)
-    public {
-
-        require(history_hashes.length > 0);
-
-        // These are only set if we split our claim over multiple transactions.
-        address payee = question_claims[question_id].payee; 
-        uint256 last_bond = question_claims[question_id].last_bond; 
-        uint256 queued_funds = question_claims[question_id].queued_funds; 
-
-        // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
-        // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
-        bytes32 last_history_hash = questions[question_id].history_hash;
-
-        bytes32 best_answer = questions[question_id].best_answer;
-
-        uint256 i;
-        for (i = 0; i < history_hashes.length; i++) {
-        
-            // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
-            bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
-            
-            queued_funds = queued_funds.add(last_bond); 
-            (queued_funds, payee) = _processHistoryItem(
-                question_id, best_answer, queued_funds, payee, 
-                addrs[i], bonds[i], answers[i], is_commitment);
- 
-            // Line the bond up for next time, when it will be added to somebody's queued_funds
-            last_bond = bonds[i];
-            last_history_hash = history_hashes[i];
-
-        }
- 
-        if (last_history_hash != "") {
-            // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
-            // Persist the details so we can pick up later where we left off later.
-
-            // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
-            // (We always know who to pay unless all we saw were unrevealed commits)
-            if (payee != 0x0) {
-                _payPayee(question_id, payee, queued_funds);
-                queued_funds = 0;
-            }
-
-            question_claims[question_id].payee = payee;
-            question_claims[question_id].last_bond = last_bond;
-            question_claims[question_id].queued_funds = queued_funds;
-        } else {
-            // There is nothing left below us so the payee can keep what remains
-            _payPayee(question_id, payee, queued_funds.add(last_bond));
-            delete question_claims[question_id];
-        }
-
-        questions[question_id].history_hash = last_history_hash;
-
-    }
-
     /// @notice Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds.
     /// Caller must provide the answer history for each question, in reverse order
     /// @dev Can be called by anyone to assign bonds/bounties, but funds are only withdrawn for the user making the call.
@@ -631,15 +641,4 @@ contract RealityCheck is BalanceHolder {
         }
         withdraw();
     }
-
-    /// @notice Function for arbitrator to set their per-question fee. 
-    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
-    /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) 
-        stateAny() 
-    public {
-        LogSetQuestionFee(msg.sender, fee);
-        arbitrator_question_fees[msg.sender] = fee;
-    }
-
 }
