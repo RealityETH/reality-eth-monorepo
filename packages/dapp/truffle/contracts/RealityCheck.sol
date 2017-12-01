@@ -10,10 +10,10 @@ contract RealityCheck is BalanceHolder {
     using SafeMath for uint256;
     using SafeMath32 for uint32;
 
-    // finalize_ts options. Anything above this is a deadline timestamp.
+    // An unitinalized finalize_ts for a question will indicate an unanswered question.
     uint32 constant UNANSWERED = 0;
 
-    // reveal_ts options. Anything above this is a reveal deadline timestamp.
+    // An unanswered reveal_ts for a commitment will indicate that it does not exist.
     uint256 constant COMMITMENT_NON_EXISTENT = 0;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
@@ -313,7 +313,7 @@ contract RealityCheck is BalanceHolder {
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
-        address answerer = (_answerer == 0x0) ? _answerer: msg.sender;
+        address answerer = (_answerer == 0x0) ? _answerer : msg.sender;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
