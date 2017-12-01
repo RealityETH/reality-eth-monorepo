@@ -136,8 +136,8 @@ contract RealityCheck is BalanceHolder {
 
     modifier stateOpen(bytes32 question_id) {
         require(questions[question_id].timeout > 0); // Check existence
-        uint32 finalize_ts = questions[question_id].finalize_ts;
         require(!questions[question_id].is_pending_arbitration);
+        uint32 finalize_ts = questions[question_id].finalize_ts;
         require(finalize_ts == UNANSWERED || finalize_ts > uint32(now));
         uint32 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint32(now)); 
