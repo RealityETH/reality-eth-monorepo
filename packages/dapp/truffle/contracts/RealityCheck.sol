@@ -214,6 +214,7 @@ contract RealityCheck is BalanceHolder {
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
@@ -261,14 +262,14 @@ contract RealityCheck is BalanceHolder {
         // This is intended as an anti-spam defence.
         uint256 question_fee = arbitrator_question_fees[arbitrator];
         require(msg.value >= question_fee); 
-        uint256 reward = msg.value.sub(question_fee);
+        uint256 bounty = msg.value.sub(question_fee);
         balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
 
         questions[question_id].content_hash = content_hash;
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].opening_ts = opening_ts;
         questions[question_id].timeout = timeout;
-        questions[question_id].bounty = reward;
+        questions[question_id].bounty = bounty;
 
     }
 
