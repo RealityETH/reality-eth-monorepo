@@ -233,6 +233,7 @@ contract RealityCheck is BalanceHolder {
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint256 nonce, uint32 opening_ts) 
         // stateNotCreated is enforced by the internal _askQuestion
