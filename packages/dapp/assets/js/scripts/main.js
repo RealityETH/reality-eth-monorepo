@@ -238,7 +238,7 @@ function bytes32ToString(bytes32str, qjson) {
     var bn;
     if (qtype == 'int') {
         var bn = new BN(bytes32str, 16).fromTwos(256);
-    } else if (qtype == 'uint') {
+    } else if (qtype == 'uint' || qtype == 'datetime') {
         var bn = new BN(bytes32str, 16);
     } else {
         throw Error("Unrecognized answer type " + qtype);
@@ -424,7 +424,7 @@ $(document).on('change', 'select.arbitrator', function() {
 $(document).on('click', '.rcbrowser', function(){
     zindex += 1;
     $(this).css('z-index', zindex);
-    $(this).find('.ui-datepicker', zindex + 1);
+    $('.ui-datepicker').css('z-index', zindex + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', zindex);
 });
@@ -517,7 +517,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     });
 
     $('#post-a-question-window-template').before(question_window);
-    $('#opening-ts-datepicker').datepicker();
+    $('#opening-ts-datepicker').datepicker({dateFormat: 'yy-mm-dd'});
     //console.log('cloned window', question_window);
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
@@ -594,7 +594,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         var question_id = questionID(template_id, qtext, arbitrator, timeout_val, account, 0);
         var opening_ts = new Date(opening_ts_val);
         opening_ts = opening_ts / 1000;
-        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, opening_ts, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         .then(function(txid) {
             //console.log('sent tx with id', txid);
             
@@ -1107,6 +1107,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question[Qi_question_text] = data.args['question'];
                 question[Qi_template_id] = data.args['template_id'].toNumber();
                 question[Qi_block_mined] = data.blockNumber;
+                question[Qi_opening_ts] = data.args['opening_ts'];
                 //question[Qi_bounty] = data.args['bounty'];
             }
             break;
@@ -1837,7 +1838,10 @@ function displayQuestionDetail(question_detail) {
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
-    $('#answer-form-datepicker').datepicker();
+
+    if (rcqa.find('[name="input-answer"]').hasClass('rcbrowser-input--date--answer')) {
+        rcqa.find('[name="input-answer"]').datepicker({dateFormat: 'yy-mm-dd'});
+    }
 }
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
@@ -2548,6 +2552,14 @@ function getAnswerString(question_json, answer) {
                 }
                 label = label.substr(0, label.length - 3);
             }
+            break;
+        case 'datetime':
+            let ts = parseInt(bytes32ToString(answer, question_json));
+            let dateObj = new Date(ts * 1000);
+            let year = dateObj.getFullYear();
+            let month = dateObj.getMonth() + 1;
+            let date = dateObj.getDate();
+            label = year + '/' + month + '/' + date;
             break;
     }
 
