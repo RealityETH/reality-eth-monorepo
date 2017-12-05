@@ -13,6 +13,7 @@
     <link href="assets/fonts/Roboto/css/fonts.css" rel="stylesheet">
     -->
     <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css" >
 </head>
 <body >
     <div class="tooltip tooltip--checkyourqa">
@@ -422,6 +423,7 @@
                                 <option value="multiple-select">Select (Multiple)</option>
                                 <option value="uint">Number (Positive)</option>
                                 <option value="int">Number (Positive or Negative)</option>
+                                <option value="datetime">Date</option>
                             </select>
                             <div class="quick-help">
                                 <span class="quick-help-button">?</span>
@@ -490,6 +492,18 @@
                                 <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
                             </div>
                             <div class="error-container">Please select step delay.</div>
+                        </div>
+
+                        <div class="input-container input-container--has-quick-help">
+                            <div class="input-inner">
+                                <!--<span class="input-header">Opening Datetime:</span>-->
+                                <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="" value="">
+                            </div>
+                            <div class="quick-help">
+                                <span class="quick-help-button">?</span>
+                                <div class="quick-help-body"><span>text</span></div>
+                            </div>
+                            <div class="error-container">Please enter datetime.</div>
                         </div>
 
                         <div class="rcbrowser-form__col-2 clearfix">
@@ -727,7 +741,38 @@
             <span class="rcbrowser-form-footer">&nbsp;</a></span>
         </form>
     </div>
-    
+    <div class="answer-form-container datetime template-item" style="display:none">
+        <div class="answer-form-header">
+            Do you know the answer to this question?
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+            <div class="input-container input-container--answer">
+                <div class="input-inner">
+                    <!--<span class="input-header">Enter the Answer:</span>-->
+                    <input type="text" id="answer-form-datepicker" name="input-answer" class="rcbrowser-input form-item form-item-value">
+                </div>
+                <div class="error-container">Please enter number.</div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (ETH):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">&nbsp;</a></span>
+        </form>
+    </div>
+
     <div class="rcbrowser rcbrowser--qa-detail template-item" style="display:none" >
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">

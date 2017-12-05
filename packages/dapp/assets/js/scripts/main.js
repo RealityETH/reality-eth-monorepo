@@ -26,7 +26,8 @@ var template_content = {
     1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}',
     2: '{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}',
     3: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}',
-    4: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}'
+    4: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}',
+    5: '{"title": "%s", "type": "datetime", "category": "%s"}'
 };
 var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
@@ -37,7 +38,8 @@ const QUESTION_TYPE_TEMPLATES = {
     'uint': 1,
     'int': 2,
     'single-select': 3,
-    'multiple-select': 4
+    'multiple-select': 4,
+    'datetime': 5
 };
 
 const BLOCK_EXPLORERS = {
@@ -88,21 +90,23 @@ var current_block_number = 1;
 const Qi_question_id = 0;
 
 // NB This has magic values - 0 for no answer, 1 for pending arbitration, 2 for pending arbitration with answer, otherwise timestamp
-const Qi_finalization_ts = 1; 
+const Qi_content_hash = 1;
 const Qi_arbitrator = 2;
-const Qi_timeout = 3;
-const Qi_content_hash = 4;
-const Qi_bounty = 5;
-const Qi_best_answer = 6;
-const Qi_bond = 7;
-const Qi_history_hash = 8;
-const Qi_question_json = 9; // We add this manually after we load the template data
-const Qi_creation_ts = 10; // We add this manually from the event log
-const Qi_question_creator = 11; // We add this manually from the event log
-const Qi_question_created_block = 12;
-const Qi_question_text = 13;
-const Qi_template_id = 14;
-const Qi_block_mined = 15;
+const Qi_opening_ts = 3;
+const Qi_timeout = 4;
+const Qi_finalization_ts = 5;
+const Qi_is_pending_arbitration = 6;
+const Qi_bounty = 7;
+const Qi_best_answer = 8;
+const Qi_history_hash = 9;
+const Qi_bond = 10;
+const Qi_question_json = 11; // We add this manually after we load the template data
+const Qi_creation_ts = 12; // We add this manually from the event log
+const Qi_question_creator = 13; // We add this manually from the event log
+const Qi_question_created_block = 14;
+const Qi_question_text = 15;
+const Qi_template_id = 16;
+const Qi_block_mined = 17;
 
 BigNumber.config({ RABGE: 256});
 const ONE_ETH = 1000000000000000000;
@@ -132,8 +136,9 @@ var question_event_times = {}; // Hold timer IDs for things we display that need
 
 var window_position = [];
 
-var $ = require('jquery-browserify')
+var $ = require('jquery-browserify');
 require('jquery-expander')($);
+require('jquery-datepicker');
 
 import imagesLoaded from 'imagesloaded';
 import interact from 'interactjs';
@@ -417,7 +422,9 @@ $(document).on('change', 'select.arbitrator', function() {
 });
 
 $(document).on('click', '.rcbrowser', function(){
-    $(this).css('z-index', ++zindex);
+    zindex += 1;
+    $(this).css('z-index', zindex);
+    $(this).find('.ui-datepicker', zindex + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', zindex);
 });
@@ -510,6 +517,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     });
 
     $('#post-a-question-window-template').before(question_window);
+    $('#opening-ts-datepicker').datepicker();
     //console.log('cloned window', question_window);
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
@@ -563,6 +571,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     }
     var question_type = win.find('.question-type');
     var answer_options = win.find('.answer-option');
+    var opening_ts_val = win.find('.opening-ts').val();
     var category = win.find('div.select-container--question-category select');
     var outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
@@ -583,7 +592,9 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         qtext = qtext + QUESTION_DELIMITER + category.val();
 
         var question_id = questionID(template_id, qtext, arbitrator, timeout_val, account, 0);
-        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
+        var opening_ts = new Date(opening_ts_val);
+        opening_ts = opening_ts / 1000;
+        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, 0, opening_ts, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
         .then(function(txid) {
             //console.log('sent tx with id', txid);
             
@@ -1826,7 +1837,7 @@ function displayQuestionDetail(question_detail) {
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
-
+    $('#answer-form-datepicker').datepicker();
 }
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
@@ -2712,6 +2723,10 @@ $(document).on('click', '.post-answer-button', function(e) {
             new_answer = parent_div.find('[name="input-answer"]').val();
         } else if (question_json['type'] == 'int') {
             new_answer = parent_div.find('[name="input-answer"]').val();
+        } else if (question_json['type'] == 'datetime') {
+            let answer_val = parent_div.find('[name="input-answer"]').val();
+            let answer_date = new Date(answer_val);
+            new_answer = answer_date.getTime() / 1000;
         } else {
             new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
         }
