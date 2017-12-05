@@ -32,15 +32,15 @@ contract RealityCheck is BalanceHolder {
 
     event LogNewQuestion(
         bytes32 indexed question_id,
-        address arbitrator, 
-        uint32 timeout,
+        address indexed user, 
         uint256 template_id,
         string question,
         bytes32 indexed content_hash,
-        uint256 created,
-        address indexed user, 
+        address arbitrator, 
+        uint32 timeout,
+        uint32 opening_ts,
         uint256 nonce,
-        uint32 opening_ts
+        uint256 created
     );
 
     event LogFundAnswerBounty(
@@ -213,17 +213,17 @@ contract RealityCheck is BalanceHolder {
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string content, 
-        string question, address arbitrator, uint32 timeout, uint256 nonce, uint32 opening_ts
+        string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
         uint256 template_id = createTemplate(content);
-        return askQuestion(template_id, question, arbitrator, timeout, nonce, opening_ts);
+        return askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
 
     /// @notice Ask a new question and return the ID
@@ -232,10 +232,10 @@ contract RealityCheck is BalanceHolder {
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint256 nonce, uint32 opening_ts) 
+    function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
@@ -245,7 +245,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
-        LogNewQuestion(question_id, arbitrator, timeout, template_id, question, content_hash, now, msg.sender, nonce, opening_ts);
+        LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
 
         return question_id;
     }
