@@ -572,7 +572,8 @@ contract RealityCheck is BalanceHolder {
 
             if (payee == 0x0) {
 
-                // The first payee we come to, ie the winner. They get the question bounty.
+                // The entry is for the first payee we come to, ie the winner.
+                // They get the question bounty.
                 payee = addr;
                 queued_funds = queued_funds.add(questions[question_id].bounty);
                 questions[question_id].bounty = 0;
@@ -589,10 +590,10 @@ contract RealityCheck is BalanceHolder {
                 // There's an edge case involving weird arbitrator behaviour where we may be short.
                 uint256 answer_takeover_fee = (queued_funds >= bond) ? bond : queued_funds;
 
-                // Settle up with the old payee
+                // Settle up with the old (higher-bonded) payee
                 _payPayee(question_id, payee, queued_funds.sub(answer_takeover_fee));
 
-                // Now start queued_funds again for the new payee
+                // Now start queued_funds again for the new (lower-bonded) payee
                 payee = addr;
                 queued_funds = answer_takeover_fee;
 
