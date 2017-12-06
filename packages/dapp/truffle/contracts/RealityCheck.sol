@@ -431,7 +431,7 @@ contract RealityCheck is BalanceHolder {
     /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
     /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
     /// @param question_id The ID of the question
-    /// @param content_hash The hash of the question content (template ID + question parameter string)
+    /// @param content_hash The hash of the question content (template ID + opening time + question parameter string)
     /// @param arbitrator The arbitrator chosen for the question (regardless of whether they are asked to arbitrate)
     /// @param min_timeout The timeout set in the initial question settings must be this high or higher
     /// @param min_bond The bond sent with the final answer must be this high or higher
