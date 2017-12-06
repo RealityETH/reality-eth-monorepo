@@ -611,6 +611,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                    'opening_ts': new BigNumber(parseInt(opening_ts))
                 }
             }
             var fake_call = [];
@@ -620,6 +621,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_content_hash-1] = contentHash(template_id, qtext),
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
             fake_call[Qi_history_hash-1] = "0x0";
+            fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
 
             var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
             q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
@@ -2011,7 +2013,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     if (!is_refresh) {
         // answer form
-        var ans_frm = makeSelectAnswerInput(question_json);
+        var ans_frm = makeSelectAnswerInput(question_json, question_detail[Qi_opening_ts].toNumber());
         ans_frm.addClass('is-open');
         ans_frm.removeClass('template-item');
         rcqa.find('.answered-history-container').after(ans_frm);
@@ -2566,37 +2568,47 @@ function getAnswerString(question_json, answer) {
     return label;
 }
 
-function makeSelectAnswerInput(question_json) {
+function makeSelectAnswerInput(question_json, opening_ts) {
     var type = question_json['type'];
     var options = question_json['outcomes'];
-    var template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
-    var ans_frm = $(template_name).clone();
-    ans_frm.removeClass('template-item');
 
-    switch (type) {
-        case 'single-select':
-            for (var i = 0; i < options.length; i++ ) {
-                var option_elm = $('<option>');
-                option_elm.val(i);
-                option_elm.text(options[i]);
-                ans_frm.find('.select-answer').append(option_elm);
-            }
-            break;
-        case 'multiple-select':
-            for (var i = options.length-1; i >= 0; i-- ) {
-                var elmtpl = ans_frm.find('.input-entry.template-item');
-                var elm = elmtpl.clone();
-                elm.removeClass('template-item');
-                var elinput = elm.find('input');
-                elinput.attr('name', 'input-answer');
-                elinput.val(i);
-                var ellabel = elm.find('span');
-                ellabel.text(options[i]);
-                // Here we copy the content and throw away the container
-                elmtpl.after(elm);
-            }
-            //ans_frm.find('input:checkbox').wrap('<label></label>');
-            break;
+    var now = new Date();
+    if (opening_ts && now.getTime() < opening_ts * 1000) {
+        var template_name = '.answer-form-container.before-opening.template-item';
+        var ans_frm = $(template_name).clone();
+        ans_frm.removeClass('template-item');
+        ans_frm.find('.opening-time-label .timeago').attr('datetime', convertTsToString(opening_ts));
+        timeAgo.render(ans_frm.find('.opening-time-label .timeago'));
+    } else {
+        var template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
+        var ans_frm = $(template_name).clone();
+        ans_frm.removeClass('template-item');
+
+        switch (type) {
+            case 'single-select':
+                for (var i = 0; i < options.length; i++ ) {
+                    var option_elm = $('<option>');
+                    option_elm.val(i);
+                    option_elm.text(options[i]);
+                    ans_frm.find('.select-answer').append(option_elm);
+                }
+                break;
+            case 'multiple-select':
+                for (var i = options.length-1; i >= 0; i-- ) {
+                    var elmtpl = ans_frm.find('.input-entry.template-item');
+                    var elm = elmtpl.clone();
+                    elm.removeClass('template-item');
+                    var elinput = elm.find('input');
+                    elinput.attr('name', 'input-answer');
+                    elinput.val(i);
+                    var ellabel = elm.find('span');
+                    ellabel.text(options[i]);
+                    // Here we copy the content and throw away the container
+                    elmtpl.after(elm);
+                }
+                //ans_frm.find('input:checkbox').wrap('<label></label>');
+                break;
+        }
     }
 
     return ans_frm;
