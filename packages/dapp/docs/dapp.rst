@@ -32,6 +32,7 @@ Question Type
 * Number (positive/negative): A positive or negative (signed) number. By default questions allow up to 13 decimals. 
 * Single-choice: One answer can be selected from a list. The answer form will display this as a select box.
 * Multiple-choice: Multiple answers can be selected from a list. The answer form will display this as a group of checkboxes.
+* Datetime: A date or date and time. The answer form will display this as a date picker.
 
 See :doc:`contracts` for how these values will be reported to contracts.
 
