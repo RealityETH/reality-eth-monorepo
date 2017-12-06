@@ -19,6 +19,7 @@ Basic Process
    * The question text and terms. (See "Encoding questions" below.)
    * The ``timeout``, which is how many seconds since the last answer the system will wait before finalizing on it.
    * The ``arbitrator``, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
+   * Optionally, an ``opening_ts``, setting specifying the earliest it should be permitted to answer the question.
 
 * Anyone can post an answer by calling the ``submitAnswer()`` function. They must supply a bond with their answer. 
 * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the ``timeout`` elapses and system finalizes on that answer.
@@ -80,7 +81,7 @@ The system has been implemented with the goal of making it as cheap as practical
 In future it may be also useful to use an on-chain gas price oracle to detect conditions of low availability.
 
 Gas exhaustion and bonds that are uneconomical to claim.
---------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Unless specified by the creator of a question, the system does not force a minimum value on the size of any given bond. Although the doubling process puts a practical limit on the number of answers it may reasonably be expected to handle, there may still be a number of very small bonds submitted before the recoverable bonds reach the value of the gas required to recover them. 
 
@@ -89,6 +90,15 @@ In theory the gas required to claim bonds for all the answers that have been sup
 This is handled by starting the claim process from the latest (highest-value) end, and allowing the claimer to stop before getting to the first answer in the series and leave bonds unclaimed. It also allows the claim to be split over multiple transactions, each leaving the contract with an earlier transaction history hash.
 
 To make sure there is enough money left to pay for an answer that was taken over from another user, the claimer is not paid for transaction ``n`` until the system has seen transaction ``n-1``. Since the bond always decreases as we follow the history backwards, it can safely pay out for ``n+1`` and higher.
+
+Spam and user cognitive exhaustion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As described above the system's funding is a closed loop: Unless arbitration is involved, all funds sent to the contract by anonymous users can be claimed by other anonymous users. With the exception of gas fees, the cost of posting a question is recovered by the person who answers it correctly. This allows users to ask questions with high rewards and answer their own questions, potentially within the same transaction. User interfaces like the Reality Check DApp are unable to tell the difference between a question to which someone genuinely wants an answer, and a question that someone intends to answer themselves, with the goal of promoting the visibility of some information, potentially at the cost of other questions competing for the user's attention in the same UI. This can be not only a potential nuisance but also a security problem, because a malicious user could flood the system with correctly-answered questions to make it hard for honest users to find wrongly-answered questions.
+
+When gas costs are high, the gas cost of asking a question and providing the first answer may be sufficient to deter the asking of questions for which an answer is not really wanted. However, if gas costs are low, it may be necessary to provide a "sink" so that not all the funds put in by anonymous users can be reclaimed. The amount of funds required for such a "sink" may vary depending on the ETH exchange rate and other external factors. 
+
+We handle this by allowing the arbitrator to set a per-question fee, which is subtracted from the value sent to the ``askQuestion()`` function. This also provides a potential income stream for the arbitrator in the events that disputes are rare, which they are likely to be if the system is functioning as intended. User interfaces can filter by arbitrator to avoid their users to avoid arbitrators with excessively low fees, or unknown arbitrators who may be controlled by they hypothetical malicious user.
 
 Structuring and fetching information
 ------------------------------------
@@ -135,7 +145,7 @@ The handling of null, undecided or unclear answers is considered outside the sco
 
 There is no way to pause a question once it has been asked, so if the answer to a question at any given time is "null" or "undecided" or "too early to sensibly ask", these values may be be settled on as the final result. Contracts consuming this data should be prepared to simply reject any answer they are not interested in, and wait for the same question to be asked again and get an answer in the range that does interest them. 
 
-After settlement Reality Check will preserve information about the question hash, arbitrator, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
+After settlement Reality Check will preserve information about the question hash, a, timeout, final bond, and finalization date, so consuming contracts can ask a user to send them a question ID, then verify that it meets the minimum conditions it requires to trust the information. We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
 Arbitration mechanisms
 ----------------------
