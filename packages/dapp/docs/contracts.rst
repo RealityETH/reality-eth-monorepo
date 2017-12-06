@@ -64,6 +64,7 @@ The content of the question defined as a combination of a numerical ``template_i
       string question, 
       address arbitrator, 
       uint256 timeout, 
+      uint256 opening_ts, 
       uint256 nonce
    )
    returns (bytes32 question_id);
