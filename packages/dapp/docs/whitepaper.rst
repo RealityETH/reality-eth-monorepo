@@ -19,7 +19,7 @@ Basic Process
    * The question text and terms. (See "Encoding questions" below.)
    * The ``timeout``, which is how many seconds since the last answer the system will wait before finalizing on it.
    * The ``arbitrator``, which is the address of a contract that will be able to intervene and decide the final answer, in return for a fee.
-   * Optionally, an ``opening_ts``, setting specifying the earliest it should be permitted to answer the question.
+   * Optionally, an ``opening_ts``, specifying the earliest it should be permitted to answer the question.
 
 * Anyone can post an answer by calling the ``submitAnswer()`` function. They must supply a bond with their answer. 
 * Supplying an answer sets their answer as the "official" answer, and sets the clock ticking until the ``timeout`` elapses and system finalizes on that answer.
