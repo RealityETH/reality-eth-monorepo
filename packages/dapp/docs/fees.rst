@@ -37,7 +37,7 @@ Set by the question asker.
 
 Paid by the question asker.
 
-Paid to whoever last gives the final answer. If the answer is decided by the arbitrator, paid to whoever pays for arbitration.
+Paid to whoever last gives the final answer. If the answer is decided by the arbitrator, and they decide the final answer given is incorrect, it should be paid to whoever pays for arbitration.
 
 Answer bond
 -----------
@@ -63,3 +63,13 @@ Paid to the last person to give that answer.
 
 Paid by deducting it from payments that would otherwise by awarded for giving the correct answer.
 
+Arbitration fee
+---------------
+
+A fee paid to the arbitrator when requesting that they intervene and provide arbitration for a question.
+
+Set by the arbitrator.
+
+Paid to the arbitrator.
+
+Paid by the user requesting arbitration. Usually this will be an answerer whoses answer has been replaced by another answerer supplying a higher bond. They would normally not request arbitration until bonds have reached a level where the amount they stand to gain exceeds the arbitration fee.
