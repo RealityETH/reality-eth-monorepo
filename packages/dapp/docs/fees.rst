@@ -15,6 +15,7 @@ Question fee    Arbitrator        Asker                            Arbitrator
 Question reward Asker             Asker                            Highest-bonded correct answerer 
 Answer bond     Answerer          Answerer            Takeover fee Answerer, or Next correct answerer 
 Takeover fee    [= previous bond] Subsequent answerer              Previous answerer
+Arbitration fee Arbitration       Anyone                           Arbitrator 
 =============== ================= =================== ============ ========================================
 
 Question fee
