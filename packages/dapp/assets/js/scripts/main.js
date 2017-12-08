@@ -517,7 +517,12 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     });
 
     $('#post-a-question-window-template').before(question_window);
-    $('#opening-ts-datepicker').datepicker({dateFormat: 'yy-mm-dd'});
+    $('#opening-ts-datepicker').datepicker({
+        dateFormat: 'yy-mm-dd',
+        onSelect: function(dateText){
+            $(this).css('background-color', '#ffffff');
+        }
+    });
     //console.log('cloned window', question_window);
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
@@ -663,6 +668,12 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         });
     }
 
+});
+
+$(document).on('blur', '#opening-ts-datepicker', function(e){
+    if (!$('#opening-ts-datepicker').val()) {
+        $('#opening-ts-datepicker').css('background-color', '#4d535a');
+    }
 });
 
 function isArbitratorValid(arb) {
