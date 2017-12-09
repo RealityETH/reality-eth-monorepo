@@ -1927,6 +1927,11 @@ input:placeholder-shown {
     font-family: inherit;
 }
 
+#opening-ts-datepicker::placeholder {
+    color: $white;
+    font-size: 13px;
+}
+
 // error
 .error-container {
     font-size: 13px;
