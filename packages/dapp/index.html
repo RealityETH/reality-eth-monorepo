@@ -402,6 +402,18 @@
                             <div class="error-container">Please enter your question.</div>
                         </div>
 
+                        <div class="input-container input-container--has-quick-help">
+                            <div class="input-inner">
+                                <!--<span class="input-header">Opening Datetime:</span>-->
+                                <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening Date" style="background-color: #4d535a;">
+                            </div>
+                            <div class="quick-help">
+                                <span class="quick-help-button">?</span>
+                                <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
+                            </div>
+                            <div class="error-container">Please enter datetime.</div>
+                        </div>
+
                         <div class="input-container  input-container--has-quick-help">
                             <div class="input-inner">
                                 <span class="input-header">Reward (ETH):</span>
@@ -492,18 +504,6 @@
                                 <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
                             </div>
                             <div class="error-container">Please select step delay.</div>
-                        </div>
-
-                        <div class="input-container input-container--has-quick-help">
-                            <div class="input-inner">
-                                <!--<span class="input-header">Opening Datetime:</span>-->
-                                <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening Date" style="background-color: #4d535a;">
-                            </div>
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>text</span></div>
-                            </div>
-                            <div class="error-container">Please enter datetime.</div>
                         </div>
 
                         <div class="rcbrowser-form__col-2 clearfix">
@@ -774,7 +774,7 @@
     </div>
     <div class="answer-form-container before-opening template-item" style="display:none">
         <div class="answer-form-header">
-            This question is not opened yet.
+            This question is not yet open for answers.
         </div>
 
         <div class="input-container input-container--bond">
