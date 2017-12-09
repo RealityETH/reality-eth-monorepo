@@ -63,8 +63,8 @@ The content of the question defined as a combination of a numerical ``template_i
       uint256 template_id, 
       string question, 
       address arbitrator, 
-      uint256 timeout, 
-      uint256 opening_ts, 
+      uint32 timeout, 
+      uint32 opening_ts, 
       uint256 nonce
    )
    returns (bytes32 question_id);
@@ -167,7 +167,7 @@ Making sure a question has an answer
 
 As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality Check for information need to be designed to take account of this possibility.
 
-After settlement Reality Check will preserve information about the ``content_hash_, ``arbitrator``, ``timeout``, finalization date (in ``finalization_state`` and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
+After settlement Reality Check will preserve information about the ``content_hash_, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
 
 We also provide a wrapper contract that will allow contracts to request an answer meeting its conditions. This allows consumer contracts to send a request and receive a callback, sent by an arbitrary user in return for a fee, on a similar model to the Ethereum Alarm Clock.
 
