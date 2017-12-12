@@ -689,8 +689,7 @@ function isArbitratorValid(arb) {
 }
 
 function isArbitrationPending(question) {
-    // finalization_ts has a magical timestamp of 1 meaning pending arbitration 
-    return (question[Qi_finalization_ts].toNumber() == 1)
+    return (question[Qi_is_pending_arbitration]);
 }
 
 function isAnswered(question) {
@@ -2015,7 +2014,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
-            return arb.getFee.call(question_id);
+            return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(web3.fromWei(fee.toNumber(), 'ether')); 
@@ -2965,7 +2964,7 @@ $(document).on('click', '.arbitration-button', function(e) {
     var arbitrator;
     Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
         arbitrator = arb;
-        return arb.getFee.call(question_id);
+        return arb.getDisputeFee.call(question_id);
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
