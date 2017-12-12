@@ -166,19 +166,19 @@ const monthList = [
     'Dec'
 ];
 
-function contentHash(template_id, content) {
+function contentHash(template_id, opening_ts, content) {
     return "0x" + ethereumjs_abi.soliditySHA3(
-        ["uint256", "string"],
-        [ new BN(template_id), content]
+        ["uint256", "uint32", "string"],
+        [ new BN(template_id), new BN(opening_ts), content]
     ).toString('hex');
 }
 
-function questionID(template_id, question, arbitrator, timeout, sender, nonce) {
-    var content_hash = contentHash(template_id, question);
+function questionID(template_id, question, arbitrator, timeout, opening_ts, sender, nonce) {
+    var content_hash = contentHash(template_id, opening_ts, question);
     // The seems to be something wrong with how soliditySHA3 handles bytes32, so tell it we gave it uint256
     return "0x" + ethereumjs_abi.soliditySHA3(
         //["bytes32", "address", "uint256", "address", "uint256"],
-        ["uint256", "address", "uint256", "address", "uint256"],
+        ["uint256", "address", "uint32", "address", "uint256"],
         [ new BN(content_hash.replace(/^0x/, ''), 16), arbitrator, new BN(timeout), sender, new BN(nonce)]
     ).toString('hex');
 }
@@ -596,7 +596,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         }
         qtext = qtext + QUESTION_DELIMITER + category.val();
 
-        var question_id = questionID(template_id, qtext, arbitrator, timeout_val, account, 0);
+        var question_id = questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
         var opening_ts = new Date(opening_ts_val);
         opening_ts = opening_ts / 1000;
         rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
@@ -612,7 +612,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'user': account,
                     'arbitrator': arbitrator,
                     'timeout': new BigNumber(timeout_val),
-                    'content_hash': contentHash(template_id, qtext),
+                    'content_hash': contentHash(template_id, parseInt(opening_ts), qtext),
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
@@ -623,7 +623,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_finalization_ts-1] = new BigNumber(0);
             fake_call[Qi_arbitrator-1] = arbitrator;
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-            fake_call[Qi_content_hash-1] = contentHash(template_id, qtext),
+            fake_call[Qi_content_hash-1] = contentHash(template_id, parseInt(opening_ts), qtext),
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
             fake_call[Qi_history_hash-1] = "0x0";
             fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
