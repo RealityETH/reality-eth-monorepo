@@ -1,5 +1,7 @@
-Contract notes and explanations
-===============================
+Contract Internals
+==================
+
+This document is intended to help you read and understand the RealityCheck.sol contract, in particular its internal data structures. See the previous documents for a higher-level description of what the contract does.
 
 Questions
 ---------
@@ -71,15 +73,4 @@ Normally funds can be claimed at the end of the process in a single transaction.
 However, in some cases users may wish to claim only the later history entries in a single transaction, leaving the earlier entries to be claimed either by themelves or by another user in a future transaction. 
 
 In this case the contract needs to store some information about the claim process. This is stored in a Claim struct, referenced by Question ID.
-
-
-
-=====  =====  =======
-A      B      A and B
-=====  =====  =======
-False  False  False
-True   False  False
-False  True   False
-True   True   True
-=====  =====  =======
 
