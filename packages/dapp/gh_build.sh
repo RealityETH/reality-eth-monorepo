@@ -33,7 +33,7 @@ git pull
 git checkout gh-pages
 git merge master -m "Update to latest master"
 popd
-rsync -avz --delete $SRC_DIR/docs/ $BUILD_DIR/docs/
+rsync -avz --delete $SRC_DIR/docs/html/ $BUILD_DIR/docs/html/
 rsync -avz --delete $SRC_DIR/truffle/build/ $BUILD_DIR/truffle/build/
 rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
 
