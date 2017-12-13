@@ -298,7 +298,7 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
-    def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False):
+    def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False, skip_sender = False):
         if st is None:
             st = {
                 'addr': [],
@@ -316,7 +316,10 @@ class TestRealityCheck(TestCase):
             nonce = 1234
             answer_hash = calculate_commitment_hash(to_answer_for_contract(ans), nonce)
             commitment_id = calculate_commitment_id(self.question_id, answer_hash, bond)
-            self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, keys.privtoaddr(sdr), value=bond, sender=sdr)
+            if skip_sender:
+                self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, 0x0, value=bond, sender=sdr)
+            else:
+                self.rc0.submitAnswerCommitment(qid, answer_hash, max_last, keys.privtoaddr(sdr), value=bond, sender=sdr)
             st['answer'][0] = commitment_id
         else:
             if is_arbitrator:
@@ -458,6 +461,26 @@ class TestRealityCheck(TestCase):
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 1001)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_commit_skip_sender(self):
+        st = None
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, t.k3, True, False, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        with self.assertRaises(TransactionFailed):
+            q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+
+        self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3, startgas=200000)
+
+        self.s.timestamp = self.s.timestamp + 11
+
+        q = self.rc0.getFinalAnswer(self.question_id, startgas=200000)
+        self.assertEqual(from_answer_for_contract(q), 1002)
+
+        self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
+        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 1001)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_no_answer_no_commit(self):

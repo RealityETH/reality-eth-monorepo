@@ -317,7 +317,7 @@ contract RealityCheck is BalanceHolder {
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
-        address answerer = (_answerer == 0x0) ? _answerer : msg.sender;
+        address answerer = (_answerer == 0x0) ? msg.sender : _answerer;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
