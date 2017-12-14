@@ -19,6 +19,11 @@ Asking a question
 
 Click the "post a question" button and fill in the form you see. Enter a clear, unambiguous question in English. 
 
+Opening Date
+~~~~~~~~~~~~
+
+If you don't want people to be able to answer the question immediately, enter the date you want it to open.
+
 Reward
 ~~~~~~~~~~
 Enter the amount you are prepared to pay as an incentive to answer your question. You pay when you post the question, and the money is collected by the person who gave the final accepted answer.
