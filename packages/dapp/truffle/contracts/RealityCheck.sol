@@ -525,8 +525,7 @@ contract RealityCheck is BalanceHolder {
     }
 
     function _payPayee(bytes32 question_id, address payee, uint256 value) 
-    internal
-    {
+    internal {
         balanceOf[payee] = balanceOf[payee].add(value);
         LogClaim(question_id, payee, value);
     }
@@ -535,8 +534,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 last_history_hash,
         bytes32 history_hash, bytes32 answer, uint256 bond, address addr
     )
-    internal pure returns (bool)
-    {
+    internal pure returns (bool) {
         if (last_history_hash == keccak256(history_hash, answer, bond, addr, true) ) {
             return true;
         }
@@ -551,8 +549,7 @@ contract RealityCheck is BalanceHolder {
         uint256 queued_funds, address payee, 
         address addr, uint256 bond, bytes32 answer, bool is_commitment
     )
-    internal returns (uint256, address)
-    {
+    internal returns (uint256, address) {
 
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
