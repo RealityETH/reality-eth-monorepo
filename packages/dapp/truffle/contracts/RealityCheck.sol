@@ -259,7 +259,7 @@ contract RealityCheck is BalanceHolder {
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(timeout > 0); 
         require(timeout < 365 days); 
-        require(arbitrator != 0x0);
+        require(arbitrator != address(0));
 
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
@@ -317,7 +317,7 @@ contract RealityCheck is BalanceHolder {
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
-        address answerer = (_answerer == 0x0) ? msg.sender : _answerer;
+        address answerer = (_answerer == address(0)) ? msg.sender : _answerer;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
@@ -401,7 +401,7 @@ contract RealityCheck is BalanceHolder {
         bondMustBeZero
     external {
 
-        require(answerer != 0x0);
+        require(answerer != address(0));
         LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
@@ -500,13 +500,13 @@ contract RealityCheck is BalanceHolder {
 
         }
  
-        if (last_history_hash != "") {
+        if (last_history_hash != bytes32(0)) {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
 
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
-            if (payee != 0x0) {
+            if (payee != address(0)) {
                 _payPayee(question_id, payee, queued_funds);
                 queued_funds = 0;
             }
@@ -567,7 +567,7 @@ contract RealityCheck is BalanceHolder {
 
         if (answer == best_answer) {
 
-            if (payee == 0x0) {
+            if (payee == address(0)) {
 
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
