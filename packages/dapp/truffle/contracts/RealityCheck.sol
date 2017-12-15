@@ -10,6 +10,11 @@ contract RealityCheck is BalanceHolder {
     using SafeMath for uint256;
     using SafeMath32 for uint32;
 
+    address constant NULL_ADDRESS = address(0);
+
+    // History hash when no history is created, or history has been cleared
+    bytes32 constant NULL_HASH = bytes32(0);
+
     // An unitinalized finalize_ts for a question will indicate an unanswered question.
     uint32 constant UNANSWERED = 0;
 
@@ -259,7 +264,7 @@ contract RealityCheck is BalanceHolder {
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(timeout > 0); 
         require(timeout < 365 days); 
-        require(arbitrator != address(0));
+        require(arbitrator != NULL_ADDRESS);
 
         uint256 bounty = msg.value;
 
@@ -324,7 +329,7 @@ contract RealityCheck is BalanceHolder {
     external payable {
 
         bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
-        address answerer = (_answerer == address(0)) ? msg.sender : _answerer;
+        address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
 
@@ -408,7 +413,7 @@ contract RealityCheck is BalanceHolder {
         bondMustBeZero
     external {
 
-        require(answerer != address(0));
+        require(answerer != NULL_ADDRESS);
         LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
@@ -507,13 +512,13 @@ contract RealityCheck is BalanceHolder {
 
         }
  
-        if (last_history_hash != bytes32(0)) {
+        if (last_history_hash != NULL_HASH) {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
 
             // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
             // (We always know who to pay unless all we saw were unrevealed commits)
-            if (payee != address(0)) {
+            if (payee != NULL_ADDRESS) {
                 _payPayee(question_id, payee, queued_funds);
                 queued_funds = 0;
             }
@@ -574,7 +579,7 @@ contract RealityCheck is BalanceHolder {
 
         if (answer == best_answer) {
 
-            if (payee == address(0)) {
+            if (payee == NULL_ADDRESS) {
 
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
