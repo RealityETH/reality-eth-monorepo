@@ -849,6 +849,39 @@ class TestRealityCheck(TestCase):
         #self.assertEqual(gas_used, 120000)
         self.assertTrue(gas_used < 52000)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_question_fees(self):
+
+        # Treat k5 as the arbitrator for these purposes, although really the arbitrator would be a contract
+        self.rc0.setQuestionFee(123, sender=t.k5, startgas=100000)
+
+        # Should fail with insufficient payment to cover the question fee
+        with self.assertRaises(TransactionFailed):
+            question_id = self.rc0.askQuestion(
+                0,
+                "my question 2",
+                keys.privtoaddr(t.k5),
+                10,
+                0,
+                value=122,
+                sender=t.k4, 
+                startgas=140000
+            )
+
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 2",
+            keys.privtoaddr(t.k5),
+            10,
+            0,
+            value=126,
+            sender=t.k4,
+            startgas=140000
+        )
+
+        bounty = self.rc0.questions(question_id)[QINDEX_BOUNTY]
+        self.assertEqual(bounty, 126-123, "The bounty is what's left after the question fee is deducted")
+
 
 if __name__ == '__main__':
     main()
