@@ -261,12 +261,19 @@ contract RealityCheck is BalanceHolder {
         require(timeout < 365 days); 
         require(arbitrator != address(0));
 
+        uint256 bounty = msg.value;
+
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
-        uint256 question_fee = arbitrator_question_fees[arbitrator];
-        require(msg.value >= question_fee); 
-        uint256 bounty = msg.value.sub(question_fee);
-        balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
+        // The fee is waived if the arbitrator is asking the question.
+        // This allows them to set an impossibly high fee and make users proxy the question through them.
+        // This would allow more sophisticated pricing, question whitelisting etc.
+        if (msg.sender != arbitrator) {
+            uint256 question_fee = arbitrator_question_fees[arbitrator];
+            require(bounty >= question_fee); 
+            bounty = bounty.sub(question_fee);
+            balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
+        }
 
         questions[question_id].content_hash = content_hash;
         questions[question_id].arbitrator = arbitrator;

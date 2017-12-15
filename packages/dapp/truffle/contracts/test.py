@@ -882,6 +882,22 @@ class TestRealityCheck(TestCase):
         bounty = self.rc0.questions(question_id)[QINDEX_BOUNTY]
         self.assertEqual(bounty, 126-123, "The bounty is what's left after the question fee is deducted")
 
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 3",
+            keys.privtoaddr(t.k5),
+            10,
+            0,
+            value=122,
+            sender=t.k5,
+            startgas=140000
+        )
+        bounty = self.rc0.questions(question_id)[QINDEX_BOUNTY]
+        self.assertEqual(bounty, 122, "The arbitrator isn't charged their fee, so their whole payment goes to the bounty")
+
+
+
+
 
 if __name__ == '__main__':
     main()
