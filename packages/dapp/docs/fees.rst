@@ -21,7 +21,9 @@ Arbitration fee Arbitration       Anyone                           Arbitrator
 Question fee
 ------------
 
-A fee set (optionally) by the arbitrator for asking a question. This is intended to be used as an anti-spam measure if the network fees are insufficient.
+A fee set (optionally) by the arbitrator for asking a question. 
+
+This fee is intended to be used as an anti-spam measure if the network fees are insufficient.
 
 Set by the arbitrator.
 

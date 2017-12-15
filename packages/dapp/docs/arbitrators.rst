@@ -8,7 +8,7 @@ Arbitrators
 
 An arbitrator is responsible for providing a final answer to a question when there is a dispute, in exchange for a fee. If the arbitrator is untrustworthy, the system cannot be relied on to provide accurate answers.
 
-Anybody contract address can be set as the arbitrator. Our _dapp uses the Reality Keys trusted arbitrator contract. We can add other contract addresses on request.
+Anybody contract address can be set as the arbitrator. Our :doc:`dapp` uses the Reality Keys trusted arbitrator contract. We can add other contract addresses on request.
 
 Since arbitration is expensive, it will usually only be requested after parties have posted bonds, and the bonds have escalated to a level where the bond you stand to gain by paying for arbitration is higher than the fee. Accordingly, arbitrators should feel free to set fairly high fees that will adequately cover the cost of a thorough arbitration process.
 

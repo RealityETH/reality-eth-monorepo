@@ -11,7 +11,7 @@ This is structured as a reusable template, plus delimited string supplying param
 
 The resulting document (template + parameters) identifies a particular question content.
 
-``Template ID`` + ``Parameters`` -> ``Content Hash``
+``Template ID`` + ``Opening Datetime`` + ``Parameters`` -> ``Content Hash``
 
 A question with a particular Content Hash may be asked on multiple occasions, some of which may have different arbitrator and timeout settings.
 
