@@ -100,6 +100,8 @@ When gas costs are high, the gas cost of asking a question and providing the fir
 
 We handle this by allowing the arbitrator to set a per-question fee, which is subtracted from the value sent to the ``askQuestion()`` function. This also provides a potential income stream for the arbitrator in the events that disputes are rare, which they are likely to be if the system is functioning as intended. User interfaces can filter by arbitrator to avoid their users to avoid arbitrators with excessively low fees, or unknown arbitrators who may be controlled by they hypothetical malicious user.
 
+NB The question fee is not charged if the user asking the question *is* the arbitrator contract. This is intended to provide additional flexibility to the arbitrator if it turns out to be required in future: By setting an impossibly high fee, they can require that instead of sending questions to the contract directly, they are proxied via the arbitrator. For example, an arbitrator may wish to implement a more flexible fee system, or limit the questions to which it is assigned to a whitelist.
+
 Structuring and fetching information
 ------------------------------------
 
