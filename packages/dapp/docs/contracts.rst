@@ -102,44 +102,6 @@ To make this easier, we provide a method called ``getFinalAnswerIfMatches()``. T
 
 You can then screen ``answer`` in your contract and only act on results that your contract is interested in.
 
-Getting someone else to ask the question at the right time
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You may also want to incentivize someone to ask the question at the appropriate time, post the initial answer with a sufficient bond, and (optionally) send the result to your contract.
-
-For these situations we provide a separate contract called a `MetaQuestion`.
-
-This allows you to say, "I will pay to get an answer to this question, with a minimum bond of x and timeout of y, but only once it has an answer in a particular range".
-
-.. code-block:: javascript
-   :linenos:
-
-   function askQuestion(
-      uint256 template_id, 
-      string question, 
-      address arbitrator, 
-      uint256 timeout, 
-      uint256 min_bond, 
-      uint256 min_answer, 
-      uint256 max_answer, 
-      uint256 callback_gas
-   )
-   returns (bytes32 meta_question_id);
-
-The ETH you send with this call will be assigned as a reward to whoever asks the question, and supplies the first answer, along with a bond.
-
-This also includes a ``callback_gas`` parameter. If specified, this allows you to request that somebody calls your contract with the result, once it is known. It should specify the amount of gas required to call your contract with the result, and make it do whatever you need it to do.
-
-Your callback function should look like this:
-
-.. code-block:: javascript
-   :linenos:
-
-   function __realitycheck_callback(
-      bytes32 meta_question_id,
-      bytes32 answer
-   )
-
 Creating templates
 ------------------
 
