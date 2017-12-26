@@ -52,6 +52,7 @@ class TestRealityCheck(TestCase):
 
         realitycheck_code = open('RealityCheck.sol').read()
         arb_code_raw = open('Arbitrator.sol').read()
+        owned_code_raw = open('Owned.sol').read()
         client_code_raw = open('CallbackClient.sol').read()
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
         caller_backer_code_raw = open('CallerBacker.sol').read()
@@ -66,7 +67,7 @@ class TestRealityCheck(TestCase):
         realitycheck_code = realitycheck_code.replace("import './BalanceHolder.sol';", balance_holder);
 
         self.rc_code = realitycheck_code
-        self.arb_code = arb_code_raw
+        self.arb_code = arb_code_raw.replace("import './Owned.sol';", owned_code_raw);
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
         self.caller_backer_code = caller_backer_code_raw
@@ -355,6 +356,27 @@ class TestRealityCheck(TestCase):
         self.s.timestamp = self.s.timestamp + 11
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 64+32+16+8+4+2+1000)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_set_dispute_fee(self):
+
+        # fee of 0 should mean you can never request arbitration
+        self.arb0.setDisputeFee(0, startgas=200000)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+
+        self.arb0.setDisputeFee(123, startgas=200000)
+        self.assertEqual(self.arb0.getDisputeFee(self.question_id), 123)
+
+        # question-specific fee should work for that question
+        self.arb0.setCustomDisputeFee(self.question_id, 23, startgas=200000)
+        self.assertEqual(self.arb0.getDisputeFee(self.question_id), 23)
+
+        # removing custom fee should resurrect the default fee
+        self.arb0.setCustomDisputeFee(self.question_id, 0, startgas=200000)
+        self.assertEqual(self.arb0.getDisputeFee(self.question_id), 123)
+        return
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_none(self):
