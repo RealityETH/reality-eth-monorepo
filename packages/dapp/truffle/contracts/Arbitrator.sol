@@ -44,22 +44,22 @@ contract Arbitrator is Owned {
     }
 
     /// @notice Set the default fee
-    /// @param _fee The default fee amount
-    function setDisputeFee(uint256 _fee) 
+    /// @param fee The default fee amount
+    function setDisputeFee(uint256 fee) 
         onlyOwner 
     public {
-        dispute_fee = _fee;
-        LogSetDisputeFee(_fee);
+        dispute_fee = fee;
+        LogSetDisputeFee(fee);
     }
 
     /// @notice Set a custom fee for this particular question
     /// @param question_id The question in question
-    /// @param _fee The fee amount
-    function setCustomDisputeFee(bytes32 question_id, uint256 _fee) 
+    /// @param fee The fee amount
+    function setCustomDisputeFee(bytes32 question_id, uint256 fee) 
         onlyOwner 
     public {
-        custom_dispute_fees[question_id] = _fee;
-        LogSetCustomDisputeFee(question_id, _fee);
+        custom_dispute_fees[question_id] = fee;
+        LogSetCustomDisputeFee(question_id, fee);
     }
 
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
@@ -72,16 +72,16 @@ contract Arbitrator is Owned {
 
     /// @notice Set a fee for asking a question with us as the arbitrator
     /// @param realitycheck The RealityCheck contract address
-    /// @param _fee The fee amount
+    /// @param fee The fee amount
     /// @dev Default is no fee. Unlike the dispute fee, 0 is an acceptable setting.
     /// You could set an impossibly high fee if you want to prevent us being used as arbitrator unless we submit the question.
     /// (Submitting the question ourselves is not implemented here.)
     /// This fee can be used as a revenue source, an anti-spam measure, or both.
-    function setQuestionFee(address realitycheck, uint256 _fee) 
+    function setQuestionFee(address realitycheck, uint256 fee) 
         onlyOwner 
     public {
-        RealityCheckAPI(realitycheck).setQuestionFee(_fee);
-        LogSetQuestionFee(_fee);
+        RealityCheckAPI(realitycheck).setQuestionFee(fee);
+        LogSetQuestionFee(fee);
     }
 
     /// @notice Submit the arbitrator's answer to a question.
