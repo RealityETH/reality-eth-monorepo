@@ -75,6 +75,7 @@ class TestRealityCheck(TestCase):
         self.caller_backer = self.c.contract(self.caller_backer_code, language='solidity', sender=t.k0)
 
         self.arb0 = self.c.contract(self.arb_code, language='solidity', sender=t.k0)
+        self.arb0.setDisputeFee(10000000000000000, sender=t.k0, startgas=200000)
         self.c.mine()
         self.rc0 = self.c.contract(self.rc_code, language='solidity', sender=t.k0)
 

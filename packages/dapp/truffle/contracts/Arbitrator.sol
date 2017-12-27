@@ -44,7 +44,6 @@ contract Arbitrator is Owned {
     function Arbitrator() 
     public {
         owner = msg.sender;
-        dispute_fee = 10000000000000000; // 0.001 ETH
     }
 
     function setDisputeFee(uint256 _fee) 
