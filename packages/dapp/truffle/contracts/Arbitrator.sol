@@ -29,6 +29,19 @@ contract Arbitrator is Owned {
         uint256 remaining
     );
 
+    event LogSetQuestionFee(
+        uint256 fee
+    );
+
+    event LogSetDisputeFee(
+        uint256 fee
+    );
+
+    event LogSetCustomDisputeFee(
+        bytes32 indexed question_id,
+        uint256 fee
+    );
+
     function Arbitrator() 
     public {
         owner = msg.sender;
@@ -40,12 +53,14 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         dispute_fee = _fee;
+        LogSetDisputeFee(_fee);
     }
 
     function setCustomDisputeFee(bytes32 question_id, uint256 _fee) 
         onlyOwner 
     public {
         custom_dispute_fees[question_id] = _fee;
+        LogSetCustomDisputeFee(question_id, _fee);
     }
 
     function getDisputeFee(bytes32 question_id) 
@@ -57,6 +72,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         RealityCheckAPI(realitycheck).setQuestionFee(_fee);
+        LogSetQuestionFee(_fee);
     }
 
     function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) 
