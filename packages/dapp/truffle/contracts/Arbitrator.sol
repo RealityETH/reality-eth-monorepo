@@ -18,7 +18,6 @@ contract Arbitrator is Owned {
 
     mapping(bytes32 => uint256) public arbitration_bounties;
 
-    uint256 question_fee;
     uint256 dispute_fee;
     mapping(bytes32 => uint256) custom_dispute_fees;
 
@@ -45,7 +44,6 @@ contract Arbitrator is Owned {
     function Arbitrator() 
     public {
         owner = msg.sender;
-        question_fee = 10000000000000000; // 0.001 ETH
         dispute_fee = 10000000000000000; // 0.001 ETH
     }
 
