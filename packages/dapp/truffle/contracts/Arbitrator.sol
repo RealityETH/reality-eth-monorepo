@@ -10,10 +10,6 @@ contract RealityCheckAPI {
     function isFinalized(bytes32 question_id) public returns (bool);
 }
 
-contract CallerBackerAPI {
-    function sendCallback(bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) public;
-}
-
 contract Arbitrator is Owned {
 
     mapping(bytes32 => uint256) public arbitration_bounties;
@@ -41,11 +37,14 @@ contract Arbitrator is Owned {
         uint256 fee
     );
 
+    /// @notice Constructor. Sets the deploying address as owner.
     function Arbitrator() 
     public {
         owner = msg.sender;
     }
 
+    /// @notice Set the default fee
+    /// @param _fee The default fee amount
     function setDisputeFee(uint256 _fee) 
         onlyOwner 
     public {
@@ -53,6 +52,9 @@ contract Arbitrator is Owned {
         LogSetDisputeFee(_fee);
     }
 
+    /// @notice Set a custom fee for this particular question
+    /// @param question_id The question in question
+    /// @param _fee The fee amount
     function setCustomDisputeFee(bytes32 question_id, uint256 _fee) 
         onlyOwner 
     public {
@@ -60,11 +62,21 @@ contract Arbitrator is Owned {
         LogSetCustomDisputeFee(question_id, _fee);
     }
 
+    /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
+    /// @param question_id The question in question
+    /// @dev Uses a general default, but can be over-ridden on a question-by-question basis.
     function getDisputeFee(bytes32 question_id) 
     public constant returns (uint256) {
         return (custom_dispute_fees[question_id] > 0) ? custom_dispute_fees[question_id] : dispute_fee;
     }
 
+    /// @notice Set a fee for asking a question with us as the arbitrator
+    /// @param realitycheck The RealityCheck contract address
+    /// @param _fee The fee amount
+    /// @dev Default is no fee. Unlike the dispute fee, 0 is an acceptable setting.
+    /// You could set an impossibly high fee if you want to prevent us being used as arbitrator unless we submit the question.
+    /// (Submitting the question ourselves is not implemented here.)
+    /// This fee can be used as a revenue source, an anti-spam measure, or both.
     function setQuestionFee(address realitycheck, uint256 _fee) 
         onlyOwner 
     public {
@@ -72,12 +84,11 @@ contract Arbitrator is Owned {
         LogSetQuestionFee(_fee);
     }
 
-    function sendCallback(address realitycheck, bytes32 question_id, address client_ctrct, uint256 gas, uint256 min_bounty) 
-        onlyOwner 
-    public {
-        CallerBackerAPI(realitycheck).sendCallback(question_id, client_ctrct, gas, min_bounty);
-    }
-
+    /// @notice Submit the arbitrator's answer to a question.
+    /// @param realitycheck The RealityCheck contract address
+    /// @param question_id The question in question
+    /// @param answer The answer
+    /// @param answerer The answerer. If arbitration changed the answer, it should be the payer. If not, the old answerer.
     function submitAnswerByArbitrator(address realitycheck, bytes32 question_id, bytes32 answer, address answerer) 
         onlyOwner 
     public {
@@ -85,8 +96,11 @@ contract Arbitrator is Owned {
         RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
-    // Sends money to the arbitration bounty last_bond, returns true if enough was paid to trigger arbitration
-    // Will trigger an error if the notification fails, eg because the question has already been finalized
+    /// @notice Request arbitration, freezing the question until we send submitAnswerByArbitrator
+    /// @dev The bounty can be paid only in part, in which case the last person to pay will be considered the payer
+    /// Will trigger an error if the notification fails, eg because the question has already been finalized
+    /// @param realitycheck The RealityCheck contract address
+    /// @param question_id The question in question
     function requestArbitration(address realitycheck, bytes32 question_id) 
     external payable returns (bool) {
 
@@ -108,6 +122,8 @@ contract Arbitrator is Owned {
 
     }
 
+    /// @notice Withdraw any accumulated fees to the specified address
+    /// @param addr The address to which the balance should be sent
     function withdraw(address addr) 
         onlyOwner 
     public {
