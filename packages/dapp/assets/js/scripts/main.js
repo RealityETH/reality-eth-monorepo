@@ -46,13 +46,15 @@ const BLOCK_EXPLORERS = {
     1: 'https://etherscan.io',
     3: 'https://ropsten.etherscan.io',
     4: 'https://rinkeby.etherscan.io',
-    42: 'https://kovan.etherscan.io'
+    42: 'https://kovan.etherscan.io',
+    1337: 'https://etherscan.io'
 };
 
 const INFURA_NODES = {
     1: 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    4: 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK'
+    4: 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    1337: 'https://localhost:8545'
 };
 
 // The point where we deployed the contract on the network
