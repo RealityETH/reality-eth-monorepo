@@ -873,6 +873,49 @@ class TestRealityCheck(TestCase):
         self.assertTrue(gas_used < 52000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_question_fee_withdrawal(self):
+
+        start_bal = self.rc0.balanceOf(self.arb0.address)
+        self.arb0.setQuestionFee(self.rc0.address, 321)
+
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 3",
+            self.arb0.address,
+            10,
+            0,
+            value=1000,
+            sender=t.k4, 
+            startgas=140000
+        )
+
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 4",
+            self.arb0.address,
+            10,
+            0,
+            value=2000,
+            sender=t.k5, 
+            startgas=140000
+        )
+
+        end_bal = self.rc0.balanceOf(self.arb0.address)
+        self.assertEqual(end_bal - start_bal, (321*2))
+
+        start_arb_bal = self.s.get_balance(self.arb0.address)
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.arb0.callWithdraw(self.rc0.address, sender=t.k0)
+        end_arb_bal = self.s.get_balance(self.arb0.address)
+
+        self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address), 0)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_fees(self):
 
         # Treat k5 as the arbitrator for these purposes, although really the arbitrator would be a contract
@@ -917,9 +960,6 @@ class TestRealityCheck(TestCase):
         )
         bounty = self.rc0.questions(question_id)[QINDEX_BOUNTY]
         self.assertEqual(bounty, 122, "The arbitrator isn't charged their fee, so their whole payment goes to the bounty")
-
-
-
 
 
 if __name__ == '__main__':

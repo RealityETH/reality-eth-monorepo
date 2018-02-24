@@ -8,6 +8,7 @@ contract RealityCheckAPI {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public;
     function notifyOfArbitrationRequest(bytes32 question_id, address requester) public;
     function isFinalized(bytes32 question_id) public returns (bool);
+    function withdraw() public;
 }
 
 contract Arbitrator is Owned {
@@ -128,6 +129,17 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         addr.transfer(this.balance); 
+    }
+
+    function() payable {}
+
+    /// @notice Withdraw any accumulated question fees from the specified address into this contract
+    /// @param realitycheck The address of the Reality Check contract containing the fees
+    /// @dev Funds can then be liberated from this contract with our withdraw() function
+    function callWithdraw(address realitycheck) 
+        onlyOwner 
+    public {
+        RealityCheckAPI(realitycheck).withdraw(); 
     }
 
 }
