@@ -265,6 +265,9 @@ function padToBytes32(n, raw) {
 }
 
 function convertTsToString(ts) {
+    if (typeof ts.toNumber === 'function') {
+        ts = ts.toNumber();
+    } 
     let date = new Date();
     date.setTime(ts * 1000);
     return date.toISOString();
