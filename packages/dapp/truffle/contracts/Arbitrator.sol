@@ -131,7 +131,9 @@ contract Arbitrator is Owned {
         addr.transfer(this.balance); 
     }
 
-    function() payable {}
+    function() 
+    public payable {
+    }
 
     /// @notice Withdraw any accumulated question fees from the specified address into this contract
     /// @param realitycheck The address of the Reality Check contract containing the fees
