@@ -706,13 +706,11 @@ function isAnswered(question) {
 }
 
 function isFinalized(question) {
+    if (isArbitrationPending(question)) {
+        return false;
+    }
     var fin = question[Qi_finalization_ts].toNumber() 
     var res = ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
-    // 0: Unanswered
-    // 1: Pending arbitration (unanswered)
-    // 2: Pending arbitration (answered)
-    // Below current date: Finalized
-    // Above current date: Open for new answers or arbitration requests
     return res;
 }
 
