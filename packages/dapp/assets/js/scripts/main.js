@@ -7,6 +7,8 @@ const ethereumjs_abi = require('ethereumjs-abi')
 var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
 
+var arbitrator_list = require('./arbitrators.json');
+
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
@@ -3176,10 +3178,6 @@ function pageInit(account) {
     // Just used to get the default arbitator address
     Arbitrator = contract(arb_json);
     Arbitrator.setProvider(web3.currentProvider);
-    Arbitrator.deployed().then(function(arb) {
-        $('option.default-arbitrator-option').val(arb.address);
-    });
-
 
     /*
         1) Start watching for all actions.
@@ -3394,6 +3392,29 @@ function parseHash() {
     return args;
 }
 
+function populateArbitratorSelect(network_arbs) {
+    $("select[name='arbitrator']").each(function() { 
+        var as = $(this);
+        var is_first = true;
+        var a_template= as.find('.arbitrator-template-item');
+        is_first = false;
+        for (var na_addr in network_arbs) {
+            if (!network_arbs.hasOwnProperty(na_addr)) {
+                continue;
+            }
+            var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+            arb_item.val(na_addr);
+            arb_item.text(network_arbs[na_addr]);
+            if (is_first) {
+                arb_item.attr('selected', true);
+                is_first = false;
+            }
+            a_template.after(arb_item);
+        }
+        a_template.remove();
+    });
+}
+
 window.onload = function() {
 
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
@@ -3486,6 +3507,10 @@ window.onload = function() {
                 console.log('net id was', net_id);
             } else {
                 network_id = net_id;
+
+                populateArbitratorSelect(arbitrator_list[network_id]);
+
+
                 if (BLOCK_EXPLORERS[network_id]) {
                     block_explorer = BLOCK_EXPLORERS[net_id];
                 } else {
