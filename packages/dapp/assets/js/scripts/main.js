@@ -628,6 +628,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             }
             var fake_call = [];
             fake_call[Qi_finalization_ts-1] = new BigNumber(0);
+            fake_call[Qi_is_pending_arbitration] = false;
             fake_call[Qi_arbitrator-1] = arbitrator;
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
             fake_call[Qi_content_hash-1] = contentHash(template_id, parseInt(opening_ts), qtext),
@@ -1147,6 +1148,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question.freshness.question_call = freshness;
                 //question[Qi_question_id] = question_id;
                 question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
+                question[Qi_is_pending_arbitration] = data[Qi_is_pending_arbitration-1];
                 question[Qi_arbitrator] = data[Qi_arbitrator-1];
                 question[Qi_timeout] = data[Qi_timeout-1];
                 question[Qi_content_hash] = data[Qi_content_hash-1];
