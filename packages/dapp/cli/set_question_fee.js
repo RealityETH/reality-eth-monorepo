@@ -1,0 +1,20 @@
+const rc_common = require('./rc_common.js');
+
+rc_common.checkArgumentLength(5, 'Usage: node set_question_fee.js <nonce> <gas_price_in_gwei> <fee_in_gwei>');
+
+const fee = parseInt(process.argv[3]);
+if (fee == 0) throw 'Fee should be greater than 0';
+
+const params = rc_common.commonParams(process.argv);
+console.log(params);
+console.log('Generating a transaction to set the question fee to ' + fee + ' gwei:');
+
+const rc = rc_common.rcContract();
+const arb = rc_common.arbContract();
+const req = arb.setQuestionFee.request(rc.address, fee * rc_common.GWEI_TO_WEI);
+const data = req.params[0].data;
+
+const stx = rc_common.serializedTX(params, arb, data);
+
+console.log(stx.toString('hex'));
+
