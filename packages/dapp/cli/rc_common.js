@@ -10,6 +10,7 @@ const web3 = new Web3();
 
 const GWEI_TO_WEI = 1000000000;
 
+exports.GWEI_TO_WEI = GWEI_TO_WEI;
 
 exports.sanitizeNonce = function(nonce) {
     var n = parseInt(nonce);
