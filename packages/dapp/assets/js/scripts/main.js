@@ -501,6 +501,7 @@ $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#help-center-window').css('z-index', 0).removeClass('is-open');
+    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
@@ -521,6 +522,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     let question_window = $('#post-a-question-window-template').clone().attr('id', 'post-a-question-window');
     question_window.find('.rcbrowser__close-button').click(function(){
         question_window.remove();
+        document.documentElement.style.cursor = ""; // Work around Interact draggable bug
     });
 
     $('#post-a-question-window-template').before(question_window);
