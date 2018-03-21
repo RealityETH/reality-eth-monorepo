@@ -3503,7 +3503,7 @@ window.onload = function() {
 
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
-                $('body').addClass('invalid-network').addClass('error');
+                $('body').addClass('error-invalid-network').addClass('error');
             } else {
                 network_id = net_id;
                 populateArbitratorSelect(arbitrator_list[net_id]);
