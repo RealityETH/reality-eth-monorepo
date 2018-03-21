@@ -3504,14 +3504,11 @@ window.onload = function() {
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
                 $('body').addClass('invalid-network').addClass('error');
-                console.log('net id was', net_id);
             } else {
                 network_id = net_id;
+                populateArbitratorSelect(arbitrator_list[net_id]);
 
-                populateArbitratorSelect(arbitrator_list[network_id]);
-
-
-                if (BLOCK_EXPLORERS[network_id]) {
+                if (BLOCK_EXPLORERS[net_id]) {
                     block_explorer = BLOCK_EXPLORERS[net_id];
                 } else {
                     // If you've got some unknown test network then we'll just link to main net
