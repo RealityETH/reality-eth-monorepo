@@ -40,7 +40,7 @@
     "ethereumjs-abi": "^0.6.4",
     "gsap": "^1.19.1",
     "imagesloaded": "^4.1.1",
-    "interactjs": "https://github.com/taye/interact.js/archive/v1.2.9.tar.gz",
+    "interactjs": "1.2.9",
     "jazzicon": "^1.5.0",
     "jquery-browserify": "^1.8.1",
     "jquery-datepicker": "^1.11.5",
