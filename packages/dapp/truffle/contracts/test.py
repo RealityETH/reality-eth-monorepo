@@ -68,6 +68,7 @@ class TestRealityCheck(TestCase):
 
         self.rc_code = realitycheck_code
         self.arb_code = arb_code_raw.replace("import './Owned.sol';", owned_code_raw);
+        self.arb_code = self.arb_code.replace("import './RealityCheck.sol';", realitycheck_code);
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
         self.caller_backer_code = caller_backer_code_raw

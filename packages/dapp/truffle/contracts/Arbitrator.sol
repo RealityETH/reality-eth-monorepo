@@ -1,15 +1,7 @@
 pragma solidity ^0.4.18;
 
 import './Owned.sol';
-
-contract RealityCheckAPI {
-    function setQuestionFee(uint256 fee) public;
-    function finalizeByArbitrator(bytes32 question_id, bytes32 answer) public;
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public;
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester) public;
-    function isFinalized(bytes32 question_id) public returns (bool);
-    function withdraw() public;
-}
+import './RealityCheck.sol';
 
 contract Arbitrator is Owned {
 
@@ -81,7 +73,7 @@ contract Arbitrator is Owned {
     function setQuestionFee(address realitycheck, uint256 fee) 
         onlyOwner 
     public {
-        RealityCheckAPI(realitycheck).setQuestionFee(fee);
+        RealityCheck(realitycheck).setQuestionFee(fee);
         LogSetQuestionFee(fee);
     }
 
@@ -94,7 +86,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         delete arbitration_bounties[question_id];
-        RealityCheckAPI(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
+        RealityCheck(realitycheck).submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
     /// @notice Request arbitration, freezing the question until we send submitAnswerByArbitrator
@@ -112,11 +104,11 @@ contract Arbitrator is Owned {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            RealityCheckAPI(realitycheck).notifyOfArbitrationRequest(question_id, msg.sender);
+            RealityCheck(realitycheck).notifyOfArbitrationRequest(question_id, msg.sender);
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
-            require(!RealityCheckAPI(realitycheck).isFinalized(question_id));
+            require(!RealityCheck(realitycheck).isFinalized(question_id));
             LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
             return false;
         }
@@ -141,7 +133,7 @@ contract Arbitrator is Owned {
     function callWithdraw(address realitycheck) 
         onlyOwner 
     public {
-        RealityCheckAPI(realitycheck).withdraw(); 
+        RealityCheck(realitycheck).withdraw(); 
     }
 
 }
