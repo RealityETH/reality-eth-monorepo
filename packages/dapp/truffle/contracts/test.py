@@ -80,10 +80,12 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.rc0 = self.c.contract(self.rc_code, language='solidity', sender=t.k0)
 
+        self.arb0.setRealityCheck(self.rc0.address, sender=t.k0, startgas=200000)
+
         self.c.mine()
         self.s = self.c.head_state
 
-        self.arb0.setQuestionFee(self.rc0.address, 100)
+        self.arb0.setQuestionFee(100)
 
         self.question_id = self.rc0.askQuestion(
             0,
@@ -257,11 +259,11 @@ class TestRealityCheck(TestCase):
         # The arbitrator cannot submit an answer that has not been requested. 
         # (If they really want to do this, they can always pay themselves for arbitration.)
         with self.assertRaises(TransactionFailed):
-            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), startgas=200000) 
+            self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), startgas=200000) 
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
-        self.assertTrue(self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
+        self.assertTrue(self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
         #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
@@ -272,7 +274,7 @@ class TestRealityCheck(TestCase):
 
         self.c.mine()
         self.s = self.c.head_state
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0), startgas=200000) 
 
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
@@ -281,11 +283,11 @@ class TestRealityCheck(TestCase):
     def test_arbitrator_answering_unanswered(self):
 
         with self.assertRaises(TransactionFailed):
-            self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
+            self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
-        self.assertTrue(self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
+        self.assertTrue(self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the arbitration flag to True")
 
@@ -293,7 +295,7 @@ class TestRealityCheck(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
 
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
 
         question = self.rc0.questions(self.question_id)
         self.assertFalse(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is done, we set the arbitration flag to False")
@@ -326,7 +328,7 @@ class TestRealityCheck(TestCase):
             st['answer'][0] = commitment_id
         else:
             if is_arbitrator:
-                self.arb0.submitAnswerByArbitrator(self.rc0.address, qid, to_answer_for_contract(ans), 0, 0, keys.privtoaddr(sdr), startgas=200000)
+                self.arb0.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, keys.privtoaddr(sdr), startgas=200000)
             else:
                 self.rc0.submitAnswer(qid, to_answer_for_contract(ans), max_last, value=bond, sender=sdr)
         st['nonce'].insert(0, nonce)
@@ -365,7 +367,7 @@ class TestRealityCheck(TestCase):
         # fee of 0 should mean you can never request arbitration
         self.arb0.setDisputeFee(0, startgas=200000)
         with self.assertRaises(TransactionFailed):
-            self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+            self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
 
         self.arb0.setDisputeFee(123, startgas=200000)
         self.assertEqual(self.arb0.getDisputeFee(self.question_id), 123)
@@ -382,7 +384,7 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_none(self):
-        self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
         st_hash = self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH]
 
         self.assertEqual(encode_hex(st_hash), "0"*64)
@@ -390,7 +392,7 @@ class TestRealityCheck(TestCase):
         st_addr = keys.privtoaddr(t.k4)
         st_bond = 0
         st_answer = to_answer_for_contract(1001)
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), startgas=200000) 
         hh = self.rc0.claimWinnings(self.question_id, [st_hash], [st_addr], [st_bond], [st_answer], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 1000)
         return
@@ -403,13 +405,13 @@ class TestRealityCheck(TestCase):
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, t.k3)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, t.k4)
 
-        self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
 
         st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         st['addr'].insert(0, keys.privtoaddr(t.k4))
         st['bond'].insert(0, 0)
         st['answer'].insert(0, to_answer_for_contract(1001))
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), startgas=200000) 
 
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 16+8+4+2+1000)
@@ -545,13 +547,13 @@ class TestRealityCheck(TestCase):
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, t.k3)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, t.k4)
 
-        self.arb0.requestArbitration(self.rc0.address, self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
 
         st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         st['addr'].insert(0, keys.privtoaddr(t.k3))
         st['bond'].insert(0, 0)
         st['answer'].insert(0, to_answer_for_contract(1002))
-        self.arb0.submitAnswerByArbitrator(self.rc0.address, self.question_id, to_answer_for_contract(1002), keys.privtoaddr(t.k3), startgas=200000) 
+        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(1002), keys.privtoaddr(t.k3), startgas=200000) 
 
         self.rc0.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer'], startgas=400000)
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 16+8+4+2+1000)
@@ -877,7 +879,7 @@ class TestRealityCheck(TestCase):
     def test_question_fee_withdrawal(self):
 
         start_bal = self.rc0.balanceOf(self.arb0.address)
-        self.arb0.setQuestionFee(self.rc0.address, 321)
+        self.arb0.setQuestionFee(321)
 
         question_id = self.rc0.askQuestion(
             0,
@@ -909,7 +911,7 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
-        self.arb0.callWithdraw(self.rc0.address, sender=t.k0)
+        self.arb0.callWithdraw(sender=t.k0)
         end_arb_bal = self.s.get_balance(self.arb0.address)
 
         self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
