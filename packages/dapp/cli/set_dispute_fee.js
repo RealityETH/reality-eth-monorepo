@@ -9,7 +9,7 @@ const params = rc_common.commonParams(process.argv);
 console.log(params);
 console.log('Generating a transaction to set the dispute fee to ' + fee + ' gwei:');
 
-console.log('GWEI_TO_WEI', rc_common.GWEI_TO_WEI);
+//console.log('GWEI_TO_WEI', rc_common.GWEI_TO_WEI);
 
 const arb = rc_common.arbContract();
 const req = arb.setDisputeFee.request(fee * rc_common.GWEI_TO_WEI);
