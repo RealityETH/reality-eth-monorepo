@@ -11,7 +11,7 @@ console.log('Generating a transaction to set the question fee to ' + fee + ' gwe
 
 const rc = rc_common.rcContract();
 const arb = rc_common.arbContract();
-const req = arb.setQuestionFee.request(rc.address, fee * rc_common.GWEI_TO_WEI);
+const req = arb.setQuestionFee.request(fee * rc_common.GWEI_TO_WEI);
 const data = req.params[0].data;
 
 const stx = rc_common.serializedTX(params, arb, data);

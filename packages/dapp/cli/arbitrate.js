@@ -21,7 +21,7 @@ const answerer_address = rc_common.sanitizeAddress(req_item[2]);
 
 console.log('Generating a transaction to set question_id ' + req_item[0]+ ' to ' + req_item[1] + ' and answerer to ' + req_item[2]);
 
-const req = arb.submitAnswerByArbitrator.request(rc_address, req_item[0], req_item[1], req_item[2]);
+const req = arb.submitAnswerByArbitrator.request(req_item[0], req_item[1], req_item[2]);
 const data = req.params[0].data;
 
 const stx = rc_common.serializedTX(params, arb, data);
