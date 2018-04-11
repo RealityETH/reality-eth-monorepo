@@ -2977,7 +2977,7 @@ $(document).on('click', '.arbitration-button', function(e) {
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
-        arbitrator.requestArbitration(rc.address, question_id, {from:account, value: fee})
+        arbitrator.requestArbitration(question_id, {from:account, value: fee})
         .then(function(result){
             console.log('arbitration is requested.', result);
         });
