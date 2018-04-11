@@ -10,7 +10,7 @@ const arb = rc_common.arbContract();
 console.log(params);
 console.log('Generating a transaction to withdraw funds from the reality check contract at ' + rc.address + ' to the arbitrator contract ' + arb.address);
 
-const req = arb.callWithdraw.request(rc.address);
+const req = arb.callWithdraw.request();
 const data = req.params[0].data;
 
 const stx = rc_common.serializedTX(params, arb, data);
