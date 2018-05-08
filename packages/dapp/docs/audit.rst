@@ -5,7 +5,7 @@ Exported by Edmund Edgar from document at
 https://docs.google.com/document/d/1__9q9k3iJ7XoRIvW9MHtHfN59Hv4CcDrUCH4qgAGxQk
 
 Methodology
-===========
+-----------
 
 Structured reading is the main method of assessment. The code has been read twice, (1) line by line from start to end focusing on local errors, gas consumption and efficiency. (2) the second time was during a one day workshop together with the ideator and implementer Edmund Edgar and Smart Contract Auditor Alex Kampa. The aim of this workshop was to uncover more sophisticated vulnerabilities due to timing, network constraints and economic imbalances.
 
@@ -21,14 +21,14 @@ MINOR
 there is a better way to do this or is just a matter of diverging tastes
 
 General observations
-====================
+--------------------
 
 The coding style is clear and idiomatic. The design of the program is efficient as it is (1) storing only consensus relevant data and (2) minimizing *gas * needs in recurrently used code parts.
 
 The author has paid attention to incorporate most of the good practices that the solidity developer community has found in the past. Low level errors are not present as the first pass shows (3 days of code reading)
 
 Scope of the Audit
-==================
+------------------
 
 RealityCheck is a smart contract system that discovers truth by active disputes with *skin in the game*. A question is asked and a bounty is submitted for a correct answer. Concurrent answers put their own stake at risk. A dedicated arbiter can finally resolve disputes, if required.
 
@@ -44,18 +44,18 @@ Deployment, UI and other external modules are not part of the audit and can intr
 
 
 Audit
-=====
+-----
 
 First Pass
-----------
+~~~~~~~~~~
 
 L413 MINOR bondMustBeZero is always true
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Because function is not payable, modifier has no functionality after Solidity introduced the payable restriction and could be eliminated.
 
 L478 MINOR Improvement: clarify current winning with each answer given
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Each answerer would bear a share of the gas costs, while herethe winner would cover the costs on the entire answer chain.
 
@@ -63,17 +63,17 @@ Each answerer would bear a share of the gas costs, while herethe winner would co
 *Edmund Edgar: This was our original design, it’s much simpler. However it became problematic when added commit->reveal. If there is an unrevealed previous answer, you don’t know whether the user who gave it needs to be paid, because you don’t yet know what their answer is. An alternative would be to lock the question until the reveal is either supplied or times out and prevents the next answer being added, but this allows users to lock the question at low cost (eg you can answer with a very low fee, then not reveal until the reveal deadline).*
 
 Second Pass
------------
+~~~~~~~~~~~
 
 The workshop started at 9.00AM CET. with a general introduction of the Reality Check platform and testing out the interface.
 
 Observation 1
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 OUT OF SCOPE. There was a problem with updating the answers in the interface automatically. Roland Kofler had to refresh the page on several occasions (Google Chrome).
 
 Observation 2
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 .. image:: question_box.png
    :width: 286px
@@ -85,13 +85,13 @@ Observation 2
 OUT OF SCOPE. When posting a question there are no labels describing the dropdown, making it a guesswork for the inexperienced user. The choice of having the description within the dropdowns does not provide enough context.
 
 Recommendation
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
 
 Holding a usability workshop with a *Thinking Aloud* Protocol to uncover potential problems.
 
 
 MEDIUM Spoofing the reality check contract
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The arbitrator contract is loosely coupled with RealityCheck, he always has the RealityCheck contract as a parameter. This provides flexibility but COULD bring inconsistencies.
 
@@ -108,7 +108,7 @@ If the ONLY possible use of the RealityCheck system is seen in the context of a 
 **This holds more true if RealityCheck should be part of a decentralized permissionless service ecosystem, many in the Ethereum community envision.**
 
 MINOR RealityCheckAPI defined but never explicitly implemented
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Currently the realitycheck contract is called by casting an address to the
 * abstract contract *
@@ -129,7 +129,7 @@ Recommendable is also using the interface keyword.
 `https://solidity.readthedocs.io/en/v0.4.21/contracts.html#interfaces <https://solidity.readthedocs.io/en/v0.4.21/contracts.html#interfaces>`_
 
 Revision after Feature Enhancement
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following enhancement was made on the 24th Feb 2018:
 
@@ -168,17 +168,17 @@ The change consists in adding:
 The enhancement bears no additional vulnerabilities.
 
 Conclusions
------------
+~~~~~~~~~~~
 
 There is a case for coupling Arbitrator and RealityCheck contract dependencies in a trustless way as one hopes RealityCheck will be used by the broader smart contract system as Oracle. It is left to the discretion and judgment of the RealityKeys team to pick this option.
 
 Enforcing the implementation of RealityCheckAPI could also be recommended.
 
 Revision after Audit
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Eliminating contract RealityCheckAPI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The recommendation to explicitly inherit RealityCheckAPI was modified to directly reference the RealityCheck contract instead.
 
@@ -206,7 +206,7 @@ Arbitrator.sol
 
 
 Tying Arbitrator to a single Reality Check address
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The recommendation of implementing a tighter coupling between Arbitrator and RealityCheck contracts were followed with the following commit:
 
@@ -243,7 +243,7 @@ The change makes upgrades to new RealityCheck contracts explicit and part of the
 **The modification is therefore not capable of introducing new vulnerabilities.**
 
 Final Conclusions
-=================
+-----------------
 
 The recommendations were accepted by the RealityKeys Team. The following modifications didn't bear potential to introduce new vulnerabilities.
 
