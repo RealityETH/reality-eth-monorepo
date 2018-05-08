@@ -23,3 +23,4 @@ Reality Check can be used either from our web application or by calling our cont
    fees
    whitepaper 
    contract_explanation
+   audit
