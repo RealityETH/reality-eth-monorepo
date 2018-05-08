@@ -6,12 +6,12 @@ This document is intended to help you read and understand the RealityCheck.sol c
 Questions
 ---------
 
-A question consists of a string encoding a JSON object. See [encoding].
+A question consists of a string encoding a JSON object. See :doc:`encoding`.
 This is structured as a reusable template, plus delimited string supplying parameters.
 
 The resulting document (template + parameters) identifies a particular question content.
 
-``Template ID`` + ``Opening Datetime`` + ``Parameters`` -> ``Content Hash``
+``Template ID`` + ``Opening datetime`` + ``Parameter string`` -> ``Content Hash``
 
 A question with a particular Content Hash may be asked on multiple occasions, some of which may have different arbitrator and timeout settings.
 
