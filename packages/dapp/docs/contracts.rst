@@ -69,7 +69,7 @@ The content of the question defined as a combination of a numerical ``template_i
    )
    returns (bytes32 question_id);
 
-Any ETH you send with this call will be assigned as a reward to whoever answers the question.
+If the arbitrator you have selected charges a per-question fee, you must supply at least this much ETH. Any additonal ETH you send with this call will be assigned as a reward to whoever supplies the final answer to the question. See :doc:`fees` for more information.
 
 The ``bytes32`` ID that will be returned is made by hashing the parameters, plus ``msg.sender``.
 
