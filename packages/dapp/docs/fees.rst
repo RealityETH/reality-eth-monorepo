@@ -12,11 +12,13 @@ All fees are set by participants.
 Fee             Set by            Paid by             Deductions   Paid to
 =============== ================= =================== ============ ========================================
 Question fee    Arbitrator        Asker                            Arbitrator                      
-Question reward Asker             Asker                            Highest-bonded correct answerer 
+Question reward Asker             Asker                            Highest-bonded correct answerer [1]
 Answer bond     Answerer          Answerer            Takeover fee Answerer, or Next correct answerer 
 Takeover fee    [= previous bond] Subsequent answerer              Previous answerer
 Arbitration fee Arbitration       Anyone                           Arbitrator 
 =============== ================= =================== ============ ========================================
+
+[1] Except when settled by arbitration. See below for details.
 
 Question fee
 ------------
@@ -40,7 +42,7 @@ Set by the question asker.
 
 Paid by the question asker.
 
-Paid to whoever last gives the final answer. If the answer is decided by the arbitrator, and they decide the final answer given is incorrect, it should be paid to whoever pays for arbitration.
+Paid to whoever last gives the final answer. If the answer is decided by the arbitrator, the arbitrator specifies who should get paid. If they decide the final answer given was incorrect, they should direct that it be paid to whoever paid for arbitration.
 
 Answer bond
 -----------
