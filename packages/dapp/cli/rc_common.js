@@ -5,8 +5,7 @@ const fs = require('fs');
 const contract = require('truffle-contract');
 const Tx = require('ethereumjs-tx')
 
-const Web3 = require("web3");
-const web3 = new Web3();
+const web3_utils = require('web3-utils');
 
 const GWEI_TO_WEI = 1000000000;
 
@@ -79,10 +78,10 @@ exports.commonParams = function(argv) {
 exports.serializedTX = function(params, cntr, data) {
     const key = this.loadKey();
 	const tra = {
-		gasPrice: web3.utils.toHex(params['gas_price_in_gwei'] * GWEI_TO_WEI),
-		gasLimit: web3.utils.toHex(config.gas_limit),
+		gasPrice: web3_utils.toHex(params['gas_price_in_gwei'] * GWEI_TO_WEI),
+		gasLimit: web3_utils.toHex(config.gas_limit),
 		data: data,
-		nonce: web3.utils.toHex(params['nonce']),
+		nonce: web3_utils.toHex(params['nonce']),
 		to: cntr.address,
 		value: '0x00',
 		data: data,
