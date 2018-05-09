@@ -2,6 +2,12 @@ CLI Scripts
 
 These scripts are intended for arbitrators doing offline operations. 
 
+They should be run by the owner of the Arbitrator contract. This should have been set after deployment by the deployer, eg with:
+
+truffle console
+> Arbitrator.deployed().then(function(a){ arb=a;} )
+> arb.transferOwnership("0x8f6981b7d32eacf7d2169ca29cb8a8864131403d")
+
 The Network ID on which they will be used and other parameters can be set in the config.json file.
 
 Since they are intended to be offline, the scripts require you to manually pass in the nonce and gas price, rather than getting these automatically from the network. The nonce and gas price passed as parameters are sanity-checked based on settings in config.json. These settings may need to be adjusted.
