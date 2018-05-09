@@ -79,7 +79,7 @@ The ``nonce`` is a user-supplied number that can be used to disambiguated delibe
 Accepting an answer only if something has happened
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once a question has been created, it can be answered immediately. 
+Once a question has been created and the opening date (if set) reached, it can be answered immediately.
 
 In many cases you are not interested in the result of a particular question until it has a particular answer. For example, if you have a contract insuring against my house burning down, you are only interested in the result if my house burned down. You don't care about all the times in between setting up the policy and claiming when my house didn't burn down. 
 
