@@ -85,7 +85,7 @@ Correcting an incorrect answer
 
 If you see a question with an incorrect answer, you can correct it simply by adding a new answer. 
 
-Correcting an answer will entitle you to the bond of the previous user. However, you must submit your own bond, and it must be at least twice as high as the bond submitted by the previous answerer.
+Correcting an answer will entitle you to the bond of the previous user. However, you must submit your own bond, and it must be at least twice as high as the bond submitted by the previous answerer. If you are resubmitting an answer that someone has already given, part of that payment will be deducted and paid to them. See :doc:`fees` for details.
 
 .. note:: Until your answer has been sent to the network and confirmed in a block, it is possible for someone else to submit a competing answer.
           This will cause your transaction to fail. 
