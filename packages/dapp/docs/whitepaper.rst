@@ -102,6 +102,12 @@ We handle this by allowing the arbitrator to set a per-question fee, which is su
 
 NB The question fee is not charged if the user asking the question *is* the arbitrator contract. This is intended to provide additional flexibility to the arbitrator if it turns out to be required in future: By setting an impossibly high fee, they can require that instead of sending questions to the contract directly, they are proxied via the arbitrator. For example, an arbitrator may wish to implement a more flexible fee system, or limit the questions to which it is assigned to a whitelist.
 
+Tricksy questions
+~~~~~~~~~~~~~~~~~
+
+Various strategies can be used to craft questions that the system will find difficult to answer. Questions can be phrased in deliberately confusing language, reference external data that is inconsistent or unavailable, be made deliberately self-contradictory or be based on incorrect premises. The system will also be bad at answering questions that have a wide range of plausible answers, as participants may  be reluctant to correct a clearly incorrect answer for fear that the system will ultimately settle on a different correct one. This can be partly mitigated by arbitrator policies that specify how such questions should be handled. However, in general there is no way to avoid the need for participants to think about questions before choosing to participate in them, and avoiding participating in badly-phrased questions.
+
+
 Structuring and fetching information
 ------------------------------------
 
