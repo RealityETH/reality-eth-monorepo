@@ -2,12 +2,13 @@
 
 'use strict';
 
-const ethereumjs_abi = require('ethereumjs-abi')
+const rc_question = require('../lib/realitycheck-question.js');
+
 
 var rc_json = require('../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
-var arbitrator_list = require('./arbitrators.json');
+var arbitrator_list = require('../config/arbitrators.json');
 
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
@@ -170,124 +171,9 @@ const monthList = [
     'Dec'
 ];
 
-function contentHash(template_id, opening_ts, content) {
-    return "0x" + ethereumjs_abi.soliditySHA3(
-        ["uint256", "uint32", "string"],
-        [ new BN(template_id), new BN(opening_ts), content]
-    ).toString('hex');
-}
-
-function questionID(template_id, question, arbitrator, timeout, opening_ts, sender, nonce) {
-    var content_hash = contentHash(template_id, opening_ts, question);
-    // The seems to be something wrong with how soliditySHA3 handles bytes32, so tell it we gave it uint256
-    return "0x" + ethereumjs_abi.soliditySHA3(
-        //["bytes32", "address", "uint256", "address", "uint256"],
-        ["uint256", "address", "uint32", "address", "uint256"],
-        [ new BN(content_hash.replace(/^0x/, ''), 16), arbitrator, new BN(timeout), sender, new BN(nonce)]
-    ).toString('hex');
-}
-
-function minNumber(qjson) {
-    var is_signed = (qjson['type'] == 'int');
-    if (!is_signed) {
-        return new BigNumber(0);
-    }
-    return maxNumber(qjson).neg();
-}
-
-function maxNumber(qjson) {
-    var is_signed = (qjson['type'] == 'int');
-    var divby = new BigNumber(1);
-    if (qjson['decimals']) {
-        divby = new BigNumber(10).pow(new BigNumber(qjson['decimals']));
-    }
-    if (is_signed) {
-        divby = divby.times(2);
-    }
-    return new BigNumber("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").dividedBy(divby);
-}
-
-function stringToBytes32(answer, qjson) {
-    var qtype = qjson['type'];
-    var decimals = parseInt(qjson['decimals']);
-    if (!decimals) {
-        decimals = 0;
-    }
-    if (decimals > 0) {
-        var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
-        answer = new BigNumber(answer).times(multiplier).toString(16);
-    }
-    //console.log('muliplied to ',answer.toString());
-    var bn;
-    if (qtype == 'int') {
-        bn = new BN(answer, 16).toTwos(256);
-    } else if (qtype == 'uint') {
-        bn = new BN(answer, 16);
-    } else {
-        return padToBytes32(new BigNumber(answer).toString(16));
-    }
 
 
 
-    return padToBytes32(bn.toString(16));
-}
-
-function bytes32ToString(bytes32str, qjson) {
-    var qtype = qjson['type'];
-    var decimals = parseInt(qjson['decimals']);
-    if (!decimals) {
-        decimals = 0;
-    }
-    bytes32str = bytes32str.replace(/^0x/, '');
-    var bn;
-    if (qtype == 'int') {
-        var bn = new BN(bytes32str, 16).fromTwos(256);
-    } else if (qtype == 'uint' || qtype == 'datetime') {
-        var bn = new BN(bytes32str, 16);
-    } else {
-        throw Error("Unrecognized answer type " + qtype);
-    }
-    var ans = bn.toString();
-    // Do the decimals with BigNumber as it seems to work better
-    if (decimals > 0) {
-        var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
-        ans = new BigNumber(ans).dividedBy(multiplier).toString();
-    }
-    return ans.toString();
-}
-
-function padToBytes32(n, raw) {
-    while (n.length < 64) {
-        n = "0" + n;
-    }
-    if (raw) {
-        return n;
-    }
-    return "0x" + n;
-}
-
-function convertTsToString(ts) {
-    if (typeof ts.toNumber === 'function') {
-        ts = ts.toNumber();
-    } 
-    let date = new Date();
-    date.setTime(ts * 1000);
-    return date.toISOString();
-}
-
-function secondsTodHms(sec) {
-    sec = Number(sec);
-    let d = Math.floor(sec / (3600 * 24));
-    let h = Math.floor(sec % (3600 * 24) / 3600);
-    let m = Math.floor(sec % (3600 * 24) % 3600 / 60);
-    let s = Math.floor(sec % (3600 * 24) % 3600 % 60);
-
-    let dDisplay = d > 0 ? d + (d == 1 ? " day " : " days ") : "";
-    let hDisplay = h > 0 ? h + (h == 1 ? " hour " : " hours ") : "";
-    let mDisplay = m > 0 ? m + (m == 1 ? " minute " : " minutes ") : "";
-    let sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
-    return dDisplay + hDisplay + mDisplay + sDisplay;
-}
 
 // set rcBrowser height
 function rcbrowserHeight() {
@@ -605,7 +491,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         }
         qtext = qtext + QUESTION_DELIMITER + category.val();
 
-        var question_id = questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+        var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
         var opening_ts = new Date(opening_ts_val);
         opening_ts = opening_ts / 1000;
         rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3.toWei(new BigNumber(reward.val()), 'ether')})
@@ -621,7 +507,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     'user': account,
                     'arbitrator': arbitrator,
                     'timeout': new BigNumber(timeout_val),
-                    'content_hash': contentHash(template_id, parseInt(opening_ts), qtext),
+                    'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
                     'template_id': new BigNumber(template_id),
                     'question': qtext,
                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
@@ -633,7 +519,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_is_pending_arbitration] = false;
             fake_call[Qi_arbitrator-1] = arbitrator;
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-            fake_call[Qi_content_hash-1] = contentHash(template_id, parseInt(opening_ts), qtext),
+            fake_call[Qi_content_hash-1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
             fake_call[Qi_history_hash-1] = "0x0";
             fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
@@ -1270,7 +1156,7 @@ function populatedJSONForTemplate(template, question) {
     //console.log('qbits', qbits);
     var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
-    return parseQuestionJSON(interpolated);
+    return rc_question.parseQuestionJSON(interpolated);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
@@ -1494,7 +1380,7 @@ function populateSectionEntry(entry, question_data) {
     entry.find('.question-bounty').text(bounty);
 
     if (isAnswered(question_data)) {
-        entry.find('.questions__item__answer').text(getAnswerString(question_json, best_answer));
+        entry.find('.questions__item__answer').text(rc_question.getAnswerString(question_json, best_answer));
         entry.addClass('has-answer');
     } else {
         entry.find('.questions__item__answer').text('');
@@ -1516,10 +1402,10 @@ function populateSectionEntry(entry, question_data) {
     } else {
         entry.removeClass('arbitration-pending');
         if (is_answered) {
-            entry.find('.closing-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_finalization_ts]));
+            entry.find('.closing-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_finalization_ts]));
             timeAgo.render(entry.find('.closing-time-label .timeago'));
         } else {
-            entry.find('.created-time-label .timeago').attr('datetime', convertTsToString(question_data[Qi_creation_ts]));
+            entry.find('.created-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_creation_ts]));
             timeAgo.render(entry.find('.created-time-label .timeago'));
         }
     }
@@ -1777,26 +1663,6 @@ function openQuestionWindow(question_id) {
     */
 }
 
-function parseQuestionJSON(data) {
-
-    var question_json;
-    try {
-        question_json = JSON.parse(data);
-    } catch(e) {
-        console.log('parse fail', e);
-        question_json = {
-            'title': data,
-            'type': 'bool'
-        };
-    }
-    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
-        throw Error("Too many outcomes");
-    }
-    return question_json;
-     
-
-}
-
 function updateQuestionWindowIfOpen(question) {
 
     var question_id = question[Qi_question_id];
@@ -1893,7 +1759,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         var current_container = rcqa.find('.current-answer-container');
 
         // label for show the current answer.
-        var label = getAnswerString(question_json, question_detail[Qi_best_answer]);
+        var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
         current_container.find('.current-answer-body').find('.current-answer').text(label);
 
         bond = question_detail[Qi_bond];
@@ -1906,7 +1772,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             current_container.attr('id', 'answer-' + latest_answer.answer);
 
             timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
-            current_container.find('.current-answer-item').find('.timeago').attr('datetime', convertTsToString(latest_answer.ts));
+            current_container.find('.current-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(latest_answer.ts));
             timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
             // answerer data
@@ -1938,9 +1804,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2,10), 16) );
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
-                hist_item.find('.current-answer').text(getAnswerString(question_json, ans.answer));
+                hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
                 hist_item.find('.answer-bond-value').text(web3.fromWei(ans.bond.toNumber(), 'ether'));
-                hist_item.find('.answer-time.timeago').attr('datetime', convertTsToString(ans['ts']));
+                hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
                 hist_item.removeClass('template-item');
                 hist_tmpl.before(hist_item); 
@@ -1973,7 +1839,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     var balloon = rcqa.find('.question-setting-info').find('.balloon')
     balloon.find('.setting-info-bounty').text(web3.fromWei(question_detail[Qi_bounty], 'ether'));
     balloon.find('.setting-info-bond').text(web3.fromWei(question_detail[Qi_bond], 'ether'));
-    balloon.find('.setting-info-timeout').text(secondsTodHms(question_detail[Qi_timeout]));
+    balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail[Qi_timeout]));
     balloon.find('.setting-info-content-hash').text(question_detail[Qi_content_hash]);
     balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
     balloon.find('.setting-info-arbitrator').text(question_detail[Qi_arbitrator]);
@@ -1993,7 +1859,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         //unconfirmed_container.attr('id', 'answer-unconfirmed-' + unconfirmed_answer.answer);
 
         timeago.cancel(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
-        unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago').attr('datetime', convertTsToString(unconfirmed_answer.ts));
+        unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(unconfirmed_answer.ts));
         timeAgo.render(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago'));
 
         // answerer data
@@ -2009,7 +1875,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         ans_data.find('.answer-bond-value').text(web3.fromWei(unconfirmed_answer.bond.toNumber(), 'ether'));
 
         // label for show the unconfirmed answer.
-        var label = getAnswerString(question_json, unconfirmed_answer.answer);
+        var label = rc_question.getAnswerString(question_json, unconfirmed_answer.answer);
         unconfirmed_container.find('.unconfirmed-answer-body').find('.unconfirmed-answer').text(label);
 
         rcqa.addClass('has-unconfirmed-answer');
@@ -2164,7 +2030,7 @@ function renderTimeAgo(i, ts) {
     if (old_attr != '') {
         timeago.cancel(i.find('.timeago'));
     } 
-    i.find('.timeago').attr('datetime', convertTsToString(ts));
+    i.find('.timeago').attr('datetime', rc_question.convertTsToString(ts));
     timeAgo.render(i.find('.timeago'));
 }
 
@@ -2474,9 +2340,9 @@ function renderQAItemAnswer(question_id, answer_history, question_json, is_final
                 }
             }
             let latest_answer = answer_history[answer_history.length - 1].args.answer;
-            target.find('.latest-answer-text').text(getAnswerString(question_json, latest_answer));
+            target.find('.latest-answer-text').text(rc_question.getAnswerString(question_json, latest_answer));
             if (typeof user_answer !== 'undefined') {
-                target.find('.user-answer-text').text(getAnswerString(question_json, user_answer));
+                target.find('.user-answer-text').text(rc_question.getAnswerString(question_json, user_answer));
             } else {
                 target.find('.your-qa__questions__item-body--user').css('display', 'none');
             }
@@ -2538,55 +2404,6 @@ function renderUserQandA(qdata, entry) {
     populateWithBlockTimeForBlockNumber(qitem, entry.blockNumber, updateBlockTimestamp);
 }
 
-function getAnswerString(question_json, answer) {
-    var label = '';
-    switch (question_json['type']) {
-        case 'uint':
-            label = bytes32ToString(answer, question_json);
-            break;
-        case 'int':
-            label = bytes32ToString(answer, question_json);
-            break;
-        case 'bool':
-            if (new BigNumber(answer).toNumber() === 1) {
-                label = 'Yes';
-            } else if (new BigNumber(answer).toNumber() === 0) {
-                label = 'No';
-            }
-            break;
-        case 'single-select':
-            if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
-                var idx = new BigNumber(answer).toNumber();
-                label = question_json['outcomes'][idx];
-            }
-            break;
-        case 'multiple-select':
-            if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
-                var answer_bits = new BigNumber(answer).toString(2);
-                var length = answer_bits.length;
-
-                for (var i = question_json['outcomes'].length - 1; i >= 0; i--) {
-                    if (answer_bits[i] === '1') {
-                        var idx = answer_bits.length - 1 - i;
-                        label += question_json['outcomes'][idx] + ' / ';
-                    }
-                }
-                label = label.substr(0, label.length - 3);
-            }
-            break;
-        case 'datetime':
-            let ts = parseInt(bytes32ToString(answer, question_json));
-            let dateObj = new Date(ts * 1000);
-            let year = dateObj.getFullYear();
-            let month = dateObj.getMonth() + 1;
-            let date = dateObj.getDate();
-            label = year + '/' + month + '/' + date;
-            break;
-    }
-
-    return label;
-}
-
 function makeSelectAnswerInput(question_json, opening_ts) {
     var type = question_json['type'];
     var options = question_json['outcomes'];
@@ -2596,7 +2413,7 @@ function makeSelectAnswerInput(question_json, opening_ts) {
         var template_name = '.answer-form-container.before-opening.template-item';
         var ans_frm = $(template_name).clone();
         ans_frm.removeClass('template-item');
-        ans_frm.find('.opening-time-label .timeago').attr('datetime', convertTsToString(opening_ts));
+        ans_frm.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(opening_ts));
         timeAgo.render(ans_frm.find('.opening-time-label .timeago'));
     } else {
         var template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
@@ -2640,11 +2457,11 @@ function updateQuestionState(question, question_window) {
         question_window.addClass('has-answer');
         if (isFinalized(question)) {
             timeago.cancel(question_window.find('.resolved-at-value.timeago'));
-            question_window.find('.resolved-at-value').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            question_window.find('.resolved-at-value').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.resolved-at-value.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         } else {
             timeago.cancel(question_window.find('.answer-deadline.timeago'));
-            question_window.find('.answer-deadline').attr('datetime', convertTsToString(question[Qi_finalization_ts]));
+            question_window.find('.answer-deadline').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
     } else {
@@ -2786,7 +2603,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                } else if (ans.lt(minNumber(question_json)) || ans.gt(maxNumber(question_json))) {
+                } else if (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json))) {
                     err = true;
                 }
                 if (err) {
@@ -2799,7 +2616,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                } else if (ans.lt(minNumber(question_json)) || ans.gt(maxNumber(question_json))) {
+                } else if (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json))) {
                     err = true;
                 }
                 if (err) {
@@ -2836,15 +2653,15 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        //console.log('submitAnswer',question_id, stringToBytes32(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
+        //console.log('submitAnswer',question_id, rc_question.stringToBytes32(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer.sendTransaction(question_id, stringToBytes32(new_answer, question_json), current_question[Qi_bond], {from:account, gas:200000, value:bond});
+        return rc.submitAnswer.sendTransaction(question_id, rc_question.stringToBytes32(new_answer, question_json), current_question[Qi_bond], {from:account, gas:200000, value:bond});
     }).then(function(txid){
         clearForm(parent_div, question_json);
         var fake_history = {
             'args': {
-                'answer': stringToBytes32(new_answer, question_json),
+                'answer': rc_question.stringToBytes32(new_answer, question_json),
                 'question_id': question_id,
                 'history_hash': null, // TODO Do we need this?
                 'user': account,
@@ -3019,7 +2836,7 @@ function show_bond_payments(ctrl) {
         } else {
             new_answer = parseInt(frm.find('[name="input-answer"]').val());
         }
-        new_answer = stringToBytes32(new_answer, question_json)
+        new_answer = rc_question.stringToBytes32(new_answer, question_json)
         //console.log('new_answer', new_answer);
 
         //console.log('existing_answers', existing_answers);
