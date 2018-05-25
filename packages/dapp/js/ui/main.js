@@ -4,8 +4,8 @@
 
 const ethereumjs_abi = require('ethereumjs-abi')
 
-var rc_json = require('../../../truffle/build/contracts/RealityCheck.json');
-var arb_json = require('../../../truffle/build/contracts/Arbitrator.json');
+var rc_json = require('../../truffle/build/contracts/RealityCheck.json');
+var arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
 var arbitrator_list = require('./arbitrators.json');
 
