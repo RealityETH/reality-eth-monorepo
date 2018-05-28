@@ -24,14 +24,7 @@ var user_claimable = {};
 
 var category = null;
 var template_blocks = {};
-var template_content = {
-    0: '{"title": "%s", "type": "bool", "category": "%s"}',
-    1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}',
-    2: '{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}',
-    3: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}',
-    4: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}',
-    5: '{"title": "%s", "type": "datetime", "category": "%s"}'
-};
+var template_content = require('../config/arbitrators.json');
 var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const BN = require('bn.js');
