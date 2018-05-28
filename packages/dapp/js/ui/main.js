@@ -4,11 +4,11 @@
 
 const rc_question = require('../lib/realitycheck-question.js');
 
-
 var rc_json = require('../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
 var arbitrator_list = require('../config/arbitrators.json');
+const TEMPLATE_CONFIG = require('../config/templates.json');
 
 var contract = require("truffle-contract");
 var BigNumber = require('bignumber.js');
@@ -24,19 +24,11 @@ var user_claimable = {};
 
 var category = null;
 var template_blocks = {};
-var template_content = require('../config/arbitrators.json');
+var template_content = TEMPLATE_CONFIG.content;
 var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const BN = require('bn.js');
-
-const QUESTION_TYPE_TEMPLATES = {
-    'bool': 0,
-    'uint': 1,
-    'int': 2,
-    'single-select': 3,
-    'multiple-select': 4,
-    'datetime': 5
-};
+const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
 const BLOCK_EXPLORERS = {
     1: 'https://etherscan.io',
