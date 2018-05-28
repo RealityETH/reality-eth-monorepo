@@ -8,11 +8,11 @@
         5: '{"title": "%s", "type": "datetime", "category": "%s"}'
     },
     "base_ids": {
-		'bool': 0,
-		'uint': 1,
-		'int': 2,
-		'single-select': 3,
-		'multiple-select': 4,
-		'datetime': 5
-	}
+        'bool': 0,
+        'uint': 1,
+        'int': 2,
+        'single-select': 3,
+        'multiple-select': 4,
+        'datetime': 5
+    }
 }
