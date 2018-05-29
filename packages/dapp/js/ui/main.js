@@ -25,7 +25,7 @@ var user_claimable = {};
 var category = null;
 var template_blocks = {};
 var template_content = TEMPLATE_CONFIG.content;
-var QUESTION_DELIMITER = '\u241f'; // Thought about '\u0000' but it seems to break something;
+var QUESTION_DELIMITER = rc_question.delimiter(); '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const BN = require('bn.js');
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
@@ -511,7 +511,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
 
             var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
             q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
-            q = filledQuestionDetail(question_id, 'question_json', 0, populatedJSONForTemplate(template_content[template_id], qtext));
+            q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
             // Turn the post question window into a question detail window
             var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -1141,7 +1141,7 @@ function populatedJSONForTemplate(template, question) {
     //console.log('qbits', qbits);
     var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
-    return rc_question.parseQuestionJSON(interpolated);
+    return this.parseQuestionJSON(interpolated);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
@@ -1151,7 +1151,7 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
             resolve(question_detail_list[question_id]);
         } else {
             if (template_content[template_id]) {
-                var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
+                var question = filledQuestionDetail(question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
                 resolve(question);
             } else {
                 // The category text should be in the log, but the contract has the block number
@@ -1164,7 +1164,7 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
                             //console.log('adding template content', cat_arr, 'template_id', template_id);
                             template_content[template_id] = cat_arr[0].args.question_text;
                             //console.log(template_content);
-                            var question = filledQuestionDetail(question_id, 'question_json', 1, populatedJSONForTemplate(template_content[template_id], qtext));
+                            var question = filledQuestionDetail(question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
                             resolve(question);
                         } else {
                             console.log('error fetching template - unexpected cat length');

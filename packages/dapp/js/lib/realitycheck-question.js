@@ -2,6 +2,11 @@ const BN = require('bn.js');
 const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
 
+
+exports.delimiter = function() {
+    return '\u241f'; // Thought about '\u0000' but it seems to break something;
+}
+
 exports.contentHash = function(template_id, opening_ts, content) {
     return "0x" + ethereumjs_abi.soliditySHA3(
         ["uint256", "uint32", "string"],
@@ -135,6 +140,15 @@ exports.parseQuestionJSON = function(data) {
     }
     return question_json;
 
+}
+
+exports.populatedJSONForTemplate = function(template, question) {
+    var qbits = question.split(this.delimiter());
+    //console.log('pp', template);
+    //console.log('qbits', qbits);
+    var interpolated = vsprintf(template, qbits);
+    //console.log('resulting template', interpolated);
+    return this.parseQuestionJSON(interpolated);
 }
 
 exports.getAnswerString = function(question_json, answer) {
