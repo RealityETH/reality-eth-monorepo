@@ -9,20 +9,20 @@ describe('Default template types', function() {
   it('Returns templates with the requested simple types', function() {
     for (var i=0; i<simple_types.length; i++) {
         var t = simple_types[i];
-        const q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), 'oink');
+        var qtext = rc_question.encodeText(t, 'oink', null, 'my-category');
+        var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), qtext);
         expect(q.type).to.equal(t);
     }
   });
-  /*
   it('Returns templates with the requested option types', function() {
-    for (var i=0; i<simple_types.length; i++) {
-        var t = types[i];
-        console.log('fetching', i, t);
-        const q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), 'oink');
+    const outcomes = ["oink", "oink2"];
+    for (var i=0; i<option_types.length; i++) {
+        var t = option_types[i];
+        var qtext = rc_question.encodeText(t, 'oink', outcomes, 'my-category');
+        var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), qtext);
         expect(q.type).to.equal(t);
     }
   });
-  */
 
 });
 
