@@ -15,7 +15,6 @@ var BigNumber = require('bignumber.js');
 var timeago = require('timeago.js');
 var timeAgo = new timeago();
 var jazzicon = require('jazzicon');
-var vsprintf = require("sprintf-js").vsprintf
 
 //console.log('jazzicon', jazzicon);
 
@@ -65,8 +64,6 @@ const EVENT_ACTOR_ARGS = {
     'LogClaim': 'user',
     'LogWithdraw': 'user'
 };
-
-const QUESTION_MAX_OUTCOMES = 128; 
 
 const FETCH_NUMBERS = [100, 2500, 5000];
 
@@ -1133,15 +1130,6 @@ function _ensureQuestionDataFetched(question_id, freshness) {
             });
         }
     });
-}
-
-function populatedJSONForTemplate(template, question) {
-    var qbits = question.split(QUESTION_DELIMITER);
-    //console.log('pp', template);
-    //console.log('qbits', qbits);
-    var interpolated = vsprintf(template, qbits);
-    //console.log('resulting template', interpolated);
-    return this.parseQuestionJSON(interpolated);
 }
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {

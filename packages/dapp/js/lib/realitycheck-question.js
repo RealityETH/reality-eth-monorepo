@@ -1,7 +1,8 @@
 const BN = require('bn.js');
 const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
-
+const vsprintf = require("sprintf-js").vsprintf
+const QUESTION_MAX_OUTCOMES = 128;
 
 exports.delimiter = function() {
     return '\u241f'; // Thought about '\u0000' but it seems to break something;
