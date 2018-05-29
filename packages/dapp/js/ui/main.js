@@ -3,6 +3,7 @@
 'use strict';
 
 const rc_question = require('../lib/realitycheck-question.js');
+const rc_template = require('../lib/realitycheck-template.js');
 
 var rc_json = require('../../truffle/build/contracts/RealityCheck.json');
 var arb_json = require('../../truffle/build/contracts/Arbitrator.json');
@@ -461,17 +462,9 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     }
 
     if (validate(win)) {
-        var qtext = JSON.stringify(question_body.val()).replace(/^"|"$/g, '');
-        var qtype = question_type.val()
-        var template_id = QUESTION_TYPE_TEMPLATES[qtype];
-        //console.log('using template_id', template_id);
-        if (qtype == 'single-select' || qtype == 'multiple-select') {
-            var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
-            //console.log('made outcome_str', outcome_str);
-            qtext = qtext + QUESTION_DELIMITER + outcome_str;
-            //console.log('made qtext', qtext);
-        }
-        qtext = qtext + QUESTION_DELIMITER + category.val();
+        var qtype = question_type.val();
+        var template_id = rc_template.defaultTemplateIDForType(qtype);
+        var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
 
         var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
         var opening_ts = new Date(opening_ts_val);

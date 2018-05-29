@@ -131,6 +131,7 @@ exports.parseQuestionJSON = function(data) {
         question_json = JSON.parse(data);
     } catch(e) {
         console.log('parse fail', e);
+        console.log('parse fail', data);
         question_json = {
             'title': data,
             'type': 'bool'
@@ -150,6 +151,20 @@ exports.populatedJSONForTemplate = function(template, question) {
     var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
     return this.parseQuestionJSON(interpolated);
+}
+
+exports.encodeText = function(qtype, txt, outcomes, category) {
+    var qtext = JSON.stringify(txt).replace(/^"|"$/g, '');
+    var delim = this.delimiter();
+    //console.log('using template_id', template_id);
+    if (qtype == 'single-select' || qtype == 'multiple-select') {
+        var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
+        //console.log('made outcome_str', outcome_str);
+        qtext = qtext + delim + outcome_str;
+        //console.log('made qtext', qtext);
+    }
+    qtext = qtext + delim + category;
+    return qtext;
 }
 
 exports.getAnswerString = function(question_json, answer) {
