@@ -1,7 +1,10 @@
 const rc_question = require('../lib/realitycheck-question.js');
 const rc_template = require('../lib/realitycheck-template.js');
 
-const expect = require("chai").expect;
+const chai = require("chai")
+chai.use(require('chai-bignumber')());
+
+const expect = chai.expect;
 
 describe('Default template types', function() {
   const simple_types = [ "bool", "uint", "int", "datetime" ];
@@ -26,6 +29,73 @@ describe('Default template types', function() {
 
 });
 
+describe('Answer strings', function() {
+  it('Handles bools as expected', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('Yes');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('No');
+    expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000001')).to.equal('Yes');
+    expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000000')).to.equal('No');
+    expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000003')).to.equal('');
+  });
+  it('Handles uints as expected using 1 decimals', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    q.decimals = 0;
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('1');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000002')).to.equal('2');
+  });
+
+  it('Handles uints as expected using 18 decimals', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000')).to.equal('1');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000')).to.equal('0.1');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
+  });
+  it('Handles ints as expected using 1 decimal', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('int'), '');
+    q.decimals = 0;
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('1');
+    expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('-1');
+    
+  });
+  it('Handles ints as expected using 18 decimals', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('int'), '');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000')).to.equal('1');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000')).to.equal('0.1');
+    //expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('-0.000000000000000001'); // TODO: Change this to toFixed()
+    expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('-1e-18');
+  });
+  it('Handles datetimes as expected', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('datetime'), '');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('1970/1/1');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('2018/5/30'); // TODO: Change this to include time if it's not 00:00
+  });
+  it('Handles single selects as expected', function() {
+    var outcomes = ['thing1', 'thing2', 'thing3'];
+    var qtext = rc_question.encodeText('single-select', 'oink', outcomes, 'my-category');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('single-select'), qtext);
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('thing1');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('thing2');
+  });
+  it('Handles multiple selects as expected', function() {
+    var outcomes = ['thing1', 'thing2', 'thing3'];
+    var qtext = rc_question.encodeText('single-select', 'oink', outcomes, 'my-category');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('single-select'), qtext);
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('thing1');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('thing2');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing3');
+  });
+
+
+
+
+    //expect(rc_qestion.getAnswerString(q, '0x00000000000000000000000000000000000000000000000F21F494C589C0000')).to.equal('-1');
+
+});
 /*
 describe('Min Number Formatter', function() {
   it('Returns 0 for everything except int (signed)', function() {
