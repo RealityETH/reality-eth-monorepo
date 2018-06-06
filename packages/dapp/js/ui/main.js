@@ -2495,6 +2495,27 @@ $(document).on('click', '.answer-item', function(){
      }
 });
 
+function formattedAnswerFromForm(parent_div, question_json) {
+
+    var new_answer;
+    var answer_element = parent_div.find('[name="input-answer"]');
+    if (question_json['type'] == 'multiple-select') {
+        var answer_input = [];
+        parent_div.find('.input-container--checkbox input[type=checkbox]').each( function() {
+            answer_input.push($(this).is(':checked'));
+        });
+        new_answer = rc_question.answerToBytes32(answer_input, question_json);
+    } else if (question_json['type'] == 'datetime') {
+        let answer_date = new Date(answer_element.val());
+        new_answer = rc_question.answerToBytes32(answer_date.getTime() / 1000, question_json);
+    } else {
+        new_answer = rc_question.answerToBytes32(answer_element.val(), question_json);
+    }
+    console.log(new_answer);
+    return new_answer;
+
+}
+
 // post an answer
 $(document).on('click', '.post-answer-button', function(e) {
     e.preventDefault();
@@ -2529,37 +2550,12 @@ $(document).on('click', '.post-answer-button', function(e) {
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
 
-        if (question_json['type'] == 'multiple-select') {
-            var checkbox = parent_div.find('[name="input-answer"]');
-            var answers = checkbox.filter(':checked');
-            var values = [];
-            for (var i = 0; i < answers.length; i++) {
-                values.push(parseInt(answers[i].value));
-            }
-            var answer_bits = '';
-            for (var i = checkbox.length - 1; i >= 0; i--) {
-                if (values.indexOf(i) == -1) {
-                    answer_bits += '0';
-                } else {
-                    answer_bits += '1';
-                }
-            }
-            new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'uint') {
-            new_answer = parent_div.find('[name="input-answer"]').val();
-        } else if (question_json['type'] == 'int') {
-            new_answer = parent_div.find('[name="input-answer"]').val();
-        } else if (question_json['type'] == 'datetime') {
-            let answer_val = parent_div.find('[name="input-answer"]').val();
-            let answer_date = new Date(answer_val);
-            new_answer = answer_date.getTime() / 1000;
-        } else {
-            new_answer = parseInt(parent_div.find('[name="input-answer"]').val());
-        }
+        var new_answer = formattedAnswerFromForm(parent_div, question_json);
 
         switch (question_json['type']) {
             case 'bool':
-                if (isNaN(new_answer) || (new_answer !== 0 && new_answer !== 1)) {
+                var ans = new BigNumber(new_answer);
+                if ( ans.isNaN() || !(ans.equals(new BigNumber(0)) || ans.equals(new BigNumber(1))) ) {
                     parent_div.find('div.select-container.select-container--answer').addClass('is-error');
                     is_err = true;
                 }
@@ -2622,12 +2618,12 @@ $(document).on('click', '.post-answer-button', function(e) {
         //console.log('submitAnswer',question_id, rc_question.stringToBytes32(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
 
         // Converting to BigNumber here - ideally we should probably doing this when we parse the form
-        return rc.submitAnswer.sendTransaction(question_id, rc_question.stringToBytes32(new_answer, question_json), current_question[Qi_bond], {from:account, gas:200000, value:bond});
+        return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {from:account, gas:200000, value:bond});
     }).then(function(txid){
         clearForm(parent_div, question_json);
         var fake_history = {
             'args': {
-                'answer': rc_question.stringToBytes32(new_answer, question_json),
+                'answer': new_answer,
                 'question_id': question_id,
                 'history_hash': null, // TODO Do we need this?
                 'user': account,
@@ -2778,31 +2774,7 @@ function show_bond_payments(ctrl) {
         var question_json = question[Qi_question_json];
         var existing_answers = answersByMaxBond(question['history']);
         var payable = 0;
-        var new_answer;
-        if (question_json['type'] == 'multiple-select') {
-            var checkbox = frm.find('[name="input-answer"]');
-            var answers = checkbox.filter(':checked');
-            var values = [];
-            for (var i = 0; i < answers.length; i++) {
-                values.push(parseInt(answers[i].value));
-            }
-            var answer_bits = '';
-            for (var i = checkbox.length - 1; i >= 0; i--) {
-                if (values.indexOf(i) == -1) {
-                    answer_bits += '0';
-                } else {
-                    answer_bits += '1';
-                }
-            }
-            new_answer = parseInt(answer_bits, 2);
-        } else if (question_json['type'] == 'uint') {
-            new_answer = frm.find('[name="input-answer"]').val();
-        } else if (question_json['type'] == 'int') {
-            new_answer = frm.find('[name="input-answer"]').val();
-        } else {
-            new_answer = parseInt(frm.find('[name="input-answer"]').val());
-        }
-        new_answer = rc_question.stringToBytes32(new_answer, question_json)
+        var new_answer = formattedAnswerFromForm(frm, question_json);
         //console.log('new_answer', new_answer);
 
         //console.log('existing_answers', existing_answers);

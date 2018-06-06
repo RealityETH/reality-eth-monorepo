@@ -29,6 +29,29 @@ describe('Default template types', function() {
 
 });
 
+describe('Answer formatting', function() {
+  it('Turns bools into hex', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
+    expect(rc_question.answerToBytes32(1, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
+    expect(rc_question.answerToBytes32(0, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+  });
+  it('Turns options into hex', function() {
+    var outcomes = ['thing1', 'thing2', 'thing3'];
+    var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
+    //console.log(q);
+    expect(q.type).to.equal('multiple-select');
+    
+    expect(rc_question.answerToBytes32([false], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32([false, false], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32([true], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
+    expect(rc_question.answerToBytes32([true, false], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
+    expect(rc_question.answerToBytes32([false, true], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000002');
+    expect(rc_question.answerToBytes32([true, true], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000003');
+    expect(rc_question.answerToBytes32([true, false, true], q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000005');
+  });
+});
+
 describe('Answer strings', function() {
   it('Handles bools as expected', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
@@ -83,11 +106,12 @@ describe('Answer strings', function() {
   });
   it('Handles multiple selects as expected', function() {
     var outcomes = ['thing1', 'thing2', 'thing3'];
-    var qtext = rc_question.encodeText('single-select', 'oink', outcomes, 'my-category');
-    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('single-select'), qtext);
-    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('thing1');
-    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('thing2');
-    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing3');
+    var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000005')).to.equal('thing1 / thing3');
+ //   expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('thing2');
+//    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing3');
   });
 
 

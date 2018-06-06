@@ -45,8 +45,22 @@ exports.maxNumber = function(qjson) {
     return new BigNumber("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").dividedBy(divby);
 }
 
-exports.stringToBytes32 = function(answer, qjson) {
+exports.arrayToBitmaskBigNumber = function(selections) {
+    // console.log('selections are ', selections);
+    var bitstr = '';
+    for (var i=0; i<selections.length; i++) {
+        var item = selections[i] ? '1' : '0';
+        bitstr = item + bitstr;
+    }
+    //console.log('bitstr',bitstr);
+    return new BigNumber(bitstr, 2);
+}
+
+exports.answerToBytes32 = function(answer, qjson) {
     var qtype = qjson['type'];
+    if (qtype == 'multiple-select') {
+        answer = this.arrayToBitmaskBigNumber(answer);
+    }
     var decimals = parseInt(qjson['decimals']);
     if (!decimals) {
         decimals = 0;
@@ -168,6 +182,9 @@ exports.encodeText = function(qtype, txt, outcomes, category) {
 }
 
 exports.getAnswerString = function(question_json, answer) {
+    if (answer === null) {
+        return 'null';
+    }
     var label = '';
     switch (question_json['type']) {
         case 'uint':
@@ -193,14 +210,14 @@ exports.getAnswerString = function(question_json, answer) {
             if (typeof question_json['outcomes'] !== 'undefined' && question_json['outcomes'].length > 0) {
                 var answer_bits = new BigNumber(answer).toString(2);
                 var length = answer_bits.length;
-
+                var entries = [];
                 for (var i = question_json['outcomes'].length - 1; i >= 0; i--) {
                     if (answer_bits[i] === '1') {
                         var idx = answer_bits.length - 1 - i;
-                        label += question_json['outcomes'][idx] + ' / ';
+                        entries.push(question_json['outcomes'][idx]);
                     }
                 }
-                label = label.substr(0, label.length - 3);
+                return entries.join(' / ');
             }
             break;
         case 'datetime':
