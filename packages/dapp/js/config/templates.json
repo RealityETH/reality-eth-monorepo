@@ -1,0 +1,18 @@
+{
+  "content": {
+    "0": "{\"title\": \"%s\", \"type\": \"bool\", \"category\": \"%s\"}",
+    "1": "{\"title\": \"%s\", \"type\": \"uint\", \"decimals\": 18, \"category\": \"%s\"}",
+    "2": "{\"title\": \"%s\", \"type\": \"int\", \"decimals\": 18, \"category\": \"%s\"}",
+    "3": "{\"title\": \"%s\", \"type\": \"single-select\", \"outcomes\": [%s], \"category\": \"%s\"}",
+    "4": "{\"title\": \"%s\", \"type\": \"multiple-select\", \"outcomes\": [%s], \"category\": \"%s\"}",
+    "5": "{\"title\": \"%s\", \"type\": \"datetime\", \"category\": \"%s\"}"
+  },
+  "base_ids": {
+    "bool": 0,
+    "uint": 1,
+    "int": 2,
+    "single-select": 3,
+    "multiple-select": 4,
+    "datetime": 5
+  }
+}
