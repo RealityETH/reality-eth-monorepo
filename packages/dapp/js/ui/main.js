@@ -2502,6 +2502,9 @@ function formattedAnswerFromForm(parent_div, question_json) {
     if (question_json['type'] == 'multiple-select') {
         var answer_input = [];
         parent_div.find('.input-container--checkbox input[type=checkbox]').each( function() {
+            if ($(this).closest('label').hasClass('template-item')) {
+                return;
+            }
             answer_input.push($(this).is(':checked'));
         });
         new_answer = rc_question.answerToBytes32(answer_input, question_json);
@@ -2533,6 +2536,8 @@ $(document).on('click', '.post-answer-button', function(e) {
     var block_before_send = current_block_number;
     var question_json;
 
+    var new_answer;
+
     var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
     .catch(function() {
         // If the question is unconfirmed, go with what we have
@@ -2550,7 +2555,7 @@ $(document).on('click', '.post-answer-button', function(e) {
         question_json = current_question[Qi_question_json];
         //console.log('got question_json', question_json);
 
-        var new_answer = formattedAnswerFromForm(parent_div, question_json);
+        new_answer = formattedAnswerFromForm(parent_div, question_json);
 
         switch (question_json['type']) {
             case 'bool':
