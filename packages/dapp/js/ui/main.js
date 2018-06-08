@@ -17,8 +17,6 @@ var timeago = require('timeago.js');
 var timeAgo = new timeago();
 var jazzicon = require('jazzicon');
 
-//console.log('jazzicon', jazzicon);
-
 var submitted_question_id_timestamp = {};
 var user_claimable = {}; 
 
@@ -154,14 +152,9 @@ const monthList = [
     'Dec'
 ];
 
-
-
-
-
-// set rcBrowser height
 function rcbrowserHeight() {
-console.log('skipping auto rcbrowserHeight');
-return;
+    console.log('skipping auto rcbrowserHeight');
+    return;
     const rcbrowserHeaders  = document.querySelectorAll('.rcbrowser-header');
     const rcbrowserMains  = document.querySelectorAll('.rcbrowser-main');
     var _maxHeight = document.documentElement.clientHeight * .9;
@@ -179,7 +172,6 @@ return;
 }
 rcbrowserHeight();
 
-// set rcBrowser's position.
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
@@ -309,12 +301,10 @@ $(document).on('click', '.rcbrowser', function(){
 $(function() {
     $('.see-all-notifications').click( function() {
         $(this).closest('#your-question-answer-window').removeClass('display-top-only').addClass('display-all');
-        //$(this).closest('.rcbrowser--your-qa').rcBrowser.addClass('is-loading');
         return false;
     });
     $('.hide-lower-notifications').click( function() {
         $(this).closest('#your-question-answer-window').addClass('display-top-only').removeClass('display-all');
-        //$(this).closest('.rcbrowser--your-qa').rcBrowser.addClass('is-loading');
         return false;
     });
 });
@@ -346,7 +336,6 @@ $('#help-center-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#help-center-window').css('z-index', ++zindex).addClass('is-open');
-    //$('#help-center-window').css('height', $('#help-center-window').height()+'px');
 });
 
 function setViewedBlockNumber(network_id, block_number) {
@@ -385,7 +374,6 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
 });
 
 $('#post-a-question-button,.post-a-question-link').on('click', function(e){
-    //console.log('click post');
     e.preventDefault();
     e.stopPropagation();
     let question_window = $('#post-a-question-window-template').clone().attr('id', 'post-a-question-window');
@@ -401,7 +389,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
             $(this).css('background-color', '#ffffff');
         }
     });
-    //console.log('cloned window', question_window);
+
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
@@ -507,7 +495,6 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
             win.html(rcqa.html());
             win = populateQuestionWindow(win, q, false);
-            //console.log('rcqa', win);
     
             // TODO: Once we have code to know which network we're on, link to a block explorer
             win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
@@ -516,7 +503,6 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             win.attr('data-pending-txid', txid);
 
             win.find('.rcbrowser__close-button').on('click', function(){
-                //console.log('closing');
                 let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
                 let left = parseInt(parent_div.css('left').replace('px', ''));
                 let top = parseInt(parent_div.css('top').replace('px', ''));
@@ -763,29 +749,21 @@ function handlePotentialUserAction(entry, is_watch) {
 
     }
 
-    //console.log('handling', entry.args['question_id'], 'entry', entry, account);
-    //console.log('handlePotentialUserAction looks interesting, continuing', entry.args.user, entry,is_watch);
-
     var lastViewedBlockNumber = 0;
     if (getViewedBlockNumber(network_id)) {
         lastViewedBlockNumber = parseInt(getViewedBlockNumber(network_id));
     }
-    //console.log(lastViewedBlockNumber);
     if (entry.blockNumber > lastViewedBlockNumber) {
-        //$('body').attr('last-update-block-number', entry.blockNumber);
         $('body').addClass('pushing');
     }
 
     var is_population_done = false;
-
-    //console.log('fetching', question_id);
 
     // User action
     //console.log('got event as user action', entry);
     if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
         delete submitted_question_id_timestamp[question_id];
         ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
-            //question = filledQuestionDetail(question_id, 'answer_logs', entry.blockNumber, entry);
             displayQuestionDetail(question);
             renderUserAction(question, entry, is_watch);
         });
@@ -824,9 +802,6 @@ function updateClaimableDisplay() {
     //console.log('updateClaimableDisplay with user_claimable', user_claimable);
     var unclaimed = mergePossibleClaimable(user_claimable, false);
     var claiming  = mergePossibleClaimable(user_claimable, true);
-    //console.log('merged', merged);
-    //console.log('total merge:', merged.total.toNumber());
-    //console.log('claiming', claiming);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
         $('.answer-claiming-container').find('.claimable-eth').text(web3.fromWei(claiming.total.toNumber(), 'ether'));
@@ -946,7 +921,6 @@ function scheduleFinalizationDisplayUpdate(question) {
 
             }, update_time );
             question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
-            //console.log(question_event_times);
         }
     } else {
         //console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
@@ -1431,7 +1405,6 @@ function handleQuestionLog(item) {
             var insert_before = update_ranking_data('questions-resolved', question_id, question_data[Qi_finalization_ts], 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
-                // question_detail_list[question_id] = question_data;
                 populateSection('questions-resolved', question_data, insert_before);
                 if (display_entries['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-resolved').find('.loadmore-button').css('display', 'block');
@@ -1441,7 +1414,6 @@ function handleQuestionLog(item) {
         } else {
             var insert_before = update_ranking_data('questions-latest', question_id, created, 'desc');
             if (insert_before !== -1) {
-                // question_detail_list[question_id] = question_data;
                 populateSection('questions-latest', question_data, insert_before);
                 if (display_entries['questions-latest']['ids'].length > 3 && $('#questions-latest').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-latest').find('.loadmore-button').css('display', 'block');
@@ -1450,7 +1422,6 @@ function handleQuestionLog(item) {
 
             var insert_before = update_ranking_data('questions-high-reward', question_id, bounty, 'desc');
             if (insert_before !== -1) {
-                // question_detail_list[question_id] = question_data;
                 populateSection('questions-high-reward', question_data, insert_before);
                 if (display_entries['questions-high-reward']['ids'].length > 3 && $('#questions-high-reward').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-high-reward').find('.loadmore-button').css('display', 'block');
@@ -1650,13 +1621,7 @@ function displayQuestionDetail(question_detail) {
     var rcqa = $('#'+window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question_detail, true);
-        //rcqa.css('display', 'block');
-        //rcqa.addClass('is-open');
         rcqa.css('z-index', ++zindex);
-        //rcqa.css('height', rcqa.height()+'px');
-        //setRcBrowserPosition(rcqa);
-        //Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
-
     } else {
         rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         rcqa.attr('id', window_id);
@@ -1672,10 +1637,6 @@ function displayQuestionDetail(question_detail) {
             window_position[question_id] = {'x': left, 'y': top};
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
-            //console.log('clicked close');
-            //$('div#' + question_id).remove();
-            //question_id = question_id.replace('qadetail-', '');
-            //delete question_detail_list[question_id]
         });
 
         rcqa.removeClass('template-item');
@@ -1700,7 +1661,6 @@ function displayQuestionDetail(question_detail) {
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     //console.log('populateQuestionWindow with detail ', question_detail);
-    //console.log('populateQuestionWindow question_json', question_detail[Qi_question_json]);
     var question_id = question_detail[Qi_question_id];
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
@@ -1821,8 +1781,6 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         unconfirmed_container.find('.pending-answer-txid a').attr('href', block_explorer + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
-
-        //unconfirmed_container.attr('id', 'answer-unconfirmed-' + unconfirmed_answer.answer);
 
         timeago.cancel(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
         unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(unconfirmed_answer.ts));
@@ -2222,12 +2180,6 @@ function renderNotifications(qdata, entry) {
                                 ntext = 'Someone requested arbitration to the question';
                             }
                         }
-                        /*
-                        if (typeof ntext !== 'undefined') {
-                            ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(evt, notification_id, item, ntext, entry.blockNumber, entry.args.question_id, is_positive);
-                        }
-                        */
                     }
                 });
             }
@@ -2284,7 +2236,7 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
     });
     if (!inserted) {
         question_section.append(item_to_insert);
-    //console.log('inserted through fall through');
+        //console.log('inserted through fall through');
     }
     populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
 
@@ -2408,7 +2360,6 @@ function makeSelectAnswerInput(question_json, opening_ts) {
                     // Here we copy the content and throw away the container
                     elmtpl.after(elm);
                 }
-                //ans_frm.find('input:checkbox').wrap('<label></label>');
                 break;
         }
     }
@@ -2453,14 +2404,6 @@ function updateQuestionState(question, question_window) {
 
     return question_window;
 
-/*
-    var id = setInterval(function(){
-        if (Date.now() - answer_created.toNumber() * 1000 > timeout.toNumber() * 1000) {
-            $(section_name).find('.final-answer-button').css('display', 'block');
-            clearInterval(id);
-        }
-    }, 15000);
-    */
 }
 
 // TODO
@@ -2620,9 +2563,6 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        //console.log('submitAnswer',question_id, rc_question.stringToBytes32(new_answer, question_json['type']), current_question[Qi_bond], {from:account, value:bond});
-
-        // Converting to BigNumber here - ideally we should probably doing this when we parse the form
         return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {from:account, gas:200000, value:bond});
     }).then(function(txid){
         clearForm(parent_div, question_json);
@@ -2768,9 +2708,6 @@ $(document).on('click', '.arbitration-button', function(e) {
     });
 });
 
-/*-------------------------------------------------------------------------------------*/
-// show/delete error messages
-
 function show_bond_payments(ctrl) {
     var frm = ctrl.closest('div.rcbrowser--qa-detail')
     var question_id = frm.attr('data-question-id'); 
@@ -2781,7 +2718,6 @@ function show_bond_payments(ctrl) {
         var payable = 0;
         var new_answer = formattedAnswerFromForm(frm, question_json);
         //console.log('new_answer', new_answer);
-
         //console.log('existing_answers', existing_answers);
         if (existing_answers[new_answer]) {
             payable = existing_answers[new_answer].args.bond;
@@ -2862,9 +2798,7 @@ $('#filter-list a').on('click', function(e) {
     var cat = $(this).attr('data-category');
     if (cat == 'all') {
         window.location.hash = '';
-        //window.location.href = location.protocol+'//'+location.host+location.pathname; 
     } else {
-        //window.location.href = location.protocol+'//'+location.host+location.pathname + '#!/category/' + cat;
         window.location.hash = '#!/category/' + cat;
     }
     location.reload();
@@ -2991,8 +2925,6 @@ function pageInit(account) {
                         ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
                             updateQuestionWindowIfOpen(question);
                             //console.log('should be getting latest', question, result.blockNumber);
-                            //question = filledQuestionDetail(question_id, 'answer_logs', result.blockNumber, result);
-                            //question[Qi_finalization_ts] = result.args.ts.plus(question[Qi_timeout]); // TODO: find a cleaner way to handle this
                             scheduleFinalizationDisplayUpdate(question);
                             updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                         });
