@@ -2187,6 +2187,11 @@ div.questions__item .closing-time-label .resolved{ display:none }
 div.questions__item.no-answers .closing-time-label { display:none  }
 div.questions__item.has-answers .created-time-label { display:none  }
 
+div.rcbrowser--qa-detail span.answer-prompt-text.has-answer-only { display:none  }
+div.rcbrowser--qa-detail span.answer-prompt-text.no-answer-only { display:inline }
+div.rcbrowser--qa-detail.has-answer span.answer-prompt-text.has-answer-only { display:inline !important }
+div.rcbrowser--qa-detail.has-answer span.answer-prompt-text.no-answer-only { display:none !important }
+
 div.error-bar { display:none }
 
 body.error div.error-bar {
