@@ -15,5 +15,5 @@ const data = req.params[0].data;
 
 const stx = rc_common.serializedTX(params, arb, data);
 
-console.log(stx.toString('hex'));
+rc_common.output(stx);
 

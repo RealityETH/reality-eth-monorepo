@@ -6,5 +6,5 @@ const rc_common = require('./rc_common.js');
 const privateKey = rc_common.loadKey();
 let pubKey = secp256k1.publicKeyCreate(privateKey, false).slice(1);
 let address = createKeccakHash('keccak256').update(pubKey).digest().slice(-20).toString('hex');
-console.log('0x'+address);
 
+rc_common.output(address);

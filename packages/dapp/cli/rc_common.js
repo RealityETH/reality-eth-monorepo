@@ -7,6 +7,8 @@ const Tx = require('ethereumjs-tx')
 
 const web3_utils = require('web3-utils');
 
+const qr = require('qrcode-terminal');
+
 const GWEI_TO_WEI = 1000000000;
 
 exports.GWEI_TO_WEI = GWEI_TO_WEI;
@@ -114,4 +116,8 @@ exports.sanitizeAddress = function(addr) {
 
 exports.configParam = function(n) {
     return config[n];
+}
+
+exports.output = function(tx) {
+    qr.generate(tx.toString('hex'), {small: true});
 }
