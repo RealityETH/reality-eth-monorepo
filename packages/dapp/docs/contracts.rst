@@ -75,6 +75,8 @@ The ``bytes32`` ID that will be returned is made by hashing the parameters, plus
 
 The ``nonce`` is a user-supplied number that can be used to disambiguated deliberate repeated uses of the same question. You can use ``0`` if you never intend to ask the same question with the same settings twice.
 
+The ``timeout`` is the time in seconds the question will have after adding an answer before it is automatically finalized. It would typically be around ``1 days``. The contract sanity-checks set the maximum possible value at ``365 days``.
+
 
 Accepting an answer only if something has happened
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
