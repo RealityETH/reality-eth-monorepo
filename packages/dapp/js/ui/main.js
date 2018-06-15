@@ -1735,7 +1735,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
                 hist_item.removeClass('template-item');
-                hist_tmpl.before(hist_item); 
+                hist_tmpl.after(hist_item); 
             }
 
         } 
