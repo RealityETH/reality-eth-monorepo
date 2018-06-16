@@ -484,6 +484,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
             fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
             fake_call[Qi_content_hash-1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
             fake_call[Qi_bounty-1] = web3.toWei(new BigNumber(reward.val()), 'ether');
+            fake_call[Qi_best_answer-1] = "0x0";
+            fake_call[Qi_bond-1] = new BigNumber(0);
             fake_call[Qi_history_hash-1] = "0x0";
             fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
 
