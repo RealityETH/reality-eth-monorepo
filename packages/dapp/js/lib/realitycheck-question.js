@@ -30,7 +30,7 @@ exports.minNumber = function(qjson) {
     if (!is_signed) {
         return new BigNumber(0);
     }
-    return maxNumber(qjson).neg();
+    return this.maxNumber(qjson).neg();
 }
 
 exports.maxNumber = function(qjson) {
@@ -181,10 +181,26 @@ exports.encodeText = function(qtype, txt, outcomes, category) {
     return qtext;
 }
 
+// A value used to denote that the question is invalid or can't be answered
+exports.getInvalidValue = function(question_json) {
+    if (question_json['type'] == 'int') {
+        // Would normally be the smallest possible int you can represent in the twos complement system
+        return '0x8000000000000000000000000000000000000000000000000000000000000000';
+    } else {
+        // equivalent to -1 in twos complement
+        return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+    }
+}
+
 exports.getAnswerString = function(question_json, answer) {
     if (answer === null) {
         return 'null';
     }
+
+    if (answer == this.getInvalidValue(question_json)) {
+        return 'Invalid';
+    }
+
     var label = '';
     switch (question_json['type']) {
         case 'uint':

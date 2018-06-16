@@ -2346,7 +2346,7 @@ function makeSelectAnswerInput(question_json, opening_ts) {
                     var option_elm = $('<option>');
                     option_elm.val(i);
                     option_elm.text(options[i]);
-                    ans_frm.find('.select-answer').append(option_elm);
+                    ans_frm.find('.select-answer').find('.invalid-select').before(option_elm);
                 }
                 break;
             case 'multiple-select':
@@ -2444,6 +2444,16 @@ function formattedAnswerFromForm(parent_div, question_json) {
 
     var new_answer;
     var answer_element = parent_div.find('[name="input-answer"]');
+
+    // Selects will just have "invalid" as an option in the pull-down.
+    // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
+    var has_invalid_selection = ( answer_element.attr('data-invalid-selected') == '1' );
+    if (has_invalid_selection) {
+        new_answer = rc_question.getInvalidValue(question_json);
+        console.log('invalid selected, so submitting the invalid value ', new_answer);
+        return new_answer;
+    }
+
     if (question_json['type'] == 'multiple-select') {
         var answer_input = [];
         parent_div.find('.input-container--checkbox input[type=checkbox]').each( function() {
@@ -2459,7 +2469,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
     } else {
         new_answer = rc_question.answerToBytes32(answer_element.val(), question_json);
     }
-    console.log(new_answer);
+    console.log('submitting answer', new_answer);
     return new_answer;
 
 }
@@ -2501,11 +2511,12 @@ $(document).on('click', '.post-answer-button', function(e) {
         //console.log('got question_json', question_json);
 
         new_answer = formattedAnswerFromForm(parent_div, question_json);
+        const invalid_value = rc_question.getInvalidValue(question_json);
 
         switch (question_json['type']) {
             case 'bool':
                 var ans = new BigNumber(new_answer);
-                if ( ans.isNaN() || !(ans.equals(new BigNumber(0)) || ans.equals(new BigNumber(1))) ) {
+                if ( ans.isNaN() || !(ans.equals(new BigNumber(0)) || ans.equals(new BigNumber(1)) || ans.equals(new BigNumber(invalid_value)) ) ) {
                     parent_div.find('div.select-container.select-container--answer').addClass('is-error');
                     is_err = true;
                 }
@@ -2515,7 +2526,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                } else if (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json))) {
+                } else if ( !ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)) ) ) {
                     err = true;
                 }
                 if (err) {
@@ -2528,7 +2539,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 var err = false;
                 if (ans.isNaN()) {
                     err = true;
-                } else if (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json))) {
+                } else if ( !ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)) ) ) {
                     err = true;
                 }
                 if (err) {
@@ -2547,7 +2558,7 @@ $(document).on('click', '.post-answer-button', function(e) {
             case 'multiple-select':
                 var container = parent_div.find('div.input-container.input-container--checkbox');
                 var checked = container.find('input[name="input-answer"]:checked');
-                if (checked.length == 0) {
+                if (!invalid_value && checked.length == 0) {
                     container.addClass('is-error');
                     is_err = true;
                 }
@@ -2771,6 +2782,26 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
         $(this).parent().parent().removeClass('is-error');
     }
 });
+
+$(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
+    evt.stopPropagation();
+    var inp = $(this).closest('.input-container').addClass('invalid-selected').find('input');
+    inp.attr('readonly', true);
+    inp.attr('data-old-placeholder', inp.attr('placeholder'));
+    inp.attr('placeholder', 'Invalid');
+    inp.attr('data-invalid-selected', '1'); // will be read in processing
+});
+
+$(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
+    evt.stopPropagation();
+    var inp = $(this).closest('.input-container').removeClass('invalid-selected').find('input');
+    inp.attr('readonly', false);
+    inp.attr('placeholder', inp.attr('data-old-placeholder'));
+    inp.removeAttr('data-old-placeholder');
+    inp.removeAttr('data-invalid-selected'); // will be read in processing
+});
+
+
 $(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function (e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');

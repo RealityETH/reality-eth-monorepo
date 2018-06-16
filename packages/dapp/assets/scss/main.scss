@@ -1458,6 +1458,17 @@ div.unconfirmed-question-header span.pending-question-txid {
     border-radius: 3px;
 }
 
+.invalid-selected .rcbrowser-textarea{
+    background-color: $rcBrowserDarkBg;
+}
+.invalid-selected span.input-header{
+    visibility: hidden;
+}
+
+.multiple-select .invalid-selected .input-entry {
+    opacity:0.2;
+}
+
 .rcbrowser-input:focus,
 .rcbrowser-textarea:focus {
     box-shadow: inset 0 0 0 1px $blue;
@@ -1596,6 +1607,15 @@ textarea[name="question-body"] {
     right: 30px;
 }
 
+div.invalid-switch-container { margin-top:2px; margin-right:2px; text-align:right; }
+
+.input-container a.valid-text-link { font-size:12px; }
+.input-container a.invalid-text-link { font-size:12px; }
+
+.input-container .valid-text-link { display:none; }
+.input-container .invalid-text-link { display:block; }
+.input-container.invalid-selected .valid-text-link { display:block; }
+.input-container.invalid-selected .invalid-text-link { display:none; }
 
 .quick-help {
     position: absolute;
@@ -2100,6 +2120,7 @@ input:placeholder-shown {
 div.notifications-template-container {display:none}
 
 option.exceptional-option {font-style: italic}
+option.invalid-select {font-style: italic}
 
 div.questions__item__footer span.question-bounty-container { float:right }
 

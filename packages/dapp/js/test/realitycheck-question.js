@@ -60,6 +60,7 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000001')).to.equal('Yes');
     expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000000')).to.equal('No');
     expect(rc_question.getAnswerString(q, '0000000000000000000000000000000000000000000000000000000000000003')).to.equal('');
+    expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('Invalid');
   });
   it('Handles uints as expected using 1 decimals', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
