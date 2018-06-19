@@ -55,15 +55,6 @@ var START_BLOCK;
 var network_id = null;
 var block_explorer = null;
 
-const EVENT_ACTOR_ARGS = {
-    'LogNewQuestion': 'user',
-    'LogNewAnswer': 'user',
-    'LogFundAnswerBounty': 'user',
-    'LogNotifyOfArbitrationRequest': 'user',
-    'LogClaim': 'user',
-    'LogWithdraw': 'user'
-};
-
 const FETCH_NUMBERS = [100, 2500, 5000];
 
 var last_displayed_block_number = 0;
@@ -3094,7 +3085,7 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
 }
 
 function isForCurrentUser(entry) {
-    var actor_arg = EVENT_ACTOR_ARGS[entry['event']];
+    var actor_arg = 'user';
     if (actor_arg) {
         return (entry.args[actor_arg] == account);
     } else {
