@@ -3115,21 +3115,31 @@ function populateArbitratorSelect(network_arbs) {
         var as = $(this);
         var is_first = true;
         var a_template= as.find('.arbitrator-template-item');
-        is_first = false;
-        for (var na_addr in network_arbs) {
-            if (!network_arbs.hasOwnProperty(na_addr)) {
-                continue;
-            }
-            var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
-            arb_item.val(na_addr);
-            arb_item.text(network_arbs[na_addr]);
-            if (is_first) {
-                arb_item.attr('selected', true);
-                is_first = false;
-            }
-            a_template.after(arb_item);
-        }
+        var append_to = a_template.parent();
         a_template.remove();
+
+        is_first = false;
+        // Global RealityCheck setup is done in the getAccounts handler, do it here too to allow those to work in parallel for faster loading
+        const myr = contract(rc_json);
+        myr.setProvider(web3.currentProvider);
+        myr.deployed().then(function(myri) {
+            for (var na_addr in network_arbs) {
+                if (!network_arbs.hasOwnProperty(na_addr)) {
+                    continue;
+                }
+                myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
+                    var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                    arb_item.val(na_addr);
+                    arb_item.text(network_arbs[na_addr]);
+                    arb_item.attr('question-fee', fee.toString());
+                    if (is_first) {
+                        arb_item.attr('selected', true);
+                        is_first = false;
+                    }
+                    append_to.append(arb_item);
+                });
+            }
+        });
     });
 }
 
