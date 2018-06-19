@@ -3133,6 +3133,21 @@ function populateArbitratorSelect(network_arbs) {
     });
 }
 
+function initializeGlobalVariablesForNetwork(net_id) {
+    network_id = net_id;
+    if (BLOCK_EXPLORERS[net_id]) {
+        block_explorer = BLOCK_EXPLORERS[net_id];
+    } else {
+        // If you've got some unknown test network then we'll just link to main net
+        block_explorer = BLOCK_EXPLORERS[1];
+    }
+    if (START_BLOCKS[net_id]) {
+        START_BLOCK = START_BLOCKS[net_id];
+    } else {
+        START_BLOCK = 1;
+    }
+}
+
 window.onload = function() {
 
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
@@ -3218,25 +3233,12 @@ window.onload = function() {
     setTimeout(bounceEffect, 8000);
 
     web3.version.getNetwork((err, net_id) => {
-
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
                 $('body').addClass('error-invalid-network').addClass('error');
             } else {
-                network_id = net_id;
+                initializeGlobalVariablesForNetwork(net_id);
                 populateArbitratorSelect(arbitrator_list[net_id]);
-
-                if (BLOCK_EXPLORERS[net_id]) {
-                    block_explorer = BLOCK_EXPLORERS[net_id];
-                } else {
-                    // If you've got some unknown test network then we'll just link to main net
-                    block_explorer = BLOCK_EXPLORERS[1];
-                }
-                if (START_BLOCKS[net_id]) {
-                    START_BLOCK = START_BLOCKS[net_id];
-                } else {
-                    START_BLOCK = 1;
-                }
             }
         }
     });
