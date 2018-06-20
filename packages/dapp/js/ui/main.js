@@ -27,7 +27,6 @@ var user_claimable = {};
 var category = null;
 var template_blocks = {};
 var template_content = TEMPLATE_CONFIG.content;
-var QUESTION_DELIMITER = rc_question.delimiter(); '\u241f'; // Thought about '\u0000' but it seems to break something;
 
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
