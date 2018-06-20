@@ -1,3 +1,5 @@
+'use strict';
+
 const TEMPLATE_CONFIG = require('../config/templates.json');
 
 exports.defaultTemplateIDForType = function(template_type) {

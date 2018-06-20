@@ -1,3 +1,5 @@
+'use strict;';
+
 const BN = require('bn.js');
 const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
