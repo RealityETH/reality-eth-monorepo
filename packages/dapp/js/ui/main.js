@@ -9,17 +9,17 @@ const rc_template = require('../lib/realitycheck-template.js');
 const Web3 = require('web3');
 var web3js;
 
-var rc_json = require('../../truffle/build/contracts/RealityCheck.json');
-var arb_json = require('../../truffle/build/contracts/Arbitrator.json');
+const rc_json = require('../../truffle/build/contracts/RealityCheck.json');
+const arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
-var arbitrator_list = require('../config/arbitrators.json');
+const arbitrator_list = require('../config/arbitrators.json');
 const TEMPLATE_CONFIG = require('../config/templates.json');
 
-var contract = require("truffle-contract");
-var BigNumber = require('bignumber.js');
-var timeago = require('timeago.js');
-var timeAgo = new timeago();
-var jazzicon = require('jazzicon');
+const contract = require("truffle-contract");
+const BigNumber = require('bignumber.js');
+const timeago = require('timeago.js');
+const timeAgo = new timeago();
+const jazzicon = require('jazzicon');
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {}; 
@@ -53,7 +53,6 @@ const START_BLOCKS = {
     4: 1400000
 }
 var START_BLOCK; 
-
 
 var network_id = null;
 var block_explorer = null;
