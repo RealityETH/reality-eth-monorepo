@@ -25,3 +25,6 @@ python manage.py load_request_queue --min_block_height=0 --max_block_height=0
 To run the twitter bot you'll need a Twitter account with api keys etc, also managed in secrets.py.
 python manage.py tweet
 
+To run everything in the background, do
+python manage.py daemon
+
