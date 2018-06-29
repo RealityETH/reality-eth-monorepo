@@ -13,6 +13,7 @@ const rc_json = require('../../truffle/build/contracts/RealityCheck.json');
 const arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
 const arbitrator_list = require('../config/arbitrators.json');
+
 const TEMPLATE_CONFIG = require('../config/templates.json');
 
 const contract = require("truffle-contract");
@@ -20,6 +21,9 @@ const BigNumber = require('bignumber.js');
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
+
+// Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
+var verified_arbitrators = {}; 
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {}; 
@@ -276,10 +280,18 @@ $(document).on('change', 'input.arbitrator-other', function() {
     var arb_text = $(this).val();
     var sel_cont = $(this).closest('.select-container');
     if (/^(0x)?[0-9a-f]{1,40}$/i.test(arb_text)) {
-        rc.arbitrator_question_fees.call(arb_text).then(function(fee) {
-            populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), fee);
-        }).catch(function() {
-            populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), new BigNumber(0));
+        Arbitrator.at(arb_text).then(function(ar) {
+            ar.realitycheck().call().then(function(rcaddr) {
+                if (rcaddr != rc.address) {
+                    console.log('reality check mismatch');
+                    return;
+                }
+                rc.arbitrator_question_fees.call(arb_text).then(function(fee) {
+                    populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), fee);
+                }).catch(function() {
+                    populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), new BigNumber(0));
+                });
+            });
         });
     } else {
         populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), new BigNumber(0));
@@ -444,7 +456,9 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     var timeout = win.find('.step-delay');
     var timeout_val = parseInt(timeout.val());
     var arbitrator = win.find('.arbitrator').val();
-    var expected_question_fee = new BigNumber(win.find('.arbitrator option:selected').attr('data-question-fee'));
+
+    var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
+    var expected_question_fee = expected_question_fee_attr ? new BigNumber(expected_question_fee_attr) : new BigNumber(0);
 
     if (arbitrator == 'other') {
         arbitrator = win.find('input.arbitrator-other').val();
@@ -467,80 +481,86 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         var opening_ts = new Date(opening_ts_val);
         opening_ts = opening_ts / 1000;
 
-        rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
-            if (!fee.equals(expected_question_fee)) {
-                console.log('fee has changed');
-                populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
+        validateArbitratorForContract(arbitrator).then(function(is_ok) {
+            if (!is_ok) {
+                console.log('bad arbitrator');
                 return;
             }
-            
-            rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)})
-            .then(function(txid) {
-                //console.log('sent tx with id', txid);
-                
-                // Make a fake log entry
-                var fake_log = {
-                    'entry': 'LogNewQuestion',
-                    'blockNumber': 0, // unconfirmed
-                    'args': {
-                        'question_id': question_id,
-                        'user': account,
-                        'arbitrator': arbitrator,
-                        'timeout': new BigNumber(timeout_val),
-                        'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                        'template_id': new BigNumber(template_id),
-                        'question': qtext,
-                        'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
-                        'opening_ts': new BigNumber(parseInt(opening_ts))
-                    }
+            rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
+                if (!fee.equals(expected_question_fee)) {
+                    console.log('fee has changed');
+                    populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
+                    return;
                 }
-                var fake_call = [];
-                fake_call[Qi_finalization_ts-1] = new BigNumber(0);
-                fake_call[Qi_is_pending_arbitration] = false;
-                fake_call[Qi_arbitrator-1] = arbitrator;
-                fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-                fake_call[Qi_content_hash-1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                fake_call[Qi_bounty-1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
-                fake_call[Qi_best_answer-1] = "0x0";
-                fake_call[Qi_bond-1] = new BigNumber(0);
-                fake_call[Qi_history_hash-1] = "0x0";
-                fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
+                
+                rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)})
+                .then(function(txid) {
+                    //console.log('sent tx with id', txid);
+                    
+                    // Make a fake log entry
+                    var fake_log = {
+                        'entry': 'LogNewQuestion',
+                        'blockNumber': 0, // unconfirmed
+                        'args': {
+                            'question_id': question_id,
+                            'user': account,
+                            'arbitrator': arbitrator,
+                            'timeout': new BigNumber(timeout_val),
+                            'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                            'template_id': new BigNumber(template_id),
+                            'question': qtext,
+                            'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                            'opening_ts': new BigNumber(parseInt(opening_ts))
+                        }
+                    }
+                    var fake_call = [];
+                    fake_call[Qi_finalization_ts-1] = new BigNumber(0);
+                    fake_call[Qi_is_pending_arbitration] = false;
+                    fake_call[Qi_arbitrator-1] = arbitrator;
+                    fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
+                    fake_call[Qi_content_hash-1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                    fake_call[Qi_bounty-1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
+                    fake_call[Qi_best_answer-1] = "0x0";
+                    fake_call[Qi_bond-1] = new BigNumber(0);
+                    fake_call[Qi_history_hash-1] = "0x0";
+                    fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
 
-                var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
-                q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
-                q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+                    var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
+                    q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
+                    q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
-                // Turn the post question window into a question detail window
-                var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-                win.html(rcqa.html());
-                win = populateQuestionWindow(win, q, false);
-        
-                // TODO: Once we have code to know which network we're on, link to a block explorer
-                win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
-                win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
-                win.addClass('unconfirmed-transaction').addClass('has-warnings');
-                win.attr('data-pending-txid', txid);
+                    // Turn the post question window into a question detail window
+                    var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                    win.html(rcqa.html());
+                    win = populateQuestionWindow(win, q, false);
+            
+                    // TODO: Once we have code to know which network we're on, link to a block explorer
+                    win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
+                    win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
+                    win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                    win.attr('data-pending-txid', txid);
 
-                win.find('.rcbrowser__close-button').on('click', function(){
-                    let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-                    let left = parseInt(parent_div.css('left').replace('px', ''));
-                    let top = parseInt(parent_div.css('top').replace('px', ''));
-                    let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-                    let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-                    left += data_x; top += data_y;
-                    window_position[question_id] = {};
-                    window_position[question_id]['x'] = left;
-                    window_position[question_id]['y'] = top;
-                    win.remove();
-                    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                    win.find('.rcbrowser__close-button').on('click', function(){
+                        let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                        let left = parseInt(parent_div.css('left').replace('px', ''));
+                        let top = parseInt(parent_div.css('top').replace('px', ''));
+                        let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                        let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                        left += data_x; top += data_y;
+                        window_position[question_id] = {};
+                        window_position[question_id]['x'] = left;
+                        window_position[question_id]['y'] = top;
+                        win.remove();
+                        document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                    });
+
+                    var window_id = 'qadetail-' + question_id;
+                    win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                    win.attr('id', window_id);
+                    win.attr('data-question-id', question_id);
+                    Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
                 });
-
-                var window_id = 'qadetail-' + question_id;
-                win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
-                win.attr('id', window_id);
-                win.attr('data-question-id', question_id);
-                Ps.initialize(win.find('.rcbrowser-inner').get(0));
-
             });
         });
     }
@@ -3162,25 +3182,57 @@ function populateArbitratorSelect(network_arbs) {
         // Global RealityCheck setup is done in the getAccounts handler, do it here too to allow those to work in parallel for faster loading
         const myr = contract(rc_json);
         myr.setProvider(web3js.currentProvider);
+
+        const mya = contract(arb_json);
+        mya.setProvider(web3js.currentProvider);
+
         myr.deployed().then(function(myri) {
-            for (var na_addr in network_arbs) {
-                if (!network_arbs.hasOwnProperty(na_addr)) {
-                    continue;
-                }
-                myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
-                    var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
-                    arb_item.val(na_addr);
-                    populateArbitratorOptionLabel(arb_item, fee, network_arbs[na_addr]);
-                    if (is_first) {
-                        arb_item.attr('selected', true);
-                        is_first = false;
+            $.each( network_arbs, function( na_addr, na_title ) {
+                mya.at(na_addr).then(function(arb_inst) {
+                    return arb_inst.realitycheck.call();
+                }).then(function(rc_addr) {
+                     console.log('arb has rc addr', rc_addr); 
+                     var is_arb_valid = (rc_addr == myr.address); 
+                     verified_arbitrators[na_addr] = is_arb_valid;
+                     console.log(verified_arbitrators);
+                     return is_arb_valid;
+                }).then(function(is_arb_valid) {
+                    if (is_arb_valid) {
+                        myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
+                            var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                            arb_item.val(na_addr);
+                            populateArbitratorOptionLabel(arb_item, fee, na_title);
+                            if (is_first) {
+                                arb_item.attr('selected', true);
+                                is_first = false;
+                            }
+                            append_before.before(arb_item);
+                        });
+                    } else {
+                        console.log('Arbitrator does not work for this contract:', na_addr);
                     }
-                    append_before.before(arb_item);
                 });
-            }
+            });
         });
     });
 }
+
+function validateArbitratorForContract(arb_addr) {
+    return new Promise((resolve, reject)=>{
+		if (verified_arbitrators[arb_addr]) {
+			resolve(true);
+		}
+
+        const mya = contract(arb_json);
+        mya.setProvider(web3js.currentProvider);
+		mya.at(arb_addr).then(function(myainst) {
+            myainst.realitycheck.call().then(function(rslt) {
+                resolve(arb_addr == rslt);
+            });
+		});
+    })
+}
+
 
 function humanReadableWei(amt) {
     var unit;
