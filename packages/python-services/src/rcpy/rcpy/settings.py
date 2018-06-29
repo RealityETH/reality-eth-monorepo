@@ -23,6 +23,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'rcindex',
+    'rctwitter'
 ]
 
 MIDDLEWARE = []
