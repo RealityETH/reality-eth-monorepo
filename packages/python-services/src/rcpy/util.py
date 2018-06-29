@@ -22,8 +22,6 @@ def rr_instance(web3rpc = None):
 
     # print data['abi']
 
-    print("connect to " + settings.GETH_RPC_HOST + ":" + settings.GETH_RPC_PORT)
-
     if settings.RKETH_ENVIRONMENT != 'test':
         # web3ipc = Web3(IPCProvider(ipc_path=settings.GETH_IPC, testnet=settings.GETH_TESTNET))
         #web3rpc = Web3(HTTPProvider(host=settings.GETH_RPC_HOST, port=settings.GETH_RPC_PORT))
