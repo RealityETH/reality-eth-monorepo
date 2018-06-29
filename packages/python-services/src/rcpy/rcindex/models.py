@@ -191,9 +191,21 @@ class RCQuestion(models.Model):
 
     def summaryString(self):
         t = self.questionText()
+
         if HexToPythonInt(self.bounty) > 0:
             t = t + ' (pays ' + HumanReadableWei(self.bounty) + ')'
+
+        if self.finalize_ts > 0:
+            t = t + "\n"
+            t = t + self.currentBestAnswerText()
+            t = t + ' (bond ' +HumanReadableWei(self.bond) + ')'
+
         return t
+
+    def currentBestAnswerText(self):
+        qdict = self.populatedJSON()
+        ans = self.best_answer
+        return RealityCheckQuestion.getAnswerString(qdict, ans)
 
     def populatedJSON(self):
         tid = self.template_id
