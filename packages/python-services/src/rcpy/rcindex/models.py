@@ -22,6 +22,10 @@ from binascii import unhexlify
 import util
 from django.utils import timezone
 
+from rcindex.realitycheck_question import RealityCheckQuestion
+from rcindex.realitycheck_template import RealityCheckTemplate
+from rcindex.eth_util import HumanReadableWei, HexToPythonInt
+
 class EthBlock(models.Model):
 	
     block_id = models.IntegerField(primary_key=True)
@@ -180,6 +184,27 @@ class RCQuestion(models.Model):
         self.bond = util.formatHex(q_data[Qi_bond])
         self.db_refreshed_at = timezone.now()
         self.save() 
+
+    def questionText(self):
+        qdict = self.populatedJSON()
+        return qdict['title']
+
+    def summaryString(self):
+        t = self.questionText()
+        if HexToPythonInt(self.bounty) > 0:
+            t = t + ' (pays ' + HumanReadableWei(self.bounty) + ')'
+        return t
+
+    def populatedJSON(self):
+        tid = self.template_id
+        t = RCTemplate.objects.get(pk=tid)
+        if t is None:
+            print("missing template, skipping")
+            return None
+        else:
+            template_text = t.question_text
+            return RealityCheckQuestion.populatedJSONForTemplate(template_text, self.question)
+
 
 class RCAnswer(models.Model):
 
