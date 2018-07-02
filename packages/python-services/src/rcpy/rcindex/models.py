@@ -19,7 +19,6 @@ from sha3 import keccak_256 # keccak, change before upgrading pysha >= 3.10
 
 from binascii import unhexlify
 
-import util
 from django.utils import timezone
 
 from rcindex.realitycheck_question import RealityCheckQuestion
@@ -202,6 +201,9 @@ class RCQuestion(models.Model):
             t = t + "\n"
             t = t + self.currentBestAnswerText()
             t = t + ' (bond ' +HumanReadableWei(self.bond) + ')'
+
+        t = t + "\n"
+        t = t + util.questionURL(self.question_id)
 
         return t
 

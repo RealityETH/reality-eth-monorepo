@@ -67,4 +67,4 @@ GETH_RPC_HOST = '127.0.0.1'
 GETH_RPC_PORT = '8545'
 GETH_TESTNET = False
 
-
+URL_QUESTION_BASE = 'https://rc-dev-1.socialminds.jp/dev/#!/question/'

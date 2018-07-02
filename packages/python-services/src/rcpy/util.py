@@ -42,3 +42,6 @@ def rr_instance(web3rpc = None):
 def formatHex(data):
     s = web3.Web3.toHex(data)
     return '0x' + s[2:].zfill(64)
+
+def questionURL(question_id):
+    return settings.URL_QUESTION_BASE + question_id
