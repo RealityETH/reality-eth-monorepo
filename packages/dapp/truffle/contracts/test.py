@@ -540,6 +540,19 @@ class TestRealityCheck(TestCase):
             st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_commit_with_arbitration_pending(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, t.k3, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+
+        #with self.assertRaises(TransactionFailed):
+        st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_not_final(self):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, t.k4)
