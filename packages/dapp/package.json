@@ -46,7 +46,7 @@
     "jquery-browserify": "^1.8.1",
     "jquery-datepicker": "1.11.5",
     "jquery-expander": "^1.7.0",
-    "node-sass": "^4.5.0",
+    "node-sass": "^4.9.0",
     "perfect-scrollbar": "^0.6.16",
     "postcss-cli": "^2.6.0",
     "sass-lint": "^1.10.2",

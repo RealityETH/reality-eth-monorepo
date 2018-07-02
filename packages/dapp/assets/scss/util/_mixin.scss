@@ -7,3 +7,7 @@
     background-color: $buttonGreen;
     box-shadow: inset 0 0 0 1px darken($buttonGreen, 22%);
 }
+
+@mixin box_shadow {
+    box-shadow: 0 0 5px rgba(0,0,0,.2) ;
+}
