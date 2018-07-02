@@ -157,12 +157,13 @@ class RCQuestion(models.Model):
 
     @staticmethod
     def RefreshUpdated(rr):
-        sql = "select * from rcindex_rcquestion left outer join rcindex_rcanswer on rcindex_rcquestion.question_id=rcindex_rcanswer.question_id where db_refreshed_at is null or db_refreshed_at < rcindex_rcanswer.db_created_at group by rcindex_rcquestion.question_id;"
+        sql = "select rcindex_rcquestion.question_id, rcindex_rcquestion.block_id as block_id, rcindex_rcanswer.block_id as answer_block_id from rcindex_rcquestion left outer join rcindex_rcanswer on rcindex_rcquestion.question_id=rcindex_rcanswer.question_id where db_refreshed_at is null or db_refreshed_at < rcindex_rcanswer.db_created_at group by rcindex_rcquestion.question_id;"
         questions = RCQuestion.objects.raw(sql)
         for q in questions:
-            q.refresh(rr)
+            changed_block_id = q.answer_block_id
+            q.refresh(rr, changed_block_id)
 
-    def refresh(self, rr):
+    def refresh(self, rr, changed_block_id):
 
         Qi_content_hash = 0
         Qi_arbitrator = 1
@@ -183,6 +184,8 @@ class RCQuestion(models.Model):
         self.history_hash = util.formatHex(q_data[Qi_history_hash])
         self.bond = util.formatHex(q_data[Qi_bond])
         self.db_refreshed_at = timezone.now()
+        if changed_block_id > self.block_id:
+            self.block_id = changed_block_id
         self.save() 
 
     def questionText(self):
@@ -222,6 +225,7 @@ class RCAnswer(models.Model):
 
 	# Will be synthesized from question ID + bond
     answer_id = models.CharField(unique=True, editable=False, max_length=66, primary_key=True, null=False)
+    block = models.ForeignKey(EthBlock, on_delete=models.CASCADE) # ethereum calls this blockNumber not block_id
     answer = models.CharField(unique=False, editable=False, max_length=66, null=True)
     answer_commitment = models.CharField(unique=True, editable=False, max_length=66, null=True)
     question = models.ForeignKey(RCQuestion, on_delete=models.CASCADE)
@@ -261,6 +265,7 @@ class RCAnswer(models.Model):
 
             rcareq = RCAnswer(
                 answer = util.formatHex(l['args']['answer']),
+                block = ethblock,
                 answer_commitment = None,
 				question = q,
                 history_hash = util.formatHex(l['args']['history_hash']),
