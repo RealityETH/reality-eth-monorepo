@@ -120,6 +120,7 @@ contract RealityCheck is BalanceHolder {
 
     uint256 nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
+    mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
@@ -218,6 +219,7 @@ contract RealityCheck is BalanceHolder {
     public returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
+        template_hashes[id] = keccak256(content);
         LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id.add(1);
         return id;
