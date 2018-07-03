@@ -107,7 +107,8 @@ contract Arbitrator is Owned {
     /// @dev The bounty can be paid only in part, in which case the last person to pay will be considered the payer
     /// Will trigger an error if the notification fails, eg because the question has already been finalized
     /// @param question_id The question in question
-    function requestArbitration(bytes32 question_id) 
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    function requestArbitration(bytes32 question_id, uint256 max_previous) 
     external payable returns (bool) {
 
         uint256 arbitration_fee = getDisputeFee(question_id);
@@ -117,7 +118,7 @@ contract Arbitrator is Owned {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            realitycheck.notifyOfArbitrationRequest(question_id, msg.sender);
+            realitycheck.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
             LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {

@@ -401,9 +401,11 @@ contract RealityCheck is BalanceHolder {
     /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
     /// @param question_id The ID of the question
     /// @param requester The account that requested arbitration
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) 
         onlyArbitrator(question_id)
         stateOpen(question_id)
+        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
         questions[question_id].is_pending_arbitration = true;
         LogNotifyOfArbitrationRequest(question_id, requester);
