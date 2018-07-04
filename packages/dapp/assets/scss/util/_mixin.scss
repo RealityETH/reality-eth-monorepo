@@ -1,6 +1,34 @@
 @mixin button_blue {
-    background-color: $blue;
-    box-shadow: inset 0 0 0 1px darken($blue, 22%);
+    width: 240px;
+    height: 60px;
+    line-height: 60px;
+    text-align: center;
+    color: #ffffff;
+    font-size: inherit;
+    font-weight: 500;
+    border-radius: 8px;
+    text-decoration: none;
+    box-shadow: rgba(23, 43, 99, 0.26) 2px 2px 5px;
+    transition: all 100ms;
+    padding: 2px !important;
+    background: $blue; /* Old browsers */
+    background: -moz-linear-gradient(top, #27b4ee 0%, #0aaaec 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top, #27b4ee 0%,#0aaaec 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom, #27b4ee 0%,#0aaaec 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#27b4ee', endColorstr='#0aaaec',GradientType=0 ); /* IE6-9 */
+}
+
+@mixin button_white {
+  width: 240px;
+  height: 60px;
+  line-height: 60px;
+  font-weight: 500;
+  color: #757b82;
+  text-align: center;
+  background-color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 @mixin button_green {
@@ -11,3 +39,31 @@
 @mixin box_shadow {
     box-shadow: 0 0 5px rgba(0,0,0,.2) ;
 }
+
+@mixin tooltip {
+    width: 360px;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: -20px;
+    background-color: $blue;
+    padding: 20px;
+    color: $white;
+    font-size: 15px;
+    z-index: 2;
+    display: none;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+@mixin tooltip_after {
+    display: block;
+    content: "";
+    border-top: solid 6px $blue;
+    border-left: solid 6px transparent;
+    border-right: solid 6px transparent;
+    border-bottom: solid 6px transparent;
+    position: absolute;
+    bottom: -12px;
+    right: 24px;
+}
+
