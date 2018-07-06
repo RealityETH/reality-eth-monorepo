@@ -1,9 +1,11 @@
 #!/bin/bash -x
 
 SRC_DIR="."
-BUILD_DIR=/tmp/realitycheck-build
-REPO=git@github.com:realitykeys/realitycheck.git
+BUILD_DIR=/tmp/realitio-build
+REPO=git@github.com:realitio/realitio.github.io.git
 ME=`basename "$0"`
+
+CURR_COMMIT=`git log | head -1`
 
 if [ ! -f "$SRC_DIR/$ME" ]
 then
@@ -22,22 +24,22 @@ then
     mkdir $BUILD_DIR
     git clone $REPO $BUILD_DIR
     pushd $BUILD_DIR
-    git checkout gh-pages
+    git checkout realitio.github.io
     popd
 fi
 
 pushd $BUILD_DIR
 git pull
-git checkout master
-git pull
-git checkout gh-pages
-git merge master -m "Update to latest master"
 popd
+
 rsync -avz --delete $SRC_DIR/docs/html/ $BUILD_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/truffle/build/ $BUILD_DIR/truffle/build/
 rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
+rsync -avz --delete $SRC_DIR/truffle/build/ $BUILD_DIR/truffle/build/
+rsync -avz --delete $SRC_DIR/cli/ $BUILD_DIR/cli/
+rsync -avz --delete $SRC_DIR/js/ $BUILD_DIR/js/
+cp $SRC_DIR/index.html $BUILD_DIR/index.html
 
 cd $BUILD_DIR
 git add .
-git commit -m "Update to latest build"
+git commit -m "Update to latest build to $CURR_COMMIT"
 git push
