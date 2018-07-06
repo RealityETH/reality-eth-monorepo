@@ -3,11 +3,9 @@
 <head>
     <meta charset="utf-8">
 
-    <title>RealityCheck (Testnet)</title>
-    <meta name="description" content="Reality Check (Testnet)">
-
+    <title>Realit.io</title>
+    <meta name="description" content="Realit.io">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,400i,500,500i,700,700i" rel="stylesheet">
     <link rel='shortcut icon' href='assets/image/favicon.ico' type='image/x-icon' />
     <!--
     <link href="assets/fonts/Roboto/css/fonts.css" rel="stylesheet">
@@ -15,116 +13,65 @@
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css" >
 </head>
-<body >
-    <div class="tooltip tooltip--checkyourqa">
-        Check your Q&amp;A
+<body>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <div class="page-bg"></div>
+    <div class="header-visual">
+        <div class="square-left">
+            <div class="square-inner"></div>
+        </div>
+        <div class="square-right"></div>
     </div>
-
     <div id="primary-container">
         <div class="error-bar">
-            <div class="error-label no-metamask-plugin-image"><a href="https://metamask.io"><img src="assets/image/download-metamask.png" width="88px" height="24px"></a></div>
+            <div class="error-label no-metamask-plugin-image">
+                <a href="https://metamask.io"><img src="assets/image/download-metamask.png" width="88px" height="24px"></a>
+            </div>
             <span class="error-label no-metamask-plugin">You need to <a href="https://metamask.io">install the MetaMask plugin</a> to use Reality Check. </span>
             <span class="error-label no-metamask-accounts">No accounts found. Please make sure MetaMask is unlocked then refresh the page.</span>
             <span class="error-label invalid-network">Invalid network. Please use the Rinkeby test network.</span>
             <span data-network-id="4,8995,1337"></span>
         </div>
+    </div>
+    <div id="main">
+        <div class="tooltip tooltip--checkyourqa">
+            Check your Q&amp;A
+        </div>
         <header id="site-header">
-            <div id="site-header-inner">
-                <h1 id="site-title">
-                    <a href=""><img id="site-logo" src="assets/image/logomark.svg"></a>
-                </h1>
-
-                <a href="" class="rcbrowser__open-button post-a-question-link">Post a Question</a>
-                <a class="browse-question-link" href="">Browse Questions</a>
-                <a id="help-center-button" href="">How it works</a>
-                <a style="visibility:hidden" class="search-button" href="#search"></a> 
-
-                <div id="your-qa-button-container">
-                    <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">
-                        <span id="push-icon"></span>
-                    </a>
-                </div>
+            <a href="">How it works</a>
+            <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My Account</a>
+            <h1 class="logo">
+                <a href="/">Realit.io</a>
+            </h1>
+            <div id="site-introduction__buttons">
+                <a id="post-a-question-button" class="rcbrowser__open-button" data-target-id="id0" href="">Ask a Question</a>
             </div>
         </header>
-
-        <div id="site-introduction">
-            <div id="site-slogan-normal" class="site-slogan"><span>Reality Check</span> in is public testing.</div>
-            <div id="site-slogan-browse-qa" class="site-slogan" style="display:none;">Browse Questions.</div>
-            <h2 id="site-description">Reality Check is a crowd-sourced smart contract oracle system by Reality Keys.<br />Whether you're a human or an Ethereum contract, Reality Check provides financial incentives to get you the facts in the post-truth era.</h2>
-
-            <div id="site-introduction__buttons">
-                <a id="post-a-question-button" class="rcbrowser__open-button" data-target-id="id0" href="">Post a Question</a>
-                <a id="browse-question-button" href="">Browse Questions</a>
-            </div>
-        </div>
-
-        <div id="scrolltodiscover-container">
-            <div id="scrolltodiscover">
-                <div class="arrow-down-icon-container">
-                    <div class="arrow-down-icon"></div>
+        <div id="questions-container" class="panel">
+            <div class="questions-container-header">
+                <div class="nav-bar">
+                    <ul class="main-nav">
+                        <li><a data-menu="questions-latest" class="selected">Latest</a></li>
+                        <li><a data-menu="questions-closing-soon">Closing Soon</a></li>
+                        <li><a data-menu="questions-high-reward">High Reward</a></li>
+                        <li><a data-menu="questions-resolved">Resolved</a></li>
+                    </ul>
+                    <script type="text/javascript">
+                        $(function() {
+                            $(".main-nav a").click(function(e){
+                                $(".main-nav a").removeClass("selected");
+                                $(this).addClass("selected");
+                                $(".questions").hide();
+                                var selector = "#" + $(this).data("menu");
+                                $(selector).show();
+                                //alert($(this).data("menu"));
+                            });
+                        });
+                    </script>
                 </div>
-                <span>Scroll to Discover</span>
-            </div>
-        </div>
-
-        <div id="cover"></div>
-    </div>
-
-    <div id="main">
-        <div id="questions-container">
-            <div id="questions-closing-soon" class="questions">
-                <h3 class="questions-header">
-                    <span class="questions-header__icon questions-header__icon--best" aria-hidden="true"><span></span></span>
-                    <span>Closing Soon</span>
-                </h3>
-
-                <div class="questions-list">
-                </div><!-- /.questions-list -->
-
-                <div class="loadmore-button" data-questions="questions-closing-soon">
-                    <span class="loadmore-text">Load More</span>
-                    <span class="loader"></span>
-                </div>
-            </div>
-
-            <div id="questions-latest" class="questions">
-                <h3 class="questions-header">
-                    <span class="questions-header__icon questions-header__icon--latest" aria-hidden="true"><span></span></span>
-                    <span>Latest Questions</span>
-                </h3>
-
-                <div class="questions-list">
-                </div><!-- /.questions-list -->
-
-                <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
-                    <span class="loadmore-text">Load More</span>
-                    <span class="loader"></span>
-                </div>
-            </div>
-
-            <div id="questions-high-reward" class="questions">
-                <h3 class="questions-header">
-                    <span class="questions-header__icon questions-header__icon--high-reward" aria-hidden="true"><span></span></span>
-                    <span>High Reward Questions</span>
-                </h3>
-
-                <div class="questions-list">
-                </div><!-- /.questions-list -->
-
-                <div id="loadmore-high-reward" class="loadmore-button" data-questions="questions-high-reward">
-                    <span class="loadmore-text">Load More</span>
-                    <span class="loader"></span>
-                </div>
-            </div>
-
-            <div id="questions-resolved" class="questions">
-                <div id="filter">
-                    <div id="filter-header">
-                        <span>Filter by:</span>
-                        <span id="filterby">All</span>
-                    </div>
+                <div class="category-list">
                     <ul id="filter-list">
-                        <li><a data-category="all">All</a></li>
+                        <li><a data-category="all" class="selected">All</a></li>
                         <li><a data-category="sports">Sports</a></li>
                         <li><a data-category="politics">Politics</a></li>
                         <li><a data-category="weather">Weather</a></li>
@@ -136,13 +83,55 @@
                         <li><a data-category="misc">Miscellaneous</a></li>
                     </ul>
                 </div>
-
-                <h3 class="questions-header">
-                    <span class="questions-header__icon questions-header__icon--resolved" aria-hidden="true"><span></span></span>
-                    <span>Resolved Questions</span>
-                </h3>
+            </div>
+            <div id="questions-closing-soon" class="questions hidden">
 
                 <div class="questions-list">
+                    <div class="no-questions hidden">
+                        <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
+                    </div>
+                </div><!-- /.questions-list -->
+
+                <div class="loadmore-button" data-questions="questions-closing-soon">
+                    <span class="loadmore-text">Load More</span>
+                    <span class="loader"></span>
+                </div>
+            </div>
+
+            <div id="questions-latest" class="questions">
+
+                <div class="questions-list">
+                    <div class="no-questions hidden">
+                        <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
+                    </div>
+                </div><!-- /.questions-list -->
+
+                <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
+                    <span class="loadmore-text">Load More</span>
+                    <span class="loader"></span>
+                </div>
+            </div>
+
+            <div id="questions-high-reward" class="questions hidden">
+
+                <div class="questions-list">
+                    <div class="no-questions hidden">
+                        <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
+                    </div>
+                </div><!-- /.questions-list -->
+
+                <div id="loadmore-high-reward" class="loadmore-button" data-questions="questions-high-reward">
+                    <span class="loadmore-text">Load More</span>
+                    <span class="loader"></span>
+                </div>
+            </div>
+
+            <div id="questions-resolved" class="questions hidden">
+
+                <div class="questions-list">
+                    <div class="no-questions hidden">
+                        <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
+                    </div>
                 </div><!-- /.questions-list -->
 
                 <div class="loadmore-button" data-questions="questions-resolved">
@@ -158,43 +147,33 @@
         <a id="got-it-button" href="">Got it</a>
     </div>
 
-    <footer id="site-footer">
-        <nav id="site-footer-nav">
-            <ul>
-                <li><a href="" class="rcbrowser__open-button post-a-question-link" data-target-id="id0">Post a Question</a></li>
-                <li><a href="" class="browse-question-link">Browse Questions</a></li>
-                <li><a href="" class="rcbrowser__open-button your-qa-link" data-target-id="id2">Your Q&amp;A</a></li>
-                <li><a target="docs" href="docs/html">Documentation</a></li>
-                <li><a target="docs" href="docs/html/contracts.html">Developers</a></li>
-
-            </ul>
-        </nav>
+    <footer id="site-footer" class="clearfix">
 
         <nav id="site-footer-nav--secondary">
-            <ul id="copyright">
-                <span>Powered by</span>
-                <li><a href="">Social Minds Inc.</a></li>
-            </ul>
 
-            <ul>
-                <span>For Developers</span>
-                <li><a target="docs" href="docs/html/contracts.html">Contract API</a></li>
-                <li><a target="source" href="https://github.com/realitykeys/realitycheck">Source code</a></li>
-            </ul>
+            <div class="cols">
+                <h1 class="logo">
+                    <a href="/">Realit.io</a>
+                </h1>
+            </div>
+            <div class="cols">
+                <h3>Learn More</h3>
+                <ul>
+                    <li><a href="https://github.com/realitykeys/realitycheck">Github</a></li>
+                    <li><a href="https://realitykeys.github.io/realitycheck/docs/html/">Documentation</a></li>
+                    <li><a href="">White Paper</a></li>
+                </ul>
+            </div>
 
-            <ul>
-                <span>Our Related Projects</span>
-                <li><a target="_blank" href="https://www.realitykeys.com">Reality Keys</a></li>
-                <li><a target="_blank" href="https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd">Subjectivocracy</a></li>
-            </ul>
-
-            <ul>
-                <span>Get in touch</span>
-                <li><a target="_blank" href="https://www.twitter.com/realitykeys">Twitter</a></li>
-                <li><a target="_blank" href="https://gitter.im/realitykeys/realitycheck">Gitter</a></li>
-            </ul>
+            <div class="cols">
+                <h3>Join Us</h3>
+                <ul>
+                    <li><a href=""><span class="icon discord">Discord</span>s</a></li>
+                    <li><a href="https://twitter.com/RealityKeys"><span class="icon twitter">Twitter</span></a></li>
+                    <li><a href="https://medium.com/@edmundedgar"><span class="icon twitter">Medium</span></a></li>
+                </ul>
+            </div>
         </nav>
-
         <a id="backtotop" href="#"><span></span></a>
     </footer>
 
@@ -250,6 +229,7 @@
                     <span></span>
                     <span></span>
                 </div>
+                <h2 class="rcbrowser-main-header-title">My Account</h2>
 
                 <div class="rcbrowser-loader-container rcbrowser-loader-container--your-qa">
                     <span class="loader"></span>
@@ -380,133 +360,23 @@
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
                 <div class="rcbrowser-control">
-                    <span class="rcbrowser__close-button close-question-window " data-target-id="id0"></span>
+                    <span class="rcbrowser__close-button" data-target-id="help-center-window"></span>
                     <span></span>
                     <span></span>
                 </div>
-
+                <h2 class="rcbrowser-main-header-title">Ask a Question</h2>
                 <div class="rcbrowser-loader-container">
                     <span class="loader"></span>
                 </div>
             </div>
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-header">
-                    <h2 class="rcbrowser-main-header-title">Post a Question</h2>
                     <div class="rcbrowser-main-header-subtitle">Your Balance: <span class="account-balance"></span> ETH</div>
                 </div>
                 <div class="rcbrowser-main-body">
                     <form name="postaquestion" action="" method="post" class="rcbrowser-form" data-form-type="question">
-
-                        <div class="textarea-container textarea-container--postaquestion">
-                            <textarea name="question-body" class="question-body rcbrowser-textarea form-item" placeholder="Enter your question..."></textarea>
-                            <div class="error-container">Please enter your question.</div>
-                        </div>
-
-                        <div class="input-container input-container--has-quick-help">
-                            <div class="input-inner">
-                                <!--<span class="input-header">Opening Datetime:</span>-->
-                                <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening Date" style="background-color: #4d535a;">
-                            </div>
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
-                            </div>
-                            <div class="error-container">Please enter datetime.</div>
-                        </div>
-
-                        <div class="input-container  input-container--has-quick-help">
-                            <div class="input-inner">
-                                <span class="input-header">Reward (ETH):</span>
-                                <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0.01">
-
-                            </div>
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
-                            </div>
-                            <div class="error-container">Please enter reward.</div>
-                        </div>
-
-                        <div class="select-container  select-container--has-quick-help">
-                            <select name="question-type" class="question-type rcbrowser-select form-item">
-                                <option value="default">Question Type</option>
-                                <option value="bool" SELECTED>Binary (Yes/No)</option>
-                                <option value="single-select">Select (Single)</option>
-                                <option value="multiple-select">Select (Multiple)</option>
-                                <option value="uint">Number (Positive)</option>
-                                <option value="int">Number (Positive or Negative)</option>
-                                <option value="datetime">Date</option>
-                            </select>
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>The kind of answer your question expects.</span></div>
-                            </div>
-
-                            <div class="error-container">Please select question type.</div>
-                        </div>
-
-                        <div class="answer-option-container edit-option-container">
-                            <div class="edit-option">
-                                <div class="edit-option-inner clearfix">
-                                    <div class="edit-option-header">
-                                        Edit options
-                                    </div>
-
-                                    <div class="input-container first-answer-option ">
-                                        <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
-                                    </div>
-
-                                    <div class="error-container--answer-option error-container error-container--select">Please enter at least two options.</div>
-
-                                    <div class="add-option-button">
-                                        + Add a option
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="select-container select-container--has-quick-help">
-                            <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
-                                <option value="default">Arbitrator</option>
-                                <option class="arbitrator-template-item" value="" ></option>
-                                <option data-text-main="Other (enter address)" class="arbitrator-other-select" value="other" >Other (enter address)</option>
-                            </select>
-
-                            <div class="input-container arbitrator-other">
-                                <input type="text" name="arbitrator-other" class="rcbrowser-input arbitrator-other option form-item" placeholder="Enter an address...">
-                            </div>
-
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
-                            </div>
-                            <div class="error-container">Please select arbitrator.</div>
-                        </div>
-
-                        <div class="select-container select-container--has-quick-help">
-                            <select name="step-delay" class="step-delay rcbrowser-select form-item">
-                                <option value="default">Timeout</option>
-                                <option class="exceptional-option" value="30">30 seconds (for testing)</option>
-                                <option class="exceptional-option" value="180">3 minutes (for testing or use by bots)</option>
-                                <option value="3600">1 hour</option>
-                                <option value="10800">3 hours</option>
-                                <option value="43200">12 hours</option>
-                                <option value="86400" SELECTED>1 day</option>
-                                <option value="172800">2 days</option>
-                                <option value="259200">3 days</option>
-                                <option value="345600">4 days</option>
-                                <option value="432000">5 days</option>
-                                <option value="518400">6 days</option>
-                                <option value="604800">1 week</option>
-                            </select>
-                            <div class="quick-help">
-                                <span class="quick-help-button">?</span>
-                                <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
-                            </div>
-                            <div class="error-container">Please select step delay.</div>
-                        </div>
-
-                        <div class="rcbrowser-form__col-2 clearfix">
+                    <div class="row clearfix">
+                        <div class="cols-2">
                             <div class="select-container select-container--question-category">
                                 <select name="question-category" class="rcbrowser-select form-item">
                                     <option value="default">Category</option>
@@ -522,12 +392,129 @@
                                 </select>
                                 <div class="error-container">Please select category.</div>
                             </div>
+                        </div>
+                        <div class="cols-2">
+                            <div class="select-container  select-container--has-quick-help">
+                                <select name="question-type" class="question-type rcbrowser-select form-item">
+                                    <option value="default">Question Type</option>
+                                    <option value="bool" SELECTED>Binary (Yes/No)</option>
+                                    <option value="single-select">Select (Single)</option>
+                                    <option value="multiple-select">Select (Multiple)</option>
+                                    <option value="uint">Number (Positive)</option>
+                                    <option value="int">Number (Positive or Negative)</option>
+                                    <option value="datetime">Date</option>
+                                </select>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>The kind of answer your question expects.</span></div>
+                                </div>
+                                <div class="error-container">Please select question type.</div>
+                            </div>
+                            <div class="answer-option-container edit-option-container">
+                                <div class="edit-option">
+                                    <div class="edit-option-inner clearfix">
+                                        <div class="edit-option-header">
+                                            Edit options
+                                        </div>
 
-                            <div class="submit-container">
-                                <input type="submit" class="post-question-submit rcbrowser-submit button--bounce" value="Post" data-browser-id="id0" data-form-type="question">
+                                        <div class="input-container first-answer-option ">
+                                            <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
+                                        </div>
+
+                                        <div class="error-container--answer-option error-container error-container--select">Please enter at least two options.</div>
+
+                                        <div class="add-option-button">
+                                            + Add a option
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
 
+                    <div class="textarea-container textarea-container--postaquestion">
+                        <textarea name="question-body" class="question-body rcbrowser-textarea form-item" placeholder="Ask your question here..."></textarea>
+                        <div class="error-container">Please enter your question.</div>
+                    </div>
+                    <div class="row clearfix">
+                        <div class="cols-2">
+                            <div class="input-container  input-container--has-quick-help">
+                                <div class="input-inner">
+                                    <span class="input-header">Reward (ETH):</span>
+                                    <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0.01">
+
+                                </div>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
+                                </div>
+                                <div class="error-container">Please enter reward.</div>
+                            </div>
+                        </div>
+                        <div class="cols-2">
+                            <div class="input-container input-container--has-quick-help">
+                                <div class="input-inner">
+                                    <!--<span class="input-header">Opening Datetime:</span>-->
+                                    <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening Date">
+                                </div>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
+                                </div>
+                                <div class="error-container">Please enter datetime.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row clearfix">
+                        <div class="cols-2">
+                            <div class="select-container select-container--has-quick-help">
+                                <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
+                                    <option value="default">Arbitrator</option>
+                                    <option class="arbitrator-template-item" value="" ></option>
+                                    <option data-text-main="Other (enter address)" class="arbitrator-other-select" value="other" >Other (enter address)</option>
+                                </select>
+
+                                <div class="input-container arbitrator-other">
+                                    <input type="text" name="arbitrator-other" class="rcbrowser-input arbitrator-other option form-item" placeholder="Enter an address...">
+                                </div>
+
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
+                                </div>
+                                <div class="error-container">Please select arbitrator.</div>
+                            </div>
+                        </div>
+                        <div class="cols-2">
+                            <div class="select-container select-container--has-quick-help">
+                                <select name="step-delay" class="step-delay rcbrowser-select form-item">
+                                    <option value="default">Timeout</option>
+                                    <option class="exceptional-option" value="30">30 seconds (for testing)</option>
+                                    <option class="exceptional-option" value="180">3 minutes (for testing or use by bots)</option>
+                                    <option value="3600">1 hour</option>
+                                    <option value="10800">3 hours</option>
+                                    <option value="43200">12 hours</option>
+                                    <option value="86400" SELECTED>1 day</option>
+                                    <option value="172800">2 days</option>
+                                    <option value="259200">3 days</option>
+                                    <option value="345600">4 days</option>
+                                    <option value="432000">5 days</option>
+                                    <option value="518400">6 days</option>
+                                    <option value="604800">1 week</option>
+                                </select>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
+                                </div>
+                                <div class="error-container">Please select step delay.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                        <div class="rcbrowser__buttons clearfix">
+                            <div class="rcbrowser__close-button close-question-window " data-target-id="id0">Cancel</div>
+                            <input type="submit" class="post-question-submit rcbrowser-submit button--bounce" value="Submit" data-browser-id="id0" data-form-type="question">
+                        </div>
                         <span class="rcbrowser-form-footer">&nbsp;</a></span>
                     </form>
                 </div>
@@ -800,11 +787,11 @@
         <div class="rcbrowser-inner">
             <div class="rcbrowser-header">
                 <div class="rcbrowser-control">
-                    <span class="rcbrowser__close-button"></span>
+                    <span class="rcbrowser__close-button" data-target-id="help-center-window"></span>
                     <span></span>
                     <span></span>
                 </div>
-
+                <h2 class="rcbrowser-main-header-title">Question details</h2>
                 <div class="rcbrowser-loader-container">
                     <span class="loader"></span>
                 </div>
@@ -868,10 +855,6 @@
                                         <input type="submit" class="rcbrowser-submit rcbrowser-submit--add-reward button--bounce" value="+ Add Reward" data-browser-id="id5" data-form-type="add-reward">
                                     </div>
                                 </form>
-
-                                <div class="add-reward__close-button" data-browser-id="id5">
-                                    <span>Close</span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -966,7 +949,6 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
-
     <script src="assets/js/bundle.js"></script>
 
 </body>
