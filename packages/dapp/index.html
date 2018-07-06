@@ -82,6 +82,18 @@
                         <li><a data-category="technology-science">Technology / Science</a></li>
                         <li><a data-category="misc">Miscellaneous</a></li>
                     </ul>
+                    <script type="text/javascript">
+                        $(function() {
+                            $("#filter-list a").removeClass("selected");
+                            var category_name = window.location.hash.split("#!/category/")[1];
+                            if(category_name){
+                                var selector = "[data-category=\""+category_name+"\"]";
+                                $(selector).addClass("selected");
+                            } else {
+                                $("[data-category=\"all\"]").addClass("selected");
+                            }
+                        });
+                    </script>
                 </div>
             </div>
             <div id="questions-closing-soon" class="questions hidden">

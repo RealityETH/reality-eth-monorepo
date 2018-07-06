@@ -1206,6 +1206,7 @@ span.rcbrowser__close-button {
 
 .rcbrowser__buttons {
     text-align: center;
+    padding-top: 15px;
 }
 
 // rcBrowser main
@@ -1238,6 +1239,7 @@ span.rcbrowser__close-button {
     font-size: 13px;
     font-weight: 400;
     color: $rcBrowserSubText;
+    margin: 15px 0 0;
 }
 
 .answer-claiming-container {
@@ -1685,6 +1687,36 @@ textarea[name="question-body"] {
     font-size: 20px;
 }
 
+textarea[name="question-body"]::-webkit-input-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 18- */
+textarea[name="question-body"]:-moz-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 19+ */
+textarea[name="question-body"]::-moz-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* IE 10+ */
+textarea[name="question-body"]:-ms-input-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
+textarea[name="question-body"]:placeholder-shown{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
 // rcBrowser reward
 .input-container {
     margin: 15px 0;
@@ -2089,35 +2121,30 @@ label > span {
 textarea::-webkit-input-placeholder,
 input::-webkit-input-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* Firefox 18- */
 textarea:-moz-placeholder,
 input:-moz-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* Firefox 19+ */
 textarea::-moz-placeholder,
 input::-moz-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* IE 10+ */
 textarea:-ms-input-placeholder,
 input:-ms-input-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 
 textarea:placeholder-shown,
 input:placeholder-shown {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 
