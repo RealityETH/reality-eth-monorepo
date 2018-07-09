@@ -16,6 +16,7 @@ The arbitrator's private key should be stored in the secrets directory, in the f
 
 The scripts are:
 
+* set_reality_check.js: Sets the default Reality Check contract
 * set_dispute_fee.js: Sets the default dispute fee 
 * set_question_fee.js: Sets the question fee (we will probably initially leave this at 0, but it may become necessary if network fees drop and the list of open questions gets spammed.)
 * call_withdraw.js: Withdraws any accumulated question fees from the arbitrator's balance in the Reality Check contract to the Arbitrator contract
