@@ -52,6 +52,21 @@ a:hover {
  	display: block;
 }
 
+.overlay {
+    position: absolute;
+    z-index: 200;
+    background: rgba(255,255,255,0.8);
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    display: none;
+}
+
+body.error .overlay {
+    display: block;
+}
+
 input, button, textarea, select {
     margin: 0;
 	padding: 0;
@@ -147,7 +162,7 @@ input, button, textarea, select {
 #site-header {
     width: 100%;
     display: inline-block;
-    height: 360px;
+    height: 240px;
     text-align: right;
 }
 
@@ -158,6 +173,7 @@ input, button, textarea, select {
     padding: 20px;
     font-weight: bold;
     display: inline-block;
+    margin-top: 20px;
 }
 
 h1.logo {
@@ -167,12 +183,13 @@ h1.logo {
     background: url(../image/realitio_dapp_logo.png) top left no-repeat;
     background-size: contain;
     position: absolute;
-    left: 50%;
+    left: 0;
     width: 230px;
-    height: 130px;
-    margin-left: -115px;
-    margin-top: 40px;
+    height: 50px;
+    margin-left: 0;
+    margin-top: 0;
     text-align: left;
+    top: 30px;
 }
 
 #site-title {
@@ -288,7 +305,7 @@ body.pushing .page-qa #push-icon {
 #site-introduction__buttons {
     width: 100%;
     clear: both;
-    margin-top: 200px;
+    margin-top: 25px;
     text-align: center;
 }
 
@@ -924,11 +941,11 @@ $loder-border-size: 3px;
     background: url(../image/realitio_dapp_logo_white.png) top left no-repeat;
     background-size: contain;
     position: relative;
-    left: 60px;
+    left: 79px;
     width: 230px;
-    height: 130px;
+    height: 40px;
     margin-left: 0;
-    margin-top: 0;
+    margin-top: 13px;
 }
 
 // footer nav
@@ -2252,7 +2269,7 @@ input:placeholder-shown {
 // tooltip
 .tooltip {
     position: absolute;
-    top: 51px;
+    top: 69px;
     right: 16px;
     z-index: 999;
     background-color: $blue;
@@ -2424,13 +2441,22 @@ div.error-bar { display:none }
 
 body.error div.error-bar {
     /* container */
-    padding: 8px 0;
-    background-color: $dark-purple;
-    color: $white;
-    font-size: 14px;
+    padding: 40px;
+    background-color: #0a3c6f;
+    color: #ffffff;
+    font-size: 18px;
     position: static;
     display: block !important;
     text-align: center;
+    z-index: 201;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 400px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,.2);
+    margin-left: -200px;
+    margin-top: -60px;
 }
 
 div.error-bar .metamask-icon {
