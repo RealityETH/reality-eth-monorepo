@@ -120,6 +120,7 @@ contract RealityCheck is BalanceHolder {
 
     uint256 nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
+    mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) question_claims;
     mapping(bytes32 => Commitment) public commitments;
@@ -154,6 +155,15 @@ contract RealityCheck is BalanceHolder {
         _;
     }
 
+    modifier stateOpenOrPendingArbitration(bytes32 question_id) {
+        require(questions[question_id].timeout > 0); // Check existence
+        uint32 finalize_ts = questions[question_id].finalize_ts;
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now));
+        uint32 opening_ts = questions[question_id].opening_ts;
+        require(opening_ts == 0 || opening_ts <= uint32(now)); 
+        _;
+    }
+
     modifier stateFinalized(bytes32 question_id) {
         require(isFinalized(question_id));
         _;
@@ -183,7 +193,6 @@ contract RealityCheck is BalanceHolder {
     public {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "int", "decimals": 18, "category": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s"}');
@@ -209,6 +218,7 @@ contract RealityCheck is BalanceHolder {
     public returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
+        template_hashes[id] = keccak256(content);
         LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id.add(1);
         return id;
@@ -345,12 +355,13 @@ contract RealityCheck is BalanceHolder {
     /// Updates the current answer unless someone has since supplied a new answer with a higher bond
     /// msg.sender is intentionally not restricted to the user who originally sent the commitment; 
     /// For example, the user may want to provide the answer+nonce to a third-party service and let them send the tx
+    /// NB If we are pending arbitration, it will be up to the arbitrator to wait and see any outstanding reveal is sent
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded as bytes32
     /// @param nonce The nonce that, combined with the answer, recreates the answer_hash you gave in submitAnswerCommitment()
     /// @param bond The bond that you paid in your submitAnswerCommitment() transaction
     function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
-        stateOpen(question_id)
+        stateOpenOrPendingArbitration(question_id)
     external {
 
         bytes32 answer_hash = keccak256(answer, nonce);
@@ -391,9 +402,11 @@ contract RealityCheck is BalanceHolder {
     /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
     /// @param question_id The ID of the question
     /// @param requester The account that requested arbitration
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester) 
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) 
         onlyArbitrator(question_id)
         stateOpen(question_id)
+        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
         questions[question_id].is_pending_arbitration = true;
         LogNotifyOfArbitrationRequest(question_id, requester);
