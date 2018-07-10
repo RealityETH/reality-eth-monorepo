@@ -192,6 +192,11 @@ h1.logo {
     top: 30px;
 }
 
+#site-header .logo a {
+    display: block;
+    margin: 0;
+}
+
 #site-title {
     margin: 0 auto 0 0;
     font-size: 23px;
