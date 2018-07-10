@@ -328,15 +328,6 @@ $(function() {
     });
 });
 
-// page loaded
-let bounceEffect = function() {
-    if (!$('body').hasClass('is-page-loaded')) {
-        imagesLoaded(document.getElementById('cover'), {background: true}, function () {
-            $('body').addClass('is-page-loaded');
-        });
-    }
-}
-
 /*-------------------------------------------------------------------------------------*/
 // window for posting a question
 
@@ -3045,7 +3036,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
     }
     if (end_block <= START_BLOCK) {
         console.log('History read complete back to block', START_BLOCK);
-        setTimeout(bounceEffect, 500);
+        $('body').addClass('is-page-loaded');
         return;
     }
 
@@ -3346,8 +3337,6 @@ window.addEventListener('load', function() {
         window.localStorage.setItem('got-it', true);
         $('#footer-notification-bar').css('display', 'none');
     });
-
-    setTimeout(bounceEffect, 8000);
 
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {
