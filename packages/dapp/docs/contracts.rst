@@ -1,10 +1,10 @@
-Using Reality Check from a contract
+Using Realitio from a contract
 =====================================
 
 Fetching information
 --------------------
 
-The simplest way use for Reality Check is to fetch some information for a question that has already been posted using the DApp.
+The simplest way use for Realitio is to fetch some information for a question that has already been posted using the DApp.
 
 Hovering your mouse over the "..." mark in the upper right-hand corner of a question will show you the question ID and the hash of the question content.
 
@@ -129,7 +129,7 @@ This can then by called with a string including only the flight number, the deli
 Making sure a question has an answer
 ------------------------------------
 
-As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality Check for information need to be designed to take account of this possibility.
+As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Realitio for information need to be designed to take account of this possibility.
 
-After settlement Reality Check will preserve information about the ``content_hash``, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
+After settlement Realitio will preserve information about the ``content_hash``, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
 

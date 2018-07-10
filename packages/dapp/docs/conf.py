@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Reality Check documentation build configuration file, created by
+# Realitio documentation build configuration file, created by
 # sphinx-quickstart on Thu Sep 28 14:43:50 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -45,7 +45,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Reality Check'
+project = u'Realitio'
 copyright = u'2017, KK Social Minds'
 author = u'KK Social Minds'
 
@@ -98,7 +98,7 @@ html_theme = 'sphinx_rtd_theme'
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'RealityCheckdoc'
+htmlhelp_basename = 'Realitiodoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -125,7 +125,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'RealityCheck.tex', u'Reality Check Documentation',
+    (master_doc, 'Realitio.tex', u'Realitio Documentation',
      u'KK Social Minds', 'manual'),
 ]
 
@@ -135,7 +135,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'realitycheck', u'Reality Check Documentation',
+    (master_doc, 'realitio', u'Realitio Documentation',
      [author], 1)
 ]
 
@@ -146,8 +146,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'RealityCheck', u'Reality Check Documentation',
-     author, 'RealityCheck', 'One line description of project.',
+    (master_doc, 'Realitio', u'Realitio Documentation',
+     author, 'Realitio', 'One line description of project.',
      'Miscellaneous'),
 ]
 

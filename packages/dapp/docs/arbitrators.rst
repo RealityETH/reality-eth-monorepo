@@ -59,7 +59,7 @@ Arbitrator contracts should expose the following functions to users:
 * ``function getDisputeFee(bytes32 question_id) constant returns (uint256)``
 * ``function requestArbitration(bytes32 question_id)``
 
-When ``requestArbitration()`` is called with a sufficient fee, they should call the following against the Reality Check contract:
+When ``requestArbitration()`` is called with a sufficient fee, they should call the following against the Realitio contract:
 
 * ``notifyOfArbitrationRequest(bytes32 question_id, address requester)``
 
