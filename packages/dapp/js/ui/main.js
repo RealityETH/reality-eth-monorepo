@@ -52,8 +52,8 @@ const INFURA_NODES = {
 // The point where we deployed the contract on the network
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
-    3: 1728899,
-    4: 1400000
+    1: 5932007,
+    4: 2602053
 }
 var START_BLOCK; 
 
