@@ -142,7 +142,7 @@ Encoding answers
 
 The answer must be expressed in terms of ``bytes32`` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
-A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a ``bytes32`` value into ``uint`` (for an unsigned number) or ``int`` (for a signed number).
+A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a ``bytes32`` value into ``uint`` (for an unsigned number).
 
 Information unavailability and "null" responses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

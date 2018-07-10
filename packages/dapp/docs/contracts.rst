@@ -27,7 +27,7 @@ This will return ``bytes32`` data, or throw an error (``revert``) if the questio
 
 A (yes/no) question would normally be cast to a ``uint256`` type, resulting in ``1`` or ``0``.
 
-If you want numerical data, you will usually cast the result to either ``uint256`` or ``int256``.
+If you want numerical data, you will usually cast the result to ``uint256``.
 
 A single choice from a list of options will return an ID representing a zero-based index.
 
