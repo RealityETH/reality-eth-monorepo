@@ -95,7 +95,7 @@ exports.serializedValueTX = function(params, addr, val) {
 }
 
 exports.serializedTX = function(params, cntr, data, gas_limit) {
-    if (gas_limit == 0) {
+    if (gas_limit == undefined) {
         gas_limit = config.gas_limit;
     }
     const key = this.loadKey();

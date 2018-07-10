@@ -1,5 +1,6 @@
 /*
-Redeploys a single contract and outputs its address
+Makes a transaction to redeploys a single contract. 
+Send it to the network manually with https://etherscan.io/pushTx and get the resulting contract address from etherscan.
 
 Assumes you have already deployed to testnet, so you already have a working json contract definition.
 
