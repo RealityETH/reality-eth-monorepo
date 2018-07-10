@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-
     <title>Realit.io</title>
     <meta name="description" content="Realit.io">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -15,6 +14,7 @@
 </head>
 <body>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <div class="overlay"></div>
     <div class="page-bg"></div>
     <div class="header-visual">
         <div class="square-left">
@@ -38,8 +38,9 @@
             Check your Q&amp;A
         </div>
         <header id="site-header">
-            <a href="">How it works</a>
-            <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My Account</a>
+            <a href="">Learn more</a>
+            <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My account</a>
+            <span id="push-icon">announcement</span>
             <h1 class="logo">
                 <a href="/">Realit.io</a>
             </h1>
@@ -406,6 +407,25 @@
                             </div>
                         </div>
                         <div class="cols-2">
+                            <div class="input-container input-container--has-quick-help">
+                                <div class="input-inner">
+                                    <!--<span class="input-header">Opening Datetime:</span>-->
+                                    <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening date...">
+                                </div>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
+                                </div>
+                                <div class="error-container">Please enter datetime.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="textarea-container textarea-container--postaquestion">
+                        <textarea name="question-body" class="question-body rcbrowser-textarea form-item" placeholder="Ask your question here..."></textarea>
+                        <div class="error-container">Please enter your question.</div>
+                    </div>
+                    <div class="row clearfix">
+                        <div class="cols-2">
                             <div class="select-container  select-container--has-quick-help">
                                 <select name="question-type" class="question-type rcbrowser-select form-item">
                                     <option value="default">Question Type</option>
@@ -441,13 +461,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="textarea-container textarea-container--postaquestion">
-                        <textarea name="question-body" class="question-body rcbrowser-textarea form-item" placeholder="Ask your question here..."></textarea>
-                        <div class="error-container">Please enter your question.</div>
-                    </div>
-                    <div class="row clearfix">
                         <div class="cols-2">
                             <div class="input-container  input-container--has-quick-help">
                                 <div class="input-inner">
@@ -460,19 +473,6 @@
                                     <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
                                 </div>
                                 <div class="error-container">Please enter reward.</div>
-                            </div>
-                        </div>
-                        <div class="cols-2">
-                            <div class="input-container input-container--has-quick-help">
-                                <div class="input-inner">
-                                    <!--<span class="input-header">Opening Datetime:</span>-->
-                                    <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening Date">
-                                </div>
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
-                                </div>
-                                <div class="error-container">Please enter datetime.</div>
                             </div>
                         </div>
                     </div>
