@@ -3199,9 +3199,9 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
           $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
         }
 
-        setTimeout(bounceEffect, 500);
+        //setTimeout(bounceEffect, 500);
 
-        $('body').addClass('is-page-loaded');
+        //$('body').addClass('is-page-loaded');
 
         return;
     }
@@ -3529,7 +3529,7 @@ window.addEventListener('load', function() {
         $("#filter-list").find("[data-category='all']").addClass("selected")
     }
 
-    setTimeout(bounceEffect, 8000);
+    //setTimeout(bounceEffect, 8000);
 
 
     web3js.version.getNetwork((err, net_id) => {
