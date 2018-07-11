@@ -222,13 +222,11 @@ function setRcBrowserPosition(rcbrowser) {
         var top = itemHeight / 10;
         left += 'px';
         top += 'px';
+
     } else if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        left = parseInt(rand(paddingLeft, leftMax));
-        top = parseInt(rand(paddingTop, topMax));
-        window_position[question_id] = {
-            'x': left,
-            'y': top
-        };
+        var leftMin = winWidth / 2;
+        var left = (winWidth / 2) - (itemWidth / 2);
+        var top = itemHeight / 10;
         left += 'px';
         top += 'px';
     }
@@ -1772,7 +1770,8 @@ function displayQuestionDetail(question_detail) {
         rcqa.css('display', 'block');
         rcqa.addClass('is-open');
         rcqa.css('z-index', ++zindex);
-        rcqa.css('height', rcqa.height() + 'px');
+        rcqa.css('height', "80%");
+        rcqa.css('max-height', "80%");
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
