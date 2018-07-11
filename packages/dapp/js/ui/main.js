@@ -23,10 +23,10 @@ const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
-var verified_arbitrators = {}; 
+var verified_arbitrators = {};
 
 var submitted_question_id_timestamp = {};
-var user_claimable = {}; 
+var user_claimable = {};
 
 var category = null;
 var template_blocks = {};
@@ -55,7 +55,7 @@ const START_BLOCKS = {
     3: 1728899,
     4: 1400000
 }
-var START_BLOCK; 
+var START_BLOCK;
 
 var network_id = null;
 var block_explorer = null;
@@ -90,7 +90,9 @@ const Qi_question_text = 15;
 const Qi_template_id = 16;
 const Qi_block_mined = 17;
 
-BigNumber.config({ RABGE: 256});
+BigNumber.config({
+    RABGE: 256
+});
 const ONE_ETH = 1000000000000000000;
 
 var block_timestamp_cache = {};
@@ -106,10 +108,30 @@ var account;
 var rc;
 
 var display_entries = {
-    'questions-latest':       {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 6},
-    'questions-resolved':     {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 6},
-    'questions-closing-soon': {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 6},
-    'questions-high-reward':  {'ids': [], 'vals': [], 'max_store': 50, 'max_show': 6}
+    'questions-latest': {
+        'ids': [],
+        'vals': [],
+        'max_store': 50,
+        'max_show': 6
+    },
+    'questions-resolved': {
+        'ids': [],
+        'vals': [],
+        'max_store': 50,
+        'max_show': 6
+    },
+    'questions-closing-soon': {
+        'ids': [],
+        'vals': [],
+        'max_store': 50,
+        'max_show': 6
+    },
+    'questions-high-reward': {
+        'ids': [],
+        'vals': [],
+        'max_store': 50,
+        'max_show': 6
+    }
 }
 
 // data for question detail window
@@ -151,8 +173,8 @@ const monthList = [
 function rcbrowserHeight() {
     console.log('skipping auto rcbrowserHeight');
     return;
-    const rcbrowserHeaders  = document.querySelectorAll('.rcbrowser-header');
-    const rcbrowserMains  = document.querySelectorAll('.rcbrowser-main');
+    const rcbrowserHeaders = document.querySelectorAll('.rcbrowser-header');
+    const rcbrowserMains = document.querySelectorAll('.rcbrowser-main');
     var _maxHeight = document.documentElement.clientHeight * .9;
     for (let i = 0, len = rcbrowserHeaders.length; i < len; i += 1) {
         let parent = rcbrowserHeaders[i].parentNode.parentNode;
@@ -173,7 +195,7 @@ function setRcBrowserPosition(rcbrowser) {
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
         var question_id = rcbrowser.attr('data-question-id');
         if (typeof window_position[question_id] !== 'undefined') {
-            let left =  parseInt(window_position[question_id]['x']) + 'px';
+            let left = parseInt(window_position[question_id]['x']) + 'px';
             let top = parseInt(window_position[question_id]['y']) + 'px';
             rcbrowser.css('left', left);
             rcbrowser.css('top', top);
@@ -196,14 +218,19 @@ function setRcBrowserPosition(rcbrowser) {
 
     if (rcbrowser.attr('id') == 'post-a-question-window') {
         var leftMin = winWidth / 2;
-        var left = winWidth / 2 + itemWidth / 10;
+        var left = (winWidth / 2) - (itemWidth / 2);
         var top = itemHeight / 10;
-        left += 'px'; top += 'px';
+        left += 'px';
+        top += 'px';
     } else if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
         left = parseInt(rand(paddingLeft, leftMax));
         top = parseInt(rand(paddingTop, topMax));
-        window_position[question_id] = {'x': left, 'y': top};
-        left += 'px'; top += 'px';
+        window_position[question_id] = {
+            'x': left,
+            'y': top
+        };
+        left += 'px';
+        top += 'px';
     }
 
     rcbrowser.css('left', left);
@@ -244,7 +271,12 @@ interact('.rcbrowser-header').draggable({
             bottom: document.documentElement.clientHeight
         },
         endOnly: true,
-        elementRect: { top: 0, left: 0, bottom: 1, right: 1 }
+        elementRect: {
+            top: 0,
+            left: 0,
+            bottom: 1,
+            right: 1
+        }
     },
     // enable autoScroll
     autoScroll: false,
@@ -253,7 +285,7 @@ interact('.rcbrowser-header').draggable({
     onmove: dragMoveListener
 });
 
-function dragMoveListener (event) {
+function dragMoveListener(event) {
     var target = event.target.parentNode.parentNode;
     // keep the dragged position in the data-x/data-y attributes
     var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
@@ -261,14 +293,14 @@ function dragMoveListener (event) {
 
     // translate the element
     let top = parseInt(target.style.top);
-    if (top + y < 1){
+    if (top + y < 1) {
         target.style.webkitTransform =
             target.style.transform =
-                'translate(' + x + 'px, -' + top + 'px)';
+            'translate(' + x + 'px, -' + top + 'px)';
     } else {
         target.style.webkitTransform =
             target.style.transform =
-                'translate(' + x + 'px, ' + y + 'px)';
+            'translate(' + x + 'px, ' + y + 'px)';
     }
 
     // update the posiion attributes
@@ -305,10 +337,10 @@ $(document).on('change', 'select.arbitrator', function() {
     } else {
         populateArbitratorOptionLabel($(this).find('option.arbitrator-other-select'), new BigNumber(0));
         $(this).closest('form').find('input.arbitrator-other').hide();
-    } 
+    }
 });
 
-$(document).on('click', '.rcbrowser', function(){
+$(document).on('click', '.rcbrowser', function() {
     zindex += 1;
     $(this).css('z-index', zindex);
     $('.ui-datepicker').css('z-index', zindex + 1);
@@ -318,11 +350,11 @@ $(document).on('click', '.rcbrowser', function(){
 
 // see all notifications
 $(function() {
-    $('.see-all-notifications').click( function() {
+    $('.see-all-notifications').click(function() {
         $(this).closest('#your-question-answer-window').removeClass('display-top-only').addClass('display-all');
         return false;
     });
-    $('.hide-lower-notifications').click( function() {
+    $('.hide-lower-notifications').click(function() {
         $(this).closest('#your-question-answer-window').addClass('display-top-only').removeClass('display-all');
         return false;
     });
@@ -331,7 +363,9 @@ $(function() {
 // page loaded
 let bounceEffect = function() {
     if (!$('body').hasClass('is-page-loaded')) {
-        imagesLoaded(document.getElementById('cover'), {background: true}, function () {
+        imagesLoaded(document.getElementById('cover'), {
+            background: true
+        }, function() {
             $('body').addClass('is-page-loaded');
         });
     }
@@ -345,7 +379,7 @@ $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.stopPropagation();
     $('#your-question-answer-window').css('z-index', ++zindex);
     $('#your-question-answer-window').addClass('is-open');
-    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height()+'px');
+    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height() + 'px');
     $('.tooltip').removeClass('is-visible');
     $('body').removeClass('pushing');
     markViewedToDate();
@@ -392,11 +426,11 @@ $('#your-question-answer-window .rcbrowser__close-button').on('click', function(
     markViewedToDate();
 });
 
-$('#post-a-question-button,.post-a-question-link').on('click', function(e){
+$('#post-a-question-button,.post-a-question-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     let question_window = $('#post-a-question-window-template').clone().attr('id', 'post-a-question-window');
-    question_window.find('.rcbrowser__close-button').click(function(){
+    question_window.find('.rcbrowser__close-button').click(function() {
         question_window.remove();
         document.documentElement.style.cursor = ""; // Work around Interact draggable bug
     });
@@ -404,7 +438,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     $('#post-a-question-window-template').before(question_window);
     $('#opening-ts-datepicker').datepicker({
         dateFormat: 'yy-mm-dd',
-        onSelect: function(dateText){
+        onSelect: function(dateText) {
             $(this).css('background-color', '#ffffff');
         }
     });
@@ -412,7 +446,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     if (!question_window.hasClass('is-open')) {
         question_window.css('z-index', ++zindex);
         question_window.addClass('is-open');
-        question_window.css('height', question_window.height()+'px');
+        question_window.css('height', question_window.height() + 'px');
         setRcBrowserPosition(question_window);
     }
     if (category) {
@@ -421,7 +455,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e){
     Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 });
 
-$('#browse-question-button,.browse-question-link').on('click', function(e){
+$('#browse-question-button,.browse-question-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('body').addClass('page-qa');
@@ -430,7 +464,7 @@ $('#browse-question-button,.browse-question-link').on('click', function(e){
     $('#site-introduction__buttons').css('visibility', 'hidden');
 });
 
-$('#site-logo').on('click', function(e){
+$('#site-logo').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('body').removeClass('page-qa');
@@ -439,14 +473,14 @@ $('#site-logo').on('click', function(e){
     $('#site-introduction__buttons').css('visibility', 'visible');
 });
 
-$(document).on('click', '#post-a-question-window .close-question-window', function(e){
+$(document).on('click', '#post-a-question-window .close-question-window', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
 });
 
-$(document).on('click', '#post-a-question-window .post-question-submit', function(e){
+$(document).on('click', '#post-a-question-window .post-question-submit', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -492,82 +526,87 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
                     return;
                 }
-                
-                rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {from: account, gas: 200000, value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)})
-                .then(function(txid) {
-                    //console.log('sent tx with id', txid);
-                    
-                    // Make a fake log entry
-                    var fake_log = {
-                        'entry': 'LogNewQuestion',
-                        'blockNumber': 0, // unconfirmed
-                        'args': {
-                            'question_id': question_id,
-                            'user': account,
-                            'arbitrator': arbitrator,
-                            'timeout': new BigNumber(timeout_val),
-                            'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                            'template_id': new BigNumber(template_id),
-                            'question': qtext,
-                            'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
-                            'opening_ts': new BigNumber(parseInt(opening_ts))
+
+                rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+                        from: account,
+                        gas: 200000,
+                        value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)
+                    })
+                    .then(function(txid) {
+                        //console.log('sent tx with id', txid);
+
+                        // Make a fake log entry
+                        var fake_log = {
+                            'entry': 'LogNewQuestion',
+                            'blockNumber': 0, // unconfirmed
+                            'args': {
+                                'question_id': question_id,
+                                'user': account,
+                                'arbitrator': arbitrator,
+                                'timeout': new BigNumber(timeout_val),
+                                'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                                'template_id': new BigNumber(template_id),
+                                'question': qtext,
+                                'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                                'opening_ts': new BigNumber(parseInt(opening_ts))
+                            }
                         }
-                    }
-                    var fake_call = [];
-                    fake_call[Qi_finalization_ts-1] = new BigNumber(0);
-                    fake_call[Qi_is_pending_arbitration] = false;
-                    fake_call[Qi_arbitrator-1] = arbitrator;
-                    fake_call[Qi_timeout-1] = new BigNumber(timeout_val);
-                    fake_call[Qi_content_hash-1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                    fake_call[Qi_bounty-1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
-                    fake_call[Qi_best_answer-1] = "0x0";
-                    fake_call[Qi_bond-1] = new BigNumber(0);
-                    fake_call[Qi_history_hash-1] = "0x0";
-                    fake_call[Qi_opening_ts-1] = new BigNumber(opening_ts);
+                        var fake_call = [];
+                        fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
+                        fake_call[Qi_is_pending_arbitration] = false;
+                        fake_call[Qi_arbitrator - 1] = arbitrator;
+                        fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
+                        fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                            fake_call[Qi_bounty - 1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
+                        fake_call[Qi_best_answer - 1] = "0x0";
+                        fake_call[Qi_bond - 1] = new BigNumber(0);
+                        fake_call[Qi_history_hash - 1] = "0x0";
+                        fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
 
-                    var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log); 
-                    q = filledQuestionDetail(question_id, 'question_call', 0, fake_call); 
-                    q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+                        var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
+                        q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
+                        q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
-                    // Turn the post question window into a question detail window
-                    var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-                    win.html(rcqa.html());
-                    win = populateQuestionWindow(win, q, false);
-            
-                    // TODO: Once we have code to know which network we're on, link to a block explorer
-                    win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
-                    win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
-                    win.addClass('unconfirmed-transaction').addClass('has-warnings');
-                    win.attr('data-pending-txid', txid);
+                        // Turn the post question window into a question detail window
+                        var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                        win.html(rcqa.html());
+                        win = populateQuestionWindow(win, q, false);
 
-                    win.find('.rcbrowser__close-button').on('click', function(){
-                        let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-                        let left = parseInt(parent_div.css('left').replace('px', ''));
-                        let top = parseInt(parent_div.css('top').replace('px', ''));
-                        let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-                        let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-                        left += data_x; top += data_y;
-                        window_position[question_id] = {};
-                        window_position[question_id]['x'] = left;
-                        window_position[question_id]['y'] = top;
-                        win.remove();
-                        document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                        // TODO: Once we have code to know which network we're on, link to a block explorer
+                        win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
+                        win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
+                        win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                        win.attr('data-pending-txid', txid);
+
+                        win.find('.rcbrowser__close-button').on('click', function() {
+                            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                            let left = parseInt(parent_div.css('left').replace('px', ''));
+                            let top = parseInt(parent_div.css('top').replace('px', ''));
+                            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                            left += data_x;
+                            top += data_y;
+                            window_position[question_id] = {};
+                            window_position[question_id]['x'] = left;
+                            window_position[question_id]['y'] = top;
+                            win.remove();
+                            document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                        });
+
+                        var window_id = 'qadetail-' + question_id;
+                        win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                        win.attr('id', window_id);
+                        win.attr('data-question-id', question_id);
+                        Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
                     });
-
-                    var window_id = 'qadetail-' + question_id;
-                    win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
-                    win.attr('id', window_id);
-                    win.attr('data-question-id', question_id);
-                    Ps.initialize(win.find('.rcbrowser-inner').get(0));
-
-                });
             });
         });
     }
 
 });
 
-$(document).on('blur', '#opening-ts-datepicker', function(e){
+$(document).on('blur', '#opening-ts-datepicker', function(e) {
     if (!$('#opening-ts-datepicker').val()) {
         $('#opening-ts-datepicker').css('background-color', '#4d535a');
     }
@@ -577,10 +616,10 @@ function isArbitratorValid(arb) {
     var found = false;
     let arbitrator_addrs = $('select.arbitrator').children();
     arbitrator_addrs.each(function() {
-        if ( $(this).val() == arb) {
+        if ($(this).val() == arb) {
             found = true;
             return false;
-        } 
+        }
     });
     return found;
 }
@@ -598,12 +637,12 @@ function isFinalized(question) {
     if (isArbitrationPending(question)) {
         return false;
     }
-    var fin = question[Qi_finalization_ts].toNumber() 
-    var res = ( (fin > 1) && (fin * 1000 < new Date().getTime()) );  
+    var fin = question[Qi_finalization_ts].toNumber()
+    var res = ((fin > 1) && (fin * 1000 < new Date().getTime()));
     return res;
 }
 
-$(document).on('click', '.answer-claim-button', function(){
+$(document).on('click', '.answer-claim-button', function() {
 
     var is_single_question = !$(this).hasClass('claim-all');
 
@@ -644,26 +683,29 @@ $(document).on('click', '.answer-claim-button', function(){
         //  5 answers 73702
 
         var gas = 140000 + (20000 * claim_args['history_hashes'].length);
-        rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {from: account, gas:gas})
-        .then(function(txid){
-            //console.log('claiming is ',claiming);
-            //console.log('claim result txid', txid);
-            for (var qid in claiming) {
-                if (claiming.hasOwnProperty(qid)) {
-                    if (user_claimable[qid]) {
-                        user_claimable[qid].txid = txid;
+        rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
+                from: account,
+                gas: gas
+            })
+            .then(function(txid) {
+                //console.log('claiming is ',claiming);
+                //console.log('claim result txid', txid);
+                for (var qid in claiming) {
+                    if (claiming.hasOwnProperty(qid)) {
+                        if (user_claimable[qid]) {
+                            user_claimable[qid].txid = txid;
+                        }
                     }
                 }
-            }
-            updateClaimableDisplay();
-            updateUserBalanceDisplay();
-        });
+                updateClaimableDisplay();
+                updateUserBalanceDisplay();
+            });
     }
 
     if (is_single_question) {
         var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
         ensureQuestionDetailFetched(question_id).then(function(qdata) {
-            doClaim(is_single_question, qdata);        
+            doClaim(is_single_question, qdata);
         });
     } else {
         // TODO: Should we be refetching all the questions we plan to claim for?
@@ -730,7 +772,7 @@ $('div.loadmore-button').on('click', function(e) {
     var old_max = display_entries[sec]['max_show'];
     var new_max = old_max + 3;
 
-    var num_in_doc = $('#'+sec).find('.questions__item').length;
+    var num_in_doc = $('#' + sec).find('.questions__item').length;
 
     display_entries[sec]['max_show'] = new_max;
 
@@ -741,7 +783,7 @@ $('div.loadmore-button').on('click', function(e) {
         var nextid = display_entries[sec]['ids'][i];
         var previd;
         if (i > 0) {
-            previd = display_entries[sec]['ids'][i+1];
+            previd = display_entries[sec]['ids'][i + 1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
         ensureQuestionDetailFetched(nextid, 1, 1, 1, -1).then(function(qdata) {
@@ -758,7 +800,7 @@ $('div.loadmore-button').on('click', function(e) {
 function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
-    if ( (entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
+    if ((entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
         return;
     }
 
@@ -773,17 +815,19 @@ function handlePotentialUserAction(entry, is_watch) {
     // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
     // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
     // TODO: The filter could be tigher on the case where we already knew we had it, but we didn't know how soon the user was interested in it
-    if ( ( !q_min_activity_blocks[question_id]) || (entry.blockNumber < q_min_activity_blocks[question_id]) ) {
+    if ((!q_min_activity_blocks[question_id]) || (entry.blockNumber < q_min_activity_blocks[question_id])) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
             // console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
             return;
-        } 
+        }
 
         q_min_activity_blocks[question_id] = entry.blockNumber;
 
-        fetchUserEventsAndHandle({question_id: question_id}, START_BLOCK, 'latest');
+        fetchUserEventsAndHandle({
+            question_id: question_id
+        }, START_BLOCK, 'latest');
 
         updateUserBalanceDisplay();
 
@@ -801,17 +845,17 @@ function handlePotentialUserAction(entry, is_watch) {
 
     // User action
     //console.log('got event as user action', entry);
-    if ( (entry['event'] == 'LogNewAnswer') && ( submitted_question_id_timestamp[question_id] > 0) ) {
+    if ((entry['event'] == 'LogNewAnswer') && (submitted_question_id_timestamp[question_id] > 0)) {
         delete submitted_question_id_timestamp[question_id];
         ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
             displayQuestionDetail(question);
             renderUserAction(question, entry, is_watch);
         });
     } else {
-     
+
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
         ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
-            if ( (entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize') ) {
+            if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
                 //console.log('got event, checking effect on claims', entry);
                 if (updateClaimableDataForQuestion(question, entry, is_watch)) {
                     updateClaimableDisplay();
@@ -841,7 +885,7 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 function updateClaimableDisplay() {
     //console.log('updateClaimableDisplay with user_claimable', user_claimable);
     var unclaimed = mergePossibleClaimable(user_claimable, false);
-    var claiming  = mergePossibleClaimable(user_claimable, true);
+    var claiming = mergePossibleClaimable(user_claimable, true);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
         $('.answer-claiming-container').find('.claimable-eth').text(web3js.fromWei(claiming.total.toNumber(), 'ether'));
@@ -874,9 +918,9 @@ function mergePossibleClaimable(posses, pending) {
         'answers': [],
         'answerers': [],
         'bonds': [],
-        'history_hashes': [] 
+        'history_hashes': []
     }
-    for(var qid in posses) {
+    for (var qid in posses) {
         if (posses.hasOwnProperty(qid)) {
             if (!pending && posses[qid].txid) {
                 continue;
@@ -919,18 +963,18 @@ function scheduleFinalizationDisplayUpdate(question) {
         if (!is_done) {
             //console.log('scheduling');
             // Run 1 second after the finalization timestamp
-            var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime() );
+            var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime());
             //console.log('update_time is ', update_time);
-            var timeout_id = setTimeout( function() {
+            var timeout_id = setTimeout(function() {
                 // TODO: Call again here in case it changed and we missed it
                 clearTimeout(question_event_times[question_id].timeout_id);
                 delete question_event_times[question_id];
 
                 ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
 
-                    if (isFinalized(question)) { 
+                    if (isFinalized(question)) {
                         updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]); 
+                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]);
 
                         // The notification code sorts by block number
                         // So get the current block
@@ -940,27 +984,30 @@ function scheduleFinalizationDisplayUpdate(question) {
                             // Make a pretend log to feed to the notifications handling function.
                             block_timestamp_cache[result.number] = result.timestamp
                             var fake_entry = {
-                                event: 'LogFinalize',
-                                blockNumber: result.number,
-                                timestamp: question[Qi_finalization_ts].toNumber(),
-                                args: {
-                                    question_id: question[Qi_question_id],
+                                    event: 'LogFinalize',
+                                    blockNumber: result.number,
+                                    timestamp: question[Qi_finalization_ts].toNumber(),
+                                    args: {
+                                        question_id: question[Qi_question_id],
+                                    }
                                 }
-                            }
-                            //console.log('sending fake entry', fake_entry, question);
+                                //console.log('sending fake entry', fake_entry, question);
                             if (updateClaimableDataForQuestion(question, fake_entry, true)) {
                                 updateClaimableDisplay();
                                 updateUserBalanceDisplay();
                             }
-             
+
                             renderNotifications(question, fake_entry);
                         });
                     }
 
                 });
 
-            }, update_time );
-            question_event_times[question_id] = {'finalization_ts': question[Qi_finalization_ts], 'timeout_id': timeout_id };
+            }, update_time);
+            question_event_times[question_id] = {
+                'finalization_ts': question[Qi_finalization_ts],
+                'timeout_id': timeout_id
+            };
         }
     } else {
         //console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
@@ -976,21 +1023,30 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
     }
 
     // Freshness should look like this:
-    // {question_log: 0, question_call: 12345, answers: -1} 
+    // {question_log: 0, question_call: 12345, answers: -1}
 
     // Data should look like this:
     // {question_log: {}, question_call: {}, answers: []} )
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {'freshness': {'question_log': -1, 'question_json': -1, 'question_call': -1, 'answers': -1}, 'history': [], 'history_unconfirmed': []};
+    var question = {
+        'freshness': {
+            'question_log': -1,
+            'question_json': -1,
+            'question_call': -1,
+            'answers': -1
+        },
+        'history': [],
+        'history_unconfirmed': []
+    };
     question[Qi_question_id] = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
     }
 
     switch (data_type) {
-            
+
         case 'question_log':
             if (data && (freshness >= question.freshness.question_log)) {
                 question.freshness.question_log = freshness;
@@ -1022,17 +1078,17 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
                 question.freshness.question_call = freshness;
                 //question[Qi_question_id] = question_id;
-                question[Qi_finalization_ts] = data[Qi_finalization_ts-1];
-                question[Qi_is_pending_arbitration] = data[Qi_is_pending_arbitration-1];
-                question[Qi_arbitrator] = data[Qi_arbitrator-1];
-                question[Qi_timeout] = data[Qi_timeout-1];
-                question[Qi_content_hash] = data[Qi_content_hash-1];
-                question[Qi_bounty] = data[Qi_bounty-1];
-                question[Qi_best_answer] = data[Qi_best_answer-1];
-                question[Qi_bond] = data[Qi_bond-1];
-                question[Qi_history_hash] = data[Qi_history_hash-1];
+                question[Qi_finalization_ts] = data[Qi_finalization_ts - 1];
+                question[Qi_is_pending_arbitration] = data[Qi_is_pending_arbitration - 1];
+                question[Qi_arbitrator] = data[Qi_arbitrator - 1];
+                question[Qi_timeout] = data[Qi_timeout - 1];
+                question[Qi_content_hash] = data[Qi_content_hash - 1];
+                question[Qi_bounty] = data[Qi_bounty - 1];
+                question[Qi_best_answer] = data[Qi_best_answer - 1];
+                question[Qi_bond] = data[Qi_bond - 1];
+                question[Qi_history_hash] = data[Qi_history_hash - 1];
                 //console.log('set question', question_id, question);
-            }  else {
+            } else {
                 //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
             }
             break;
@@ -1043,11 +1099,11 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question['history'] = data;
             }
             if (data.length && question['history_unconfirmed'].length) {
-                for(var j=0; j<question['history_unconfirmed'].length; j++) {
+                for (var j = 0; j < question['history_unconfirmed'].length; j++) {
                     var ubond = question['history_unconfirmed'][j].args.bond;
-                    for(var i=0; i<question['history'].length; i++) {
+                    for (var i = 0; i < question['history'].length; i++) {
                         // If there's something unconfirmed with an equal or lower bond, remove it
-                        if (data[i].args.bond.gte( ubond )) {
+                        if (data[i].args.bond.gte(ubond)) {
                             //console.log('removing unconfirmed entry due to higher bond from confirmed');
                             question['history_unconfirmed'].splice(j, 1);
                         }
@@ -1059,10 +1115,10 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
         case 'answers_unconfirmed':
             //console.log('adding answers_unconfirmed');
             // Ignore the age and just see if we have it already
-            for(var i=0; i<question['history'].length; i++) {
+            for (var i = 0; i < question['history'].length; i++) {
                 //console.log('already have a higher bond, removing');
                 // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
-                if (question['history'][i].args.bond.gte( data.args.bond )) {
+                if (question['history'][i].args.bond.gte(data.args.bond)) {
                     break;
                 }
             }
@@ -1074,7 +1130,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     question_detail_list[question_id] = question;
 
-    //console.log('was called filledQuestionDetail', question_id, data_type, freshness, data); 
+    //console.log('was called filledQuestionDetail', question_id, data_type, freshness, data);
     //console.log('returning question', question);
 
     return question;
@@ -1093,10 +1149,10 @@ function isDataFreshEnough(question_id, data_type, freshness) {
         return false;
     }
     if (question_detail_list[question_id].freshness[data_type] >= freshness) {
-        //console.log('is fresh', question_detail_list[question_id].freshness, freshness) 
+        //console.log('is fresh', question_detail_list[question_id].freshness, freshness)
         return true;
     } else {
-        //console.log('is not fresh', question_detail_list[question_id].freshness[data_type], freshness) 
+        //console.log('is not fresh', question_detail_list[question_id].freshness[data_type], freshness)
         return false;
     }
 }
@@ -1104,11 +1160,16 @@ function isDataFreshEnough(question_id, data_type, freshness) {
 // No freshness as this only happens once per question
 function _ensureQuestionLogFetched(question_id, freshness) {
     var called_block = current_block_number;
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'question_log', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
-            var question_logs = rc.LogNewQuestion({question_id:question_id}, {fromBlock: START_BLOCK, toBlock:'latest'});
+            var question_logs = rc.LogNewQuestion({
+                question_id: question_id
+            }, {
+                fromBlock: START_BLOCK,
+                toBlock: 'latest'
+            });
             question_logs.get(function(error, question_arr) {
                 if (error || question_arr.length != 1) {
                     console.log('error in question log', error, question_arr, question_id, START_BLOCK);
@@ -1124,11 +1185,11 @@ function _ensureQuestionLogFetched(question_id, freshness) {
 
 function _ensureQuestionDataFetched(question_id, freshness) {
     var called_block = current_block_number;
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'question_call', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
-            rc.questions.call(question_id).then(function(result){
+            rc.questions.call(question_id).then(function(result) {
                 var question = filledQuestionDetail(question_id, 'question_call', called_block, result);
                 resolve(question);
             }).catch(function(err) {
@@ -1141,7 +1202,7 @@ function _ensureQuestionDataFetched(question_id, freshness) {
 
 function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
     //console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'question_json', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
@@ -1152,24 +1213,29 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
                 // The category text should be in the log, but the contract has the block number
                 // This allows us to make a more efficient pin-point log call for the template content
                 rc.templates.call(template_id)
-                .then(function(block_num) {
-                    var cat_logs = rc.LogNewTemplate({template_id:template_id}, {fromBlock: block_num, toBlock:block_num});
-                    cat_logs.get(function(error, cat_arr) {
-                        if (cat_arr.length == 1) {
-                            //console.log('adding template content', cat_arr, 'template_id', template_id);
-                            template_content[template_id] = cat_arr[0].args.question_text;
-                            //console.log(template_content);
-                            var question = filledQuestionDetail(question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
-                            resolve(question);
-                        } else {
-                            console.log('error fetching template - unexpected cat length');
-                            reject(new Error("Category response unexpected length"));
-                        }
+                    .then(function(block_num) {
+                        var cat_logs = rc.LogNewTemplate({
+                            template_id: template_id
+                        }, {
+                            fromBlock: block_num,
+                            toBlock: block_num
+                        });
+                        cat_logs.get(function(error, cat_arr) {
+                            if (cat_arr.length == 1) {
+                                //console.log('adding template content', cat_arr, 'template_id', template_id);
+                                template_content[template_id] = cat_arr[0].args.question_text;
+                                //console.log(template_content);
+                                var question = filledQuestionDetail(question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+                                resolve(question);
+                            } else {
+                                console.log('error fetching template - unexpected cat length');
+                                reject(new Error("Category response unexpected length"));
+                            }
+                        });
+                    }).catch(function(err) {
+                        console.log('error fetching template');
+                        reject(err);
                     });
-                }).catch(function(err) {
-                    console.log('error fetching template');
-                    reject(err);
-                });
             }
         }
     });
@@ -1177,12 +1243,17 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
 
 function _ensureAnswersFetched(question_id, freshness, start_block) {
     var called_block = current_block_number;
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'answers', freshness)) {
             resolve(question_detail_list[question_id]);
         } else {
             //console.log('fetching answers from start_block', start_block);
-            var answer_logs = rc.LogNewAnswer({question_id:question_id}, {fromBlock: start_block, toBlock:'latest'});
+            var answer_logs = rc.LogNewAnswer({
+                question_id: question_id
+            }, {
+                fromBlock: start_block,
+                toBlock: 'latest'
+            });
             answer_logs.get(function(error, answer_arr) {
                 if (error) {
                     console.log('error in get');
@@ -1211,7 +1282,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
 
     var called_block = current_block_number;
     //console.log('ensureQuestionDetailFetched with called_block', called_block);
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
         _ensureQuestionLogFetched(question_id, ql).then(function(q) {
             return _ensureQuestionDataFetched(question_id, qc);
         }).then(function(q) {
@@ -1233,7 +1304,7 @@ function updateUserBalanceDisplay() {
         return;
     }
     //console.log('updating balacne for', account);
-    web3js.eth.getBalance(account, function(error, result){
+    web3js.eth.getBalance(account, function(error, result) {
         //console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
             $('.account-balance').text(web3js.fromWei(result.toNumber(), 'ether'));
@@ -1257,7 +1328,7 @@ function populateSection(section_name, question_data, before_item) {
 
     var target_question_id = 'qadetail-' + question_id;
 
-    var section = $('#'+section_name);
+    var section = $('#' + section_name);
 
     // If the item is already in the document but in the wrong place, remove it.
     // If it's already in the right place, do nothing
@@ -1320,15 +1391,15 @@ function populateSection(section_name, question_data, before_item) {
         balloon_html += 'This arbitrator is unknown.';
     }
     if (balloon_html) {
-        $('div[data-question-id='+question_id+']').find('.question-setting-warning').css('display', 'block');
-        $('div[data-question-id='+question_id+']').find('.question-setting-warning').css('z-index', 5);
-        $('div[data-question-id='+question_id+']').find('.question-setting-warning').find('.balloon').html(balloon_html);
+        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').css('display', 'block');
+        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').css('z-index', 5);
+        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
     }
 
 }
 
 function updateSectionEntryDisplay(question) {
-    $('div.questions__item[data-question-id="'+question[Qi_question_id]+'"]').each(function() {
+    $('div.questions__item[data-question-id="' + question[Qi_question_id] + '"]').each(function() {
         //console.log('updateSectionEntryDisplay update question', question[Qi_question_id]);
         populateSectionEntry($(this), question);
     });
@@ -1356,7 +1427,10 @@ function populateSectionEntry(entry, question_data) {
     entry.attr('data-question-id', question_id);
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
-    entry.find('.question-title').text(question_json['title']).expander({expandText: '', slicePoint:140});
+    entry.find('.question-title').text(question_json['title']).expander({
+        expandText: '',
+        slicePoint: 140
+    });
     entry.find('.question-bounty').text(bounty);
 
     if (isAnswered(question_data)) {
@@ -1398,9 +1472,9 @@ function depopulateSection(section_name, question_id) {
     //console.log('depopulating', section_name, question_id);
 
     var question_item_id = section_name + '-question-' + question_id;
-    var section = $('#'+section_name);
+    var section = $('#' + section_name);
 
-    var item = section.find('#'+question_item_id);
+    var item = section.find('#' + question_item_id);
     if (item.length) {
         item.remove();
         // Add the next entry to the bottom
@@ -1446,6 +1520,7 @@ function handleQuestionLog(item) {
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
                 populateSection('questions-resolved', question_data, insert_before);
+                $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
                 if (display_entries['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-resolved').find('.loadmore-button').css('display', 'block');
                 }
@@ -1455,6 +1530,7 @@ function handleQuestionLog(item) {
             var insert_before = update_ranking_data('questions-latest', question_id, created, 'desc');
             if (insert_before !== -1) {
                 populateSection('questions-latest', question_data, insert_before);
+                $('#questions-latest').find('.scanning-questions-category').css('display', 'none');
                 if (display_entries['questions-latest']['ids'].length > 3 && $('#questions-latest').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-latest').find('.loadmore-button').css('display', 'block');
                 }
@@ -1463,15 +1539,17 @@ function handleQuestionLog(item) {
             var insert_before = update_ranking_data('questions-high-reward', question_id, bounty, 'desc');
             if (insert_before !== -1) {
                 populateSection('questions-high-reward', question_data, insert_before);
+                $('#questions-high-reward').find('.scanning-questions-category').css('display', 'none');
                 if (display_entries['questions-high-reward']['ids'].length > 3 && $('#questions-high-reward').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-high-reward').find('.loadmore-button').css('display', 'block');
                 }
             }
-            
+
             if (isAnswered(question_data)) {
                 var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data[Qi_finalization_ts], 'asc');
                 if (insert_before !== -1) {
                     populateSection('questions-closing-soon', question_data, insert_before);
+                    $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
                     if (display_entries['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
                         $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
                     }
@@ -1511,14 +1589,14 @@ function update_ranking_data(arr_name, id, val, ord) {
 
     //console.log('update_ranking_data', arr_name, id, val.toString());
     var arr = display_entries[arr_name]['vals']
-    //console.log('start with array ', arr);
+        //console.log('start with array ', arr);
 
     var max_entries = display_entries[arr_name]['max_store'];
 
     // If the list is full and we're lower, give up
     if (arr.length >= max_entries) {
         //console.log('list full and lower, give up');
-        var last_entry = arr[arr.length-1];
+        var last_entry = arr[arr.length - 1];
         if (last_entry.gte(val)) {
             //  console.log('we are full and last entry is at least as high')
             return -1;
@@ -1562,7 +1640,7 @@ function update_ranking_data(arr_name, id, val, ord) {
 // question detail window
 
 (function() {
-    $(document).on('change', '.question-type', function(e){
+    $(document).on('change', '.question-type', function(e) {
         var win = $(this).closest('.rcbrowser');
         var container = win.find('.answer-option-container');
         if (win.find('.question-type').val() == 'single-select' || win.find('.question-type').val() == 'multiple-select') {
@@ -1581,7 +1659,7 @@ function update_ranking_data(arr_name, id, val, ord) {
         Ps.update(win.find('.rcbrowser-inner').get(0));
     });
 
-    $(document).on('click', '.add-option-button', function(e){
+    $(document).on('click', '.add-option-button', function(e) {
         var win = $(this).closest('.rcbrowser');
         var element = $('<div>');
         element.addClass('input-container input-container--answer-option');
@@ -1593,8 +1671,8 @@ function update_ranking_data(arr_name, id, val, ord) {
     });
 })();
 
-$(document).on('click', '.questions__item__title', function(e){
-    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+$(document).on('click', '.questions__item__title', function(e) {
+    if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
         return true;
     }
 
@@ -1609,7 +1687,7 @@ $(document).on('click', '.questions__item__title', function(e){
 });
 
 $(document).on('click', '.your-qa__questions__item', function(e) {
-    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+    if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
         return true;
     }
 
@@ -1644,7 +1722,7 @@ function updateQuestionWindowIfOpen(question) {
 
     var question_id = question[Qi_question_id];
     var window_id = 'qadetail-' + question_id;
-    var rcqa = $('#'+window_id);
+    var rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
@@ -1658,7 +1736,7 @@ function displayQuestionDetail(question_detail) {
 
     // If already open, refresh and bring to the front
     var window_id = 'qadetail-' + question_id;
-    var rcqa = $('#'+window_id);
+    var rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question_detail, true);
         rcqa.css('z-index', ++zindex);
@@ -1667,14 +1745,18 @@ function displayQuestionDetail(question_detail) {
         rcqa.attr('id', window_id);
         rcqa.attr('data-question-id', question_id);
 
-        rcqa.find('.rcbrowser__close-button').on('click', function(){
+        rcqa.find('.rcbrowser__close-button').on('click', function() {
             let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
             let left = parseInt(parent_div.css('left').replace('px', ''));
             let top = parseInt(parent_div.css('top').replace('px', ''));
             let data_x = (parseInt(parent_div.attr('data-x')) || 0);
             let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-            left += data_x; top += data_y;
-            window_position[question_id] = {'x': left, 'y': top};
+            left += data_x;
+            top += data_y;
+            window_position[question_id] = {
+                'x': left,
+                'y': top
+            };
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
         });
@@ -1688,13 +1770,15 @@ function displayQuestionDetail(question_detail) {
         rcqa.css('display', 'block');
         rcqa.addClass('is-open');
         rcqa.css('z-index', ++zindex);
-        rcqa.css('height', rcqa.height()+'px');
+        rcqa.css('height', rcqa.height() + 'px');
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
 
     if (rcqa.find('[name="input-answer"]').hasClass('rcbrowser-input--date--answer')) {
-        rcqa.find('[name="input-answer"]').datepicker({dateFormat: 'yy-mm-dd'});
+        rcqa.find('[name="input-answer"]').datepicker({
+            dateFormat: 'yy-mm-dd'
+        });
     }
 }
 
@@ -1712,7 +1796,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     date.setTime(question_detail[Qi_creation_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
-    rcqa.find('.question-title').text(question_json['title']).expander({slicePoint: 200});
+    rcqa.find('.question-title').text(question_json['title']).expander({
+        slicePoint: 200
+    });
     rcqa.find('.reward-value').text(web3js.fromWei(question_detail[Qi_bounty], 'ether'));
 
     if (question_detail[Qi_block_mined] > 0) {
@@ -1744,7 +1830,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             // answerer data
             var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
             ans_data.find('.answerer').text(latest_answer.user);
-            var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2,10), 16) );
+            var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2, 10), 16));
             ans_data.find('.answer-data__avatar').html(avjazzicon);
             if (latest_answer.user == account) {
                 ans_data.addClass('current-account');
@@ -1757,7 +1843,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             for (var i = 0; i < idx; i++) {
                 var ans = question_detail['history'][i].args;
                 var hist_id = 'question-window-history-item-' + web3js.sha3(question_id + ans.answer + ans.bond.toString());
-                if (rcqa.find('#'+hist_id).length) {
+                if (rcqa.find('#' + hist_id).length) {
                     //console.log('already in list, skipping', hist_id, ans);
                     continue;
                 }
@@ -1767,7 +1853,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 hist_item.attr('id', hist_id);
                 hist_item.find('.answerer').text(ans['user']);
 
-                var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2,10), 16) );
+                var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2, 10), 16));
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
                 hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
@@ -1775,10 +1861,10 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
                 hist_item.removeClass('template-item');
-                hist_tmpl.after(hist_item); 
+                hist_tmpl.after(hist_item);
             }
 
-        } 
+        }
     }
 
     // question settings warning balloon
@@ -1790,7 +1876,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
-    
+
     if (!valid_arbirator) {
         balloon_html += 'We do not recognize this arbitrator.<br />Do not believe this information unless you trust them.';
     }
@@ -1815,9 +1901,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
     if (question_detail['history_unconfirmed'].length) {
 
-        var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].args;
+        var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].args;
 
-        var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length-1].txid;
+        var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].txid;
         unconfirmed_container.find('.pending-answer-txid a').attr('href', block_explorer + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
@@ -1829,7 +1915,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         // answerer data
         var ans_data = rcqa.find('.unconfirmed-answer-container').find('.answer-data');
         ans_data.find('.answerer').text(unconfirmed_answer.user);
-        var avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2,10), 16) );
+        var avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2, 10), 16));
         ans_data.find('.answer-data__avatar').html(avjazzicon);
         if (unconfirmed_answer.user == account) {
             ans_data.addClass('unconfirmed-account');
@@ -1856,9 +1942,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-            rcqa.find('.arbitration-fee').text(web3js.fromWei(fee.toNumber(), 'ether')); 
+            rcqa.find('.arbitration-fee').text(web3js.fromWei(fee.toNumber(), 'ether'));
         });
-    } 
+    }
 
     if (!is_refresh) {
         // answer form
@@ -1873,18 +1959,18 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     //console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
 
-    if (isFinalized(question_detail)) {    
+    if (isFinalized(question_detail)) {
         var tot = totalClaimable(question_detail);
         if (tot.toNumber() == 0) {
             rcqa.removeClass('is-claimable');
         } else {
             rcqa.addClass('is-claimable');
             rcqa.find('.answer-claim-button .claimable-eth').text(web3js.fromWei(tot.toNumber(), 'ether'));
-        } 
+        }
     } else {
         rcqa.removeClass('is-claimable');
     }
-    
+
     //console.log(claimableItems(question_detail));
 
     return rcqa;
@@ -1898,17 +1984,21 @@ function totalClaimable(question_detail) {
 
 function possibleClaimableItems(question_detail) {
 
-    var ttl = new BigNumber(0); 
+    var ttl = new BigNumber(0);
     var is_your_claim = false;
 
     if (new BigNumber(question_detail[Qi_history_hash]).equals(0)) {
         //console.log('everything already claimed', question_detail[Qi_history_hash]);
-        return {total: new BigNumber(0)};
+        return {
+            total: new BigNumber(0)
+        };
     }
 
     if (!isFinalized(question_detail)) {
         //console.log('not finalized', question_detail);
-        return {total: new BigNumber(0)};
+        return {
+            total: new BigNumber(0)
+        };
     }
 
     //console.log('should be able to claim question ', question_detail);
@@ -1926,16 +2016,16 @@ function possibleClaimableItems(question_detail) {
     var is_yours = false;
 
     var final_answer = question_detail[Qi_best_answer];
-    for(var i = question_detail['history'].length-1; i >= 0; i--) {
+    for (var i = question_detail['history'].length - 1; i >= 0; i--) {
         var answer = question_detail['history'][i].args.answer;
         var answerer = question_detail['history'][i].args.user;
         var bond = question_detail['history'][i].args.bond;
-        var history_hash = question_detail['history'][i].args.history_hash; 
+        var history_hash = question_detail['history'][i].args.history_hash;
 
         if (is_yours) {
             // Somebody takes over your answer
             if (answerer != account && final_answer == answer) {
-                is_yours = false; 
+                is_yours = false;
                 ttl = ttl.minus(bond); // pay them their bond
             } else {
                 ttl = ttl.plus(bond); // take their bond
@@ -1986,14 +2076,14 @@ function possibleClaimableItems(question_detail) {
         'bonds': claimable_bonds,
         'history_hashes': claimable_history_hashes
     }
-    
+
 }
 
 function renderTimeAgo(i, ts) {
     var old_attr = i.find('.timeago').attr('datetime');
     if (old_attr != '') {
         timeago.cancel(i.find('.timeago'));
-    } 
+    }
     i.find('.timeago').attr('datetime', rc_question.convertTsToString(ts));
     timeAgo.render(i.find('.timeago'));
 }
@@ -2001,7 +2091,7 @@ function renderTimeAgo(i, ts) {
 // Anything in the document with this class gets updated
 // For when there's a single thing changed, and it's not worth doing a full refresh
 function updateAnyDisplay(question_id, txt, cls) {
-    $("[data-question-id='" + question_id+ "']").find('.'+cls).text(txt);
+    $("[data-question-id='" + question_id + "']").find('.' + cls).text(txt);
 }
 
 /*
@@ -2054,7 +2144,7 @@ function renderUserAction(question, entry, is_watch) {
 
 function answersByMaxBond(answer_logs) {
     var ans = {};
-    for (var i=0; i<answer_logs.length; i++) {
+    for (var i = 0; i < answer_logs.length; i++) {
         var an = answer_logs[i];
         var aval = an.args.answer;
         var bond = an.args.bond;
@@ -2096,7 +2186,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     }
 
     var inserted = false;
-    existing_notification_items.each( function(){
+    existing_notification_items.each(function() {
         var exi = $(this);
         //console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
         if (exi.attr('data-block-number') <= block_number) {
@@ -2106,7 +2196,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
         }
         return true;
     });
-       
+
     if (!inserted) {
         notifications.append(item_to_insert);
     }
@@ -2133,11 +2223,11 @@ function renderNotifications(qdata, entry) {
     // TODO: Handle whether you asked the question
 
     var ntext;
-    var evt = entry['event'] 
+    var evt = entry['event']
     switch (evt) {
         case 'LogNewQuestion':
             var notification_id = web3js.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + entry.args.timeout.toString());
-            ntext  = 'You asked a question - "' + question_json['title'] + '"';
+            ntext = 'You asked a question - "' + question_json['title'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             break;
 
@@ -2148,11 +2238,13 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You answered a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
-                var answered_question = rc.LogNewQuestion({question_id: question_id}, {
+                var answered_question = rc.LogNewQuestion({
+                    question_id: question_id
+                }, {
                     fromBlock: START_BLOCK,
                     toBlock: 'latest'
                 });
-                answered_question.get(function (error, result2) {
+                answered_question.get(function(error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         if (result2[0].args.user == account) {
                             ntext = 'Someone answered to your question';
@@ -2175,18 +2267,20 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
-                var funded_question = rc.LogNewQuestion({question_id: question_id}, {
+                var funded_question = rc.LogNewQuestion({
+                    question_id: question_id
+                }, {
                     fromBlock: START_BLOCK,
                     toBlock: 'latest'
                 });
                 // TODO: Should this really always be index 0?
-                funded_question.get(function (error, result2) {
+                funded_question.get(function(error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         if (result2[0].args.user == account) {
                             ntext = 'Someone added reward to your question';
                         } else {
                             var prev_hist_idx = qdata['history'].length - 2;
-                            if ( (prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.user == account) ) {
+                            if ((prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.user == account)) {
                                 ntext = 'Someone added reward to the question you answered';
                             }
                         }
@@ -2206,14 +2300,19 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
-                var arbitration_requested_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
-                arbitration_requested_question.get(function (error, result2) {
+                var arbitration_requested_question = rc.LogNewQuestion({
+                    question_id: question_id
+                }, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                arbitration_requested_question.get(function(error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         var history_idx = qdata['history'].length - 2;
                         if (result2[0].args.user == account) {
                             ntext = 'Someone requested arbitration to your question';
                         } else {
-                            if ( (history_idx >= 0) && (qdata['history'][history_idx].args.user == account) ) {
+                            if ((history_idx >= 0) && (qdata['history'][history_idx].args.user == account)) {
                                 ntext = 'Someone requested arbitration to the question you answered';
                                 is_positive = false;
                             } else {
@@ -2228,15 +2327,20 @@ function renderNotifications(qdata, entry) {
         case 'LogFinalize':
             //console.log('in LogFinalize', entry);
             var notification_id = web3js.sha3('LogFinalize' + entry.args.question_id + entry.args.answer);
-            var finalized_question = rc.LogNewQuestion({question_id: question_id}, {fromBlock: START_BLOCK, toBlock: 'latest'});
+            var finalized_question = rc.LogNewQuestion({
+                question_id: question_id
+            }, {
+                fromBlock: START_BLOCK,
+                toBlock: 'latest'
+            });
             var timestamp = null;
             // Fake timestamp for our fake finalize event
             if (entry.timestamp) {
                 timestamp = entry.timestamp;
             }
             //console.log('getting question_id', question_id)
-            finalized_question.get(function (error, result2) {
-            //console.log('gotquestion_id', question_id)
+            finalized_question.get(function(error, result2) {
+                //console.log('gotquestion_id', question_id)
                 if (error === null && typeof result2 !== 'undefined') {
                     if (result2[0].args.user == account) {
                         ntext = 'Your question is finalized';
@@ -2261,7 +2365,7 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
 
     var question_items = question_section.find('.your-qa__questions__item');
     var inserted = false;
-    question_items.each( function(idx, item) {
+    question_items.each(function(idx, item) {
         if ($(item).hasClass('template-item')) {
             return true;
         }
@@ -2287,11 +2391,11 @@ function renderQAItemAnswer(question_id, answer_history, question_json, is_final
     var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
     var sections = [question_section, answer_section];
 
-    sections.forEach(function(section){
-        var target = section.find('div[data-question-id='+question_id+']');
+    sections.forEach(function(section) {
+        var target = section.find('div[data-question-id=' + question_id + ']');
         if (answer_history.length > 0) {
             let user_answer;
-            for (let i = answer_history.length - 1; i >= 0 ; i--) {
+            for (let i = answer_history.length - 1; i >= 0; i--) {
                 if (answer_history[i].args.user == account) {
                     user_answer = answer_history[i].args.answer;
                     break;
@@ -2352,11 +2456,11 @@ function renderUserQandA(qdata, entry) {
     var is_finalized = isFinalized(qdata);
     renderQAItemAnswer(question_id, answer_history, question_json, is_finalized);
 
-    var updateBlockTimestamp = function (item, ts) {
+    var updateBlockTimestamp = function(item, ts) {
         let date = new Date();
         date.setTime(ts * 1000);
-        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear()
-            + ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
+            ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
         item.find('.item-date').text(date_str);
     }
     populateWithBlockTimeForBlockNumber(qitem, entry.blockNumber, updateBlockTimestamp);
@@ -2380,7 +2484,7 @@ function makeSelectAnswerInput(question_json, opening_ts) {
 
         switch (type) {
             case 'single-select':
-                for (var i = 0; i < options.length; i++ ) {
+                for (var i = 0; i < options.length; i++) {
                     var option_elm = $('<option>');
                     option_elm.val(i);
                     option_elm.text(options[i]);
@@ -2388,7 +2492,7 @@ function makeSelectAnswerInput(question_json, opening_ts) {
                 }
                 break;
             case 'multiple-select':
-                for (var i = options.length-1; i >= 0; i-- ) {
+                for (var i = options.length - 1; i >= 0; i--) {
                     var elmtpl = ans_frm.find('.input-entry.template-item');
                     var elm = elmtpl.clone();
                     elm.removeClass('template-item');
@@ -2435,7 +2539,7 @@ function updateQuestionState(question, question_window) {
     if (isArbitrationPending(question)) {
         question_window.removeClass('question-state-open').addClass('question-state-pending-arbitration').removeClass('question-state-finalized');
     } else {
-        if ( !isFinalized(question) ) {
+        if (!isFinalized(question)) {
             question_window.addClass('question-state-open').removeClass('question-state-pending-arbitration').removeClass('question-state-finalized');
         } else {
             question_window.removeClass('question-state-open').removeClass('question-state-pending-arbitration').addClass('question-state-finalized');
@@ -2467,15 +2571,15 @@ function pushWatchedAnswer(answer) {
     }
 }
 
-$(document).on('click', '.answer-item', function(){
+$(document).on('click', '.answer-item', function() {
     //console.log('.answer-item clicked');
     if ($(this).find('.answer-data').hasClass('is-bounce')) {
         $(this).find('.answer-data').removeClass('is-bounce');
         $(this).find('.answer-data').css('display', 'none');
-     } else {
+    } else {
         $(this).find('.answer-data').addClass('is-bounce');
         $(this).find('.answer-data').css('display', 'block');
-     }
+    }
 });
 
 function formattedAnswerFromForm(parent_div, question_json) {
@@ -2485,7 +2589,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
 
     // Selects will just have "invalid" as an option in the pull-down.
     // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
-    var has_invalid_selection = ( answer_element.attr('data-invalid-selected') == '1' );
+    var has_invalid_selection = (answer_element.attr('data-invalid-selected') == '1');
     if (has_invalid_selection) {
         new_answer = rc_question.getInvalidValue(question_json);
         console.log('invalid selected, so submitting the invalid value ', new_answer);
@@ -2494,7 +2598,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
 
     if (question_json['type'] == 'multiple-select') {
         var answer_input = [];
-        parent_div.find('.input-container--checkbox input[type=checkbox]').each( function() {
+        parent_div.find('.input-container--checkbox input[type=checkbox]').each(function() {
             if ($(this).closest('label').hasClass('template-item')) {
                 return;
             }
@@ -2532,119 +2636,123 @@ $(document).on('click', '.post-answer-button', function(e) {
     var new_answer;
 
     var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
-    .catch(function() {
-        // If the question is unconfirmed, go with what we have
-        console.log('caught failure, trying unconfirmed');
-        return ensureQuestionDetailFetched(question_id, 0, 0, 0, -1)
-    })
-    .then(function(current_question) {
-        //console.log('got current_question', current_question);
+        .catch(function() {
+            // If the question is unconfirmed, go with what we have
+            console.log('caught failure, trying unconfirmed');
+            return ensureQuestionDetailFetched(question_id, 0, 0, 0, -1)
+        })
+        .then(function(current_question) {
+            //console.log('got current_question', current_question);
 
-        // This may not be defined for an unconfirmed question
-        if (current_question[Qi_bond] == null) {
-            current_question[Qi_bond] = new BigNumber(0);
-        }
+            // This may not be defined for an unconfirmed question
+            if (current_question[Qi_bond] == null) {
+                current_question[Qi_bond] = new BigNumber(0);
+            }
 
-        question_json = current_question[Qi_question_json];
-        //console.log('got question_json', question_json);
+            question_json = current_question[Qi_question_json];
+            //console.log('got question_json', question_json);
 
-        new_answer = formattedAnswerFromForm(parent_div, question_json);
-        const invalid_value = rc_question.getInvalidValue(question_json);
+            new_answer = formattedAnswerFromForm(parent_div, question_json);
+            const invalid_value = rc_question.getInvalidValue(question_json);
 
-        switch (question_json['type']) {
-            case 'bool':
-                var ans = new BigNumber(new_answer);
-                if ( ans.isNaN() || !(ans.equals(new BigNumber(0)) || ans.equals(new BigNumber(1)) || ans.equals(new BigNumber(invalid_value)) ) ) {
-                    parent_div.find('div.select-container.select-container--answer').addClass('is-error');
-                    is_err = true;
-                }
-                break;
-            case 'uint':
-                var ans = new BigNumber(new_answer);
-                var err = false;
-                if (ans.isNaN()) {
-                    err = true;
-                } else if ( !ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)) ) ) {
-                    err = true;
-                }
-                if (err) {
-                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                    is_err = true;
-                }
-                break;
-            case 'int':
-                var ans = new BigNumber(new_answer);
-                var err = false;
-                if (ans.isNaN()) {
-                    err = true;
-                } else if ( !ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)) ) ) {
-                    err = true;
-                }
-                if (err) {
-                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                    is_err = true;
-                }
-                break;
-            case 'single-select':
-                var container = parent_div.find('div.select-container.select-container--answer');
-                var select = container.find('select[name="input-answer"]');
-                if (select.prop('selectedIndex') == 0) {
-                    container.addClass('is-error');
-                    is_err = true;
-                }
-                break;
-            case 'multiple-select':
-                var container = parent_div.find('div.input-container.input-container--checkbox');
-                var checked = container.find('input[name="input-answer"]:checked');
-                if (!invalid_value && checked.length == 0) {
-                    container.addClass('is-error');
-                    is_err = true;
-                }
-                break;
-        }
+            switch (question_json['type']) {
+                case 'bool':
+                    var ans = new BigNumber(new_answer);
+                    if (ans.isNaN() || !(ans.equals(new BigNumber(0)) || ans.equals(new BigNumber(1)) || ans.equals(new BigNumber(invalid_value)))) {
+                        parent_div.find('div.select-container.select-container--answer').addClass('is-error');
+                        is_err = true;
+                    }
+                    break;
+                case 'uint':
+                    var ans = new BigNumber(new_answer);
+                    var err = false;
+                    if (ans.isNaN()) {
+                        err = true;
+                    } else if (!ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)))) {
+                        err = true;
+                    }
+                    if (err) {
+                        parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                        is_err = true;
+                    }
+                    break;
+                case 'int':
+                    var ans = new BigNumber(new_answer);
+                    var err = false;
+                    if (ans.isNaN()) {
+                        err = true;
+                    } else if (!ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)))) {
+                        err = true;
+                    }
+                    if (err) {
+                        parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                        is_err = true;
+                    }
+                    break;
+                case 'single-select':
+                    var container = parent_div.find('div.select-container.select-container--answer');
+                    var select = container.find('select[name="input-answer"]');
+                    if (select.prop('selectedIndex') == 0) {
+                        container.addClass('is-error');
+                        is_err = true;
+                    }
+                    break;
+                case 'multiple-select':
+                    var container = parent_div.find('div.input-container.input-container--checkbox');
+                    var checked = container.find('input[name="input-answer"]:checked');
+                    if (!invalid_value && checked.length == 0) {
+                        container.addClass('is-error');
+                        is_err = true;
+                    }
+                    break;
+            }
 
-        var min_amount = current_question[Qi_bond] * 2;
-        if (bond.lt(min_amount)) {
-            parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-            parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3js.fromWei(min_amount, 'ether'));
-            is_err = true;
-        }
+            var min_amount = current_question[Qi_bond] * 2;
+            if (bond.lt(min_amount)) {
+                parent_div.find('div.input-container.input-container--bond').addClass('is-error');
+                parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3js.fromWei(min_amount, 'ether'));
+                is_err = true;
+            }
 
-        if (is_err) throw('err on submitting answer');
+            if (is_err) throw ('err on submitting answer');
 
-        submitted_question_id_timestamp[question_id] = new Date().getTime();
+            submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-        return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {from:account, gas:200000, value:bond});
-    }).then(function(txid){
-        clearForm(parent_div, question_json);
-        var fake_history = {
-            'args': {
-                'answer': new_answer,
-                'question_id': question_id,
-                'history_hash': null, // TODO Do we need this?
-                'user': account,
-                'bond': bond,
-                'ts': new BigNumber(parseInt(new Date().getTime()/1000)),
-                'is_commitment': false
-            },
-            'event': 'LogNewAnswer',
-            'blockNumber': block_before_send,
-            'txid': txid
-        };
-
-        var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
-        //console.log('after answer made question_data', question_data);
-
-        ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
-            updateQuestionWindowIfOpen(question);
-        }).catch(function() {
-            // Question may be unconfirmed, if so go with what we have
-            ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
-                updateQuestionWindowIfOpen(question);
+            return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
+                from: account,
+                gas: 200000,
+                value: bond
             });
-        });
+        }).then(function(txid) {
+            clearForm(parent_div, question_json);
+            var fake_history = {
+                'args': {
+                    'answer': new_answer,
+                    'question_id': question_id,
+                    'history_hash': null, // TODO Do we need this?
+                    'user': account,
+                    'bond': bond,
+                    'ts': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                    'is_commitment': false
+                },
+                'event': 'LogNewAnswer',
+                'blockNumber': block_before_send,
+                'txid': txid
+            };
 
-    });
+            var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+            //console.log('after answer made question_data', question_data);
+
+            ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+                updateQuestionWindowIfOpen(question);
+            }).catch(function() {
+                // Question may be unconfirmed, if so go with what we have
+                ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
+                    updateQuestionWindowIfOpen(question);
+                });
+            });
+
+        });
     /*
     .catch(function(e){
         console.log(e);
@@ -2682,22 +2790,22 @@ function clearForm(parent_div, question_json) {
 
 
 // open/close/add reward
-$(document).on('click', '.add-reward-button', function(e){
+$(document).on('click', '.add-reward-button', function(e) {
     var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.addClass('is-open');
     container.addClass('is-bounce');
     container.css('display', 'block');
 });
 
-$(document).on('click', '.add-reward__close-button', function(e){
+$(document).on('click', '.add-reward__close-button', function(e) {
     var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.removeClass('is-open');
     container.removeClass('is-bounce');
     container.css('display', 'none');
 });
 
-$(document).on('click', '.notifications-item', function(e){
-    if ( $(e.target).hasClass('more-link') || $(e.target).hasClass('less-link') ) {
+$(document).on('click', '.notifications-item', function(e) {
+    if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
         return true;
     }
     //console.log('notifications-item clicked');
@@ -2706,7 +2814,7 @@ $(document).on('click', '.notifications-item', function(e){
     openQuestionWindow($(this).attr('data-question-id'));
 });
 
-$(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', function(e){
+$(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -2718,15 +2826,18 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
-        rc.fundAnswerBounty(question_id, {from: account, value: reward})
-        .then(function (result) {
-            //console.log('fund bounty', result);
-            var container = rcqa.find('.add-reward-container');
-            //console.log('removing open', container.length, container);
-            container.removeClass('is-open');
-            container.removeClass('is-bounce');
-            container.css('display', 'none');
-        });
+        rc.fundAnswerBounty(question_id, {
+                from: account,
+                value: reward
+            })
+            .then(function(result) {
+                //console.log('fund bounty', result);
+                var container = rcqa.find('.add-reward-container');
+                //console.log('removing open', container.length, container);
+                container.removeClass('is-open');
+                container.removeClass('is-bounce');
+                container.css('display', 'none');
+            });
     }
 });
 
@@ -2752,16 +2863,19 @@ $(document).on('click', '.arbitration-button', function(e) {
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
-        arbitrator.requestArbitration(question_id, {from:account, value: fee})
-        .then(function(result){
-            console.log('arbitration is requested.', result);
-        });
+        arbitrator.requestArbitration(question_id, {
+                from: account,
+                value: fee
+            })
+            .then(function(result) {
+                console.log('arbitration is requested.', result);
+            });
     });
 });
 
 function show_bond_payments(ctrl) {
     var frm = ctrl.closest('div.rcbrowser--qa-detail')
-    var question_id = frm.attr('data-question-id'); 
+    var question_id = frm.attr('data-question-id');
     //console.log('got question_id', question_id);
     ensureQuestionDetailFetched(question_id).then(function(question) {
         var question_json = question[Qi_question_json];
@@ -2774,10 +2888,10 @@ function show_bond_payments(ctrl) {
             payable = existing_answers[new_answer].args.bond;
             if (existing_answers[new_answer].args.user == account) {
                 frm.addClass('has-your-answer').removeClass('has-someone-elses-answer');
-                frm.find('.answer-credit-info .answer-payment-value').text( web3js.fromWei(payable, 'ether'))
+                frm.find('.answer-credit-info .answer-payment-value').text(web3js.fromWei(payable, 'ether'))
             } else {
                 frm.addClass('has-someone-elses-answer').removeClass('has-your-answer');
-                frm.find('.answer-debit-info .answer-payment-value').text( web3js.fromWei(payable, 'ether'))
+                frm.find('.answer-debit-info .answer-payment-value').text(web3js.fromWei(payable, 'ether'))
             }
             frm.attr('data-answer-payment-value', payable.toString());
         } else {
@@ -2791,19 +2905,19 @@ function show_bond_payments(ctrl) {
 
 }
 
-$('.rcbrowser-textarea').on('keyup', function(e){
+$('.rcbrowser-textarea').on('keyup', function(e) {
     if ($(this).val() !== '') {
         $(this).closest('div').removeClass('is-error');
     }
 });
-$(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e){
+$(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) {
     let value = new BigNumber(web3js.toWei($(this).val()));
     //console.log($(this));
     if (value === '') {
         $(this).parent().parent().addClass('is-error');
-    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)){
+    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)) {
         $(this).parent().parent().addClass('is-error');
-    } else if($(this).hasClass('rcbrowser-input--number--bond')) {
+    } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
         let current_bond = 0;
@@ -2840,18 +2954,18 @@ $(document).on('click', '.invalid-switch-container a.valid-text-link', function(
 });
 
 
-$(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function (e) {
+$(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function(e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
     }
 });
-$(document).on('change', 'select[name="input-answer"]', function (e) {
+$(document).on('change', 'select[name="input-answer"]', function(e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
         show_bond_payments($(this));
     }
 });
-$(document).on('change', 'input[name="input-answer"]:checkbox', function(){
+$(document).on('change', 'input[name="input-answer"]:checkbox', function() {
     var parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
     var container = parent_div.find('div.input-container.input-container--checkbox');
     var checked = container.find('input[name="input-answer"]:checked');
@@ -2879,7 +2993,7 @@ $('#filter-list a').on('click', function(e) {
 // This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and Qi_finalization_ts.
 // A full repopulate will work, but so will an array with these fields overwritten from a log event.
 function updateRankingSections(question, changed_field, changed_val) {
-//console.log('in updateRankingSections', question, changed_field, changed_val);
+    //console.log('in updateRankingSections', question, changed_field, changed_val);
     // latest only change on new question
     // resolved changes on finalization, this happens either with a timer or with arbitration. Also removes items from other section.
     // closing soon changes when we add an answer
@@ -2891,7 +3005,7 @@ function updateRankingSections(question, changed_field, changed_val) {
         if (isFinalized(question)) {
             //console.log('isFinalized');
             var sections = ['questions-latest', 'questions-closing-soon', 'questions-high-reward'];
-            for (var i =0; i < sections.length; i++) {
+            for (var i = 0; i < sections.length; i++) {
                 var s = sections[i];
                 //console.log('doing section', s);
                 var existing_idx = display_entries[s].ids.indexOf(question_id);
@@ -2965,9 +3079,12 @@ function pageInit(account) {
 
     */
 
-    var evts = rc.allEvents({}, {fromBlock:'latest', toBlock:'latest'})
+    var evts = rc.allEvents({}, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+    })
 
-    evts.watch(function (error, result) {
+    evts.watch(function(error, result) {
         if (!error && result) {
             //console.log('got watch event', error, result);
 
@@ -2977,7 +3094,7 @@ function pageInit(account) {
             // Handles front page event changes.
             // NB We need to reflect other changes too...
             var evt = result['event'];
-            if (evt == 'LogNewTemplate') { 
+            if (evt == 'LogNewTemplate') {
                 var template_id = result.args.template_id;
                 var question_text = result.args.question_text;
                 template_content[template_id] = question_text;
@@ -3001,7 +3118,7 @@ function pageInit(account) {
                         });
                         break;
 
-                    case ('LogFundAnswerBounty'): 
+                    case ('LogFundAnswerBounty'):
                         ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                             //console.log('updating with question', question);
                             updateQuestionWindowIfOpen(question);
@@ -3021,7 +3138,9 @@ function pageInit(account) {
         }
     });
 
-    fetchUserEventsAndHandle({user: account}, START_BLOCK, 'latest');
+    fetchUserEventsAndHandle({
+        user: account
+    }, START_BLOCK, 'latest');
 
     // Now the rest of the questions
     fetchAndDisplayQuestions(current_block_number, 0);
@@ -3044,17 +3163,46 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         start_block = START_BLOCK;
     }
     if (end_block <= START_BLOCK) {
+
         console.log('History read complete back to block', START_BLOCK);
+
+
+        //look at current sections and update blockchain scanning message to
+        //no questions found if no items exist
+
+        if($("#questions-latest .questions-list > *").length == 3){
+          $('#questions-latest').find('.no-questions-category').css('display', 'block');
+          $('#questions-latest').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-closing-soon .questions-list > *").length == 3){
+          $('#questions-closing-soon').find('.no-questions-category').css('display', 'block');
+          $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-high-reward .questions-list > *").length == 3){
+          $('#questions-high-reward').find('.no-questions-category').css('display', 'block');
+          $('#questions-high-reward').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-resolved .questions-list > *").length == 3){
+          $('#questions-resolved').find('.no-questions-category').css('display', 'block');
+          $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
+        }
+
         setTimeout(bounceEffect, 500);
         return;
     }
 
     //console.log('fetchAndDisplayQuestions', start_block, end_block, fetch_i);
 
-    var question_posted = rc.LogNewQuestion({}, {fromBlock: start_block, toBlock: end_block});
-    question_posted.get(function (error, result) {
+    var question_posted = rc.LogNewQuestion({}, {
+        fromBlock: start_block,
+        toBlock: end_block
+    });
+    question_posted.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
-            for(var i=0; i<result.length; i++) {
+            for (var i = 0; i < result.length; i++) {
                 handlePotentialUserAction(result[i]);
                 handleQuestionLog(result[i]);
             }
@@ -3062,7 +3210,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
             console.log(error);
         }
 
-        //console.log('fetch start end ', start_block, end_block, fetch_i);
+        console.log('fetch start end ', start_block, end_block, fetch_i);
         fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
     });
 }
@@ -3070,8 +3218,11 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
 function fetchUserEventsAndHandle(filter, start_block, end_block) {
     //console.log('fetching for filter', filter);
 
-    var answer_posted = rc.LogNewAnswer(filter, {fromBlock: start_block, toBlock: end_block})
-    answer_posted.get(function (error, result) {
+    var answer_posted = rc.LogNewAnswer(filter, {
+        fromBlock: start_block,
+        toBlock: end_block
+    })
+    answer_posted.get(function(error, result) {
         var answers = result;
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < answers.length; i++) {
@@ -3083,8 +3234,11 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         }
     });
 
-    var bounty_funded = rc.LogFundAnswerBounty(filter, {fromBlock: start_block, toBlock: end_block});
-    bounty_funded.get(function (error, result) {
+    var bounty_funded = rc.LogFundAnswerBounty(filter, {
+        fromBlock: start_block,
+        toBlock: end_block
+    });
+    bounty_funded.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < result.length; i++) {
                 handlePotentialUserAction(result[i]);
@@ -3094,8 +3248,11 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         }
     });
 
-    var arbitration_requested = rc.LogNotifyOfArbitrationRequest(filter, {fromBlock: start_block, toBlock: end_block});
-    arbitration_requested.get(function (error, result) {
+    var arbitration_requested = rc.LogNotifyOfArbitrationRequest(filter, {
+        fromBlock: start_block,
+        toBlock: end_block
+    });
+    arbitration_requested.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < result.length; i++) {
                 handlePotentialUserAction(result[i]);
@@ -3105,8 +3262,11 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         }
     });
 
-    var finalized = rc.LogFinalize(filter, {fromBlock: start_block, toBlock: end_block});
-    finalized.get(function (error, result) {
+    var finalized = rc.LogFinalize(filter, {
+        fromBlock: start_block,
+        toBlock: end_block
+    });
+    finalized.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < result.length; i++) {
                 handlePotentialUserAction(result[i]);
@@ -3117,10 +3277,13 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
     });
 
     // Now the rest of the questions
-    var question_posted = rc.LogNewQuestion(filter, {fromBlock: START_BLOCK, toBlock:'latest'});
-    question_posted.get(function (error, result) {
+    var question_posted = rc.LogNewQuestion(filter, {
+        fromBlock: START_BLOCK,
+        toBlock: 'latest'
+    });
+    question_posted.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
-            for(var i=0; i<result.length; i++) {
+            for (var i = 0; i < result.length; i++) {
                 handlePotentialUserAction(result[i]);
             }
         } else {
@@ -3147,9 +3310,9 @@ function parseHash() {
     }
     var arg_arr = location.hash.substring(3).split('/');
     var args = {};
-    for (var i=0; i<arg_arr.length+1; i = i+2) {
+    for (var i = 0; i < arg_arr.length + 1; i = i + 2) {
         var n = arg_arr[i];
-        var v = arg_arr[i+1];
+        var v = arg_arr[i + 1];
         if (n && v) {
             args[n] = v;
         }
@@ -3171,11 +3334,11 @@ function populateArbitratorOptionLabel(op, fee, txt) {
 }
 
 function populateArbitratorSelect(network_arbs) {
-    $("select[name='arbitrator']").each(function() { 
+    $("select[name='arbitrator']").each(function() {
         var as = $(this);
         var is_first = true;
-        var a_template= as.find('.arbitrator-template-item');
-        var append_before= a_template.parent().find('.arbitrator-other-select');
+        var a_template = as.find('.arbitrator-template-item');
+        var append_before = a_template.parent().find('.arbitrator-other-select');
         a_template.remove();
 
         is_first = false;
@@ -3187,15 +3350,15 @@ function populateArbitratorSelect(network_arbs) {
         mya.setProvider(web3js.currentProvider);
 
         myr.deployed().then(function(myri) {
-            $.each( network_arbs, function( na_addr, na_title ) {
+            $.each(network_arbs, function(na_addr, na_title) {
                 mya.at(na_addr).then(function(arb_inst) {
                     return arb_inst.realitycheck.call();
                 }).then(function(rc_addr) {
-                     console.log('arb has rc addr', rc_addr); 
-                     var is_arb_valid = (rc_addr == myr.address); 
-                     verified_arbitrators[na_addr] = is_arb_valid;
-                     console.log(verified_arbitrators);
-                     return is_arb_valid;
+                    console.log('arb has rc addr', rc_addr);
+                    var is_arb_valid = (rc_addr == myr.address);
+                    verified_arbitrators[na_addr] = is_arb_valid;
+                    console.log(verified_arbitrators);
+                    return is_arb_valid;
                 }).then(function(is_arb_valid) {
                     if (is_arb_valid) {
                         myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
@@ -3218,18 +3381,18 @@ function populateArbitratorSelect(network_arbs) {
 }
 
 function validateArbitratorForContract(arb_addr) {
-    return new Promise((resolve, reject)=>{
-		if (verified_arbitrators[arb_addr]) {
-			resolve(true);
-		}
+    return new Promise((resolve, reject) => {
+        if (verified_arbitrators[arb_addr]) {
+            resolve(true);
+        }
 
         const mya = contract(arb_json);
         mya.setProvider(web3js.currentProvider);
-		mya.at(arb_addr).then(function(myainst) {
+        mya.at(arb_addr).then(function(myainst) {
             myainst.realitycheck.call().then(function(rslt) {
                 resolve(arb_addr == rslt);
             });
-		});
+        });
     })
 }
 
@@ -3281,10 +3444,10 @@ window.addEventListener('load', function() {
         console.log('got web3js, go ahead');
         web3js = new Web3(web3.currentProvider);
     }
-    
+
     // Set up a filter so we always know the latest block number.
     // This helps us keep track of how fresh our question data etc is.
-    web3js.eth.filter('latest').watch( function(err, res) {
+    web3js.eth.filter('latest').watch(function(err, res) {
         web3js.eth.getBlock('latest', function(err, result) {
             if (result.number > current_block_number) {
                 current_block_number = result.number;
@@ -3315,7 +3478,7 @@ window.addEventListener('load', function() {
             if (args['category']) {
                 category = args['category'];
                 $('body').addClass('category-' + category);
-                var cat_txt = $("#filter-list").find("[data-category='" + category+ "']").text();
+                var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
                 $('#filterby').text(cat_txt);
             }
             //console.log('args:', args);
@@ -3328,24 +3491,31 @@ window.addEventListener('load', function() {
                 pageInit(account);
                 if (args['question']) {
                     //console.log('fetching question');
-                    ensureQuestionDetailFetched(args['question']).then(function(question){
+                    ensureQuestionDetailFetched(args['question']).then(function(question) {
                         openQuestionWindow(question[Qi_question_id]);
                     })
                 }
             });
         });
-    }); 
+    });
 
     // Notification bar(footer)
     if (window.localStorage.getItem('got-it') == null) {
         $('#footer-notification-bar').css('display', 'block');
     }
-    $('#got-it-button').on('click', function(e){
+    $('#got-it-button').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         window.localStorage.setItem('got-it', true);
         $('#footer-notification-bar').css('display', 'none');
     });
+
+    var args = parseHash()
+    if (args['category']) {
+        $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
+    } else {
+        $("#filter-list").find("[data-category='all']").addClass("selected")
+    }
 
     setTimeout(bounceEffect, 8000);
 

@@ -498,7 +498,7 @@ body.pushing .page-qa #push-icon {
     margin-right: 10px;
 }
 
-#filter-list li a { 
+#filter-list li a {
     color: $blue;
     font-size: 15px;
 }
@@ -510,7 +510,7 @@ body.pushing .page-qa #push-icon {
     padding: 0 0 20px;
 }
 
-#filter-list li a.selected { 
+#filter-list li a.selected {
     font-weight: bold;
 }
 
@@ -784,6 +784,7 @@ a.questions__item__title:hover {
     box-shadow: 0 0 8px rgba(0,0,0,.2);
     border-radius: 6px;
     cursor: pointer;
+    display: none;
 }
 
 .loadmore-text {
@@ -1048,7 +1049,7 @@ footer .cols:first-child {
     width: 460px;
 }
 
-footer .cols h3 { 
+footer .cols h3 {
     margin-top: 0;
 }
 
@@ -2302,7 +2303,7 @@ div.questions__item__footer span.question-bounty-container { float:right }
 
 .answer-form-container{display:none}
 div.rcbrowser--qa-detail.question-state-open .answer-form-container{display:block !important}
- 
+
 .arbitration-button{display:none}
 div.rcbrowser--qa-detail.question-state-open .arbitration-button{display:block !important}
 
@@ -2501,7 +2502,7 @@ div.rcbrowser--qa-detail.failed-transaction .question-setting-warning { display:
 
 div.rcbrowser--qa-detail.unconfirmed-transaction div.rcbrowser-main { opacity: 0.6 }
 
-div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { 
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
     margin-top: 6px;
     padding: 4px 6px 6px;
     line-height: 1.3;
@@ -2516,7 +2517,7 @@ div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
 div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { display:none}
 div.rcbrowser--qa-detail.failed-transaction .rcbrowser-warning-header-failed-box { display:block !important}
 
-div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box { 
+div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
     margin-top: 6px;
     padding: 4px 6px 6px;
     line-height: 1.3;

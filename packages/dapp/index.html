@@ -69,17 +69,16 @@
                         });
                     </script>
                 </div>
-                <div class="category-list">
+                  <div class="category-list">
                     <ul id="filter-list">
-                        <li><a data-category="all" class="selected">All</a></li>
+                        <li><a data-category="all">All</a></li>
+                        <li><a data-category="art-design">Arts</a></li>
+                        <li><a data-category="business-finance">Business &amp; Finance</a></li>
+                        <li><a data-category="blockchain">Crypto</a></li>
+                        <li><a data-category="politics">News &amp; Politics</a></li>
+                        <li><a data-category="technology-science">Science &amp; Tech</a></li>
                         <li><a data-category="sports">Sports</a></li>
-                        <li><a data-category="politics">Politics</a></li>
                         <li><a data-category="weather">Weather</a></li>
-                        <li><a data-category="blockchain">Blockchains</a></li>
-                        <li><a data-category="culture">Culture</a></li>
-                        <li><a data-category="business-finance">Business / Finance</a></li>
-                        <li><a data-category="art-design">Art / Design</a></li>
-                        <li><a data-category="technology-science">Technology / Science</a></li>
                         <li><a data-category="misc">Miscellaneous</a></li>
                     </ul>
                 </div>
@@ -90,6 +89,15 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
                     </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no questions closing soon in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <p>Scanning the blockchain for questions...</p>
+                    </div>
+
                 </div><!-- /.questions-list -->
 
                 <div class="loadmore-button" data-questions="questions-closing-soon">
@@ -104,6 +112,13 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
                     </div>
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no questions in this category. Be the first to ask one!</p>
+                    </div>
+                    <div class="scanning-questions-category">
+                        <p>Scanning the blockchain for questions...</p>
+                    </div>
+
                 </div><!-- /.questions-list -->
 
                 <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
@@ -118,6 +133,15 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
                     </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no high reward questions in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <p>Scanning the blockchain for questions...</p>
+                    </div>
+
                 </div><!-- /.questions-list -->
 
                 <div id="loadmore-high-reward" class="loadmore-button" data-questions="questions-high-reward">
@@ -132,7 +156,18 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Etherium network</p>
                     </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no resolved questions in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <p>Scanning the blockchain for questions...</p>
+                    </div>
+
                 </div><!-- /.questions-list -->
+
+
 
                 <div class="loadmore-button" data-questions="questions-resolved">
                     <span class="loadmore-text">Load More</span>
@@ -205,11 +240,11 @@
                     Once nobody has answered for a while, the question is settled on the final answer. The time it takes until a question is settled is decided when the question is first asked.
                     </p>
 
-                    <p><b><i>You can pay an arbitrator at any time before settlement.</i></b> 
-                    <br />Paying an arbitrator is usually a last resort, after someone insists on posting the wrong answer, and paying for it with a bond. 
+                    <p><b><i>You can pay an arbitrator at any time before settlement.</i></b>
+                    <br />Paying an arbitrator is usually a last resort, after someone insists on posting the wrong answer, and paying for it with a bond.
                     <br />If you raise the bond far enough on the right answer, you'll be able to pay the arbitrator and still make a profit.</p>
 
-                    <p><b><i>The arbitrator can be any Ethereum contract.</i></b> 
+                    <p><b><i>The arbitrator can be any Ethereum contract.</i></b>
                     <br />The arbitrator contract may be controlled by a company like Reality Keys, or a group of people, DAO, or any other decision-making process you can code.</p>
 
                     <p>For more detail, see <b><i><a target="docs" href="docs/html">our documentation</a></i></b>.</p>
