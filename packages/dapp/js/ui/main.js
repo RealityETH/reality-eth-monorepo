@@ -52,8 +52,8 @@ const INFURA_NODES = {
 // The point where we deployed the contract on the network
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
-    3: 1728899,
-    4: 1400000
+    1: 5932007,
+    4: 2602053
 }
 var START_BLOCK;
 
@@ -360,6 +360,7 @@ $(function() {
     });
 });
 
+
 // page loaded
 let bounceEffect = function() {
     if (!$('body').hasClass('is-page-loaded')) {
@@ -370,6 +371,7 @@ let bounceEffect = function() {
         });
     }
 }
+
 
 /*-------------------------------------------------------------------------------------*/
 // window for posting a question
@@ -2247,7 +2249,7 @@ function renderNotifications(qdata, entry) {
                 answered_question.get(function(error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         if (result2[0].args.user == account) {
-                            ntext = 'Someone answered to your question';
+                            ntext = 'Someone answered your question';
                         } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
                             is_positive = false;
                             ntext = 'Your answer was overwritten';
@@ -2863,6 +2865,7 @@ $(document).on('click', '.arbitration-button', function(e) {
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
+
         arbitrator.requestArbitration(question_id, {
                 from: account,
                 value: fee
@@ -2870,6 +2873,12 @@ $(document).on('click', '.arbitration-button', function(e) {
             .then(function(result) {
                 console.log('arbitration is requested.', result);
             });
+
+        arbitrator.requestArbitration(question_id, new BigNumber(0), {from:account, value: fee})
+        .then(function(result){
+            console.log('arbitration is requested.', result);
+        });
+
     });
 });
 
@@ -3191,6 +3200,9 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         }
 
         setTimeout(bounceEffect, 500);
+
+        $('body').addClass('is-page-loaded');
+
         return;
     }
 
@@ -3518,6 +3530,7 @@ window.addEventListener('load', function() {
     }
 
     setTimeout(bounceEffect, 8000);
+
 
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {

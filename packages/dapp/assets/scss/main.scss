@@ -52,6 +52,21 @@ a:hover {
  	display: block;
 }
 
+.overlay {
+    position: absolute;
+    z-index: 200;
+    background: rgba(255,255,255,0.8);
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    display: none;
+}
+
+body.error .overlay {
+    display: block;
+}
+
 input, button, textarea, select {
     margin: 0;
 	padding: 0;
@@ -147,7 +162,7 @@ input, button, textarea, select {
 #site-header {
     width: 100%;
     display: inline-block;
-    height: 360px;
+    height: 240px;
     text-align: right;
 }
 
@@ -158,21 +173,28 @@ input, button, textarea, select {
     padding: 20px;
     font-weight: bold;
     display: inline-block;
+    margin-top: 20px;
 }
 
 h1.logo {
     overflow: hidden;
     display: block !important;
     text-indent: -900000px;
-    background: url(../image/realitio_dapp_logo.png) top left no-repeat;
+    background: url(../image/realitio_logo.png) top left no-repeat;
     background-size: contain;
     position: absolute;
-    left: 50%;
+    left: 0;
     width: 230px;
-    height: 130px;
-    margin-left: -115px;
-    margin-top: 40px;
+    height: 50px;
+    margin-left: 0;
+    margin-top: 0;
     text-align: left;
+    top: 30px;
+}
+
+#site-header .logo a {
+    display: block;
+    margin: 0;
 }
 
 #site-title {
@@ -233,15 +255,16 @@ body #push-icon {
 }
 
 body.pushing #push-icon {
+    font-family: 'Material Icons';
     display: block;
-    width: 8px;
-    height: 8px;
+    width: 20px;
+    height: 20px;
     position: absolute;
-    bottom: -5px;
     right: -5px;
-    border-radius: 50%;
-    background-color: $red;
-    border: solid 2px #000;
+    position: absolute;
+    top: 19px;
+    color: $blue;
+    font-size: 20px;
 }
 
 body.pushing .page-qa #push-icon {
@@ -287,7 +310,7 @@ body.pushing .page-qa #push-icon {
 #site-introduction__buttons {
     width: 100%;
     clear: both;
-    margin-top: 200px;
+    margin-top: 25px;
     text-align: center;
 }
 
@@ -921,14 +944,14 @@ $loder-border-size: 3px;
 }
 
 #site-footer h1.logo {
-    background: url(../image/realitio_dapp_logo_white.png) top left no-repeat;
+    background: url(../image/realitio_logo_white.png) top left no-repeat;
     background-size: contain;
     position: relative;
-    left: 60px;
+    left: 79px;
     width: 230px;
-    height: 130px;
+    height: 40px;
     margin-left: 0;
-    margin-top: 0;
+    margin-top: 13px;
 }
 
 // footer nav
@@ -1207,6 +1230,7 @@ span.rcbrowser__close-button {
 
 .rcbrowser__buttons {
     text-align: center;
+    padding-top: 15px;
 }
 
 // rcBrowser main
@@ -1239,6 +1263,7 @@ span.rcbrowser__close-button {
     font-size: 13px;
     font-weight: 400;
     color: $rcBrowserSubText;
+    margin: 15px 0 0;
 }
 
 .answer-claiming-container {
@@ -1672,11 +1697,15 @@ input[type="number"] {
 
 // rcBrowser textarea
 .textarea-container {
-    margin: 15px 0;
+    margin: 0;
 }
 
 .textarea-container--postaquestion {
     margin-top: 0;
+}
+
+.row.clearfix {
+    margin: 15px 0;
 }
 
 textarea[name="question-body"] {
@@ -1686,9 +1715,39 @@ textarea[name="question-body"] {
     font-size: 20px;
 }
 
+textarea[name="question-body"]::-webkit-input-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 18- */
+textarea[name="question-body"]:-moz-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 19+ */
+textarea[name="question-body"]::-moz-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* IE 10+ */
+textarea[name="question-body"]:-ms-input-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
+textarea[name="question-body"]:placeholder-shown{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
 // rcBrowser reward
 .input-container {
-    margin: 15px 0;
+    margin: 0;
     position: relative;
 }
 
@@ -1740,7 +1799,7 @@ textarea[name="question-body"] {
 }
 
 .select-container {
-    margin: 15px 0;
+    margin: 0;
     position: relative;
 }
 
@@ -1816,7 +1875,7 @@ div.invalid-switch-container { margin-top:2px; margin-right:2px; text-align:righ
     font-weight: 500;
     text-align: center;
     position: absolute;
-    top: 0;
+    top: 4px;
     right: 0;
     cursor: pointer;
     z-index: 1;
@@ -2090,35 +2149,30 @@ label > span {
 textarea::-webkit-input-placeholder,
 input::-webkit-input-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* Firefox 18- */
 textarea:-moz-placeholder,
 input:-moz-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* Firefox 19+ */
 textarea::-moz-placeholder,
 input::-moz-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 /* IE 10+ */
 textarea:-ms-input-placeholder,
 input:-ms-input-placeholder {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 
 textarea:placeholder-shown,
 input:placeholder-shown {
     color: $light-gray;
-    font-family: $font-family-serif;
     font-size: 20px;
 }
 
@@ -2221,7 +2275,7 @@ input:placeholder-shown {
 // tooltip
 .tooltip {
     position: absolute;
-    top: 51px;
+    top: 69px;
     right: 16px;
     z-index: 999;
     background-color: $blue;
@@ -2393,13 +2447,22 @@ div.error-bar { display:none }
 
 body.error div.error-bar {
     /* container */
-    padding: 8px 0;
-    background-color: $dark-purple;
-    color: $white;
-    font-size: 14px;
+    padding: 40px;
+    background-color: #0a3c6f;
+    color: #ffffff;
+    font-size: 18px;
     position: static;
     display: block !important;
     text-align: center;
+    z-index: 201;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 400px;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,.2);
+    margin-left: -200px;
+    margin-top: -60px;
 }
 
 div.error-bar .metamask-icon {

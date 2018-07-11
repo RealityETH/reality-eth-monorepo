@@ -94,11 +94,14 @@ exports.serializedValueTX = function(params, addr, val) {
 	return tx.serialize();
 }
 
-exports.serializedTX = function(params, cntr, data) {
+exports.serializedTX = function(params, cntr, data, gas_limit) {
+    if (gas_limit == undefined) {
+        gas_limit = config.gas_limit;
+    }
     const key = this.loadKey();
 	const tra = {
 		gasPrice: web3_utils.toHex(params['gas_price_in_gwei'] * GWEI_TO_WEI),
-		gasLimit: web3_utils.toHex(config.gas_limit),
+		gasLimit: web3_utils.toHex(gas_limit),
 		data: data,
 		nonce: web3_utils.toHex(params['nonce']),
 		to: cntr.address,

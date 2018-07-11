@@ -1,4 +1,4 @@
-Using the Reality Check dapp
+Using the Realitio dapp
 ============================
 
 Requirements
@@ -6,7 +6,7 @@ Requirements
 
 You will need the Metamask_ Chrome extension. 
 
-Reality Check is currently deployed to the Rinkeby testnet. Select the Rinkeby testnet, make sure your account is unlocked and refresh the page. 
+Realitio is currently deployed to the Rinkeby testnet. Select the Rinkeby testnet, make sure your account is unlocked and refresh the page. 
 
 You will need Rinkeby testnet coins to use the application. You can get these at the `Rinkeby Faucet`_.
 
@@ -33,8 +33,7 @@ If you intend to supply the answer yourself, and are hoping it will survive chal
 Question Type
 ~~~~~~~~~~~~~
 * Binary (Yes/No): A simple yes or no answer. Note that this has no value for "null" or "undecided". If you want to be able to report these options, you may prefer a multi-choice question.
-* Number (positive): A positive (unsigned) number. By default questions allow up to 13 decimals. 
-* Number (positive/negative): A positive or negative (signed) number. By default questions allow up to 13 decimals. 
+* Number: A positive (unsigned) number. By default questions allow up to 13 decimals. 
 * Single-choice: One answer can be selected from a list. The answer form will display this as a select box.
 * Multiple-choice: Multiple answers can be selected from a list. The answer form will display this as a group of checkboxes.
 * Datetime: A date or date and time. The answer form will display this as a date picker.

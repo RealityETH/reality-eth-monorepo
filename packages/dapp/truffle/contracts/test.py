@@ -263,7 +263,7 @@ class TestRealityCheck(TestCase):
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
-        self.assertTrue(self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
+        self.assertTrue(self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
         #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
@@ -287,7 +287,7 @@ class TestRealityCheck(TestCase):
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
 
-        self.assertTrue(self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
+        self.assertTrue(self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
         question = self.rc0.questions(self.question_id)
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the arbitration flag to True")
 
@@ -367,7 +367,7 @@ class TestRealityCheck(TestCase):
         # fee of 0 should mean you can never request arbitration
         self.arb0.setDisputeFee(0, startgas=200000)
         with self.assertRaises(TransactionFailed):
-            self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+            self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
 
         self.arb0.setDisputeFee(123, startgas=200000)
         self.assertEqual(self.arb0.getDisputeFee(self.question_id), 123)
@@ -381,10 +381,19 @@ class TestRealityCheck(TestCase):
         self.assertEqual(self.arb0.getDisputeFee(self.question_id), 123)
         return
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitration_max_previous(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, t.k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, t.k3)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.requestArbitration(self.question_id, 2, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, 4, value=self.arb0.getDisputeFee(), startgas=200000)
+        return
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_none(self):
-        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
         st_hash = self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH]
 
         self.assertEqual(encode_hex(st_hash), "0"*64)
@@ -405,7 +414,7 @@ class TestRealityCheck(TestCase):
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, t.k3)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, t.k4)
 
-        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
 
         st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         st['addr'].insert(0, keys.privtoaddr(t.k4))
@@ -540,6 +549,19 @@ class TestRealityCheck(TestCase):
             st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_answer_commit_with_arbitration_pending(self):
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, t.k3, True)
+        nonce = st['nonce'][0]
+        hh = st['hash'][0]
+
+        self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
+
+        #with self.assertRaises(TransactionFailed):
+        st = self.rc0.submitAnswerReveal( self.question_id, to_answer_for_contract(1002), nonce, 1, sender=t.k3)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_not_final(self):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, t.k4)
@@ -547,7 +569,7 @@ class TestRealityCheck(TestCase):
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, t.k3)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, t.k4)
 
-        self.arb0.requestArbitration(self.question_id, value=self.arb0.getDisputeFee(), startgas=200000)
+        self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
 
         st['hash'].insert(0, self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH])
         st['addr'].insert(0, keys.privtoaddr(t.k3))
