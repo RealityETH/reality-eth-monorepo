@@ -2146,7 +2146,7 @@ function renderNotifications(qdata, entry) {
                 answered_question.get(function (error, result2) {
                     if (error === null && typeof result2 !== 'undefined') {
                         if (result2[0].args.user == account) {
-                            ntext = 'Someone answered to your question';
+                            ntext = 'Someone answered your question';
                         } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
                             is_positive = false;
                             ntext = 'Your answer was overwritten';
