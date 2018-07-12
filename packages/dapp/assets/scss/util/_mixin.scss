@@ -44,11 +44,11 @@
     width: 360px;
     position: absolute;
     bottom: calc(100% + 6px);
-    right: -20px;
-    background-color: $blue;
+    left: -20px;
+    background-color: $dark-gray;
     padding: 20px;
     color: $white;
-    font-size: 15px;
+    font-size: 16px;
     z-index: 2;
     display: none;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.3);
@@ -58,12 +58,12 @@
 @mixin tooltip_after {
     display: block;
     content: "";
-    border-top: solid 6px $blue;
+    border-top: solid 6px $dark-gray;
     border-left: solid 6px transparent;
     border-right: solid 6px transparent;
     border-bottom: solid 6px transparent;
     position: absolute;
     bottom: -12px;
-    right: 24px;
+    left: 24px;
 }
 

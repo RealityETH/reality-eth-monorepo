@@ -262,8 +262,8 @@ body.pushing #push-icon {
     position: absolute;
     right: -5px;
     position: absolute;
-    top: 19px;
-    color: $blue;
+    top: 25px;
+    color: $orange;
     font-size: 20px;
 }
 
@@ -739,7 +739,7 @@ span.question-title:after {
 }
 
 .questions__item-inner {
-    padding: 0 27px;
+    padding: 0 27px 0 0;
     position: relative;
 }
 
@@ -754,7 +754,9 @@ a.questions__item__title {
     font-weight: normal;
     color: $gray;
 }
-
+.rcbrowser-main-header-title.question-title {
+    margin: 10px 0;   
+}
 a.questions__item__title:hover {
     color: $blue;
     text-decoration: underline;
@@ -1291,6 +1293,10 @@ span.rcbrowser__close-button {
 .rcbrowser--qa-detail .rcbrowser-main-header {
     text-align: left;
     padding: 18px 0 6px;
+    border-bottom: 1px solid $border-main;
+    padding-bottom: 1em;
+    margin-bottom: 1em;
+    position: relative;
 }
 
 .rcbrowser-main-header-date {
@@ -1299,7 +1305,7 @@ span.rcbrowser__close-button {
 }
 
 .rcbrowser--qa-detail .rcbrowser-main-header-subtitle {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     color: $gray;
 }
@@ -1401,7 +1407,7 @@ span.rcbrowser__close-button {
 // current answer
 .current-answer-container {
     margin: 15px 0;
-    border-bottom: 1px solid #d9dde0;
+    border-bottom: 1px solid $border-main;
 }
 
 .current-answer-container.is-open .current-answer-inner {
@@ -1632,7 +1638,7 @@ div.unconfirmed-question-header span.pending-question-txid {
     margin: 15px 0;
     padding: 9px 15px 15px;
     border-radius: 3px;
-    border-bottom: 1px solid #d9dde0;
+    border-bottom: 1px solid $border-main;
 }
 
 // your balance
@@ -1967,7 +1973,7 @@ label > span {
 // rcBrowser Your Q&A
 .notifications {
     margin: 0 0 15px;
-    border-top: 1px solid #d9dde0;
+    border-top: 1px solid $border-main;
 }
 
 .notifications-show-hide {
@@ -1979,7 +1985,7 @@ label > span {
     width: 100%;
     background-color: $rcBrowserDarkBg;
     padding: 10px 0;
-    border-bottom: 1px solid #d9dde0;
+    border-bottom: 1px solid $border-main;
 }
 
 .notifications-item {
@@ -2079,7 +2085,7 @@ label > span {
 .your-qa__questions__item,
 .no-your-qa__questions__item {
     padding: 10px 0;
-    border-bottom: solid 1px #d9dde0;
+    border-bottom: solid 1px $border-main;
 }
 
 .your-qa__questions__item-date {
@@ -2278,7 +2284,7 @@ input:placeholder-shown {
     top: 69px;
     right: 16px;
     z-index: 999;
-    background-color: $blue;
+    background-color: $orange;
     color: $white;
     padding: 12px;
     border-radius: 3px;
@@ -2299,7 +2305,7 @@ input:placeholder-shown {
     display: block;
     content: "";
     border-top: solid 6px transparent;
-    border-bottom: solid 6px $blue;
+    border-bottom: solid 6px $orange;
     border-left: solid 6px transparent;
     border-right: solid 6px transparent;
     position: absolute;
@@ -2508,14 +2514,14 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
 
 .question-setting-info {
     position: absolute;
-    top: 105px;
-    right: 13px;
+    top: 10px;
+    right: 0;
 }
 
 .rcbrowser--qa-detail .question-setting-warning {
     position: absolute;
-    top: 70px;
-    right: 13px;
+    top: 10px;
+    left: 0;
 }
 
 .rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning {
@@ -2524,8 +2530,8 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
 
 .questions__item .question-setting-warning {
     position: absolute;
-    top: -5px;
-    right: -10px;
+    top: -10px;
+    left: 0;
     width: 24px;
 }
 
@@ -2543,8 +2549,32 @@ body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-i
     @include tooltip_after;
 }
 
+.rcbrowser-main .question-setting-warning .balloon {
+    bottom: initial !important;
+    top: 27px;
+    text-align: left !important;
+}
+.question-setting-info .balloon::after ,
+.rcbrowser-main .question-setting-warning .balloon::after {
+    top: -12px;
+    bottom: initial !important;
+    border-bottom: solid 6px #3a3c40;
+    border-top: solid 6px transparent;
+}
+
+.question-setting-info .balloon {
+    left: -360px !important;
+    text-align: left !important;
+    right: initial;
+}
+
+.question-setting-info .balloon::after {
+    right: 21px;
+    left: initial;
+}
+
 .material-icons.gray { color: #41464c; }
-.material-icons.purple { color: $blue}
+.material-icons.purple { color: $gray; font-size: 20px;}
 
 .question-setting-info:hover .balloon,
 .question-setting-warning:hover .balloon {
