@@ -54,7 +54,7 @@ class Tweet(models.Model):
             access_token_key=SECRETS.TWITTER_ACCESS_TOKEN_KEY,
             access_token_secret=SECRETS.TWITTER_ACCESS_TOKEN_SECRET
         )
-        message = q.summaryString()
+        message = q.summaryString(280)
         t = Tweet(
             tweeted_ts = timezone.now(),
             question_id = q.question_id,

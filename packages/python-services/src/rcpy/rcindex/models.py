@@ -36,7 +36,7 @@ class EthBlock(models.Model):
         # TODO: If called without block_ts, fetch with getBlock
 
         try:
-            ethblock = EthBlock.objects.get(pk=block_ts)
+            ethblock = EthBlock.objects.get(pk=block_id)
             # ts may have changed in reorg
             if ethblock.block_ts != block_ts:
                 ethblock.block_ts = block_ts   
@@ -183,7 +183,7 @@ class RCQuestion(models.Model):
         self.history_hash = util.formatHex(q_data[Qi_history_hash])
         self.bond = util.formatHex(q_data[Qi_bond])
         self.db_refreshed_at = timezone.now()
-        if changed_block_id > self.block_id:
+        if changed_block_id is not None and changed_block_id > self.block_id:
             self.block_id = changed_block_id
         self.save() 
 
@@ -191,9 +191,9 @@ class RCQuestion(models.Model):
         qdict = self.populatedJSON()
         return qdict['title']
 
-    def summaryString(self):
-        t = self.questionText()
+    def summaryString(self, max_length=None):
 
+        t = ''
         if HexToPythonInt(self.bounty) > 0:
             t = t + ' (pays ' + HumanReadableWei(self.bounty) + ')'
 
@@ -204,6 +204,12 @@ class RCQuestion(models.Model):
 
         t = t + "\n"
         t = t + util.questionURL(self.question_id)
+
+        qt = self.questionText() 
+        if (max_length is not None and ((len(t) + len(qt)) > max_length)):
+            trim_to = max_length - len(t) - 3
+            qt = qt[0:trim_to] + "..."
+        t = qt + t
 
         return t
 
