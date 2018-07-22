@@ -30,7 +30,7 @@
             <span class="error-label no-metamask-plugin">You need to <a href="https://metamask.io">install the MetaMask plugin</a> to use Realitio. </span>
             <span class="error-label no-metamask-accounts">No accounts found. Please make sure MetaMask is unlocked then refresh the page.</span>
             <span class="error-label invalid-network">Invalid network. Please use the Rinkeby test network.</span>
-            <span data-network-id="4,8995,1337"></span>
+            <span data-network-id="1,8995,1337"></span>
         </div>
     </div>
     <div id="main">
@@ -40,7 +40,7 @@
         <header id="site-header">
             <a href="https://realitio.github.io/docs/html/">Learn more</a>
             <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My account</a>
-            <span id="push-icon">notifications_active</span>
+            <span id="push-icon">announcement</span>
             <h1 class="logo">
                 <a href="https://realit.io/">Realitio</a>
             </h1>
@@ -73,11 +73,11 @@
                   <div class="category-list">
                     <ul id="filter-list">
                         <li><a data-category="all">All</a></li>
-                        <li><a data-category="art-design">Arts</a></li>
+                        <li><a data-category="arts">Arts</a></li>
                         <li><a data-category="business-finance">Business &amp; Finance</a></li>
-                        <li><a data-category="blockchain">Crypto</a></li>
+                        <li><a data-category="cryptocurrency">Cryptocurrency</a></li>
                         <li><a data-category="politics">News &amp; Politics</a></li>
-                        <li><a data-category="technology-science">Science &amp; Tech</a></li>
+                        <li><a data-category="science-tech">Science &amp; Tech</a></li>
                         <li><a data-category="sports">Sports</a></li>
                         <li><a data-category="weather">Weather</a></li>
                         <li><a data-category="misc">Miscellaneous</a></li>
@@ -191,7 +191,7 @@
     </div><!-- /#main -->
 
     <div id="footer-notification-bar" style="display: none;">
-        <span>This is an experimental version on testnet.</span>
+        <span>This is an experimental version on testnet. The contract has not been audited yet.</span>
         <a id="got-it-button" href="">Got it</a>
     </div>
 
@@ -427,15 +427,14 @@
                         <div class="cols-2">
                             <div class="select-container select-container--question-category">
                                 <select name="question-category" class="rcbrowser-select form-item">
-                                    <option value="default">Category</option>
+                                    <option value="">Category</option>
+                                    <option value="arts"> - Arts</option>
+                                    <option value="business-finance"> - Business &amp; Finance</option>
+                                    <option value="cryptocurrency"> - Cryptocurrency</option>
+                                    <option value="politics"> - News &amp; Politics</option>
+                                    <option value="science-tech"> - Science &amp; Tech</option>
                                     <option value="sports"> - Sports</option>
-                                    <option value="politics"> - Politics</option>
                                     <option value="weather"> - Weather</option>
-                                    <option value="blockchain"> - Blockchains</option>
-                                    <option value="culture"> - Culture</option>
-                                    <option value="business-finance"> - Business / Finance</option>
-                                    <option value="art-design"> - Art / Design</option>
-                                    <option value="technology-science"> - Technology / Science</option>
                                     <option value="misc"> - Miscellaneous</option>
                                 </select>
                                 <div class="error-container">Please select category.</div>
@@ -854,7 +853,10 @@
                     <div class="unconfirmed-question-header">
                         <span class="pending-question-txid"><a target="_blank" href="#"></a></span>
                         <span class="unconfirmed-question-label">Unconfirmed Transaction</span>
-                        </div>
+                    </div>
+
+                    <div class="rcbrowser-main-header-date"></div>
+
                     <h2 class="rcbrowser-main-header-title question-title"></h2>
 
                     <div class="question-setting-warning" style="text-align: right; display: none;">
@@ -876,7 +878,6 @@
                     </div>
 
                     <div class="rcbrowser-main-header-subtitle">
-                        <span class="rcbrowser-main-header-date"></span>
                         <span class="reward-value-container">Reward: <span class="reward-value">1.25</span> ETH</span>
                         <span class="add-reward-button" data-browser-id="id5">+ Add Reward</span>
                         <span class="resolved-at-container">Resolved: <span class="resolved-at-value timeago"></span></span>
