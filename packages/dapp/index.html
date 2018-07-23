@@ -39,6 +39,7 @@
         </div>
         <header id="site-header">
             <a href="https://realitio.github.io/docs/html/">Learn more</a>
+            <a id="help-center-button" href="">How it works</a>
             <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My account</a>
             <span id="push-icon">announcement</span>
             <h1 class="logo">
@@ -207,6 +208,7 @@
             <div class="cols">
                 <h3>Learn More</h3>
                 <ul>
+                    <li><a href="https://realit.io">Learn more</a></li>
                     <li><a href="https://github.com/realitykeys/realitycheck">Github</a></li>
                     <li><a href="https://realitykeys.github.io/realitycheck/docs/html/">Documentation</a></li>
                     <li><a href="">White Paper</a></li>
@@ -234,24 +236,16 @@
                     <span></span>
                     <span></span>
                 </div>
+                <h2 class="rcbrowser-main-header-title">How it works</h2>
             </div>
 
             <div class="rcbrowser-main">
-                <div class="rcbrowser-main-header">
-                    <h2 class="rcbrowser-main-header-title">How it works</h2>
-                </div>
                 <div class="rcbrowser-main-body help-explanation">
-                    <p><b><i>Anyone can post any question they like.</i></b>
-		    <br /> To encourage people to answer it, they can pay a bounty that will go to whoever gives the final answer.</p>
-                    <p><b><i>Anyone can answer the question.</i></b>
-                    <br />To encourage them to answer accurately, they can <b><i>post a bond</i></b>. If somebody else's answer is accepted, their bond will go to that person instead.</p>
-                    <p><b><i>Anyone can change the answer, but they have to double the bond.</i></b>
-                    <br />If there is a disagreement about the answer, the people who disagree can keep doubling their bonds for as long as they like.</p>
-                    <p><b><i>You can take over an answer that someone else has posted, but you have to split your winnings with them.</i></b><br/>
-                    If you post an answer that someone has already posted, an amount equal to their bond will be deducted from your winnings.</p>
-                    <p><b><i>The result is settled automatically.</i></b><br />
-                    Once nobody has answered for a while, the question is settled on the final answer. The time it takes until a question is settled is decided when the question is first asked.
-                    </p>
+                    <h3>Asking Questions</h3>
+                    <p>The first step is to ask a question that you want confirmed. To encourage others to answer, you can offer a reward that goes to whomever gives the final answer. (You can also leave the reward as zero if you plan to supply the answer yourself and assume it will survive challenges.) </p>
+
+                    <h3>Opening Date & Timeout</h3>
+                    <p>If the event has not yet taken place, make sure the opening date is set to after the event is supposed to happen. This is the date when answers can begin to be accepted. The timeout length is how long answers can be posted after the opening date.</p>
 
                     <p><b><i>You can pay an arbitrator at any time before settlement.</i></b>
                     <br />Paying an arbitrator is usually a last resort, after someone insists on posting the wrong answer, and paying for it with a bond.
@@ -260,7 +254,16 @@
                     <p><b><i>The arbitrator can be any Ethereum contract.</i></b>
                     <br />The arbitrator contract may be controlled by a company like Reality Keys, or a group of people, DAO, or any other decision-making process you can code.</p>
 
-                    <p>For more detail, see <b><i><a target="docs" href="docs/html">our documentation</a></i></b>.</p>
+                    <h3>Answering Questions</h3>
+                    <p>Anyone can answer a question by posting a bond, and anyone can challenge that answer by posting a new answer, but doing so requires doubling the bond. Challenges can continue, as long as someone is willing to double the bond in the hopes of claiming the bond and the reward.</p>
+
+                    <h3>Settlement</h3>
+                    <p>The result is settled automatically at the end of the timeout period. The final answer at that time is the winner and claims the bond and the reward, if any. (If the same winning answer is posted more than once, the winning amount is deducted the amount of the bonds posted by the earlier correct answers.)</p>
+
+                    <h3>Arbitration</h3>
+                    <p>If an arbitrator has been assigned, any user who wants to challenge the final answer can request arbitration. The arbitrator can be any Ethereum contract and may be controlled by a company, a trusted group or individual, a DAO, or any other decision-making process you can code. The arbitrator contract will have a set fee that must be paid to settle the question, but if the winning total is high enough, it can be profitable to challenge an answer via arbitration.</p>
+
+                    <p>For more details, please see the <a href="https://realitykeys.github.io/realitycheck/docs/html/dapp.html" target="_blank"><b>documentation</b></a></p>
                 </div>
 
             </div>
@@ -441,14 +444,10 @@
                             </div>
                         </div>
                         <div class="cols-2">
-                            <div class="input-container input-container--has-quick-help">
+                            <div class="input-container">
                                 <div class="input-inner">
                                     <!--<span class="input-header">Opening Datetime:</span>-->
                                     <input id="opening-ts-datepicker" type="text" name="question-opening-ts" class="rcbrowser-input opening-ts form-item" placeholder="Opening date...">
-                                </div>
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
                                 </div>
                                 <div class="error-container">Please enter datetime.</div>
                             </div>
@@ -460,7 +459,7 @@
                     </div>
                     <div class="row clearfix">
                         <div class="cols-2">
-                            <div class="select-container  select-container--has-quick-help">
+                            <div class="select-container select-container--question-type">
                                 <select name="question-type" class="question-type rcbrowser-select form-item">
                                     <option value="default">Question Type</option>
                                     <option value="bool" SELECTED>Binary (Yes/No)</option>
@@ -469,10 +468,6 @@
                                     <option value="uint">Number (Positive)</option>
                                     <option value="datetime">Date</option>
                                 </select>
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The kind of answer your question expects.</span></div>
-                                </div>
                                 <div class="error-container">Please select question type.</div>
                             </div>
                             <div class="answer-option-container edit-option-container">
@@ -496,15 +491,11 @@
                             </div>
                         </div>
                         <div class="cols-2">
-                            <div class="input-container  input-container--has-quick-help">
+                            <div class="input-container">
                                 <div class="input-inner">
                                     <span class="input-header">Reward (ETH):</span>
                                     <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0.01">
 
-                                </div>
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
                                 </div>
                                 <div class="error-container">Please enter reward.</div>
                             </div>
@@ -512,7 +503,7 @@
                     </div>
                     <div class="row clearfix">
                         <div class="cols-2">
-                            <div class="select-container select-container--has-quick-help">
+                            <div class="select-container select-container--question-arbitrator">
                                 <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
                                     <option value="default">Arbitrator</option>
                                     <option class="arbitrator-template-item" value="" ></option>
@@ -522,16 +513,11 @@
                                 <div class="input-container arbitrator-other">
                                     <input type="text" name="arbitrator-other" class="rcbrowser-input arbitrator-other option form-item" placeholder="Enter an address...">
                                 </div>
-
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
-                                </div>
                                 <div class="error-container">Please select arbitrator.</div>
                             </div>
                         </div>
                         <div class="cols-2">
-                            <div class="select-container select-container--has-quick-help">
+                            <div class="select-container">
                                 <select name="step-delay" class="step-delay rcbrowser-select form-item">
                                     <option value="default">Timeout</option>
                                     <option class="exceptional-option" value="30">30 seconds (for testing)</option>
@@ -547,10 +533,6 @@
                                     <option value="518400">6 days</option>
                                     <option value="604800">1 week</option>
                                 </select>
-                                <div class="quick-help">
-                                    <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
-                                </div>
                                 <div class="error-container">Please select step delay.</div>
                             </div>
                         </div>

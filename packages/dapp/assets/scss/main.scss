@@ -1159,8 +1159,8 @@ footer .cols ul {
 }
 
 .help-explanation > p {
-    line-height: 1.4;
-    font-size: 13px;
+    line-height: 1.7;
+    font-size: 15px;
     color: $rcBrowserBodyText;
 }
 
@@ -1814,8 +1814,16 @@ textarea[name="question-body"]:placeholder-shown{
 }
 
 .select-container--question-category {
-    width: calc(100% - 30px);
+    width: calc(100% - 15px);
     float: left;
+}
+
+.select-container--question-type {
+    width: calc(100% - 15px);
+}
+
+.select-container--question-arbitrator {
+    width: calc(100% - 15px);
 }
 
 .select-container--arbitrator {
@@ -2190,14 +2198,12 @@ input:placeholder-shown {
 // error
 .error-container {
     font-size: 13px;
-    color: $rcBrowserBodyText;
+    color: #ff0000;
     margin-top: 6px;
     padding: 4px 6px 6px;
     line-height: 1.3;
     border-radius: 3px;
     display: none;
-    background-color: $red;
-    box-shadow: inset 0 0 0 1px darken($red, 15%);
 }
 
 .error-container--select {
