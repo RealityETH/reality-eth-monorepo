@@ -77,6 +77,23 @@ exports.commonParams = function(argv) {
     }
 }
 
+exports.serializedValueTX = function(params, addr, val) {
+    const key = this.loadKey();
+	const tra = {
+		gasPrice: web3_utils.toHex(params['gas_price_in_gwei'] * GWEI_TO_WEI),
+		gasLimit: web3_utils.toHex(22000),
+		nonce: web3_utils.toHex(params['nonce']),
+		to: addr,
+		value: web3_utils.toHex(val),
+		chainId: config.network_id
+	};
+
+	const tx = new Tx(tra);
+    tx.sign(key);
+
+	return tx.serialize();
+}
+
 exports.serializedTX = function(params, cntr, data) {
     const key = this.loadKey();
 	const tra = {
@@ -99,7 +116,7 @@ exports.serializedTX = function(params, cntr, data) {
 exports.sanitizeBytes32 = function(item, name, allow_zero) {
     if (item.length != 66) throw name + ' was not the expected length';
     if (!allow_zero && new BigNumber(item).equals(0)) throw name + ' was 0';
-    var BYTES32_REGEX = /^0x[0-9a-f]{64}/;
+    var BYTES32_REGEX = /^0x[0-9a-f]{64}/i;
     if (!BYTES32_REGEX.test(item)) throw name + ' hex string incorrectly formatted';
     return item;
 }
@@ -109,7 +126,7 @@ exports.sanitizeAddress = function(addr) {
     if (new BigNumber(addr).equals(0)) throw 'Address was zero';
     if (new BigNumber(addr).lt("0xffffffff")) throw 'Address was suspiciously low';
     if (new BigNumber(addr).gt("0xffffffff00000000000000000000000000000000")) throw 'Address was suspiciously high';
-    var ADDRESS_REGEX = /^0x[0-9a-f]{40}/;
+    var ADDRESS_REGEX = /^0x[0-9a-f]{40}/i;
     if (!ADDRESS_REGEX.test(addr)) throw 'address hex string incorrectly formatted';
     return addr
 }
@@ -119,5 +136,6 @@ exports.configParam = function(n) {
 }
 
 exports.output = function(tx) {
+    console.log('0x' + tx.toString('hex'));
     qr.generate(tx.toString('hex'), {small: true});
 }
