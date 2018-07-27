@@ -1,0 +1,563 @@
+{
+  "contractName": "CallbackClient",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "name": "question_answer",
+          "type": "bytes32"
+        }
+      ],
+      "name": "__realitycheck_callback",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "answers",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "question_answer",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "LogCallback",
+      "type": "event"
+    }
+  ],
+  "bytecode": "0x6060604052341561000f57600080fd5b6101478061001e6000396000f30060606040526004361061004b5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631d7dbb438114610050578063aac753b61461006b575b600080fd5b341561005b57600080fd5b610069600435602435610093565b005b341561007657600080fd5b610081600435610109565b60405190815260200160405180910390f35b600082815260208190526040908190208290557f0c3ddecd829066bed247527f262273acaf114be545e42b5b1683335dbeb25a919083908390339051928352602083019190915273ffffffffffffffffffffffffffffffffffffffff166040808301919091526060909101905180910390a15050565b600060208190529081526040902054815600a165627a7a72305820a1919b7ecf22e038009c59019a8d2f5890c08b442c15fbba489d578c070b93110029",
+  "deployedBytecode": "0x60606040526004361061004b5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631d7dbb438114610050578063aac753b61461006b575b600080fd5b341561005b57600080fd5b610069600435602435610093565b005b341561007657600080fd5b610081600435610109565b60405190815260200160405180910390f35b600082815260208190526040908190208290557f0c3ddecd829066bed247527f262273acaf114be545e42b5b1683335dbeb25a919083908390339051928352602083019190915273ffffffffffffffffffffffffffffffffffffffff166040808301919091526060909101905180910390a15050565b600060208190529081526040902054815600a165627a7a72305820a1919b7ecf22e038009c59019a8d2f5890c08b442c15fbba489d578c070b93110029",
+  "sourceMap": "25:394:2:-;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "25:394:2:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;219:197;;;;;;;;;;;;;;;;;;56:40;;;;;;;;;;;;;;;;;;;;;;;;;;;;;219:197;308:7;:20;;;;;;;;;;;;:38;;;356:53;;316:11;;331:15;;398:10;;356:53;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;219:197;;:::o;56:40::-;;;;;;;;;;;;;;:::o",
+  "source": "pragma solidity ^0.4.6;\n\ncontract CallbackClient {\n\n    mapping(bytes32=>bytes32) public answers;\n\n    event LogCallback(\n        bytes32 question_id,\n        bytes32 question_answer,\n        address sender\n    );\n\n    function __realitycheck_callback(bytes32 question_id, bytes32 question_answer) {\n        answers[question_id] = question_answer;\n        LogCallback(question_id, question_answer, msg.sender);\n    }\n\n}\n",
+  "sourcePath": "/var/www/html/dev/truffle/contracts/CallbackClient.sol",
+  "ast": {
+    "attributes": {
+      "absolutePath": "/var/www/html/dev/truffle/contracts/CallbackClient.sol",
+      "exportedSymbols": {
+        "CallbackClient": [
+          366
+        ]
+      }
+    },
+    "children": [
+      {
+        "attributes": {
+          "literals": [
+            "solidity",
+            "^",
+            "0.4",
+            ".6"
+          ]
+        },
+        "id": 332,
+        "name": "PragmaDirective",
+        "src": "0:23:2"
+      },
+      {
+        "attributes": {
+          "baseContracts": [
+            null
+          ],
+          "contractDependencies": [
+            null
+          ],
+          "contractKind": "contract",
+          "documentation": null,
+          "fullyImplemented": true,
+          "linearizedBaseContracts": [
+            366
+          ],
+          "name": "CallbackClient",
+          "scope": 367
+        },
+        "children": [
+          {
+            "attributes": {
+              "constant": false,
+              "name": "answers",
+              "scope": 366,
+              "stateVariable": true,
+              "storageLocation": "default",
+              "type": "mapping(bytes32 => bytes32)",
+              "value": null,
+              "visibility": "public"
+            },
+            "children": [
+              {
+                "attributes": {
+                  "type": "mapping(bytes32 => bytes32)"
+                },
+                "children": [
+                  {
+                    "attributes": {
+                      "name": "bytes32",
+                      "type": "bytes32"
+                    },
+                    "id": 333,
+                    "name": "ElementaryTypeName",
+                    "src": "64:7:2"
+                  },
+                  {
+                    "attributes": {
+                      "name": "bytes32",
+                      "type": "bytes32"
+                    },
+                    "id": 334,
+                    "name": "ElementaryTypeName",
+                    "src": "73:7:2"
+                  }
+                ],
+                "id": 335,
+                "name": "Mapping",
+                "src": "56:25:2"
+              }
+            ],
+            "id": 336,
+            "name": "VariableDeclaration",
+            "src": "56:40:2"
+          },
+          {
+            "attributes": {
+              "anonymous": false,
+              "name": "LogCallback"
+            },
+            "children": [
+              {
+                "children": [
+                  {
+                    "attributes": {
+                      "constant": false,
+                      "indexed": false,
+                      "name": "question_id",
+                      "scope": 344,
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "type": "bytes32",
+                      "value": null,
+                      "visibility": "internal"
+                    },
+                    "children": [
+                      {
+                        "attributes": {
+                          "name": "bytes32",
+                          "type": "bytes32"
+                        },
+                        "id": 337,
+                        "name": "ElementaryTypeName",
+                        "src": "130:7:2"
+                      }
+                    ],
+                    "id": 338,
+                    "name": "VariableDeclaration",
+                    "src": "130:19:2"
+                  },
+                  {
+                    "attributes": {
+                      "constant": false,
+                      "indexed": false,
+                      "name": "question_answer",
+                      "scope": 344,
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "type": "bytes32",
+                      "value": null,
+                      "visibility": "internal"
+                    },
+                    "children": [
+                      {
+                        "attributes": {
+                          "name": "bytes32",
+                          "type": "bytes32"
+                        },
+                        "id": 339,
+                        "name": "ElementaryTypeName",
+                        "src": "159:7:2"
+                      }
+                    ],
+                    "id": 340,
+                    "name": "VariableDeclaration",
+                    "src": "159:23:2"
+                  },
+                  {
+                    "attributes": {
+                      "constant": false,
+                      "indexed": false,
+                      "name": "sender",
+                      "scope": 344,
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "type": "address",
+                      "value": null,
+                      "visibility": "internal"
+                    },
+                    "children": [
+                      {
+                        "attributes": {
+                          "name": "address",
+                          "type": "address"
+                        },
+                        "id": 341,
+                        "name": "ElementaryTypeName",
+                        "src": "192:7:2"
+                      }
+                    ],
+                    "id": 342,
+                    "name": "VariableDeclaration",
+                    "src": "192:14:2"
+                  }
+                ],
+                "id": 343,
+                "name": "ParameterList",
+                "src": "120:92:2"
+              }
+            ],
+            "id": 344,
+            "name": "EventDefinition",
+            "src": "103:110:2"
+          },
+          {
+            "attributes": {
+              "constant": false,
+              "implemented": true,
+              "isConstructor": false,
+              "modifiers": [
+                null
+              ],
+              "name": "__realitycheck_callback",
+              "payable": false,
+              "scope": 366,
+              "stateMutability": "nonpayable",
+              "superFunction": null,
+              "visibility": "public"
+            },
+            "children": [
+              {
+                "children": [
+                  {
+                    "attributes": {
+                      "constant": false,
+                      "name": "question_id",
+                      "scope": 365,
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "type": "bytes32",
+                      "value": null,
+                      "visibility": "internal"
+                    },
+                    "children": [
+                      {
+                        "attributes": {
+                          "name": "bytes32",
+                          "type": "bytes32"
+                        },
+                        "id": 345,
+                        "name": "ElementaryTypeName",
+                        "src": "252:7:2"
+                      }
+                    ],
+                    "id": 346,
+                    "name": "VariableDeclaration",
+                    "src": "252:19:2"
+                  },
+                  {
+                    "attributes": {
+                      "constant": false,
+                      "name": "question_answer",
+                      "scope": 365,
+                      "stateVariable": false,
+                      "storageLocation": "default",
+                      "type": "bytes32",
+                      "value": null,
+                      "visibility": "internal"
+                    },
+                    "children": [
+                      {
+                        "attributes": {
+                          "name": "bytes32",
+                          "type": "bytes32"
+                        },
+                        "id": 347,
+                        "name": "ElementaryTypeName",
+                        "src": "273:7:2"
+                      }
+                    ],
+                    "id": 348,
+                    "name": "VariableDeclaration",
+                    "src": "273:23:2"
+                  }
+                ],
+                "id": 349,
+                "name": "ParameterList",
+                "src": "251:46:2"
+              },
+              {
+                "attributes": {
+                  "parameters": [
+                    null
+                  ]
+                },
+                "children": [],
+                "id": 350,
+                "name": "ParameterList",
+                "src": "298:0:2"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "attributes": {
+                          "argumentTypes": null,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "operator": "=",
+                          "type": "bytes32"
+                        },
+                        "children": [
+                          {
+                            "attributes": {
+                              "argumentTypes": null,
+                              "isConstant": false,
+                              "isLValue": true,
+                              "isPure": false,
+                              "lValueRequested": true,
+                              "type": "bytes32"
+                            },
+                            "children": [
+                              {
+                                "attributes": {
+                                  "argumentTypes": null,
+                                  "overloadedDeclarations": [
+                                    null
+                                  ],
+                                  "referencedDeclaration": 336,
+                                  "type": "mapping(bytes32 => bytes32)",
+                                  "value": "answers"
+                                },
+                                "id": 351,
+                                "name": "Identifier",
+                                "src": "308:7:2"
+                              },
+                              {
+                                "attributes": {
+                                  "argumentTypes": null,
+                                  "overloadedDeclarations": [
+                                    null
+                                  ],
+                                  "referencedDeclaration": 346,
+                                  "type": "bytes32",
+                                  "value": "question_id"
+                                },
+                                "id": 352,
+                                "name": "Identifier",
+                                "src": "316:11:2"
+                              }
+                            ],
+                            "id": 353,
+                            "name": "IndexAccess",
+                            "src": "308:20:2"
+                          },
+                          {
+                            "attributes": {
+                              "argumentTypes": null,
+                              "overloadedDeclarations": [
+                                null
+                              ],
+                              "referencedDeclaration": 348,
+                              "type": "bytes32",
+                              "value": "question_answer"
+                            },
+                            "id": 354,
+                            "name": "Identifier",
+                            "src": "331:15:2"
+                          }
+                        ],
+                        "id": 355,
+                        "name": "Assignment",
+                        "src": "308:38:2"
+                      }
+                    ],
+                    "id": 356,
+                    "name": "ExpressionStatement",
+                    "src": "308:38:2"
+                  },
+                  {
+                    "children": [
+                      {
+                        "attributes": {
+                          "argumentTypes": null,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "isStructConstructorCall": false,
+                          "lValueRequested": false,
+                          "names": [
+                            null
+                          ],
+                          "type": "tuple()",
+                          "type_conversion": false
+                        },
+                        "children": [
+                          {
+                            "attributes": {
+                              "argumentTypes": [
+                                {
+                                  "typeIdentifier": "t_bytes32",
+                                  "typeString": "bytes32"
+                                },
+                                {
+                                  "typeIdentifier": "t_bytes32",
+                                  "typeString": "bytes32"
+                                },
+                                {
+                                  "typeIdentifier": "t_address",
+                                  "typeString": "address"
+                                }
+                              ],
+                              "overloadedDeclarations": [
+                                null
+                              ],
+                              "referencedDeclaration": 344,
+                              "type": "function (bytes32,bytes32,address)",
+                              "value": "LogCallback"
+                            },
+                            "id": 357,
+                            "name": "Identifier",
+                            "src": "356:11:2"
+                          },
+                          {
+                            "attributes": {
+                              "argumentTypes": null,
+                              "overloadedDeclarations": [
+                                null
+                              ],
+                              "referencedDeclaration": 346,
+                              "type": "bytes32",
+                              "value": "question_id"
+                            },
+                            "id": 358,
+                            "name": "Identifier",
+                            "src": "368:11:2"
+                          },
+                          {
+                            "attributes": {
+                              "argumentTypes": null,
+                              "overloadedDeclarations": [
+                                null
+                              ],
+                              "referencedDeclaration": 348,
+                              "type": "bytes32",
+                              "value": "question_answer"
+                            },
+                            "id": 359,
+                            "name": "Identifier",
+                            "src": "381:15:2"
+                          },
+                          {
+                            "attributes": {
+                              "argumentTypes": null,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "member_name": "sender",
+                              "referencedDeclaration": null,
+                              "type": "address"
+                            },
+                            "children": [
+                              {
+                                "attributes": {
+                                  "argumentTypes": null,
+                                  "overloadedDeclarations": [
+                                    null
+                                  ],
+                                  "referencedDeclaration": 5223,
+                                  "type": "msg",
+                                  "value": "msg"
+                                },
+                                "id": 360,
+                                "name": "Identifier",
+                                "src": "398:3:2"
+                              }
+                            ],
+                            "id": 361,
+                            "name": "MemberAccess",
+                            "src": "398:10:2"
+                          }
+                        ],
+                        "id": 362,
+                        "name": "FunctionCall",
+                        "src": "356:53:2"
+                      }
+                    ],
+                    "id": 363,
+                    "name": "ExpressionStatement",
+                    "src": "356:53:2"
+                  }
+                ],
+                "id": 364,
+                "name": "Block",
+                "src": "298:118:2"
+              }
+            ],
+            "id": 365,
+            "name": "FunctionDefinition",
+            "src": "219:197:2"
+          }
+        ],
+        "id": 366,
+        "name": "ContractDefinition",
+        "src": "25:394:2"
+      }
+    ],
+    "id": 367,
+    "name": "SourceUnit",
+    "src": "0:420:2"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.18+commit.9cf6e910.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "1.0.1",
+  "updatedAt": "2018-07-09T01:47:31.205Z"
+}
