@@ -1,0 +1,34 @@
+{
+  "name": "@realitio/realitio-contracts",
+  "version": "1.0.0",
+  "description": "Collection of smart contracts for the Realitio fact verification platform",
+  "scripts": {
+    "develop": "truffle develop",
+    "compile": "truffle compile",
+    "migrate": "truffle migrate",
+    "networks": "truffle networks",
+    "test": "truffle test",
+  },
+  "keywords": [
+    "Ethereum",
+    "Realitio",
+    "Reality Check",
+    "Reality Keys",
+    "Solidity",
+    "Truffle"
+  ],
+  "author": "Edmund Edgar (https://realit.io)",
+  "license": "GPL-3.0",
+  "dependencies": {},
+  "devDependencies": {
+    "truffle": "^4.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realitio/realitio-contracts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/realitio/realitio-contracts/issues"
+  },
+  "homepage": "https://realit.io"
+}
