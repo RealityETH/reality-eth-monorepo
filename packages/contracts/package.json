@@ -7,7 +7,7 @@
     "compile": "truffle compile",
     "migrate": "truffle migrate",
     "networks": "truffle networks",
-    "test": "truffle test",
+    "test": "truffle test"
   },
   "keywords": [
     "Ethereum",
