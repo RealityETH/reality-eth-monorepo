@@ -1,4 +1,4 @@
-Reality Check Services
+Realitio Services
 Edmund Edgar, 2018-06-29
 
 This repo is for back-end services that support Realitio.
