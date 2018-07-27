@@ -1,0 +1,39 @@
+{
+  "name": "@realitio/realitio-lib",
+  "version": "1.0.0",
+  "description": "Tools for handling questions in the Realitio fact verification platform",
+  "scripts": {
+    "test": "mocha ./test"
+  },
+  "keywords": [
+    "Ethereum",
+    "Realitio",
+    "Reality Check",
+    "Reality Keys",
+    "Solidity",
+    "Truffle"
+  ],
+  "author": "Edmund Edgar (https://realit.io)",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@realitio/realitio-contracts": "git+ssh://git@github.com/realitio/realitio-contracts.git",
+    "bignumber.js": "^7.2.1",
+    "bn.js": "^4.11.8",
+    "ethereumjs-abi": "^0.6.5",
+    "sprintf-js": "^1.1.1"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-bignumber": "^2.0.2",
+    "mocha": "^5.2.0",
+    "truffle": "^4.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realitio/realitio-lib.git"
+  },
+  "bugs": {
+    "url": "https://github.com/realitio/realitio-lib/issues"
+  },
+  "homepage": "https://realit.io"
+}
