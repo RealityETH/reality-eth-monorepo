@@ -2,19 +2,19 @@
 
 'use strict';
 
-const rc_question = require('../lib/realitycheck-question.js');
-const rc_template = require('../lib/realitycheck-template.js');
+const rc_question = require('@realitio/realitio-lib/formatters/question.js');
+const rc_template = require('@realitio/realitio-lib/formatters/template.js');
 
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js;
 
-const rc_json = require('../../truffle/build/contracts/RealityCheck.json');
-const arb_json = require('../../truffle/build/contracts/Arbitrator.json');
+const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
+const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
-const arbitrator_list = require('../config/arbitrators.json');
 
-const TEMPLATE_CONFIG = require('../config/templates.json');
+const arbitrator_list = require('@realitio/realitio-contracts/config/arbitrators.json');
+const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
 
 const contract = require("truffle-contract");
 const BigNumber = require('bignumber.js');
