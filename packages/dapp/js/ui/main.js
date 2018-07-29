@@ -3199,6 +3199,8 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
           $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
         }
 
+        scheduleFallbackTimer();
+
         //setTimeout(bounceEffect, 500);
 
         //$('body').addClass('is-page-loaded');
@@ -3225,6 +3227,23 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         console.log('fetch start end ', start_block, end_block, fetch_i);
         fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
     });
+}
+
+// Sometimes things go wrong getting events
+// To mitigate the damage, run a refresh of the currently-open window etc
+function scheduleFallbackTimer() {
+     window.setInterval(function() {
+        //console.log('checking for open windows');
+        $('div.rcbrowser--qa-detail.is-open').each(function() {
+             //console.log('updating window on timer', $(this));
+             var question_id = $(this).attr('data-question-id');
+             if (question_id) {
+                 ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+                    updateQuestionWindowIfOpen(question);
+                 });
+             }
+        });
+    }, 20000);
 }
 
 function fetchUserEventsAndHandle(filter, start_block, end_block) {
