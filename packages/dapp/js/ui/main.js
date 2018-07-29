@@ -486,7 +486,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
 
     var win = $('#post-a-question-window');
     var question_body = win.find('.question-body');
-    var reward = win.find('.question-reward');
+    var reward_val = win.find('.question-reward').val();
     var timeout = win.find('.step-delay');
     var timeout_val = parseInt(timeout.val());
     var arbitrator = win.find('.arbitrator').val();
@@ -505,6 +505,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     for (var i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
+    var reward = (reward_val == '') ? new BigNumber(0) : new BigNumber(web3js.toWei(reward_val, 'ether'));
 
     if (validate(win)) {
         var qtype = question_type.val();
@@ -530,7 +531,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                 rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
                         from: account,
                         gas: 200000,
-                        value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)
+                        value: reward.plus(fee)
                     })
                     .then(function(txid) {
                         //console.log('sent tx with id', txid);
@@ -557,7 +558,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                         fake_call[Qi_arbitrator - 1] = arbitrator;
                         fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
                         fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                            fake_call[Qi_bounty - 1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
+                        fake_call[Qi_bounty - 1] = reward;
                         fake_call[Qi_best_answer - 1] = "0x0";
                         fake_call[Qi_bond - 1] = new BigNumber(0);
                         fake_call[Qi_history_hash - 1] = "0x0";
@@ -726,7 +727,7 @@ function validate(win) {
     }
 
     var reward = win.find('.question-reward');
-    if (reward.val() === '' || reward.val() <= 0) {
+    if (reward.val() === '') {
         reward.parent().parent().addClass('is-error');
         valid = false;
     } else {
@@ -2928,7 +2929,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
     } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
-        let current_bond = 0;
+        let current_bond = new BigNumber(0);
         if (current_idx >= 0) {
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
