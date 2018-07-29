@@ -7,7 +7,8 @@ const rc_template = require('@realitio/realitio-lib/formatters/template.js');
 
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
-var web3js;
+var web3js; // This should be the normal metamask instance
+var web3realitio; // We run our own node to handle watch events that can't reliably be done with infura
 
 const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
@@ -42,8 +43,8 @@ const BLOCK_EXPLORERS = {
     1337: 'https://etherscan.io'
 };
 
-const INFURA_NODES = {
-    1: 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+const RPC_NODES = {
+    1: 'https://rc-dev-3.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     4: 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     1337: 'https://localhost:8545'
@@ -106,6 +107,7 @@ var Arbitrator;
 
 var account;
 var rc;
+var rcrealitio; // Instance using our node
 
 var display_entries = {
     'questions-latest': {
@@ -3088,63 +3090,71 @@ function pageInit(account) {
 
     */
 
-    var evts = rc.allEvents({}, {
-        fromBlock: 'latest',
-        toBlock: 'latest'
-    })
+    var RealityCheckRealitio = contract(rc_json);
+    RealityCheckRealitio.setProvider(new web3.providers.HttpProvider(RPC_NODES[network_id]));
+    console.log('using network', RPC_NODES[network_id]);
+    RealityCheckRealitio.deployed().then(function(instance) {
+        rcrealitio = instance;
 
-    evts.watch(function(error, result) {
-        if (!error && result) {
-            //console.log('got watch event', error, result);
+        var evts = rcrealitio.allEvents({}, {
+            fromBlock: 'latest',
+            toBlock: 'latest'
+        })
 
-            // Check the action to see if it is interesting, if it is then populate notifications etc
-            handlePotentialUserAction(result, true);
+        evts.watch(function(error, result) {
+            if (!error && result) {
+                console.log('got watch event', error, result);
 
-            // Handles front page event changes.
-            // NB We need to reflect other changes too...
-            var evt = result['event'];
-            if (evt == 'LogNewTemplate') {
-                var template_id = result.args.template_id;
-                var question_text = result.args.question_text;
-                template_content[template_id] = question_text;
-                return;
-            } else if (evt == 'LogNewQuestion') {
-                handleQuestionLog(result);
-            } else if (evt == 'LogWithdraw') {
-                updateUserBalanceDisplay();
-            } else {
-                var question_id = result.args.question_id;
+                // Check the action to see if it is interesting, if it is then populate notifications etc
+                handlePotentialUserAction(result, true);
 
-                switch (evt) {
+                // Handles front page event changes.
+                // NB We need to reflect other changes too...
+                var evt = result['event'];
+                if (evt == 'LogNewTemplate') {
+                    var template_id = result.args.template_id;
+                    var question_text = result.args.question_text;
+                    template_content[template_id] = question_text;
+                    return;
+                } else if (evt == 'LogNewQuestion') {
+                    handleQuestionLog(result);
+                } else if (evt == 'LogWithdraw') {
+                    updateUserBalanceDisplay();
+                } else {
+                    var question_id = result.args.question_id;
 
-                    case ('LogNewAnswer'):
-                        //console.log('got LogNewAnswer, block ', result.blockNumber);
-                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
-                            updateQuestionWindowIfOpen(question);
-                            //console.log('should be getting latest', question, result.blockNumber);
-                            scheduleFinalizationDisplayUpdate(question);
-                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                        });
-                        break;
+                    switch (evt) {
 
-                    case ('LogFundAnswerBounty'):
-                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                            //console.log('updating with question', question);
-                            updateQuestionWindowIfOpen(question);
-                            updateRankingSections(question, Qi_bounty, question[Qi_bounty])
-                        });
-                        break;
+                        case ('LogNewAnswer'):
+                            //console.log('got LogNewAnswer, block ', result.blockNumber);
+                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
+                                updateQuestionWindowIfOpen(question);
+                                //console.log('should be getting latest', question, result.blockNumber);
+                                scheduleFinalizationDisplayUpdate(question);
+                                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                            });
+                            break;
 
-                    default:
-                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                            updateQuestionWindowIfOpen(question);
-                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                        });
+                        case ('LogFundAnswerBounty'):
+                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                                //console.log('updating with question', question);
+                                updateQuestionWindowIfOpen(question);
+                                updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                            });
+                            break;
+
+                        default:
+                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                                updateQuestionWindowIfOpen(question);
+                                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                            });
+
+                    }
 
                 }
-
             }
-        }
+        });
+
     });
 
     fetchUserEventsAndHandle({
@@ -3235,11 +3245,13 @@ function scheduleFallbackTimer() {
      window.setInterval(function() {
         //console.log('checking for open windows');
         $('div.rcbrowser--qa-detail.is-open').each(function() {
-             //console.log('updating window on timer', $(this));
              var question_id = $(this).attr('data-question-id');
+             console.log('updating window on timer for question', question_id);
              if (question_id) {
                  ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
                     updateQuestionWindowIfOpen(question);
+                    scheduleFinalizationDisplayUpdate(question);
+                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
                  });
              }
         });
@@ -3464,10 +3476,12 @@ window.addEventListener('load', function() {
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
     var is_web3_fallback = false;
 
+    web3realitio = new Web3(new Web3.providers.HttpProvider("https://rc-dev-3.socialminds.jp"));
+
     if (typeof web3 === 'undefined') {
         var is_web3_fallback = true;
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        web3js = new Web3(new Web3.providers.HttpProvider(INFURA_NODES[valid_ids[0]]));
+        web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES[valid_ids[0]]));
         console.log('no web3js, using infura on network', valid_ids[0]);
         $('body').addClass('error-no-metamask-plugin').addClass('error');
     } else {
@@ -3524,6 +3538,7 @@ window.addEventListener('load', function() {
                     //console.log('fetching question');
                     ensureQuestionDetailFetched(args['question']).then(function(question) {
                         openQuestionWindow(question[Qi_question_id]);
+
                     })
                 }
             });
