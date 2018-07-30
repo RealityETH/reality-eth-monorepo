@@ -1244,7 +1244,7 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
     });
 }
 
-function _ensureAnswersFetched(question_id, freshness, start_block) {
+function _ensureAnswersFetched(question_id, freshness, start_block, injected_data) {
     var called_block = current_block_number;
     return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'answers', freshness)) {
@@ -1262,6 +1262,28 @@ function _ensureAnswersFetched(question_id, freshness, start_block) {
                     console.log('error in get');
                     reject(error);
                 } else {
+                    // In theory this should get us everything but sometimes it seems to lag
+                    // If this is triggered by an event, and the get didn't return the event, add it to the list ourselves
+                    var done_txhashes = {};
+                    if (injected_data && injected_data['answers'] && injected_data['answers'].length) {
+                        var inj_ans_arr = injected_data['answers'];
+                        for (var i=0; i<inj_ans_arr.length; i++ ) {
+                            var inj_ans = inj_ans_arr[i];
+                            for (var j=0; j<answer_arr.length; j++ ) {
+                                var ans = answer_arr[j];
+                                if (ans.args.bond.equals(inj_ans.args.bond)) {
+                                    if (ans.transactionHash != inj_ans.transactionHash) {
+                                        // Replaced by a new entry, old one got orphaned
+                                        answer_arr[j] = inj_ans_arr[i];
+                                    }
+                                }
+                                done_txhashes[answer_arr[j].transactionHash] = true;
+                            }
+                            if (!done_txhashes[inj_ans.transactionHash]) {
+                                answer_arr.push(inj_ans);
+                            }
+                        }
+                    }
                     var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
                     resolve(question);
                 }
@@ -1271,7 +1293,7 @@ function _ensureAnswersFetched(question_id, freshness, start_block) {
 }
 
 // question_log is optional, pass it in when we already have it
-function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
+function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data) {
 
     var params = {};
     if (ql == undefined) ql = 1;
@@ -1291,7 +1313,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
         }).then(function(q) {
             return _ensureQuestionTemplateFetched(question_id, q[Qi_template_id], q[Qi_question_text], qi);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block]);
+            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block], injected_data);
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
@@ -3127,7 +3149,7 @@ function pageInit(account) {
 
                         case ('LogNewAnswer'):
                             //console.log('got LogNewAnswer, block ', result.blockNumber);
-                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
+                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
                                 updateQuestionWindowIfOpen(question);
                                 //console.log('should be getting latest', question, result.blockNumber);
                                 scheduleFinalizationDisplayUpdate(question);
