@@ -33,6 +33,8 @@ var category = null;
 var template_blocks = {};
 var template_content = TEMPLATE_CONFIG.content;
 
+var last_polled_block;
+
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
 const BLOCK_EXPLORERS = {
@@ -3081,6 +3083,58 @@ function updateRankingSections(question, changed_field, changed_val) {
 }
 
 
+function handleEvent(error, result) {
+
+    // Check the action to see if it is interesting, if it is then populate notifications etc
+    handlePotentialUserAction(result, true);
+
+    // Handles front page event changes.
+    // NB We need to reflect other changes too...
+    var evt = result['event'];
+    if (evt == 'LogNewTemplate') {
+        var template_id = result.args.template_id;
+        var question_text = result.args.question_text;
+        template_content[template_id] = question_text;
+        return;
+    } else if (evt == 'LogNewQuestion') {
+        handleQuestionLog(result);
+    } else if (evt == 'LogWithdraw') {
+        updateUserBalanceDisplay();
+    } else {
+        var question_id = result.args.question_id;
+
+        switch (evt) {
+
+            case ('LogNewAnswer'):
+                //console.log('got LogNewAnswer, block ', result.blockNumber);
+                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
+                    updateQuestionWindowIfOpen(question);
+                    //console.log('should be getting latest', question, result.blockNumber);
+                    scheduleFinalizationDisplayUpdate(question);
+                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                });
+                break;
+
+            case ('LogFundAnswerBounty'):
+                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                    //console.log('updating with question', question);
+                    updateQuestionWindowIfOpen(question);
+                    updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                });
+                break;
+
+            default:
+                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                    updateQuestionWindowIfOpen(question);
+                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                });
+
+        }
+
+    }
+
+}
+
 
 /*-------------------------------------------------------------------------------------*/
 // initial process
@@ -3126,54 +3180,7 @@ function pageInit(account) {
         evts.watch(function(error, result) {
             if (!error && result) {
                 console.log('got watch event', error, result);
-
-                // Check the action to see if it is interesting, if it is then populate notifications etc
-                handlePotentialUserAction(result, true);
-
-                // Handles front page event changes.
-                // NB We need to reflect other changes too...
-                var evt = result['event'];
-                if (evt == 'LogNewTemplate') {
-                    var template_id = result.args.template_id;
-                    var question_text = result.args.question_text;
-                    template_content[template_id] = question_text;
-                    return;
-                } else if (evt == 'LogNewQuestion') {
-                    handleQuestionLog(result);
-                } else if (evt == 'LogWithdraw') {
-                    updateUserBalanceDisplay();
-                } else {
-                    var question_id = result.args.question_id;
-
-                    switch (evt) {
-
-                        case ('LogNewAnswer'):
-                            //console.log('got LogNewAnswer, block ', result.blockNumber);
-                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
-                                updateQuestionWindowIfOpen(question);
-                                //console.log('should be getting latest', question, result.blockNumber);
-                                scheduleFinalizationDisplayUpdate(question);
-                                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                            });
-                            break;
-
-                        case ('LogFundAnswerBounty'):
-                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                                //console.log('updating with question', question);
-                                updateQuestionWindowIfOpen(question);
-                                updateRankingSections(question, Qi_bounty, question[Qi_bounty])
-                            });
-                            break;
-
-                        default:
-                            ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                                updateQuestionWindowIfOpen(question);
-                                updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                            });
-
-                    }
-
-                }
+                handleEvent(error, result);
             }
         });
 
@@ -3184,8 +3191,8 @@ function pageInit(account) {
     }, START_BLOCK, 'latest');
 
     // Now the rest of the questions
+    last_polled_block = current_block_number;
     fetchAndDisplayQuestions(current_block_number, 0);
-
 
 };
 
@@ -3232,6 +3239,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         }
 
         scheduleFallbackTimer();
+        runPollingLoop(rc);
 
         //setTimeout(bounceEffect, 500);
 
@@ -3260,6 +3268,30 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
     });
 }
+
+function runPollingLoop(contract_instance) {
+
+    console.log('in runPollingLoop from ', last_polled_block);
+    var evts = contract_instance.allEvents({}, {
+        fromBlock: last_polled_block - 20, // account for lag
+        toBlock: 'latest'
+    })
+
+    evts.get(function(error, result) {
+        console.log('got evts', error, result);
+        last_polled_block = current_block_number;
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < result.length; i++) {
+                handleEvent(error, result[i]);
+            }
+        } else {
+            console.log(error);
+        }
+        window.setTimeout(runPollingLoop, 30000);
+    });
+
+}
+
 
 // Sometimes things go wrong getting events
 // To mitigate the damage, run a refresh of the currently-open window etc
