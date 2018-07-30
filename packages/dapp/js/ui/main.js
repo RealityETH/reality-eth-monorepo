@@ -3287,7 +3287,7 @@ function runPollingLoop(contract_instance) {
         } else {
             console.log(error);
         }
-        window.setTimeout(runPollingLoop, 30000);
+        window.setTimeout(runPollingLoop, 30000, contract_instance);
     });
 
 }
