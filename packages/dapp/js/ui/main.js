@@ -1895,6 +1895,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }
     }
 
+    rcqa.find('.bond-value').text(web3js.fromWei(question_detail[Qi_bond], 'ether'));
+    // Set the dispute value on a slight delay
+    // This ensures the latest entry was updated and the user had time to see it when arbitration was requested
+    window.setTimeout(function() {
+        rcqa.find('.arbitration-button').attr('data-last-seen-bond', '0x' + question_detail[Qi_bond].toString(16));
+    }, 2000);
+
     // question settings warning balloon
     let balloon_html = '';
     if (question_detail[Qi_timeout] < 86400) {
@@ -2882,6 +2889,12 @@ $(document).on('click', '.arbitration-button', function(e) {
         return false;
     }
 
+    var last_seen_bond_hex = $(this).attr('data-last-seen-bond'); 
+    if (!last_seen_bond_hex) {
+        console.log('Error, last seen bond not populated, aborting arbitration request');
+        return false;
+    }
+
     var arbitration_fee;
     //if (!question_detail[Qi_is_arbitration_due]) {}
     var arbitrator;
@@ -2891,16 +2904,7 @@ $(document).on('click', '.arbitration-button', function(e) {
     }).then(function(fee) {
         arbitration_fee = fee;
         //console.log('got fee', arbitration_fee.toString());
-
-        arbitrator.requestArbitration(question_id, {
-                from: account,
-                value: fee
-            })
-            .then(function(result) {
-                console.log('arbitration is requested.', result);
-            });
-
-        arbitrator.requestArbitration(question_id, new BigNumber(0), {from:account, value: fee})
+        arbitrator.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
         .then(function(result){
             console.log('arbitration is requested.', result);
         });

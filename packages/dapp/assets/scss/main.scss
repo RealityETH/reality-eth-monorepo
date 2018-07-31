@@ -1398,6 +1398,7 @@ span.rcbrowser__close-button {
     // background-color: $blue;
     @include button_blue;
     text-align: center;
+    cursor: pointer;
 }
 #your-question-answer-window .answer-claim-button {
     float: right;
@@ -2412,6 +2413,9 @@ div.rcbrowser--qa-detail .answered-history-container { display:none }
 div.rcbrowser--qa-detail.has-history .answered-history-container{ display: block !important }
 
 div.rcbrowser--qa-detail .answer-claim-button { display: none}
+
+div.rcbrowser--qa-detail .bond-value-container { display:none }
+div.rcbrowser--qa-detail.has-answer .bond-value-container { display:block !important }
 
 .answer-claim-button {display:none}
 
