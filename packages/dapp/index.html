@@ -436,15 +436,15 @@
                         <div class="cols-2">
                             <div class="select-container select-container--question-category">
                                 <select name="question-category" class="rcbrowser-select form-item">
-                                    <option value="">Category</option>
-                                    <option value="arts"> - Arts</option>
-                                    <option value="business-finance"> - Business &amp; Finance</option>
-                                    <option value="cryptocurrency"> - Cryptocurrency</option>
-                                    <option value="news-politics"> - News &amp; Politics</option>
-                                    <option value="science-tech"> - Science &amp; Tech</option>
-                                    <option value="sports"> - Sports</option>
-                                    <option value="weather"> - Weather</option>
-                                    <option value="misc"> - Miscellaneous</option>
+                                    <option>Category...</option>
+                                    <option value="arts">Arts</option>
+                                    <option value="business-finance">Business &amp; Finance</option>
+                                    <option value="cryptocurrency">Cryptocurrency</option>
+                                    <option value="news-politics">News &amp; Politics</option>
+                                    <option value="science-tech">Science &amp; Tech</option>
+                                    <option value="sports">Sports</option>
+                                    <option value="weather">Weather</option>
+                                    <option value="misc">Miscellaneous</option>
                                 </select>
                                 <div class="error-container">Please select category.</div>
                             </div>
@@ -467,10 +467,9 @@
                         <div class="cols-2">
                             <div class="select-container select-container--question-type">
                                 <select name="question-type" class="question-type rcbrowser-select form-item">
-                                    <option value="default">Question Type</option>
-                                    <option value="bool" SELECTED>Binary (Yes/No)</option>
-                                    <option value="single-select">Select (Single)</option>
-                                    <option value="multiple-select">Select (Multiple)</option>
+                                    <option value="bool" selected>Question Type: Binary (Yes/No)</option>
+                                    <option value="single-select">Multiple Choice (1 answer)</option>
+                                    <option value="multiple-select">Multiple Choice (>1 answer)</option>
                                     <option value="uint">Number (Positive)</option>
                                     <option value="datetime">Date</option>
                                 </select>
@@ -479,18 +478,14 @@
                             <div class="answer-option-container edit-option-container">
                                 <div class="edit-option">
                                     <div class="edit-option-inner clearfix">
-                                        <div class="edit-option-header">
-                                            Edit options
-                                        </div>
-
                                         <div class="input-container first-answer-option ">
-                                            <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
+                                            <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter an answer...">
                                         </div>
 
-                                        <div class="error-container--answer-option error-container error-container--select">Please enter at least two options.</div>
+                                        <div class="error-container--answer-option error-container error-container--select">Please enter at least two answers.</div>
 
                                         <div class="add-option-button">
-                                            + Add a option
+                                            + Add another answer
                                         </div>
                                     </div>
                                 </div>
@@ -511,7 +506,7 @@
                         <div class="cols-2">
                             <div class="select-container select-container--question-arbitrator">
                                 <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
-                                    <option value="default">Arbitrator</option>
+                                    <option value="default">Arbitrator...</option>
                                     <option class="arbitrator-template-item" value="" ></option>
                                     <option data-text-main="Other (enter address)" class="arbitrator-other-select" value="other" >Other (enter address)</option>
                                 </select>
@@ -525,13 +520,12 @@
                         <div class="cols-2">
                             <div class="select-container">
                                 <select name="step-delay" class="step-delay rcbrowser-select form-item">
-                                    <option value="default">Timeout</option>
                                     <option class="exceptional-option" value="30">30 seconds (for testing)</option>
                                     <option class="exceptional-option" value="180">3 minutes (for testing or use by bots)</option>
                                     <option value="3600">1 hour</option>
                                     <option value="10800">3 hours</option>
                                     <option value="43200">12 hours</option>
-                                    <option value="86400" SELECTED>1 day</option>
+                                    <option value="86400" selected>Timeout: 1 day</option>
                                     <option value="172800">2 days</option>
                                     <option value="259200">3 days</option>
                                     <option value="345600">4 days</option>
