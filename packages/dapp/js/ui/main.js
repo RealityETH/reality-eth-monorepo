@@ -2072,6 +2072,9 @@ function totalClaimable(question_detail) {
     return poss['total'];
 }
 
+/*
+If you get anything from the list, return the whole thing
+*/
 function possibleClaimableItems(question_detail) {
 
     var ttl = new BigNumber(0);
@@ -2107,6 +2110,10 @@ function possibleClaimableItems(question_detail) {
 
     var final_answer = question_detail[Qi_best_answer];
     for (var i = question_detail['history'].length - 1; i >= 0; i--) {
+
+        // TODO: Check the history hash, and if we haven't reached it, keep going until we do
+        // ...since someone may have claimed partway through
+
         var answer = question_detail['history'][i].args.answer;
         var answerer = question_detail['history'][i].args.user;
         var bond = question_detail['history'][i].args.bond;
@@ -2129,9 +2136,10 @@ function possibleClaimableItems(question_detail) {
                     ttl = ttl.plus(bond); // their takeover payment to you
                 }
             }
-            if (is_first) {
-                ttl = ttl.plus(question_detail[Qi_bounty]);
-            }
+            
+        }
+        if (is_first && is_yours) {
+            ttl = ttl.plus(question_detail[Qi_bounty]);
         }
 
         claimable_bonds.push(bond);
@@ -2142,10 +2150,15 @@ function possibleClaimableItems(question_detail) {
         is_first = false;
     }
 
-    if (ttl.gt(0)) {
-        question_ids.push(question_detail[Qi_question_id]);
-        answer_lengths.push(claimable_bonds.length);
+    // Nothing for you to claim, so return nothing
+    if (!ttl.gt(0)) {
+        return {
+            total: new BigNumber(0)
+        };
     }
+
+    question_ids.push(question_detail[Qi_question_id]);
+    answer_lengths.push(claimable_bonds.length);
 
     //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
 
