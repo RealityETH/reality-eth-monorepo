@@ -743,7 +743,7 @@ $(document).on('click', '.answer-claim-button', function() {
         //  2 answers 54947
         //  5 answers 73702
 
-        var gas = 140000 + (20000 * claim_args['history_hashes'].length);
+        var gas = 140000 + (30000 * claim_args['history_hashes'].length);
         rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
                 from: account,
                 gas: gas
