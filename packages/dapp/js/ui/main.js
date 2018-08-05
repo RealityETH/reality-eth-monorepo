@@ -459,30 +459,65 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
 
     Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 
-    $("select[name='question-category'], select[name='arbitrator']").change(function(){
+    $("textarea[name='question-body']").on('change keyup paste', function() {
+        if ($(this).val()==""){
+            $(this).parent().addClass('is-error');
+        } else {
+            $(this).parent().removeClass('is-error');
+        }
+    });
+
+    $("select[name='question-category']").change(function(){
         $(this).addClass("selected");
+
+        var optionLabel = "Category: ";
+
+        $("option", this).each(function() {
+            var option = $(this).text().split(optionLabel)[1];
+            if (option){ $(this).text(option);}
+        });
+
+        var optionText = $("option:selected",this).text();
+        $("option:selected", this).text(optionLabel + optionText);
+
+        $(this).parent().removeClass('is-error');
     });
 
     $("select[name='question-type']").change(function(){
+        var optionLabel = "Question Type: ";
+
         $("option", this).each(function() {
-            if ($(this).text().split("Question Type: ")[1]){
-                var cleanedText = $(this).text().split("Question Type: ")[1];
-                $(this).text(cleanedText);
-            }
-        });   
-        var optionText = $("option:selected", this).text();
-        $("option:selected", this).text("Question Type: " + optionText);
+            var option = $(this).text().split(optionLabel)[1];
+            if (option){ $(this).text(option);}
+        });
+
+        var optionText = $("option:selected",this).text();
+        $("option:selected", this).text(optionLabel + optionText);
     });
 
     $("select[name='step-delay']").change(function(){
+        var optionLabel = "Timeout: ";
+
         $("option", this).each(function() {
-            if ($(this).text().split("Timeout: ")[1]){
-                var cleanedText = $(this).text().split("Timeout: ")[1];
-                $(this).text(cleanedText);
-            }
-        });   
-        var optionText = $("option:selected", this).text();
-        $("option:selected", this).text("Timeout: " + optionText);
+            var option = $(this).text().split(optionLabel)[1];
+            if (option){ $(this).text(option);}
+        });
+
+        var optionText = $("option:selected",this).text();
+        $("option:selected", this).text(optionLabel + optionText);
+    });
+
+    $("select[name='arbitrator']").change(function(){
+        $(this).addClass("selected");
+        var optionLabel = "Arbitrator: ";
+
+        $("option", this).each(function() {
+            var option = $(this).text().split(optionLabel)[1];
+            if (option){ $(this).text(option);}
+        });
+
+        var optionText = $("option:selected",this).text();
+        $("option:selected", this).text(optionLabel + optionText);
     });
 });
 
