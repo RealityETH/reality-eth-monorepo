@@ -496,7 +496,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
     });
 
     $("select[name='step-delay']").change(function(){
-        var optionLabel = "Timeout: ";
+        var optionLabel = "Countdown: ";
 
         $("option", this).each(function() {
             var option = $(this).text().split(optionLabel)[1];
