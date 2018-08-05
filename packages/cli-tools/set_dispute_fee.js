@@ -7,7 +7,7 @@ if (fee == 0) throw 'Fee should be greater than 0';
 
 const params = rc_common.commonParams(process.argv);
 console.log(params);
-console.log('Generating a transaction to set the dispute fee to ' + fee + ' gwei:');
+console.log('Generating a transaction to set the dispute fee to ' + fee + ' gwei (' + ( fee / rc_common.GWEI_TO_WEI) + ' ETH):');
 
 //console.log('GWEI_TO_WEI', rc_common.GWEI_TO_WEI);
 
