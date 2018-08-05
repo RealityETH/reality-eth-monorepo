@@ -1,3 +1,6 @@
+const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
+const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
+
 const config = require('./config.json');
 
 const BigNumber = require('bignumber.js');
@@ -50,14 +53,12 @@ exports.loadKey = function() {
 }
 
 exports.rcContract = function() {
-    const rc_json = require(config.contract_dir + '/RealityCheck.json');
     const rc_address = rc_json.networks[config.network_id].address;
     const rc_contract = contract(rc_json);
     return rc_contract.at(rc_address);
 }
 
 exports.arbContract = function() {
-    const arb_json = require(config.contract_dir + '/Arbitrator.json');
     const arb_address = arb_json.networks[config.network_id].address;
     const arb_contract = contract(arb_json);
     return arb_contract.at(arb_address);
