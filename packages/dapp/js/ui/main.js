@@ -774,16 +774,15 @@ function validate(win) {
         $('.edit-option-inner').removeClass('is-error');
     }
 
-    var select_ids = ['.question-type', '.arbitrator', '.step-delay'];
+    var select_ids = ['.question-type', '.arbitrator', '.step-delay', '.question-category'];
     for (var id of select_ids) {
-        if (win.find(id).prop('selectedIndex') == 0) {
+        if (win.find(id).val() == "default") {
             win.find(id).parent().addClass('is-error');
             valid = false;
         } else {
             win.find(id).parent().removeClass('is-error');
         }
     }
-
 
     return valid;
 }
