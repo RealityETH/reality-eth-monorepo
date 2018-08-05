@@ -1,6 +1,6 @@
 {
   "name": "@realitio/realitio-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Command-line tools for interacting with the Realitio fact verification platform. Mainly intended for doing arbitration from an offline computer.",
   "scripts": {
     "test": "mocha ./test"
