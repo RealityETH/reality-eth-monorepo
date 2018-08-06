@@ -3669,6 +3669,7 @@ window.addEventListener('load', function() {
                 if (acc && acc.length > 0) {
                     //console.log('accounts', acc);
                     account = acc[0];
+                    $('.account-balance-link').attr('href', block_explorer + '/address/' + account);
                 } else {
                     if (!is_web3_fallback) {
                         console.log('no accounts');
