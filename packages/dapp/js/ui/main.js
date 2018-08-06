@@ -3155,8 +3155,9 @@ function updateRankingSections(question, changed_field, changed_val) {
 
         }
 
-    } else if (changed_field == Qi_bounty) {
-        var insert_before = update_ranking_data('questions-high-reward', question_id, question[Qi_bounty], 'desc');
+    } 
+    if (changed_field == Qi_bounty || changed_field == Qi_finalization_ts) {
+        var insert_before = update_ranking_data('questions-high-reward', question_id, question[Qi_bounty].plus(question[Qi_bond]), 'desc');
         //console.log('update for new bounty', question[Qi_bounty], 'insert_before is', insert_before);
         if (insert_before !== -1) {
             populateSection('questions-high-reward', question, insert_before);
@@ -3267,7 +3268,12 @@ function pageInit(account) {
         evts.watch(function(error, result) {
             if (!error && result) {
                 console.log('got watch event', error, result);
-                handleEvent(error, result);
+                // Give the node we're calling some time to catch up
+                window.setTimeout(
+                    function() {
+                        handleEvent(error, result);
+                    }, 5000
+                );
             }
         });
 
