@@ -25,6 +25,7 @@ const jazzicon = require('jazzicon');
 
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
+var failed_arbitrators = {};
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {};
@@ -683,6 +684,20 @@ function isArbitratorValid(arb) {
         }
     });
     return found;
+}
+
+// Check if an arbitrator is valid when we have not yet had time to contact all the arbitrator contracts
+// This is used for fast rendering of the warnings on the list page.
+// TODO: We should really go back through them later and set warnings on anything that turned out to be bad
+function isArbitratorValidFast(arb) {
+    if (!arbitrator_list[network_id][arb]) {
+        return false;
+    }
+    // NB This will return a false positive if the arbitrator has not yet been checked when it runs
+    if (failed_arbitrators[arb]) {
+        return false;
+    }
+    return true; 
 }
 
 function isArbitrationPending(question) {
@@ -1468,7 +1483,7 @@ function populateSection(section_name, question_data, before_item) {
         balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValid(question_data[Qi_arbitrator]);
+    let valid_arbirator = isArbitratorValidFast(question_data[Qi_arbitrator]);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -3526,6 +3541,12 @@ function populateArbitratorSelect(network_arbs) {
                     console.log('arb has rc addr', rc_addr);
                     var is_arb_valid = (rc_addr == myr.address);
                     verified_arbitrators[na_addr] = is_arb_valid;
+                    // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
+                    // For this we'll check our original list for the network, then just check against the failed list
+                    // TODO: Once loaded, we should really go back through the page and update anything failed
+                    if (!is_arb_valid) {
+                        failed_arbitrators[na_addr] = true;
+                    }
                     console.log(verified_arbitrators);
                     return is_arb_valid;
                 }).then(function(is_arb_valid) {
@@ -3629,45 +3650,57 @@ window.addEventListener('load', function() {
         })
     });
 
-    web3js.eth.getAccounts((err, acc) => {
-        web3js.eth.getBlock('latest', function(err, result) {
-            if (result.number > current_block_number) {
-                current_block_number = result.number;
-            }
 
-            if (acc && acc.length > 0) {
-                //console.log('accounts', acc);
-                account = acc[0];
+    web3js.version.getNetwork((err, net_id) => {
+        if (err === null) {
+            if (valid_ids.indexOf(net_id) === -1) {
+                $('body').addClass('error-invalid-network').addClass('error');
             } else {
-                if (!is_web3_fallback) {
-                    console.log('no accounts');
-                    $('body').addClass('error-no-metamask-accounts').addClass('error');
-                }
+                initializeGlobalVariablesForNetwork(net_id);
             }
+        }
 
-            var args = parseHash();
-            if (args['category']) {
-                category = args['category'];
-                $('body').addClass('category-' + category);
-                var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
-                $('#filterby').text(cat_txt);
-            }
-            //console.log('args:', args);
-
-            RealityCheck = contract(rc_json);
-            RealityCheck.setProvider(web3js.currentProvider);
-            RealityCheck.deployed().then(function(instance) {
-                rc = instance;
-                updateUserBalanceDisplay();
-                pageInit(account);
-                if (args['question']) {
-                    //console.log('fetching question');
-                    ensureQuestionDetailFetched(args['question']).then(function(question) {
-                        openQuestionWindow(question[Qi_question_id]);
-
-                    })
+        web3js.eth.getAccounts((err, acc) => {
+            web3js.eth.getBlock('latest', function(err, result) {
+                if (result.number > current_block_number) {
+                    current_block_number = result.number;
                 }
+
+                if (acc && acc.length > 0) {
+                    //console.log('accounts', acc);
+                    account = acc[0];
+                } else {
+                    if (!is_web3_fallback) {
+                        console.log('no accounts');
+                        $('body').addClass('error-no-metamask-accounts').addClass('error');
+                    }
+                }
+
+                var args = parseHash();
+                if (args['category']) {
+                    category = args['category'];
+                    $('body').addClass('category-' + category);
+                    var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+                    $('#filterby').text(cat_txt);
+                }
+                //console.log('args:', args);
+
+                RealityCheck = contract(rc_json);
+                RealityCheck.setProvider(web3js.currentProvider);
+                RealityCheck.deployed().then(function(instance) {
+                    rc = instance;
+                    updateUserBalanceDisplay();
+                    pageInit(account);
+                    if (args['question']) {
+                        //console.log('fetching question');
+                        ensureQuestionDetailFetched(args['question']).then(function(question) {
+                            openQuestionWindow(question[Qi_question_id]);
+
+                        })
+                    }
+                });
             });
+            populateArbitratorSelect(arbitrator_list[net_id]);
         });
     });
 
@@ -3690,16 +3723,4 @@ window.addEventListener('load', function() {
     }
 
     //setTimeout(bounceEffect, 8000);
-
-
-    web3js.version.getNetwork((err, net_id) => {
-        if (err === null) {
-            if (valid_ids.indexOf(net_id) === -1) {
-                $('body').addClass('error-invalid-network').addClass('error');
-            } else {
-                initializeGlobalVariablesForNetwork(net_id);
-                populateArbitratorSelect(arbitrator_list[net_id]);
-            }
-        }
-    });
 });
