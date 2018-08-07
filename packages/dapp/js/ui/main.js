@@ -2059,7 +2059,11 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.find('.answered-history-container').after(ans_frm);
     }
 
-    rcqa.find('.rcbrowser-input--number--bond.form-item').val(web3js.fromWei(bond.toNumber(), 'ether') * 2);
+    // If the user has edited the field, never repopulate it underneath them
+    var bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
+    if (!bond_field.hasClass('edited')) {
+        bond_field.val(web3js.fromWei(bond.toNumber(), 'ether') * 2);
+    }
 
     //console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
@@ -2741,7 +2745,14 @@ $(document).on('click', '.post-answer-button', function(e) {
 
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
     var question_id = parent_div.attr('data-question-id');
-    var bond = web3js.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
+
+    var bond = new BigNumber(0);
+    var bond_field = parent_div.find('input[name="questionBond"]');
+    try {
+        bond  = web3js.toWei(new BigNumber(bond_field.val()), 'ether');
+    } catch (err) {
+        console.log('Could not parse bond field value');
+    }
 
     var question, current_answer, new_answer;
     var question_json;
@@ -2835,6 +2846,9 @@ $(document).on('click', '.post-answer-button', function(e) {
             if (is_err) throw ('err on submitting answer');
 
             submitted_question_id_timestamp[question_id] = new Date().getTime();
+
+            // Remove the edited note to allow the field to be automatically populated again
+            bond_field.removeClass('edited'); 
 
             return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
                 from: account,
@@ -3040,6 +3054,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
     } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)) {
         $(this).parent().parent().addClass('is-error');
     } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
+        $(this).addClass('edited');
         let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
         let current_bond = new BigNumber(0);
