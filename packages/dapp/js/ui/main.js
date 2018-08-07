@@ -949,6 +949,7 @@ function handlePotentialUserAction(entry, is_watch) {
 
 function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     var poss = possibleClaimableItems(question);
+    //console.log('made poss for question', poss, question[Qi_question_id]);
     if (poss['total'].isZero()) {
         delete user_claimable[question[Qi_question_id]];
     } else {
@@ -958,8 +959,8 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 }
 
 function updateClaimableDisplay() {
-    //console.log('updateClaimableDisplay with user_claimable', user_claimable);
     var unclaimed = mergePossibleClaimable(user_claimable, false);
+    //console.log('updateClaimableDisplay with user_claimable, unclaimed', user_claimable, unclaimed);
     var claiming = mergePossibleClaimable(user_claimable, true);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
@@ -1400,9 +1401,9 @@ function updateUserBalanceDisplay() {
     if (!account) {
         return;
     }
-    //console.log('updating balacne for', account);
+    // console.log('updating balacne for', account);
     web3js.eth.getBalance(account, function(error, result) {
-        //console.log('got updated balacne for', account, result.toNumber());
+        // console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
             $('.account-balance').text(web3js.fromWei(result.toNumber(), 'ether'));
         }
@@ -2142,22 +2143,23 @@ function possibleClaimableItems(question_detail) {
             // Somebody takes over your answer
             if (answerer != account && final_answer == answer) {
                 is_yours = false;
+                //console.log(ttl.toString(), 'minus', bond.toString());
                 ttl = ttl.minus(bond); // pay them their bond
             } else {
+                //console.log(ttl.toString(), 'plus', bond.toString());
                 ttl = ttl.plus(bond); // take their bond
             }
         } else {
             // You take over someone else's answer
-            if (final_answer == answer) {
+            if (answerer == account && final_answer == answer) {
                 is_yours = true;
+                //console.log(ttl.toString(), 'plus', bond.toString());
                 ttl = ttl.plus(bond); // your bond back
-                if (!is_first) {
-                    ttl = ttl.plus(bond); // their takeover payment to you
-                }
             }
-            
         }
         if (is_first && is_yours) {
+            //console.log('adding your bounty');
+            //console.log(ttl.toString(), 'plus', question_detail[Qi_bounty].toString());
             ttl = ttl.plus(question_detail[Qi_bounty]);
         }
 
