@@ -5,7 +5,7 @@
     <title>Realitio</title>
     <meta name="description" content="Realitio">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel='shortcut icon' href='../assets/image/favicon.ico' type='image/x-icon' />
+    <link rel='shortcut icon' href='assets/image/favicon.ico' type='image/x-icon' />
     <!--
     <link href="assets/fonts/Roboto/css/fonts.css" rel="stylesheet">
     -->
@@ -25,12 +25,12 @@
     <div id="primary-container">
         <div class="error-bar">
             <div class="error-label no-metamask-plugin-image">
-                <a href="https://metamask.io"><img src="assets/image/download-metamask.png" width="88px" height="24px"></a>
+                <a href="https://metamask.io"><img src="../assets/image/download-metamask.png" width="88px" height="24px"></a>
             </div>
-            <span class="error-label no-metamask-plugin">You need to <a href="https://metamask.io">install the MetaMask plugin</a> to use Reality Check. </span>
+            <span class="error-label no-metamask-plugin">You need to <a href="https://metamask.io">install the MetaMask plugin</a> to use Realitio. </span>
             <span class="error-label no-metamask-accounts">No accounts found. Please make sure MetaMask is unlocked then refresh the page.</span>
             <span class="error-label invalid-network">Invalid network. Please use the Rinkeby test network.</span>
-            <span data-network-id="4"></span>
+            <span data-network-id="4,8995,1337"></span>
         </div>
     </div>
     <div id="main">
@@ -38,9 +38,9 @@
             Check your Q&amp;A
         </div>
         <header id="site-header">
-            <a href="https://realitio.github.io/docs/html/">Learn more</a>
-            <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My account</a>
-            <span id="push-icon">announcement</span>
+            <a id="help-center-button" href="">How It Works</a>
+            <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My Account</a>
+            <span id="push-icon">notifications_active</span>
             <h1 class="logo">
                 <a href="https://realit.io/">Realitio</a>
             </h1>
@@ -70,17 +70,16 @@
                         });
                     </script>
                 </div>
-                <div class="category-list">
+                  <div class="category-list">
                     <ul id="filter-list">
-                        <li><a data-category="all" class="selected">All</a></li>
+                        <li><a data-category="all">All</a></li>
+                        <li><a data-category="arts">Arts</a></li>
+                        <li><a data-category="business-finance">Business &amp; Finance</a></li>
+                        <li><a data-category="cryptocurrency">Cryptocurrency</a></li>
+                        <li><a data-category="news-politics">News &amp; Politics</a></li>
+                        <li><a data-category="science-tech">Science &amp; Tech</a></li>
                         <li><a data-category="sports">Sports</a></li>
-                        <li><a data-category="politics">Politics</a></li>
                         <li><a data-category="weather">Weather</a></li>
-                        <li><a data-category="blockchain">Blockchains</a></li>
-                        <li><a data-category="culture">Culture</a></li>
-                        <li><a data-category="business-finance">Business / Finance</a></li>
-                        <li><a data-category="art-design">Art / Design</a></li>
-                        <li><a data-category="technology-science">Technology / Science</a></li>
                         <li><a data-category="misc">Miscellaneous</a></li>
                     </ul>
                     <script type="text/javascript">
@@ -103,6 +102,19 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Ethereum network</p>
                     </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no questions closing soon in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <div class="spinner">
+                          <p>Scanning the Ethereum blockchain for questions...</p>
+                          <div class="cube1"></div>
+                          <div class="cube2"></div>
+                        </div>
+                    </div>
+
                 </div><!-- /.questions-list -->
 
                 <div class="loadmore-button" data-questions="questions-closing-soon">
@@ -117,6 +129,17 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Ethereum network</p>
                     </div>
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no questions in this category. Be the first to ask one!</p>
+                    </div>
+                    <div class="scanning-questions-category">
+                        <div class="spinner">
+                          <p>Scanning the Ethereum blockchain for questions...</p>
+                          <div class="cube1"></div>
+                          <div class="cube2"></div>
+                        </div>
+                    </div>
+
                 </div><!-- /.questions-list -->
 
                 <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
@@ -130,6 +153,18 @@
                 <div class="questions-list">
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Ethereum network</p>
+                    </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no high reward questions in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <div class="spinner">
+                            <p>Scanning the Ethereum blockchain for questions...</p>
+                          <div class="cube1"></div>
+                          <div class="cube2"></div>
+                        </div>
                     </div>
                 </div><!-- /.questions-list -->
 
@@ -145,7 +180,20 @@
                     <div class="no-questions hidden">
                         <p>Currently no questions to show. Make sure Metamask is connected to the Ethereum network</p>
                     </div>
+
+                    <div class="no-questions-category hidden">
+                        <p>There are currently no resolved questions in this category.</p>
+                    </div>
+
+                    <div class="scanning-questions-category">
+                        <div class="spinner">
+                          <p>Scanning the Ethereum blockchain for questions...</p>
+                          <div class="cube1"></div>
+                          <div class="cube2"></div>
+                        </div>
+                    </div>
                 </div><!-- /.questions-list -->
+
 
                 <div class="loadmore-button" data-questions="questions-resolved">
                     <span class="loadmore-text">Load More</span>
@@ -156,7 +204,7 @@
     </div><!-- /#main -->
 
     <div id="footer-notification-bar" style="display: none;">
-        <span>This is an experimental version on testnet. The contract has not been audited yet.</span>
+        <span>This application will be undergoing a live real-money test until Wednesday, August 22nd.</span>
         <a id="got-it-button" href="">Got it</a>
     </div>
 
@@ -172,8 +220,9 @@
             <div class="cols">
                 <h3>Learn More</h3>
                 <ul>
-                    <li><a href="https://github.com/realitykeys/realitycheck">Github</a></li>
-                    <li><a href="https://realitykeys.github.io/realitycheck/docs/html/">Documentation</a></li>
+                    <li><a href="https://realit.io">Learn more</a></li>
+                    <li><a href="https://github.com/realitio/realitio-dapp">Github</a></li>
+                    <li><a href="https://realitio.github.io/docs/html/">Documentation</a></li>
                     <li><a href="">White Paper</a></li>
                 </ul>
             </div>
@@ -181,8 +230,8 @@
             <div class="cols">
                 <h3>Join Us</h3>
                 <ul>
-                    <li><a href=""><span class="icon discord">Discord</span>s</a></li>
-                    <li><a href="https://twitter.com/Realitio"><span class="icon twitter">Twitter</span></a></li>
+                    <li><a href="https://discordapp.com/channels/463917311267569674/"><span class="icon discord">Discord</span>s</a></li>
+                    <li><a href="https://twitter.com/RealitioProject"><span class="icon twitter">Twitter</span></a></li>
                     <li><a href="https://medium.com/@edmundedgar"><span class="icon twitter">Medium</span></a></li>
                 </ul>
             </div>
@@ -199,33 +248,28 @@
                     <span></span>
                     <span></span>
                 </div>
+                <h2 class="rcbrowser-main-header-title">How it works</h2>
             </div>
 
             <div class="rcbrowser-main">
-                <div class="rcbrowser-main-header">
-                    <h2 class="rcbrowser-main-header-title">How it works</h2>
-                </div>
                 <div class="rcbrowser-main-body help-explanation">
-                    <p><b><i>Anyone can post any question they like.</i></b>
-		    <br /> To encourage people to answer it, they can pay a bounty that will go to whoever gives the final answer.</p>
-                    <p><b><i>Anyone can answer the question.</i></b>
-                    <br />To encourage them to answer accurately, they can <b><i>post a bond</i></b>. If somebody else's answer is accepted, their bond will go to that person instead.</p>
-                    <p><b><i>Anyone can change the answer, but they have to double the bond.</i></b>
-                    <br />If there is a disagreement about the answer, the people who disagree can keep doubling their bonds for as long as they like.</p>
-                    <p><b><i>You can take over an answer that someone else has posted, but you have to split your winnings with them.</i></b><br/>
-                    If you post an answer that someone has already posted, an amount equal to their bond will be deducted from your winnings.</p>
-                    <p><b><i>The result is settled automatically.</i></b><br />
-                    Once nobody has answered for a while, the question is settled on the final answer. The time it takes until a question is settled is decided when the question is first asked.
-                    </p>
+                <h3>Asking Questions</h3>
+                    <p>The first step is to ask a question that you want confirmed. To encourage others to answer, you can offer a reward that goes to whomever gives the final answer. (You can also leave the reward as zero if you plan to supply the answer yourself and assume it will survive challenges.) </p>
 
-                    <p><b><i>You can pay an arbitrator at any time before settlement.</i></b>
-                    <br />Paying an arbitrator is usually a last resort, after someone insists on posting the wrong answer, and paying for it with a bond.
-                    <br />If you raise the bond far enough on the right answer, you'll be able to pay the arbitrator and still make a profit.</p>
+                    <h3>Opening Date & Countdown</h3>
+                    <p>The opening date is when answers can first be posted. If the event has not yet taken place, make sure the opening date is set to after the event's date. The countdown period determines the period of time an answer can be posted after an answer. Each answer resets the the countdown period. The final unchallenged answer after the countdown period expires is the winner.</p>
 
-                    <p><b><i>The arbitrator can be any Ethereum contract.</i></b>
-                    <br />The arbitrator contract may be controlled by a company like Reality Keys, or a group of people, DAO, or any other decision-making process you can code.</p>
+                    <h3>Answering Questions</h3>
+                    <p>Anyone can answer a question by posting a bond, and anyone can challenge that answer by posting a new answer, but doing so requires doubling the bond. Challenges can continue, as long as someone is willing to double the bond in the hopes of claiming the bond and the reward.</p>
 
-                    <p>For more detail, see <b><i><a target="docs" href="docs/html">our documentation</a></i></b>.</p>
+                    <h3>Settlement</h3>
+                    <p>The result is settled automatically at the end of the countdown period. The final answer at that time is the winner and claims the bond and the reward, if any. (If the same winning answer is posted more than once, the system deducts the same amount as the bond posted by the earlier correct answers.)</p>
+
+                    <h3>Arbitration</h3>
+                    <p>Anyone who wants to challenge the final answer can request arbitration. The arbitrator can be any Ethereum contract and may be controlled by a company, a trusted group or individual, a DAO, or any other decision-making process you can code. The arbitrator contract will have a set fee that must be paid to settle the question, but if the winning total is high enough, it can be profitable to challenge an answer via arbitration.</p>
+
+                    <p>For more details, please see the <a href="https://realitio.github.io/docs/html/dapp.html" target="_blank"><b>documentation</b></a></p>
+
                 </div>
 
             </div>
@@ -252,7 +296,7 @@
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-header">
                     <h2 class="rcbrowser-main-header-title">Your Questions &amp; Answers</h2>
-                    <div class="rcbrowser-main-header-subtitle">Your Balance: <span class="account-balance"></span> ETH</div>
+                    <div class="rcbrowser-main-header-subtitle"><a target="_blank" class="account-balance-link" href="#">Your Balance: <span class="account-balance"></span> ETH</a></div>
                     <div class="answer-claim-button claim-all">Claim your <span class="claimable-eth"></span> ETH</div>
                     <div class="answer-claiming-container claim-all">Claiming <span class="claimable-eth"></span> ETH <a class="txid" target="_blank" href=""></a></div>
                 </div>
@@ -390,19 +434,22 @@
                     <form name="postaquestion" action="" method="post" class="rcbrowser-form" data-form-type="question">
                     <div class="row clearfix">
                         <div class="cols-2">
-                            <div class="select-container select-container--question-category">
-                                <select name="question-category" class="rcbrowser-select form-item">
-                                    <option value="default">Category</option>
+                            <div class="select-container select-container--question-category select-container--has-quick-help">
+                                <select name="question-category" class="rcbrowser-select form-item question-category">
+                                    <option value="default">Category...</option>
+                                    <option value="arts">Arts</option>
+                                    <option value="business-finance">Business &amp; Finance</option>
+                                    <option value="cryptocurrency">Cryptocurrency</option>
+                                    <option value="news-politics">News &amp; Politics</option>
+                                    <option value="science-tech">Science &amp; Tech</option>
                                     <option value="sports">Sports</option>
-                                    <option value="politics">Politics</option>
                                     <option value="weather">Weather</option>
-                                    <option value="blockchain">Blockchains</option>
-                                    <option value="culture">Culture</option>
-                                    <option value="business-finance">Business / Finance</option>
-                                    <option value="art-design">Art / Design</option>
-                                    <option value="technology-science">Technology / Science</option>
                                     <option value="misc">Miscellaneous</option>
                                 </select>
+                                <div class="quick-help">
+                                    <span class="quick-help-button">?</span>
+                                    <div class="quick-help-body"><span>Choosing an appropriate category helps users find questions to answer.</span></div>
+                                </div>
                                 <div class="error-container">Please select category.</div>
                             </div>
                         </div>
@@ -414,7 +461,7 @@
                                 </div>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The earliest date people will be able to answer this question. Leave this blank for people to be able to answer it straight away.</span></div>
+                                    <div class="quick-help-body"><span>The opening date is when answers can be posted. If the event has not yet taken place, the opening date should be set to after the event is supposed to happen.</span></div>
                                 </div>
                                 <div class="error-container">Please enter datetime.</div>
                             </div>
@@ -426,36 +473,31 @@
                     </div>
                     <div class="row clearfix">
                         <div class="cols-2">
-                            <div class="select-container  select-container--has-quick-help">
+                            <div class="select-container select-container--question-type  select-container--has-quick-help">
                                 <select name="question-type" class="question-type rcbrowser-select form-item">
-                                    <option value="default">Question Type</option>
-                                    <option value="bool" SELECTED>Binary (Yes/No)</option>
-                                    <option value="single-select">Select (Single)</option>
-                                    <option value="multiple-select">Select (Multiple)</option>
+                                    <option value="bool" selected>Question Type: Binary (Yes/No)</option>
+                                    <option value="single-select">Multiple Choice (1 correct)</option>
+                                    <option value="multiple-select">Multiple Choice (>1 correct)</option>
                                     <option value="uint">Number (Positive)</option>
                                     <option value="datetime">Date</option>
                                 </select>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The kind of answer your question expects.</span></div>
+                                    <div class="quick-help-body"><span>The question can be phrased as yes or no, multiple choice with one correct answer, multiple choice with several correct answers, or as a specific number or date.</span></div>
                                 </div>
                                 <div class="error-container">Please select question type.</div>
                             </div>
                             <div class="answer-option-container edit-option-container">
                                 <div class="edit-option">
                                     <div class="edit-option-inner clearfix">
-                                        <div class="edit-option-header">
-                                            Edit options
-                                        </div>
-
                                         <div class="input-container first-answer-option ">
-                                            <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">
+                                            <input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter an answer...">
                                         </div>
 
-                                        <div class="error-container--answer-option error-container error-container--select">Please enter at least two options.</div>
+                                        <div class="error-container--answer-option error-container error-container--select">Please enter at least two answers.</div>
 
                                         <div class="add-option-button">
-                                            + Add a option
+                                            + Add another answer
                                         </div>
                                     </div>
                                 </div>
@@ -465,12 +507,12 @@
                             <div class="input-container  input-container--has-quick-help">
                                 <div class="input-inner">
                                     <span class="input-header">Reward (ETH):</span>
-                                    <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0.01">
+                                    <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0">
 
                                 </div>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>The amount you are prepared to pay to have your question answered. It goes to the person who submits the final answer.<br /><br />People submitting answers will also be asked to submit a bond that they will lose if their answer is wrong.</span></div>
+                                    <div class="quick-help-body"><span>The reward encourages others to answer the question. The final answer claims the reward. (You can also leave the reward as zero if you plan to supply the answer yourself, assuming it will survive challenges.)</span></div>
                                 </div>
                                 <div class="error-container">Please enter reward.</div>
                             </div>
@@ -478,9 +520,9 @@
                     </div>
                     <div class="row clearfix">
                         <div class="cols-2">
-                            <div class="select-container select-container--has-quick-help">
+                            <div class="select-container select-container--question-arbitrator select-container--has-quick-help">
                                 <select name="arbitrator" class="arbitrator rcbrowser-select form-item">
-                                    <option value="default">Arbitrator</option>
+                                    <option value="default">Arbitrator...</option>
                                     <option class="arbitrator-template-item" value="" ></option>
                                     <option data-text-main="Other (enter address)" class="arbitrator-other-select" value="other" >Other (enter address)</option>
                                 </select>
@@ -491,7 +533,7 @@
 
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>If there is a dispute over the correct answer, you can ask an arbitrator to settle it for a fee.<br /><br />The arbitrator can be a trusted party like Reality Keys, or a DAO with its own dispute resolution procedure, or any other Ethereum contract with a procedure for making decisions.<br /><br />The arbitrator only has to be paid if there is a dispute.</span></div>
+                                    <div class="quick-help-body"><span>Anyone who wants to challenge the final answer can request arbitration via Realitio, an Ethereum contract, or any other decision-making process you can code. The arbitrator assigns a cost for this servce that is visible on the question page.</span></div>
                                 </div>
                                 <div class="error-container">Please select arbitrator.</div>
                             </div>
@@ -499,13 +541,12 @@
                         <div class="cols-2">
                             <div class="select-container select-container--has-quick-help">
                                 <select name="step-delay" class="step-delay rcbrowser-select form-item">
-                                    <option value="default">Timeout</option>
                                     <option class="exceptional-option" value="30">30 seconds (for testing)</option>
                                     <option class="exceptional-option" value="180">3 minutes (for testing or use by bots)</option>
                                     <option value="3600">1 hour</option>
                                     <option value="10800">3 hours</option>
                                     <option value="43200">12 hours</option>
-                                    <option value="86400" SELECTED>1 day</option>
+                                    <option value="86400" selected>Countdown: 1 day</option>
                                     <option value="172800">2 days</option>
                                     <option value="259200">3 days</option>
                                     <option value="345600">4 days</option>
@@ -515,7 +556,7 @@
                                 </select>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
-                                    <div class="quick-help-body"><span>When someone posts a new answer, other people will need some time to see if they agree, and submit their own answer if they think it is wrong.<br /><br />This decides how much time they will be given to see the new answer and submit their own. <br /><br />Once this time is up, the answer can be finalized, after which it can no longer be changed.</span></div>
+                                    <div class="quick-help-body"><span>The countdown period determines how long another answer can be posted after an answer. Each answer resets the the countdown period. The final unchallenged answer after the countdown period expires is the winner.</span></div>
                                 </div>
                                 <div class="error-container">Please select step delay.</div>
                             </div>
@@ -821,8 +862,6 @@
                         <span class="unconfirmed-question-label">Unconfirmed Transaction</span>
                     </div>
 
-                    <div class="rcbrowser-main-header-date"></div>
-
                     <h2 class="rcbrowser-main-header-title question-title"></h2>
 
                     <div class="question-setting-warning" style="text-align: right; display: none;">
@@ -843,8 +882,13 @@
                         </div>
                     </div>
 
+                    <div class="rcbrowser-main-header-subtitle" style="float:right">
+                        <span class="bond-value-container">Last bond: <span class="bond-value"></span> ETH</span>
+                    </div>
+
                     <div class="rcbrowser-main-header-subtitle">
-                        <span class="reward-value-container">Reward: <span class="reward-value">1.25</span> ETH</span>
+                        <div class="rcbrowser-main-header-date"></div>
+                        <span class="reward-value-container">Reward: <span class="reward-value"></span> ETH</span>
                         <span class="add-reward-button" data-browser-id="id5">+ Add Reward</span>
                         <span class="resolved-at-container">Resolved: <span class="resolved-at-value timeago"></span></span>
                         <div class="answer-claim-button">Claim your <span class="claimable-eth"></span> ETH</div>
