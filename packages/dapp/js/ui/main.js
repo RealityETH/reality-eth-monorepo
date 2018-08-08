@@ -2471,7 +2471,7 @@ function renderNotifications(qdata, entry) {
                     } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == account) {
                         ntext = 'The question you answered is finalized';
                     } else {
-                        ntext = 'Some question was finalized';
+                        ntext = 'A question was finalized';
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
