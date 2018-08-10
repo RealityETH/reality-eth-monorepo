@@ -3324,28 +3324,15 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
 
         console.log('History read complete back to block', START_BLOCK);
 
-
         //look at current sections and update blockchain scanning message to
         //no questions found if no items exist
-
-        if($("#questions-latest .questions-list > *").length < 1){
-          $('#questions-latest').find('.no-questions-category').css('display', 'block');
-          $('#questions-latest').find('.scanning-questions-category').css('display', 'none');
-        }
-
-        if($("#questions-closing-soon .questions-list > *").length < 1){
-          $('#questions-closing-soon').find('.no-questions-category').css('display', 'block');
-          $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
-        }
-
-        if($("#questions-high-reward .questions-list > *").length < 1){
-          $('#questions-high-reward').find('.no-questions-category').css('display', 'block');
-          $('#questions-high-reward').find('.scanning-questions-category').css('display', 'none');
-        }
-
-        if($("#questions-resolved .questions-list > *").length < 1){
-          $('#questions-resolved').find('.no-questions-category').css('display', 'block');
-          $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
+        var detypes = Object.keys(display_entries);
+        for (var i=0; i<detypes.length; i++) {
+            var detype = detypes[i];
+            if (display_entries[detype].ids.length == 0) {
+                $('#' + detype).find('.no-questions-category').css('display', 'block');
+                $('#' + detype).find('.scanning-questions-category').css('display', 'none');
+            }
         }
 
         scheduleFallbackTimer();
