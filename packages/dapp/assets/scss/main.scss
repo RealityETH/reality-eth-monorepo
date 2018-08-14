@@ -1939,6 +1939,14 @@ select[name="arbitrator"] {
     color: $light-gray;
 }
 
+select[name="arbitrator"] > option {
+    color: $dark;
+}
+
+select[name="question-category"] > option {
+    color: $dark;
+}
+
 select[name="question-category"].selected,
 select[name="arbitrator"].selected {    
     color: $dark;
