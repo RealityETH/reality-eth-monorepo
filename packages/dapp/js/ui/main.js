@@ -13,6 +13,9 @@ var web3realitio; // We run our own node to handle watch events that can't relia
 const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
+// For now we have a json file hard-coding the TOS of known arbitrators.
+// See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
+const arb_tos = require('./arbitrator_tos.json');
 
 const arbitrator_list = require('@realitio/realitio-contracts/config/arbitrators.json');
 const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
@@ -334,12 +337,24 @@ $(document).on('change', 'input.arbitrator-other', function() {
 });
 
 $(document).on('change', 'select.arbitrator', function() {
-    console.log($(this).val());
+    console.log('arbitrator: ' + $(this).val());
     if ($(this).val() == 'other') {
         $(this).closest('form').find('input.arbitrator-other').show();
     } else {
         populateArbitratorOptionLabel($(this).find('option.arbitrator-other-select'), new BigNumber(0));
         $(this).closest('form').find('input.arbitrator-other').hide();
+    }
+    var tos_url;
+    var op = $(this).find('option:selected');
+    var tos_url = op.attr('data-tos-url');
+    console.log('tos_url', tos_url, 'op', op);
+    var tos_section = $(this).closest('.select-container').find('div.arbitrator-tos');
+    if (tos_url) {
+        tos_section.find('.arbitrator-tos-link').attr('href', tos_url);
+        tos_section.show(); 
+    } else {
+        tos_section.find('.arbitrator-tos-link').attr('href', '');
+        tos_section.hide(); 
     }
 });
 
@@ -3514,7 +3529,7 @@ function parseHash() {
     return args;
 }
 
-function populateArbitratorOptionLabel(op, fee, txt) {
+function populateArbitratorOptionLabel(op, fee, txt, tos) {
     if (txt) {
         op.attr('data-text-main', txt);
     } else {
@@ -3525,6 +3540,9 @@ function populateArbitratorOptionLabel(op, fee, txt) {
     }
     op.text(txt);
     op.attr('data-question-fee', '0x' + fee.toString(16));
+    if (tos) {
+        op.attr('data-tos-url', tos);
+    }
 }
 
 function populateArbitratorSelect(network_arbs) {
@@ -3564,7 +3582,11 @@ function populateArbitratorSelect(network_arbs) {
                         myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
                             var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                             arb_item.val(na_addr);
-                            populateArbitratorOptionLabel(arb_item, fee, na_title);
+                            var tos;
+                            if (arb_tos[na_addr]) {
+                                tos = arb_tos[na_addr];
+                            }
+                            populateArbitratorOptionLabel(arb_item, fee, na_title, tos);
                             if (is_first) {
                                 arb_item.attr('selected', true);
                                 is_first = false;
