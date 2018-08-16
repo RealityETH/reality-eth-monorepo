@@ -582,6 +582,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     var question_type = win.find('.question-type');
     var answer_options = win.find('.answer-option');
     var opening_ts_val = win.find('.opening-ts').val();
+
     var category = win.find('div.select-container--question-category select');
     var outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
@@ -593,10 +594,15 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         var qtype = question_type.val();
         var template_id = rc_template.defaultTemplateIDForType(qtype);
         var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
+        var opening_ts = 0;
+        if (opening_ts_val != '') {
+            opening_ts = new Date(opening_ts_val);
+            opening_ts = parseInt(opening_ts / 1000);
+        }
 
         var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
-        var opening_ts = new Date(opening_ts_val);
-        opening_ts = opening_ts / 1000;
+        console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+        console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
 
         validateArbitratorForContract(arbitrator).then(function(is_ok) {
             if (!is_ok) {
@@ -627,7 +633,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                                 'user': account,
                                 'arbitrator': arbitrator,
                                 'timeout': new BigNumber(timeout_val),
-                                'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                                'content_hash': rc_question.contentHash(template_id, opening_ts, qtext),
                                 'template_id': new BigNumber(template_id),
                                 'question': qtext,
                                 'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
