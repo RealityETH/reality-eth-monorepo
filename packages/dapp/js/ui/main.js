@@ -397,9 +397,12 @@ let bounceEffect = function() {
 $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    $('#your-question-answer-window').css('z-index', ++zindex);
-    $('#your-question-answer-window').addClass('is-open');
-    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height() + 'px');
+    var yourwin = $('#your-question-answer-window');
+    yourwin.css('z-index', ++zindex);
+    yourwin.addClass('is-open');
+    var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
+    yourwin.css('height', winheight + 'px');
+    Ps.update(yourwin.find('.rcbrowser-inner').get(0));
     $('.tooltip').removeClass('is-visible');
     $('body').removeClass('pushing');
     markViewedToDate();
