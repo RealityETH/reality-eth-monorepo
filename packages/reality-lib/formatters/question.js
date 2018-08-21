@@ -250,3 +250,17 @@ exports.getAnswerString = function(question_json, answer) {
 
     return label;
 }
+
+exports.commitmentID = function(question_id, answer_hash, bond) {
+    return "0x" + ethereumjs_abi.soliditySHA3(
+        ["uint256", "uint256", "uint256"],
+        [ new BN(question_id.replace(/^0x/, ''), 16), new BN(answer_hash.replace(/^0x/, ''), 16), new BN(bond.toString(16), 16)]
+    ).toString('hex');
+}
+
+exports.answerHash = function(answer_plaintext, nonce) {
+    return "0x" + ethereumjs_abi.soliditySHA3(
+        ["uint256", "uint256"],
+        [ new BN(answer_plaintext.replace(/^0x/, ''), 16), new BN(nonce.replace(/^0x/, ''), 16)]
+    ).toString('hex');
+}
