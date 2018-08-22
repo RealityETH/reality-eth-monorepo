@@ -26,6 +26,8 @@ const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
+const USE_COMMIT_REVEAL = true;
+
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
 var failed_arbitrators = {};
@@ -159,6 +161,20 @@ import Ps from 'perfect-scrollbar';
 
 function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+function nonceFromSeed(paramstr) {
+
+    var seed = window.localStorage.getItem('commitment-seed');
+    if (seed == null) {
+        var crypto = require('crypto');
+        seed = crypto.randomBytes(32).toString('hex');
+        console.log('made seed', seed);
+        window.localStorage.setItem('commitment-seed', seed);
+    }
+
+    return web3.sha3(paramstr + seed);
+
 }
 
 var zindex = 10;
@@ -729,6 +745,17 @@ function isArbitrationPending(question) {
 }
 
 function isAnswered(question) {
+    var history_hash = new BigNumber(question[Qi_history_hash]);
+    return (history_hash.gt(0));
+}
+
+function isCommitExpired(question, posted_ts) {
+    var commit_secs = question[Qi_timeout].toNumber() / 8;
+    console.log('commit secs are ', commit_secs);
+    return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
+}
+
+function isFinalizable(question) {
     var finalization_ts = question[Qi_finalization_ts].toNumber();
     return ((finalization_ts > 1) || (finalization_ts == 1 && new BigNumber(question[Qi_history_hash]).gt(0)));
 }
@@ -1048,7 +1075,7 @@ function mergePossibleClaimable(posses, pending) {
 function scheduleFinalizationDisplayUpdate(question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
-    if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
+    if (!isFinalized(question) && isFinalizable(question) && !isArbitrationPending(question)) {
         var question_id = question[Qi_question_id];
         var is_done = false;
         if (question_event_times[question_id]) {
@@ -1114,6 +1141,74 @@ function scheduleFinalizationDisplayUpdate(question) {
     }
 
 }
+
+function isAnythingUnrevealed(question) {
+    console.log('isAnythingUnrevealed pretending everything is revealed');
+    return false;
+}
+
+function _ensureAnswerRevealsFetched(question_id, freshness, start_block, question) {
+    var called_block = current_block_number;
+    var earliest_block = 0;
+    var bond_indexes = {};
+    for (var i=0; i<question['history'].length; i++) {
+        if (question['history'][i].args['is_commitment']) {
+            if (!question['history'][i].args['revealed_block']) {
+                var bond = question['history'][i].args['bond'].toString(16);
+                console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond);
+                bond_indexes[bond] = i;
+                if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
+                    earliest_block = question['history'][i].blockNumber;
+                }
+            }
+        }
+    }
+    console.log('earliest_block', earliest_block);
+    if (earliest_block > 0) {
+        return new Promise((resolve, reject)=>{
+            var reveal_logs = rc.LogAnswerReveal({question_id:question_id}, {fromBlock: earliest_block, toBlock:'latest'});
+            reveal_logs.get(function(error, answer_arr) {
+                if (error) {
+                    console.log('error in get reveal_logs');
+                    reject(error);
+                } else {
+                    console.log('got reveals');
+                    for(var j=0; j<answer_arr.length; j++) {
+                        var bond = answer_arr[j].args['bond'].toString(16);
+                        var idx = bond_indexes[bond];
+                        console.log('update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
+                        question['history'][idx].args['revealed_block'] = answer_arr[j].blockNumber;
+                        question['history'][idx].args['answer'] = answer_arr[j].args['answer'];
+                        delete bond_indexes[bond];
+                    }
+                    //console.log('TODO: check bond_indexes and mark anything expired as expired?');
+                    /*
+                    for(var b in bond_indexes) {
+                        if (bond_indexes.hasOwnProperty(b)) {
+                        }
+                    }
+                    */
+                    //var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
+                    question_detail_list[question_id] = question; // TODO : use filledQuestionDetail here? 
+                    console.log('populated question, result is', question);
+                    console.log('bond_indexes once done', bond_indexes);
+                    resolve(question);
+                }
+            });
+        });
+    } else {
+        return new Promise((resolve, reject)=>{
+            //var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
+
+            //resolve(question_detail_list[question_id]);
+            resolve(question);
+        });
+    }
+}
+
+
+
+
 
 function filledQuestionDetail(question_id, data_type, freshness, data) {
 
@@ -1962,8 +2057,15 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             }
             ans_data.find('.answer-bond-value').text(web3js.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
+            // Normally we don't show the last item, but if it's an unrevealed commitment then we do
+            var max_idx = idx;
+            var last_ans = question_detail['history'][idx];
+            if (last_ans.is_commitment && !last_ans.revealed_block) {
+                max_idx = idx + 1;
+            }
+
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
-            for (var i = 0; i < idx; i++) {
+            for (var i = 0; i < max_idx; i++) {
                 var ans = question_detail['history'][i].args;
                 var hist_id = 'question-window-history-item-' + web3js.sha3(question_id + ans.answer + ans.bond.toString());
                 if (rcqa.find('#' + hist_id).length) {
@@ -1979,7 +2081,20 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2, 10), 16));
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
-                hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
+
+                if (ans.is_commitment && !ans.revealed_block) {
+                    if (isCommitExpired(question_detail, ans['ts'].toNumber())) {
+                        hist_item.find('.current-answer').text('Reveal timed out');
+                        hist_item.addClass('expired-commit');
+                    } else {
+                        hist_item.find('.current-answer').text('Wait for reveal...');
+                        hist_item.addClass('unrevealed-commit');
+                    }
+                } else {
+                    hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
+                    hist_item.removeClass('unrevealed-commit');
+                }
+
                 hist_item.find('.answer-bond-value').text(web3js.fromWei(ans.bond.toNumber(), 'ether'));
                 hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
@@ -2383,7 +2498,11 @@ function renderNotifications(qdata, entry) {
             var is_positive = true;
             var notification_id = web3js.sha3('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toString());
             if (entry.args.user == account) {
-                ntext = 'You answered a question - "' + question_json['title'] + '"';
+                if (entry.args.is_commitment) {
+                    ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
+                } else {
+                    ntext = 'You answered a question - "' + question_json['title'] + '"';
+                }
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
                 var answered_question = rc.LogNewQuestion({
@@ -2408,6 +2527,37 @@ function renderNotifications(qdata, entry) {
                 });
             }
             break;
+
+        case 'LogAnswerReveal':
+            var is_positive = true;
+            var notification_id = web3.sha3('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toString());
+            if (entry.args.user == account) {
+                ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+            } else {
+                var answered_question = rc.LogNewQuestion({question_id: question_id}, {
+                    fromBlock: START_BLOCK,
+                    toBlock: 'latest'
+                });
+                answered_question.get(function (error, result2) {
+                    if (error === null && typeof result2 !== 'undefined') {
+                        if (result2[0].args.user == account) {
+                            ntext = 'Someone revealed their answer to your question';
+                        } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
+                            is_positive = false;
+                            ntext = 'Your answer was overwritten';
+                        }
+                        if (typeof ntext !== 'undefined') {
+                            ntext += ' - "' + question_json['title'] + '"';
+                            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
+                        }
+                    }
+                });
+            }
+            break;
+
+
+
 
         case 'LogFundAnswerBounty':
             var notification_id = web3js.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.user);
@@ -2876,11 +3026,34 @@ $(document).on('click', '.post-answer-button', function(e) {
             // Remove the edited note to allow the field to be automatically populated again
             bond_field.removeClass('edited'); 
 
-            return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
-                from: account,
-                gas: 200000,
-                value: bond
-            });
+            if (USE_COMMIT_REVEAL) {
+                var answer_plaintext = new_answer;
+                var nonce = nonceFromSeed(web3.sha3(question_id + answer_plaintext + bond));
+                var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
+
+                console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
+
+                console.log('made nonce', nonce);
+                console.log('made answer plaintext', answer_plaintext);
+                console.log('made bond', bond);
+                console.log('made answer_hash', answer_hash);
+
+                var commitment_id = rc_question.commitmentID(question_id, answer_hash, bond);
+                console.log('resulting  commitment_id', commitment_id);
+
+                // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
+                // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
+                return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
+                    console.log('got submitAnswerCommitment txid', txid);
+                    return rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000});
+                });
+            } else {
+                return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
+                    from: account,
+                    gas: 200000,
+                    value: bond
+                });
+            }
         }).then(function(txid) {
             clearForm(parent_div, question_json);
             var fake_history = {
@@ -3235,6 +3408,14 @@ function handleEvent(error, result) {
         switch (evt) {
 
             case ('LogNewAnswer'):
+                if (result.args.is_commitment) {
+                    console.log('got commitment', result);
+                    result.args.commitment_id = result.args.answer;
+                    // TODO: Get deadline
+                    result.args.answer = null;
+                    // break;
+                }
+
                 //console.log('got LogNewAnswer, block ', result.blockNumber);
                 ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
                     updateQuestionWindowIfOpen(question);
@@ -3441,6 +3622,19 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         toBlock: end_block
     })
     answer_posted.get(function(error, result) {
+        var answers = result;
+        if (error === null && typeof result !== 'undefined') {
+            for (var i = 0; i < answers.length; i++) {
+                //console.log('handlePotentialUserAction', i, answers[i]);
+                handlePotentialUserAction(answers[i]);
+            }
+        } else {
+            console.log(error);
+        }
+    });
+
+    var answer_revealed = rc.LogAnswerReveal(filter, {fromBlock: start_block, toBlock: end_block})
+    answer_revealed.get(function (error, result) {
         var answers = result;
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < answers.length; i++) {

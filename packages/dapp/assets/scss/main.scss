@@ -1451,6 +1451,9 @@ div.rcbrowser--qa-detail.unconfirmed-transaction .unconfirmed-question-header {
     display: block !important;
 }
 
+div.rcbrowser--qa-detail .answered-history-container .answered-history-item.expired-commit .current-answer { font-style:italic }
+div.rcbrowser--qa-detail .answered-history-container .answered-history-item.unrevealed-commit .current-answer { font-style:italic }
+
 .unconfirmed-answer-container.is-open .unconfirmed-answer-inner {
     opacity: 1;
 }
