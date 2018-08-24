@@ -1454,6 +1454,18 @@ div.rcbrowser--qa-detail.unconfirmed-transaction .unconfirmed-question-header {
 div.rcbrowser--qa-detail .answered-history-container .answered-history-item.expired-commit .current-answer { font-style:italic }
 div.rcbrowser--qa-detail .answered-history-container .answered-history-item.unrevealed-commit .current-answer { font-style:italic }
 
+div.rcbrowser--qa-detail .unrevealed-top-answer-container .top-entry-unrevealed-warning {
+    color: #ff0000;
+}
+
+div.rcbrowser--qa-detail .unrevealed-top-answer-container{
+    display:none;
+}
+div.rcbrowser--qa-detail.top-entry-unrevealed .unrevealed-top-answer-container {
+    display:block;
+    margin: 15px 2px;
+}
+
 .unconfirmed-answer-container.is-open .unconfirmed-answer-inner {
     opacity: 1;
 }
@@ -2416,6 +2428,7 @@ div.rcbrowser--qa-detail.question-state-open .arbitration-button{display:block !
 
 .answer-deadline-container{display:none}
 div.rcbrowser--qa-detail.question-state-open.has-answer .answer-deadline-container{display:block !important; float: left;}
+div.rcbrowser--qa-detail.question-state-open.has-answer.all-entries-unrevealed .answer-deadline-container{display:none !important;}
 
 .apply-for-arbitration-container { display: none}
 div.rcbrowser--qa-detail.question-state-open .apply-for-arbitration-container { display: block !important}

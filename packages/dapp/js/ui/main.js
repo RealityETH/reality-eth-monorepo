@@ -744,9 +744,79 @@ function isArbitrationPending(question) {
     return (question[Qi_is_pending_arbitration]);
 }
 
-function isAnswered(question) {
+// Return true if a user has started a commit or given an answer
+// NB Returns true even if the answer has timed out
+function isAnswerActivityStarted(question) {
     var history_hash = new BigNumber(question[Qi_history_hash]);
     return (history_hash.gt(0));
+}
+
+function historyItemForCurrentAnswer(question) {
+    if (question['history'].length) {
+        for (var i=question['history'].length-1; i >= 0; i--) {
+            var item = question['history'][i].args;
+            if (!item.is_commitment || item.revealed_block) {
+                return item;
+            }
+        }
+    }
+    return null;
+}
+
+function isTopAnswerRevealable(question) {
+    console.log('in isTopAnswerRevealable');
+    if (!isAnswerActivityStarted(question)) {
+        return false;
+    }
+    console.log('history', question['history']);
+    if (question['history'].length == 0) {
+        return false;
+    }
+    var idx = question['history'].length - 1;
+    var item = question['history'][idx].args;
+    if (!item.is_commitment) {
+        return false;
+    }
+    if (item.revealed_block) {
+        return false;
+    }
+    if (isCommitExpired(question, item['ts'].toNumber())) {
+        return false;
+    }
+    return true;
+}
+
+function hasUnrevealedCommits(question) {
+    if (!isAnswerActivityStarted(question)) {
+        return false;
+    }
+    if (question['history'].length) {
+        for (var i=0; i<question['history'].length; i++) {
+            var item = question['history'][i].args;
+            if (item.is_commitment && !item.revealed_block) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Return true if there's a completed answer...
+// ...or if there's an uncommitted answer that hasn't timed out yet
+// TODO: Check for timeouts
+function isAnsweredOrAnswerActive(question) {
+    var history_hash = new BigNumber(question[Qi_history_hash]);
+    return (history_hash.gt(0));
+}
+
+function isAnswered(question) {
+    var finalization_ts = question[Qi_finalization_ts].toNumber();
+    return (finalization_ts > 1);
+}
+
+function commitExpiryTS(question, posted_ts) {
+    var commit_secs = question[Qi_timeout].div(8);
+    return posted_ts.plus(commit_secs);
 }
 
 function isCommitExpired(question, posted_ts) {
@@ -755,10 +825,6 @@ function isCommitExpired(question, posted_ts) {
     return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
 }
 
-function isFinalizable(question) {
-    var finalization_ts = question[Qi_finalization_ts].toNumber();
-    return ((finalization_ts > 1) || (finalization_ts == 1 && new BigNumber(question[Qi_history_hash]).gt(0)));
-}
 
 function isFinalized(question) {
     if (isArbitrationPending(question)) {
@@ -1075,7 +1141,7 @@ function mergePossibleClaimable(posses, pending) {
 function scheduleFinalizationDisplayUpdate(question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
-    if (!isFinalized(question) && isFinalizable(question) && !isArbitrationPending(question)) {
+    if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
         var question_id = question[Qi_question_id];
         var is_done = false;
         if (question_event_times[question_id]) {
@@ -1176,7 +1242,7 @@ function _ensureAnswerRevealsFetched(question_id, freshness, start_block, questi
                     for(var j=0; j<answer_arr.length; j++) {
                         var bond = answer_arr[j].args['bond'].toString(16);
                         var idx = bond_indexes[bond];
-                        console.log('update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
+                        console.log(question_id, bond.toString(16), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
                         question['history'][idx].args['revealed_block'] = answer_arr[j].blockNumber;
                         question['history'][idx].args['answer'] = answer_arr[j].args['answer'];
                         delete bond_indexes[bond];
@@ -1477,7 +1543,9 @@ function _ensureAnswersFetched(question_id, freshness, start_block, injected_dat
                         }
                     }
                     var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
-                    resolve(question);
+                    _ensureAnswerRevealsFetched(question_id, freshness, start_block, question).then(function(q){
+                        resolve(q);
+                    });
                 }
             });
         }
@@ -1650,6 +1718,7 @@ function populateSectionEntry(entry, question_data) {
     });
     entry.find('.question-bounty').text(bounty);
 
+    // For these purposes we just ignore any outstanding commits
     if (isAnswered(question_data)) {
         entry.find('.questions__item__answer').text(rc_question.getAnswerString(question_json, best_answer));
         entry.addClass('has-answer');
@@ -1657,7 +1726,6 @@ function populateSectionEntry(entry, question_data) {
         entry.find('.questions__item__answer').text('');
         entry.removeClass('has-answer');
     }
-
 
     var is_answered = isAnswered(question_data);
 
@@ -2024,20 +2092,22 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
 
     var bond = new BigNumber(web3js.toWei(0.0001, 'ether'));
-    if (isAnswered(question_detail)) {
+    if (isAnswerActivityStarted(question_detail)) {
 
         var current_container = rcqa.find('.current-answer-container');
 
-        // label for show the current answer.
-        var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
-        current_container.find('.current-answer-body').find('.current-answer').text(label);
+        if (isAnswered(question_detail)) {
+            // label for show the current answer.
+            var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
+            current_container.find('.current-answer-body').find('.current-answer').text(label);
+        }
 
         bond = question_detail[Qi_bond];
 
         // Default to something non-zero but very low
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
-            var latest_answer = question_detail['history'][idx].args;
+            var latest_answer = historyItemForCurrentAnswer(question_detail);
 
             current_container.attr('id', 'answer-' + latest_answer.answer);
 
@@ -2057,15 +2127,25 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             }
             ans_data.find('.answer-bond-value').text(web3js.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
-            // Normally we don't show the last item, but if it's an unrevealed commitment then we do
-            var max_idx = idx;
-            var last_ans = question_detail['history'][idx];
+            var last_ans = question_detail['history'][idx].args;
+            var unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
             if (last_ans.is_commitment && !last_ans.revealed_block) {
-                max_idx = idx + 1;
+                unrevealed_answer_container.find('.answer-bond-value').text(web3js.fromWei(last_ans.bond.toNumber(), 'ether'));
+                unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', rc_question.convertTsToString(commitExpiryTS(question_detail, last_ans['ts'])));
+                timeAgo.render(unrevealed_answer_container.find('.reveal-time.timeago'));
+                unrevealed_answer_container.find('.answerer').text(last_ans['user']);
+                var avjazzicon = jazzicon(32, parseInt(last_ans['user'].toLowerCase().slice(2, 10), 16));
+                unrevealed_answer_container.find('.answer-data__avatar').html(avjazzicon);
+            } else {
+                unrevealed_answer_container.find('.answer-bond-value').text('');
+                unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', 0);
+                unrevealed_answer_container.find('.answer-data__avatar').html('');
+                unrevealed_answer_container.find('.answerer').text('');
+                timeago.cancel(unrevealed_answer_container.find('.reveal-time.timeago')); 
             }
 
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
-            for (var i = 0; i < max_idx; i++) {
+            for (var i = 0; i < idx; i++) {
                 var ans = question_detail['history'][i].args;
                 var hist_id = 'question-window-history-item-' + web3js.sha3(question_id + ans.answer + ans.bond.toString());
                 if (rcqa.find('#' + hist_id).length) {
@@ -2082,7 +2162,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
 
+console.log(ans);
                 if (ans.is_commitment && !ans.revealed_block) {
+                    console.log('got a commitmet');
                     if (isCommitExpired(question_detail, ans['ts'].toNumber())) {
                         hist_item.find('.current-answer').text('Reveal timed out');
                         hist_item.addClass('expired-commit');
@@ -2814,6 +2896,23 @@ function makeSelectAnswerInput(question_json, opening_ts) {
 function updateQuestionState(question, question_window) {
     if (isAnswered(question)) {
         question_window.addClass('has-answer');
+    } else {
+        question_window.removeClass('has-answer');
+    }
+
+    if (hasUnrevealedCommits(question)) {
+        question_window.addClass('has-unrevealed-commits');
+    } else {
+        question_window.removeClass('has-unrevealed-commits');
+    }
+
+    if (isTopAnswerRevealable(question)) {
+        question_window.addClass('top-entry-unrevealed');
+    } else {
+        question_window.removeClass('top-entry-unrevealed');
+    }
+
+    if (isAnsweredOrAnswerActive(question)) {
         if (isFinalized(question)) {
             timeago.cancel(question_window.find('.resolved-at-value.timeago'));
             question_window.find('.resolved-at-value').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
@@ -2823,12 +2922,11 @@ function updateQuestionState(question, question_window) {
             question_window.find('.answer-deadline').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
-    } else {
-        question_window.removeClass('has-answer');
-    }
+    } 
 
     // The first item is the current answer
-    if (question['history'].length > 1) {
+    // However we don't show it as current answer if it's unrevealed
+    if (question['history'].length > 1 || (question['history'].length  == 1 && hasUnrevealedCommits(question) ) ) {
         question_window.addClass('has-history');
     } else {
         question_window.removeClass('has-history');
