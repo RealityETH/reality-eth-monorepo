@@ -26,7 +26,7 @@ const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
-const USE_COMMIT_REVEAL = true;
+const USE_COMMIT_REVEAL = false;
 
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
@@ -764,11 +764,11 @@ function historyItemForCurrentAnswer(question) {
 }
 
 function isTopAnswerRevealable(question) {
-    console.log('in isTopAnswerRevealable');
+    // console.log('in isTopAnswerRevealable');
     if (!isAnswerActivityStarted(question)) {
         return false;
     }
-    console.log('history', question['history']);
+    // console.log('history', question['history']);
     if (question['history'].length == 0) {
         return false;
     }
@@ -821,7 +821,7 @@ function commitExpiryTS(question, posted_ts) {
 
 function isCommitExpired(question, posted_ts) {
     var commit_secs = question[Qi_timeout].toNumber() / 8;
-    console.log('commit secs are ', commit_secs);
+    // console.log('commit secs are ', commit_secs);
     return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
 }
 
@@ -1229,7 +1229,7 @@ function _ensureAnswerRevealsFetched(question_id, freshness, start_block, questi
             }
         }
     }
-    console.log('earliest_block', earliest_block);
+    // console.log('earliest_block', earliest_block);
     if (earliest_block > 0) {
         return new Promise((resolve, reject)=>{
             var reveal_logs = rc.LogAnswerReveal({question_id:question_id}, {fromBlock: earliest_block, toBlock:'latest'});
@@ -1242,31 +1242,20 @@ function _ensureAnswerRevealsFetched(question_id, freshness, start_block, questi
                     for(var j=0; j<answer_arr.length; j++) {
                         var bond = answer_arr[j].args['bond'].toString(16);
                         var idx = bond_indexes[bond];
-                        console.log(question_id, bond.toString(16), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
+                        // console.log(question_id, bond.toString(16), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
                         question['history'][idx].args['revealed_block'] = answer_arr[j].blockNumber;
                         question['history'][idx].args['answer'] = answer_arr[j].args['answer'];
                         delete bond_indexes[bond];
                     }
-                    //console.log('TODO: check bond_indexes and mark anything expired as expired?');
-                    /*
-                    for(var b in bond_indexes) {
-                        if (bond_indexes.hasOwnProperty(b)) {
-                        }
-                    }
-                    */
-                    //var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
                     question_detail_list[question_id] = question; // TODO : use filledQuestionDetail here? 
-                    console.log('populated question, result is', question);
-                    console.log('bond_indexes once done', bond_indexes);
+                    //console.log('populated question, result is', question);
+                    //console.log('bond_indexes once done', bond_indexes);
                     resolve(question);
                 }
             });
         });
     } else {
         return new Promise((resolve, reject)=>{
-            //var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
-
-            //resolve(question_detail_list[question_id]);
             resolve(question);
         });
     }
@@ -2104,28 +2093,28 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
         bond = question_detail[Qi_bond];
 
-        // Default to something non-zero but very low
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
-            var latest_answer = historyItemForCurrentAnswer(question_detail);
+            var current_answer = historyItemForCurrentAnswer(question_detail);
+            if (current_answer) {
+                current_container.attr('id', 'answer-' + current_answer.answer);
 
-            current_container.attr('id', 'answer-' + latest_answer.answer);
+                timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+                current_container.find('.current-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(current_answer.ts));
+                timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
-            timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
-            current_container.find('.current-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(latest_answer.ts));
-            timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
-
-            // answerer data
-            var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-            ans_data.find('.answerer').text(latest_answer.user);
-            var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2, 10), 16));
-            ans_data.find('.answer-data__avatar').html(avjazzicon);
-            if (latest_answer.user == account) {
-                ans_data.addClass('current-account');
-            } else {
-                ans_data.removeClass('current-account');
+                // answerer data
+                var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+                ans_data.find('.answerer').text(current_answer.user);
+                var avjazzicon = jazzicon(32, parseInt(current_answer.user.toLowerCase().slice(2, 10), 16));
+                ans_data.find('.answer-data__avatar').html(avjazzicon);
+                if (current_answer.user == account) {
+                    ans_data.addClass('current-account');
+                } else {
+                    ans_data.removeClass('current-account');
+                }
+                ans_data.find('.answer-bond-value').text(web3js.fromWei(current_answer.bond.toNumber(), 'ether'));
             }
-            ans_data.find('.answer-bond-value').text(web3js.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
             var last_ans = question_detail['history'][idx].args;
             var unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
