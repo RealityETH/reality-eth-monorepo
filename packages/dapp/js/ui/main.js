@@ -26,8 +26,6 @@ const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
-const USE_COMMIT_REVEAL = false;
-
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
 var failed_arbitrators = {};
@@ -42,6 +40,7 @@ var template_content = TEMPLATE_CONFIG.content;
 var last_polled_block;
 
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
+var USE_COMMIT_REVEAL = false;
 
 const BLOCK_EXPLORERS = {
     1: 'https://etherscan.io',
@@ -845,7 +844,6 @@ $(document).on('click', '.answer-claim-button', function() {
         var claiming;
         if (is_single_question) {
 
-
             claiming = possibleClaimableItems(question_detail);
             claim_args = claiming;
 
@@ -1245,6 +1243,9 @@ function _ensureAnswerRevealsFetched(question_id, freshness, start_block, questi
                         // console.log(question_id, bond.toString(16), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
                         question['history'][idx].args['revealed_block'] = answer_arr[j].blockNumber;
                         question['history'][idx].args['answer'] = answer_arr[j].args['answer'];
+
+                        var commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond);
+                        question['history'][idx].args['commitment_id'] = commitment_id;
                         delete bond_indexes[bond];
                     }
                     question_detail_list[question_id] = question; // TODO : use filledQuestionDetail here? 
@@ -2344,7 +2345,13 @@ function possibleClaimableItems(question_detail) {
         // TODO: Check the history hash, and if we haven't reached it, keep going until we do
         // ...since someone may have claimed partway through
 
-        var answer = question_detail['history'][i].args.answer;
+        var answer;
+        // Only set on reveal, otherwise the answer field still holds the commitment ID for commitments
+        if (question_detail['history'][i].args.commitment_id) { 
+            answer = question_detail['history'][i].args.commitment_id;
+        } else {
+            answer = question_detail['history'][i].args.answer;
+        }
         var answerer = question_detail['history'][i].args.user;
         var bond = question_detail['history'][i].args.bond;
         var history_hash = question_detail['history'][i].args.history_hash;
@@ -4000,6 +4007,7 @@ window.addEventListener('load', function() {
                 }
 
                 var args = parseHash();
+                USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
                 if (args['category']) {
                     category = args['category'];
                     $('body').addClass('category-' + category);
