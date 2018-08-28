@@ -746,6 +746,9 @@ function isArbitrationPending(question) {
 // Return true if a user has started a commit or given an answer
 // NB Returns true even if the answer has timed out
 function isAnswerActivityStarted(question) {
+    if (isAnswered(question)) {
+        return true;
+    }
     var history_hash = new BigNumber(question[Qi_history_hash]);
     return (history_hash.gt(0));
 }
