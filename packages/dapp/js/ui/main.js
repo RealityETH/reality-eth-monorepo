@@ -38,6 +38,7 @@ var template_blocks = {};
 var template_content = TEMPLATE_CONFIG.content;
 
 var last_polled_block;
+var is_initial_load_done = false;
 
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 var USE_COMMIT_REVEAL = false;
@@ -3608,6 +3609,30 @@ function pageInit(account) {
 
 };
 
+
+function reflectDisplayEntryChanges() {
+    if (!is_initial_load_done) {
+        return;
+    }
+    //console.log('checking display_entries', display_entries);
+    //look at current sections and update blockchain scanning message to
+    //no questions found if no items exist
+    var detypes = Object.keys(display_entries);
+    //console.log('no questions cateogry, display_entries for detype', display_entries, detype);
+    for (var i=0; i<detypes.length; i++) {
+        var detype = detypes[i];
+        if (display_entries[detype].ids.length == 0) {
+            //console.log('showing no-questions-category', detype);
+            //console.log('ids is', display_entries[detype].ids);
+            //console.log('ids length is', display_entries[detype].ids.length);
+            $('#' + detype).find('.no-questions-category').css('display', 'block');
+            $('#' + detype).find('.scanning-questions-category').css('display', 'none');
+        } else {
+            //console.log('did not show no-questions-category', detype);
+        }
+    } 
+}
+
 function fetchAndDisplayQuestions(end_block, fetch_i) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
@@ -3626,16 +3651,8 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
 
         console.log('History read complete back to block', START_BLOCK);
 
-        //look at current sections and update blockchain scanning message to
-        //no questions found if no items exist
-        var detypes = Object.keys(display_entries);
-        for (var i=0; i<detypes.length; i++) {
-            var detype = detypes[i];
-            if (display_entries[detype].ids.length == 0) {
-                $('#' + detype).find('.no-questions-category').css('display', 'block');
-                $('#' + detype).find('.scanning-questions-category').css('display', 'none');
-            }
-        }
+        is_initial_load_done = true;
+        window.setTimeout( reflectDisplayEntryChanges, 1000 );
 
         scheduleFallbackTimer();
         runPollingLoop(rc);
