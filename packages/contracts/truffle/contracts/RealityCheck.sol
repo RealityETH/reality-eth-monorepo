@@ -664,4 +664,77 @@ contract RealityCheck is BalanceHolder {
         }
         withdraw();
     }
+
+    /// @notice Returns the questions's content hash, identifying the question content
+    /// @param question_id The ID of the question 
+    function getContentHash(bytes32 question_id) 
+    public view returns(bytes32) {
+        return questions[question_id].content_hash;
+    }
+
+    /// @notice Returns the arbitrator address for the question
+    /// @param question_id The ID of the question 
+    function getArbitrator(bytes32 question_id) 
+    public view returns(address) {
+        return questions[question_id].arbitrator;
+    }
+
+    /// @notice Returns the timestamp when the question can first be answered
+    /// @param question_id The ID of the question 
+    function getOpeningTS(bytes32 question_id) 
+    public view returns(uint32) {
+        return questions[question_id].opening_ts;
+    }
+
+    /// @notice Returns the timeout in seconds used after each answer
+    /// @param question_id The ID of the question 
+    function getTimeout(bytes32 question_id) 
+    public view returns(uint32) {
+        return questions[question_id].timeout;
+    }
+
+    /// @notice Returns the timestamp at which the question will be/was finalized
+    /// @param question_id The ID of the question 
+    function getFinalizeTS(bytes32 question_id) 
+    public view returns(uint32) {
+        return questions[question_id].finalize_ts;
+    }
+
+    /// @notice Returns whether the question is pending arbitration
+    /// @param question_id The ID of the question 
+    function isPendingArbitration(bytes32 question_id) 
+    public view returns(bool) {
+        return questions[question_id].is_pending_arbitration;
+    }
+
+    /// @notice Returns the current total unclaimed bounty
+    /// @dev Set back to zero once the bounty has been claimed
+    /// @param question_id The ID of the question 
+    function getBounty(bytes32 question_id) 
+    public view returns(uint256) {
+        return questions[question_id].bounty;
+    }
+
+    /// @notice Returns the current best answer
+    /// @param question_id The ID of the question 
+    function getBestAnswer(bytes32 question_id) 
+    public view returns(bytes32) {
+        return questions[question_id].best_answer;
+    }
+
+    /// @notice Returns the history hash of the question 
+    /// @param question_id The ID of the question 
+    /// @dev Updated on each answer, then rewound as each is claimed
+    function getHistoryHash(bytes32 question_id) 
+    public view returns(bytes32) {
+        return questions[question_id].history_hash;
+    }
+
+    /// @notice Returns the highest bond posted so far for a question
+    /// @param question_id The ID of the question 
+    function getBond(bytes32 question_id) 
+    public view returns(uint256) {
+        return questions[question_id].bond;
+    }
+
 }
