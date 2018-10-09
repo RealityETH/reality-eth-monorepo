@@ -444,7 +444,7 @@ contract RealityCheck is BalanceHolder {
         return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(now)) );
     }
 
-    /// @notice Return the final answer to the specified question, or revert if there isn't one
+    /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
     function getFinalAnswer(bytes32 question_id) 
@@ -452,6 +452,16 @@ contract RealityCheck is BalanceHolder {
     external view returns (bytes32) {
         return questions[question_id].best_answer;
     }
+
+    /// @notice Return the final answer to the specified question, or revert if there isn't one
+    /// @param question_id The ID of the question
+    /// @return The answer formatted as a bytes32
+    function resultFor(bytes32 question_id) 
+        stateFinalized(question_id)
+    external view returns (bytes32) {
+        return questions[question_id].best_answer;
+    }
+
 
     /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
     /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
