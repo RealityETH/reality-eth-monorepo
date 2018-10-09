@@ -189,7 +189,7 @@ contract RealityCheck is BalanceHolder {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    function RealityCheck() 
+    constructor() 
     public {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}');

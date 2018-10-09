@@ -38,7 +38,7 @@ contract Arbitrator is Owned {
     );
 
     /// @notice Constructor. Sets the deploying address as owner.
-    function Arbitrator() 
+    constructor() 
     public {
         owner = msg.sender;
     }
