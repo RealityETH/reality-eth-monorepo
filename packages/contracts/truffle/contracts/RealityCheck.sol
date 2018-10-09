@@ -218,7 +218,7 @@ contract RealityCheck is BalanceHolder {
     public returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
-        template_hashes[id] = keccak256(content);
+        template_hashes[id] = keccak256(abi.encodePacked(content));
         emit LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id.add(1);
         return id;
@@ -258,8 +258,8 @@ contract RealityCheck is BalanceHolder {
 
         require(templates[template_id] > 0); // Template must exist
 
-        bytes32 content_hash = keccak256(template_id, opening_ts, question);
-        bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
+        bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
+        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
@@ -338,7 +338,7 @@ contract RealityCheck is BalanceHolder {
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
 
-        bytes32 commitment_id = keccak256(question_id, answer_hash, msg.value);
+        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, msg.value));
         address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
 
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
@@ -364,8 +364,8 @@ contract RealityCheck is BalanceHolder {
         stateOpenOrPendingArbitration(question_id)
     external {
 
-        bytes32 answer_hash = keccak256(answer, nonce);
-        bytes32 commitment_id = keccak256(question_id, answer_hash, bond);
+        bytes32 answer_hash = keccak256(abi.encodePacked(answer, nonce));
+        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
 
         require(!commitments[commitment_id].is_revealed);
         require(commitments[commitment_id].reveal_ts > uint32(now)); // Reveal deadline must not have passed
@@ -384,7 +384,7 @@ contract RealityCheck is BalanceHolder {
     function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
     internal 
     {
-        bytes32 new_history_hash = keccak256(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment);
+        bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
 
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_history_hash;
@@ -560,10 +560,10 @@ contract RealityCheck is BalanceHolder {
         bytes32 history_hash, bytes32 answer, uint256 bond, address addr
     )
     internal pure returns (bool) {
-        if (last_history_hash == keccak256(history_hash, answer, bond, addr, true) ) {
+        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, true)) ) {
             return true;
         }
-        if (last_history_hash == keccak256(history_hash, answer, bond, addr, false) ) {
+        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
             return false;
         } 
         revert();
