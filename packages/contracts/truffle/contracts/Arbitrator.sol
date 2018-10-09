@@ -134,7 +134,7 @@ contract Arbitrator is Owned {
     function withdraw(address addr) 
         onlyOwner 
     public {
-        addr.transfer(this.balance); 
+        addr.transfer(address(this).balance); 
     }
 
     function() 
