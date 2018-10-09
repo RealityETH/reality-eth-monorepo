@@ -122,7 +122,7 @@ contract RealityCheck is BalanceHolder {
     mapping(uint256 => uint256) public templates;
     mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
-    mapping(bytes32 => Claim) question_claims;
+    mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
 
