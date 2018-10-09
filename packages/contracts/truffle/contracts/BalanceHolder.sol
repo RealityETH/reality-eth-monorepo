@@ -14,7 +14,7 @@ contract BalanceHolder {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
         msg.sender.transfer(bal);
-        LogWithdraw(msg.sender, bal);
+        emit LogWithdraw(msg.sender, bal);
     }
 
 }

@@ -49,7 +49,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         realitycheck = RealityCheck(addr);
-        LogSetRealityCheck(addr);
+        emit LogSetRealityCheck(addr);
     }
 
     /// @notice Set the default fee
@@ -58,7 +58,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         dispute_fee = fee;
-        LogSetDisputeFee(fee);
+        emit LogSetDisputeFee(fee);
     }
 
     /// @notice Set a custom fee for this particular question
@@ -68,7 +68,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         custom_dispute_fees[question_id] = fee;
-        LogSetCustomDisputeFee(question_id, fee);
+        emit LogSetCustomDisputeFee(question_id, fee);
     }
 
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
@@ -89,7 +89,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         realitycheck.setQuestionFee(fee);
-        LogSetQuestionFee(fee);
+        emit LogSetQuestionFee(fee);
     }
 
     /// @notice Submit the arbitrator's answer to a question.
@@ -119,11 +119,11 @@ contract Arbitrator is Owned {
 
         if (paid >= arbitration_fee) {
             realitycheck.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
-            LogRequestArbitration(question_id, msg.value, msg.sender, 0);
+            emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
             require(!realitycheck.isFinalized(question_id));
-            LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
+            emit LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
             return false;
         }
 

@@ -205,7 +205,7 @@ contract RealityCheck is BalanceHolder {
         stateAny() 
     external {
         arbitrator_question_fees[msg.sender] = fee;
-        LogSetQuestionFee(msg.sender, fee);
+        emit LogSetQuestionFee(msg.sender, fee);
     }
 
     /// @notice Create a reusable template, which should be a JSON document.
@@ -219,7 +219,7 @@ contract RealityCheck is BalanceHolder {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
         template_hashes[id] = keccak256(content);
-        LogNewTemplate(id, msg.sender, content);
+        emit LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id.add(1);
         return id;
     }
@@ -262,7 +262,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 question_id = keccak256(content_hash, arbitrator, timeout, msg.sender, nonce);
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
-        LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
+        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
 
         return question_id;
     }
@@ -305,7 +305,7 @@ contract RealityCheck is BalanceHolder {
         stateOpen(question_id)
     external payable {
         questions[question_id].bounty = questions[question_id].bounty.add(msg.value);
-        LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
+        emit LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
     /// @notice Submit an answer for a question.
@@ -377,7 +377,7 @@ contract RealityCheck is BalanceHolder {
             _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
         }
 
-        LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
+        emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
 
     }
 
@@ -389,7 +389,7 @@ contract RealityCheck is BalanceHolder {
         questions[question_id].bond = bond;
         questions[question_id].history_hash = new_history_hash;
 
-        LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
+        emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
     }
 
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
@@ -409,7 +409,7 @@ contract RealityCheck is BalanceHolder {
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
         questions[question_id].is_pending_arbitration = true;
-        LogNotifyOfArbitrationRequest(question_id, requester);
+        emit LogNotifyOfArbitrationRequest(question_id, requester);
     }
 
     /// @notice Submit the answer for a question, for use by the arbitrator.
@@ -427,7 +427,7 @@ contract RealityCheck is BalanceHolder {
     external {
 
         require(answerer != NULL_ADDRESS);
-        LogFinalize(question_id, answer);
+        emit LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
         _addAnswerToHistory(question_id, answer, answerer, 0, false);
@@ -552,7 +552,7 @@ contract RealityCheck is BalanceHolder {
     function _payPayee(bytes32 question_id, address payee, uint256 value) 
     internal {
         balanceOf[payee] = balanceOf[payee].add(value);
-        LogClaim(question_id, payee, value);
+        emit LogClaim(question_id, payee, value);
     }
 
     function _verifyHistoryInputOrRevert(
