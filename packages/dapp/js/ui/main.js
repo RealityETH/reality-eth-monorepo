@@ -935,7 +935,8 @@ function validate(win) {
             options_num += 1;
         }
     }
-    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
+
+    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val().indexOf('select') != -1 && options_num < 2) {
         $('.edit-option-inner').addClass('is-error');
         valid = false;
     } else {
