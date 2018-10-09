@@ -138,7 +138,7 @@ contract Arbitrator is Owned {
     }
 
     function() 
-    public payable {
+    external payable {
     }
 
     /// @notice Withdraw any accumulated question fees from the specified address into this contract
