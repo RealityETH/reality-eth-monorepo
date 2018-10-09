@@ -439,7 +439,7 @@ contract RealityCheck is BalanceHolder {
     /// @param question_id The ID of the question
     /// @return Return true if finalized
     function isFinalized(bytes32 question_id) 
-    constant public returns (bool) {
+    view public returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
         return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(now)) );
     }
@@ -449,7 +449,7 @@ contract RealityCheck is BalanceHolder {
     /// @return The answer formatted as a bytes32
     function getFinalAnswer(bytes32 question_id) 
         stateFinalized(question_id)
-    external constant returns (bytes32) {
+    external view returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
@@ -466,7 +466,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond
     ) 
         stateFinalized(question_id)
-    external constant returns (bytes32) {
+    external view returns (bytes32) {
         require(content_hash == questions[question_id].content_hash);
         require(arbitrator == questions[question_id].arbitrator);
         require(min_timeout <= questions[question_id].timeout);
