@@ -1,4 +1,4 @@
-pragma solidity 0.4.18;
+pragma solidity 0.4.25;
 
 import './SafeMath.sol';
 import './SafeMath32.sol';
