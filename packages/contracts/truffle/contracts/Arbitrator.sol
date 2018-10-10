@@ -43,6 +43,12 @@ contract Arbitrator is Owned {
         owner = msg.sender;
     }
 
+    /// @notice Returns the Realitio contract address - deprecated in favour of realitio()
+    function realitycheck() 
+    external view returns(Realitio) {
+        return realitio;
+    }
+
     /// @notice Set the Reality Check contract address
     /// @param addr The address of the Reality Check contract
     function setRealitio(address addr) 
