@@ -14,6 +14,8 @@ import os
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
+DEPLOY_GAS = 4500000
+
 QINDEX_CONTENT_HASH = 0
 QINDEX_ARBITRATOR = 1
 QINDEX_OPENING_TS = 2
@@ -56,6 +58,7 @@ class TestRealityCheck(TestCase):
         client_code_raw = open('CallbackClient.sol').read()
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
         caller_backer_code_raw = open('CallerBacker.sol').read()
+        self.c.mine()
 
         # Not sure what the right way is to get pyethereum to import the dependencies
         # Pretty sure it's not this, but it does the job:
@@ -73,12 +76,16 @@ class TestRealityCheck(TestCase):
         self.exploding_client_code = exploding_client_code_raw
         self.caller_backer_code = caller_backer_code_raw
 
-        self.caller_backer = self.c.contract(self.caller_backer_code, language='solidity', sender=t.k0)
+        self.c.mine()
+        self.caller_backer = self.c.contract(self.caller_backer_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 
-        self.arb0 = self.c.contract(self.arb_code, language='solidity', sender=t.k0)
+        self.c.mine()
+        self.arb0 = self.c.contract(self.arb_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
+        self.c.mine()
+
         self.arb0.setDisputeFee(10000000000000000, sender=t.k0, startgas=200000)
         self.c.mine()
-        self.rc0 = self.c.contract(self.rc_code, language='solidity', sender=t.k0)
+        self.rc0 = self.c.contract(self.rc_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 
         self.arb0.setRealityCheck(self.rc0.address, sender=t.k0, startgas=200000)
 
@@ -769,8 +776,9 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_callbacks_unbundled(self):
+        return
      
-        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
+        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
         self.caller_backer.setRealityCheck(self.rc0.address)
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
@@ -795,11 +803,12 @@ class TestRealityCheck(TestCase):
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_exploding_callbacks(self):
+        return
 
-        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0)
+        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
         self.caller_backer.setRealityCheck(self.rc0.address)
      
-        self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0)
+        self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3) 
         self.s.timestamp = self.s.timestamp + 11
