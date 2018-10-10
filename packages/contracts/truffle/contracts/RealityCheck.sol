@@ -386,7 +386,10 @@ contract RealityCheck is BalanceHolder {
     {
         bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
 
-        questions[question_id].bond = bond;
+        // Update the current bond level, if there's a bond (ie anything except arbitration)
+        if (bond > 0) {
+            questions[question_id].bond = bond;
+        }
         questions[question_id].history_hash = new_history_hash;
 
         emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);

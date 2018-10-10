@@ -286,6 +286,9 @@ class TestRealityCheck(TestCase):
         self.assertTrue(self.rc0.isFinalized(self.question_id))
         self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
 
+        self.assertNotEqual(self.rc0.questions(self.question_id)[QINDEX_BOND], 0)
+
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_unanswered(self):
 
