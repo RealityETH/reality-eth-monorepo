@@ -296,22 +296,8 @@ class TestRealityCheck(TestCase):
             self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
 
         self.assertFalse(self.rc0.isFinalized(self.question_id))
-
-        self.assertTrue(self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000 ), "Requested arbitration")
-        question = self.rc0.questions(self.question_id)
-        self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the arbitration flag to True")
-
-        # You cannot submit the answer unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
-            self.rc0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
-
-        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.arb0.address, startgas=200000) 
-
-        question = self.rc0.questions(self.question_id)
-        self.assertFalse(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is done, we set the arbitration flag to False")
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        self.assertEqual(from_answer_for_contract(self.rc0.getFinalAnswer(self.question_id)), 123456, "Arbitrator submitting final answer calls finalize")
+            self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000 )
 
     def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False, skip_sender = False):
         if st is None:
@@ -403,17 +389,8 @@ class TestRealityCheck(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_none(self):
-        self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
-        st_hash = self.rc0.questions(self.question_id)[QINDEX_HISTORY_HASH]
-
-        self.assertEqual(encode_hex(st_hash), "0"*64)
-
-        st_addr = keys.privtoaddr(t.k4)
-        st_bond = 0
-        st_answer = to_answer_for_contract(1001)
-        self.arb0.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(1001), keys.privtoaddr(t.k4), startgas=200000) 
-        hh = self.rc0.claimWinnings(self.question_id, [st_hash], [st_addr], [st_bond], [st_answer], startgas=400000)
-        self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k4)), 1000)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.requestArbitration(self.question_id, 0, value=self.arb0.getDisputeFee(), startgas=200000)
         return
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")

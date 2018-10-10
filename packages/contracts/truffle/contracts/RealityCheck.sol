@@ -411,6 +411,7 @@ contract RealityCheck is BalanceHolder {
         stateOpen(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
+        require(questions[question_id].bond > 0, "Question must already have an answer when arbitration is requested");
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
     }
