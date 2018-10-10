@@ -112,7 +112,7 @@ contract Arbitrator is Owned {
     external payable returns (bool) {
 
         uint256 arbitration_fee = getDisputeFee(question_id);
-        require(arbitration_fee > 0);
+        require(arbitration_fee > 0, "The arbitrator must have set a non-zero fee for the question");
 
         arbitration_bounties[question_id] += msg.value;
         uint256 paid = arbitration_bounties[question_id];
@@ -122,7 +122,7 @@ contract Arbitrator is Owned {
             emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
-            require(!realitycheck.isFinalized(question_id));
+            require(!realitycheck.isFinalized(question_id), "The question must not have been finalized");
             emit LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
             return false;
         }

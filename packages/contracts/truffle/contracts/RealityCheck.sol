@@ -127,7 +127,7 @@ contract RealityCheck is BalanceHolder {
     mapping(address => uint256) public arbitrator_question_fees; 
 
     modifier onlyArbitrator(bytes32 question_id) {
-        require(msg.sender == questions[question_id].arbitrator);
+        require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
         _;
     }
 
@@ -136,53 +136,53 @@ contract RealityCheck is BalanceHolder {
     }
 
     modifier stateNotCreated(bytes32 question_id) {
-        require(questions[question_id].timeout == 0);
+        require(questions[question_id].timeout == 0, "question must not exist");
         _;
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].timeout > 0); // Check existence
-        require(!questions[question_id].is_pending_arbitration);
+        require(questions[question_id].timeout > 0, "question must exist");
+        require(!questions[question_id].is_pending_arbitration, "question must not be pending arbitration");
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now));
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now), "finalization deadline must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(now)); 
+        require(opening_ts == 0 || opening_ts <= uint32(now), "opening date must have passed"); 
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].is_pending_arbitration);
+        require(questions[question_id].is_pending_arbitration, "question must be pending arbitration");
         _;
     }
 
     modifier stateOpenOrPendingArbitration(bytes32 question_id) {
-        require(questions[question_id].timeout > 0); // Check existence
+        require(questions[question_id].timeout > 0, "question must exist");
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now));
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now), "finalization dealine must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(now)); 
+        require(opening_ts == 0 || opening_ts <= uint32(now), "opening date must have passed"); 
         _;
     }
 
     modifier stateFinalized(bytes32 question_id) {
-        require(isFinalized(question_id));
+        require(isFinalized(question_id), "question must be finalized");
         _;
     }
 
     modifier bondMustBeZero() {
-        require(msg.value == 0);
+        require(msg.value == 0, "bond must be zero");
         _;
     }
 
     modifier bondMustDouble(bytes32 question_id) {
-        require(msg.value > 0); 
-        require(msg.value >= (questions[question_id].bond.mul(2)));
+        require(msg.value > 0, "bond must be positive"); 
+        require(msg.value >= (questions[question_id].bond.mul(2)), "bond must be double at least previous bond");
         _;
     }
 
     modifier previousBondMustNotBeatMaxPrevious(bytes32 question_id, uint256 max_previous) {
         if (max_previous > 0) {
-            require(questions[question_id].bond <= max_previous);
+            require(questions[question_id].bond <= max_previous, "bond must exceed max_previous");
         }
         _;
     }
@@ -256,7 +256,7 @@ contract RealityCheck is BalanceHolder {
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
-        require(templates[template_id] > 0); // Template must exist
+        require(templates[template_id] > 0, "template must exist");
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
@@ -272,9 +272,9 @@ contract RealityCheck is BalanceHolder {
     internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
-        require(timeout > 0); 
-        require(timeout < 365 days); 
-        require(arbitrator != NULL_ADDRESS);
+        require(timeout > 0, "timeout must be positive"); 
+        require(timeout < 365 days, "timeout must be less than 365 days"); 
+        require(arbitrator != NULL_ADDRESS, "arbitrator must be set");
 
         uint256 bounty = msg.value;
 
@@ -285,7 +285,7 @@ contract RealityCheck is BalanceHolder {
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee); 
+            require(bounty >= question_fee, "ETH provided must cover question fee"); 
             bounty = bounty.sub(question_fee);
             balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
         }
@@ -341,7 +341,7 @@ contract RealityCheck is BalanceHolder {
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, msg.value));
         address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
 
-        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT);
+        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
         commitments[commitment_id].reveal_ts = uint32(now).add(commitment_timeout);
@@ -367,8 +367,8 @@ contract RealityCheck is BalanceHolder {
         bytes32 answer_hash = keccak256(abi.encodePacked(answer, nonce));
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
 
-        require(!commitments[commitment_id].is_revealed);
-        require(commitments[commitment_id].reveal_ts > uint32(now)); // Reveal deadline must not have passed
+        require(!commitments[commitment_id].is_revealed, "commitment must not have been revealed yet");
+        require(commitments[commitment_id].reveal_ts > uint32(now), "reveal deadline must not have passed");
 
         commitments[commitment_id].revealed_answer = answer;
         commitments[commitment_id].is_revealed = true;
@@ -426,7 +426,7 @@ contract RealityCheck is BalanceHolder {
         bondMustBeZero
     external {
 
-        require(answerer != NULL_ADDRESS);
+        require(answerer != NULL_ADDRESS, "answerer must be provided");
         emit LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
@@ -477,10 +477,10 @@ contract RealityCheck is BalanceHolder {
     ) 
         stateFinalized(question_id)
     external view returns (bytes32) {
-        require(content_hash == questions[question_id].content_hash);
-        require(arbitrator == questions[question_id].arbitrator);
-        require(min_timeout <= questions[question_id].timeout);
-        require(min_bond <= questions[question_id].bond);
+        require(content_hash == questions[question_id].content_hash, "content hash must match");
+        require(arbitrator == questions[question_id].arbitrator, "arbitrator must match");
+        require(min_timeout <= questions[question_id].timeout, "timeout must be long enough");
+        require(min_bond <= questions[question_id].bond, "bond must be high enough");
         return questions[question_id].best_answer;
     }
 
@@ -505,7 +505,7 @@ contract RealityCheck is BalanceHolder {
         stateFinalized(question_id)
     public {
 
-        require(history_hashes.length > 0);
+        require(history_hashes.length > 0, "at least one history hash entry must be provided");
 
         // These are only set if we split our claim over multiple transactions.
         address payee = question_claims[question_id].payee; 
@@ -576,7 +576,7 @@ contract RealityCheck is BalanceHolder {
         if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
             return false;
         } 
-        revert();
+        revert("History input provided did not match the expected hash");
     }
 
     function _processHistoryItem(
