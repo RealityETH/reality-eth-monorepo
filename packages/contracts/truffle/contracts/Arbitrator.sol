@@ -1,11 +1,11 @@
 pragma solidity ^0.4.25;
 
 import './Owned.sol';
-import './RealityCheck.sol';
+import './Realitio.sol';
 
 contract Arbitrator is Owned {
 
-    RealityCheck public realitycheck;
+    Realitio public realitio;
 
     mapping(bytes32 => uint256) public arbitration_bounties;
 
@@ -19,8 +19,8 @@ contract Arbitrator is Owned {
         uint256 remaining
     );
 
-    event LogSetRealityCheck(
-        address realitycheck
+    event LogSetRealitio(
+        address realitio
     );
 
     event LogSetQuestionFee(
@@ -45,11 +45,11 @@ contract Arbitrator is Owned {
 
     /// @notice Set the Reality Check contract address
     /// @param addr The address of the Reality Check contract
-    function setRealityCheck(address addr) 
+    function setRealitio(address addr) 
         onlyOwner 
     public {
-        realitycheck = RealityCheck(addr);
-        emit LogSetRealityCheck(addr);
+        realitio = Realitio(addr);
+        emit LogSetRealitio(addr);
     }
 
     /// @notice Set the default fee
@@ -88,7 +88,7 @@ contract Arbitrator is Owned {
     function setQuestionFee(uint256 fee) 
         onlyOwner 
     public {
-        realitycheck.setQuestionFee(fee);
+        realitio.setQuestionFee(fee);
         emit LogSetQuestionFee(fee);
     }
 
@@ -100,7 +100,7 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         delete arbitration_bounties[question_id];
-        realitycheck.submitAnswerByArbitrator(question_id, answer, answerer);
+        realitio.submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
     /// @notice Request arbitration, freezing the question until we send submitAnswerByArbitrator
@@ -118,11 +118,11 @@ contract Arbitrator is Owned {
         uint256 paid = arbitration_bounties[question_id];
 
         if (paid >= arbitration_fee) {
-            realitycheck.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
+            realitio.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
             emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
             return true;
         } else {
-            require(!realitycheck.isFinalized(question_id), "The question must not have been finalized");
+            require(!realitio.isFinalized(question_id), "The question must not have been finalized");
             emit LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
             return false;
         }
@@ -146,7 +146,7 @@ contract Arbitrator is Owned {
     function callWithdraw() 
         onlyOwner 
     public {
-        realitycheck.withdraw(); 
+        realitio.withdraw(); 
     }
 
 }

@@ -46,13 +46,13 @@ def to_answer_for_contract(txt):
 def from_answer_for_contract(txt):
     return int(encode_hex(txt), 16)
 
-class TestRealityCheck(TestCase):
+class TestRealitio(TestCase):
 
     def setUp(self):
 
         self.c = t.Chain()
 
-        realitycheck_code = open('RealityCheck.sol').read()
+        realitio_code = open('Realitio.sol').read()
         arb_code_raw = open('Arbitrator.sol').read()
         owned_code_raw = open('Owned.sol').read()
         client_code_raw = open('CallbackClient.sol').read()
@@ -65,13 +65,13 @@ class TestRealityCheck(TestCase):
         safemath = open('RealitioSafeMath256.sol').read()
         safemath32 = open('RealitioSafeMath32.sol').read()
         balance_holder = open('BalanceHolder.sol').read()
-        realitycheck_code = realitycheck_code.replace("import './RealitioSafeMath256.sol';", safemath);
-        realitycheck_code = realitycheck_code.replace("import './RealitioSafeMath32.sol';", safemath32);
-        realitycheck_code = realitycheck_code.replace("import './BalanceHolder.sol';", balance_holder);
+        realitio_code = realitio_code.replace("import './RealitioSafeMath256.sol';", safemath);
+        realitio_code = realitio_code.replace("import './RealitioSafeMath32.sol';", safemath32);
+        realitio_code = realitio_code.replace("import './BalanceHolder.sol';", balance_holder);
 
-        self.rc_code = realitycheck_code
+        self.rc_code = realitio_code
         self.arb_code = arb_code_raw.replace("import './Owned.sol';", owned_code_raw);
-        self.arb_code = self.arb_code.replace("import './RealityCheck.sol';", realitycheck_code);
+        self.arb_code = self.arb_code.replace("import './Realitio.sol';", realitio_code);
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
         self.caller_backer_code = caller_backer_code_raw
@@ -87,7 +87,7 @@ class TestRealityCheck(TestCase):
         self.c.mine()
         self.rc0 = self.c.contract(self.rc_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 
-        self.arb0.setRealityCheck(self.rc0.address, sender=t.k0, startgas=200000)
+        self.arb0.setRealitio(self.rc0.address, sender=t.k0, startgas=200000)
 
         self.c.mine()
         self.s = self.c.head_state
@@ -275,7 +275,7 @@ class TestRealityCheck(TestCase):
         #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
 
-        # You cannot notify realitycheck of arbitration unless you are the arbitrator
+        # You cannot notify realitio of arbitration unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
             self.rc0.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), startgas=200000) 
 
@@ -759,7 +759,7 @@ class TestRealityCheck(TestCase):
         return
      
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
-        self.caller_backer.setRealityCheck(self.rc0.address)
+        self.caller_backer.setRealitio(self.rc0.address)
 
         self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
         self.s.timestamp = self.s.timestamp + 11
@@ -786,7 +786,7 @@ class TestRealityCheck(TestCase):
         return
 
         self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
-        self.caller_backer.setRealityCheck(self.rc0.address)
+        self.caller_backer.setRealitio(self.rc0.address)
      
         self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 

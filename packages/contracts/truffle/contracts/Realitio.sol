@@ -5,7 +5,7 @@ import './RealitioSafeMath32.sol';
 import './BalanceHolder.sol';
 
 
-contract RealityCheck is BalanceHolder {
+contract Realitio is BalanceHolder {
 
     using RealitioSafeMath256 for uint256;
     using RealitioSafeMath32 for uint32;
