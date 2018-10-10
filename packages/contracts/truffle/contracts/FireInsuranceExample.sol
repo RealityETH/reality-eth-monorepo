@@ -1,6 +1,6 @@
 pragma solidity ^0.4.6;
 
-import './SafeMath.sol';
+import './RealitioSafeMath256.sol';
 import './BalanceHolder.sol';
 
 contract RealityCheckAPI {
@@ -9,7 +9,7 @@ contract RealityCheckAPI {
 
 contract FireInsuranceExample is BalanceHolder {
 
-    using SafeMath for uint256;
+    using RealitioSafeMath256 for uint256;
 
     struct Policy {
         address realitycheck;

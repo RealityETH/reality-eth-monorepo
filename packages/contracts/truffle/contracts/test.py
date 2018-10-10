@@ -62,11 +62,11 @@ class TestRealityCheck(TestCase):
 
         # Not sure what the right way is to get pyethereum to import the dependencies
         # Pretty sure it's not this, but it does the job:
-        safemath = open('SafeMath.sol').read()
-        safemath32 = open('SafeMath32.sol').read()
+        safemath = open('RealitioSafeMath256.sol').read()
+        safemath32 = open('RealitioSafeMath32.sol').read()
         balance_holder = open('BalanceHolder.sol').read()
-        realitycheck_code = realitycheck_code.replace("import './SafeMath.sol';", safemath);
-        realitycheck_code = realitycheck_code.replace("import './SafeMath32.sol';", safemath32);
+        realitycheck_code = realitycheck_code.replace("import './RealitioSafeMath256.sol';", safemath);
+        realitycheck_code = realitycheck_code.replace("import './RealitioSafeMath32.sol';", safemath32);
         realitycheck_code = realitycheck_code.replace("import './BalanceHolder.sol';", balance_holder);
 
         self.rc_code = realitycheck_code

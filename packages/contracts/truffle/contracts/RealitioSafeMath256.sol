@@ -1,10 +1,10 @@
 pragma solidity 0.4.25;
 
 /**
- * @title SafeMath
+ * @title ReailtioSafeMath256
  * @dev Math operations with safety checks that throw on error
  */
-library SafeMath {
+library RealitioSafeMath256 {
   function mul(uint256 a, uint256 b) internal pure returns (uint256) {
     if (a == 0) {
       return 0;

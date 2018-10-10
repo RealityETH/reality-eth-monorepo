@@ -1,14 +1,14 @@
 pragma solidity 0.4.25;
 
-import './SafeMath.sol';
-import './SafeMath32.sol';
+import './RealitioSafeMath256.sol';
+import './RealitioSafeMath32.sol';
 import './BalanceHolder.sol';
 
 
 contract RealityCheck is BalanceHolder {
 
-    using SafeMath for uint256;
-    using SafeMath32 for uint32;
+    using RealitioSafeMath256 for uint256;
+    using RealitioSafeMath32 for uint32;
 
     address constant NULL_ADDRESS = address(0);
 
