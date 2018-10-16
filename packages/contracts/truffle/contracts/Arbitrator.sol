@@ -12,6 +12,8 @@ contract Arbitrator is Owned {
     uint256 dispute_fee;
     mapping(bytes32 => uint256) custom_dispute_fees;
 
+    string public metadata;
+
     event LogRequestArbitration(
         bytes32 indexed question_id,
         uint256 fee_paid,
@@ -153,6 +155,13 @@ contract Arbitrator is Owned {
         onlyOwner 
     public {
         realitio.withdraw(); 
+    }
+
+    /// @notice Set a metadata string, expected to be JSON, containing things like arbitrator TOS address
+    function setMetaData(string _metadata) 
+        onlyOwner
+    public {
+        metadata = _metadata;
     }
 
 }

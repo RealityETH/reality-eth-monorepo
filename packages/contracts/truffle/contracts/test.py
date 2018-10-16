@@ -975,6 +975,15 @@ class TestRealitio(TestCase):
         bounty = self.rc0.questions(question_id)[QINDEX_BOUNTY]
         self.assertEqual(bounty, 122, "The arbitrator isn't charged their fee, so their whole payment goes to the bounty")
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_metadata(self):
+        self.assertEqual(self.arb0.metadata(), "")
+
+        with self.assertRaises(TransactionFailed):
+            self.arb0.setMetaData("oink", sender=t.k1, startgas=200000)
+
+        self.arb0.setMetaData("oink", sender=t.k0, startgas=200000)
+        self.assertEqual(self.arb0.metadata(), "oink")
 
 if __name__ == '__main__':
     main()
