@@ -191,11 +191,11 @@ contract Realitio is BalanceHolder {
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() 
     public {
-        createTemplate('{"title": "%s", "type": "bool", "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s"}');
-        createTemplate('{"title": "%s", "type": "datetime", "category": "%s"}');
+        createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
+        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
+        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
+        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
+        createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
     }
 
     /// @notice Function for arbitrator to set an optional per-question fee. 
