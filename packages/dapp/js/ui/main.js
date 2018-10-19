@@ -3074,6 +3074,8 @@ $(document).on('click', '.post-answer-button', function(e) {
                         err = true;
                     } else if (!ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)))) {
                         err = true;
+                    } else if (ans.lt(new BigNumber(0))) {
+                        err = true;
                     }
                     if (err) {
                         parent_div.find('div.input-container.input-container--answer').addClass('is-error');
@@ -3355,7 +3357,8 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         if (current_idx >= 0) {
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
-        if (value.lt(current_bond.times(2))) {
+
+        if (ctrl.val() === '' || value.lt(current_bond.times(2))) {
             ctrl.parent().parent().addClass('is-error');
             let min_bond = current_bond.times(2);
             min_bond = web3js.fromWei(min_bond, 'ether');
@@ -3365,14 +3368,20 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         }
         show_bond_payments(ctrl);
     }
-    if (value === '') {
-        $(this).parent().parent().addClass('is-error');
-    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)) {
+
+    if ($(this).val() === '') {
         if ($(this).hasClass('rcbrowser-input--number--bond')) {
             bond_validation($(this));
         } else {
             $(this).parent().parent().addClass('is-error');
         }
+    }
+
+    if (($(this).closest('#post-a-question-window').length || $(this).hasClass('rcbrowser-input--number--answer'))
+        && value.lt(0)) {
+        $(this).parent().parent().addClass('is-error');
+    } else if ($(this).hasClass('rcbrowser-input--add-reward') && value.lte(0)) {
+        $(this).parent().parent().addClass('is-error');
     } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
         bond_validation($(this));
     } else {
