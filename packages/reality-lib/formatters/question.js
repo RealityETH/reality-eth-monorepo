@@ -169,7 +169,7 @@ exports.populatedJSONForTemplate = function(template, question) {
     return this.parseQuestionJSON(interpolated);
 }
 
-exports.encodeText = function(qtype, txt, outcomes, category) {
+exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     var qtext = JSON.stringify(txt).replace(/^"|"$/g, '');
     var delim = this.delimiter();
     //console.log('using template_id', template_id);
@@ -179,7 +179,10 @@ exports.encodeText = function(qtype, txt, outcomes, category) {
         qtext = qtext + delim + outcome_str;
         //console.log('made qtext', qtext);
     }
-    qtext = qtext + delim + category;
+    if (typeof lang == 'undefined' || lang == '') {
+        lang = 'en_US';
+    }
+    qtext = qtext + delim + category + delim + lang;
     return qtext;
 }
 
@@ -192,6 +195,13 @@ exports.getInvalidValue = function(question_json) {
         // equivalent to -1 in twos complement
         return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
     }
+}
+
+exports.getLanguage = function(question_json) {
+    if ( typeof question_json['lang'] == 'undefined' || question_json['lang'] == '') {
+        return 'en_US';
+    }
+    return question_json['lang'];
 }
 
 exports.getAnswerString = function(question_json, answer) {

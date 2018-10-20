@@ -52,6 +52,26 @@ describe('Answer formatting', function() {
   });
 });
 
+describe('Language tagging', function() {
+  it('Returns en_US as en_US', function() {
+    var qtext = rc_question.encodeText('bool', 'oink', null, 'my-category', 'en_US');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), qtext);
+    expect(rc_question.getLanguage(q)).to.equal('en_US');
+  });
+  it('Returns ja_JP as ja_JP', function() {
+    var qtext = rc_question.encodeText('bool', 'oink', null, 'my-category', 'ja_JP');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), qtext);
+    expect(rc_question.getLanguage(q)).to.equal('ja_JP');
+  });
+  it('Returns undefined as en_US', function() {
+    var qtext = rc_question.encodeText('bool', 'oink', null, 'my-category', '');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), qtext);
+    expect(rc_question.getLanguage(q)).to.equal('en_US');
+  });
+
+
+});
+
 describe('Answer strings', function() {
   it('Handles bools as expected', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
