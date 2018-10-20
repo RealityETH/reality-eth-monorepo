@@ -1,10 +1,10 @@
 {
   "content": {
-    "0": "{\"title\": \"%s\", \"type\": \"bool\", \"category\": \"%s\"}",
-    "1": "{\"title\": \"%s\", \"type\": \"uint\", \"decimals\": 18, \"category\": \"%s\"}",
-    "2": "{\"title\": \"%s\", \"type\": \"single-select\", \"outcomes\": [%s], \"category\": \"%s\"}",
-    "3": "{\"title\": \"%s\", \"type\": \"multiple-select\", \"outcomes\": [%s], \"category\": \"%s\"}",
-    "4": "{\"title\": \"%s\", \"type\": \"datetime\", \"category\": \"%s\"}"
+    "0": "{\"title\": \"%s\", \"type\": \"bool\", \"category\": \"%s\", \"lang\": \"%s\"}",
+    "1": "{\"title\": \"%s\", \"type\": \"uint\", \"decimals\": 18, \"category\": \"%s\", \"lang\": \"%s\"}",
+    "2": "{\"title\": \"%s\", \"type\": \"single-select\", \"outcomes\": [%s], \"category\": \"%s\", \"lang\": \"%s\"}",
+    "3": "{\"title\": \"%s\", \"type\": \"multiple-select\", \"outcomes\": [%s], \"category\": \"%s\", \"lang\": \"%s\"}",
+    "4": "{\"title\": \"%s\", \"type\": \"datetime\", \"category\": \"%s\", \"lang\": \"%s\"}"
   },
   "base_ids": {
     "bool": 0,

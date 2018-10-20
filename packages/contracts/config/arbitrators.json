@@ -1,14 +1,12 @@
 {
   "1": {
-    "0xdcdede29a2b83176ab478dc0f9b08b7c01ac5f58": "Realitio Team"
+    "0xdc0a2185031ecf89f091a39c63c2857a7d5c301a": "Realitio Team"
   },
   "3": {
     "0x0": "Realitio Team (dev)"
   },
   "4": {
-    "0x3b3b6cab7df3ae78e5dd042f99f1efe8679c8a00": "Realitio Team For Dev (201807)",
-    "0x67a87899d890aa31308d97d7f5b6885b9336932d": "Realitio Team For Dev (pre 201807)",
-    "0xeccb1d756cd1d6a452c1f70bd2709413b85173c1": "Realitio Team (rinkeby main)",
+    "0x02321745bE4a141E78db6C39834396f8df00e2a0": "Realitio Team (rinkeby main)"
   },
   "42": {
     "0x0": "Realitio Team (dev)"
@@ -17,6 +15,5 @@
     "0x0": "Realitio Team (dev)"
   },
   "123411710": {
-    "0x91fe095b919aca8e8abd125c9326e3aaf1e645c8": "Dev arbitrator (Ganache)"
   }
 }
