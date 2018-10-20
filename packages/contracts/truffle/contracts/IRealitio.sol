@@ -1,12 +1,8 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.25;
 
-contract Realitio {
+import './IBalanceHolder.sol';
 
-	// From BalanceHolder
-    mapping(address => uint256) public balanceOf;
-    function withdraw()
-    public {
-    }
+contract Realitio is BalanceHolder {
 
     struct Question {
         bytes32 content_hash;
@@ -21,7 +17,7 @@ contract Realitio {
         uint256 bond;
     }
 
-    // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond.
+    // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
     struct Commitment {
         uint32 reveal_ts;
         bool is_revealed;
@@ -36,13 +32,16 @@ contract Realitio {
         uint256 queued_funds;
     }
 
-
+    uint256 nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
     mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
+    mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
 
+    /// @notice Function for arbitrator to set an optional per-question fee. 
+    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
     function setQuestionFee(uint256 fee) 
     external {
@@ -70,6 +69,7 @@ contract Realitio {
         string content, 
         string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
     ) 
+        // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
     }
 
@@ -83,6 +83,7 @@ contract Realitio {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
+        // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
     }
 
@@ -155,15 +156,23 @@ contract Realitio {
     /// @param question_id The ID of the question
     /// @return Return true if finalized
     function isFinalized(bytes32 question_id) 
-    constant public returns (bool) {
+    view public returns (bool) {
+    }
+
+    /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
+    /// @param question_id The ID of the question
+    /// @return The answer formatted as a bytes32
+    function getFinalAnswer(bytes32 question_id) 
+    external view returns (bytes32) {
     }
 
     /// @notice Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
-    function getFinalAnswer(bytes32 question_id) 
-    external constant returns (bytes32) {
+    function resultFor(bytes32 question_id) 
+    external view returns (bytes32) {
     }
+
 
     /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
     /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
@@ -177,7 +186,7 @@ contract Realitio {
         bytes32 question_id, 
         bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond
     ) 
-    external constant returns (bytes32) {
+    external view returns (bytes32) {
     }
 
     /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
@@ -190,13 +199,13 @@ contract Realitio {
     /// Once we get to a null hash we'll know we're done and there are no more answers.
     /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
     /// @param question_id The ID of the question
-    /// @param hist_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
+    /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
     /// @param addrs Last-to-first, the address of each answerer or commitment sender
     /// @param bonds Last-to-first, the bond supplied with each answer or commitment
     /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
     function claimWinnings(
         bytes32 question_id, 
-        bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
     ) 
     public {
     }
@@ -211,11 +220,72 @@ contract Realitio {
     /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
     /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID 
     function claimMultipleAndWithdrawBalance(
-            bytes32[] question_ids, uint256[] lengths,
-            bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+        bytes32[] question_ids, uint256[] lengths, 
+        bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
     ) 
     public {
     }
 
+    /// @notice Returns the questions's content hash, identifying the question content
+    /// @param question_id The ID of the question 
+    function getContentHash(bytes32 question_id) 
+    public view returns(bytes32) {
+    }
+
+    /// @notice Returns the arbitrator address for the question
+    /// @param question_id The ID of the question 
+    function getArbitrator(bytes32 question_id) 
+    public view returns(address) {
+    }
+
+    /// @notice Returns the timestamp when the question can first be answered
+    /// @param question_id The ID of the question 
+    function getOpeningTS(bytes32 question_id) 
+    public view returns(uint32) {
+    }
+
+    /// @notice Returns the timeout in seconds used after each answer
+    /// @param question_id The ID of the question 
+    function getTimeout(bytes32 question_id) 
+    public view returns(uint32) {
+    }
+
+    /// @notice Returns the timestamp at which the question will be/was finalized
+    /// @param question_id The ID of the question 
+    function getFinalizeTS(bytes32 question_id) 
+    public view returns(uint32) {
+    }
+
+    /// @notice Returns whether the question is pending arbitration
+    /// @param question_id The ID of the question 
+    function isPendingArbitration(bytes32 question_id) 
+    public view returns(bool) {
+    }
+
+    /// @notice Returns the current total unclaimed bounty
+    /// @dev Set back to zero once the bounty has been claimed
+    /// @param question_id The ID of the question 
+    function getBounty(bytes32 question_id) 
+    public view returns(uint256) {
+    }
+
+    /// @notice Returns the current best answer
+    /// @param question_id The ID of the question 
+    function getBestAnswer(bytes32 question_id) 
+    public view returns(bytes32) {
+    }
+
+    /// @notice Returns the history hash of the question 
+    /// @param question_id The ID of the question 
+    /// @dev Updated on each answer, then rewound as each is claimed
+    function getHistoryHash(bytes32 question_id) 
+    public view returns(bytes32) {
+    }
+
+    /// @notice Returns the highest bond posted so far for a question
+    /// @param question_id The ID of the question 
+    function getBond(bytes32 question_id) 
+    public view returns(uint256) {
+    }
+
 }
-    
