@@ -7,6 +7,6 @@
     "max_nonce": 100,
     "min_gas_price_in_gwei": 1,
     "max_gas_price_in_gwei": 100,
-    "gas_limit": 100000
-
+    "gas_limit": 100000,
+    "multisig_wallet": "0x46AFDd73B55d73fE7637b3E39CeBD74c7629481d"
 }

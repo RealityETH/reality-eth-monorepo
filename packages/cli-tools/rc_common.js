@@ -1,6 +1,8 @@
 const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
+const wallet_json = require('./abi/MultiSigWallet.json');
+
 const config = require('./config.json');
 
 const BigNumber = require('bignumber.js');
@@ -79,12 +81,28 @@ exports.commonParams = function(argv) {
 }
 
 exports.serializedValueTX = function(params, addr, val) {
+
+    var gas_limit = 22000;
+    var data = null;
+
+    // If there's a multi-sig wallet configured, use the data and address as arguments
+    // ...then switch out the wallet for the address and data.
+    if (config.multisig_wallet) {
+        var wallet_contract = contract(wallet_json);
+        wallet = wallet_contract.at(config.multisig_wallet);
+        var wallet_req = wallet.submitTransaction.request(addr, 0, null);
+        data = wallet_req.params[0].data;
+        addr = config.multisig_wallet;
+        gas_limit = 100000;
+    }
+
     const key = this.loadKey();
 	const tra = {
 		gasPrice: web3_utils.toHex(params['gas_price_in_gwei'] * GWEI_TO_WEI),
-		gasLimit: web3_utils.toHex(22000),
+		gasLimit: web3_utils.toHex(gas_limit),
 		nonce: web3_utils.toHex(params['nonce']),
 		to: addr,
+		data: data,
 		value: web3_utils.toHex(val),
 		chainId: config.network_id
 	};
@@ -96,6 +114,20 @@ exports.serializedValueTX = function(params, addr, val) {
 }
 
 exports.serializedTX = function(params, cntr, data, gas_limit) {
+
+    var wallet = null;
+    var address = cntr.address;
+
+    // If there's a multi-sig wallet configured, use the data and address as arguments
+    // ...then switch out the wallet for the address and data.
+    if (config.multisig_wallet) {
+        var wallet_contract = contract(wallet_json);
+        wallet = wallet_contract.at(config.multisig_wallet);
+        var wallet_req = wallet.submitTransaction.request(address, 0, data);
+        data = wallet_req.params[0].data;
+        address = config.multisig_wallet;
+    }
+
     if (gas_limit == undefined) {
         gas_limit = config.gas_limit;
     }
@@ -105,7 +137,7 @@ exports.serializedTX = function(params, cntr, data, gas_limit) {
 		gasLimit: web3_utils.toHex(gas_limit),
 		data: data,
 		nonce: web3_utils.toHex(params['nonce']),
-		to: cntr.address,
+		to: address,
 		value: '0x00',
 		data: data,
 		chainId: config.network_id
