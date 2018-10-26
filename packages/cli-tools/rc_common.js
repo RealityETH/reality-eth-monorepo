@@ -1,4 +1,4 @@
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
+const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
 const config = require('./config.json');
