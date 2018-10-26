@@ -2553,6 +2553,7 @@ div.error-label.no-metamask-plugin-image { display:none}
 body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-image { margin-right:8px; margin-top:-5px; float:right; display:inline !important}
 
 #footer-notification-bar {
+    min-height:80px;
     width: 100%;
     padding: 24px 0;
     background-color: $dark-blue-gray;

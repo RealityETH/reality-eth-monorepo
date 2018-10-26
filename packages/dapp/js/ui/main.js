@@ -10,7 +10,7 @@ const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
 var web3realitio; // We run our own node to handle watch events that can't reliably be done with infura
 
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
+const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
@@ -25,6 +25,8 @@ const BigNumber = require('bignumber.js');
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
+
+const LEGACY_CONTRACT_ADDRESSES = require('../../v1/addresses.json');
 
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
@@ -61,8 +63,8 @@ const RPC_NODES = {
 // The point where we deployed the contract on the network
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
-    1: 5932007,
-    4: 2602053
+    1: 6531147,
+    4: 3175028
 }
 var START_BLOCK;
 
@@ -718,7 +720,7 @@ function isArbitratorValid(arb) {
     var found = false;
     let arbitrator_addrs = $('select.arbitrator').children();
     arbitrator_addrs.each(function() {
-        if ($(this).val() == arb) {
+        if ($(this).val().toLowerCase() == arb.toLowerCase()) {
             found = true;
             return false;
         }
@@ -3904,7 +3906,7 @@ function populateArbitratorSelect(network_arbs) {
                     return arb_inst.realitycheck.call();
                 }).then(function(rc_addr) {
                     console.log('arb has rc addr', rc_addr);
-                    var is_arb_valid = (rc_addr == myr.address);
+                    var is_arb_valid = (rc_addr.toLowerCase() == myr.address.toLowerCase());
                     verified_arbitrators[na_addr] = is_arb_valid;
                     // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
                     // For this we'll check our original list for the network, then just check against the failed list
@@ -4072,18 +4074,21 @@ window.addEventListener('load', function() {
                 });
             });
             populateArbitratorSelect(arbitrator_list[net_id]);
-        });
-    });
 
-    // Notification bar(footer)
-    if (window.localStorage.getItem('got-it') == null) {
-        $('#footer-notification-bar').css('display', 'block');
-    }
-    $('#got-it-button').on('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        window.localStorage.setItem('got-it', true);
-        $('#footer-notification-bar').css('display', 'none');
+            if (LEGACY_CONTRACT_ADDRESSES[acc[0].toLowerCase()]) {
+                // Notification bar(footer)
+                if (window.localStorage.getItem('v1-got-it') == null) {
+                    $('#footer-notification-bar').css('display', 'block');
+                }
+                $('#got-it-button').on('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.localStorage.setItem('v1-got-it', true);
+                    $('#footer-notification-bar').css('display', 'none');
+                });
+            }
+
+        });
     });
 
     var args = parseHash()
