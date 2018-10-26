@@ -39,7 +39,7 @@ rsync -avz --delete $SRC_DIR/cli/ $BUILD_DIR/cli/
 rsync -avz --delete $SRC_DIR/js/ $BUILD_DIR/js/
 rsync -avz --delete $SRC_DIR/rinkeby/ $BUILD_DIR/rinkeby/
 cp $SRC_DIR/index.html $BUILD_DIR/index.html
-cp $SRC_DIR/v1.html $BUILD_DIR/v1.html
+cp $SRC_DIR/v1/ $BUILD_DIR/v1/
 
 cd $BUILD_DIR
 git add .
