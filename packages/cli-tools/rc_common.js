@@ -142,5 +142,5 @@ exports.configParam = function(n) {
 
 exports.output = function(tx) {
     console.log('0x' + tx.toString('hex'));
-    qr.generate(tx.toString('hex'), {small: true});
+    qr.generate('0x' + tx.toString('hex'), {small: true});
 }
