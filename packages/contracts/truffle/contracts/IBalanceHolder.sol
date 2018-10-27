@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-contract BalanceHolder {
+contract IBalanceHolder {
 
     mapping(address => uint256) public balanceOf;
 

@@ -2,7 +2,7 @@ pragma solidity ^0.4.25;
 
 import './IBalanceHolder.sol';
 
-contract Realitio is BalanceHolder {
+contract IRealitio is BalanceHolder {
 
     struct Question {
         bytes32 content_hash;
