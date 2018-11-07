@@ -66,6 +66,14 @@ exports.arbContract = function() {
     return arb_contract.at(arb_address);
 }
 
+exports.walletContract = function() {
+    if (!config.multisig_wallet) {
+        return null;
+    }
+    const wallet_contract = contract(wallet_json);
+    return wallet_contract.at(config.multisig_wallet);
+}
+
 exports.checkArgumentLength = function(num_args, usage_txt) {
     if (process.argv.length != num_args) {
         console.log(usage_txt);
@@ -88,12 +96,11 @@ exports.serializedValueTX = function(params, addr, val) {
     // If there's a multi-sig wallet configured, use the data and address as arguments
     // ...then switch out the wallet for the address and data.
     if (config.multisig_wallet) {
-        var wallet_contract = contract(wallet_json);
-        wallet = wallet_contract.at(config.multisig_wallet);
-        var wallet_req = wallet.submitTransaction.request(addr, 0, null);
+        const wallet = this.walletContract();
+        const wallet_req = wallet.submitTransaction.request(addr, val, null);
         data = wallet_req.params[0].data;
         addr = config.multisig_wallet;
-        gas_limit = 100000;
+        gas_limit = 1000000;
     }
 
     const key = this.loadKey();
@@ -115,15 +122,13 @@ exports.serializedValueTX = function(params, addr, val) {
 
 exports.serializedTX = function(params, cntr, data, gas_limit) {
 
-    var wallet = null;
     var address = cntr.address;
 
     // If there's a multi-sig wallet configured, use the data and address as arguments
     // ...then switch out the wallet for the address and data.
     if (config.multisig_wallet) {
-        var wallet_contract = contract(wallet_json);
-        wallet = wallet_contract.at(config.multisig_wallet);
-        var wallet_req = wallet.submitTransaction.request(address, 0, data);
+        const wallet = this.walletContract();
+        const wallet_req = wallet.submitTransaction.request(address, 0, data);
         data = wallet_req.params[0].data;
         address = config.multisig_wallet;
     }
