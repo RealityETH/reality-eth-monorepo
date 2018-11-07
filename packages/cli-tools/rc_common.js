@@ -1,4 +1,4 @@
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/RealityCheck.json');
+const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
 const wallet_json = require('./abi/MultiSigWallet.json');
@@ -179,5 +179,5 @@ exports.configParam = function(n) {
 
 exports.output = function(tx) {
     console.log('0x' + tx.toString('hex'));
-    qr.generate(tx.toString('hex'), {small: true});
+    qr.generate('0x' + tx.toString('hex'), {small: true});
 }
