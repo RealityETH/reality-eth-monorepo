@@ -3,9 +3,9 @@ module.exports = {
     development: {
       host: "localhost",
       port: 8545,
-      network_id: "4",
+      network_id: "*",
       gasPrice: 2000000000,
-      gas: 3000000
+      gas: 5000000
     }
   },
   solc: {
