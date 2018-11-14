@@ -57,7 +57,6 @@ class TestRealitio(TestCase):
         owned_code_raw = open('Owned.sol').read()
         client_code_raw = open('CallbackClient.sol').read()
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
-        caller_backer_code_raw = open('CallerBacker.sol').read()
         self.c.mine()
 
         # Not sure what the right way is to get pyethereum to import the dependencies
@@ -74,10 +73,8 @@ class TestRealitio(TestCase):
         self.arb_code = self.arb_code.replace("import './Realitio.sol';", realitio_code);
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
-        self.caller_backer_code = caller_backer_code_raw
 
         self.c.mine()
-        self.caller_backer = self.c.contract(self.caller_backer_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
 
         self.c.mine()
         self.arb0 = self.c.contract(self.arb_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
@@ -754,61 +751,6 @@ class TestRealitio(TestCase):
         self.assertEqual(self.rc0.balanceOf(keys.privtoaddr(t.k3)), 0, "All funds are gone from the contract once withdrawal is complete")
 
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_callbacks_unbundled(self):
-        return
-     
-        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
-        self.caller_backer.setRealitio(self.rc0.address)
-
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3, startgas=200000) 
-        self.s.timestamp = self.s.timestamp + 11
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-        
-        gas_used_before = self.s.gas_used # Find out how much we used as this will affect the balance
-        self.caller_backer.fundCallbackRequest(self.question_id, self.cb.address, 3000000, value=100, startgas=200000)
-        gas_used_after = self.s.gas_used # Find out how much we used as this will affect the balance
-
-        self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.cb.address, 3000000), 100)
-
-        # Return false on an unregistered amount of gas
-        with self.assertRaises(TransactionFailed):
-            self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000001, 0, startgas=200000)
-
-        self.assertNotEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
-        self.caller_backer.sendCallback(self.question_id, self.cb.address, 3000000, 0)
-        self.assertEqual(self.cb.answers(self.question_id), to_answer_for_contract(10005))
-        
-        
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_exploding_callbacks(self):
-        return
-
-        self.cb = self.c.contract(self.client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
-        self.caller_backer.setRealitio(self.rc0.address)
-     
-        self.exploding_cb = self.c.contract(self.exploding_client_code, language='solidity', sender=t.k0, startgas=DEPLOY_GAS)
-
-        self.rc0.submitAnswer(self.question_id, to_answer_for_contract(10005), 0, value=10, sender=t.k3) 
-        self.s.timestamp = self.s.timestamp + 11
-
-        self.assertTrue(self.rc0.isFinalized(self.question_id))
-
-        self.caller_backer.fundCallbackRequest(self.question_id, self.exploding_cb.address, 3000000, value=100)
-        self.assertEqual(self.caller_backer.callback_requests(self.question_id, self.exploding_cb.address, 3000000), 100)
-
-        # return false with an unregistered or spent amount of gas
-        with self.assertRaises(TransactionFailed):
-            self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000001, 0, startgas=200000)
-
-        # fail if the bounty is less than we demand
-        with self.assertRaises(TransactionFailed):
-            self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000, 999999999999999, startgas=400000) 
-
-        # should complete with no error, even though the client threw an error
-        self.caller_backer.sendCallback(self.question_id, self.exploding_cb.address, 3000000, 0) 
-    
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
