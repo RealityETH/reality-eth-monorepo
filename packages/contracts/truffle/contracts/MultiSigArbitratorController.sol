@@ -17,7 +17,7 @@ We therefore implement a separate Splitter Wallet to handle splitting the funds 
 The address of the splitter wallet is controlled by m of n, like other multi-sig wallet features.
 As well as a function to control this, we implement functions callable by anyone to:
     * Download any outstanding funds in a realitio contract to the arbitrator contract
-    * Withdraw funds from the multisig to a splitter wallet
+    * Withdraw funds from the arbitrator to the splitter wallet
 */
 
 contract MultiSigArbitratorController is MultiSigWallet {
