@@ -4031,6 +4031,7 @@ window.addEventListener('load', function() {
             }
         }
 
+        ethereum.enable().then(function() {
         web3js.eth.getAccounts((err, acc) => {
             web3js.eth.getBlock('latest', function(err, result) {
                 if (result.number > current_block_number) {
@@ -4088,6 +4089,7 @@ window.addEventListener('load', function() {
                 });
             }
 
+        });
         });
     });
 
