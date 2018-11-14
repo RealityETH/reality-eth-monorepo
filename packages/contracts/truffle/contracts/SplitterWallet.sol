@@ -5,6 +5,9 @@ import './RealitioSafeMath256.sol';
 
 contract SplitterWallet is Owned {
 
+    // We loop over our recipient list when we need its index, so set a maximum to avoid gas exhaustion
+    uint256 constant MAX_RECIPIENTS = 100;
+
     using RealitioSafeMath256 for uint256;
 
     mapping(address => uint256) public balanceOf;
@@ -38,6 +41,7 @@ contract SplitterWallet is Owned {
     function addRecipient(address addr) 
         onlyOwner
     external {
+        require(recipients.length < MAX_RECIPIENTS);
         recipients.push(addr);
     }
 
@@ -89,6 +93,9 @@ contract SplitterWallet is Owned {
             balanceTotal = balanceTotal.add(each);
         }
 
+        // If we somehow assigned more money than we have, something is wrong
+        assert(address(this).balance >= balanceTotal);
+
     }
 
     /// @notice Withdraw the address balance to the owner account
@@ -99,6 +106,7 @@ contract SplitterWallet is Owned {
         balanceTotal = balanceTotal.sub(bal);
         balanceOf[msg.sender] = 0;
         msg.sender.transfer(bal);
+        assert(address(this).balance >= balanceTotal);
         emit LogWithdraw(msg.sender, bal);
     }
 
