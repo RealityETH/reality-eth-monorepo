@@ -3,7 +3,7 @@ pragma solidity ^0.4.25;
 import './Owned.sol';
 import './RealitioSafeMath256.sol';
 
-contract SplitBalanceHolder is Owned {
+contract SplitterWallet is Owned {
 
     using RealitioSafeMath256 for uint256;
 
