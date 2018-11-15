@@ -36,6 +36,48 @@ class TestSplitter(TestCase):
         self.c.mine()
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_recipient_limits(self):
+        
+        for i in range(100):
+            self.wallet0.addRecipient(t.a1, startgas=80000)
+            if i % 30 == 0:
+                self.c.mine()
+
+        self.c.mine()
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.addRecipient(t.a1, startgas=80000)
+
+        self.wallet0.removeRecipient(t.a1, startgas=80000)
+        self.wallet0.addRecipient(t.a1, startgas=80000)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_recipient_permissions(self):
+        
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.addRecipient(t.a1, startgas=80000, sender=t.k2)
+
+        self.wallet0.addRecipient(t.a1, startgas=80000, sender=t.k0)
+        self.wallet0.addRecipient(t.a2, startgas=80000, sender=t.k0)
+
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.replaceSelf(t.a2, startgas=80000, sender=t.k0)
+
+        self.wallet0.replaceSelf(t.a2, startgas=80000, sender=t.k2)
+
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.removeRecipient(t.a2, startgas=80000, sender=t.k2)
+
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.transferOwnership(t.a2, startgas=80000, sender=t.k2)
+
+        self.wallet0.transferOwnership(t.a2, startgas=80000, sender=t.k0)
+
+        with self.assertRaises(TransactionFailed):
+            self.wallet0.removeRecipient(t.a2, startgas=80000, sender=t.k1)
+
+        self.wallet0.removeRecipient(t.a2, startgas=80000, sender=t.k2)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_split(self):
 
         self.assertEqual(self.wallet0.balanceOf(t.a1), 0)
@@ -97,6 +139,32 @@ class TestSplitter(TestCase):
         self.wallet0.withdraw(sender=t.k2)
         self.assertEqual(self.wallet0.balanceTotal(), 0)
         self.assertEqual(self.c.head_state.get_balance(self.wallet0.address), 0)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_duplicate_recipients(self):
+
+        self.wallet0.addRecipient(t.a1)
+        self.wallet0.addRecipient(t.a2)
+        self.wallet0.addRecipient(t.a2)
+
+        self.assertEqual(self.wallet0.recipients(1), self.wallet0.recipients(2))
+        self.assertNotEqual(self.wallet0.recipients(0), self.wallet0.recipients(1))
+
+        self.wallet0.replaceSelf(t.a3, sender=t.k2)
+        # a1 a3 a2
+
+        self.wallet0.replaceSelf(t.a2, sender=t.k1)
+        # a2 a3 a2
+
+        self.assertEqual(self.wallet0.recipients(0), self.wallet0.recipients(2))
+        self.assertNotEqual(self.wallet0.recipients(0), self.wallet0.recipients(1))
+        self.assertNotEqual(self.wallet0.recipients(1), self.wallet0.recipients(2))
+
+        self.c.tx(t.k0, self.wallet0.address, 100)
+        self.wallet0.allocate(sender=t.k4)
+        self.assertEqual(self.wallet0.balanceOf(t.a3), 33)
+        self.assertEqual(self.wallet0.balanceOf(t.a2), 66)
+        self.assertEqual(self.wallet0.balanceTotal(), 99)
 
 if __name__ == '__main__':
     main()
