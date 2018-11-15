@@ -50,6 +50,12 @@ class TestSplitter(TestCase):
         self.wallet0.removeRecipient(t.a1, startgas=80000)
         self.wallet0.addRecipient(t.a1, startgas=80000)
 
+        self.assertEqual(self.wallet0.balanceTotal(), 0)
+        self.c.tx(t.k0, self.wallet0.address, 100000)
+        self.c.mine()
+        self.wallet0.allocate(startgas=1200000)
+        self.assertEqual(self.wallet0.balanceTotal(), 100000)
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_recipient_permissions(self):
         
