@@ -3,9 +3,26 @@ pragma solidity ^0.4.25;
 import './Owned.sol';
 import './RealitioSafeMath256.sol';
 
+/*
+This contract allows you to split ETH between up to 100 receivers.
+
+Each receiver can withdraw their own share of the funds without the cooperation of the others. 
+They can also replace their own address with a different one.
+
+The receivers can be added by the `owner` contract, for example a multisig wallet. 
+The same receiver can be added multiple times if you want an unequal distribution.
+Transfer ownership to 0x0 if you want to lock the contract and prevent further changes.
+
+This contract receives ETH normally, without using extra gas that could cause incoming payments to fail.
+Anyone can then call allocate() to assign any unassigned balance to the receivers.
+The `allocate()` call may leave a small amount of ETH unassigned due to rounding. This can be allocated in a future call.
+
+Once funds are allocated, each party can withdraw their own funds by calling `withdraw()`.
+*/
+
 contract SplitterWallet is Owned {
 
-    // We loop over our recipient list when we need its index, so set a maximum to avoid gas exhaustion
+    // We sometimes loop over our recipient list, so set a maximum to avoid gas exhaustion
     uint256 constant MAX_RECIPIENTS = 100;
 
     using RealitioSafeMath256 for uint256;
@@ -93,7 +110,6 @@ contract SplitterWallet is Owned {
             balanceTotal = balanceTotal.add(each);
         }
 
-        // If we somehow assigned more money than we have, something is wrong
         assert(address(this).balance >= balanceTotal);
 
     }
