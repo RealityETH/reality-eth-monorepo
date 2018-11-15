@@ -95,13 +95,13 @@ contract SplitterWallet is Owned {
     function allocate()
     external {
         uint256 unallocated = address(this).balance.sub(balanceTotal);
-        require(unallocated > 0);
+        require(unallocated > 0, "No funds to allocate");
 
         uint256 num_recipients = recipients.length;
 
         // NB Rounding may leave some funds unallocated, we can claim them later
         uint256 each = unallocated / num_recipients;
-        require(each > 0, "No money left to be allocated");
+        require(each > 0, "No money left to be allocated after rounding down");
 
         uint256 i;
         for (i=0; i<num_recipients; i++) {
