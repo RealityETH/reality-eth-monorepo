@@ -58,7 +58,7 @@ contract SplitterWallet is Owned {
     function addRecipient(address addr) 
         onlyOwner
     external {
-        require(recipients.length < MAX_RECIPIENTS);
+        require(recipients.length < MAX_RECIPIENTS, "Too many recipients");
         recipients.push(addr);
     }
 
@@ -101,7 +101,7 @@ contract SplitterWallet is Owned {
 
         // NB Rounding may leave some funds unallocated, we can claim them later
         uint256 each = unallocated / num_recipients;
-        require(each > 0);
+        require(each > 0, "No money left to be allocated");
 
         uint256 i;
         for (i=0; i<num_recipients; i++) {
