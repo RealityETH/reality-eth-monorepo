@@ -56,6 +56,7 @@ class TestRealitio(TestCase):
         arb_code_raw = open('Arbitrator.sol').read()
         owned_code_raw = open('Owned.sol').read()
         client_code_raw = open('CallbackClient.sol').read()
+        reg_arb_code_raw = open('RegisteredWalletArbitrator.sol').read()
         exploding_client_code_raw = open('ExplodingCallbackClient.sol').read()
         self.c.mine()
 
@@ -69,8 +70,11 @@ class TestRealitio(TestCase):
         realitio_code = realitio_code.replace("import './BalanceHolder.sol';", balance_holder);
 
         self.rc_code = realitio_code
-        self.arb_code = arb_code_raw.replace("import './Owned.sol';", owned_code_raw);
-        self.arb_code = self.arb_code.replace("import './Realitio.sol';", realitio_code);
+        arb_code_raw = arb_code_raw.replace("import './Owned.sol';", owned_code_raw);
+        arb_code_raw = arb_code_raw.replace("import './Realitio.sol';", realitio_code);
+
+        self.arb_code = reg_arb_code_raw.replace("import './Arbitrator.sol';", arb_code_raw)
+
         self.client_code = client_code_raw
         self.exploding_client_code = exploding_client_code_raw
 
@@ -864,7 +868,7 @@ class TestRealitio(TestCase):
         self.c.mine()
         self.s = self.c.head_state
 
-        self.arb0.callWithdraw(sender=t.k0)
+        self.arb0.callWithdraw(sender=t.k7)
         end_arb_bal = self.s.get_balance(self.arb0.address)
 
         self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
@@ -926,6 +930,60 @@ class TestRealitio(TestCase):
 
         self.arb0.setMetaData("oink", sender=t.k0, startgas=200000)
         self.assertEqual(self.arb0.metadata(), "oink")
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_registered_wallet(self):
+
+        start_bal = self.rc0.balanceOf(self.arb0.address)
+        self.arb0.setQuestionFee(321)
+
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 3",
+            self.arb0.address,
+            10,
+            0,
+            value=1000,
+            sender=t.k4, 
+            startgas=140000
+        )
+
+        question_id = self.rc0.askQuestion(
+            0,
+            "my question 4",
+            self.arb0.address,
+            10,
+            0,
+            value=2000,
+            sender=t.k5, 
+            startgas=140000
+        )
+
+        end_bal = self.rc0.balanceOf(self.arb0.address)
+        self.assertEqual(end_bal - start_bal, (321*2))
+
+        with self.assertRaises(TransactionFailed):
+            self.arb0.withdrawToRegisteredWallet(startgas=40000)
+
+        with self.assertRaises(TransactionFailed):
+            self.arb0.updateRegisteredWallet(t.a8, startgas=60000, sender=t.k2)
+        
+        self.arb0.updateRegisteredWallet(t.a8, startgas=60000)
+
+        start_arb_bal = self.s.get_balance(t.a8)
+
+        self.c.mine()
+        self.s = self.c.head_state
+
+        self.arb0.callWithdraw(sender=t.k7)
+        self.arb0.withdrawToRegisteredWallet(sender=t.k4, startgas=60000)
+
+        end_arb_bal = self.s.get_balance(t.a8)
+
+        self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
+        self.assertEqual(self.rc0.balanceOf(self.arb0.address), 0)
+
 
 if __name__ == '__main__':
     main()
