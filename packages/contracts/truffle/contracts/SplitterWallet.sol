@@ -11,7 +11,7 @@ They can also replace their own address with a different one.
 
 The receivers can be added by the `owner` contract, for example a multisig wallet. 
 The same receiver can be added multiple times if you want an unequal distribution.
-Transfer ownership to 0x0 if you want to lock the contract and prevent further changes.
+Transfer ownership to 0x0 if you want to lock the receiver list and prevent further changes.
 
 This contract receives ETH normally, without using extra gas that could cause incoming payments to fail.
 Anyone can then call allocate() to assign any unassigned balance to the receivers.
@@ -40,7 +40,7 @@ contract SplitterWallet is Owned {
         uint256 amount
     );
 
-    function _recipientIndex(address addr) 
+    function _firstRecipientIndex(address addr) 
         internal
     view returns (uint256) 
     {
@@ -55,6 +55,7 @@ contract SplitterWallet is Owned {
 
     /// @notice Add a recipient to the list
     /// @param addr The address to add
+    /// @dev Doesn't check for duplicates, it's OK to add the same recipient twice for an unequal distribution
     function addRecipient(address addr) 
         onlyOwner
     external {
@@ -64,11 +65,12 @@ contract SplitterWallet is Owned {
 
     /// @notice Remove a recipient from the list
     /// @param old_addr The address to remove
+    /// @dev If your address shows up more than once, removes the first occurance
     function removeRecipient(address old_addr) 
         onlyOwner
     external {
 
-        uint256 idx = _recipientIndex(old_addr);
+        uint256 idx = _firstRecipientIndex(old_addr);
         assert(recipients[idx] == old_addr);
 
         // If you're not deleting the last item, copy the last item over to the thing you're deleting
@@ -82,9 +84,10 @@ contract SplitterWallet is Owned {
 
     /// @notice Replace your own address with a different one
     /// @param new_addr The new address
+    /// @dev If your address shows up more than once, replaces the first occurance
     function replaceSelf(address new_addr) 
     external {
-        uint256 idx = _recipientIndex(msg.sender);
+        uint256 idx = _firstRecipientIndex(msg.sender);
         assert(recipients[idx] == msg.sender);
         recipients[idx] = new_addr;
     }
@@ -94,6 +97,7 @@ contract SplitterWallet is Owned {
     /// @dev Assign them to the current recipients, and mark them as allocated
     function allocate()
     external {
+
         uint256 unallocated = address(this).balance.sub(balanceTotal);
         require(unallocated > 0, "No funds to allocate");
 
@@ -117,13 +121,18 @@ contract SplitterWallet is Owned {
     /// @notice Withdraw the address balance to the owner account
     function withdraw() 
     external {
+
         uint256 bal = balanceOf[msg.sender];
         require(bal > 0, "Balance must be positive");
+
         balanceTotal = balanceTotal.sub(bal);
         balanceOf[msg.sender] = 0;
         msg.sender.transfer(bal);
-        assert(address(this).balance >= balanceTotal);
+
         emit LogWithdraw(msg.sender, bal);
+
+        assert(address(this).balance >= balanceTotal);
+
     }
 
     function()
