@@ -20,7 +20,7 @@ You can fetch the final answer for a question by calling
 .. code-block:: javascript
    :linenos:
 
-   bytes32 response = getFinalAnswer(bytes32 question_id);
+   bytes32 response = resultFor(bytes32 question_id);
 
 
 This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. 
