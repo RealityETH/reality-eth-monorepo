@@ -78,11 +78,11 @@ exports.walletContract = function() {
 }
 
 exports.splitterContract= function() {
-    if (!config.registered_wallet) {
+    if (!config.splitter_wallet) {
         return null;
     }
     const wallet_contract = contract(splitter_json);
-    return wallet_contract.at(config.registered_wallet);
+    return wallet_contract.at(config.splitter_wallet);
 }
 
 
