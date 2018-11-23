@@ -24,3 +24,6 @@ The scripts are:
 * arbitrate.js: Signs an arbitration transaction. Expects that the data it should sign will be in a file under requests/arbitration.json, so you only need to pass in its ID.
 
 For usage information, run the script without parameters, eg node set_dispute_fee.js
+
+If you're online and have a local node running, you can pipe the output direct to ./broadcast.sh to send it to your node.
+Otherwise you'd normally scan the qrcode and broadcast the tx via a block explorer etc
