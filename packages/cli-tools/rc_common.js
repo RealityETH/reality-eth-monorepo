@@ -2,6 +2,7 @@ const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Re
 const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
 
 const wallet_json = require('./abi/MultiSigWallet.json');
+const splitter_json = require('./abi/SplitterWallet.json');
 
 const config = require('./config.json');
 
@@ -9,6 +10,8 @@ const BigNumber = require('bignumber.js');
 const fs = require('fs');
 const contract = require('truffle-contract');
 const Tx = require('ethereumjs-tx')
+const createKeccakHash = require('keccak')
+const secp256k1 = require('secp256k1')
 
 const web3_utils = require('web3-utils');
 
@@ -74,6 +77,15 @@ exports.walletContract = function() {
     return wallet_contract.at(config.multisig_wallet);
 }
 
+exports.splitterContract= function() {
+    if (!config.registered_wallet) {
+        return null;
+    }
+    const wallet_contract = contract(splitter_json);
+    return wallet_contract.at(config.registered_wallet);
+}
+
+
 exports.checkArgumentLength = function(num_args, usage_txt) {
     if (process.argv.length != num_args) {
         console.log(usage_txt);
@@ -91,13 +103,13 @@ exports.commonParams = function(argv) {
 exports.serializedValueTX = function(params, addr, val) {
 
     var gas_limit = 22000;
-    var data = null;
+    var data = "0x";
 
     // If there's a multi-sig wallet configured, use the data and address as arguments
     // ...then switch out the wallet for the address and data.
     if (config.multisig_wallet) {
         const wallet = this.walletContract();
-        const wallet_req = wallet.submitTransaction.request(addr, val, null);
+        const wallet_req = wallet.submitTransaction.request(addr, val, data);
         data = wallet_req.params[0].data;
         addr = config.multisig_wallet;
         gas_limit = 1000000;
@@ -120,13 +132,13 @@ exports.serializedValueTX = function(params, addr, val) {
 	return tx.serialize();
 }
 
-exports.serializedTX = function(params, cntr, data, gas_limit) {
+exports.serializedTX = function(params, cntr, data, gas_limit, no_multisig) {
 
     var address = cntr.address;
 
     // If there's a multi-sig wallet configured, use the data and address as arguments
     // ...then switch out the wallet for the address and data.
-    if (config.multisig_wallet) {
+    if (!no_multisig && config.multisig_wallet) {
         const wallet = this.walletContract();
         const wallet_req = wallet.submitTransaction.request(address, 0, data);
         data = wallet_req.params[0].data;
@@ -175,6 +187,13 @@ exports.sanitizeAddress = function(addr) {
 
 exports.configParam = function(n) {
     return config[n];
+}
+
+exports.address = function() {
+    const privateKey = this.loadKey();
+    let pubKey = secp256k1.publicKeyCreate(privateKey, false).slice(1);
+    let address = createKeccakHash('keccak256').update(pubKey).digest().slice(-20).toString('hex');
+    return address;
 }
 
 exports.output = function(tx) {
