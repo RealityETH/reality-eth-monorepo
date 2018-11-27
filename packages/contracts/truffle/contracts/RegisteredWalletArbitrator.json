@@ -1,0 +1,1588 @@
+{
+  "contractName": "RegisteredWalletArbitrator",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "realitycheck",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0x0c2a48e2"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "setDisputeFee",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x17299c04"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "metadata",
+      "outputs": [
+        {
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0x392f37e9"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "setCustomDisputeFee",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x4381a07b"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "setQuestionFee",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x4df6ca2a"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x51cff8d9"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "setRealitio",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x79ca21a2"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0x8da5cb5b"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "arbitration_bounties",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0xa20dd43b"
+    },
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getDisputeFee",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0xa22352e2"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "name": "max_previous",
+          "type": "uint256"
+        }
+      ],
+      "name": "requestArbitration",
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "function",
+      "signature": "0xa829c3d1"
+    },
+    {
+      "constant": true,
+      "inputs": [],
+      "name": "realitio",
+      "outputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function",
+      "signature": "0xbc8802a2"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "_metadata",
+          "type": "string"
+        }
+      ],
+      "name": "setMetaData",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0xd821f81a"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0xf2fde38b"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "name": "answer",
+          "type": "bytes32"
+        },
+        {
+          "name": "answerer",
+          "type": "address"
+        }
+      ],
+      "name": "submitAnswerByArbitrator",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0xfe92049d"
+    },
+    {
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "fee_paid",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "name": "requester",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "remaining",
+          "type": "uint256"
+        }
+      ],
+      "name": "LogRequestArbitration",
+      "type": "event",
+      "signature": "0xdf8a830581aa05b0b824a0c184007c33a1ad9100a41751c9ded9f2b4fefb16ba"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "realitio",
+          "type": "address"
+        }
+      ],
+      "name": "LogSetRealitio",
+      "type": "event",
+      "signature": "0x568b4ce4fc4d09c939362effe33053025b93088cab521fc476f469966c7efdd5"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "LogSetQuestionFee",
+      "type": "event",
+      "signature": "0x173ec7037500587e8ac3402cac8426c5c2bac605eabd93f790422e621633d711"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "LogSetDisputeFee",
+      "type": "event",
+      "signature": "0xbc1292d8ca346c1397b1176ce2935afd34c4365fece415b14e3a9242eae388f5"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "LogSetCustomDisputeFee",
+      "type": "event",
+      "signature": "0xe4887440991624b147d2129ab0befa8c1df4cff87b22513c8eea7cb16ed2aaf2"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "callWithdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0xdad901be"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "withdrawToRegisteredWallet",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x7a3996a3"
+    },
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "updateRegisteredWallet",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function",
+      "signature": "0x4102441e"
+    }
+  ],
+  "bytecode": "0x608060405260008054600160a060020a031990811633908117909116179055610d818061002d6000396000f3006080604052600436106100fb5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416630c2a48e281146100fd57806317299c041461012e578063392f37e9146101465780634102441e146101d05780634381a07b146101f15780634df6ca2a1461020c57806351cff8d91461022457806379ca21a2146102455780637a3996a3146102665780638da5cb5b1461027b578063a20dd43b14610290578063a22352e2146102ba578063a829c3d1146102d2578063bc8802a2146102f4578063d821f81a14610309578063dad901be14610362578063f2fde38b14610377578063fe92049d14610398575b005b34801561010957600080fd5b506101126103bf565b60408051600160a060020a039092168252519081900360200190f35b34801561013a57600080fd5b506100fb6004356103cf565b34801561015257600080fd5b5061015b610421565b6040805160208082528351818301528351919283929083019185019080838360005b8381101561019557818101518382015260200161017d565b50505050905090810190601f1680156101c25780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b3480156101dc57600080fd5b506100fb600160a060020a03600435166104af565b3480156101fd57600080fd5b506100fb6004356024356104f5565b34801561021857600080fd5b506100fb600435610557565b34801561023057600080fd5b506100fb600160a060020a0360043516610623565b34801561025157600080fd5b506100fb600160a060020a0360043516610674565b34801561027257600080fd5b506100fb6106ec565b34801561028757600080fd5b506101126107a2565b34801561029c57600080fd5b506102a86004356107b1565b60408051918252519081900360200190f35b3480156102c657600080fd5b506102a86004356107c3565b6102e06004356024356107f6565b604080519115158252519081900360200190f35b34801561030057600080fd5b50610112610b04565b34801561031557600080fd5b506040805160206004803580820135601f81018490048402850184019095528484526100fb943694929360249392840191908190840183828082843750949750610b139650505050505050565b34801561036e57600080fd5b506100fb610b3d565b34801561038357600080fd5b506100fb600160a060020a0360043516610bc3565b3480156103a457600080fd5b506100fb600435602435600160a060020a0360443516610c09565b600154600160a060020a03165b90565b600054600160a060020a031633146103e657600080fd5b60038190556040805182815290517fbc1292d8ca346c1397b1176ce2935afd34c4365fece415b14e3a9242eae388f59181900360200190a150565b6005805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156104a75780601f1061047c576101008083540402835291602001916104a7565b820191906000526020600020905b81548152906001019060200180831161048a57829003601f168201915b505050505081565b600054600160a060020a031633146104c657600080fd5b6006805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b600054600160a060020a0316331461050c57600080fd5b6000828152600460209081526040918290208390558151838152915184927fe4887440991624b147d2129ab0befa8c1df4cff87b22513c8eea7cb16ed2aaf292908290030190a25050565b600054600160a060020a0316331461056e57600080fd5b600154604080517f4df6ca2a000000000000000000000000000000000000000000000000000000008152600481018490529051600160a060020a0390921691634df6ca2a9160248082019260009290919082900301818387803b1580156105d457600080fd5b505af11580156105e8573d6000803e3d6000fd5b50506040805184815290517f173ec7037500587e8ac3402cac8426c5c2bac605eabd93f790422e621633d7119350908190036020019150a150565b600054600160a060020a0316331461063a57600080fd5b604051600160a060020a03821690303180156108fc02916000818181858888f19350505050158015610670573d6000803e3d6000fd5b5050565b600054600160a060020a0316331461068b57600080fd5b60018054600160a060020a03831673ffffffffffffffffffffffffffffffffffffffff19909116811790915560408051918252517f568b4ce4fc4d09c939362effe33053025b93088cab521fc476f469966c7efdd59181900360200190a150565b600654600160a060020a0316151561076557604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4e6f2077616c6c65742069732072656769737465726564000000000000000000604482015290519081900360640190fd5b600654604051600160a060020a0390911690303180156108fc02916000818181858888f1935050505015801561079f573d6000803e3d6000fd5b50565b600054600160a060020a031681565b60026020526000908152604090205481565b60008181526004602052604081205481106107e0576003546107f0565b6000828152600460205260409020545b92915050565b6000806000610804856107c3565b91506000821161089b57604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603c60248201527f5468652061726269747261746f72206d7573742068617665207365742061206e60448201527f6f6e2d7a65726f2066656520666f7220746865207175657374696f6e00000000606482015290519081900360840190fd5b506000848152600260205260409020805434019081905581811061098f57600154604080517ff6a94ecb00000000000000000000000000000000000000000000000000000000815260048101889052336024820152604481018790529051600160a060020a039092169163f6a94ecb9160648082019260009290919082900301818387803b15801561092c57600080fd5b505af1158015610940573d6000803e3d6000fd5b50506040805134815233602082015260008183015290518893507fdf8a830581aa05b0b824a0c184007c33a1ad9100a41751c9ded9f2b4fefb16ba92509081900360600190a260019250610afc565b600154604080517f7f8d429e000000000000000000000000000000000000000000000000000000008152600481018890529051600160a060020a0390921691637f8d429e916024808201926020929091908290030181600087803b1580156109f657600080fd5b505af1158015610a0a573d6000803e3d6000fd5b505050506040513d6020811015610a2057600080fd5b505115610ab457604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602960248201527f546865207175657374696f6e206d757374206e6f742068617665206265656e2060448201527f66696e616c697a65640000000000000000000000000000000000000000000000606482015290519081900360840190fd5b6040805134815233602082015282840381830152905186917fdf8a830581aa05b0b824a0c184007c33a1ad9100a41751c9ded9f2b4fefb16ba919081900360600190a2600092505b505092915050565b600154600160a060020a031681565b600054600160a060020a03163314610b2a57600080fd5b8051610670906005906020840190610cbd565b600160009054906101000a9004600160a060020a0316600160a060020a0316633ccfd60b6040518163ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401600060405180830381600087803b158015610ba957600080fd5b505af1158015610bbd573d6000803e3d6000fd5b50505050565b600054600160a060020a03163314610bda57600080fd5b6000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b600054600160a060020a03163314610c2057600080fd5b60008381526002602052604080822082905560015481517ffe92049d0000000000000000000000000000000000000000000000000000000081526004810187905260248101869052600160a060020a0385811660448301529251929091169263fe92049d9260648084019382900301818387803b158015610ca057600080fd5b505af1158015610cb4573d6000803e3d6000fd5b50505050505050565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f10610cfe57805160ff1916838001178555610d2b565b82800160010185558215610d2b579182015b82811115610d2b578251825591602001919060010190610d10565b50610d37929150610d3b565b5090565b6103cc91905b80821115610d375760008155600101610d415600a165627a7a72305820f1a5b02d8260aeca1802eccf4d2e4c762491ff03b37c8ad1f4a23aa8d7c5801d0029",
+  "deployedBytecode": "0x6080604052600436106100fb5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416630c2a48e281146100fd57806317299c041461012e578063392f37e9146101465780634102441e146101d05780634381a07b146101f15780634df6ca2a1461020c57806351cff8d91461022457806379ca21a2146102455780637a3996a3146102665780638da5cb5b1461027b578063a20dd43b14610290578063a22352e2146102ba578063a829c3d1146102d2578063bc8802a2146102f4578063d821f81a14610309578063dad901be14610362578063f2fde38b14610377578063fe92049d14610398575b005b34801561010957600080fd5b506101126103bf565b60408051600160a060020a039092168252519081900360200190f35b34801561013a57600080fd5b506100fb6004356103cf565b34801561015257600080fd5b5061015b610421565b6040805160208082528351818301528351919283929083019185019080838360005b8381101561019557818101518382015260200161017d565b50505050905090810190601f1680156101c25780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b3480156101dc57600080fd5b506100fb600160a060020a03600435166104af565b3480156101fd57600080fd5b506100fb6004356024356104f5565b34801561021857600080fd5b506100fb600435610557565b34801561023057600080fd5b506100fb600160a060020a0360043516610623565b34801561025157600080fd5b506100fb600160a060020a0360043516610674565b34801561027257600080fd5b506100fb6106ec565b34801561028757600080fd5b506101126107a2565b34801561029c57600080fd5b506102a86004356107b1565b60408051918252519081900360200190f35b3480156102c657600080fd5b506102a86004356107c3565b6102e06004356024356107f6565b604080519115158252519081900360200190f35b34801561030057600080fd5b50610112610b04565b34801561031557600080fd5b506040805160206004803580820135601f81018490048402850184019095528484526100fb943694929360249392840191908190840183828082843750949750610b139650505050505050565b34801561036e57600080fd5b506100fb610b3d565b34801561038357600080fd5b506100fb600160a060020a0360043516610bc3565b3480156103a457600080fd5b506100fb600435602435600160a060020a0360443516610c09565b600154600160a060020a03165b90565b600054600160a060020a031633146103e657600080fd5b60038190556040805182815290517fbc1292d8ca346c1397b1176ce2935afd34c4365fece415b14e3a9242eae388f59181900360200190a150565b6005805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156104a75780601f1061047c576101008083540402835291602001916104a7565b820191906000526020600020905b81548152906001019060200180831161048a57829003601f168201915b505050505081565b600054600160a060020a031633146104c657600080fd5b6006805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b600054600160a060020a0316331461050c57600080fd5b6000828152600460209081526040918290208390558151838152915184927fe4887440991624b147d2129ab0befa8c1df4cff87b22513c8eea7cb16ed2aaf292908290030190a25050565b600054600160a060020a0316331461056e57600080fd5b600154604080517f4df6ca2a000000000000000000000000000000000000000000000000000000008152600481018490529051600160a060020a0390921691634df6ca2a9160248082019260009290919082900301818387803b1580156105d457600080fd5b505af11580156105e8573d6000803e3d6000fd5b50506040805184815290517f173ec7037500587e8ac3402cac8426c5c2bac605eabd93f790422e621633d7119350908190036020019150a150565b600054600160a060020a0316331461063a57600080fd5b604051600160a060020a03821690303180156108fc02916000818181858888f19350505050158015610670573d6000803e3d6000fd5b5050565b600054600160a060020a0316331461068b57600080fd5b60018054600160a060020a03831673ffffffffffffffffffffffffffffffffffffffff19909116811790915560408051918252517f568b4ce4fc4d09c939362effe33053025b93088cab521fc476f469966c7efdd59181900360200190a150565b600654600160a060020a0316151561076557604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601760248201527f4e6f2077616c6c65742069732072656769737465726564000000000000000000604482015290519081900360640190fd5b600654604051600160a060020a0390911690303180156108fc02916000818181858888f1935050505015801561079f573d6000803e3d6000fd5b50565b600054600160a060020a031681565b60026020526000908152604090205481565b60008181526004602052604081205481106107e0576003546107f0565b6000828152600460205260409020545b92915050565b6000806000610804856107c3565b91506000821161089b57604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603c60248201527f5468652061726269747261746f72206d7573742068617665207365742061206e60448201527f6f6e2d7a65726f2066656520666f7220746865207175657374696f6e00000000606482015290519081900360840190fd5b506000848152600260205260409020805434019081905581811061098f57600154604080517ff6a94ecb00000000000000000000000000000000000000000000000000000000815260048101889052336024820152604481018790529051600160a060020a039092169163f6a94ecb9160648082019260009290919082900301818387803b15801561092c57600080fd5b505af1158015610940573d6000803e3d6000fd5b50506040805134815233602082015260008183015290518893507fdf8a830581aa05b0b824a0c184007c33a1ad9100a41751c9ded9f2b4fefb16ba92509081900360600190a260019250610afc565b600154604080517f7f8d429e000000000000000000000000000000000000000000000000000000008152600481018890529051600160a060020a0390921691637f8d429e916024808201926020929091908290030181600087803b1580156109f657600080fd5b505af1158015610a0a573d6000803e3d6000fd5b505050506040513d6020811015610a2057600080fd5b505115610ab457604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602960248201527f546865207175657374696f6e206d757374206e6f742068617665206265656e2060448201527f66696e616c697a65640000000000000000000000000000000000000000000000606482015290519081900360840190fd5b6040805134815233602082015282840381830152905186917fdf8a830581aa05b0b824a0c184007c33a1ad9100a41751c9ded9f2b4fefb16ba919081900360600190a2600092505b505092915050565b600154600160a060020a031681565b600054600160a060020a03163314610b2a57600080fd5b8051610670906005906020840190610cbd565b600160009054906101000a9004600160a060020a0316600160a060020a0316633ccfd60b6040518163ffffffff167c0100000000000000000000000000000000000000000000000000000000028152600401600060405180830381600087803b158015610ba957600080fd5b505af1158015610bbd573d6000803e3d6000fd5b50505050565b600054600160a060020a03163314610bda57600080fd5b6000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b600054600160a060020a03163314610c2057600080fd5b60008381526002602052604080822082905560015481517ffe92049d0000000000000000000000000000000000000000000000000000000081526004810187905260248101869052600160a060020a0385811660448301529251929091169263fe92049d9260648084019382900301818387803b158015610ca057600080fd5b505af1158015610cb4573d6000803e3d6000fd5b50505050505050565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f10610cfe57805160ff1916838001178555610d2b565b82800160010185558215610d2b579182015b82811115610d2b578251825591602001919060010190610d10565b50610d37929150610d3b565b5090565b6103cc91905b80821115610d375760008155600101610d415600a165627a7a72305820f1a5b02d8260aeca1802eccf4d2e4c762491ff03b37c8ad1f4a23aa8d7c5801d0029",
+  "sourceMap": "578:1011:11:-;;;111:5:7;:18;;-1:-1:-1;;;;;;111:18:7;;;119:10;111:18;;;842::0;;;;;;578:1011:11;;;;;;",
+  "deployedSourceMap": "578:1011:11:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;964:93:0;;8:9:-1;5:2;;;30:1;27;20:12;5:2;964:93:0;;;;;;;;-1:-1:-1;;;;;964:93:0;;;;;;;;;;;;;;1407:137;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;1407:137:0;;;;;282:22;;8:9:-1;5:2;;;30:1;27;20:12;5:2;282:22:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;8:100:-1;33:3;30:1;27:10;8:100;;;90:11;;;84:18;71:11;;;64:39;52:2;45:10;8:100;;;12:14;282:22:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1468:118:11;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;1468:118:11;-1:-1:-1;;;;;1468:118:11;;;;;1698:204:0;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;1698:204:0;;;;;;;2825:150;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;2825:150:0;;;;;5034:117;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;5034:117:0;-1:-1:-1;;;;;5034:117:0;;;;;1180:143;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;1180:143:0;-1:-1:-1;;;;;1180:143:0;;;;;1108:187:11;;8:9:-1;5:2;;;30:1;27;20:12;5:2;1108:187:11;;;;48:20:7;;8:9:-1;5:2;;;30:1;27;20:12;5:2;48:20:7;;;;141:55:0;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;141:55:0;;;;;;;;;;;;;;;;;;;;;2160:190;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;2160:190:0;;;;;4006:883;;;;;;;;;;;;;;;;;;;;;;;;;;110:24;;8:9:-1;5:2;;;30:1;27;20:12;5:2;110:24:0;;;;5597:106;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;5597:106:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;5597:106:0;;-1:-1:-1;5597:106:0;;-1:-1:-1;;;;;;;5597:106:0;944:73:11;;8:9:-1;5:2;;;30:1;27;20:12;5:2;944:73:11;;;;223:109:7;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;223:109:7;-1:-1:-1;;;;;223:109:7;;;;;3251:251:0;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;3251:251:0;;;;;-1:-1:-1;;;;;3251:251:0;;;;;964:93;1042:8;;-1:-1:-1;;;;;1042:8:0;964:93;;:::o;1407:137::-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;1484:11:0;:17;;;1516:21;;;;;;;;;;;;;;;;;1407:137;:::o;282:22::-;;;;;;;;;;;;;;;-1:-1:-1;;282:22:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::o;1468:118:11:-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;1556:17:11;:23;;-1:-1:-1;;1556:23:11;-1:-1:-1;;;;;1556:23:11;;;;;;;;;;1468:118::o;1698:204:0:-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;1802:32:0;;;;:19;:32;;;;;;;;;:38;;;1855:40;;;;;;;1822:11;;1855:40;;;;;;;;;1698:204;;:::o;2825:150::-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;2903:8:0;;:28;;;;;;;;;;;;;;-1:-1:-1;;;;;2903:8:0;;;;:23;;:28;;;;;:8;;:28;;;;;;;;:8;;:28;;;5:2:-1;;;;30:1;27;20:12;5:2;2903:28:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;-1:-1;;2946:22:0;;;;;;;;;;-1:-1:-1;2946:22:0;;;;;;;-1:-1:-1;2946:22:0;2825:150;:::o;5034:117::-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;5107:36:0;;-1:-1:-1;;;;;5107:13:0;;;5129:4;5121:21;5107:36;;;;;;;;;5121:21;5107:13;:36;;;;;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;5107:36:0;5034:117;:::o;1180:143::-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;1256:8:0;:25;;-1:-1:-1;;;;;1256:25:0;;-1:-1:-1;;1256:25:0;;;;;;;;1296:20;;;;;;;;;;;;;;;;1180:143;:::o;1108:187:11:-;1177:17;;-1:-1:-1;;;;;1177:17:11;:24;;1169:60;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;1239:17;;:49;;-1:-1:-1;;;;;1239:17:11;;;;1274:4;1266:21;1239:49;;;;;:17;:49;:17;:49;1266:21;1239:17;:49;;;;;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;1239:49:11;1108:187::o;48:20:7:-;;;-1:-1:-1;;;;;48:20:7;;:::o;141:55:0:-;;;;;;;;;;;;;:::o;2160:190::-;2230:7;2257:32;;;:19;:32;;;;;;:36;-1:-1:-1;2256:87:0;;2332:11;;2256:87;;;2297:32;;;;:19;:32;;;;;;2256:87;2249:94;2160:190;-1:-1:-1;;2160:190:0:o;4006:883::-;4108:4;4125:23;4346:12;4151:26;4165:11;4151:13;:26::i;:::-;4125:52;-1:-1:-1;4213:1:0;4195:19;;4187:92;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;4290:33:0;;;;:20;:33;;;;;:46;;4327:9;4290:46;;;;;4409:23;;;4405:477;;4448:8;;:74;;;;;;;;;;;;4497:10;4448:74;;;;;;;;;;;;-1:-1:-1;;;;;4448:8:0;;;;:35;;:74;;;;;:8;;:74;;;;;;;;:8;;:74;;;5:2:-1;;;;30:1;27;20:12;5:2;4448:74:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;-1:-1;;4541:60:0;;;4576:9;4541:60;;4587:10;4541:60;;;;;;;;;;;4563:11;;-1:-1:-1;4541:60:0;;-1:-1:-1;4541:60:0;;;;;;;;4622:4;4615:11;;;;4405:477;4666:8;;:33;;;;;;;;;;;;;;-1:-1:-1;;;;;4666:8:0;;;;:20;;:33;;;;;;;;;;;;;;;:8;;:33;;;5:2:-1;;;;30:1;27;20:12;5:2;4666:33:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;4666:33:0;;;;;;;13:2:-1;8:3;5:11;2:2;;;29:1;26;19:12;2:2;-1:-1;4666:33:0;4665:34;4657:88;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;4764:81;;;4799:9;4764:81;;4810:10;4764:81;;;;4822:22;;;4764:81;;;;;;4786:11;;4764:81;;;;;;;;;;4866:5;4859:12;;4405:477;4006:883;;;;;;:::o;110:24::-;;;-1:-1:-1;;;;;110:24:0;;:::o;5597:106::-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;5676:20:0;;;;:8;;:20;;;;;:::i;944:73:11:-;990:8;;;;;;;;;-1:-1:-1;;;;;990:8:11;-1:-1:-1;;;;;990:17:11;;:19;;;;;;;;;;;;;;;;;;;;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;990:19:11;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;990:19:11;;;;944:73::o;223:109:7:-;193:5;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;309:5;:16;;-1:-1:-1;;309:16:7;-1:-1:-1;;;;;309:16:7;;;;;;;;;;223:109::o;3251:251:0:-;193:5:7;;-1:-1:-1;;;;;193:5:7;179:10;:19;171:28;;;;;;3388:33:0;;;;:20;:33;;;;;;3381:40;;;3431:8;;:64;;;;;;;;;;;;;;;;;-1:-1:-1;;;;;3431:64:0;;;;;;;;;:8;;;;;:33;;:64;;;;;;;;;;3388:33;3431:8;:64;;;5:2:-1;;;;30:1;27;20:12;5:2;3431:64:0;;;;8:9:-1;5:2;;;45:16;42:1;39;24:38;77:16;74:1;67:27;5:2;3431:64:0;;;;3251:251;;;:::o;578:1011:11:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;-1:-1:-1;578:1011:11;;;-1:-1:-1;578:1011:11;:::i;:::-;;;:::o;:::-;;;;;;;;;;;;;;;;;",
+  "source": "pragma solidity ^0.4.24;\n\nimport './Arbitrator.sol';\n\n/*\nThis contract extends the standard Arbitrator contract to make it possible to make routine fund withdrawals to an address pre-registered by the owner without actually being the owner.\n\nWe do this to facilitate controlling Arbitrator contracts using multisig wallets, which should require multiple sign-offs to allow validation and fee-settings tasks, but users should be able to withdraw their own share of the funds without anyone else's permission. This can be done in combination with our SplitterWallet contract.\n*/\n\ncontract RegisteredWalletArbitrator is Arbitrator {\n\n    address registered_wallet;\n\n    /// @notice Withdraw any accumulated question fees from the specified address into this contract\n    /// @dev Funds can then be liberated from this contract with our withdraw() function\n    /// @dev Usually the arbitrator calls this, but if someone else does that's OK too\n    function callWithdraw() \n    public {\n        realitio.withdraw(); \n    }\n\n    /// @notice Withdraw money from the arbitrator contract to our registered wallet\n    function withdrawToRegisteredWallet()\n    external {\n        require(registered_wallet != 0x0, \"No wallet is registered\");\n        registered_wallet.transfer(address(this).balance);\n    }\n\n    /// @notice Change the address of our registered wallet\n    /// @param addr The address of the new wallet\n    /// @dev Set to 0x0 to not use the registered wallet\n    function updateRegisteredWallet(address addr) \n        onlyOwner\n    external {\n        registered_wallet= addr;\n    }\n\n}\n",
+  "sourcePath": "/home/ed/working/realitio-contracts/truffle/contracts/RegisteredWalletArbitrator.sol",
+  "ast": {
+    "absolutePath": "/home/ed/working/realitio-contracts/truffle/contracts/RegisteredWalletArbitrator.sol",
+    "exportedSymbols": {
+      "RegisteredWalletArbitrator": [
+        3039
+      ]
+    },
+    "id": 3040,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 2992,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".24"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:11"
+      },
+      {
+        "absolutePath": "/home/ed/working/realitio-contracts/truffle/contracts/Arbitrator.sol",
+        "file": "./Arbitrator.sol",
+        "id": 2993,
+        "nodeType": "ImportDirective",
+        "scope": 3040,
+        "sourceUnit": 312,
+        "src": "26:26:11",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 2994,
+              "name": "Arbitrator",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 311,
+              "src": "617:10:11",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Arbitrator_$311",
+                "typeString": "contract Arbitrator"
+              }
+            },
+            "id": 2995,
+            "nodeType": "InheritanceSpecifier",
+            "src": "617:10:11"
+          }
+        ],
+        "contractDependencies": [
+          311,
+          847
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 3039,
+        "linearizedBaseContracts": [
+          3039,
+          311,
+          847
+        ],
+        "name": "RegisteredWalletArbitrator",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 2997,
+            "name": "registered_wallet",
+            "nodeType": "VariableDeclaration",
+            "scope": 3039,
+            "src": "635:25:11",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 2996,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "635:7:11",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 3005,
+              "nodeType": "Block",
+              "src": "980:37:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 3000,
+                        "name": "realitio",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 7,
+                        "src": "990:8:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_Realitio_$2865",
+                          "typeString": "contract Realitio"
+                        }
+                      },
+                      "id": 3002,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "withdraw",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 355,
+                      "src": "990:17:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_external_nonpayable$__$returns$__$",
+                        "typeString": "function () external"
+                      }
+                    },
+                    "id": 3003,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "990:19:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3004,
+                  "nodeType": "ExpressionStatement",
+                  "src": "990:19:11"
+                }
+              ]
+            },
+            "documentation": "@notice Withdraw any accumulated question fees from the specified address into this contract\n @dev Funds can then be liberated from this contract with our withdraw() function\n @dev Usually the arbitrator calls this, but if someone else does that's OK too",
+            "id": 3006,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "callWithdraw",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 2998,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "965:2:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 2999,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "980:0:11"
+            },
+            "scope": 3039,
+            "src": "944:73:11",
+            "stateMutability": "nonpayable",
+            "superFunction": 298,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 3025,
+              "nodeType": "Block",
+              "src": "1159:136:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "commonType": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        "id": 3012,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "leftExpression": {
+                          "argumentTypes": null,
+                          "id": 3010,
+                          "name": "registered_wallet",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 2997,
+                          "src": "1177:17:11",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "nodeType": "BinaryOperation",
+                        "operator": "!=",
+                        "rightExpression": {
+                          "argumentTypes": null,
+                          "hexValue": "307830",
+                          "id": 3011,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "kind": "number",
+                          "lValueRequested": false,
+                          "nodeType": "Literal",
+                          "src": "1198:3:11",
+                          "subdenomination": null,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_rational_0_by_1",
+                            "typeString": "int_const 0"
+                          },
+                          "value": "0x0"
+                        },
+                        "src": "1177:24:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4e6f2077616c6c65742069732072656769737465726564",
+                        "id": 3013,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "1203:25:11",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_52303f69f2ddb51b51e18405a362fe1c5b551cded2fae79654e117352942dc4e",
+                          "typeString": "literal_string \"No wallet is registered\""
+                        },
+                        "value": "No wallet is registered"
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        },
+                        {
+                          "typeIdentifier": "t_stringliteral_52303f69f2ddb51b51e18405a362fe1c5b551cded2fae79654e117352942dc4e",
+                          "typeString": "literal_string \"No wallet is registered\""
+                        }
+                      ],
+                      "id": 3009,
+                      "name": "require",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        3365,
+                        3366
+                      ],
+                      "referencedDeclaration": 3366,
+                      "src": "1169:7:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (bool,string memory) pure"
+                      }
+                    },
+                    "id": 3014,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1169:60:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3015,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1169:60:11"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "arguments": [
+                            {
+                              "argumentTypes": null,
+                              "id": 3020,
+                              "name": "this",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 3397,
+                              "src": "1274:4:11",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_contract$_RegisteredWalletArbitrator_$3039",
+                                "typeString": "contract RegisteredWalletArbitrator"
+                              }
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_contract$_RegisteredWalletArbitrator_$3039",
+                                "typeString": "contract RegisteredWalletArbitrator"
+                              }
+                            ],
+                            "id": 3019,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "lValueRequested": false,
+                            "nodeType": "ElementaryTypeNameExpression",
+                            "src": "1266:7:11",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_type$_t_address_$",
+                              "typeString": "type(address)"
+                            },
+                            "typeName": "address"
+                          },
+                          "id": 3021,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "typeConversion",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "1266:13:11",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "id": 3022,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "balance",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "1266:21:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 3016,
+                        "name": "registered_wallet",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2997,
+                        "src": "1239:17:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "id": 3018,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "transfer",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "1239:26:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_transfer_nonpayable$_t_uint256_$returns$__$",
+                        "typeString": "function (uint256)"
+                      }
+                    },
+                    "id": 3023,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1239:49:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3024,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1239:49:11"
+                }
+              ]
+            },
+            "documentation": "@notice Withdraw money from the arbitrator contract to our registered wallet",
+            "id": 3026,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "withdrawToRegisteredWallet",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3007,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1143:2:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 3008,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1159:0:11"
+            },
+            "scope": 3039,
+            "src": "1108:187:11",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          },
+          {
+            "body": {
+              "id": 3037,
+              "nodeType": "Block",
+              "src": "1546:40:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 3035,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 3033,
+                      "name": "registered_wallet",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2997,
+                      "src": "1556:17:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "id": 3034,
+                      "name": "addr",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 3028,
+                      "src": "1575:4:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1556:23:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 3036,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1556:23:11"
+                }
+              ]
+            },
+            "documentation": "@notice Change the address of our registered wallet\n @param addr The address of the new wallet\n @dev Set to 0x0 to not use the registered wallet",
+            "id": 3038,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 3031,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 3030,
+                  "name": "onlyOwner",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 834,
+                  "src": "1523:9:11",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1523:9:11"
+              }
+            ],
+            "name": "updateRegisteredWallet",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3029,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3028,
+                  "name": "addr",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3038,
+                  "src": "1500:12:11",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3027,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1500:7:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1499:14:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 3032,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1546:0:11"
+            },
+            "scope": 3039,
+            "src": "1468:118:11",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 3040,
+        "src": "578:1011:11"
+      }
+    ],
+    "src": "0:1590:11"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/ed/working/realitio-contracts/truffle/contracts/RegisteredWalletArbitrator.sol",
+    "exportedSymbols": {
+      "RegisteredWalletArbitrator": [
+        3039
+      ]
+    },
+    "id": 3040,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 2992,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".24"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:11"
+      },
+      {
+        "absolutePath": "/home/ed/working/realitio-contracts/truffle/contracts/Arbitrator.sol",
+        "file": "./Arbitrator.sol",
+        "id": 2993,
+        "nodeType": "ImportDirective",
+        "scope": 3040,
+        "sourceUnit": 312,
+        "src": "26:26:11",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 2994,
+              "name": "Arbitrator",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 311,
+              "src": "617:10:11",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_Arbitrator_$311",
+                "typeString": "contract Arbitrator"
+              }
+            },
+            "id": 2995,
+            "nodeType": "InheritanceSpecifier",
+            "src": "617:10:11"
+          }
+        ],
+        "contractDependencies": [
+          311,
+          847
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 3039,
+        "linearizedBaseContracts": [
+          3039,
+          311,
+          847
+        ],
+        "name": "RegisteredWalletArbitrator",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 2997,
+            "name": "registered_wallet",
+            "nodeType": "VariableDeclaration",
+            "scope": 3039,
+            "src": "635:25:11",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 2996,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "635:7:11",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 3005,
+              "nodeType": "Block",
+              "src": "980:37:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 3000,
+                        "name": "realitio",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 7,
+                        "src": "990:8:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_contract$_Realitio_$2865",
+                          "typeString": "contract Realitio"
+                        }
+                      },
+                      "id": 3002,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "withdraw",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 355,
+                      "src": "990:17:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_external_nonpayable$__$returns$__$",
+                        "typeString": "function () external"
+                      }
+                    },
+                    "id": 3003,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "990:19:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3004,
+                  "nodeType": "ExpressionStatement",
+                  "src": "990:19:11"
+                }
+              ]
+            },
+            "documentation": "@notice Withdraw any accumulated question fees from the specified address into this contract\n @dev Funds can then be liberated from this contract with our withdraw() function\n @dev Usually the arbitrator calls this, but if someone else does that's OK too",
+            "id": 3006,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "callWithdraw",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 2998,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "965:2:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 2999,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "980:0:11"
+            },
+            "scope": 3039,
+            "src": "944:73:11",
+            "stateMutability": "nonpayable",
+            "superFunction": 298,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 3025,
+              "nodeType": "Block",
+              "src": "1159:136:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "commonType": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        "id": 3012,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "leftExpression": {
+                          "argumentTypes": null,
+                          "id": 3010,
+                          "name": "registered_wallet",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 2997,
+                          "src": "1177:17:11",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "nodeType": "BinaryOperation",
+                        "operator": "!=",
+                        "rightExpression": {
+                          "argumentTypes": null,
+                          "hexValue": "307830",
+                          "id": 3011,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "kind": "number",
+                          "lValueRequested": false,
+                          "nodeType": "Literal",
+                          "src": "1198:3:11",
+                          "subdenomination": null,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_rational_0_by_1",
+                            "typeString": "int_const 0"
+                          },
+                          "value": "0x0"
+                        },
+                        "src": "1177:24:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4e6f2077616c6c65742069732072656769737465726564",
+                        "id": 3013,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "1203:25:11",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_52303f69f2ddb51b51e18405a362fe1c5b551cded2fae79654e117352942dc4e",
+                          "typeString": "literal_string \"No wallet is registered\""
+                        },
+                        "value": "No wallet is registered"
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_bool",
+                          "typeString": "bool"
+                        },
+                        {
+                          "typeIdentifier": "t_stringliteral_52303f69f2ddb51b51e18405a362fe1c5b551cded2fae79654e117352942dc4e",
+                          "typeString": "literal_string \"No wallet is registered\""
+                        }
+                      ],
+                      "id": 3009,
+                      "name": "require",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        3365,
+                        3366
+                      ],
+                      "referencedDeclaration": 3366,
+                      "src": "1169:7:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_require_pure$_t_bool_$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (bool,string memory) pure"
+                      }
+                    },
+                    "id": 3014,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1169:60:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3015,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1169:60:11"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "arguments": [
+                            {
+                              "argumentTypes": null,
+                              "id": 3020,
+                              "name": "this",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 3397,
+                              "src": "1274:4:11",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_contract$_RegisteredWalletArbitrator_$3039",
+                                "typeString": "contract RegisteredWalletArbitrator"
+                              }
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_contract$_RegisteredWalletArbitrator_$3039",
+                                "typeString": "contract RegisteredWalletArbitrator"
+                              }
+                            ],
+                            "id": 3019,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "lValueRequested": false,
+                            "nodeType": "ElementaryTypeNameExpression",
+                            "src": "1266:7:11",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_type$_t_address_$",
+                              "typeString": "type(address)"
+                            },
+                            "typeName": "address"
+                          },
+                          "id": 3021,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "typeConversion",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "1266:13:11",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_address",
+                            "typeString": "address"
+                          }
+                        },
+                        "id": 3022,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "balance",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "1266:21:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 3016,
+                        "name": "registered_wallet",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 2997,
+                        "src": "1239:17:11",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      "id": 3018,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "transfer",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "1239:26:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_transfer_nonpayable$_t_uint256_$returns$__$",
+                        "typeString": "function (uint256)"
+                      }
+                    },
+                    "id": 3023,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1239:49:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 3024,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1239:49:11"
+                }
+              ]
+            },
+            "documentation": "@notice Withdraw money from the arbitrator contract to our registered wallet",
+            "id": 3026,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "withdrawToRegisteredWallet",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3007,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1143:2:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 3008,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1159:0:11"
+            },
+            "scope": 3039,
+            "src": "1108:187:11",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          },
+          {
+            "body": {
+              "id": 3037,
+              "nodeType": "Block",
+              "src": "1546:40:11",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 3035,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 3033,
+                      "name": "registered_wallet",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2997,
+                      "src": "1556:17:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "id": 3034,
+                      "name": "addr",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 3028,
+                      "src": "1575:4:11",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "1556:23:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 3036,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1556:23:11"
+                }
+              ]
+            },
+            "documentation": "@notice Change the address of our registered wallet\n @param addr The address of the new wallet\n @dev Set to 0x0 to not use the registered wallet",
+            "id": 3038,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 3031,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 3030,
+                  "name": "onlyOwner",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 834,
+                  "src": "1523:9:11",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1523:9:11"
+              }
+            ],
+            "name": "updateRegisteredWallet",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 3029,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 3028,
+                  "name": "addr",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 3038,
+                  "src": "1500:12:11",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 3027,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1500:7:11",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1499:14:11"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 3032,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1546:0:11"
+            },
+            "scope": 3039,
+            "src": "1468:118:11",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "external"
+          }
+        ],
+        "scope": 3040,
+        "src": "578:1011:11"
+      }
+    ],
+    "src": "0:1590:11"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.25+commit.59dbf8f1.Emscripten.clang"
+  },
+  "networks": {
+    "123411710": {
+      "events": {},
+      "links": {},
+      "address": "0xe0DCe44024d602b3CF246Fd7715a68Ad85065924",
+      "transactionHash": "0xd6450e95f89549cd3aec76782d88652d04c25e8d7b4966204f37df6503819f61"
+    }
+  },
+  "schemaVersion": "3.0.0-beta.1",
+  "updatedAt": "2018-11-21T05:04:53.509Z"
+}
