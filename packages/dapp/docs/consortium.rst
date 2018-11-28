@@ -28,16 +28,15 @@ Arbitration contract structure
 What arbitrators have to do
 ---------------------------
 
+We have has done the initial deployment of the contracts and made their source code and setup parameters available via Etherscan.
 
-* We have has done the initial deployment of the contracts and made their source code and setup parameters available via Etherscan.
+Arbitrators need to create and secure an Ethereum account, capable of interacting with the contracts. We provide JavaScript-based tools designed for providing these functions on an offline computer. However, consortium members are free to implement other methods of interacting with the contracts if they prefer.
 
-* Arbitrators need to create and secure an Ethereum account, capable of interacting with the contracts. We provide JavaScript-based tools designed for providing these functions on an offline computer. However, consortium members are free to implement other methods of interacting with the contracts if they prefer.
+We use a Gnosis Multisig Wallet to manage the Arbitrator contract. As well as our command-line tool, this wallet provides a web UI allowing you to sign off on proposed transactions made by other parties, using the MetaMask Chrome extension.
 
-* We use a Gnosis Multisig Wallet to manage the Arbitrator contract. As well as our command-line tool, this wallet provides a web UI allowing you to sign off on proposed transactions made by other parties, using the MetaMask Chrome extension.
+Before starting operation, consortium members should run a test on the main Ethereum network to confirm that they can perform tasks they may need to perform later. (See below).
 
-* Before starting operation, consortium members should run a test on the main Ethereum network to confirm that they can perform tasks they may need to perform later. (See below).
-
-* When arbitration is requested, by someone sending a fee to the arbitrator contract, arbitrators should consider the question under dispute, and send a transaction including the correct answer, and either the account that gave the final answer (if the previous final answer was correct) or the account that paid for arbitration (if the previous final answer was wrong).
+When arbitration is requested, by someone sending a fee to the arbitrator contract, arbitrators should consider the question under dispute, and send a transaction including the correct answer, and either the account that gave the final answer (if the previous final answer was correct) or the account that paid for arbitration (if the previous final answer was wrong).
 
 Operation rules and terms of service
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
