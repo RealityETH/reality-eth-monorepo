@@ -37,6 +37,7 @@ What arbitrators have to do
 
 * Before starting operation, consortium members should run a test on the main Ethereum network to confirm that they can perform tasks they may need to perform later. (See below).
 
+* When arbitration is requested, by someone sending a fee to the arbitrator contract, arbitrators should consider the question under dispute, and send a transaction including the correct answer, and either the account that gave the final answer (if the previous final answer was correct) or the account that paid for arbitration (if the previous final answer was wrong).
 
 Operation rules and terms of service
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
