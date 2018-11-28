@@ -1,12 +1,13 @@
 {
     "network_id": 123411710,
-    "key_file": "/secrets/arbitrator.sec",
+    "key_file": "arbitrator.sec",
     "arbitration_requests_file": "./requests/arbitration.json",
     "contract_dir": "./../truffle/build/contracts",
     "min_nonce": 0,
     "max_nonce": 100,
     "min_gas_price_in_gwei": 1,
     "max_gas_price_in_gwei": 100,
-    "gas_limit": 100000,
-    "multisig_wallet": "0x456facc7EE723f519645d6F5d63365D0c26CF209"
+    "gas_limit": 900000,
+    "multisig_wallet": "0xBa952e5541674C1F35f9ea46459640f00E722F6B",
+    "splitter_wallet": "0x3e2F0C013d15270b2842a6aebb414C72511ff12F"
 }
