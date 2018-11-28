@@ -12,7 +12,7 @@ console.log('Generating a transaction to send ' + val + ' gwei ' + (val / rc_com
 
 const valwei = val * rc_common.GWEI_TO_WEI;
 
-const stx = rc_common.serializedValueTX(params, addr, valwei);
+const stx = rc_common.serializedValueTX(params, addr, valwei, true);
 
 rc_common.output(stx);
 

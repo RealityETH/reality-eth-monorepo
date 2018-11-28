@@ -107,14 +107,14 @@ exports.commonParams = function(argv) {
     }
 }
 
-exports.serializedValueTX = function(params, addr, val) {
+exports.serializedValueTX = function(params, addr, val, no_multisig) {
 
     var gas_limit = 22000;
     var data = "0x";
 
     // If there's a multi-sig wallet configured, use the data and address as arguments
     // ...then switch out the wallet for the address and data.
-    if (config.multisig_wallet) {
+    if (!no_multisig && config.multisig_wallet) {
         const wallet = this.walletContract();
         const wallet_req = wallet.submitTransaction.request(addr, val, data);
         data = wallet_req.params[0].data;
