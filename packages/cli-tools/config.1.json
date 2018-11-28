@@ -1,6 +1,6 @@
 {
     "network_id": 1,
-    "key_file": "arbitrator.sec",
+    "key_file": "./secrets/arbitrator.sec",
     "arbitration_requests_file": "./requests/arbitration.json",
     "contract_dir": "./../truffle/build/contracts",
     "min_nonce": 0,
