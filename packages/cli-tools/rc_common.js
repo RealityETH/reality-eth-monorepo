@@ -4,6 +4,13 @@ const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/A
 const wallet_json = require('./abi/MultiSigWallet.json');
 const splitter_json = require('./abi/SplitterWallet.json');
 
+try{ 
+    require('./config.json');
+} catch(err) {
+    console.log('Error: Config file config.json is missing. Please create one based on config.example.json');
+    process.exit(1);
+}
+
 const config = require('./config.json');
 
 const BigNumber = require('bignumber.js');
