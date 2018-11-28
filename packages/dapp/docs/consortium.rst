@@ -6,7 +6,7 @@ Arbitration Consortium Setup
    :caption: Contents:
 
 
-Arbitration by trusted parties can be done more securely and transparently by combining multiple parties. This document describes the technical steps to set up contracts allowing multiple parties (here, 3) to combine to perform arbitration tasks.
+Arbitration by trusted parties can be done more securely and transparently by combining multiple parties. This document describes the technical steps to set up contracts allowing m of n multiple parties (here, 2 of 3) to combine to perform arbitration tasks.
 
 This document assumes one of the parties, which we refer to as "we", will do the initial contract deployment etc. Other parties do not need to do this, but the steps are included at the end of the document.
 
