@@ -190,10 +190,13 @@ Setting question fees (anti-spam)
 Performing arbitration
 ~~~~~~~~~~~~~~~~~~~~~~
 
-  We prepare a json file at `requests/arbitration.json`. Each entry contains:
+  We prepare a json file at `requests/arbitration.json`.  There is an example showing the format of this file at `requests/arbitration.example.json`. 
+  
+  Each entry contains:
+
   * The question ID
   * The right answer
-  * The account that should be credited with that answer: If the final answer was right, this should be that answer. If not it should be the user that paid for arbitration.
+  * The account that should be credited with that answer: If the final answer was right, this should be the account that gave that answer. If not it should be the account that paid for arbitration.
 
   You can then create a transaction for an item at a particular index in that list with:
 
