@@ -415,15 +415,17 @@ let bounceEffect = function() {
 $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    var yourwin = $('#your-question-answer-window');
-    yourwin.css('z-index', ++zindex);
-    yourwin.addClass('is-open');
-    var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
-    yourwin.css('height', winheight + 'px');
-    Ps.update(yourwin.find('.rcbrowser-inner').get(0));
-    $('.tooltip').removeClass('is-visible');
-    $('body').removeClass('pushing');
-    markViewedToDate();
+    getAccount().then(function() {
+        var yourwin = $('#your-question-answer-window');
+        yourwin.css('z-index', ++zindex);
+        yourwin.addClass('is-open');
+        var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
+        yourwin.css('height', winheight + 'px');
+        Ps.update(yourwin.find('.rcbrowser-inner').get(0));
+        $('.tooltip').removeClass('is-visible');
+        $('body').removeClass('pushing');
+        markViewedToDate();
+    });
 });
 
 $('#help-center-button').on('click', function(e) {
@@ -476,85 +478,88 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
         document.documentElement.style.cursor = ""; // Work around Interact draggable bug
     });
 
-    $('#post-a-question-window-template').before(question_window);
-    $('#opening-ts-datepicker').datepicker({
-        dateFormat: 'yy-mm-dd',
-        onSelect: function(dateText) {
-            $(this).css('background-color', '#ffffff');
+    getAccount().then(function() {
+
+        $('#post-a-question-window-template').before(question_window);
+        $('#opening-ts-datepicker').datepicker({
+            dateFormat: 'yy-mm-dd',
+            onSelect: function(dateText) {
+                $(this).css('background-color', '#ffffff');
+            }
+        });
+
+        if (!question_window.hasClass('is-open')) {
+            question_window.css('z-index', ++zindex);
+            question_window.addClass('is-open');
+            question_window.css('height', question_window.height() + 'px');
+            setRcBrowserPosition(question_window);
         }
-    });
+        if (category) {
+            question_window.find("[name='question-category']").val(category);
+        }
 
-    if (!question_window.hasClass('is-open')) {
-        question_window.css('z-index', ++zindex);
-        question_window.addClass('is-open');
-        question_window.css('height', question_window.height() + 'px');
-        setRcBrowserPosition(question_window);
-    }
-    if (category) {
-        question_window.find("[name='question-category']").val(category);
-    }
+        Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 
-    Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
+        $("textarea[name='question-body']").on('change keyup paste', function() {
+            if ($(this).val()==""){
+                $(this).parent().addClass('is-error');
+            } else {
+                $(this).parent().removeClass('is-error');
+            }
+        });
 
-    $("textarea[name='question-body']").on('change keyup paste', function() {
-        if ($(this).val()==""){
-            $(this).parent().addClass('is-error');
-        } else {
+        $("select[name='question-category']").change(function(){
+            $(this).addClass("selected");
+
+            var optionLabel = "Category: ";
+
+            $("option", this).each(function() {
+                var option = $(this).text().split(optionLabel)[1];
+                if (option){ $(this).text(option);}
+            });
+
+            var optionText = $("option:selected",this).text();
+            $("option:selected", this).text(optionLabel + optionText);
+
             $(this).parent().removeClass('is-error');
-        }
-    });
-
-    $("select[name='question-category']").change(function(){
-        $(this).addClass("selected");
-
-        var optionLabel = "Category: ";
-
-        $("option", this).each(function() {
-            var option = $(this).text().split(optionLabel)[1];
-            if (option){ $(this).text(option);}
         });
 
-        var optionText = $("option:selected",this).text();
-        $("option:selected", this).text(optionLabel + optionText);
+        $("select[name='question-type']").change(function(){
+            var optionLabel = "Question Type: ";
 
-        $(this).parent().removeClass('is-error');
-    });
+            $("option", this).each(function() {
+                var option = $(this).text().split(optionLabel)[1];
+                if (option){ $(this).text(option);}
+            });
 
-    $("select[name='question-type']").change(function(){
-        var optionLabel = "Question Type: ";
-
-        $("option", this).each(function() {
-            var option = $(this).text().split(optionLabel)[1];
-            if (option){ $(this).text(option);}
+            var optionText = $("option:selected",this).text();
+            $("option:selected", this).text(optionLabel + optionText);
         });
 
-        var optionText = $("option:selected",this).text();
-        $("option:selected", this).text(optionLabel + optionText);
-    });
+        $("select[name='step-delay']").change(function(){
+            var optionLabel = "Countdown: ";
 
-    $("select[name='step-delay']").change(function(){
-        var optionLabel = "Countdown: ";
+            $("option", this).each(function() {
+                var option = $(this).text().split(optionLabel)[1];
+                if (option){ $(this).text(option);}
+            });
 
-        $("option", this).each(function() {
-            var option = $(this).text().split(optionLabel)[1];
-            if (option){ $(this).text(option);}
+            var optionText = $("option:selected",this).text();
+            $("option:selected", this).text(optionLabel + optionText);
         });
 
-        var optionText = $("option:selected",this).text();
-        $("option:selected", this).text(optionLabel + optionText);
-    });
+        $("select[name='arbitrator']").change(function(){
+            $(this).addClass("selected");
+            var optionLabel = "Arbitrator: ";
 
-    $("select[name='arbitrator']").change(function(){
-        $(this).addClass("selected");
-        var optionLabel = "Arbitrator: ";
+            $("option", this).each(function() {
+                var option = $(this).text().split(optionLabel)[1];
+                if (option){ $(this).text(option);}
+            });
 
-        $("option", this).each(function() {
-            var option = $(this).text().split(optionLabel)[1];
-            if (option){ $(this).text(option);}
+            var optionText = $("option:selected",this).text();
+            $("option:selected", this).text(optionLabel + optionText);
         });
-
-        var optionText = $("option:selected",this).text();
-        $("option:selected", this).text(optionLabel + optionText);
     });
 });
 
@@ -587,132 +592,135 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     e.preventDefault();
     e.stopPropagation();
 
-    var win = $('#post-a-question-window');
-    var question_body = win.find('.question-body');
-    var reward_val = win.find('.question-reward').val();
-    var timeout = win.find('.step-delay');
-    var timeout_val = parseInt(timeout.val());
-    var arbitrator = win.find('.arbitrator').val();
+    getAccount().then(function() {
 
-    var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
-    var expected_question_fee = expected_question_fee_attr ? new BigNumber(expected_question_fee_attr) : new BigNumber(0);
+        var win = $('#post-a-question-window');
+        var question_body = win.find('.question-body');
+        var reward_val = win.find('.question-reward').val();
+        var timeout = win.find('.step-delay');
+        var timeout_val = parseInt(timeout.val());
+        var arbitrator = win.find('.arbitrator').val();
 
-    if (arbitrator == 'other') {
-        arbitrator = win.find('input.arbitrator-other').val();
-    }
-    var question_type = win.find('.question-type');
-    var answer_options = win.find('.answer-option');
-    var opening_ts_val = win.find('.opening-ts').val();
+        var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
+        var expected_question_fee = expected_question_fee_attr ? new BigNumber(expected_question_fee_attr) : new BigNumber(0);
 
-    var category = win.find('div.select-container--question-category select');
-    var outcomes = [];
-    for (var i = 0; i < answer_options.length; i++) {
-        outcomes[i] = answer_options[i].value;
-    }
-    var reward = (reward_val == '') ? new BigNumber(0) : new BigNumber(web3js.toWei(reward_val, 'ether'));
-
-    if (validate(win)) {
-        var qtype = question_type.val();
-        var template_id = rc_template.defaultTemplateIDForType(qtype);
-        var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
-        var opening_ts = 0;
-        if (opening_ts_val != '') {
-            opening_ts = new Date(opening_ts_val);
-            opening_ts = parseInt(opening_ts / 1000);
+        if (arbitrator == 'other') {
+            arbitrator = win.find('input.arbitrator-other').val();
         }
+        var question_type = win.find('.question-type');
+        var answer_options = win.find('.answer-option');
+        var opening_ts_val = win.find('.opening-ts').val();
 
-        var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
-        console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
-        console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
+        var category = win.find('div.select-container--question-category select');
+        var outcomes = [];
+        for (var i = 0; i < answer_options.length; i++) {
+            outcomes[i] = answer_options[i].value;
+        }
+        var reward = (reward_val == '') ? new BigNumber(0) : new BigNumber(web3js.toWei(reward_val, 'ether'));
 
-        validateArbitratorForContract(arbitrator).then(function(is_ok) {
-            if (!is_ok) {
-                console.log('bad arbitrator');
-                return;
+        if (validate(win)) {
+            var qtype = question_type.val();
+            var template_id = rc_template.defaultTemplateIDForType(qtype);
+            var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
+            var opening_ts = 0;
+            if (opening_ts_val != '') {
+                opening_ts = new Date(opening_ts_val);
+                opening_ts = parseInt(opening_ts / 1000);
             }
-            rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
-                if (!fee.equals(expected_question_fee)) {
-                    console.log('fee has changed');
-                    populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
+
+            var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+            console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+            console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
+
+            validateArbitratorForContract(arbitrator).then(function(is_ok) {
+                if (!is_ok) {
+                    console.log('bad arbitrator');
                     return;
                 }
+                rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
+                    if (!fee.equals(expected_question_fee)) {
+                        console.log('fee has changed');
+                        populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
+                        return;
+                    }
 
-                rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
-                        from: account,
-                        gas: 200000,
-                        value: reward.plus(fee)
-                    })
-                    .then(function(txid) {
-                        //console.log('sent tx with id', txid);
+                    rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+                            from: account,
+                            gas: 200000,
+                            value: reward.plus(fee)
+                        })
+                        .then(function(txid) {
+                            //console.log('sent tx with id', txid);
 
-                        // Make a fake log entry
-                        var fake_log = {
-                            'entry': 'LogNewQuestion',
-                            'blockNumber': 0, // unconfirmed
-                            'args': {
-                                'question_id': question_id,
-                                'user': account,
-                                'arbitrator': arbitrator,
-                                'timeout': new BigNumber(timeout_val),
-                                'content_hash': rc_question.contentHash(template_id, opening_ts, qtext),
-                                'template_id': new BigNumber(template_id),
-                                'question': qtext,
-                                'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
-                                'opening_ts': new BigNumber(parseInt(opening_ts))
+                            // Make a fake log entry
+                            var fake_log = {
+                                'entry': 'LogNewQuestion',
+                                'blockNumber': 0, // unconfirmed
+                                'args': {
+                                    'question_id': question_id,
+                                    'user': account,
+                                    'arbitrator': arbitrator,
+                                    'timeout': new BigNumber(timeout_val),
+                                    'content_hash': rc_question.contentHash(template_id, opening_ts, qtext),
+                                    'template_id': new BigNumber(template_id),
+                                    'question': qtext,
+                                    'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                                    'opening_ts': new BigNumber(parseInt(opening_ts))
+                                }
                             }
-                        }
-                        var fake_call = [];
-                        fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
-                        fake_call[Qi_is_pending_arbitration] = false;
-                        fake_call[Qi_arbitrator - 1] = arbitrator;
-                        fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
-                        fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                        fake_call[Qi_bounty - 1] = reward;
-                        fake_call[Qi_best_answer - 1] = "0x0";
-                        fake_call[Qi_bond - 1] = new BigNumber(0);
-                        fake_call[Qi_history_hash - 1] = "0x0";
-                        fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
+                            var fake_call = [];
+                            fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
+                            fake_call[Qi_is_pending_arbitration] = false;
+                            fake_call[Qi_arbitrator - 1] = arbitrator;
+                            fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
+                            fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                            fake_call[Qi_bounty - 1] = reward;
+                            fake_call[Qi_best_answer - 1] = "0x0";
+                            fake_call[Qi_bond - 1] = new BigNumber(0);
+                            fake_call[Qi_history_hash - 1] = "0x0";
+                            fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
 
-                        var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
-                        q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
-                        q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+                            var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
+                            q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
+                            q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
-                        // Turn the post question window into a question detail window
-                        var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-                        win.html(rcqa.html());
-                        win = populateQuestionWindow(win, q, false);
+                            // Turn the post question window into a question detail window
+                            var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                            win.html(rcqa.html());
+                            win = populateQuestionWindow(win, q, false);
 
-                        // TODO: Once we have code to know which network we're on, link to a block explorer
-                        win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
-                        win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
-                        win.addClass('unconfirmed-transaction').addClass('has-warnings');
-                        win.attr('data-pending-txid', txid);
+                            // TODO: Once we have code to know which network we're on, link to a block explorer
+                            win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
+                            win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
+                            win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                            win.attr('data-pending-txid', txid);
 
-                        win.find('.rcbrowser__close-button').on('click', function() {
-                            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-                            let left = parseInt(parent_div.css('left').replace('px', ''));
-                            let top = parseInt(parent_div.css('top').replace('px', ''));
-                            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-                            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-                            left += data_x;
-                            top += data_y;
-                            window_position[question_id] = {};
-                            window_position[question_id]['x'] = left;
-                            window_position[question_id]['y'] = top;
-                            win.remove();
-                            document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                            win.find('.rcbrowser__close-button').on('click', function() {
+                                let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                                let left = parseInt(parent_div.css('left').replace('px', ''));
+                                let top = parseInt(parent_div.css('top').replace('px', ''));
+                                let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                                let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                                left += data_x;
+                                top += data_y;
+                                window_position[question_id] = {};
+                                window_position[question_id]['x'] = left;
+                                window_position[question_id]['y'] = top;
+                                win.remove();
+                                document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+                            });
+
+                            var window_id = 'qadetail-' + question_id;
+                            win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                            win.attr('id', window_id);
+                            win.attr('data-question-id', question_id);
+                            Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
                         });
-
-                        var window_id = 'qadetail-' + question_id;
-                        win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
-                        win.attr('id', window_id);
-                        win.attr('data-question-id', question_id);
-                        Ps.initialize(win.find('.rcbrowser-inner').get(0));
-
-                    });
+                });
             });
-        });
-    }
+        }
+    })
 
 });
 
@@ -996,6 +1004,10 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have fetched information about the question.
 function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
+
+    if (!account) {
+        return;
+    }
 
     if ((entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
         return;
@@ -3020,28 +3032,30 @@ $(document).on('click', '.post-answer-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var parent_div = $(this).parents('div.rcbrowser--qa-detail');
-    var question_id = parent_div.attr('data-question-id');
+    getAccount().then(function() {
 
-    var bond = new BigNumber(0);
-    var bond_field = parent_div.find('input[name="questionBond"]');
-    try {
-        bond  = web3js.toWei(new BigNumber(bond_field.val()), 'ether');
-    } catch (err) {
-        console.log('Could not parse bond field value');
-    }
+        var parent_div = $(this).parents('div.rcbrowser--qa-detail');
+        var question_id = parent_div.attr('data-question-id');
 
-    var question, current_answer, new_answer;
-    var question_json;
-    var current_question;
-    var is_err = false;
+        var bond = new BigNumber(0);
+        var bond_field = parent_div.find('input[name="questionBond"]');
+        try {
+            bond  = web3js.toWei(new BigNumber(bond_field.val()), 'ether');
+        } catch (err) {
+            console.log('Could not parse bond field value');
+        }
 
-    var block_before_send = current_block_number;
-    var question_json;
+        var question, current_answer, new_answer;
+        var question_json;
+        var current_question;
+        var is_err = false;
 
-    var new_answer;
+        var block_before_send = current_block_number;
+        var question_json;
 
-    var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+        var new_answer;
+
+        var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
         .catch(function() {
             // If the question is unconfirmed, go with what we have
             console.log('caught failure, trying unconfirmed');
@@ -3187,6 +3201,7 @@ $(document).on('click', '.post-answer-button', function(e) {
             });
 
         });
+    });
     /*
     .catch(function(e){
         console.log(e);
@@ -3260,7 +3275,8 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
-        rc.fundAnswerBounty(question_id, {
+        getAccount().then(function() {
+            rc.fundAnswerBounty(question_id, {
                 from: account,
                 value: reward
             })
@@ -3272,6 +3288,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
                 container.removeClass('is-bounce');
                 container.css('display', 'none');
             });
+        });
     }
 });
 
@@ -3281,33 +3298,35 @@ $(document).on('click', '.arbitration-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
-    var question_detail = question_detail_list[question_id];
-    if (!question_detail) {
-        console.log('Error, question detail not found');
-        return false;
-    }
+    getAccount().then(function() {
+        var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
+        var question_detail = question_detail_list[question_id];
+        if (!question_detail) {
+            console.log('Error, question detail not found');
+            return false;
+        }
 
-    var last_seen_bond_hex = $(this).attr('data-last-seen-bond'); 
-    if (!last_seen_bond_hex) {
-        console.log('Error, last seen bond not populated, aborting arbitration request');
-        return false;
-    }
+        var last_seen_bond_hex = $(this).attr('data-last-seen-bond'); 
+        if (!last_seen_bond_hex) {
+            console.log('Error, last seen bond not populated, aborting arbitration request');
+            return false;
+        }
 
-    var arbitration_fee;
-    //if (!question_detail[Qi_is_arbitration_due]) {}
-    var arbitrator;
-    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
-        arbitrator = arb;
-        return arb.getDisputeFee.call(question_id);
-    }).then(function(fee) {
-        arbitration_fee = fee;
-        //console.log('got fee', arbitration_fee.toString());
-        arbitrator.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
-        .then(function(result){
-            console.log('arbitration is requested.', result);
+        var arbitration_fee;
+        //if (!question_detail[Qi_is_arbitration_due]) {}
+        var arbitrator;
+        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+            arbitrator = arb;
+            return arb.getDisputeFee.call(question_id);
+        }).then(function(fee) {
+            arbitration_fee = fee;
+            //console.log('got fee', arbitration_fee.toString());
+            arbitrator.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
+            .then(function(result){
+                console.log('arbitration is requested.', result);
+            });
+
         });
-
     });
 });
 
@@ -3620,10 +3639,6 @@ function pageInit(account) {
         });
 
     });
-
-    fetchUserEventsAndHandle({
-        user: account
-    }, START_BLOCK, 'latest');
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
@@ -3989,6 +4004,59 @@ function initializeGlobalVariablesForNetwork(net_id) {
     }
 }
 
+function getAccount() {
+    console.log('in getAccount');
+    return new Promise((resolve, reject)=>{
+        if (account) {
+    console.log('returning accounty');
+            resolve(account);
+        }
+
+        ethereum.enable().then(function() {
+            web3js.eth.getAccounts((err, acc) => {
+                    if (acc && acc.length > 0) {
+                        //console.log('accounts', acc);
+                        account = acc[0];
+                        $('.account-balance-link').attr('href', block_explorer + '/address/' + account);
+                    } else {
+                        if (!is_web3_fallback) {
+                            console.log('no accounts');
+                            $('body').addClass('error-no-metamask-accounts').addClass('error');
+                        }
+                    }
+
+                if (LEGACY_CONTRACT_ADDRESSES[acc[0].toLowerCase()]) {
+                    // Notification bar(footer)
+                    if (window.localStorage.getItem('v1-got-it') == null) {
+                        $('#footer-notification-bar').css('display', 'block');
+                    }
+                    $('#got-it-button').on('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.localStorage.setItem('v1-got-it', true);
+                        $('#footer-notification-bar').css('display', 'none');
+                    });
+                }
+
+                accountInit(account);
+                resolve(account);
+
+            });
+        });
+    });
+}
+
+
+function accountInit(account) {
+
+    fetchUserEventsAndHandle({
+        user: account
+    }, START_BLOCK, 'latest');
+
+    updateUserBalanceDisplay();
+
+}
+
 window.addEventListener('load', function() {
 
     let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
@@ -4021,76 +4089,45 @@ window.addEventListener('load', function() {
         })
     });
 
-
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {
             if (valid_ids.indexOf(net_id) === -1) {
                 $('body').addClass('error-invalid-network').addClass('error');
             } else {
                 initializeGlobalVariablesForNetwork(net_id);
+                populateArbitratorSelect(arbitrator_list[net_id]);
             }
         }
 
-        ethereum.enable().then(function() {
-        web3js.eth.getAccounts((err, acc) => {
-            web3js.eth.getBlock('latest', function(err, result) {
-                if (result.number > current_block_number) {
-                    current_block_number = result.number;
-                }
-
-                if (acc && acc.length > 0) {
-                    //console.log('accounts', acc);
-                    account = acc[0];
-                    $('.account-balance-link').attr('href', block_explorer + '/address/' + account);
-                } else {
-                    if (!is_web3_fallback) {
-                        console.log('no accounts');
-                        $('body').addClass('error-no-metamask-accounts').addClass('error');
-                    }
-                }
-
-                var args = parseHash();
-                USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
-                if (args['category']) {
-                    category = args['category'];
-                    $('body').addClass('category-' + category);
-                    var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
-                    $('#filterby').text(cat_txt);
-                }
-                //console.log('args:', args);
-
-                RealityCheck = contract(rc_json);
-                RealityCheck.setProvider(web3js.currentProvider);
-                RealityCheck.deployed().then(function(instance) {
-                    rc = instance;
-                    updateUserBalanceDisplay();
-                    pageInit(account);
-                    if (args['question']) {
-                        //console.log('fetching question');
-                        ensureQuestionDetailFetched(args['question']).then(function(question) {
-                            openQuestionWindow(question[Qi_question_id]);
-
-                        })
-                    }
-                });
-            });
-            populateArbitratorSelect(arbitrator_list[net_id]);
-
-            if (LEGACY_CONTRACT_ADDRESSES[acc[0].toLowerCase()]) {
-                // Notification bar(footer)
-                if (window.localStorage.getItem('v1-got-it') == null) {
-                    $('#footer-notification-bar').css('display', 'block');
-                }
-                $('#got-it-button').on('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.localStorage.setItem('v1-got-it', true);
-                    $('#footer-notification-bar').css('display', 'none');
-                });
+        var args = parseHash();
+        USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
+        if (args['category']) {
+            category = args['category'];
+            $('body').addClass('category-' + category);
+            var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+            $('#filterby').text(cat_txt);
+        }
+        //console.log('args:', args);
+        web3js.eth.getBlock('latest', function(err, result) {
+            if (result.number > current_block_number) {
+                current_block_number = result.number;
             }
 
+            RealityCheck = contract(rc_json);
+            RealityCheck.setProvider(web3js.currentProvider);
+            RealityCheck.deployed().then(function(instance) {
+                rc = instance;
+                pageInit();
+                if (args['question']) {
+                    //console.log('fetching question');
+                    ensureQuestionDetailFetched(args['question']).then(function(question) {
+                        openQuestionWindow(question[Qi_question_id]);
+
+                    })
+                }
+            });
         });
-        });
+
     });
 
     var args = parseHash()
