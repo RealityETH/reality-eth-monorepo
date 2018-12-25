@@ -2,23 +2,19 @@
 
 'use strict';
 
-const rc_question = require('@realitio/realitio-lib/formatters/question.js');
-const rc_template = require('@realitio/realitio-lib/formatters/template.js');
+const rc_question = require('../lib/realitycheck-question.js');
+const rc_template = require('../lib/realitycheck-template.js');
 
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
-var web3js; // This should be the normal metamask instance
-var web3realitio; // We run our own node to handle watch events that can't reliably be done with infura
+var web3js;
 
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
-const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
+const rc_json = require('../../truffle/build/contracts/RealityCheck.json');
+const arb_json = require('../../truffle/build/contracts/Arbitrator.json');
 
-// For now we have a json file hard-coding the TOS of known arbitrators.
-// See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
-const arb_tos = require('./arbitrator_tos.json');
+const arbitrator_list = require('../config/arbitrators.json');
 
-const arbitrator_list = require('@realitio/realitio-contracts/config/arbitrators.json');
-const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
+const TEMPLATE_CONFIG = require('../config/templates.json');
 
 const contract = require("truffle-contract");
 const BigNumber = require('bignumber.js');
@@ -26,11 +22,8 @@ const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
-const LEGACY_CONTRACT_ADDRESSES = require('../../v1/addresses.json');
-
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
-var failed_arbitrators = {};
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {};
@@ -39,11 +32,7 @@ var category = null;
 var template_blocks = {};
 var template_content = TEMPLATE_CONFIG.content;
 
-var last_polled_block;
-var is_initial_load_done = false;
-
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
-var USE_COMMIT_REVEAL = false;
 
 const BLOCK_EXPLORERS = {
     1: 'https://etherscan.io',
@@ -53,18 +42,18 @@ const BLOCK_EXPLORERS = {
     1337: 'https://etherscan.io'
 };
 
-const RPC_NODES = {
-    1: 'https://rc-dev-3.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+const INFURA_NODES = {
+    1: 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    4: 'https://rc-dev-4.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    4: 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     1337: 'https://localhost:8545'
 };
 
 // The point where we deployed the contract on the network
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
-    1: 6531147,
-    4: 3175028
+    1: 5932007,
+    4: 2602053
 }
 var START_BLOCK;
 
@@ -117,7 +106,6 @@ var Arbitrator;
 
 var account;
 var rc;
-var rcrealitio; // Instance using our node
 
 var display_entries = {
     'questions-latest': {
@@ -163,20 +151,6 @@ import Ps from 'perfect-scrollbar';
 
 function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
-}
-
-function nonceFromSeed(paramstr) {
-
-    var seed = window.localStorage.getItem('commitment-seed');
-    if (seed == null) {
-        var crypto = require('crypto');
-        seed = crypto.randomBytes(32).toString('hex');
-        console.log('made seed', seed);
-        window.localStorage.setItem('commitment-seed', seed);
-    }
-
-    return web3.sha3(paramstr + seed);
-
 }
 
 var zindex = 10;
@@ -355,24 +329,12 @@ $(document).on('change', 'input.arbitrator-other', function() {
 });
 
 $(document).on('change', 'select.arbitrator', function() {
-    console.log('arbitrator: ' + $(this).val());
+    console.log($(this).val());
     if ($(this).val() == 'other') {
         $(this).closest('form').find('input.arbitrator-other').show();
     } else {
         populateArbitratorOptionLabel($(this).find('option.arbitrator-other-select'), new BigNumber(0));
         $(this).closest('form').find('input.arbitrator-other').hide();
-    }
-    var tos_url;
-    var op = $(this).find('option:selected');
-    var tos_url = op.attr('data-tos-url');
-    console.log('tos_url', tos_url, 'op', op);
-    var tos_section = $(this).closest('.select-container').find('div.arbitrator-tos');
-    if (tos_url) {
-        tos_section.find('.arbitrator-tos-link').attr('href', tos_url);
-        tos_section.show(); 
-    } else {
-        tos_section.find('.arbitrator-tos-link').attr('href', '');
-        tos_section.hide(); 
     }
 });
 
@@ -415,17 +377,12 @@ let bounceEffect = function() {
 $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    getAccount().then(function() {
-        var yourwin = $('#your-question-answer-window');
-        yourwin.css('z-index', ++zindex);
-        yourwin.addClass('is-open');
-        var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
-        yourwin.css('height', winheight + 'px');
-        Ps.update(yourwin.find('.rcbrowser-inner').get(0));
-        $('.tooltip').removeClass('is-visible');
-        $('body').removeClass('pushing');
-        markViewedToDate();
-    });
+    $('#your-question-answer-window').css('z-index', ++zindex);
+    $('#your-question-answer-window').addClass('is-open');
+    $('#your-question-answer-window').css('height', $('#your-question-answer-window').height() + 'px');
+    $('.tooltip').removeClass('is-visible');
+    $('body').removeClass('pushing');
+    markViewedToDate();
 });
 
 $('#help-center-button').on('click', function(e) {
@@ -478,89 +435,24 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
         document.documentElement.style.cursor = ""; // Work around Interact draggable bug
     });
 
-    getAccount().then(function() {
-
-        $('#post-a-question-window-template').before(question_window);
-        $('#opening-ts-datepicker').datepicker({
-            dateFormat: 'yy-mm-dd',
-            onSelect: function(dateText) {
-                $(this).css('background-color', '#ffffff');
-            }
-        });
-
-        if (!question_window.hasClass('is-open')) {
-            question_window.css('z-index', ++zindex);
-            question_window.addClass('is-open');
-            question_window.css('height', question_window.height() + 'px');
-            setRcBrowserPosition(question_window);
+    $('#post-a-question-window-template').before(question_window);
+    $('#opening-ts-datepicker').datepicker({
+        dateFormat: 'yy-mm-dd',
+        onSelect: function(dateText) {
+            $(this).css('background-color', '#ffffff');
         }
-        if (category) {
-            question_window.find("[name='question-category']").val(category);
-        }
-
-        Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
-
-        $("textarea[name='question-body']").on('change keyup paste', function() {
-            if ($(this).val()==""){
-                $(this).parent().addClass('is-error');
-            } else {
-                $(this).parent().removeClass('is-error');
-            }
-        });
-
-        $("select[name='question-category']").change(function(){
-            $(this).addClass("selected");
-
-            var optionLabel = "Category: ";
-
-            $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
-                if (option){ $(this).text(option);}
-            });
-
-            var optionText = $("option:selected",this).text();
-            $("option:selected", this).text(optionLabel + optionText);
-
-            $(this).parent().removeClass('is-error');
-        });
-
-        $("select[name='question-type']").change(function(){
-            var optionLabel = "Question Type: ";
-
-            $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
-                if (option){ $(this).text(option);}
-            });
-
-            var optionText = $("option:selected",this).text();
-            $("option:selected", this).text(optionLabel + optionText);
-        });
-
-        $("select[name='step-delay']").change(function(){
-            var optionLabel = "Countdown: ";
-
-            $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
-                if (option){ $(this).text(option);}
-            });
-
-            var optionText = $("option:selected",this).text();
-            $("option:selected", this).text(optionLabel + optionText);
-        });
-
-        $("select[name='arbitrator']").change(function(){
-            $(this).addClass("selected");
-            var optionLabel = "Arbitrator: ";
-
-            $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
-                if (option){ $(this).text(option);}
-            });
-
-            var optionText = $("option:selected",this).text();
-            $("option:selected", this).text(optionLabel + optionText);
-        });
     });
+
+    if (!question_window.hasClass('is-open')) {
+        question_window.css('z-index', ++zindex);
+        question_window.addClass('is-open');
+        question_window.css('height', question_window.height() + 'px');
+        setRcBrowserPosition(question_window);
+    }
+    if (category) {
+        question_window.find("[name='question-category']").val(category);
+    }
+    Ps.initialize(question_window.find('.rcbrowser-inner').get(0));
 });
 
 $('#browse-question-button,.browse-question-link').on('click', function(e) {
@@ -592,143 +484,140 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
     e.preventDefault();
     e.stopPropagation();
 
-    getAccount().then(function() {
+    var win = $('#post-a-question-window');
+    var question_body = win.find('.question-body');
+    var reward = win.find('.question-reward');
+    var timeout = win.find('.step-delay');
+    var timeout_val = parseInt(timeout.val());
+    var arbitrator = win.find('.arbitrator').val();
 
-        var win = $('#post-a-question-window');
-        var question_body = win.find('.question-body');
-        var reward_val = win.find('.question-reward').val();
-        var timeout = win.find('.step-delay');
-        var timeout_val = parseInt(timeout.val());
-        var arbitrator = win.find('.arbitrator').val();
+    var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
+    var expected_question_fee = expected_question_fee_attr ? new BigNumber(expected_question_fee_attr) : new BigNumber(0);
 
-        var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
-        var expected_question_fee = expected_question_fee_attr ? new BigNumber(expected_question_fee_attr) : new BigNumber(0);
+    if (arbitrator == 'other') {
+        arbitrator = win.find('input.arbitrator-other').val();
+    }
+    var question_type = win.find('.question-type');
+    var answer_options = win.find('.answer-option');
+    var opening_ts_val = win.find('.opening-ts').val();
+    var category = win.find('div.select-container--question-category select');
+    var outcomes = [];
+    for (var i = 0; i < answer_options.length; i++) {
+        outcomes[i] = answer_options[i].value;
+    }
 
-        if (arbitrator == 'other') {
-            arbitrator = win.find('input.arbitrator-other').val();
-        }
-        var question_type = win.find('.question-type');
-        var answer_options = win.find('.answer-option');
-        var opening_ts_val = win.find('.opening-ts').val();
+    if (validate(win)) {
+        var qtype = question_type.val();
+        var template_id = rc_template.defaultTemplateIDForType(qtype);
+        var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
 
-        var category = win.find('div.select-container--question-category select');
-        var outcomes = [];
-        for (var i = 0; i < answer_options.length; i++) {
-            outcomes[i] = answer_options[i].value;
-        }
-        var reward = (reward_val == '') ? new BigNumber(0) : new BigNumber(web3js.toWei(reward_val, 'ether'));
+        var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+        var opening_ts = new Date(opening_ts_val);
+        opening_ts = opening_ts / 1000;
 
-        if (validate(win)) {
-            var qtype = question_type.val();
-            var template_id = rc_template.defaultTemplateIDForType(qtype);
-            var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
-            var opening_ts = 0;
-            if (opening_ts_val != '') {
-                opening_ts = new Date(opening_ts_val);
-                opening_ts = parseInt(opening_ts / 1000);
+        validateArbitratorForContract(arbitrator).then(function(is_ok) {
+            if (!is_ok) {
+                console.log('bad arbitrator');
+                return;
             }
-
-            var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
-            console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
-            console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
-
-            validateArbitratorForContract(arbitrator).then(function(is_ok) {
-                if (!is_ok) {
-                    console.log('bad arbitrator');
+            rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
+                if (!fee.equals(expected_question_fee)) {
+                    console.log('fee has changed');
+                    populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
                     return;
                 }
-                rc.arbitrator_question_fees.call(arbitrator).then(function(fee) {
-                    if (!fee.equals(expected_question_fee)) {
-                        console.log('fee has changed');
-                        populateArbitratorOptionLabel(win.find('.arbitrator option:selected'), fee);
-                        return;
-                    }
 
-                    rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
-                            from: account,
-                            gas: 200000,
-                            value: reward.plus(fee)
-                        })
-                        .then(function(txid) {
-                            //console.log('sent tx with id', txid);
+                rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+                        from: account,
+                        gas: 200000,
+                        value: web3js.toWei(new BigNumber(reward.val()), 'ether').plus(fee)
+                    })
+                    .then(function(txid) {
+                        //console.log('sent tx with id', txid);
 
-                            // Make a fake log entry
-                            var fake_log = {
-                                'entry': 'LogNewQuestion',
-                                'blockNumber': 0, // unconfirmed
-                                'args': {
-                                    'question_id': question_id,
-                                    'user': account,
-                                    'arbitrator': arbitrator,
-                                    'timeout': new BigNumber(timeout_val),
-                                    'content_hash': rc_question.contentHash(template_id, opening_ts, qtext),
-                                    'template_id': new BigNumber(template_id),
-                                    'question': qtext,
-                                    'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
-                                    'opening_ts': new BigNumber(parseInt(opening_ts))
-                                }
+                        // Make a fake log entry
+                        var fake_log = {
+                            'entry': 'LogNewQuestion',
+                            'blockNumber': 0, // unconfirmed
+                            'args': {
+                                'question_id': question_id,
+                                'user': account,
+                                'arbitrator': arbitrator,
+                                'timeout': new BigNumber(timeout_val),
+                                'content_hash': rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                                'template_id': new BigNumber(template_id),
+                                'question': qtext,
+                                'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                                'opening_ts': new BigNumber(parseInt(opening_ts))
                             }
-                            var fake_call = [];
-                            fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
-                            fake_call[Qi_is_pending_arbitration] = false;
-                            fake_call[Qi_arbitrator - 1] = arbitrator;
-                            fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
-                            fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                            fake_call[Qi_bounty - 1] = reward;
-                            fake_call[Qi_best_answer - 1] = "0x0";
-                            fake_call[Qi_bond - 1] = new BigNumber(0);
-                            fake_call[Qi_history_hash - 1] = "0x0";
-                            fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
+                        }
+                        var fake_call = [];
+                        fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
+                        fake_call[Qi_is_pending_arbitration] = false;
+                        fake_call[Qi_arbitrator - 1] = arbitrator;
+                        fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
+                        fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                            fake_call[Qi_bounty - 1] = web3js.toWei(new BigNumber(reward.val()), 'ether');
+                        fake_call[Qi_best_answer - 1] = "0x0";
+                        fake_call[Qi_bond - 1] = new BigNumber(0);
+                        fake_call[Qi_history_hash - 1] = "0x0";
+                        fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
 
-                            var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
-                            q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
-                            q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+                        var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
+                        q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
+                        q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
-                            // Turn the post question window into a question detail window
-                            var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
-                            win.html(rcqa.html());
-                            win = populateQuestionWindow(win, q, false);
+                        // Turn the post question window into a question detail window
+                        var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+                        win.html(rcqa.html());
+                        win = populateQuestionWindow(win, q, false);
 
-                            // TODO: Once we have code to know which network we're on, link to a block explorer
-                            win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
-                            win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
-                            win.addClass('unconfirmed-transaction').addClass('has-warnings');
-                            win.attr('data-pending-txid', txid);
+                        // TODO: Once we have code to know which network we're on, link to a block explorer
+                        win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
+                        win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
+                        win.addClass('unconfirmed-transaction').addClass('has-warnings');
+                        win.attr('data-pending-txid', txid);
 
-                            win.find('.rcbrowser__close-button').on('click', function() {
-                                let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-                                let left = parseInt(parent_div.css('left').replace('px', ''));
-                                let top = parseInt(parent_div.css('top').replace('px', ''));
-                                let data_x = (parseInt(parent_div.attr('data-x')) || 0);
-                                let data_y = (parseInt(parent_div.attr('data-y')) || 0);
-                                left += data_x;
-                                top += data_y;
-                                window_position[question_id] = {};
-                                window_position[question_id]['x'] = left;
-                                window_position[question_id]['y'] = top;
-                                win.remove();
-                                document.documentElement.style.cursor = ""; // Work around Interact draggable bug
-                            });
-
-                            var window_id = 'qadetail-' + question_id;
-                            win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
-                            win.attr('id', window_id);
-                            win.attr('data-question-id', question_id);
-                            Ps.initialize(win.find('.rcbrowser-inner').get(0));
-
+                        win.find('.rcbrowser__close-button').on('click', function() {
+                            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+                            let left = parseInt(parent_div.css('left').replace('px', ''));
+                            let top = parseInt(parent_div.css('top').replace('px', ''));
+                            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+                            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+                            left += data_x;
+                            top += data_y;
+                            window_position[question_id] = {};
+                            window_position[question_id]['x'] = left;
+                            window_position[question_id]['y'] = top;
+                            win.remove();
+                            document.documentElement.style.cursor = ""; // Work around Interact draggable bug
                         });
-                });
-            });
-        }
-    })
 
+                        var window_id = 'qadetail-' + question_id;
+                        win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+                        win.attr('id', window_id);
+                        win.attr('data-question-id', question_id);
+                        Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
+                    });
+            });
+        });
+    }
+
+});
+
+$(document).on('blur', '#opening-ts-datepicker', function(e) {
+    if (!$('#opening-ts-datepicker').val()) {
+        $('#opening-ts-datepicker').css('background-color', '#4d535a');
+    }
 });
 
 function isArbitratorValid(arb) {
     var found = false;
     let arbitrator_addrs = $('select.arbitrator').children();
     arbitrator_addrs.each(function() {
-        if ($(this).val().toLowerCase() == arb.toLowerCase()) {
+        if ($(this).val() == arb) {
+            console.log('arb compare', 'choices are', $(this).val(), arb);
             found = true;
             return false;
         }
@@ -736,108 +625,14 @@ function isArbitratorValid(arb) {
     return found;
 }
 
-// Check if an arbitrator is valid when we have not yet had time to contact all the arbitrator contracts
-// This is used for fast rendering of the warnings on the list page.
-// TODO: We should really go back through them later and set warnings on anything that turned out to be bad
-function isArbitratorValidFast(arb) {
-    if (!arbitrator_list[network_id][arb]) {
-        return false;
-    }
-    // NB This will return a false positive if the arbitrator has not yet been checked when it runs
-    if (failed_arbitrators[arb]) {
-        return false;
-    }
-    return true; 
-}
-
 function isArbitrationPending(question) {
     return (question[Qi_is_pending_arbitration]);
 }
 
-// Return true if a user has started a commit or given an answer
-// NB Returns true even if the answer has timed out
-function isAnswerActivityStarted(question) {
-    if (isAnswered(question)) {
-        return true;
-    }
-    var history_hash = new BigNumber(question[Qi_history_hash]);
-    return (history_hash.gt(0));
-}
-
-function historyItemForCurrentAnswer(question) {
-    if (question['history'].length) {
-        for (var i=question['history'].length-1; i >= 0; i--) {
-            var item = question['history'][i].args;
-            if (!item.is_commitment || item.revealed_block) {
-                return item;
-            }
-        }
-    }
-    return null;
-}
-
-function isTopAnswerRevealable(question) {
-    // console.log('in isTopAnswerRevealable');
-    if (!isAnswerActivityStarted(question)) {
-        return false;
-    }
-    // console.log('history', question['history']);
-    if (question['history'].length == 0) {
-        return false;
-    }
-    var idx = question['history'].length - 1;
-    var item = question['history'][idx].args;
-    if (!item.is_commitment) {
-        return false;
-    }
-    if (item.revealed_block) {
-        return false;
-    }
-    if (isCommitExpired(question, item['ts'].toNumber())) {
-        return false;
-    }
-    return true;
-}
-
-function hasUnrevealedCommits(question) {
-    if (!isAnswerActivityStarted(question)) {
-        return false;
-    }
-    if (question['history'].length) {
-        for (var i=0; i<question['history'].length; i++) {
-            var item = question['history'][i].args;
-            if (item.is_commitment && !item.revealed_block) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-// Return true if there's a completed answer...
-// ...or if there's an uncommitted answer that hasn't timed out yet
-// TODO: Check for timeouts
-function isAnsweredOrAnswerActive(question) {
-    var history_hash = new BigNumber(question[Qi_history_hash]);
-    return (history_hash.gt(0));
-}
-
 function isAnswered(question) {
     var finalization_ts = question[Qi_finalization_ts].toNumber();
-    return (finalization_ts > 1);
+    return ((finalization_ts > 1) || (finalization_ts == 1 && new BigNumber(question[Qi_history_hash]).gt(0)));
 }
-
-function commitExpiryTS(question, posted_ts) {
-    var commit_secs = question[Qi_timeout].div(8);
-    return posted_ts.plus(commit_secs);
-}
-
-function isCommitExpired(question, posted_ts) {
-    var commit_secs = question[Qi_timeout].toNumber() / 8;
-    // console.log('commit secs are ', commit_secs);
-    return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
-}
-
 
 function isFinalized(question) {
     if (isArbitrationPending(question)) {
@@ -857,6 +652,7 @@ $(document).on('click', '.answer-claim-button', function() {
         var claim_args;
         var claiming;
         if (is_single_question) {
+
 
             claiming = possibleClaimableItems(question_detail);
             claim_args = claiming;
@@ -887,7 +683,7 @@ $(document).on('click', '.answer-claim-button', function() {
         //  2 answers 54947
         //  5 answers 73702
 
-        var gas = 140000 + (30000 * claim_args['history_hashes'].length);
+        var gas = 140000 + (20000 * claim_args['history_hashes'].length);
         rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
                 from: account,
                 gas: gas
@@ -931,7 +727,7 @@ function validate(win) {
     }
 
     var reward = win.find('.question-reward');
-    if (reward.val() === '') {
+    if (reward.val() === '' || reward.val() <= 0) {
         reward.parent().parent().addClass('is-error');
         valid = false;
     } else {
@@ -946,23 +742,23 @@ function validate(win) {
             options_num += 1;
         }
     }
-
-    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val().indexOf('select') != -1 && options_num < 2) {
+    if (win.find('.answer-option-container').hasClass('is-open') && question_type.val() == 'select' && options_num < 2) {
         $('.edit-option-inner').addClass('is-error');
         valid = false;
     } else {
         $('.edit-option-inner').removeClass('is-error');
     }
 
-    var select_ids = ['.question-type', '.arbitrator', '.step-delay', '.question-category'];
+    var select_ids = ['.question-type', '.arbitrator', '.step-delay'];
     for (var id of select_ids) {
-        if (win.find(id).val() == "default") {
+        if (win.find(id).prop('selectedIndex') == 0) {
             win.find(id).parent().addClass('is-error');
             valid = false;
         } else {
             win.find(id).parent().removeClass('is-error');
         }
     }
+
 
     return valid;
 }
@@ -1003,11 +799,7 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
 function handlePotentialUserAction(entry, is_watch) {
-    //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
-
-    if (!account) {
-        return;
-    }
+    console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
     if ((entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
         return;
@@ -1028,7 +820,7 @@ function handlePotentialUserAction(entry, is_watch) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
-            // console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
+            console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
             return;
         }
 
@@ -1083,7 +875,6 @@ function handlePotentialUserAction(entry, is_watch) {
 
 function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     var poss = possibleClaimableItems(question);
-    //console.log('made poss for question', poss, question[Qi_question_id]);
     if (poss['total'].isZero()) {
         delete user_claimable[question[Qi_question_id]];
     } else {
@@ -1093,8 +884,8 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 }
 
 function updateClaimableDisplay() {
+    //console.log('updateClaimableDisplay with user_claimable', user_claimable);
     var unclaimed = mergePossibleClaimable(user_claimable, false);
-    //console.log('updateClaimableDisplay with user_claimable, unclaimed', user_claimable, unclaimed);
     var claiming = mergePossibleClaimable(user_claimable, true);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
@@ -1224,66 +1015,6 @@ function scheduleFinalizationDisplayUpdate(question) {
     }
 
 }
-
-function isAnythingUnrevealed(question) {
-    console.log('isAnythingUnrevealed pretending everything is revealed');
-    return false;
-}
-
-function _ensureAnswerRevealsFetched(question_id, freshness, start_block, question) {
-    var called_block = current_block_number;
-    var earliest_block = 0;
-    var bond_indexes = {};
-    for (var i=0; i<question['history'].length; i++) {
-        if (question['history'][i].args['is_commitment']) {
-            if (!question['history'][i].args['revealed_block']) {
-                var bond = question['history'][i].args['bond'].toString(16);
-                console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond);
-                bond_indexes[bond] = i;
-                if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
-                    earliest_block = question['history'][i].blockNumber;
-                }
-            }
-        }
-    }
-    // console.log('earliest_block', earliest_block);
-    if (earliest_block > 0) {
-        return new Promise((resolve, reject)=>{
-            var reveal_logs = rc.LogAnswerReveal({question_id:question_id}, {fromBlock: earliest_block, toBlock:'latest'});
-            reveal_logs.get(function(error, answer_arr) {
-                if (error) {
-                    console.log('error in get reveal_logs');
-                    reject(error);
-                } else {
-                    console.log('got reveals');
-                    for(var j=0; j<answer_arr.length; j++) {
-                        var bond = answer_arr[j].args['bond'].toString(16);
-                        var idx = bond_indexes[bond];
-                        // console.log(question_id, bond.toString(16), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
-                        question['history'][idx].args['revealed_block'] = answer_arr[j].blockNumber;
-                        question['history'][idx].args['answer'] = answer_arr[j].args['answer'];
-
-                        var commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond);
-                        question['history'][idx].args['commitment_id'] = commitment_id;
-                        delete bond_indexes[bond];
-                    }
-                    question_detail_list[question_id] = question; // TODO : use filledQuestionDetail here? 
-                    //console.log('populated question, result is', question);
-                    //console.log('bond_indexes once done', bond_indexes);
-                    resolve(question);
-                }
-            });
-        });
-    } else {
-        return new Promise((resolve, reject)=>{
-            resolve(question);
-        });
-    }
-}
-
-
-
-
 
 function filledQuestionDetail(question_id, data_type, freshness, data) {
 
@@ -1511,7 +1242,7 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
     });
 }
 
-function _ensureAnswersFetched(question_id, freshness, start_block, injected_data) {
+function _ensureAnswersFetched(question_id, freshness, start_block) {
     var called_block = current_block_number;
     return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'answers', freshness)) {
@@ -1529,32 +1260,8 @@ function _ensureAnswersFetched(question_id, freshness, start_block, injected_dat
                     console.log('error in get');
                     reject(error);
                 } else {
-                    // In theory this should get us everything but sometimes it seems to lag
-                    // If this is triggered by an event, and the get didn't return the event, add it to the list ourselves
-                    var done_txhashes = {};
-                    if (injected_data && injected_data['answers'] && injected_data['answers'].length) {
-                        var inj_ans_arr = injected_data['answers'];
-                        for (var i=0; i<inj_ans_arr.length; i++ ) {
-                            var inj_ans = inj_ans_arr[i];
-                            for (var j=0; j<answer_arr.length; j++ ) {
-                                var ans = answer_arr[j];
-                                if (ans.args.bond.equals(inj_ans.args.bond)) {
-                                    if (ans.transactionHash != inj_ans.transactionHash) {
-                                        // Replaced by a new entry, old one got orphaned
-                                        answer_arr[j] = inj_ans_arr[i];
-                                    }
-                                }
-                                done_txhashes[answer_arr[j].transactionHash] = true;
-                            }
-                            if (!done_txhashes[inj_ans.transactionHash]) {
-                                answer_arr.push(inj_ans);
-                            }
-                        }
-                    }
                     var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
-                    _ensureAnswerRevealsFetched(question_id, freshness, start_block, question).then(function(q){
-                        resolve(q);
-                    });
+                    resolve(question);
                 }
             });
         }
@@ -1562,7 +1269,7 @@ function _ensureAnswersFetched(question_id, freshness, start_block, injected_dat
 }
 
 // question_log is optional, pass it in when we already have it
-function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data) {
+function ensureQuestionDetailFetched(question_id, ql, qi, qc, al) {
 
     var params = {};
     if (ql == undefined) ql = 1;
@@ -1582,7 +1289,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data)
         }).then(function(q) {
             return _ensureQuestionTemplateFetched(question_id, q[Qi_template_id], q[Qi_question_text], qi);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block], injected_data);
+            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block]);
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
@@ -1597,9 +1304,9 @@ function updateUserBalanceDisplay() {
     if (!account) {
         return;
     }
-    // console.log('updating balacne for', account);
+    //console.log('updating balacne for', account);
     web3js.eth.getBalance(account, function(error, result) {
-        // console.log('got updated balacne for', account, result.toNumber());
+        //console.log('got updated balacne for', account, result.toNumber());
         if (error === null) {
             $('.account-balance').text(web3js.fromWei(result.toNumber(), 'ether'));
         }
@@ -1680,7 +1387,7 @@ function populateSection(section_name, question_data, before_item) {
         balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValidFast(question_data[Qi_arbitrator]);
+    let valid_arbirator = isArbitratorValid(question_data[Qi_arbitrator]);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -1727,7 +1434,6 @@ function populateSectionEntry(entry, question_data) {
     });
     entry.find('.question-bounty').text(bounty);
 
-    // For these purposes we just ignore any outstanding commits
     if (isAnswered(question_data)) {
         entry.find('.questions__item__answer').text(rc_question.getAnswerString(question_json, best_answer));
         entry.addClass('has-answer');
@@ -1735,6 +1441,7 @@ function populateSectionEntry(entry, question_data) {
         entry.find('.questions__item__answer').text('');
         entry.removeClass('has-answer');
     }
+
 
     var is_answered = isAnswered(question_data);
 
@@ -1957,7 +1664,7 @@ function update_ranking_data(arr_name, id, val, ord) {
         var win = $(this).closest('.rcbrowser');
         var element = $('<div>');
         element.addClass('input-container input-container--answer-option');
-        var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter an answer...">';
+        var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter the option...">';
         element.append(input);
         win.find('.error-container--answer-option').before(element);
         element.addClass('is-bounce');
@@ -2101,57 +1808,38 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
 
     var bond = new BigNumber(web3js.toWei(0.0001, 'ether'));
-    if (isAnswerActivityStarted(question_detail)) {
+    if (isAnswered(question_detail)) {
 
         var current_container = rcqa.find('.current-answer-container');
 
-        if (isAnswered(question_detail)) {
-            // label for show the current answer.
-            var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
-            current_container.find('.current-answer-body').find('.current-answer').text(label);
-        }
+        // label for show the current answer.
+        var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
+        current_container.find('.current-answer-body').find('.current-answer').text(label);
 
         bond = question_detail[Qi_bond];
 
+        // Default to something non-zero but very low
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
-            var current_answer = historyItemForCurrentAnswer(question_detail);
-            if (current_answer) {
-                current_container.attr('id', 'answer-' + current_answer.answer);
+            var latest_answer = question_detail['history'][idx].args;
 
-                timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
-                current_container.find('.current-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(current_answer.ts));
-                timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
+            current_container.attr('id', 'answer-' + latest_answer.answer);
 
-                // answerer data
-                var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
-                ans_data.find('.answerer').text(current_answer.user);
-                var avjazzicon = jazzicon(32, parseInt(current_answer.user.toLowerCase().slice(2, 10), 16));
-                ans_data.find('.answer-data__avatar').html(avjazzicon);
-                if (current_answer.user == account) {
-                    ans_data.addClass('current-account');
-                } else {
-                    ans_data.removeClass('current-account');
-                }
-                ans_data.find('.answer-bond-value').text(web3js.fromWei(current_answer.bond.toNumber(), 'ether'));
-            }
+            timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
+            current_container.find('.current-answer-item').find('.timeago').attr('datetime', rc_question.convertTsToString(latest_answer.ts));
+            timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
-            var last_ans = question_detail['history'][idx].args;
-            var unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
-            if (last_ans.is_commitment && !last_ans.revealed_block) {
-                unrevealed_answer_container.find('.answer-bond-value').text(web3js.fromWei(last_ans.bond.toNumber(), 'ether'));
-                unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', rc_question.convertTsToString(commitExpiryTS(question_detail, last_ans['ts'])));
-                timeAgo.render(unrevealed_answer_container.find('.reveal-time.timeago'));
-                unrevealed_answer_container.find('.answerer').text(last_ans['user']);
-                var avjazzicon = jazzicon(32, parseInt(last_ans['user'].toLowerCase().slice(2, 10), 16));
-                unrevealed_answer_container.find('.answer-data__avatar').html(avjazzicon);
+            // answerer data
+            var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+            ans_data.find('.answerer').text(latest_answer.user);
+            var avjazzicon = jazzicon(32, parseInt(latest_answer.user.toLowerCase().slice(2, 10), 16));
+            ans_data.find('.answer-data__avatar').html(avjazzicon);
+            if (latest_answer.user == account) {
+                ans_data.addClass('current-account');
             } else {
-                unrevealed_answer_container.find('.answer-bond-value').text('');
-                unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', 0);
-                unrevealed_answer_container.find('.answer-data__avatar').html('');
-                unrevealed_answer_container.find('.answerer').text('');
-                timeago.cancel(unrevealed_answer_container.find('.reveal-time.timeago')); 
+                ans_data.removeClass('current-account');
             }
+            ans_data.find('.answer-bond-value').text(web3js.fromWei(latest_answer.bond.toNumber(), 'ether'));
 
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
             for (var i = 0; i < idx; i++) {
@@ -2170,22 +1858,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2, 10), 16));
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
-
-console.log(ans);
-                if (ans.is_commitment && !ans.revealed_block) {
-                    console.log('got a commitmet');
-                    if (isCommitExpired(question_detail, ans['ts'].toNumber())) {
-                        hist_item.find('.current-answer').text('Reveal timed out');
-                        hist_item.addClass('expired-commit');
-                    } else {
-                        hist_item.find('.current-answer').text('Wait for reveal...');
-                        hist_item.addClass('unrevealed-commit');
-                    }
-                } else {
-                    hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
-                    hist_item.removeClass('unrevealed-commit');
-                }
-
+                hist_item.find('.current-answer').text(rc_question.getAnswerString(question_json, ans.answer));
                 hist_item.find('.answer-bond-value').text(web3js.fromWei(ans.bond.toNumber(), 'ether'));
                 hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
@@ -2195,13 +1868,6 @@ console.log(ans);
 
         }
     }
-
-    rcqa.find('.bond-value').text(web3js.fromWei(question_detail[Qi_bond], 'ether'));
-    // Set the dispute value on a slight delay
-    // This ensures the latest entry was updated and the user had time to see it when arbitration was requested
-    window.setTimeout(function() {
-        rcqa.find('.arbitration-button').attr('data-last-seen-bond', '0x' + question_detail[Qi_bond].toString(16));
-    }, 2000);
 
     // question settings warning balloon
     let balloon_html = '';
@@ -2290,11 +1956,7 @@ console.log(ans);
         rcqa.find('.answered-history-container').after(ans_frm);
     }
 
-    // If the user has edited the field, never repopulate it underneath them
-    var bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
-    if (!bond_field.hasClass('edited')) {
-        bond_field.val(web3js.fromWei(bond.toNumber(), 'ether') * 2);
-    }
+    rcqa.find('.rcbrowser-input--number--bond.form-item').val(web3js.fromWei(bond.toNumber(), 'ether') * 2);
 
     //console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
@@ -2322,9 +1984,6 @@ function totalClaimable(question_detail) {
     return poss['total'];
 }
 
-/*
-If you get anything from the list, return the whole thing
-*/
 function possibleClaimableItems(question_detail) {
 
     var ttl = new BigNumber(0);
@@ -2360,17 +2019,7 @@ function possibleClaimableItems(question_detail) {
 
     var final_answer = question_detail[Qi_best_answer];
     for (var i = question_detail['history'].length - 1; i >= 0; i--) {
-
-        // TODO: Check the history hash, and if we haven't reached it, keep going until we do
-        // ...since someone may have claimed partway through
-
-        var answer;
-        // Only set on reveal, otherwise the answer field still holds the commitment ID for commitments
-        if (question_detail['history'][i].args.commitment_id) { 
-            answer = question_detail['history'][i].args.commitment_id;
-        } else {
-            answer = question_detail['history'][i].args.answer;
-        }
+        var answer = question_detail['history'][i].args.answer;
         var answerer = question_detail['history'][i].args.user;
         var bond = question_detail['history'][i].args.bond;
         var history_hash = question_detail['history'][i].args.history_hash;
@@ -2379,24 +2028,22 @@ function possibleClaimableItems(question_detail) {
             // Somebody takes over your answer
             if (answerer != account && final_answer == answer) {
                 is_yours = false;
-                //console.log(ttl.toString(), 'minus', bond.toString());
                 ttl = ttl.minus(bond); // pay them their bond
             } else {
-                //console.log(ttl.toString(), 'plus', bond.toString());
                 ttl = ttl.plus(bond); // take their bond
             }
         } else {
             // You take over someone else's answer
-            if (answerer == account && final_answer == answer) {
+            if (final_answer == answer) {
                 is_yours = true;
-                //console.log(ttl.toString(), 'plus', bond.toString());
                 ttl = ttl.plus(bond); // your bond back
+                if (!is_first) {
+                    ttl = ttl.plus(bond); // their takeover payment to you
+                }
             }
-        }
-        if (is_first && is_yours) {
-            //console.log('adding your bounty');
-            //console.log(ttl.toString(), 'plus', question_detail[Qi_bounty].toString());
-            ttl = ttl.plus(question_detail[Qi_bounty]);
+            if (is_first) {
+                ttl = ttl.plus(question_detail[Qi_bounty]);
+            }
         }
 
         claimable_bonds.push(bond);
@@ -2407,15 +2054,10 @@ function possibleClaimableItems(question_detail) {
         is_first = false;
     }
 
-    // Nothing for you to claim, so return nothing
-    if (!ttl.gt(0)) {
-        return {
-            total: new BigNumber(0)
-        };
+    if (ttl.gt(0)) {
+        question_ids.push(question_detail[Qi_question_id]);
+        answer_lengths.push(claimable_bonds.length);
     }
-
-    question_ids.push(question_detail[Qi_question_id]);
-    answer_lengths.push(claimable_bonds.length);
 
     //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
 
@@ -2516,15 +2158,6 @@ function answersByMaxBond(answer_logs) {
     return ans;
 }
 
-function resetAccountUI() {
-    user_claimable = {};
-    q_min_activity_blocks = {};
-    $('#your-question-answer-window').find('.account-specific').remove();
-    $('.answer-claim-button.claim-all').find('.claimable-eth').text('');
-    $('.answer-claim-button.claim-all').hide();
-
-}
-
 function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
 
     if ($('.no-notifications-item').length > 0) {
@@ -2547,7 +2180,6 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     item_to_insert.find('.notification-text').text(ntext).expander();
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
-    item_to_insert.addClass('account-specific');
 
     // Template item has a positive badge
     // Turn it from green to red if something bad happened
@@ -2605,11 +2237,7 @@ function renderNotifications(qdata, entry) {
             var is_positive = true;
             var notification_id = web3js.sha3('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toString());
             if (entry.args.user == account) {
-                if (entry.args.is_commitment) {
-                    ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
-                } else {
-                    ntext = 'You answered a question - "' + question_json['title'] + '"';
-                }
+                ntext = 'You answered a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
             } else {
                 var answered_question = rc.LogNewQuestion({
@@ -2634,37 +2262,6 @@ function renderNotifications(qdata, entry) {
                 });
             }
             break;
-
-        case 'LogAnswerReveal':
-            var is_positive = true;
-            var notification_id = web3.sha3('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toString());
-            if (entry.args.user == account) {
-                ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
-            } else {
-                var answered_question = rc.LogNewQuestion({question_id: question_id}, {
-                    fromBlock: START_BLOCK,
-                    toBlock: 'latest'
-                });
-                answered_question.get(function (error, result2) {
-                    if (error === null && typeof result2 !== 'undefined') {
-                        if (result2[0].args.user == account) {
-                            ntext = 'Someone revealed their answer to your question';
-                        } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
-                            is_positive = false;
-                            ntext = 'Your answer was overwritten';
-                        }
-                        if (typeof ntext !== 'undefined') {
-                            ntext += ' - "' + question_json['title'] + '"';
-                            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
-                        }
-                    }
-                });
-            }
-            break;
-
-
-
 
         case 'LogFundAnswerBounty':
             var notification_id = web3js.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toString() + entry.args.bounty_added.toString() + entry.args.user);
@@ -2752,7 +2349,7 @@ function renderNotifications(qdata, entry) {
                     } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == account) {
                         ntext = 'The question you answered is finalized';
                     } else {
-                        ntext = 'A question was finalized';
+                        ntext = 'Some question was finalized';
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
@@ -2856,7 +2453,6 @@ function renderUserQandA(qdata, entry) {
     qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
-    qitem.addClass('account-specific');
     insertQAItem(question_id, qitem, question_section, entry.blockNumber);
 
     var is_finalized = isFinalized(qdata);
@@ -2922,23 +2518,6 @@ function makeSelectAnswerInput(question_json, opening_ts) {
 function updateQuestionState(question, question_window) {
     if (isAnswered(question)) {
         question_window.addClass('has-answer');
-    } else {
-        question_window.removeClass('has-answer');
-    }
-
-    if (hasUnrevealedCommits(question)) {
-        question_window.addClass('has-unrevealed-commits');
-    } else {
-        question_window.removeClass('has-unrevealed-commits');
-    }
-
-    if (isTopAnswerRevealable(question)) {
-        question_window.addClass('top-entry-unrevealed');
-    } else {
-        question_window.removeClass('top-entry-unrevealed');
-    }
-
-    if (isAnsweredOrAnswerActive(question)) {
         if (isFinalized(question)) {
             timeago.cancel(question_window.find('.resolved-at-value.timeago'));
             question_window.find('.resolved-at-value').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
@@ -2948,11 +2527,12 @@ function updateQuestionState(question, question_window) {
             question_window.find('.answer-deadline').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
-    } 
+    } else {
+        question_window.removeClass('has-answer');
+    }
 
     // The first item is the current answer
-    // However we don't show it as current answer if it's unrevealed
-    if (question['history'].length > 1 || (question['history'].length  == 1 && hasUnrevealedCommits(question) ) ) {
+    if (question['history'].length > 1) {
         question_window.addClass('has-history');
     } else {
         question_window.removeClass('has-history');
@@ -3044,29 +2624,20 @@ $(document).on('click', '.post-answer-button', function(e) {
     e.stopPropagation();
 
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
-    getAccount().then(function() {
+    var question_id = parent_div.attr('data-question-id');
+    var bond = web3js.toWei(new BigNumber(parent_div.find('input[name="questionBond"]').val()), 'ether');
 
-        var question_id = parent_div.attr('data-question-id');
+    var question, current_answer, new_answer;
+    var question_json;
+    var current_question;
+    var is_err = false;
 
-        var bond = new BigNumber(0);
-        var bond_field = parent_div.find('input[name="questionBond"]');
-        try {
-            bond  = web3js.toWei(new BigNumber(bond_field.val()), 'ether');
-        } catch (err) {
-            console.log('Could not parse bond field value', bond_field.val());
-        }
+    var block_before_send = current_block_number;
+    var question_json;
 
-        var question, current_answer, new_answer;
-        var question_json;
-        var current_question;
-        var is_err = false;
+    var new_answer;
 
-        var block_before_send = current_block_number;
-        var question_json;
-
-        var new_answer;
-
-        var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+    var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
         .catch(function() {
             // If the question is unconfirmed, go with what we have
             console.log('caught failure, trying unconfirmed');
@@ -3100,8 +2671,6 @@ $(document).on('click', '.post-answer-button', function(e) {
                     if (ans.isNaN()) {
                         err = true;
                     } else if (!ans.equals(new BigNumber(invalid_value)) && (ans.lt(rc_question.minNumber(question_json)) || ans.gt(rc_question.maxNumber(question_json)))) {
-                        err = true;
-                    } else if (ans.lt(new BigNumber(0))) {
                         err = true;
                     }
                     if (err) {
@@ -3151,37 +2720,11 @@ $(document).on('click', '.post-answer-button', function(e) {
 
             submitted_question_id_timestamp[question_id] = new Date().getTime();
 
-            // Remove the edited note to allow the field to be automatically populated again
-            bond_field.removeClass('edited'); 
-
-            if (USE_COMMIT_REVEAL) {
-                var answer_plaintext = new_answer;
-                var nonce = nonceFromSeed(web3.sha3(question_id + answer_plaintext + bond));
-                var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
-
-                console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
-
-                console.log('made nonce', nonce);
-                console.log('made answer plaintext', answer_plaintext);
-                console.log('made bond', bond);
-                console.log('made answer_hash', answer_hash);
-
-                var commitment_id = rc_question.commitmentID(question_id, answer_hash, bond);
-                console.log('resulting  commitment_id', commitment_id);
-
-                // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
-                // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
-                return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
-                    console.log('got submitAnswerCommitment txid', txid);
-                    return rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000});
-                });
-            } else {
-                return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
-                    from: account,
-                    gas: 200000,
-                    value: bond
-                });
-            }
+            return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
+                from: account,
+                gas: 200000,
+                value: bond
+            });
         }).then(function(txid) {
             clearForm(parent_div, question_json);
             var fake_history = {
@@ -3212,7 +2755,6 @@ $(document).on('click', '.post-answer-button', function(e) {
             });
 
         });
-    });
     /*
     .catch(function(e){
         console.log(e);
@@ -3286,8 +2828,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
-        getAccount().then(function() {
-            rc.fundAnswerBounty(question_id, {
+        rc.fundAnswerBounty(question_id, {
                 from: account,
                 value: reward
             })
@@ -3299,7 +2840,6 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
                 container.removeClass('is-bounce');
                 container.css('display', 'none');
             });
-        });
     }
 });
 
@@ -3309,35 +2849,36 @@ $(document).on('click', '.arbitration-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    getAccount().then(function() {
-        var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
-        var question_detail = question_detail_list[question_id];
-        if (!question_detail) {
-            console.log('Error, question detail not found');
-            return false;
-        }
+    var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
+    var question_detail = question_detail_list[question_id];
+    if (!question_detail) {
+        console.log('Error, question detail not found');
+        return false;
+    }
 
-        var last_seen_bond_hex = $(this).attr('data-last-seen-bond'); 
-        if (!last_seen_bond_hex) {
-            console.log('Error, last seen bond not populated, aborting arbitration request');
-            return false;
-        }
+    var arbitration_fee;
+    //if (!question_detail[Qi_is_arbitration_due]) {}
+    var arbitrator;
+    Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+        arbitrator = arb;
+        return arb.getDisputeFee.call(question_id);
+    }).then(function(fee) {
+        arbitration_fee = fee;
+        //console.log('got fee', arbitration_fee.toString());
 
-        var arbitration_fee;
-        //if (!question_detail[Qi_is_arbitration_due]) {}
-        var arbitrator;
-        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
-            arbitrator = arb;
-            return arb.getDisputeFee.call(question_id);
-        }).then(function(fee) {
-            arbitration_fee = fee;
-            //console.log('got fee', arbitration_fee.toString());
-            arbitrator.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
-            .then(function(result){
+        arbitrator.requestArbitration(question_id, {
+                from: account,
+                value: fee
+            })
+            .then(function(result) {
                 console.log('arbitration is requested.', result);
             });
 
+        arbitrator.requestArbitration(question_id, new BigNumber(0), {from:account, value: fee})
+        .then(function(result){
+            console.log('arbitration is requested.', result);
         });
+
     });
 });
 
@@ -3381,41 +2922,23 @@ $('.rcbrowser-textarea').on('keyup', function(e) {
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) {
     let value = new BigNumber(web3js.toWei($(this).val()));
     //console.log($(this));
-    let bond_validation = function(ctrl){
-        ctrl.addClass('edited');
-        let question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
+    if (value === '') {
+        $(this).parent().parent().addClass('is-error');
+    } else if (!$(this).hasClass('rcbrowser-input--number--answer') && (value <= 0)) {
+        $(this).parent().parent().addClass('is-error');
+    } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
+        let question_id = $(this).closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         let current_idx = question_detail_list[question_id]['history'].length - 1;
-        let current_bond = new BigNumber(0);
+        let current_bond = 0;
         if (current_idx >= 0) {
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
-
-        if (ctrl.val() === '' || value.lt(current_bond.times(2))) {
-            ctrl.parent().parent().addClass('is-error');
-            let min_bond = current_bond.times(2);
-            min_bond = web3js.fromWei(min_bond, 'ether');
-            ctrl.parent('div').next('div').find('.min-amount').text(min_bond.toNumber());
-        } else {
-            ctrl.parent().parent().removeClass('is-error');
-        }
-        show_bond_payments(ctrl);
-    }
-
-    if ($(this).val() === '') {
-        if ($(this).hasClass('rcbrowser-input--number--bond')) {
-            bond_validation($(this));
-        } else {
+        if (value.lt(current_bond.times(2))) {
             $(this).parent().parent().addClass('is-error');
+        } else {
+            $(this).parent().parent().removeClass('is-error');
         }
-    }
-
-    if (($(this).closest('#post-a-question-window').length || $(this).hasClass('rcbrowser-input--number--answer'))
-        && value.lt(0)) {
-        $(this).parent().parent().addClass('is-error');
-    } else if ($(this).hasClass('rcbrowser-input--add-reward') && value.lte(0)) {
-        $(this).parent().parent().addClass('is-error');
-    } else if ($(this).hasClass('rcbrowser-input--number--bond')) {
-        bond_validation($(this));
+        show_bond_payments($(this));
     } else {
         $(this).parent().parent().removeClass('is-error');
     }
@@ -3519,9 +3042,8 @@ function updateRankingSections(question, changed_field, changed_val) {
 
         }
 
-    } 
-    if (changed_field == Qi_bounty || changed_field == Qi_finalization_ts) {
-        var insert_before = update_ranking_data('questions-high-reward', question_id, question[Qi_bounty].plus(question[Qi_bond]), 'desc');
+    } else if (changed_field == Qi_bounty) {
+        var insert_before = update_ranking_data('questions-high-reward', question_id, question[Qi_bounty], 'desc');
         //console.log('update for new bounty', question[Qi_bounty], 'insert_before is', insert_before);
         if (insert_before !== -1) {
             populateSection('questions-high-reward', question, insert_before);
@@ -3530,71 +3052,10 @@ function updateRankingSections(question, changed_field, changed_val) {
 
     // Things that don't need adding or removing, but may still need the content updating
     updateSectionEntryDisplay(question);
-    reflectDisplayEntryChanges();
     // TODO: Need to update sections that haven't changed position, but changed data
 
 }
 
-
-function handleEvent(error, result) {
-
-    // Check the action to see if it is interesting, if it is then populate notifications etc
-    handlePotentialUserAction(result, true);
-
-    // Handles front page event changes.
-    // NB We need to reflect other changes too...
-    var evt = result['event'];
-    if (evt == 'LogNewTemplate') {
-        var template_id = result.args.template_id;
-        var question_text = result.args.question_text;
-        template_content[template_id] = question_text;
-        return;
-    } else if (evt == 'LogNewQuestion') {
-        handleQuestionLog(result);
-    } else if (evt == 'LogWithdraw') {
-        updateUserBalanceDisplay();
-    } else {
-        var question_id = result.args.question_id;
-
-        switch (evt) {
-
-            case ('LogNewAnswer'):
-                if (result.args.is_commitment) {
-                    console.log('got commitment', result);
-                    result.args.commitment_id = result.args.answer;
-                    // TODO: Get deadline
-                    result.args.answer = null;
-                    // break;
-                }
-
-                //console.log('got LogNewAnswer, block ', result.blockNumber);
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    //console.log('should be getting latest', question, result.blockNumber);
-                    scheduleFinalizationDisplayUpdate(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                });
-                break;
-
-            case ('LogFundAnswerBounty'):
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                    //console.log('updating with question', question);
-                    updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_bounty, question[Qi_bounty])
-                });
-                break;
-
-            default:
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                });
-
-        }
-
-    }
-
-}
 
 
 /*-------------------------------------------------------------------------------------*/
@@ -3627,62 +3088,75 @@ function pageInit(account) {
 
     */
 
-    var RealityCheckRealitio = contract(rc_json);
-    RealityCheckRealitio.setProvider(new web3.providers.HttpProvider(RPC_NODES[network_id]));
-    console.log('using network', RPC_NODES[network_id]);
-    RealityCheckRealitio.deployed().then(function(instance) {
-        rcrealitio = instance;
+    var evts = rc.allEvents({}, {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+    })
 
-        var evts = rcrealitio.allEvents({}, {
-            fromBlock: 'latest',
-            toBlock: 'latest'
-        })
+    evts.watch(function(error, result) {
+        console.log('got watch event', error, result);
+        if (!error && result) {
 
-        evts.watch(function(error, result) {
-            if (!error && result) {
-                console.log('got watch event', error, result);
-                // Give the node we're calling some time to catch up
-                window.setTimeout(
-                    function() {
-                        handleEvent(error, result);
-                    }, 5000
-                );
-            }
-        });
+            // Check the action to see if it is interesting, if it is then populate notifications etc
+            handlePotentialUserAction(result, true);
 
-    });
-
-    // Now the rest of the questions
-    last_polled_block = current_block_number;
-    fetchAndDisplayQuestions(current_block_number, 0);
-
-};
-
-
-function reflectDisplayEntryChanges() {
-    //console.log('checking display_entries', display_entries);
-    //look at current sections and update blockchain scanning message to
-    //no questions found if no items exist
-    var detypes = Object.keys(display_entries);
-    //console.log('no questions cateogry, display_entries for detype', display_entries, detype);
-    for (var i=0; i<detypes.length; i++) {
-        var detype = detypes[i];
-        var has_items = ($('#' + detype).find('div.questions-list div.questions__item').size() > 0);
-        if (has_items) {
-            $('#' + detype).find('.no-questions-category').css('display', 'none');
-            $('#' + detype).find('.scanning-questions-category').css('display', 'none');
-        } else {
-            if (is_initial_load_done) {
-                $('#' + detype).find('.no-questions-category').css('display', 'block');
-                $('#' + detype).find('.scanning-questions-category').css('display', 'none');
+            // Handles front page event changes.
+            // NB We need to reflect other changes too...
+            var evt = result['event'];
+            if (evt == 'LogNewTemplate') {
+                var template_id = result.args.template_id;
+                var question_text = result.args.question_text;
+                template_content[template_id] = question_text;
+                return;
+            } else if (evt == 'LogNewQuestion') {
+                handleQuestionLog(result);
+            } else if (evt == 'LogWithdraw') {
+                updateUserBalanceDisplay();
             } else {
-                $('#' + detype).find('.no-questions-category').css('display', 'none');
-                $('#' + detype).find('.scanning-questions-category').css('display', 'none');
+                var question_id = result.args.question_id;
+
+                switch (evt) {
+
+                    case ('LogNewAnswer'):
+                        //console.log('got LogNewAnswer, block ', result.blockNumber);
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            //console.log('should be getting latest', question, result.blockNumber);
+                            scheduleFinalizationDisplayUpdate(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
+                        break;
+
+                    case ('LogFundAnswerBounty'):
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                            //console.log('updating with question', question);
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                        });
+                        break;
+
+                    default:
+                        ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                            updateQuestionWindowIfOpen(question);
+                            updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        });
+
+                }
+
             }
         }
+    });
+    console.log(evts);
 
-    } 
-}
+    fetchUserEventsAndHandle({
+        user: account
+    }, START_BLOCK, 'latest');
+
+    // Now the rest of the questions
+    fetchAndDisplayQuestions(current_block_number, 0);
+
+
+};
 
 function fetchAndDisplayQuestions(end_block, fetch_i) {
 
@@ -3702,11 +3176,29 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
 
         console.log('History read complete back to block', START_BLOCK);
 
-        is_initial_load_done = true;
-        window.setTimeout( reflectDisplayEntryChanges, 1000 );
 
-        scheduleFallbackTimer();
-        runPollingLoop(rc);
+        //look at current sections and update blockchain scanning message to
+        //no questions found if no items exist
+
+        if($("#questions-latest .questions-list > *").length == 3){
+          $('#questions-latest').find('.no-questions-category').css('display', 'block');
+          $('#questions-latest').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-closing-soon .questions-list > *").length == 3){
+          $('#questions-closing-soon').find('.no-questions-category').css('display', 'block');
+          $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-high-reward .questions-list > *").length == 3){
+          $('#questions-high-reward').find('.no-questions-category').css('display', 'block');
+          $('#questions-high-reward').find('.scanning-questions-category').css('display', 'none');
+        }
+
+        if($("#questions-resolved .questions-list > *").length == 3){
+          $('#questions-resolved').find('.no-questions-category').css('display', 'block');
+          $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
+        }
 
         //setTimeout(bounceEffect, 500);
 
@@ -3736,49 +3228,6 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
     });
 }
 
-function runPollingLoop(contract_instance) {
-
-    console.log('in runPollingLoop from ', last_polled_block);
-    var evts = contract_instance.allEvents({}, {
-        fromBlock: last_polled_block - 20, // account for lag
-        toBlock: 'latest'
-    })
-
-    evts.get(function(error, result) {
-        console.log('got evts', error, result);
-        last_polled_block = current_block_number;
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < result.length; i++) {
-                handleEvent(error, result[i]);
-            }
-        } else {
-            console.log(error);
-        }
-        window.setTimeout(runPollingLoop, 30000, contract_instance);
-    });
-
-}
-
-
-// Sometimes things go wrong getting events
-// To mitigate the damage, run a refresh of the currently-open window etc
-function scheduleFallbackTimer() {
-     window.setInterval(function() {
-        //console.log('checking for open windows');
-        $('div.rcbrowser--qa-detail.is-open').each(function() {
-             var question_id = $(this).attr('data-question-id');
-             console.log('updating window on timer for question', question_id);
-             if (question_id) {
-                 ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    scheduleFinalizationDisplayUpdate(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
-                 });
-             }
-        });
-    }, 20000);
-}
-
 function fetchUserEventsAndHandle(filter, start_block, end_block) {
     //console.log('fetching for filter', filter);
 
@@ -3787,19 +3236,6 @@ function fetchUserEventsAndHandle(filter, start_block, end_block) {
         toBlock: end_block
     })
     answer_posted.get(function(error, result) {
-        var answers = result;
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < answers.length; i++) {
-                //console.log('handlePotentialUserAction', i, answers[i]);
-                handlePotentialUserAction(answers[i]);
-            }
-        } else {
-            console.log(error);
-        }
-    });
-
-    var answer_revealed = rc.LogAnswerReveal(filter, {fromBlock: start_block, toBlock: end_block})
-    answer_revealed.get(function (error, result) {
         var answers = result;
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < answers.length; i++) {
@@ -3897,7 +3333,7 @@ function parseHash() {
     return args;
 }
 
-function populateArbitratorOptionLabel(op, fee, txt, tos) {
+function populateArbitratorOptionLabel(op, fee, txt) {
     if (txt) {
         op.attr('data-text-main', txt);
     } else {
@@ -3908,9 +3344,6 @@ function populateArbitratorOptionLabel(op, fee, txt, tos) {
     }
     op.text(txt);
     op.attr('data-question-fee', '0x' + fee.toString(16));
-    if (tos) {
-        op.attr('data-tos-url', tos);
-    }
 }
 
 function populateArbitratorSelect(network_arbs) {
@@ -3935,14 +3368,8 @@ function populateArbitratorSelect(network_arbs) {
                     return arb_inst.realitycheck.call();
                 }).then(function(rc_addr) {
                     console.log('arb has rc addr', rc_addr);
-                    var is_arb_valid = (rc_addr.toLowerCase() == myr.address.toLowerCase());
+                    var is_arb_valid = (rc_addr == myr.address);
                     verified_arbitrators[na_addr] = is_arb_valid;
-                    // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
-                    // For this we'll check our original list for the network, then just check against the failed list
-                    // TODO: Once loaded, we should really go back through the page and update anything failed
-                    if (!is_arb_valid) {
-                        failed_arbitrators[na_addr] = true;
-                    }
                     console.log(verified_arbitrators);
                     return is_arb_valid;
                 }).then(function(is_arb_valid) {
@@ -3950,11 +3377,7 @@ function populateArbitratorSelect(network_arbs) {
                         myri.arbitrator_question_fees.call(na_addr).then(function(fee) {
                             var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                             arb_item.val(na_addr);
-                            var tos;
-                            if (arb_tos[na_addr]) {
-                                tos = arb_tos[na_addr];
-                            }
-                            populateArbitratorOptionLabel(arb_item, fee, na_title, tos);
+                            populateArbitratorOptionLabel(arb_item, fee, na_title);
                             if (is_first) {
                                 arb_item.attr('selected', true);
                                 is_first = false;
@@ -4003,15 +3426,8 @@ function humanReadableWei(amt) {
     return web3js.fromWei(amt, unit).toString() + ' ' + unit;
 }
 
-function initNetwork(net_id) {
-    console.log('initNetwork', net_id);
+function initializeGlobalVariablesForNetwork(net_id) {
     network_id = net_id;
-    var net_cls = '.network-id-' + net_id;
-    console.log('net status', '.network-status'+net_cls, $('.network-status'+net_cls).size()); 
-    if ($('.network-status'+net_cls).size() == 0) {
-        return false;
-    }
-    $('.network-status'+net_cls).show();
     if (BLOCK_EXPLORERS[net_id]) {
         block_explorer = BLOCK_EXPLORERS[net_id];
     } else {
@@ -4023,90 +3439,34 @@ function initNetwork(net_id) {
     } else {
         START_BLOCK = 1;
     }
-    return true;
-}
-
-function getAccount() {
-    console.log('in getAccount');
-    return new Promise((resolve, reject)=>{
-        if (account) {
-    console.log('returning accounty');
-            resolve(account);
-        }
-
-        ethereum.enable().then(function() {
-
-            ethereum.on('accountsChanged', function (accounts) {
-                account = null;                     
-                resetAccountUI();
-                getAccount();
-            })
-
-            web3js.eth.getAccounts((err, acc) => {
-                    if (acc && acc.length > 0) {
-                        //console.log('accounts', acc);
-                        account = acc[0];
-                        $('.account-balance-link').attr('href', block_explorer + '/address/' + account);
-                    } else {
-                        if (!is_web3_fallback) {
-                            console.log('no accounts');
-                            $('body').addClass('error-no-metamask-accounts').addClass('error');
-                        }
-                    }
-
-                if (LEGACY_CONTRACT_ADDRESSES[acc[0].toLowerCase()]) {
-                    // Notification bar(footer)
-                    if (window.localStorage.getItem('v1-got-it') == null) {
-                        $('#footer-notification-bar').css('display', 'block');
-                    }
-                    $('#got-it-button').on('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.localStorage.setItem('v1-got-it', true);
-                        $('#footer-notification-bar').css('display', 'none');
-                    });
-                }
-
-                accountInit(account);
-                resolve(account);
-
-            });
-        });
-    });
-}
-
-
-function accountInit(account) {
-
-    fetchUserEventsAndHandle({
-        user: account
-    }, START_BLOCK, 'latest');
-
-    updateUserBalanceDisplay();
-
 }
 
 window.addEventListener('load', function() {
 
-    var is_web3_fallback = false;
 
-    web3realitio = new Web3(new Web3.providers.HttpProvider("https://rc-dev-3.socialminds.jp"));
+    let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
+    var is_web3_fallback = false;
 
     if (typeof web3 === 'undefined') {
         var is_web3_fallback = true;
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES["1"]));
-        console.log('no web3js, using infura on network', "1");
+        web3js = new Web3(new Web3.providers.HttpProvider(INFURA_NODES[valid_ids[0]]));
+        console.log('no web3js, using infura on network', valid_ids[0]);
         $('body').addClass('error-no-metamask-plugin').addClass('error');
     } else {
         // Use Mist/MetaMask's provider
         console.log('got web3js, go ahead');
         web3js = new Web3(web3.currentProvider);
+
+        //var ws_provider = 'wss://mainnet.infura.io/ws'
+        //web3js = new Web3(new Web3.providers.WebsocketProvider(ws_provider))
+
     }
 
     // Set up a filter so we always know the latest block number.
     // This helps us keep track of how fresh our question data etc is.
     web3js.eth.filter('latest').watch(function(err, res) {
+        console.log('new block event', err, res);
         web3js.eth.getBlock('latest', function(err, result) {
             if (result.number > current_block_number) {
                 current_block_number = result.number;
@@ -4117,47 +3477,56 @@ window.addEventListener('load', function() {
         })
     });
 
-    web3js.version.getNetwork((err, net_id) => {
-        if (err === null) {
-            if (!initNetwork(net_id)) {
-                $('body').addClass('error-invalid-network').addClass('error');
-                return;
-            } 
-            populateArbitratorSelect(arbitrator_list[net_id]);
-        }
-
-        var args = parseHash();
-        USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
-        if (args['category']) {
-            category = args['category'];
-            $('body').addClass('category-' + category);
-            var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
-            $('#filterby').text(cat_txt);
-        }
-        //console.log('args:', args);
+    web3js.eth.getAccounts((err, acc) => {
         web3js.eth.getBlock('latest', function(err, result) {
             if (result.number > current_block_number) {
                 current_block_number = result.number;
             }
 
+            if (acc && acc.length > 0) {
+                //console.log('accounts', acc);
+                account = acc[0];
+            } else {
+                if (!is_web3_fallback) {
+                    console.log('no accounts');
+                    $('body').addClass('error-no-metamask-accounts').addClass('error');
+                }
+            }
+
+            var args = parseHash();
+            if (args['category']) {
+                category = args['category'];
+                $('body').addClass('category-' + category);
+                var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+                $('#filterby').text(cat_txt);
+            }
+            //console.log('args:', args);
+
             RealityCheck = contract(rc_json);
             RealityCheck.setProvider(web3js.currentProvider);
             RealityCheck.deployed().then(function(instance) {
                 rc = instance;
-                pageInit();
+                updateUserBalanceDisplay();
+                pageInit(account);
                 if (args['question']) {
                     //console.log('fetching question');
                     ensureQuestionDetailFetched(args['question']).then(function(question) {
                         openQuestionWindow(question[Qi_question_id]);
-
                     })
                 }
-
-                // NB If this fails we'll try again when we need to do something using the account
-                getAccount();
             });
         });
+    });
 
+    // Notification bar(footer)
+    if (window.localStorage.getItem('got-it') == null) {
+        $('#footer-notification-bar').css('display', 'block');
+    }
+    $('#got-it-button').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.localStorage.setItem('got-it', true);
+        $('#footer-notification-bar').css('display', 'none');
     });
 
     var args = parseHash()
@@ -4167,6 +3536,17 @@ window.addEventListener('load', function() {
         $("#filter-list").find("[data-category='all']").addClass("selected")
     }
 
-
     //setTimeout(bounceEffect, 8000);
+
+
+    web3js.version.getNetwork((err, net_id) => {
+        if (err === null) {
+            if (valid_ids.indexOf(net_id) === -1) {
+                $('body').addClass('error-invalid-network').addClass('error');
+            } else {
+                initializeGlobalVariablesForNetwork(net_id);
+                populateArbitratorSelect(arbitrator_list[net_id]);
+            }
+        }
+    });
 });
