@@ -3974,8 +3974,15 @@ function humanReadableWei(amt) {
     return web3js.fromWei(amt, unit).toString() + ' ' + unit;
 }
 
-function initializeGlobalVariablesForNetwork(net_id) {
+function initNetwork(net_id) {
+    console.log('initNetwork', net_id);
     network_id = net_id;
+    var net_cls = '.network-id-' + net_id;
+    console.log('net status', '.network-status'+net_cls, $('.network-status'+net_cls).size()); 
+    if ($('.network-status'+net_cls).size() == 0) {
+        return false;
+    }
+    $('.network-status'+net_cls).show();
     if (BLOCK_EXPLORERS[net_id]) {
         block_explorer = BLOCK_EXPLORERS[net_id];
     } else {
@@ -3987,11 +3994,11 @@ function initializeGlobalVariablesForNetwork(net_id) {
     } else {
         START_BLOCK = 1;
     }
+    return true;
 }
 
 window.addEventListener('load', function() {
 
-    let valid_ids = $('div.error-bar').find('span[data-network-id]').attr('data-network-id').split(',');
     var is_web3_fallback = false;
 
     web3realitio = new Web3(new Web3.providers.HttpProvider("https://rc-dev-3.socialminds.jp"));
@@ -3999,8 +4006,8 @@ window.addEventListener('load', function() {
     if (typeof web3 === 'undefined') {
         var is_web3_fallback = true;
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES[valid_ids[0]]));
-        console.log('no web3js, using infura on network', valid_ids[0]);
+        web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES["1"]));
+        console.log('no web3js, using infura on network', "1");
         $('body').addClass('error-no-metamask-plugin').addClass('error');
     } else {
         // Use Mist/MetaMask's provider
@@ -4024,11 +4031,10 @@ window.addEventListener('load', function() {
 
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {
-            if (valid_ids.indexOf(net_id) === -1) {
+            if (!initNetwork(net_id)) {
                 $('body').addClass('error-invalid-network').addClass('error');
-            } else {
-                initializeGlobalVariablesForNetwork(net_id);
-            }
+                return;
+            } 
         }
 
         ethereum.enable().then(function() {
