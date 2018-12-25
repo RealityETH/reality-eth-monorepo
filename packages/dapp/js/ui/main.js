@@ -2516,6 +2516,17 @@ function answersByMaxBond(answer_logs) {
     return ans;
 }
 
+function resetAccountUI() {
+    user_claimable = {};
+    q_min_activity_blocks = {};
+    clearNotifications();
+    //updateClaimableDisplay();
+    $('#your-question-answer-window').find('.account-specific').remove();
+    $('.answer-claim-button.claim-all').find('.claimable-eth').text('');
+    $('.answer-claim-button.claim-all').hide();
+
+}
+
 function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
 
     if ($('.no-notifications-item').length > 0) {
@@ -2538,6 +2549,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
     item_to_insert.find('.notification-text').text(ntext).expander();
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
+    item_to_insert.addClass('account-specific');
 
     // Template item has a positive badge
     // Turn it from green to red if something bad happened
@@ -2846,6 +2858,7 @@ function renderUserQandA(qdata, entry) {
     qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
+    qitem.addClass('account-specific');
     insertQAItem(question_id, qitem, question_section, entry.blockNumber);
 
     var is_finalized = isFinalized(qdata);
@@ -4013,6 +4026,13 @@ function getAccount() {
         }
 
         ethereum.enable().then(function() {
+
+            ethereum.on('accountsChanged', function (accounts) {
+                account = null;                     
+                resetAccountUI();
+                getAccount();
+            })
+
             web3js.eth.getAccounts((err, acc) => {
                     if (acc && acc.length > 0) {
                         //console.log('accounts', acc);
@@ -4125,6 +4145,9 @@ window.addEventListener('load', function() {
 
                     })
                 }
+
+                // NB If this fails we'll try again when we need to do something using the account
+                getAccount();
             });
         });
 
@@ -4136,6 +4159,7 @@ window.addEventListener('load', function() {
     } else {
         $("#filter-list").find("[data-category='all']").addClass("selected")
     }
+
 
     //setTimeout(bounceEffect, 8000);
 });
