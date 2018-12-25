@@ -3628,7 +3628,7 @@ function pageInit(account) {
     */
 
     var RealityCheckRealitio = contract(rc_json);
-    RealityCheckRealitio.setProvider(new web3.providers.HttpProvider(RPC_NODES[network_id]));
+    RealityCheckRealitio.setProvider(new Web3.providers.HttpProvider(RPC_NODES[network_id]));
     console.log('using network', RPC_NODES[network_id]);
     RealityCheckRealitio.deployed().then(function(instance) {
         rcrealitio = instance;
@@ -4004,10 +4004,9 @@ function humanReadableWei(amt) {
 }
 
 function initNetwork(net_id) {
-    console.log('initNetwork', net_id);
+    console.log('Initializing for network', net_id);
     network_id = net_id;
     var net_cls = '.network-id-' + net_id;
-    console.log('net status', '.network-status'+net_cls, $('.network-status'+net_cls).size()); 
     if ($('.network-status'+net_cls).size() == 0) {
         return false;
     }
@@ -4026,12 +4025,18 @@ function initNetwork(net_id) {
     return true;
 }
 
-function getAccount() {
+function getAccount(fail_soft) {
     console.log('in getAccount');
     return new Promise((resolve, reject)=>{
         if (account) {
-    console.log('returning accounty');
             resolve(account);
+        }
+
+        if (typeof ethereum === 'undefined') {
+            if (!fail_soft) {
+                $('body').addClass('error-no-metamask-plugin').addClass('error');
+            }
+            reject('Could not find an up-to-date version of metamask, account functionality disabled.');
         }
 
         ethereum.enable().then(function() {
@@ -4097,7 +4102,6 @@ window.addEventListener('load', function() {
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
         web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES["1"]));
         console.log('no web3js, using infura on network', "1");
-        $('body').addClass('error-no-metamask-plugin').addClass('error');
     } else {
         // Use Mist/MetaMask's provider
         console.log('got web3js, go ahead');
@@ -4154,7 +4158,7 @@ window.addEventListener('load', function() {
                 }
 
                 // NB If this fails we'll try again when we need to do something using the account
-                getAccount();
+                getAccount(true);
             });
         });
 
@@ -4169,4 +4173,10 @@ window.addEventListener('load', function() {
 
 
     //setTimeout(bounceEffect, 8000);
+});
+
+$('.continue-read-only-message').click(function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('body').removeClass('error-no-metamask-plugin').removeClass('error');
 });
