@@ -739,15 +739,13 @@ function isArbitratorValid(arb) {
 // Check if an arbitrator is valid when we have not yet had time to contact all the arbitrator contracts
 // This is used for fast rendering of the warnings on the list page.
 // TODO: We should really go back through them later and set warnings on anything that turned out to be bad
-function isArbitratorValidFast(arb) {
-    if (!arbitrator_list[network_id][arb]) {
-        return false;
+function isArbitratorValidFast(test_arb) {
+    for (var a in arbitrator_list[""+network_id]) {
+        if (a.toLowerCase() == test_arb.toLowerCase()) {
+            return true;
+        }
     }
-    // NB This will return a false positive if the arbitrator has not yet been checked when it runs
-    if (failed_arbitrators[arb]) {
-        return false;
-    }
-    return true; 
+    return false;
 }
 
 function isArbitrationPending(question) {
