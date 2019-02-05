@@ -6,9 +6,9 @@ Requirements
 
 You will need the Metamask_ Chrome extension. 
 
-Realitio is currently deployed to the Rinkeby testnet. Select the Rinkeby testnet, make sure your account is unlocked and refresh the page. 
+To post or answer questions you will need ETH. 
 
-You will need Rinkeby testnet coins to use the application. You can get these at the `Rinkeby Faucet`_.
+If you prefer to try the app without using real money, you can switch Metamask to the Rinkeby Testnet. You can get Rinkeby testnet coins at the `Rinkeby Faucet`_.
 
 .. _Metamask: http://metamask.io/
 .. _`Rinkeby Faucet`: https://faucet.rinkeby.io/
