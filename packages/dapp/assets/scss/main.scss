@@ -1388,6 +1388,10 @@ span.rcbrowser__close-button {
     margin: 0;
 }
 
+.arbitration-button.unpopulated {
+    visibility: hidden;
+}
+
 // arbitration button
 .arbitration-button--applied {
     font-size: 12px;

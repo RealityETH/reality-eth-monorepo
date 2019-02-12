@@ -2277,6 +2277,7 @@ console.log(ans);
         }).then(function(fee) {
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(web3js.fromWei(fee.toNumber(), 'ether'));
+            rcqa.find('.arbitration-button').removeClass('unpopulated');
         });
     }
 
