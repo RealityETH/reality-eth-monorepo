@@ -8,10 +8,11 @@ You will need the Metamask_ Chrome extension.
 
 To post or answer questions you will need ETH. 
 
-If you prefer to try the app without using real money, you can switch Metamask to the Rinkeby Testnet. You can get Rinkeby testnet coins at the `Rinkeby Faucet`_.
+If you prefer to try the app without using real money, you can switch Metamask to the Rinkeby or Kovan Testnet. You can get testnet coins at the `Rinkeby Faucet`_ and the `Kovan Faucet`_.
 
 .. _Metamask: http://metamask.io/
 .. _`Rinkeby Faucet`: https://faucet.rinkeby.io/
+.. _`Kovan Faucet`: https://faucet.kovan.network/
 
 
 Asking a question
