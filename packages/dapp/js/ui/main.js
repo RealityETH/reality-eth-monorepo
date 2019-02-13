@@ -57,6 +57,7 @@ const RPC_NODES = {
     1: 'https://rc-dev-3.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     4: 'https://rc-dev-4.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    42: 'https://rc-dev-4.socialminds.jp:9545',
     1337: 'https://localhost:8545'
 };
 
@@ -64,7 +65,8 @@ const RPC_NODES = {
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
     1: 6531147,
-    4: 3175028
+    4: 3175028,
+    42: 10350865
 }
 var START_BLOCK;
 
