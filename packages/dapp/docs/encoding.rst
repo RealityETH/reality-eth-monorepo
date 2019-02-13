@@ -12,7 +12,8 @@ Questions consist of a JSON string, like the following:
    {
       "title": "Did Donald Trump win the 2016 presidential election?", 
       "type": "bool", 
-      "category": "politics"
+      "category": "politics",
+      "lang": "en_US"
    }
 
 The system requires all data that is used in both questions and answers to be sent via the Ethereum blockchain. It is not sufficient to store the question data in an off-chain system such as IPFS, as the system needs to be sure that all participants were able to access the text.
@@ -31,7 +32,8 @@ A template should consist of JSON-encoded data, with placeholders for parameters
    {
       "title": "%s", 
       "type": "bool", 
-      "category": "%s" 
+      "category": "%s",
+      "lang": "%s"
    }
 
 The category parameter is optional, so a simple binary question can be created with the Template ID 0 and the question text as the single parameter.
@@ -44,7 +46,8 @@ If you want to create many similar requests, it will be more efficient to create
    {
      "title": "Was flight %s on date %s delayed by more than 3 hours?", 
      "type": "bool", 
-     "category": "flight-information"
+     "category": "flight-information",
+     "lang": "en_US"
    }
 
 Having deployed this template and got its numerical ID, this can then be called with a string including only the flight number, the delimiter and the date, eg: MH17␟2017-12-01
@@ -55,5 +58,7 @@ Encoding answers
 The answer must be expressed in terms of `bytes32` data. This may encode a number, a hash of some text, a number representing a selection specified in the JSON question definition, or boolean values for multiple options combined in a bitmask.
 
 A contract consuming this data should be prepared to make the necessary type conversion, most typically by casting a `bytes32` value into `uint` (for an unsigned number).
+
+For all the current types, invalid or incomprehensible questions may be denoted by the `bytes32` equivalent of `-1`, `0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff`. Note that it may not be possible to follow this convention for all future types of template.
 
 
