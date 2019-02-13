@@ -21,7 +21,7 @@ Once a question has been sent to the contract, it stores the plaintext it has se
 
 To minimize the amount of data that needs to be sent to the blockchain, questions are broken into two parts: A question template, and the question parameters that will be interpolated into the template. Parameters are treated like `sprintf` arguments.
 
-Multiple parameters can be assigned by delimiting with ␟ (\u241f), which is the Unicode unit separator character. r.
+Multiple parameters can be assigned by delimiting with ␟ (\u241f), which is the Unicode unit separator character.
 
 A template should consist of JSON-encoded data, with placeholders for parameters. The system is deployed with a generic built-in template for each question type, such as the following, deployed with template ID 0:
 
