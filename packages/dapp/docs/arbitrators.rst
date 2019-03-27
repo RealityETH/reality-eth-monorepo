@@ -71,3 +71,14 @@ If the result of arbitration is to affirm the answer given by the final answerer
 
 .. note::
    Sometimes the answer the arbitrator finalizes on will already have been given earlier, but with a lower bond. It may appear fairer to some for the arbitrator to set the ``answerer`` as the person who previously gave that answer, not the person who paid. However, for all we know the person who gave the correct answer could be a sock puppet belonging to the person who gave the final, wrong answer. Rewarding them would remove the disincentive to lie. For the system the incentive system to work correctly, it is essential that the arbitrator choose the person who paid them as the ``answerer``, unless the pre-existing final answer was correct.
+
+
+Getting information about the arbitrator
+----------------------------------------
+
+* ``function realitio()`` should provide the address of the Realitio contract to which the arbitrator responds.
+* ``function metadata()`` should provide a string of json-encoded metadata. The following properties are scheduled for implementation in the Realitio dapp:
+
+  * ``tos``: A URI representing the location of a terms-of-service document for the arbitrator.
+  * ``template_hashes``: An array of hashes of templates supported by the arbitrator. If you have a numerical ID for a template registered with Realitio, you can look up this hash by calling the Realitio ``template_hashes()`` function.
+
