@@ -339,7 +339,7 @@ $(document).on('change', 'input.arbitrator-other', function() {
     var sel_cont = $(this).closest('.select-container');
     if (/^(0x)?[0-9a-f]{1,40}$/i.test(arb_text)) {
         Arbitrator.at(arb_text).then(function(ar) {
-            ar.realitycheck().call().then(function(rcaddr) {
+            ar.realitio().call().then(function(rcaddr) {
                 if (rcaddr != rc.address) {
                     console.log('reality check mismatch');
                     return;
@@ -3933,7 +3933,7 @@ function populateArbitratorSelect(network_arbs) {
         myr.deployed().then(function(myri) {
             $.each(network_arbs, function(na_addr, na_title) {
                 mya.at(na_addr).then(function(arb_inst) {
-                    return arb_inst.realitycheck.call();
+                    return arb_inst.realitio.call();
                 }).then(function(rc_addr) {
                     console.log('arb has rc addr', rc_addr);
                     var is_arb_valid = (rc_addr.toLowerCase() == myr.address.toLowerCase());
@@ -3980,7 +3980,7 @@ function validateArbitratorForContract(arb_addr) {
         const mya = contract(arb_json);
         mya.setProvider(web3js.currentProvider);
         mya.at(arb_addr).then(function(myainst) {
-            myainst.realitycheck.call().then(function(rslt) {
+            myainst.realitio.call().then(function(rslt) {
                 resolve(arb_addr == rslt);
             });
         });
