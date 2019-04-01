@@ -1,6 +1,7 @@
 {
   "1": {
-    "0xdc0a2185031ecf89f091a39c63c2857a7d5c301a": "Realitio Team"
+    "0xdc0a2185031ecf89f091a39c63c2857a7d5c301a": "Realitio Team",
+    "0x8d2eba437b416938349bd1ac06eee517abd71f25": "Kleros (under testing)"
   },
   "3": {
     "0x0": "Realitio Team (dev)"
@@ -9,7 +10,8 @@
     "0x02321745bE4a141E78db6C39834396f8df00e2a0": "Realitio Team (rinkeby main)"
   },
   "42": {
-    "0xB4683794998215B59a429e86c3A33F796F9aeb0f": "Realitio Team (dev)"
+    "0xB4683794998215B59a429e86c3A33F796F9aeb0f": "Realitio Team (dev)",
+    "0x561e82de1ae5e5e025008e23d795691887824c0e": "Kleros (under testing)"
   },
   "1337": {
     "0x0": "Realitio Team (dev)"
