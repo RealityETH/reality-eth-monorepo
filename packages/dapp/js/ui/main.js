@@ -3310,15 +3310,16 @@ $(document).on('click', '.arbitration-button', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    var lnk = this;
     getAccount().then(function() {
-        var question_id = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
+        var question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
         var question_detail = question_detail_list[question_id];
         if (!question_detail) {
             console.log('Error, question detail not found');
             return false;
         }
 
-        var last_seen_bond_hex = $(this).attr('data-last-seen-bond'); 
+        var last_seen_bond_hex = $(lnk).attr('data-last-seen-bond'); 
         if (!last_seen_bond_hex) {
             console.log('Error, last seen bond not populated, aborting arbitration request');
             return false;
