@@ -1,6 +1,6 @@
 {
   "name": "@realitio/realitio-contracts",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {
     "develop": "truffle develop",
