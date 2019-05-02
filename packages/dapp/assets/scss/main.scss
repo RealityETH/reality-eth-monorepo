@@ -539,6 +539,9 @@ body.pushing .page-qa #push-icon {
     font-size: 15px;
 }
 
+div.category-list {
+    display:none;
+}
 .category-list {
     margin-top: -20px;
     margin-bottom: 0;
@@ -577,6 +580,7 @@ ul.main-nav {
 }
 
 .questions {
+    margin-top: -25px;
     width: 100%;
     position: relative;
 }
@@ -722,6 +726,10 @@ ul.main-nav {
     margin: 0 auto;
     padding: 24px 0 33px;
     border-bottom: solid 1px darken($ultralight-gray, 10%);
+}
+
+.questions__item:last-child {
+    border-bottom: none;
 }
 
 span.question-title {
@@ -2793,7 +2801,7 @@ table.ui-datepicker-calendar {
 }
 
 .spinner {
-  margin: 40px auto;
+  margin: 80px auto 80px;
   width: 40px;
   height: 40px;
   position: relative;
