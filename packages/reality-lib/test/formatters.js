@@ -145,3 +145,10 @@ describe('Min Number Formatter', function() {
   });
 });
 */
+describe('Invalid values', function() {
+  it('Handles bools as expected', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
+    var inv = rc_question.getInvalidValue(q); 
+    expect(inv).to.equal('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
+  });
+});

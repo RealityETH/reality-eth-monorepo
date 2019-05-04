@@ -188,13 +188,8 @@ exports.encodeText = function(qtype, txt, outcomes, category, lang) {
 
 // A value used to denote that the question is invalid or can't be answered
 exports.getInvalidValue = function(question_json) {
-    if (question_json['type'] == 'int') {
-        // Would normally be the smallest possible int you can represent in the twos complement system
-        return '0x8000000000000000000000000000000000000000000000000000000000000000';
-    } else {
-        // equivalent to -1 in twos complement
-        return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-    }
+    // equivalent to -1 in twos complement
+    return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 }
 
 exports.getLanguage = function(question_json) {
