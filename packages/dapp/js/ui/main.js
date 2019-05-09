@@ -712,6 +712,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                                 document.documentElement.style.cursor = ""; // Work around Interact draggable bug
                             });
 
+                            document.location.hash = '!/question/' + question_id;
+
                             var window_id = 'qadetail-' + question_id;
                             win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
                             win.attr('id', window_id);
@@ -2075,6 +2077,9 @@ function displayQuestionDetail(question_detail) {
             dateFormat: 'yy-mm-dd'
         });
     }
+
+    document.location.hash = '!/question/' + question_id;
+
 }
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
