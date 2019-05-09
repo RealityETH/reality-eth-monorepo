@@ -2100,7 +2100,11 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
-    var bond = new BigNumber(web3js.toWei(0.0001, 'ether'));
+    var bond = new BigNumber(web3js.toWei(0.0005, 'ether'));
+    if (question_detail[Qi_bounty] && question_detail[Qi_bounty].gt(0)) {
+        bond = question_detail[Qi_bounty].div(2);
+    }
+
     if (isAnswerActivityStarted(question_detail)) {
 
         var current_container = rcqa.find('.current-answer-container');
