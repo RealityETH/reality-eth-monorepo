@@ -169,11 +169,6 @@ contract Realitio is BalanceHolder {
         _;
     }
 
-    modifier bondMustBeZero() {
-        require(msg.value == 0, "bond must be zero");
-        _;
-    }
-
     modifier bondMustDouble(bytes32 question_id) {
         require(msg.value > 0, "bond must be positive"); 
         require(msg.value >= (questions[question_id].bond.mul(2)), "bond must be double at least previous bond");
@@ -434,7 +429,6 @@ contract Realitio is BalanceHolder {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
-        bondMustBeZero
     external {
 
         require(answerer != NULL_ADDRESS, "answerer must be provided");
