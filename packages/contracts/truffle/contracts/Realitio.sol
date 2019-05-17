@@ -323,6 +323,18 @@ contract Realitio is BalanceHolder {
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
+    // @notice Verify and store a commitment, including an appropriate timeout
+    // @param question_id The ID of the question to store
+    // @param commitment The ID of the commitment
+    function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
+    internal
+    {
+        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
+
+        uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
+        commitments[commitment_id].reveal_ts = uint32(now).add(commitment_timeout);
+    }
+
     /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
     /// @dev Creates a hash, commitment_id, uniquely identifying this answer, to this question, with this bond.
     /// The commitment_id is stored in the answer history where the answer would normally go.
@@ -340,12 +352,7 @@ contract Realitio is BalanceHolder {
 
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, msg.value));
         address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
-
-        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
-
-        uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(now).add(commitment_timeout);
-
+        _storeCommitment(question_id, commitment_id);
         _addAnswerToHistory(question_id, commitment_id, answerer, msg.value, true);
 
     }
