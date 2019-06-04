@@ -2,6 +2,7 @@ pragma solidity ^0.4.24;
 
 import './Owned.sol';
 import './Realitio.sol';
+import './IERC20.sol';
 
 contract Arbitrator is Owned {
 
@@ -137,12 +138,23 @@ contract Arbitrator is Owned {
 
     }
 
-    /// @notice Withdraw any accumulated fees to the specified address
+    /// @notice Withdraw any accumulated ETH fees to the specified address
     /// @param addr The address to which the balance should be sent
     function withdraw(address addr) 
         onlyOwner 
     public {
         addr.transfer(address(this).balance); 
+    }
+
+    /// @notice Withdraw any accumulated token fees to the specified address
+    /// @param addr The address to which the balance should be sent
+    /// @dev Only needed if the Realitio contract used is using an ERC20 token
+    /// @dev Also only normally useful if a per-question fee is set, otherwise we only have ETH.
+    function withdrawERC20(IERC20 _token, address addr) 
+        onlyOwner 
+    public {
+        uint256 bal = _token.balanceOf(address(this));
+        IERC20(_token).transfer(addr, bal); 
     }
 
     function() 
@@ -151,6 +163,7 @@ contract Arbitrator is Owned {
 
     /// @notice Withdraw any accumulated question fees from the specified address into this contract
     /// @dev Funds can then be liberated from this contract with our withdraw() function
+    /// @dev This works in the same way whether the realitio contract is using ETH or an ERC20 token
     function callWithdraw() 
         onlyOwner 
     public {

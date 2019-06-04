@@ -2,10 +2,9 @@ pragma solidity ^0.4.24;
 
 import './RealitioSafeMath256.sol';
 import './RealitioSafeMath32.sol';
-import './BalanceHolder.sol';
+import './BalanceHolderERC20.sol';
 
-
-contract Realitio is BalanceHolder {
+contract RealitioERC20 is BalanceHolder {
 
     using RealitioSafeMath256 for uint256;
     using RealitioSafeMath32 for uint32;
@@ -169,9 +168,9 @@ contract Realitio is BalanceHolder {
         _;
     }
 
-    modifier bondMustDouble(bytes32 question_id) {
-        require(msg.value > 0, "bond must be positive"); 
-        require(msg.value >= (questions[question_id].bond.mul(2)), "bond must be double at least previous bond");
+    modifier bondMustDouble(bytes32 question_id, uint256 tokens) {
+        require(tokens > 0, "bond must be positive"); 
+        require(tokens >= (questions[question_id].bond.mul(2)), "bond must be double at least previous bond");
         _;
     }
 
@@ -182,8 +181,16 @@ contract Realitio is BalanceHolder {
         _;
     }
 
+    function setToken(IERC20 _token) 
+    public
+    {
+        require(token == IERC20(0x0), "Token can only be initialized once");
+        token = _token;
+    }
+
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
+    /// param _token The token used for everything except arbitration
     constructor() 
     public {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
@@ -233,13 +240,15 @@ contract Realitio is BalanceHolder {
         string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
-    public payable returns (bytes32) {
+    public returns (bytes32) {
         uint256 template_id = createTemplate(content);
         return askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
 
-    /// @notice Ask a new question and return the ID
+    /// @notice Ask a new question without a bounty and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev Calling without the token param will only work if there is no arbitrator-set question fee.
+    /// @dev This has the same function signature as askQuestion() in the non-ERC20 version, which is optionally payable.
     /// @param template_id The ID number of the template the question will use
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -249,29 +258,81 @@ contract Realitio is BalanceHolder {
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
-    public payable returns (bytes32) {
+    public returns (bytes32) {
 
         require(templates[template_id] > 0, "template must exist");
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
 
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts) 
+    /// @notice Ask a new question with a bounty and return the ID
+    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @param template_id The ID number of the template the question will use
+    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
+    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
+    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param tokens The combined initial question bounty and question fee
+    /// @return The ID of the newly-created question, created deterministically.
+    function askQuestionERC20(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 tokens) 
+        // stateNotCreated is enforced by the internal _askQuestion
+    public returns (bytes32) {
+
+        _deductTokensOrRevert(tokens);
+
+        require(templates[template_id] > 0, "template must exist");
+
+        bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
+        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
+
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, tokens);
+        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
+
+        return question_id;
+    }
+
+    function _deductTokensOrRevert(uint256 tokens) 
+    internal {
+
+        if (tokens == 0) {
+            return;
+        }
+
+        uint256 bal = balanceOf[msg.sender];
+
+        // Deduct any tokens you have in your internal balance first
+        if (bal > 0) {
+            if (bal >= tokens) {
+                balanceOf[msg.sender] = bal.sub(tokens);
+                return;
+            } else {
+                tokens = tokens.sub(bal);
+                balanceOf[msg.sender] = 0;
+            }
+        }
+        // Now we need to charge the rest from 
+        require(token.transferFrom(msg.sender, address(this), tokens), "Transfer of tokens failed, insufficient approved balance?");
+        return;
+
+    }
+
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 tokens) 
         stateNotCreated(question_id)
     internal {
+
+        uint256 bounty = tokens;
 
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(timeout > 0, "timeout must be positive"); 
         require(timeout < 365 days, "timeout must be less than 365 days"); 
         require(arbitrator != NULL_ADDRESS, "arbitrator must be set");
-
-        uint256 bounty = msg.value;
 
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
@@ -296,11 +357,13 @@ contract Realitio is BalanceHolder {
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
-    function fundAnswerBounty(bytes32 question_id) 
+    /// @param tokens The number of tokens to fund
+    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) 
         stateOpen(question_id)
-    external payable {
-        questions[question_id].bounty = questions[question_id].bounty.add(msg.value);
-        emit LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
+    external {
+        _deductTokensOrRevert(tokens);
+        questions[question_id].bounty = questions[question_id].bounty.add(tokens);
+        emit LogFundAnswerBounty(question_id, tokens, questions[question_id].bounty, msg.sender);
     }
 
     /// @notice Submit an answer for a question.
@@ -309,12 +372,14 @@ contract Realitio is BalanceHolder {
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
+    /// @param tokens The amount of tokens to submit
+    function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens) 
         stateOpen(question_id)
-        bondMustDouble(question_id)
+        bondMustDouble(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external payable {
-        _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
+    external {
+        _deductTokensOrRevert(tokens);
+        _addAnswerToHistory(question_id, answer, msg.sender, tokens, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
@@ -338,17 +403,21 @@ contract Realitio is BalanceHolder {
     /// @param answer_hash The hash of your answer, plus a nonce that you will later reveal
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
+    /// @param tokens Number of tokens sent
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
-    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) 
+    function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens) 
         stateOpen(question_id)
-        bondMustDouble(question_id)
+        bondMustDouble(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external payable {
+    external {
 
-        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, msg.value));
+        _deductTokensOrRevert(tokens);
+
+        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, tokens));
         address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
+
         _storeCommitment(question_id, commitment_id);
-        _addAnswerToHistory(question_id, commitment_id, answerer, msg.value, true);
+        _addAnswerToHistory(question_id, commitment_id, answerer, tokens, true);
 
     }
 

@@ -1,6 +1,10 @@
 pragma solidity ^0.4.18;
 
+import './IERC20.sol';
+
 contract BalanceHolder {
+
+    IERC20 public token;
 
     mapping(address => uint256) public balanceOf;
 
@@ -13,7 +17,7 @@ contract BalanceHolder {
     public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
-        msg.sender.transfer(bal);
+        require(token.transfer(msg.sender, bal));
         emit LogWithdraw(msg.sender, bal);
     }
 

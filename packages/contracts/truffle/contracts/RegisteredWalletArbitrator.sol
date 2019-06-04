@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import './Arbitrator.sol';
+import './IERC20.sol';
 
 /*
 This contract extends the standard Arbitrator contract to make it possible to make routine fund withdrawals to an address pre-registered by the owner without actually being the owner.
@@ -18,6 +19,14 @@ contract RegisteredWalletArbitrator is Arbitrator {
     function callWithdraw() 
     public {
         realitio.withdraw(); 
+    }
+
+    /// @notice Withdraw money from the arbitrator contract to our registered wallet
+    function withdrawToRegisteredWalletERC20(IERC20 _token)
+    external {
+        require(registered_wallet != 0x0, "No wallet is registered");
+        uint256 bal = _token.balanceOf(address(this));
+        _token.transfer(registered_wallet, bal);
     }
 
     /// @notice Withdraw money from the arbitrator contract to our registered wallet
