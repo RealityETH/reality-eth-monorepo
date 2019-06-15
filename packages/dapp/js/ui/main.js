@@ -5,13 +5,25 @@
 const rc_question = require('@realitio/realitio-lib/formatters/question.js');
 const rc_template = require('@realitio/realitio-lib/formatters/template.js');
 
+const rc_json_by_curr = {
+    'ETH': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json'),
+    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.DAI.json'),
+    'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.TRST.json')
+}
+
+const arb_json_by_curr = {
+    'ETH': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json'),
+    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.DAI.json'),
+    'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.TRST.json')
+}
+
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
 var web3realitio; // We run our own node to handle watch events that can't reliably be done with infura
 
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
-const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
+var rc_json;
+var arb_json;
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
@@ -77,6 +89,8 @@ const FETCH_NUMBERS = [100, 2500, 5000];
 
 var last_displayed_block_number = 0;
 var current_block_number = 1;
+
+var currency = 'ETH';
 
 // Struct array offsets
 // Assumes we unshift the ID onto the start
@@ -4104,6 +4118,13 @@ function accountInit(account) {
 
 window.addEventListener('load', function() {
 
+    var args = parseHash();
+    if (args['token'] && args['token'] != 'ETH') {
+        currency = args['token'];
+    }
+    rc_json = rc_json_by_curr[currency];
+    arb_json = arb_json_by_curr[currency];
+
     var is_web3_fallback = false;
 
     web3realitio = new Web3(new Web3.providers.HttpProvider("https://rc-dev-3.socialminds.jp"));
@@ -4141,7 +4162,6 @@ window.addEventListener('load', function() {
             populateArbitratorSelect(arbitrator_list[net_id]);
         }
 
-        var args = parseHash();
         USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
         if (args['category']) {
             category = args['category'];
