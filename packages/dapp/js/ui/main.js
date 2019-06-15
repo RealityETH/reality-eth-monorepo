@@ -17,6 +17,12 @@ const arb_json_by_curr = {
     'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.TRST.json')
 }
 
+const token_json_by_curr = {
+    'ETH': null,
+    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.DAI.json'),
+    'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.TRST.json'),
+}
+
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
@@ -24,12 +30,22 @@ var web3realitio; // We run our own node to handle watch events that can't relia
 
 var rc_json;
 var arb_json;
+var token_json;
+
+var erc20_token;
+var erc20_decimals = 10000; // TODO: Get this from the contract or a config file or something
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
 const arb_tos = require('./arbitrator_tos.json');
 
-const arbitrator_list = require('@realitio/realitio-contracts/config/arbitrators.json');
+const arbitrator_list_by_curr = {
+    'ETH': require('@realitio/realitio-contracts/config/arbitrators.json'),
+    'DAI': require('@realitio/realitio-contracts/config/arbitrators.DAI.json'),
+    'TRST': require('@realitio/realitio-contracts/config/arbitrators.TRST.json')
+}
+var arbitrator_list;
+
 const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
 
 const contract = require("truffle-contract");
@@ -467,6 +483,23 @@ function markViewedToDate() {
     }
 }
 
+function humanToDecimalizedBigNumber(num) {
+    if (currency == 'ETH') {
+        return new BigNumber(web3js.toWei(num, 'ether'));
+    } else {
+        return new BigNumber(new BigNumber(num).times(erc20_decimals));
+    }
+}
+
+function decimalizedBigNumberToHuman(num) {
+    if (currency == 'ETH') {
+        return web3js.fromWei(num.toNumber(), 'ether');
+    } else {
+        return num.div(erc20_decimals);
+    }
+}
+
+
 $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -632,7 +665,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
         for (var i = 0; i < answer_options.length; i++) {
             outcomes[i] = answer_options[i].value;
         }
-        var reward = (reward_val == '') ? new BigNumber(0) : new BigNumber(web3js.toWei(reward_val, 'ether'));
+        var reward = (reward_val == '') ? new BigNumber(0) : humanToDecimalizedBigNumber(reward_val);
 
         if (validate(win)) {
             var qtype = question_type.val();
@@ -660,12 +693,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                         return;
                     }
 
-                    rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
-                            from: account,
-                            gas: 200000,
-                            value: reward.plus(fee)
-                        })
-                        .then(function(txid) {
+                    var handleAskQuestionTX = function(txid) {
                             //console.log('sent tx with id', txid);
 
                             // Make a fake log entry
@@ -726,7 +754,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                                 document.documentElement.style.cursor = ""; // Work around Interact draggable bug
                             });
 
-                            document.location.hash = '!/question/' + question_id;
+                            set_hash_param({'question': question_id});
 
                             var window_id = 'qadetail-' + question_id;
                             win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
@@ -734,7 +762,43 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                             win.attr('data-question-id', question_id);
                             Ps.initialize(win.find('.rcbrowser-inner').get(0));
 
+                    }
+
+                    if (currency == 'ETH') { 
+                        rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+                                from: account,
+                                gas: 200000,
+                                value: reward.plus(fee)
+                            })
+                            .then(function(txid) { handleAskQuestionTX(txid) });
+                    } else {
+                        getERC20TokenInstance().then(function(erc20) {
+                            console.log('checking allowance', account, rc.address);
+                            var cost = reward.plus(fee);
+                            erc20.allowance.call(account, rc.address).then(function(allowed) {
+                                if (allowed.lt(cost)) {
+                                    console.log('not enough to cover cost, approving', cost.sub(allowed), rc.address);
+                                    erc20.approve(rc.address, cost.sub(allowed), {
+                                            from: account,
+                                            gas: 200000,
+                                        }).then(function() {
+                                            console.log('approved, asking');
+                                            rc.askQuestionERC20.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
+                                                from: account,
+                                                gas: 200000,
+                                            })
+                                            .then(function(txid) { handleAskQuestionTX(txid) });
+                                    });
+                                } else {
+                                    rc.askQuestionERC20.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
+                                        from: account,
+                                        gas: 200000,
+                                    })
+                                    .then(function(txid) { handleAskQuestionTX(txid) });
+                                }
+                            });
                         });
+                    }
                 });
             });
         }
@@ -1114,7 +1178,7 @@ function updateClaimableDisplay() {
     var claiming = mergePossibleClaimable(user_claimable, true);
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
-        $('.answer-claiming-container').find('.claimable-eth').text(web3js.fromWei(claiming.total.toNumber(), 'ether'));
+        $('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
         var txid = txids.join(', '); // TODO: Handle multiple links properly
         $('.answer-claiming-container').find('a.txid').attr('href', block_explorer + '/tx/' + txid);
         $('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
@@ -1126,7 +1190,7 @@ function updateClaimableDisplay() {
     rc.balanceOf.call(account).then(function(result) {
         var ttl = result.plus(unclaimed.total);
         if (ttl.gt(0)) {
-            $('.answer-claim-button.claim-all').find('.claimable-eth').text(web3js.fromWei(ttl.toNumber(), 'ether'));
+            $('.answer-claim-button.claim-all').find('.claimable-eth').text(decimalizedBigNumberToHuman(ttl));
             $('.answer-claim-button.claim-all').show();
         } else {
             $('.answer-claim-button.claim-all').fadeOut();
@@ -1613,13 +1677,39 @@ function updateUserBalanceDisplay() {
     if (!account) {
         return;
     }
-    // console.log('updating balacne for', account);
-    web3js.eth.getBalance(account, function(error, result) {
-        // console.log('got updated balacne for', account, result.toNumber());
-        if (error === null) {
-            $('.account-balance').text(web3js.fromWei(result.toNumber(), 'ether'));
-        }
-    });
+    if (currency == 'ETH') {
+        // console.log('updating balacne for', account);
+        web3js.eth.getBalance(account, function(error, result) {
+            // console.log('got updated balacne for', account, result.toNumber());
+            if (error === null) {
+                $('.account-balance').text(web3js.fromWei(result.toNumber(), 'ether'));
+            }
+        });
+    } else {
+     
+        getERC20TokenInstance().then(function(erc20) {
+            erc20.balanceOf.call(account).then(function(result) {
+                // In testing we can just mint some the first time...
+                // erc20.mint(account, 1000000, {from:account});
+
+                // TODO: Handle decimals
+                $('.account-balance').text(decimalizedBigNumberToHuman(result));
+            });
+        });
+            
+    }
+}
+
+function getERC20TokenInstance() {
+        return new Promise((resolve, reject)=>{
+            var ERC20 = contract(token_json);
+            //ERC20.setProvider(new Web3.providers.HttpProvider(RPC_NODES[network_id]));
+            ERC20.setProvider(web3js.currentProvider);
+            //console.log('using network', RPC_NODES[network_id]);
+            ERC20.deployed().then(function(instance) {
+                resolve(instance);
+            });
+        });
 }
 
 function populateSection(section_name, question_data, before_item) {
@@ -1722,7 +1812,7 @@ function populateSectionEntry(entry, question_data) {
     var posted_ts = question_data[Qi_creation_ts];
     var arbitrator = question_data[Qi_arbitrator];
     var timeout = question_data[Qi_timeout];
-    var bounty = web3js.fromWei(question_data[Qi_bounty], 'ether');
+    var bounty = decimalizedBigNumberToHuman(question_data[Qi_bounty]);
     var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
@@ -2092,7 +2182,7 @@ function displayQuestionDetail(question_detail) {
         });
     }
 
-    document.location.hash = '!/question/' + question_id;
+    set_hash_param({'question': question_id});
 
 }
 
@@ -2113,7 +2203,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     rcqa.find('.question-title').text(question_json['title']).expander({
         slicePoint: 200
     });
-    rcqa.find('.reward-value').text(web3js.fromWei(question_detail[Qi_bounty], 'ether'));
+    rcqa.find('.reward-value').text(decimalizedBigNumberToHuman(question_detail[Qi_bounty]));
 
     if (question_detail[Qi_block_mined] > 0) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
@@ -2156,13 +2246,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 } else {
                     ans_data.removeClass('current-account');
                 }
-                ans_data.find('.answer-bond-value').text(web3js.fromWei(current_answer.bond.toNumber(), 'ether'));
+                ans_data.find('.answer-bond-value').text(decimalizedBigNumberToHuman(current_answer.bond));
             }
 
             var last_ans = question_detail['history'][idx].args;
             var unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
             if (last_ans.is_commitment && !last_ans.revealed_block) {
-                unrevealed_answer_container.find('.answer-bond-value').text(web3js.fromWei(last_ans.bond.toNumber(), 'ether'));
+                unrevealed_answer_container.find('.answer-bond-value').text(decimalizedBigNumberToHuman(last_ans.bond));
                 unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', rc_question.convertTsToString(commitExpiryTS(question_detail, last_ans['ts'])));
                 timeAgo.render(unrevealed_answer_container.find('.reveal-time.timeago'));
                 unrevealed_answer_container.find('.answerer').text(last_ans['user']);
@@ -2209,7 +2299,7 @@ console.log(ans);
                     hist_item.removeClass('unrevealed-commit');
                 }
 
-                hist_item.find('.answer-bond-value').text(web3js.fromWei(ans.bond.toNumber(), 'ether'));
+                hist_item.find('.answer-bond-value').text(decimalizedBigNumberToHuman(ans.bond));
                 hist_item.find('.answer-time.timeago').attr('datetime', rc_question.convertTsToString(ans['ts']));
                 timeAgo.render(hist_item.find('.answer-time.timeago'));
                 hist_item.removeClass('template-item');
@@ -2219,7 +2309,7 @@ console.log(ans);
         }
     }
 
-    rcqa.find('.bond-value').text(web3js.fromWei(question_detail[Qi_bond], 'ether'));
+    rcqa.find('.bond-value').text(decimalizedBigNumberToHuman(question_detail[Qi_bond]));
     // Set the dispute value on a slight delay
     // This ensures the latest entry was updated and the user had time to see it when arbitration was requested
     window.setTimeout(function() {
@@ -2248,8 +2338,8 @@ console.log(ans);
     let questioner = question_detail[Qi_question_creator]
     let timeout = question_detail[Qi_timeout];
     var balloon = rcqa.find('.question-setting-info').find('.balloon')
-    balloon.find('.setting-info-bounty').text(web3js.fromWei(question_detail[Qi_bounty], 'ether'));
-    balloon.find('.setting-info-bond').text(web3js.fromWei(question_detail[Qi_bond], 'ether'));
+    balloon.find('.setting-info-bounty').text(decimalizedBigNumberToHuman(question_detail[Qi_bounty]));
+    balloon.find('.setting-info-bond').text(decimalizedBigNumberToHuman(question_detail[Qi_bond]));
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail[Qi_timeout]));
     balloon.find('.setting-info-content-hash').text(question_detail[Qi_content_hash]);
     balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
@@ -2281,7 +2371,7 @@ console.log(ans);
         } else {
             ans_data.removeClass('unconfirmed-account');
         }
-        ans_data.find('.answer-bond-value').text(web3js.fromWei(unconfirmed_answer.bond.toNumber(), 'ether'));
+        ans_data.find('.answer-bond-value').text(decimalizedBigNumberToHuman(unconfirmed_answer.bond));
 
         // label for show the unconfirmed answer.
         var label = rc_question.getAnswerString(question_json, unconfirmed_answer.answer);
@@ -2301,7 +2391,7 @@ console.log(ans);
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-            rcqa.find('.arbitration-fee').text(web3js.fromWei(fee.toNumber(), 'ether'));
+            rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
         });
     }
@@ -2317,7 +2407,7 @@ console.log(ans);
     // If the user has edited the field, never repopulate it underneath them
     var bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
     if (!bond_field.hasClass('edited')) {
-        bond_field.val(web3js.fromWei(bond.toNumber(), 'ether') * 2);
+        bond_field.val(decimalizedBigNumberToHuman(bond.times(2)));
     }
 
     //console.log('call updateQuestionState');
@@ -2329,7 +2419,7 @@ console.log(ans);
             rcqa.removeClass('is-claimable');
         } else {
             rcqa.addClass('is-claimable');
-            rcqa.find('.answer-claim-button .claimable-eth').text(web3js.fromWei(tot.toNumber(), 'ether'));
+            rcqa.find('.answer-claim-button .claimable-eth').text(decimalizedBigNumberToHuman(tot));
         }
     } else {
         rcqa.removeClass('is-claimable');
@@ -3167,7 +3257,7 @@ $(document).on('click', '.post-answer-button', function(e) {
             var min_amount = current_question[Qi_bond] * 2;
             if (bond.lt(min_amount)) {
                 parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-                parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(web3js.fromWei(min_amount, 'ether'));
+                parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
                 is_err = true;
             }
 
@@ -3381,10 +3471,10 @@ function show_bond_payments(ctrl) {
             payable = existing_answers[new_answer].args.bond;
             if (existing_answers[new_answer].args.user == account) {
                 frm.addClass('has-your-answer').removeClass('has-someone-elses-answer');
-                frm.find('.answer-credit-info .answer-payment-value').text(web3js.fromWei(payable, 'ether'))
+                frm.find('.answer-credit-info .answer-payment-value').text(decimalizedBigNumberToHuman(payable));
             } else {
                 frm.addClass('has-someone-elses-answer').removeClass('has-your-answer');
-                frm.find('.answer-debit-info .answer-payment-value').text(web3js.fromWei(payable, 'ether'))
+                frm.find('.answer-debit-info .answer-payment-value').text(decimalizedBigNumberToHuman(payable));
             }
             frm.attr('data-answer-payment-value', payable.toString());
         } else {
@@ -3494,8 +3584,9 @@ $('#filter-list a').on('click', function(e) {
     var cat = $(this).attr('data-category');
     if (cat == 'all') {
         window.location.hash = '';
+        set_hash_param({'category': null})
     } else {
-        window.location.hash = '#!/category/' + cat;
+        set_hash_param({'category': cat})
     }
     location.reload();
 });
@@ -3922,6 +4013,24 @@ function parseHash() {
     return args;
 }
 
+function set_hash_param(args) {
+    var current_args = parseHash();
+    var h = '!';
+    for (var a in args) {
+        if (args.hasOwnProperty(a)) {
+            current_args[a] = args[a];
+        }
+    }
+    for (var ca in current_args) {
+        if (current_args.hasOwnProperty(ca)) {
+            if (current_args[ca] != null) {
+                h = h + '/' + ca + '/' + current_args[ca];
+            }
+        }
+    }
+    document.location.hash = h;
+}
+
 function populateArbitratorOptionLabel(op, fee, txt, tos) {
     if (txt) {
         op.attr('data-text-main', txt);
@@ -4123,7 +4232,14 @@ window.addEventListener('load', function() {
         currency = args['token'];
     }
     rc_json = rc_json_by_curr[currency];
+    if (!rc_json) {
+        console.log('Token not recognized', currency);
+        return;
+    }
     arb_json = arb_json_by_curr[currency];
+    arbitrator_list = arbitrator_list_by_curr[currency];
+    token_json = token_json_by_curr[currency];
+    $('.token-ticker-text').text(currency);
 
     var is_web3_fallback = false;
 
