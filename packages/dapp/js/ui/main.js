@@ -483,16 +483,16 @@ function markViewedToDate() {
     }
 }
 
-function humanToDecimalizedBigNumber(num) {
-    if (currency == 'ETH') {
+function humanToDecimalizedBigNumber(num, force_eth) {
+    if (force_eth || currency == 'ETH') {
         return new BigNumber(web3js.toWei(num, 'ether'));
     } else {
-        return new BigNumber(new BigNumber(num).times(erc20_decimals));
+        return new BigNumber(num).times(erc20_decimals);
     }
 }
 
-function decimalizedBigNumberToHuman(num) {
-    if (currency == 'ETH') {
+function decimalizedBigNumberToHuman(num, force_eth) {
+    if (force_eth || currency == 'ETH') {
         return web3js.fromWei(num.toNumber(), 'ether');
     } else {
         return num.div(erc20_decimals);
@@ -772,32 +772,15 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                             })
                             .then(function(txid) { handleAskQuestionTX(txid) });
                     } else {
-                        getERC20TokenInstance().then(function(erc20) {
-                            console.log('checking allowance', account, rc.address);
-                            var cost = reward.plus(fee);
-                            erc20.allowance.call(account, rc.address).then(function(allowed) {
-                                if (allowed.lt(cost)) {
-                                    console.log('not enough to cover cost, approving', cost.sub(allowed), rc.address);
-                                    erc20.approve(rc.address, cost.sub(allowed), {
-                                            from: account,
-                                            gas: 200000,
-                                        }).then(function() {
-                                            console.log('approved, asking');
-                                            rc.askQuestionERC20.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
-                                                from: account,
-                                                gas: 200000,
-                                            })
-                                            .then(function(txid) { handleAskQuestionTX(txid) });
-                                    });
-                                } else {
-                                    rc.askQuestionERC20.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
-                                        from: account,
-                                        gas: 200000,
-                                    })
-                                    .then(function(txid) { handleAskQuestionTX(txid) });
-                                }
-                            });
+                        var cost = reward.plus(fee);
+                        ensureAmountApproved(rc.address, account, cost).then(function() {
+                            rc.askQuestionERC20.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
+                                from: account,
+                                gas: 200000,
+                            })
+                            .then(function(txid) { handleAskQuestionTX(txid) });
                         });
+
                     }
                 });
             });
@@ -1672,6 +1655,28 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data)
     });
 }
 
+function ensureAmountApproved(spender, account, amount) {
+    return new Promise((resolve, reject) => {
+        getERC20TokenInstance().then(function(erc20) {
+            erc20.allowance.call(account, spender).then(function(allowed) {
+                if (allowed.gte(amount)) {
+                    console.log('already got enough, continuing');
+                    resolve(allowed);
+                } else {
+                    console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
+                    erc20.approve(spender, amount.sub(allowed), {
+                        from: account,
+                        gas: 200000,
+                    }).then(function() {
+                        console.log('approval done');
+                        resolve(amount);
+                    });
+                }
+            });
+        });
+    });
+}
+
 // TODO: Fire this on a timer, and also on the withdrawal event
 function updateUserBalanceDisplay() {
     if (!account) {
@@ -2391,7 +2396,7 @@ console.log(ans);
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
-            rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee));
+            rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
         });
     }
@@ -3165,10 +3170,11 @@ $(document).on('click', '.post-answer-button', function(e) {
         var bond = new BigNumber(0);
         var bond_field = parent_div.find('input[name="questionBond"]');
         try {
-            bond  = web3js.toWei(new BigNumber(bond_field.val()), 'ether');
+            bond = humanToDecimalizedBigNumber(bond_field.val());
         } catch (err) {
             console.log('Could not parse bond field value', bond_field.val());
         }
+        console.log('continuing with bond as ', bond.toNumber());
 
         var question, current_answer, new_answer;
         var question_json;
@@ -3268,6 +3274,36 @@ $(document).on('click', '.post-answer-button', function(e) {
             // Remove the edited note to allow the field to be automatically populated again
             bond_field.removeClass('edited'); 
 
+            var handleAnswerSubmit = function(txid) {
+                clearForm(parent_div, question_json);
+                var fake_history = {
+                    'args': {
+                        'answer': new_answer,
+                        'question_id': question_id,
+                        'history_hash': null, // TODO Do we need this?
+                        'user': account,
+                        'bond': bond,
+                        'ts': new BigNumber(parseInt(new Date().getTime() / 1000)),
+                        'is_commitment': false
+                    },
+                    'event': 'LogNewAnswer',
+                    'blockNumber': block_before_send,
+                    'txid': txid
+                };
+
+                var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+                //console.log('after answer made question_data', question_data);
+
+                ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+                    updateQuestionWindowIfOpen(question);
+                }).catch(function() {
+                    // Question may be unconfirmed, if so go with what we have
+                    ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
+                        updateQuestionWindowIfOpen(question);
+                    });
+                });
+            };
+
             if (USE_COMMIT_REVEAL) {
                 var answer_plaintext = new_answer;
                 var nonce = nonceFromSeed(web3.sha3(question_id + answer_plaintext + bond));
@@ -3285,46 +3321,37 @@ $(document).on('click', '.post-answer-button', function(e) {
 
                 // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
                 // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
-                return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
-                    console.log('got submitAnswerCommitment txid', txid);
-                    return rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000});
-                });
+                if (currency == 'ETH') {
+                    return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
+                        console.log('got submitAnswerCommitment txid', txid);
+                        rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
+                        .then(function(txid) { handleAnswerSubmit(txid) });
+                    });
+                } else {
+                    ensureAmountApproved(rc.address, account, bond).then(function() {
+                        return rc.submitAnswerCommitmentERC20(question_id, answer_hash, current_question[Qi_bond], account, bond, {from:account, gas:200000}).then( function(txid) {
+                            console.log('got submitAnswerCommitment txid', txid);
+                            rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
+                            .then(function(txid) { handleAnswerSubmit(txid) });
+                        });
+                    });
+                }
             } else {
-                return rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
-                    from: account,
-                    gas: 200000,
-                    value: bond
-                });
+                if (currency == 'ETH') {
+                    rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
+                        from: account,
+                        gas: 200000,
+                        value: bond
+                    }).then(function(txid) { handleAnswerSubmit(txid) });
+                } else {
+                    ensureAmountApproved(rc.address, account, bond).then(function() {
+                        rc.submitAnswerERC20.sendTransaction(question_id, new_answer, current_question[Qi_bond], bond, {
+                            from: account,
+                            gas: 200000,
+                        }).then(function(txid) { handleAnswerSubmit(txid) });
+                    });
+                }
             }
-        }).then(function(txid) {
-            clearForm(parent_div, question_json);
-            var fake_history = {
-                'args': {
-                    'answer': new_answer,
-                    'question_id': question_id,
-                    'history_hash': null, // TODO Do we need this?
-                    'user': account,
-                    'bond': bond,
-                    'ts': new BigNumber(parseInt(new Date().getTime() / 1000)),
-                    'is_commitment': false
-                },
-                'event': 'LogNewAnswer',
-                'blockNumber': block_before_send,
-                'txid': txid
-            };
-
-            var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
-            //console.log('after answer made question_data', question_data);
-
-            ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
-                updateQuestionWindowIfOpen(question);
-            }).catch(function() {
-                // Question may be unconfirmed, if so go with what we have
-                ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                });
-            });
-
         });
     });
     /*
@@ -3395,7 +3422,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
     var rcqa = $(this).closest('.rcbrowser--qa-detail');
     var question_id = rcqa.attr('data-question-id');
     var reward = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
-    reward = web3js.toWei(new BigNumber(reward), 'ether');
+    reward = humanToDecimalizedBigNumber(reward);
 
     if (isNaN(reward) || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
@@ -3494,7 +3521,7 @@ $('.rcbrowser-textarea').on('keyup', function(e) {
     }
 });
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) {
-    let value = new BigNumber(web3js.toWei($(this).val()));
+    let value = humanToDecimalizedBigNumber($(this).val());
     //console.log($(this));
     let bond_validation = function(ctrl){
         ctrl.addClass('edited');
@@ -3508,7 +3535,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         if (ctrl.val() === '' || value.lt(current_bond.times(2))) {
             ctrl.parent().parent().addClass('is-error');
             let min_bond = current_bond.times(2);
-            min_bond = web3js.fromWei(min_bond, 'ether');
+            min_bond = decimalizedBigNumberToHuman(min_bond);
             ctrl.parent('div').next('div').find('.min-amount').text(min_bond.toNumber());
         } else {
             ctrl.parent().parent().removeClass('is-error');
