@@ -3366,7 +3366,6 @@ $(document).on('click', '.post-answer-button', function(e) {
                     }).then(function(txid) { handleAnswerSubmit(txid) });
                 } else {
                     ensureAmountApproved(rc.address, account, bond).then(function() {
-                        console.log('bond is', bond.toNumber());
                         rc.submitAnswerERC20.sendTransaction(question_id, new_answer, current_question[Qi_bond], bond, {
                             from: account,
                             gas: 200000,
