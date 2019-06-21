@@ -23,6 +23,21 @@ const token_json_by_curr = {
     'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.TRST.json'),
 }
 
+const token_info = {
+    'ETH': {
+        'decimals': 1000000000000000000,
+        'small_number': 0.01 * 1000000000000000000
+    },
+    'DAI': {
+        'decimals': 1000000000000000000,
+        'small_number': 1 * 1000000000000000000
+    },
+    'TRST': {
+        'decimals': 1000000,
+        'small_number': 100 * 1000000
+    }
+}
+
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
@@ -33,7 +48,6 @@ var arb_json;
 var token_json;
 
 var erc20_token;
-var erc20_decimals = 10000; // TODO: Get this from the contract or a config file or something
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
@@ -487,7 +501,7 @@ function humanToDecimalizedBigNumber(num, force_eth) {
     if (force_eth || currency == 'ETH') {
         return new BigNumber(web3js.toWei(num, 'ether'));
     } else {
-        return new BigNumber(num).times(erc20_decimals);
+        return new BigNumber(num).times(token_info[currency]['decimals']);
     }
 }
 
@@ -495,7 +509,7 @@ function decimalizedBigNumberToHuman(num, force_eth) {
     if (force_eth || currency == 'ETH') {
         return web3js.fromWei(num.toNumber(), 'ether');
     } else {
-        return num.div(erc20_decimals);
+        return num.div(token_info[currency]['decimals']);
     }
 }
 
@@ -1658,20 +1672,26 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data)
 function ensureAmountApproved(spender, account, amount) {
     return new Promise((resolve, reject) => {
         getERC20TokenInstance().then(function(erc20) {
-            erc20.allowance.call(account, spender).then(function(allowed) {
-                if (allowed.gte(amount)) {
-                    console.log('already got enough, continuing');
-                    resolve(allowed);
-                } else {
-                    console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
-                    erc20.approve(spender, amount.sub(allowed), {
-                        from: account,
-                        gas: 200000,
-                    }).then(function() {
-                        console.log('approval done');
-                        resolve(amount);
-                    });
-                }
+            console.log('checking if we need extra approval for amount', amount.toNumber());
+
+            erc20.balanceOf.call(account).then(function(mybal) {
+                console.log('balanace is ', mybal.toNumber());
+            }).then(function() {
+                erc20.allowance.call(account, spender).then(function(allowed) {
+                    if (allowed.gte(amount)) {
+                        console.log('already got enough, continuing', allowed.toNumber());
+                        resolve(allowed);
+                    } else {
+                        console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
+                        erc20.approve(spender, amount.sub(allowed), {
+                            from: account,
+                            gas: 200000,
+                        }).then(function() {
+                            console.log('approval done');
+                            resolve(amount);
+                        });
+                    }
+                });
             });
         });
     });
@@ -1787,7 +1807,7 @@ function populateSection(section_name, question_data, before_item) {
     if (question_data[Qi_timeout] < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (web3js.fromWei(question_data[Qi_bounty], 'ether') < 0.01) {
+    if (question_data[Qi_bounty].lt(token_info[currency]['small_number'])) {
         balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
@@ -2214,7 +2234,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
-    var bond = new BigNumber(web3js.toWei(0.0005, 'ether'));
+    var bond = new BigNumber(token_info[currency]['small_number']).div(2);
     if (question_detail[Qi_bounty] && question_detail[Qi_bounty].gt(0)) {
         bond = question_detail[Qi_bounty].div(2);
     }
@@ -2326,7 +2346,7 @@ console.log(ans);
     if (question_detail[Qi_timeout] < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (web3js.fromWei(question_detail[Qi_bounty], 'ether') < 0.01) {
+    if (question_detail[Qi_bounty].lt(token_info[currency]['small_number'])) {
         balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
@@ -2412,6 +2432,7 @@ console.log(ans);
     // If the user has edited the field, never repopulate it underneath them
     var bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
     if (!bond_field.hasClass('edited')) {
+        console.log('min bond /2', bond.toNumber());
         bond_field.val(decimalizedBigNumberToHuman(bond.times(2)));
     }
 
@@ -3345,6 +3366,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                     }).then(function(txid) { handleAnswerSubmit(txid) });
                 } else {
                     ensureAmountApproved(rc.address, account, bond).then(function() {
+                        console.log('bond is', bond.toNumber());
                         rc.submitAnswerERC20.sendTransaction(question_id, new_answer, current_question[Qi_bond], bond, {
                             from: account,
                             gas: 200000,
@@ -3532,7 +3554,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
 
-        if (ctrl.val() === '' || value.lt(current_bond.times(2))) {
+        if (ctrl.val() === '' || value.lt(humanToDecimalizedBigNumber(current_bond.times(2)))) {
             ctrl.parent().parent().addClass('is-error');
             let min_bond = current_bond.times(2);
             min_bond = decimalizedBigNumberToHuman(min_bond);
