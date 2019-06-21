@@ -187,10 +187,13 @@ input, button, textarea, select {
     text-decoration:underline;
 }
 #token-selection a.selected-token {
-    text-decoration:underline;
+    text-decoration:none;
+    font-weight: bold;
+    cursor:text;
 }
-
-
+#token-selection a.selected-token:hover {
+    text-decoration:none;
+}
 
 h1.logo {
     overflow: hidden;

@@ -4278,7 +4278,7 @@ function initCurrency(curr) {
     arbitrator_list = arbitrator_list_by_curr[currency];
     token_json = token_json_by_curr[currency];
     $('.token-ticker-text').text(currency);
-    $('#token-selection').find("[data-token='"+currency+"']").addClass('selected-token');
+    $('#token-selection').find("[data-token='"+currency+"']").addClass('selected-token').attr('disabled', true);
 }
 
 window.addEventListener('load', function() {
