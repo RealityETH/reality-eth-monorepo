@@ -4278,7 +4278,7 @@ function initCurrency(curr) {
     arbitrator_list = arbitrator_list_by_curr[currency];
     token_json = token_json_by_curr[currency];
     $('.token-ticker-text').text(currency);
-    $('#token-selection').find("[data-token='"+currency+"']").addClass('selected-token').attr('disabled', true);
+    $('select#token-selection').val(curr).removeClass('uninitialized');
 }
 
 window.addEventListener('load', function() {
@@ -4382,10 +4382,10 @@ $('.continue-read-only-message').click(function(e) {
     $('body').removeClass('error-no-metamask-plugin').removeClass('error');
 });
 
-$('#token-selection').find('a').click(function(e) { 
+$('#token-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
-    var tkn = $(this).attr('data-token');
+    var tkn = $(this).val();
     if (tkn == currency) {
         // already selected
         return;

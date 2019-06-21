@@ -176,23 +176,21 @@ input, button, textarea, select {
     margin-top: 20px;
 }
 
-#token-selection a {
+#token-selection {
+    text-align:right;
+    text-align-last:right;
     margin-left: 4px;
+    margin-bottom: 4px;
+    margin-top: 30px;
     padding: 4px;
     font-weight: normal;
     display: inline-block;
     margin-top: none;
+    color: #939596;
 }
-#token-selection a:hover {
-    text-decoration:underline;
-}
-#token-selection a.selected-token {
-    text-decoration:none;
-    font-weight: bold;
-    cursor:text;
-}
-#token-selection a.selected-token:hover {
-    text-decoration:none;
+
+#token-selection.uninitialized {
+    display:none;
 }
 
 h1.logo {
