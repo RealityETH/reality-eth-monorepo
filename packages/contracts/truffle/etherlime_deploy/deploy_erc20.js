@@ -9,7 +9,7 @@ const contract_templates = {
 var undef;
 
 const defaultConfigs = {
-    gasPrice: 4000000000,
+    gasPrice: 8000000000,
     gasLimit: 6000000,
     etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
@@ -66,9 +66,6 @@ if (arbitrator_owner == undef) {
 const priv = fs.readFileSync('./secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
 
 if (task == 'Realitio') {
-    if (fs.existsSync(token_contract_file('Realitio', build_dir, token_name))) {
-        throw "Realitio for this token already exists, delete from the build directory to redeploy";
-    }
     deployRealitio();    
 } else if (task == 'Arbitrator') {
     deployArbitrator();
