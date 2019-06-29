@@ -340,7 +340,7 @@ contract RealitioERC20 is BalanceHolder {
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "ETH provided must cover question fee"); 
+            require(bounty >= question_fee, "Tokens provided must cover question fee"); 
             bounty = bounty.sub(question_fee);
             balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
         }
