@@ -752,6 +752,15 @@ function isArbitratorValidFast(test_arb) {
     return false;
 }
 
+function arbitratorAddressToText(addr) {
+    for (var a in arbitrator_list[""+network_id]) {
+        if (a.toLowerCase() == addr.toLowerCase()) {
+            return arbitrator_list[network_id][a];
+        }
+    }
+    return addr;
+}
+
 function isArbitrationPending(question) {
     return (question[Qi_is_pending_arbitration]);
 }
@@ -2239,7 +2248,7 @@ console.log(ans);
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail[Qi_timeout]));
     balloon.find('.setting-info-content-hash').text(question_detail[Qi_content_hash]);
     balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
-    balloon.find('.setting-info-arbitrator').text(question_detail[Qi_arbitrator]);
+    balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail[Qi_arbitrator]));
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.css('z-index', ++zindex);
 
