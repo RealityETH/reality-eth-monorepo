@@ -7,19 +7,19 @@ const rc_template = require('@realitio/realitio-lib/formatters/template.js');
 
 const rc_json_by_curr = {
     'ETH': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json'),
-    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.DAI.json'),
+   // 'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.DAI.json'),
     'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.TRST.json')
 }
 
 const arb_json_by_curr = {
     'ETH': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json'),
-    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.DAI.json'),
+   // 'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.DAI.json'),
     'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.TRST.json')
 }
 
 const token_json_by_curr = {
     'ETH': null,
-    'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.DAI.json'),
+   // 'DAI': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.DAI.json'),
     'TRST': require('@realitio/realitio-contracts/truffle/build/contracts/ERC20.TRST.json'),
 }
 
@@ -55,7 +55,7 @@ const arb_tos = require('./arbitrator_tos.json');
 
 const arbitrator_list_by_curr = {
     'ETH': require('@realitio/realitio-contracts/config/arbitrators.json'),
-    'DAI': require('@realitio/realitio-contracts/config/arbitrators.DAI.json'),
+    // 'DAI': require('@realitio/realitio-contracts/config/arbitrators.DAI.json'),
     'TRST': require('@realitio/realitio-contracts/config/arbitrators.TRST.json')
 }
 var arbitrator_list;
