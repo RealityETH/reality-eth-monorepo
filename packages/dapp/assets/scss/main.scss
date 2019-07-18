@@ -176,6 +176,23 @@ input, button, textarea, select {
     margin-top: 20px;
 }
 
+#token-selection {
+    text-align:right;
+    text-align-last:right;
+    margin-left: 4px;
+    margin-bottom: 4px;
+    margin-top: 30px;
+    padding: 4px;
+    font-weight: normal;
+    display: inline-block;
+    margin-top: none;
+    color: #939596;
+}
+
+#token-selection.uninitialized {
+    display:none;
+}
+
 h1.logo {
     overflow: hidden;
     display: block !important;

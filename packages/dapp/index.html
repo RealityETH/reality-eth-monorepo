@@ -57,6 +57,10 @@
             <div id="site-introduction__buttons">
                 <a id="post-a-question-button" class="rcbrowser__open-button" data-target-id="id0" href="">Ask a Question</a>
             </div>
+            <select id="token-selection" name="token-selection" class="uninitialized">
+                <option value="ETH">ETH</option>
+                <option value="TRST">TRST</option>
+            </select>
         </header>
         <div id="questions-container" class="panel">
             <div class="questions-container-header">
@@ -309,9 +313,9 @@
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-header">
                     <h2 class="rcbrowser-main-header-title">Your Questions &amp; Answers</h2>
-                    <div class="rcbrowser-main-header-subtitle"><a target="_blank" class="account-balance-link" href="#">Your Balance: <span class="account-balance"></span> ETH</a></div>
-                    <div class="answer-claim-button claim-all">Claim your <span class="claimable-eth"></span> ETH</div>
-                    <div class="answer-claiming-container claim-all">Claiming <span class="claimable-eth"></span> ETH <a class="txid" target="_blank" href=""></a></div>
+                    <div class="rcbrowser-main-header-subtitle"><a target="_blank" class="account-balance-link" href="#">Your Balance: <span class="account-balance"></span> <span class="token-ticker-text">ETH</span></a></div>
+                    <div class="answer-claim-button claim-all">Claim your <span class="claimable-eth"></span> <span class="token-ticker-text">ETH</span></div>
+                    <div class="answer-claiming-container claim-all">Claiming <span class="claimable-eth"></span> <span class="token-ticker-text">ETH</span> <a class="txid" target="_blank" href=""></a></div>
                 </div>
 
                 <div class="rcbrowser-main-body rcbrowser-main-body--your-qa">
@@ -441,7 +445,7 @@
             </div>
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-header">
-                    <div class="rcbrowser-main-header-subtitle">Your Balance: <span class="account-balance"></span> ETH</div>
+                    <div class="rcbrowser-main-header-subtitle">Your Balance: <span class="account-balance"></span> <span class="token-ticker-text">ETH</span></div>
                 </div>
                 <div class="rcbrowser-main-body">
                     <form name="postaquestion" action="" method="post" class="rcbrowser-form" data-form-type="question">
@@ -519,7 +523,7 @@
                         <div class="cols-2">
                             <div class="input-container  input-container--has-quick-help">
                                 <div class="input-inner">
-                                    <span class="input-header">Reward (ETH):</span>
+                                    <span class="input-header">Reward (<span class="token-ticker-text">ETH</span>):</span>
                                     <input type="number" name="question-reward" class="question-reward rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0">
 
                                 </div>
@@ -600,7 +604,7 @@
             </a>
             <div class="questions__item__answer"></div>
                 <div class="questions__item__footer">
-                    <span class="question-bounty-container"><span class="question-bounty"></span> ETH</span>
+                    <span class="question-bounty-container"><span class="question-bounty"></span> <span class="token-ticker-text">ETH</span></span>
                     <span class="closing-time-label"><span class="resolved">Resolved</span> <span class="unresolved">Closing</span> <time class="timeago" datetime=""></time></span>
                     <span class="created-time-label">Posted <time class="timeago" datetime=""></time></span>
                     <span class="arbitration-pending-label">Arbitration pending</span>
@@ -626,12 +630,12 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -659,12 +663,12 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -692,12 +696,12 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -725,12 +729,12 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -760,12 +764,12 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -790,12 +794,12 @@
 
             <div class="input-container">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -824,13 +828,13 @@
 
             <div class="input-container input-container--bond">
                 <div class="input-inner">
-                    <span class="input-header">Bond (ETH):</span>
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
                     <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
                 </div>
 
-                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span>ETH.</div>
-                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span>ETH.</div>
-                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span>ETH.</div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
             </div>
 
             <div class="submit-container">
@@ -890,8 +894,8 @@
                         <i class="material-icons gray">more_horiz</i>
                         <div class="balloon">
                             Timeout: <span class="setting-info-timeout"></span><br /><br />
-                            Reward: <span class="setting-info-bounty"></span> ETH<br />
-                            Highest bond so far: <span class="setting-info-bond"></span> ETH<br /><br >
+                            Reward: <span class="setting-info-bounty"></span> <span class="token-ticker-text">ETH</span><br />
+                            Highest bond so far: <span class="setting-info-bond"></span> <span class="token-ticker-text">ETH</span><br /><br >
                             Arbitrator: <br /><span class="setting-info-arbitrator"></span><br /><br />
                             Created by: <br /><span class="setting-info-questioner"></span><br /><br />
                             Content hash: <br /><span class="setting-info-content-hash"></span><br /><br />
@@ -900,15 +904,15 @@
                     </div>
 
                     <div class="rcbrowser-main-header-subtitle" style="float:right">
-                        <span class="bond-value-container">Last bond: <span class="bond-value"></span> ETH</span>
+                        <span class="bond-value-container">Last bond: <span class="bond-value"></span> <span class="token-ticker-text">ETH</span></span>
                     </div>
 
                     <div class="rcbrowser-main-header-subtitle">
                         <div class="rcbrowser-main-header-date"></div>
-                        <span class="reward-value-container">Reward: <span class="reward-value"></span> ETH</span>
+                        <span class="reward-value-container">Reward: <span class="reward-value"></span> <span class="token-ticker-text">ETH</span></span>
                         <span class="add-reward-button" data-browser-id="id5">+ Add Reward</span>
                         <span class="resolved-at-container">Resolved: <span class="resolved-at-value timeago"></span></span>
-                        <div class="answer-claim-button">Claim your <span class="claimable-eth"></span> ETH</div>
+                        <div class="answer-claim-button">Claim your <span class="claimable-eth"></span> <span class="token-ticker-text">ETH</span></div>
                     </div>
 
                     <div class="add-reward-container">
@@ -917,7 +921,7 @@
                                 <form action="" method="post" class="rcbrowser-form" data-form-type="add-reward">
                                     <div class="input-container">
                                         <div class="input-inner">
-                                            <span class="input-header">Reward (ETH):</span>
+                                            <span class="input-header">Reward (<span class="token-ticker-text">ETH</span>):</span>
                                             <input type="number" name="question-reward" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--add-reward rcbrowser-input--add-reward form-item" placeholder="0">
                                         </div>
                                         <div class="error-container">Please enter reward.</div>
@@ -937,7 +941,7 @@
                     <div class="answer-deadline-container">Deadline: <span class="answer-deadline timeago"></span></div>
 
                     <div class="clearfix apply-for-arbitration-container">
-                        <a href="" class="arbitration-button unpopulated">Apply for arbitration (<span class="arbitration-fee"></span> ETH)</a>
+                        <a href="" class="arbitration-button unpopulated">Apply for arbitration (<span class="arbitration-fee"></span> <span class="token-always-eth">ETH</span>)</a>
                     </div>
 
                     <div class="clearfix pending-arbitration-container">
@@ -962,7 +966,7 @@
                                             <span>User ID: </span><span class="answerer"></span>
                                         </div>
                                         <div class="answer-data__item answer-data__bond answer-data__bond--current">
-                                            <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                            <span>Bond: </span><span class="answer-bond-value"></span> <span><span class="token-ticker-text">ETH</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -991,7 +995,7 @@
                                             <span>User ID: </span><span class="answerer"></span>
                                         </div>
                                         <div class="answer-data__item answer-data__bond answer-data__bond--current">
-                                            <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                            <span>Bond: </span><span class="answer-bond-value"></span> <span><span class="token-ticker-text">ETH</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1017,7 +1021,7 @@
                                             <span>User ID: </span><span class="answerer"></span>
                                         </div>
                                         <div class="answer-data__item answer-data__bond answer-data__bond--current">
-                                            <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                            <span>Bond: </span><span class="answer-bond-value"></span> <span><span class="token-ticker-text">ETH</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1040,7 +1044,7 @@
                                         <span>User ID: </span><span class="answerer"></span>
                                     </div>
                                     <div class="answer-data__item answer-data__bond answer-data__bond--current">
-                                        <span>Bond: </span><span class="answer-bond-value"></span> <span>ETH</span>
+                                        <span>Bond: </span><span class="answer-bond-value"></span> <span><span class="token-ticker-text">ETH</span></span>
                                     </div>
                                 </div>
                             </div>
