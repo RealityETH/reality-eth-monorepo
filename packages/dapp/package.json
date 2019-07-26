@@ -29,7 +29,7 @@
   "author": "Kazunori Miura",
   "license": "MIT",
   "dependencies": {
-    "@realitio/realitio-contracts": "^2.0.11",
+    "@realitio/realitio-contracts": "^2.1.0",
     "@realitio/realitio-lib": "^2.0.0",
     "autoprefixer": "^6.7.0",
     "babel-cli": "^6.22.2",
