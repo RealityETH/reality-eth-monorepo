@@ -3458,18 +3458,34 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         getAccount().then(function() {
-            rc.fundAnswerBounty(question_id, {
-                from: account,
-                value: reward
-            })
-            .then(function(result) {
-                //console.log('fund bounty', result);
-                var container = rcqa.find('.add-reward-container');
-                //console.log('removing open', container.length, container);
-                container.removeClass('is-open');
-                container.removeClass('is-bounce');
-                container.css('display', 'none');
-            });
+            if (currency == 'ETH') {
+                rc.fundAnswerBounty(question_id, {
+                    from: account,
+                    value: reward
+                })
+                .then(function(result) {
+                    //console.log('fund bounty', result);
+                    var container = rcqa.find('.add-reward-container');
+                    //console.log('removing open', container.length, container);
+                    container.removeClass('is-open');
+                    container.removeClass('is-bounce');
+                    container.css('display', 'none');
+                });
+            } else {
+                ensureAmountApproved(rc.address, account, reward).then(function() {
+                    rc.fundAnswerBountyERC20(question_id, reward, {
+                        from: account
+                    })
+                    .then(function(result) {
+                        //console.log('fund bounty', result);
+                        var container = rcqa.find('.add-reward-container');
+                        //console.log('removing open', container.length, container);
+                        container.removeClass('is-open');
+                        container.removeClass('is-bounce');
+                        container.css('display', 'none');
+                    });
+               });
+            }
         });
     }
 });
