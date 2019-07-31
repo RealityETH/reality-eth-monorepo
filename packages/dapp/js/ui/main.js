@@ -1692,12 +1692,18 @@ function ensureAmountApproved(spender, account, amount) {
                         resolve(allowed);
                     } else {
                         console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
-                        erc20.approve(spender, amount.sub(allowed), {
+                        erc20.approve.sendTransaction(spender, amount.sub(allowed), {
                             from: account,
                             gas: 200000,
                         }).then(function() {
-                            console.log('approval done');
-                            resolve(amount);
+                            // At this point we have received the approval's transaction hash and can proceed with next transaction.
+                            // However, Metamask may need some time to pick up this transaction, 
+                            // which is needed to validate next transactions, and 3 seconds is considered a "safe" waiting time.
+                            // Metamask will still display the error however, but it can be ignored
+                            setTimeout(function() {
+                                console.log('approval done')
+                                resolve(amount);
+                            }, 3000)
                         });
                     }
                 });
