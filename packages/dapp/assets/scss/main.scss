@@ -2709,6 +2709,7 @@ div.rcbrowser--qa-detail.failed-transaction .rcbrowser-warning-header-failed-box
 div.rcbrowser--qa-detail.failed-transaction .question-setting-warning { display:none !important }
 
 div.rcbrowser--qa-detail.unconfirmed-transaction div.rcbrowser-main { opacity: 0.6 }
+div.rcbrowser--qa-detail.unconfirmed-transaction .question-setting-warning { display:none !important }
 
 div.rcbrowser--qa-detail .rcbrowser-warning-header-failed-box {
     margin-top: 6px;
