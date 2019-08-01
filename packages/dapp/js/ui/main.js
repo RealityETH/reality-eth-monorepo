@@ -107,7 +107,7 @@ const RPC_NODES = {
 // No point in looking for questions any further back than that
 const START_BLOCKS = {
     1: 6531147,
-    4: 3175028,
+    4: 3175028, // for quicker loading start more like 4800000,
     42: 10350865
 }
 var START_BLOCK;
@@ -1460,7 +1460,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                     for (var i = 0; i < question['history'].length; i++) {
                         // If there's something unconfirmed with an equal or lower bond, remove it
                         if (data[i].args.bond.gte(ubond)) {
-                            //console.log('removing unconfirmed entry due to higher bond from confirmed');
+                            //console.log('removing unconfirmed entry due to equal or higher bond from confirmed');
                             question['history_unconfirmed'].splice(j, 1);
                         }
                     }
@@ -2228,7 +2228,7 @@ function displayQuestionDetail(question_detail) {
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
-    //console.log('populateQuestionWindow with detail ', question_detail);
+    //console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
     var question_id = question_detail[Qi_question_id];
     var question_json = question_detail[Qi_question_json];
     var question_type = question_json['type'];
@@ -3762,12 +3762,14 @@ function handleEvent(error, result) {
                     // break;
                 }
 
-                //console.log('got LogNewAnswer, block ', result.blockNumber);
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    //console.log('should be getting latest', question, result.blockNumber);
-                    scheduleFinalizationDisplayUpdate(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                waitForBlock(result).then(function(result) {
+                    //console.log('got LogNewAnswer, block ', result.blockNumber);
+                    ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
+                        updateQuestionWindowIfOpen(question);
+                        //console.log('should be getting latest', question, result.blockNumber);
+                        scheduleFinalizationDisplayUpdate(question);
+                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                    });
                 });
                 break;
 
@@ -4180,6 +4182,23 @@ function populateArbitratorSelect(network_arbs) {
                 });
             });
         });
+    });
+}
+
+function waitForBlock(result) {
+    return new Promise(function(resolve, reject) {
+        (function attempt(triesLeft, result) {
+			if (current_block_number >= result.blockNumber) {
+                // console.log('at ',current_block_number);
+				return resolve(result);
+			} else if (!triesLeft) {
+                // console.log('out of tries',current_block_number);
+				return reject('gave up waiting for the network to catch up');
+			} else {
+                console.log('node is lagging, waiting for it to catch up', current_block_number, result.blockNumber);
+				setTimeout(attempt.bind(null, triesLeft-1, result), 1000);
+			}
+        })(360, result); // number of retries if first time fails
     });
 }
 
