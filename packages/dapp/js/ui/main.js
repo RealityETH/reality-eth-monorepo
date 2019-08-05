@@ -2436,6 +2436,12 @@ console.log(ans);
         });
     }
 
+    if (isQuestionBeforeOpeningDate(question_detail)) {
+        rcqa.find('.add-reward-button').removeClass('is-open')
+    } else {
+        rcqa.find('.add-reward-button').addClass('is-open')
+    }
+    
     if (!is_refresh) {
         // answer form
         var ans_frm = makeSelectAnswerInput(question_json, question_detail[Qi_opening_ts].toNumber());
@@ -3031,8 +3037,7 @@ function makeSelectAnswerInput(question_json, opening_ts) {
     var type = question_json['type'];
     var options = question_json['outcomes'];
 
-    var now = new Date();
-    if (opening_ts && now.getTime() < opening_ts * 1000) {
+    if (opening_ts && isBeforeOpeningDate(opening_ts)) {
         var template_name = '.answer-form-container.before-opening.template-item';
         var ans_frm = $(template_name).clone();
         ans_frm.removeClass('template-item');
@@ -3125,6 +3130,17 @@ function updateQuestionState(question, question_window) {
 
     return question_window;
 
+}
+
+function isBeforeOpeningDate(opening_ts) {
+    var opening_date = opening_ts * 1000
+    var now = new Date();
+    
+    return now.getTime() < opening_date
+}
+
+function isQuestionBeforeOpeningDate(question_detail) {    
+    return isBeforeOpeningDate(question_detail[Qi_opening_ts].toNumber())
 }
 
 // TODO

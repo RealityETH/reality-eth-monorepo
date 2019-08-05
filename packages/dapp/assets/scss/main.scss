@@ -2491,7 +2491,7 @@ div.rcbrowser--qa-detail.question-state-pending-arbitration .pending-arbitration
 div.rcbrowser--qa-detail.question-state-open .reward-value-container { display:inline-block !important}
 
 .add-reward-button { display:none}
-div.rcbrowser--qa-detail.question-state-open .add-reward-button { display:inline-block !important}
+div.rcbrowser--qa-detail.question-state-open .add-reward-button.is-open { display:inline-block !important}
 
 .resolved-at-container { display:none }
 div.rcbrowser--qa-detail.question-state-finalized .resolved-at-container { display:inline-block !important}
