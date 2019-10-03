@@ -112,6 +112,14 @@ const START_BLOCKS = {
 }
 var START_BLOCK;
 
+// If we know that the first post for a category was at block X, we can skip loading before that
+// NB We may lose some user history related to questions from other categories
+const CATEGORY_STARTS = {
+    1: {
+        "devcon-quiz": 8667490
+    }
+}
+
 var network_id = null;
 var block_explorer = null;
 
@@ -4404,6 +4412,9 @@ window.addEventListener('load', function() {
             $('body').addClass('category-' + category);
             var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
             $('#filterby').text(cat_txt);
+            if (CATEGORY_STARTS[net_id] && CATEGORY_STARTS[net_id][category] && CATEGORY_STARTS[net_id][category] > START_BLOCK) {
+                START_BLOCK = CATEGORY_STARTS[net_id][category];
+            }
         }
         //console.log('args:', args);
         web3js.eth.getBlock('latest', function(err, result) {
