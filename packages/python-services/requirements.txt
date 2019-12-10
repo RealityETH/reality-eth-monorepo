@@ -20,7 +20,6 @@ eth-bloom==1.0.0
 eth-hash==0.1.4
 eth-keyfile==0.5.1
 eth-keys==0.2.0b3
-eth-pm==0.1.0a17
 eth-rlp==0.1.2
 eth-tester==0.1.0b26
 eth-utils==1.0.3
@@ -76,7 +75,7 @@ twine==1.11.0
 uPnPClient==0.0.8
 urllib3==1.23
 wcwidth==0.1.7
-web3==4.4.0
+web3
 websockets==5.0.1
 yarl==1.2.0
 zeroconf==0.20.0
