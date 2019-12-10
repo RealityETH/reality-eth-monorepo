@@ -3,7 +3,7 @@ Description=Ethereum Go client
 OnFailure=unit-status-mail@%n.service
 
 [Service]
-ExecStart=/usr/bin/geth --fast --rpc --rpcaddr 46.101.132.175 --rpcapi "eth,net,web3,admin,personal,txpool"
+ExecStart=/usr/bin/geth --syncmode "light" --rpc
 Restart=always
 RestartSec=30
 Type=simple
