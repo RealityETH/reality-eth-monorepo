@@ -62,9 +62,10 @@ USE_TZ = True
 
 
 
-RC_ADDRESS = '0xb4e1367c077856a65a738a66662601223e88b3b4'
+# RC_ADDRESS = '0xac870cdc25a87f12a5533704d047138d098812b8'
+RC_ADDRESS = '0x325a2e0F3CCA2ddbaeBB4DfC38Df8D19ca165b47'
 GETH_RPC_HOST = '127.0.0.1'
 GETH_RPC_PORT = '8545'
 GETH_TESTNET = False
 
-URL_QUESTION_BASE = 'https://rc-dev-1.socialminds.jp/dev/#!/question/'
+URL_QUESTION_BASE = 'https://realitio.github.io/#!/question/'
