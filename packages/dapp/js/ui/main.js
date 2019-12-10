@@ -2393,6 +2393,12 @@ console.log(ans);
     balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
     balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail[Qi_arbitrator]));
     balloon.find('.setting-info-questioner').text(questioner);
+    balloon.find('.setting-info-created-ts').text(new Date(question_detail[Qi_creation_ts]*1000).toUTCString().replace('GMT', 'UTC'));
+    var opening_ts_str = 'Unset';
+    if (question_detail[Qi_opening_ts].gt(0)) {
+        opening_ts_str = new Date(question_detail[Qi_opening_ts]*1000).toUTCString().replace('GMT', 'UTC');
+    }
+    balloon.find('.setting-info-opening-ts').text(opening_ts_str);
     balloon.css('z-index', ++zindex);
 
     var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
