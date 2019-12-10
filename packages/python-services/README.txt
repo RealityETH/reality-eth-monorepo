@@ -1,7 +1,7 @@
-Reality Check Services
+Realitio Services
 Edmund Edgar, 2018-06-29
 
-This repo is for back-end services that support Reality Check.
+This repo is for back-end services that support Realitio.
 We intend to run this to create social media bots, search indexers and various other useful things.
 The data that feeds it is just pulled in from the blockchain, it has no privileged access to anything except its social media accounts etc, feel free to run your own.
 
