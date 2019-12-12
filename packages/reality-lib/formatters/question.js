@@ -146,11 +146,9 @@ exports.parseQuestionJSON = function(data) {
     try {
         question_json = JSON.parse(data);
     } catch(e) {
-        console.log('parse fail', e);
-        console.log('parse fail', data);
         question_json = {
-            'title': data,
-            'type': 'bool'
+            'title': '[Badly formatted question]: ' + data,
+            'type': 'broken-question'
         };
     }
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {

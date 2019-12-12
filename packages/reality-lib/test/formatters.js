@@ -152,3 +152,11 @@ describe('Invalid values', function() {
     expect(inv).to.equal('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
   });
 });
+
+describe('Broken questions', function() {
+  it('Returns anything that cannot parse as a type called "broken-question"', function() {
+    var broken = '{ "title": "You need to quote your "quotation marks" before parsing", "type": "bool" }';
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), broken);
+    expect(q.type).to.equal('broken-question');
+  });
+});
