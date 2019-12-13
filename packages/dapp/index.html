@@ -780,6 +780,32 @@
             <span class="rcbrowser-form-footer">&nbsp;</a></span>
         </form>
     </div>
+    <div class="answer-form-container broken-question template-item" style="display:none">
+        <div class="answer-form-header">
+            <span class="answer-prompt-text no-answer-only">You can mark this question invalid.</span>
+            <span class="answer-prompt-text has-answer-only">You can increase the bond on this invalid question.</span>
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--single-select">
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+                <div class="error-container">Please enter an amount of more than <span class="min-amount"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Mark Invalid">
+                <input type="hidden" name="input-answer" data-invalid-selected="1" class="rcbrowser-input form-item form-item-value">
+            </div>
+
+            <span class="rcbrowser-form-footer">&nbsp;</a></span>
+        </form>
+    </div>
+
     <div class="answer-form-container freetext template-item" style="display:none">
         <div class="answer-form-header">
             <span class="answer-prompt-text no-answer-only">Do you know the answer to this question?</span>
