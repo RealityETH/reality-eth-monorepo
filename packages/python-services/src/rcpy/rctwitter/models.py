@@ -32,7 +32,9 @@ class Tweet(models.Model):
 
         # Get anything new question hasn't been tweeted.
         # Or anything that has been tweeted, but has since been updated since we last tweeted
-        sql = "select * from rcindex_rcquestion left outer join (select question_id, max(block_id) as max_block_id from rctwitter_tweet group by question_id) t1 on rcindex_rcquestion.question_id=t1.question_id where rcindex_rcquestion.db_refreshed_at is not null and (t1.question_id is null) or (t1.max_block_id < rcindex_rcquestion.block_id)"
+        sql = "select * from rcindex_rcquestion left outer join (select question_id, max(block_id) as max_block_id from rctwitter_tweet group by question_id) t1 on rcindex_rcquestion.question_id=t1.question_id where rcindex_rcquestion.db_refreshed_at is not null and rcindex_rcquestion.db_refreshed_at > '2019-12-12' and ((t1.question_id is null) or (t1.max_block_id < rcindex_rcquestion.block_id));"
+        
+
         questions = RCQuestion.objects.raw(sql)
         for q in questions:
             try:
