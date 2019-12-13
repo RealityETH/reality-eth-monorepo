@@ -101,3 +101,13 @@ class RealityCheckQuestionTest(TestCase):
         self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000005'), 'thing1 / thing3')
         self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000002'), 'thing2')
         self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003'), 'thing1 / thing2')
+
+    def test_unparseable_questions(self):
+        qtext = RealityCheckQuestion.encodeText('bool', 'Is the name of the game "The Name of the Game"?', None, 'my-category')
+        # mangle the quotation marks as if we did the encoding wrong
+        qtext = qtext.replace('\\"', '"')
+        q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('bool'), qtext)
+        self.assertEqual(q['type'], 'broken-question')
+
+
+

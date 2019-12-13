@@ -132,7 +132,13 @@ class RealityCheckQuestion:
     @staticmethod
     def parseQuestionJSON(data): 
         #print(data)
-        question_json = json.loads(data)
+        try:
+            question_json = json.loads(data)
+        except json.decoder.JSONDecodeError as je:
+            return {
+                'title': '[Badly formatted question]: ' + data,
+                'type': 'broken-question'
+            }
         if ('outcomes' in question_json and len(question_json['outcomes']) > RealityCheckQuestion.QUESTION_MAX_OUTCOMES): 
             raise Exception("Too many outcomes")
         return question_json
