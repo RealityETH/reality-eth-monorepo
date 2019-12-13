@@ -7,7 +7,7 @@ from rcindex.realitycheck_template import RealityCheckTemplate
 
 class RealityCheckQuestionTest(TestCase):
 
-    simple_types = [ "bool", "uint", "int", "datetime" ]
+    simple_types = [ "bool", "uint", "datetime" ]
     option_types = [ "single-select", "multiple-select" ]
 
     def test_simple_type_templates(self):
@@ -67,19 +67,19 @@ class RealityCheckQuestionTest(TestCase):
         self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000'), '0.1')
         self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000'), '2')
 
-    def test_ints(self):
-        q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('int'), '')
-        q['decimals'] = 0
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000'), '0')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001'), '1')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'), '-1')
+    #def test_ints(self):
+    #    q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('int'), '')
+    #    q['decimals'] = 0
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000'), '0')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001'), '1')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'), '-1')
 
-    def test_int_decimals(self):
-        q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('int'), '')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000'), '0')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000'), '1')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000'), '0.1')
-        self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'), '-1e-18')
+    #def test_int_decimals(self):
+    #    q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('int'), '')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000'), '0')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000'), '1')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000'), '0.1')
+    #    self.assertEqual(RealityCheckQuestion.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'), '-1e-18')
 
     def test_datetimes(self):
         q = RealityCheckQuestion.populatedJSONForTemplate(RealityCheckTemplate.defaultTemplateForType('datetime'), '')
