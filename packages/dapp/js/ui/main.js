@@ -1830,8 +1830,8 @@ function populateSection(section_name, question_data, before_item) {
     if (question_data[Qi_timeout] < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (question_data[Qi_bounty].lt(token_info[currency]['small_number'])) {
-        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
+    if (isFinalized(question_data) && question_data[Qi_bounty].plus(question_data[Qi_bond]).lt(token_info[currency]['small_number'])) {
+        balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
     let valid_arbirator = isArbitratorValidFast(question_data[Qi_arbitrator]);
@@ -2369,8 +2369,8 @@ console.log(ans);
     if (question_detail[Qi_timeout] < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (question_detail[Qi_bounty].lt(token_info[currency]['small_number'])) {
-        balloon_html += 'The reward is very low.<br /><br />This means there may not be enough incentive to enter the correct answer and back it up with a bond.<br /><br />';
+    if (isFinalized(question_detail) && question_detail[Qi_bounty].plus(question_detail[Qi_bond]).lt(token_info[currency]['small_number'])) {
+        balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
 
