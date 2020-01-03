@@ -4242,7 +4242,7 @@ function validateArbitratorForContract(arb_addr) {
         mya.setProvider(web3js.currentProvider);
         mya.at(arb_addr).then(function(myainst) {
             myainst.realitio.call().then(function(rslt) {
-                resolve(arb_addr == rslt);
+                resolve(rc.address == rslt);
             });
         });
     })
