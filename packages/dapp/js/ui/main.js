@@ -1099,6 +1099,11 @@ $('div.loadmore-button').on('click', function(e) {
 function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
+    if (entry.invalid_data) { 
+        console.log('skipping invalid log entry');
+        return;
+    }
+
     if (!account) {
         return;
     }
@@ -1539,6 +1544,9 @@ function _ensureQuestionLogFetched(question_id, freshness) {
                     console.log('error in question log', error, question_arr, question_id, START_BLOCK);
                     reject(error);
                 } else {
+                    if (question_arr.invalid_data) { 
+                        reject('invalid data');
+                    }
                     var question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
                     resolve(question);
                 }
@@ -3763,6 +3771,11 @@ function updateRankingSections(question, changed_field, changed_val) {
 
 function handleEvent(error, result) {
 
+    if (result.invalid_data) { 
+        console.log('skipping invalid log entry');
+        return;
+    }
+
     // Check the action to see if it is interesting, if it is then populate notifications etc
     handlePotentialUserAction(result, true);
 
@@ -3951,6 +3964,9 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
     question_posted.get(function(error, result) {
         if (error === null && typeof result !== 'undefined') {
             for (var i = 0; i < result.length; i++) {
+                if (result[i].invalid_data) {
+                    continue;
+                }
                 handlePotentialUserAction(result[i]);
                 handleQuestionLog(result[i]);
             }
