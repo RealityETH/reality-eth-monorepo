@@ -96,7 +96,7 @@ const BLOCK_EXPLORERS = {
 };
 
 const RPC_NODES = {
-    1: 'https://rc-dev-3.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
+    1: 'https://mainnet.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     4: 'https://rinkeby.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     42: 'https://kovan.socialminds.jp',
