@@ -1,7 +1,0 @@
-# For running python tests
-virtualenv resources/venv/rc
-source resources/venv/rc/bin/activate
-pip install -r requirements.txt 
-
-testrpc --seed "oink"
-truffle serve
