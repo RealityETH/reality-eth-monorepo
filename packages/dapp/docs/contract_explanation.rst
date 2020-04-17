@@ -1,7 +1,7 @@
 Contract Internals
 ==================
 
-This document is intended to help you read and understand the RealityCheck.sol contract, in particular its internal data structures. See the previous documents for a higher-level description of what the contract does.
+This document is intended to help you read and understand the Realitio.sol contract, in particular its internal data structures. See the previous documents for a higher-level description of what the contract does.
 
 Questions
 ---------
