@@ -168,6 +168,10 @@ footer hr {
     background: #2c3a49;
 }
 
+footer .strapline {
+    float:right
+}
+
 .cols {
     float: left;
 }
