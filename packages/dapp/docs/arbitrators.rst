@@ -59,7 +59,7 @@ Arbitrator contracts should expose the following functions to users:
 * ``function getDisputeFee(bytes32 question_id) constant returns (uint256)``
 * ``function requestArbitration(bytes32 question_id)``
 
-When ``requestArbitration()`` is called with a sufficient fee, they should call the following against the Realitio contract:
+When ``requestArbitration()`` is called with a sufficient fee, they should call the following against the Reality.eth contract:
 
 * ``notifyOfArbitrationRequest(bytes32 question_id, address requester)``
 
@@ -76,9 +76,9 @@ If the result of arbitration is to affirm the answer given by the final answerer
 Getting information about the arbitrator
 ----------------------------------------
 
-* ``function realitio()`` should provide the address of the Realitio contract to which the arbitrator responds.
-* ``function metadata()`` should provide a string of json-encoded metadata. The following properties are scheduled for implementation in the Realitio dapp:
+* ``function realitio()`` should provide the address of the Reality.eth contract to which the arbitrator responds.
+* ``function metadata()`` should provide a string of json-encoded metadata. The following properties are scheduled for implementation in the Reality.eth dapp:
 
   * ``tos``: A URI representing the location of a terms-of-service document for the arbitrator.
-  * ``template_hashes``: An array of hashes of templates supported by the arbitrator. If you have a numerical ID for a template registered with Realitio, you can look up this hash by calling the Realitio ``template_hashes()`` function.
+  * ``template_hashes``: An array of hashes of templates supported by the arbitrator. If you have a numerical ID for a template registered with Reality.eth, you can look up this hash by calling the Reality.eth ``template_hashes()`` function.
 

@@ -1,10 +1,10 @@
-Using Realitio from a contract
+Using Reality.eth from a contract
 =====================================
 
 Fetching information
 --------------------
 
-The simplest way use for Realitio is to fetch some information for a question that has already been posted using the DApp.
+The simplest way use for Reality.eth is to fetch some information for a question that has already been posted using the DApp.
 
 Hovering your mouse over the "..." mark in the upper right-hand corner of a question will show you the question ID and the hash of the question content.
 
@@ -29,7 +29,7 @@ This will return ``bytes32`` data, or throw an error (``revert``) if the questio
 Interpreting the result of a question
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Questions have a ``type``, which decides what format the answer should take, and tells the Realitio dapp what kind of UI it should display to submit answers. The dapp recognizes the following types:
+Questions have a ``type``, which decides what format the answer should take, and tells the Reality.eth dapp what kind of UI it should display to submit answers. The dapp recognizes the following types:
 
 bool
 """"
@@ -216,7 +216,7 @@ A template can be created by calling ``createTemplate("template")``, where "temp
 Making sure a question has an answer
 ------------------------------------
 
-As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Realitio for information need to be designed to take account of this possibility.
+As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality.eth for information need to be designed to take account of this possibility.
 
-After settlement Realitio will preserve information about the ``content_hash``, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
+After settlement Reality.eth will preserve information about the ``content_hash``, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
 

@@ -14,12 +14,12 @@ This document assumes one of the parties, which we refer to as "we", will do the
 Arbitration contract structure
 ------------------------------
 
-.. _`The Realitio contract`: https://etherscan.io/address/0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47
+.. _`The reality.eth contract`: https://etherscan.io/address/0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47
 .. _`An Arbitrator contract`: https://etherscan.io/address/0x257FA39e697C43DFF95E1D2aF754eD0118c062AB
 .. _`A Gnosis MultiSig contract`: https://etherscan.io/address/0x257FA39e697C43DFF95E1D2aF754eD0118c062AB
 .. _`A Splitter contract`: https://etherscan.io/address/0xd6455e86834563Bd11bbEC3Ad2A4969197ba4666
 
-* `The Realitio contract`_
+* `The Reality.eth contract`_
 * `An Arbitrator contract`_ 
 * `A Gnosis MultiSig contract`_ instance to control the Arbitrator contract 
 * `A Splitter contract`_ for splitting and withdrawing funds from the Arbitrator contract
@@ -134,7 +134,7 @@ Most operations only need to be done by one party, and the others just need to s
 Withdrawing funds
 ~~~~~~~~~~~~~~~~~
 
-Funds arrive in the Realitio or Arbitrator contract, then are moved to the Splitter wallet where they are allocated to the parties, at which point they can be withdrawn and moved on.
+Funds arrive in the Reality.eth or Arbitrator contract, then are moved to the Splitter wallet where they are allocated to the parties, at which point they can be withdrawn and moved on.
 Any address can call the following:
 
 .. code-block:: bash

@@ -1,4 +1,4 @@
-Using the Realitio dapp
+Using the Reality.eth dapp
 ============================
 
 Requirements

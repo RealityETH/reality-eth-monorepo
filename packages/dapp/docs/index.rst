@@ -1,14 +1,14 @@
-.. Realitio documentation master file, created by
+.. Reality.eth documentation master file, created by
    sphinx-quickstart on Thu Sep 28 14:43:50 2017.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Realitio
+Reality.eth
 =========================================
 
-Realitio is a crowd-sourced on-chain smart contract oracle system by Reality Keys.
+Reality.eth is a crowd-sourced on-chain smart contract oracle system by Reality Keys.
 
-Realitio can be used either from our web application or by calling our contracts directly.
+Reality.eth can be used either from our web application or by calling our contracts directly.
 
 
 .. toctree::
