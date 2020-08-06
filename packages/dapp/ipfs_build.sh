@@ -2,10 +2,16 @@
 
 SRC_DIR="."
 BUILD_DIR=/tmp/realitio-build-ipfs
-REPO=git@github.com:realitio/realitio-dapp.git
+REPO1=git@github.com:realitio/realitio-website.git
+REPO2=git@github.com:realitio/realitio-dapp.git
 ME=`basename "$0"`
+DAPP=app
+
+DAPP_DIR="$BUILD_DIR/webroot/$DAPP"
 
 CURR_COMMIT=`git log | head -1`
+
+# Set up static website at the top
 
 if [ ! -f "$SRC_DIR/$ME" ]
 then
@@ -22,25 +28,30 @@ fi
 if [ ! -d $BUILD_DIR ]
 then 
     mkdir $BUILD_DIR
-    git clone $REPO $BUILD_DIR
-    pushd $BUILD_DIR
-    git checkout realitio.github.io
+    git clone $REPO1 $BUILD_DIR
+    git clone $REPO2 $DAPP_DIR
     popd
 fi
 
 pushd $BUILD_DIR
 git pull
+git fetch -v
+git checkout feature-rebrand
 popd
 
-rsync -avz --delete $SRC_DIR/docs/html/ $BUILD_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
-rsync -avz --delete $SRC_DIR/truffle/build/ $BUILD_DIR/truffle/build/
-# rsync -avz --delete $SRC_DIR/cli/ $BUILD_DIR/cli/
-rsync -avz --delete $SRC_DIR/js/ $BUILD_DIR/js/
-# rsync -avz --delete $SRC_DIR/rinkeby/ $BUILD_DIR/rinkeby/
-rsync -avz --delete $SRC_DIR/v1/ $BUILD_DIR/v1/
-# rsync -avz --delete $SRC_DIR/beta/ $BUILD_DIR/beta/
-cp $SRC_DIR/index.html $BUILD_DIR/index.html
+pushd $DAPP_DIR
+git pull
+popd
 
-cd $BUILD_DIR
+rsync -avz --delete $SRC_DIR/docs/html/ $DAPP_DIR/docs/html/
+rsync -avz --delete $SRC_DIR/assets/ $DAPP_DIR/assets/
+rsync -avz --delete $SRC_DIR/truffle/build/ $DAPP_DIR/truffle/build/
+# rsync -avz --delete $SRC_DIR/cli/ $DAPP_DIR/cli/
+rsync -avz --delete $SRC_DIR/js/ $DAPP_DIR/js/
+# rsync -avz --delete $SRC_DIR/rinkeby/ $DAPP_DIR/rinkeby/
+rsync -avz --delete $SRC_DIR/v1/ $DAPP_DIR/v1/
+# rsync -avz --delete $SRC_DIR/beta/ $DAPP_DIR/beta/
+cp $SRC_DIR/index.html $DAPP_DIR/index.html
+
+cd $BUILD_DIR/webroot
 ipfs add -r --ignore=.git .
