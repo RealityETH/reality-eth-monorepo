@@ -4497,5 +4497,6 @@ $('#token-selection').change(function(e) {
 if (window.location.href.indexOf('realitio') != -1 || window.location.href.indexOf('socialminds') != -1) {
     $('.moved-to-reality-eth').show();
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
-};
-
+} else if (window.location.href.indexOf('ipfs.io') != -1) {
+    $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
+}
