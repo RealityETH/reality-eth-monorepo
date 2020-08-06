@@ -54,4 +54,8 @@ rsync -avz --delete $SRC_DIR/v1/ $DAPP_DIR/v1/
 cp $SRC_DIR/index.html $DAPP_DIR/index.html
 
 cd $BUILD_DIR/webroot
-ipfs add -r --ignore=.git .
+IPFS_HASH=`ipfs add -r --ignore=.git . | tail -n1 | awk '{print $2}'`
+
+echo $IPFS_HASH > "$BUILD_DIR/ipfs.txt"
+
+ipfs pin add -r $IPFS_HASH
