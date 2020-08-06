@@ -36,7 +36,7 @@ fi
 pushd $BUILD_DIR
 git pull
 git fetch -v
-git checkout feature-rebrand
+git checkout master
 popd
 
 pushd $DAPP_DIR
