@@ -4492,3 +4492,10 @@ $('#token-selection').change(function(e) {
     window.location.hash = '#!/token/'+tkn;
     location.reload();
 });
+
+// When on the legacy site, show the moved warning, use the full link url
+if (window.location.href.indexOf('realitio') != -1 || window.location.href.indexOf('socialminds') != -1) {
+    $('.moved-to-reality-eth').show();
+    $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
+};
+
