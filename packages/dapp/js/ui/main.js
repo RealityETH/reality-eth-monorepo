@@ -1872,6 +1872,7 @@ function populateSectionEntry(entry, question_data) {
     var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
+    var bond = web3js.fromWei(question_data[Qi_bond], 'ether');
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -1888,6 +1889,8 @@ function populateSectionEntry(entry, question_data) {
         slicePoint: 140
     });
     entry.find('.question-bounty').text(bounty);
+
+    entry.find('.bond-value').text(bond);
 
     // For these purposes we just ignore any outstanding commits
     if (isAnswered(question_data)) {
