@@ -75,9 +75,9 @@
             <div class="questions-container-header">
                 <div class="nav-bar">
                     <ul class="main-nav">
-                        <li><a data-menu="questions-latest" class="selected">Latest</a></li>
+                        <li><a data-menu="questions-active" class="selected">Active</a></li>
                         <li><a data-menu="questions-closing-soon">Closing Soon</a></li>
-                        <li><a data-menu="questions-high-reward">High Reward</a></li>
+                        <li><a data-menu="questions-upcoming">Upcoming</a></li>
                         <li><a data-menu="questions-resolved">Resolved</a></li>
                     </ul>
                     <script type="text/javascript">
@@ -146,7 +146,7 @@
                 </div>
             </div>
 
-            <div id="questions-latest" class="questions">
+            <div id="questions-active" class="questions">
 
                 <div class="questions-list">
                     <div class="no-questions hidden">
@@ -165,13 +165,13 @@
 
                 </div><!-- /.questions-list -->
 
-                <div id="loadmore-latest" class="loadmore-button" data-questions="questions-latest">
+                <div id="loadmore-active" class="loadmore-button" data-questions="questions-active">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
             </div>
 
-            <div id="questions-high-reward" class="questions hidden">
+            <div id="questions-upcoming" class="questions hidden">
 
                 <div class="questions-list">
                     <div class="no-questions hidden">
@@ -191,7 +191,7 @@
                     </div>
                 </div><!-- /.questions-list -->
 
-                <div id="loadmore-high-reward" class="loadmore-button" data-questions="questions-high-reward">
+                <div id="loadmore-upcoming" class="loadmore-button" data-questions="questions-upcoming">
                     <span class="loadmore-text">Load More</span>
                     <span class="loader"></span>
                 </div>
@@ -385,8 +385,8 @@
                                         </a>
                                     </div>
 
-                                    <div class="your-qa__questions__item-body--latest">
-                                        <span class="latest-answer-text"></span>
+                                    <div class="your-qa__questions__item-body--active">
+                                        <span class="active-answer-text"></span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>
@@ -422,7 +422,7 @@
 
                                     <div class="your-qa__questions__item-body--user">
                                         <span class="user-answer-text"></span>
-                                        <span class="different-latest-answer-container"> (since changed to <span class="latest-answer-text"></span>)</span>
+                                        <span class="different-active-answer-container"> (since changed to <span class="active-answer-text"></span>)</span>
                                     </div>
                                     <div class="your-qa__questions__item-status"></div>
                                 </div>

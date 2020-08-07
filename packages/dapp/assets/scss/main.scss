@@ -755,20 +755,20 @@ ul.main-nav {
     border-color: $icon--best;
 }
 
-.questions-header__icon--latest > span {
-    background-color: $icon--latest;
-    box-shadow: 0 0 14px $icon--latest;
+.questions-header__icon--active > span {
+    background-color: $icon--active;
+    box-shadow: 0 0 14px $icon--active;
 }
-.questions-header__icon--latest::after {
-    border-color: $icon--latest;
+.questions-header__icon--active::after {
+    border-color: $icon--active;
 }
 
-.questions-header__icon--high-reward > span {
-    background-color: $icon--high-reward;
-    box-shadow: 0 0 14px $icon--high-reward;
+.questions-header__icon--upcoming > span {
+    background-color: $icon--upcoming;
+    box-shadow: 0 0 14px $icon--upcoming;
 }
-.questions-header__icon--high-reward::after {
-    border-color: $icon--high-reward;
+.questions-header__icon--upcoming::after {
+    border-color: $icon--upcoming;
 }
 
 .questions-header__icon--resolved > span {
@@ -2333,7 +2333,7 @@ label > span {
     background-color: $green;
 }
 
-.your-qa__questions__item-body--latest,
+.your-qa__questions__item-body--active,
 .your-qa__questions__item-body--user {
     padding: 9px;
     font-size: inherit;
@@ -2342,7 +2342,7 @@ label > span {
     background-color: $rcBrowserDarkBg;
 }
 
-.your-qa__questions__item-body--latest,
+.your-qa__questions__item-body--active,
 .your-qa__questions__item-body--user {
     color: $white;
     background-color: $green;
