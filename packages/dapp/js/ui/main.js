@@ -1928,9 +1928,9 @@ function populateSectionEntry(entry, question_data) {
     }
     
     if (isQuestionBeforeOpeningDate(question_data)) {
-        entry.find('open-ts-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_opening_ts]));
+        entry.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_opening_ts]));
+        timeAgo.render(entry.find('.opening-time-label .timeago'));
     }
-
 
     return entry;
 

@@ -888,21 +888,12 @@ a.questions__item__title:hover {
     font-style: italic;
 }
 
-.questions__item span.not-yet-open-display {
-    display:none;
-    font-style: italic;
-}
-
 .questions__item.no-answers {
     a.answer-link { display:inline; }
 }
 
 .questions__item.has-answers {
     a.correct-link { display:inline; }
-}
-
-.questions__item.not-yet-open {
-    span.not-yet-open-display{ display:inline;  }
 }
 
 #questions-resolved .questions__item .answer-mini-link-container {
@@ -913,8 +904,18 @@ a.questions__item__title:hover {
     display:none;
 }
 
+
+.questions__item .opening-time-label {
+    display:none;
+    float:right;
+}
+
 .questions__item.not-yet-open .answer-mini-link-container {
     display:none;
+}
+
+.questions__item.not-yet-open .opening-time-label {
+    display:inline;
 }
 
 .questions__item.has-answer a.questions__item__title,
