@@ -888,6 +888,11 @@ a.questions__item__title:hover {
     font-style: italic;
 }
 
+.questions__item span.not-yet-open-display {
+    display:none;
+    font-style: italic;
+}
+
 .questions__item.no-answers {
     a.answer-link { display:inline; }
 }
@@ -896,7 +901,19 @@ a.questions__item__title:hover {
     a.correct-link { display:inline; }
 }
 
+.questions__item.not-yet-open {
+    span.not-yet-open-display{ display:inline;  }
+}
+
 #questions-resolved .questions__item .answer-mini-link-container {
+    display:none;
+}
+
+.questions__item.arbitration-pending .answer-mini-link-container {
+    display:none;
+}
+
+.questions__item.not-yet-open .answer-mini-link-container {
     display:none;
 }
 

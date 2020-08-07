@@ -1901,6 +1901,10 @@ function populateSectionEntry(entry, question_data) {
         entry.removeClass('has-answer');
     }
 
+    if (isQuestionBeforeOpeningDate(question_data)) {
+        entry.addClass('not-yet-open');
+    }
+
     var is_answered = isAnswered(question_data);
 
     if (is_answered) {
@@ -2135,6 +2139,17 @@ $(document).on('click', '.questions__item__title', function(e) {
         return true;
     }
 
+    e.preventDefault();
+    e.stopPropagation();
+
+    var question_id = $(this).closest('.questions__item').attr('data-question-id');
+
+    // Should repopulate and bring to the front if already open
+    openQuestionWindow(question_id);
+
+});
+
+$(document).on('click', '.mini-action-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
