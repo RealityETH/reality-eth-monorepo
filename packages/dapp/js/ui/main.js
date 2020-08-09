@@ -1872,7 +1872,7 @@ function populateSectionEntry(entry, question_data) {
     var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
     var best_answer = question_data[Qi_best_answer];
-    var bond = web3js.fromWei(question_data[Qi_bond], 'ether');
+    var bond = question_data[Qi_bond];
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -1890,7 +1890,7 @@ function populateSectionEntry(entry, question_data) {
     });
     entry.find('.question-bounty').text(bounty);
 
-    entry.find('.bond-value').text(bond);
+    entry.find('.bond-value').text(decimalizedBigNumberToHuman(bond));
 
     // For these purposes we just ignore any outstanding commits
     if (isAnswered(question_data)) {
