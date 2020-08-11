@@ -1958,6 +1958,50 @@ function depopulateSection(section_name, question_id) {
 
 }
 
+// Calculate a ranking to handle active display
+// Intended to try to bring interesting open questions to the top
+function calculateActiveRank(created, bounty, bond) {
+
+
+    // Everything should be populated with BigNumbers but in the event that something isn't due to some log query issue etc, just skip that question
+    var err = new BigNumber(0);
+    if (typeof created === 'undefined') {
+        console.log('calculateActiveRank skipping undefined created');
+        return err;
+    }
+    if (typeof bond === 'undefined') {
+        console.log('calculateActiveRank skipping undefined bond');
+        return err;
+    }
+    if (typeof bounty === 'undefined') {
+        console.log('calculateActiveRank skipping undefined bounty');
+        return err;
+    }
+
+    // Initial rank is bounty plus bond.
+    // TODO: We might want to up-rate the bond
+    var rank = bounty.plus(bond);
+
+    var now = new Date();
+    var now_bn = new BigNumber(now.getTime() / 1000);
+    var age = now_bn.minus(created);
+
+    // Scale up anything under 24 hours so that 10 mins counts as 0.01 ETH of reward/bond, 
+    if (age.lt(new BigNumber(86400))) {
+        console.log('got new', new Date(created.toNumber()+1000));
+        var secs = new BigNumber(86400).minus(age);
+        var boost = secs.div(new BigNumber(600)).times(new BigNumber(token_info[currency]['small_number']));
+        rank = rank.plus(boost);
+    }
+
+    // Anything else goes by time posted
+    rank = rank.plus(created);
+
+    // console.log('rank', rank.toNumber());
+    return rank;
+
+}
+
 function handleQuestionLog(item) {
     var question_id = item.args.question_id;
     //console.log('in handleQuestionLog', question_id);
@@ -2009,12 +2053,14 @@ function handleQuestionLog(item) {
 
         } else {
 
-            var insert_before = update_ranking_data('questions-active', question_id, created, 'desc');
-            if (insert_before !== -1) {
-                populateSection('questions-active', question_data, insert_before);
-                $('#questions-active').find('.scanning-questions-category').css('display', 'none');
-                if (display_entries['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
-                    $('#questions-active').find('.loadmore-button').css('display', 'block');
+            if (!question_data[Qi_is_pending_arbitration]) {
+                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question_data[Qi_bounty], question_data[Qi_bond]), 'desc');
+                if (insert_before !== -1) {
+                    populateSection('questions-active', question_data, insert_before);
+                    $('#questions-active').find('.scanning-questions-category').css('display', 'none');
+                    if (display_entries['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
+                        $('#questions-active').find('.loadmore-button').css('display', 'block');
+                    }
                 }
             }
 
