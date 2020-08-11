@@ -4523,7 +4523,7 @@ $('#token-selection').change(function(e) {
 });
 
 // When on the legacy site, show the moved warning, use the full link url
-if (window.location.href.indexOf('realitio') != -1 || window.location.href.indexOf('socialminds') != -1) {
+if (window.location.href.indexOf('realitio') != -1) {
     $('.moved-to-reality-eth').show();
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
 } else if (window.location.href.indexOf('ipfs.io') != -1) {
