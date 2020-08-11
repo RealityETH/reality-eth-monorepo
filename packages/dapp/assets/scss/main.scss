@@ -193,7 +193,7 @@ input, button, textarea, select {
 }
 
 #token-selection.uninitialized {
-    display:none;
+    visibility: hidden
 }
 
 h1.logo {
