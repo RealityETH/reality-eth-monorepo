@@ -2324,7 +2324,7 @@ function category_text(question_json, target_el) {
     } else {
         cat_txt = $("#filter-list").find("[data-category='" + cat + "']").text();
         if (cat_txt == '') {
-            cat_txt = '[' + cat + ']';
+            cat_txt = '"' + cat + '"';
         }
     }
     if (target_el) {
