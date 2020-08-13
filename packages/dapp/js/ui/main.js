@@ -2316,6 +2316,23 @@ function displayQuestionDetail(question_detail) {
 
 }
 
+function category_text(question_json, target_el) {
+    var cat = question_json['category'];
+    var cat_txt = '';
+    if (cat == '') {
+        cat_txt = 'Unassigned';
+    } else {
+        cat_txt = $("#filter-list").find("[data-category='" + cat + "']").text();
+        if (cat_txt == '') {
+            cat_txt = '[' + cat + ']';
+        }
+    }
+    if (target_el) {
+        cat_txt = target_el.attr('data-prefix-text') + cat_txt;
+    }
+    return cat_txt;
+}
+
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     //console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
@@ -2326,9 +2343,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     //console.log('current list last item in history, which is ', question_detail['history'])
     var idx = question_detail['history'].length - 1;
 
+    var cat_el = rcqa.find('.rcbrowser-main-header-category');
+    cat_el.text(category_text(question_json, cat_el)); 
+
     let date = new Date();
     date.setTime(question_detail[Qi_creation_ts] * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']).expander({
         slicePoint: 200
