@@ -59,3 +59,6 @@ IPFS_HASH=`ipfs add -r --ignore=.git . | tail -n1 | awk '{print $2}'`
 echo $IPFS_HASH > "$BUILD_DIR/ipfs.txt"
 
 ipfs pin add -r $IPFS_HASH
+
+echo "Preview site at:"
+echo "https://ipfs.io/ipfs/${IPFS_HASH}"
