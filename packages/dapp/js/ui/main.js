@@ -1979,16 +1979,15 @@ function calculateActiveRank(created, bounty, bond) {
     }
 
     // Initial rank is bounty plus bond.
-    // TODO: We might want to up-rate the bond
-    var rank = bounty.plus(bond);
+    // Bond is uprated by 4 times compared to reward
+    var rank = bounty.plus(bond.times(new BigNumber(4)));
 
     var now = new Date();
     var now_bn = new BigNumber(now.getTime() / 1000);
     var age = now_bn.minus(created);
 
-    // Scale up anything under 24 hours so that 10 mins counts as 0.01 ETH of reward/bond, 
+    // Scale up anything under 24 hours so that 10 mins counts as 0.01 ETH of reward,  or 0.002 of bond
     if (age.lt(new BigNumber(86400))) {
-        console.log('got new', new Date(created.toNumber()+1000));
         var secs = new BigNumber(86400).minus(age);
         var boost = secs.div(new BigNumber(600)).times(new BigNumber(token_info[currency]['small_number']));
         rank = rank.plus(boost);
