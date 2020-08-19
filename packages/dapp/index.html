@@ -15,14 +15,7 @@
 <body>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <div class="moved-to-reality-eth" style="display:none; width:100%; text-align:center; background-color:#1b2942; color:#ffffff; padding:8px; font-size:140%;"><a style="text-decoration:none" href="https://reality.eth.link">Realitio is now called Reality.eth</a></div>
-    <div class="overlay"></div>
     <div class="page-bg"></div>
-    <div class="header-visual">
-        <div class="square-left">
-            <div class="square-inner"></div>
-        </div>
-        <div class="square-right"></div>
-    </div>
     <div id="primary-container">
         <div class="error-bar">
             <div class="error-label no-metamask-plugin-image">
@@ -56,12 +49,17 @@
             <a id="your-qa-button" class="rcbrowser__open-button" href="" title="Your Question &amp; Answer" data-target-id="id2">My Account</a>
             <h1 class="logo">
                 <a class="logo-link" data-full-url="https://reality.eth.link" href="/">Reality.eth</a>
-                <span class="network-status network-id-1">Main Ethereum Network</span>
-                <span class="network-status network-id-4">Rinkeby Test Network</span>
-                <span class="network-status network-id-42">Kovan Test Network</span>
-                <span class="network-status network-id-123411710">Local Test Network</span>
-                <span class="network-status network-id-unknown">Unknown Test Network</span>
             </h1>
+
+            <hr class="upper-divider">
+            <div class="network-status-container">
+                    <span class="network-status network-id-1">Main Ethereum Network</span>
+                    <span class="network-status network-id-4">Rinkeby Test Network</span>
+                    <span class="network-status network-id-42">Kovan Test Network</span>
+                    <span class="network-status network-id-123411710">Local Test Network</span>
+                    <span class="network-status network-id-unknown">Unknown Test Network</span>
+                </div>
+
 
             <div id="site-introduction__buttons">
                 <a id="post-a-question-button" class="rcbrowser__open-button" data-target-id="id0" href="">Ask a Question</a>
