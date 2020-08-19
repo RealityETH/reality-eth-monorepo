@@ -1817,6 +1817,8 @@ function populateSection(section_name, question_data, before_item) {
         section.children('.questions-list').append(entry);
     }
 
+    activateSection(section_name);
+
     entry.fadeIn(1000);
     if (display_entries[section_name]['ids'].length > 3) {
         if (section.find('.loadmore-button').css('display') == 'none') {
@@ -1852,6 +1854,14 @@ function populateSection(section_name, question_data, before_item) {
         $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
     }
 
+}
+
+function activateSection(section_name) {
+    $('div#questions-container').find('.main-nav li a').each(function() {
+        if ($(this).attr('data-menu') == section_name) {
+            $(this).addClass('activated');
+        }
+    });
 }
 
 function updateSectionEntryDisplay(question) {
@@ -4039,6 +4049,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
 
         is_initial_load_done = true;
         window.setTimeout( reflectDisplayEntryChanges, 1000 );
+        $('body').addClass('initial-loading-done');
 
         scheduleFallbackTimer();
         runPollingLoop(rc);
