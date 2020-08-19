@@ -592,11 +592,21 @@ div.category-list {
     border-radius: 6px;
     font-weight: bold;
     color: $white;
+    opacity: 60%;
 }
 
 .main-nav a.selected {
     color: $blue;
     background: rgba(255,255,255,.8);
+    opacity: 100%;
+}
+
+.main-nav a.activated{
+    opacity: 100%;
+}
+
+body.initial-loading-done .main-nav a {
+    opacity: 100%;
 }
 
 ul.main-nav {
