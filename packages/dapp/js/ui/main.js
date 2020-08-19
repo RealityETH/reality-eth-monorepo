@@ -1859,7 +1859,6 @@ function populateSection(section_name, question_data, before_item) {
 function activateSection(section_name) {
     $('div#questions-container').find('.main-nav li a').each(function() {
         if ($(this).attr('data-menu') == section_name) {
-            console.log('buzz ', section_name);
             $(this).addClass('activated');
         }
     });
