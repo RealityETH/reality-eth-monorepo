@@ -2335,6 +2335,10 @@ label > span {
     font-family: $font-family-serif;
 }
 
+div.your-qa-header {
+    min-height:88px;
+}
+
 // rcBrowser placeholder
 /* Google Chrome, Safari, Opera 15+, Android, iOS */
 textarea::-webkit-input-placeholder,
