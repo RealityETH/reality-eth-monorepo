@@ -2334,7 +2334,7 @@ label > span {
     background-color: $green;
 }
 
-.your-qa__questions__item-body--active,
+.your-qa__questions__item-body--latest,
 .your-qa__questions__item-body--user {
     padding: 9px;
     font-size: inherit;
@@ -2343,7 +2343,7 @@ label > span {
     background-color: $rcBrowserDarkBg;
 }
 
-.your-qa__questions__item-body--active,
+.your-qa__questions__item-body--latest,
 .your-qa__questions__item-body--user {
     color: $white;
     background-color: $green;
