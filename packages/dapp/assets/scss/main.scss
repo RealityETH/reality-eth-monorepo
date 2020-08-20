@@ -100,6 +100,10 @@ input, button, textarea, select {
     height: 390px;
 }
 
+a.upper-button:hover {
+    text-decoration:underline !important;
+}
+
 .page-qa #primary-container {
     height: 64%;
     background-color: transparent;
