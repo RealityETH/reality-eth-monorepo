@@ -118,10 +118,10 @@ See :ref:`creating-templates` for how and why you can create your own custom tem
 Questions are creating by combining the ID of the template (for example, `2` for the built-in single-select template) with the unicode delimiter characther "␟".
 
 For example, a simple boolean question intended for the category "news-politics" might use the string:
-``"Did Donald Trump win the 2016 US presidential election?␟news-politics␟en``
+``Did Donald Trump win the 2016 US presidential election?␟news-politics␟en``
 
 A question with multiple outcomes will need the JSON-encoded outcome list passed in, eg
-``"Which party's nominee won the 2016 US presidential election?␟"Democrat","Republican","Libertarian"␟news-politics␟en``
+``Which party's nominee won the 2016 US presidential election?␟"Democrat","Republican","Libertarian"␟news-politics␟en``
 
 
 Asking questions
