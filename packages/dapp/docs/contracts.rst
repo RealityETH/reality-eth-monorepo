@@ -162,6 +162,8 @@ Any ETH provided with the ``askQuestion`` call will be used as a question reward
 
 The ``askQuestion`` call returns a ``bytes32`` ID. This ID is made by hashing the parameters, plus ``msg.sender``.
 
+.. note:: The Etherscan "write contract" feature has been known to mangle the delimiter character.
+
 
 
 Accepting an answer only if something has happened
