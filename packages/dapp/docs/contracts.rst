@@ -57,6 +57,7 @@ single-select
 A ``single-select`` type represents a list of outcomes, producing a select box in the dapp. It is expressed as a zero-indexed, json-encoded array.
 
 Which party's nominee won the 2016 US presidential election?
+
 * ``0``: Democrat
 * ``1``: Republican
 * ``2``: Libertarian
