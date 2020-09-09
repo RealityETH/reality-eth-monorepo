@@ -46,7 +46,7 @@ def calculate_answer_hash(answer, nonce):
         raise Exception("hash functions expect bytes for bytes32 parameters")
     if not isinstance(nonce, int):
         raise Exception("hash functions expect int for uint256 parameters")
-    return "0x"+encode_hex(bytes(Web3.soliditySha3(['bytes32', 'uint256'], [answer, nonce])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'uint256'], [answer, nonce])))
 
 def calculate_commitment_id(question_id, answer_hash, bond):
     if question_id[:2] == "0x":
@@ -56,17 +56,17 @@ def calculate_commitment_id(question_id, answer_hash, bond):
     if not isinstance(bond, int):
         raise Exception("hash functions expect int for uint256 parameters")
     #return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
-    return "0x"+encode_hex(bytes(Web3.soliditySha3(['bytes32', 'bytes32', 'uint256'], [question_id, answer_hash, bond])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256'], [question_id, answer_hash, bond])))
 
 def calculate_content_hash(template_id, question_str, opening_ts):
-    return "0x"+encode_hex(bytes(Web3.soliditySha3(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])))
 
 def calculate_question_id(template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender):
     content_hash = calculate_content_hash(template_id, question_str, opening_ts)
-    return "0x"+encode_hex(bytes(Web3.soliditySha3(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
 
 def calculate_history_hash(last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment):
-    return "0x"+encode_hex(bytes(Web3.soliditySha3(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
 
 def from_question_for_contract(txt):
     return txt
@@ -189,7 +189,6 @@ class TestRealitio(TestCase):
         genesis_params = PyEVMBackend._generate_genesis_params(overrides=genesis_overrides)
         prov = EthereumTesterProvider(EthereumTester(PyEVMBackend(genesis_params)))
 
-        prov = EthereumTesterProvider(EthereumTester(PyEVMBackend()))
         self.web3 = Web3(prov)
         self.web3.testing.mine()
 
