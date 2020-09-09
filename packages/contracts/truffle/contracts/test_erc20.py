@@ -19,7 +19,6 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from web3 import Web3
 
 import json
-import bitcoin
 import os
 
 import time
@@ -92,11 +91,11 @@ class TestRealitio(TestCase):
             raise TransactionFailed
 
     def _block_timestamp(self):
-        return self.web3.providers[0].ethereum_tester.get_block_by_number('pending')['timestamp']
+        return self.web3.provider.ethereum_tester.get_block_by_number('pending')['timestamp']
 
     def _advance_clock(self, secs):
         ts = self._block_timestamp()
-        self.web3.providers[0].ethereum_tester.time_travel(ts+secs)
+        self.web3.provider.ethereum_tester.time_travel(ts+secs)
         ts2 = self._block_timestamp()
         self.web3.testing.mine()
         self.assertNotEqual(ts, ts2)
@@ -1254,7 +1253,7 @@ class TestRealitio(TestCase):
         ).transact()
         rcpt = self.web3.eth.getTransactionReceipt(txid)
 
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 120000)
+        self.assertTrue(rcpt['cumulativeGasUsed'] < 140000)
 
         # NB The second answer should be cheaper than the first.
         # This is what we want, because you may need to be able to get a challenge through at busy times
@@ -1263,7 +1262,7 @@ class TestRealitio(TestCase):
         ,2
         ).transact() 
         rcpt = self.web3.eth.getTransactionReceipt(txid2)
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 76000)
+        self.assertTrue(rcpt['cumulativeGasUsed'] < 80000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_fee_withdrawal(self):

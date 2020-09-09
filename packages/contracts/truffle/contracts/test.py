@@ -92,12 +92,12 @@ class TestRealitio(TestCase):
             raise TransactionFailed
 
     def _block_timestamp(self):
-        return self.web3.providers[0].ethereum_tester.get_block_by_number('pending')['timestamp']
+        return self.web3.provider.ethereum_tester.get_block_by_number('pending')['timestamp']
 
 
     def _advance_clock(self, secs):
         ts = self._block_timestamp()
-        self.web3.providers[0].ethereum_tester.time_travel(ts+secs)
+        self.web3.provider.ethereum_tester.time_travel(ts+secs)
         ts2 = self._block_timestamp()
         self.web3.testing.mine()
         self.assertNotEqual(ts, ts2)
@@ -1000,7 +1000,7 @@ class TestRealitio(TestCase):
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
         #self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 100000)
+        self.assertTrue(gas_used < 110000)
     
     #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_question_gas(self):
@@ -1015,7 +1015,7 @@ class TestRealitio(TestCase):
 
         txid2 = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12346), 0).transact(self._txargs(val=2)) 
         rcpt = self.web3.eth.getTransactionReceipt(txid2)
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 52000)
+        self.assertTrue(rcpt['cumulativeGasUsed'] < 56000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_fee_withdrawal(self):
