@@ -140,7 +140,10 @@ class TestRealitio(TestCase):
 
     def setUp(self):
 
-        prov = EthereumTesterProvider(EthereumTester(PyEVMBackend()))
+        genesis_overrides = {'gas_limit': 9000000}
+        genesis_params = PyEVMBackend._generate_genesis_params(overrides=genesis_overrides)
+
+        prov = EthereumTesterProvider(EthereumTester(PyEVMBackend(genesis_params)))
         self.web3 = Web3(prov)
         self.web3.testing.mine()
 
