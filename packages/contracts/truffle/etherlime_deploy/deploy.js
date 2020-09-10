@@ -2,7 +2,9 @@ const fs = require('fs');
 const etherlime = require('etherlime-lib');
 const build_dir = './../build/contracts/';
 const contract_templates = {
-    'Realitio': require(build_dir + 'RealitioERC20.json'),
+    'Realitio': require(build_dir + 'Realitio.json'),
+    'Realitio_v2_1': require(build_dir + 'Realitio_v2_1.json'),
+    'RealitioERC20': require(build_dir + 'RealitioERC20.json'),
     'Arbitrator': require(build_dir + 'Arbitrator.json'),
     'ERC20': require(build_dir + 'ERC20.json')
 }
@@ -27,12 +29,16 @@ const networks = {
     'ropsten': 3,
     'rinkeby': 4,
     'goerli': 5,
-    'kovan': 42
+    'kovan': 42,
+    'xdai': 100
+}
+const non_infura_networks = {
+    'xdai': 'https://xdai.poanetwork.dev'
 }
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy_erc20.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
@@ -50,7 +56,7 @@ if (token_name == undef) {
     usage_error("token_name not supplied");
 }
 
-if ((token_address == undef) && (task != 'ERC20')) {
+if ((token_name != 'XDAI' && token_name != 'ETH' && token_address == undef) && (task != 'ERC20')) {
     usage_error("token_address not supplied");
 }
 
@@ -66,7 +72,7 @@ if (arbitrator_owner == undef) {
 const priv = fs.readFileSync('./secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
 
 if (task == 'Realitio') {
-    deployRealitio();    
+    deployRealitio();
 } else if (task == 'Arbitrator') {
     deployArbitrator();
 } else if (task == 'ERC20') {
@@ -74,7 +80,12 @@ if (task == 'Realitio') {
 }
 
 function token_contract_file(contract_type, path, token) {
-    return path + contract_type + '.'+token+'.json';
+    // NB We store XDAI in the Realitio.json file as it has the same API, even though we load it from a different version
+    if (token == 'ETH' || token == 'XDAI') {
+        return path + contract_type + '.json';
+    } else {
+        return path + contract_type + '.'+token+'.json';
+    }
 }
 
 function load_or_create(contract_type, path, token) {
@@ -101,13 +112,34 @@ function store_deployed_contract(contract_type, path, token, address) {
     fs.writeFileSync(token_contract_file(contract_type, path, token), JSON.stringify(rc, null, " "));
 }
 
+function deployer_for_network() {
+    if (non_infura_networks[network]) {
+        return new etherlime.JSONRPCPrivateKeyDeployer(priv, non_infura_networks[network], defaultConfigs);
+    } else {
+        return new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
+    }
+}
+
 function deployRealitio() {
-    console.log('deploying realitio');
-    const deployer = new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
-    deployer.deploy(contract_templates['Realitio'], {}).then(function(result) {
+    const is_erc20 = (token_name != 'ETH' && token_name != 'XDAI'); 
+    const is_v21 = (token_name == 'XDAI'); 
+    const tmpl = is_erc20 ? 'RealitioERC20' : (is_v21 ? 'Realitio_v2_1' : 'Realitio') ;
+    var txt = 'deploying realitio';
+    if (is_erc20) {
+        txt = txt + ' (ERC20) ';
+    }
+    if (is_v21) {
+        txt = txt + ' (v2.1) ';
+    }
+    txt = txt + ' [template '+tmpl+']';
+	console.log(txt);
+    const deployer = deployer_for_network();
+    deployer.deploy(contract_templates[tmpl], {}).then(function(result) {
         console.log('storing address', result.contractAddress);
         store_deployed_contract('Realitio', build_dir, token_name, result.contractAddress); 
-        result.setToken(token_address);
+        if (is_erc20) {
+            result.setToken(token_address);
+        }
     });
 }
 
@@ -116,7 +148,7 @@ function deployArbitrator() {
     var rc = load_or_create('Realitio', build_dir, token_name);
     var addr = rc.networks[""+network_id].address;
 
-    const deployer = new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
+    const deployer = deployer_for_network();
     deployer.deploy(contract_templates['Arbitrator'], {}).then(function(result) {
         console.log('storing address', result.contractAddress);
         store_deployed_contract('Arbitrator', build_dir, token_name, result.contractAddress); 
@@ -130,7 +162,7 @@ function deployArbitrator() {
 
 function deployERC20() {
     console.log('deploying an erc20 token', token_name);
-    const deployer = new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
+    const deployer = deployer_for_network();
     deployer.deploy(contract_templates['ERC20'], {}).then(function(result) {
         console.log('storing address', result.contractAddress);
         store_deployed_contract('ERC20', build_dir, token_name, result.contractAddress); 
@@ -138,5 +170,3 @@ function deployERC20() {
         //result.setToken(result.contractAddress);
     });
 }
-
-
