@@ -16,6 +16,7 @@ Question reward Asker             Asker                            Highest-bonde
 Answer bond     Answerer          Answerer            Takeover fee Answerer, or Next correct answerer 
 Takeover fee    [= previous bond] Subsequent answerer              Previous answerer
 Arbitration fee Arbitration       Anyone                           Arbitrator 
+Claim fee       [2.5%]            Claimer                          [Burned]
 =============== ================= =================== ============ ========================================
 
 [1] Except when settled by arbitration. See below for details.
@@ -78,3 +79,11 @@ Set by the arbitrator.
 Paid to the arbitrator.
 
 Paid by the user requesting arbitration. Usually this will be an answerer whoses answer has been replaced by another answerer supplying a higher bond. They would normally not request arbitration until bonds have reached a level where the amount they stand to gain exceeds the arbitration fee.
+
+Claim fee
+---------------
+
+In XDAI, which has very low transaction fees, when you claim a bond other than the final bond, 2.5% is burned (left in contract balance).
+
+
+
