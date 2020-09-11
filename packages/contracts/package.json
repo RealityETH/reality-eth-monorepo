@@ -1,6 +1,6 @@
 {
   "name": "@realitio/realitio-contracts",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {
     "develop": "truffle develop",
@@ -17,7 +17,7 @@
     "Solidity",
     "Truffle"
   ],
-  "author": "Edmund Edgar (https://realit.io)",
+  "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {},
   "devDependencies": {
