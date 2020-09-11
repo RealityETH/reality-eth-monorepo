@@ -41,7 +41,6 @@ const token_info = {
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
-var web3realitio; // We run our own node to handle watch events that can't reliably be done with infura
 
 var rc_json;
 var arb_json;
@@ -92,6 +91,7 @@ const BLOCK_EXPLORERS = {
     3: 'https://ropsten.etherscan.io',
     4: 'https://rinkeby.etherscan.io',
     42: 'https://kovan.etherscan.io',
+    100: 'https://blockscout.com/poa/xdai/',
     1337: 'https://etherscan.io'
 };
 
@@ -100,6 +100,7 @@ const RPC_NODES = {
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     4: 'https://rinkeby.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     42: 'https://kovan.socialminds.jp',
+    100: 'https://xdai.poanetwork.dev',
     1337: 'https://localhost:8545'
 };
 
@@ -4479,6 +4480,7 @@ function initCurrency(curr) {
     arb_json = arb_json_by_curr[currency];
     arbitrator_list = arbitrator_list_by_curr[currency];
     token_json = token_json_by_curr[currency];
+    // NB For XDAI we consider it ETH underneath and just change the text, which we don't know until network load
     $('.token-ticker-text').text(currency);
     $('select#token-selection').val(curr).removeClass('uninitialized');
 }
@@ -4498,8 +4500,6 @@ window.addEventListener('load', function() {
     initCurrency(currency);
     
     var is_web3_fallback = false;
-
-    web3realitio = new Web3(new Web3.providers.HttpProvider("https://rc-dev-3.socialminds.jp"));
 
     if (typeof web3 === 'undefined') {
         var is_web3_fallback = true;
@@ -4531,6 +4531,12 @@ window.addEventListener('load', function() {
                 $('body').addClass('error-invalid-network').addClass('error');
                 return;
             } 
+
+            // Special case for XDAI, which looks like ETH underneath
+            if (net_id == "100") {
+                $('.token-ticker-text').text('XDAI');
+                $('select#token-selection').hide(); // No other tokens are supported on XDAI at the moment
+            }
             populateArbitratorSelect(arbitrator_list[net_id]);
         }
 
