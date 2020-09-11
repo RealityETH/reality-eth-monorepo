@@ -109,7 +109,8 @@ const RPC_NODES = {
 const START_BLOCKS = {
     1: 6531147,
     4: 3175028, // for quicker loading start more like 4800000,
-    42: 10350865
+    42: 10350865,
+    100: 11939420
 }
 var START_BLOCK;
 
