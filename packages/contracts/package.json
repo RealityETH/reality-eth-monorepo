@@ -1,27 +1,22 @@
 {
   "name": "@realitio/realitio-contracts",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
-  "scripts": {
-    "develop": "truffle develop",
-    "compile": "truffle compile",
-    "migrate": "truffle migrate",
-    "networks": "truffle networks",
-    "test": "truffle test"
-  },
+  "scripts": {},
   "keywords": [
     "Ethereum",
+    "Reality.eth",
     "Realitio",
     "Reality Check",
     "Reality Keys",
-    "Solidity",
-    "Truffle"
+    "oracle"
   ],
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {},
   "devDependencies": {
-    "truffle": "^4.0.1"
+    "etherlime": "^2.3.3",
+    "etherlime-lib": "^1.2.3"
   },
   "repository": {
     "type": "git",
