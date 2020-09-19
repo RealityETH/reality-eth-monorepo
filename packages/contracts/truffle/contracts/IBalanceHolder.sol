@@ -1,11 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-contract IBalanceHolder {
-
-    mapping(address => uint256) public balanceOf;
-
-    function withdraw() 
-    public {
-    }
-
+interface IBalanceHolder {
+  function withdraw (  ) external;
+  function balanceOf ( address ) external view returns ( uint256 );
 }
