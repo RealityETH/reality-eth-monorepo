@@ -375,7 +375,7 @@ class TestRealitio(TestCase):
     def test_arbitrator_answering_assigning_answerer_right(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
-            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            print("Skipping test_arbitrator_answering_assigning_answerer_right, not a feature of this contract")
             return
 
         k2 = self.web3.eth.accounts[2]
@@ -417,7 +417,7 @@ class TestRealitio(TestCase):
     def test_arbitrator_answering_assigning_answerer_right_commit(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
-            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            print("Skipping test_arbitrator_answering_assigning_answerer_right_commit, not a feature of this contract")
             return
 
         k2 = self.web3.eth.accounts[2]
@@ -458,7 +458,7 @@ class TestRealitio(TestCase):
     def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
-            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            print("Skipping test_arbitrator_answering_assigning_answerer_wrong_commit, not a feature of this contract")
             return
 
         k2 = self.web3.eth.accounts[2]
@@ -498,7 +498,7 @@ class TestRealitio(TestCase):
     def test_arbitrator_answering_assigning_answerer_wrong(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
-            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            print("Skipping test_arbitrator_answering_assigning_answerer_wrong, not a feature of this contract")
             return
 
         k2 = self.web3.eth.accounts[2]
@@ -536,7 +536,7 @@ class TestRealitio(TestCase):
     def test_arbitrator_answering_assigning_answerer_unrevealed_commit(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
-            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            print("Skipping test_arbitrator_answering_assigning_answerer_unrevealed_commit, not a feature of this contract")
             return
 
         k2 = self.web3.eth.accounts[2]
