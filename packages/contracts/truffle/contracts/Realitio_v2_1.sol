@@ -326,6 +326,22 @@ contract Realitio_v2_1 is BalanceHolder {
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
+    /// @notice Submit an answer for a question, crediting it to the specified account.
+    /// @dev Adds the answer to the history and updates the current "best" answer.
+    /// May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.
+    /// @param question_id The ID of the question
+    /// @param answer The answer, encoded into bytes32
+    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    /// @param answerer The account to which the answer should be credited
+    function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer)
+        stateOpen(question_id)
+        bondMustDouble(question_id)
+        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
+    external payable {
+        _addAnswerToHistory(question_id, answer, answerer, msg.value, false);
+        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+    }
+
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment

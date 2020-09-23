@@ -1281,6 +1281,36 @@ class TestRealitio(TestCase):
 
         return
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_submit_answer_for_withdrawal(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_submit_answer_for_withdrawal, submitAnswerFor is not a feature of this contract")
+            return
+
+        k4 = self.web3.eth.accounts[4]
+        k5 = self.web3.eth.accounts[5]
+
+        self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, k5).transact(self._txargs(val=100, sender=k4))
+        self._advance_clock(33)
+        self.rc0.functions.claimWinnings(self.question_id, [decode_hex("0x00")], [k5], [100], [to_answer_for_contract(12345)]).transact(self._txargs(sender=k5))
+
+        starting_deposited = self.rc0.functions.balanceOf(k5).call()
+        self.assertEqual(starting_deposited, 1100)
+
+        gas_used = 0
+        starting_bal = self.web3.eth.getBalance(k5)
+
+        txid = self.rc0.functions.withdraw().transact(self._txargs(sender=k5))
+        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        gas_used = rcpt['cumulativeGasUsed']
+        ending_bal = self.web3.eth.getBalance(k5)
+
+        self.assertEqual(self.rc0.functions.balanceOf(k5).call(), 0)
+        self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
+
+        return
+
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_fee_received(self):
