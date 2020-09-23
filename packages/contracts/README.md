@@ -32,7 +32,7 @@ We now use Etherlime rather than Truffle for compilation and deployment.
 
 `$ cd truffle`
 
-`$ etherlime compile --solcVersion=0.4.24 --runs=200`
+`$ etherlime compile --solcVersion=0.4.25 --runs=200`
 
 The above builds contracts under `truffle/build`. If you don't need to merge with any existing contract definitions (eg to preserve the addresses of existing contracts) you can copy them to the normal truffle location under `truffle/build/contracts`.
 
