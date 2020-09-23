@@ -6,8 +6,6 @@ import './BalanceHolder.sol';
 
 // Next version of Realitio v2, will be deployed on xdai, may be deployed to other networks in future
 // API-compatible with Realitio v2, address will be stored in Realitio.json
-// See the following commit for changes
-// https://github.com/realitio/realitio-contracts/commit/a0e637747a7e13c1a07741e2ea8637f344130f56
 contract Realitio_v2_1 is BalanceHolder {
 
     using RealitioSafeMath256 for uint256;
@@ -85,7 +83,7 @@ contract Realitio_v2_1 is BalanceHolder {
         address indexed user 
     );
 
-    event LogCancelArbitrationRequest(
+    event LogCancelArbitration(
         bytes32 indexed question_id
     );
 
@@ -437,7 +435,7 @@ contract Realitio_v2_1 is BalanceHolder {
     external {
         questions[question_id].is_pending_arbitration = false;
         questions[question_id].finalize_ts = uint32(now).add(questions[question_id].timeout);
-        emit LogCancelArbitrationRequest(question_id);
+        emit LogCancelArbitration(question_id);
     }
 
     /// @notice Submit the answer for a question, for use by the arbitrator.
