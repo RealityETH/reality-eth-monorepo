@@ -112,6 +112,20 @@ contract Arbitrator is Owned {
         realitio.submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
+    /// @notice Submit the arbitrator's answer to a question, assigning the winner automatically.
+    /// @param question_id The question in question
+    /// @param answer The answer
+    /// @param payee_if_wrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
+    /// @param last_history_hash The history hash before the final one
+    /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
+    /// @param last_answerer The address that supplied the last answer
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
+        onlyOwner 
+    public {
+        delete arbitration_bounties[question_id];
+        realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, payee_if_wrong, last_history_hash, last_answer_or_commitment_id, last_answerer);
+    }
+
     /// @notice Cancel a previous arbitration request
     /// @dev This is intended for situations where the arbitration is happening non-atomically and the fee or something change.
     /// @param question_id The question in question

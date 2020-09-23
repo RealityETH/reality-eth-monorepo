@@ -363,6 +363,236 @@ class TestRealitio(TestCase):
         fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
         question = self.rc0.functions.questions(self.question_id).call()
+        self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
+        self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact()
+
+        self.assertTrue(self.rc0.functions.isFinalized(self.question_id).call())
+        self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(self.question_id).call()), 123456, "Arbitrator submitting final answer calls finalize")
+
+        self.assertNotEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 0)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_assigning_answerer_right(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            return
+
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, k3)
+
+        last_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k4)
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+
+        arb_answer = to_answer_for_contract(1001)
+        arb_payer = keys.privtoaddr(t.k2)
+
+        hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        # Only the arbitrator can do this
+        with self.assertRaises(TransactionFailed):
+            self.rc0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        st['hash'].insert(0, hist_hash)
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, arb_answer)
+        st['addr'].insert(0, k4)
+
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(k4).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The last answerer gets it all for a right answer")
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_assigning_answerer_right_commit(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            return
+
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, k3)
+
+        last_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k4, True)
+        nonce = st['nonce'][0]
+        self.rc0.functions.submitAnswerReveal( self.question_id, to_answer_for_contract(1001), nonce, 16).transact(self._txargs(sender=k4, val=0))
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+
+        arb_answer = to_answer_for_contract(1001)
+        arb_payer = keys.privtoaddr(t.k2)
+
+        hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        st['hash'].insert(0, hist_hash)
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, arb_answer)
+        st['addr'].insert(0, k4)
+
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(k4).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The last answerer gets it all for a right answer")
+
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            return
+
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, k3)
+
+        last_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k4, True)
+        nonce = st['nonce'][0]
+        self.rc0.functions.submitAnswerReveal( self.question_id, to_answer_for_contract(1001), nonce, 16).transact(self._txargs(sender=k4, val=0))
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+
+        arb_answer = to_answer_for_contract(98765)
+        arb_payer = keys.privtoaddr(t.k2)
+
+        hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        st['hash'].insert(0, hist_hash)
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, arb_answer)
+        st['addr'].insert(0, arb_payer)
+
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(arb_payer).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The last answerer gets it all for a right answer")
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_assigning_answerer_wrong(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            return
+
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, k3)
+
+        last_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k4)
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+
+        arb_answer = to_answer_for_contract(123456)
+        arb_payer = keys.privtoaddr(t.k2)
+
+        hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        st['hash'].insert(0, hist_hash)
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, arb_answer)
+        st['addr'].insert(0, arb_payer)
+
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(arb_payer).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The arb payer gets it all for a wrong answer")
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_assigning_answerer_unrevealed_commit(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_answering_assigning_answerer, not a feature of this contract")
+            return
+
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 4, 8, k3)
+
+        last_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 0, 8, 16, k4, True)
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+
+        arb_answer = to_answer_for_contract(0)
+        arb_payer = keys.privtoaddr(t.k2)
+
+        ##self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(st['answer'][-1], to_answer_for_contract(1001))
+        hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
+
+        # Arbitration fails if the reveal timeout has not come yet
+        with self.assertRaises(TransactionFailed):
+            self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        self._advance_clock(10)
+        self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, arb_answer, arb_payer, st['hash'][0], st['answer'][0], st['addr'][0] ).transact() 
+
+        st['hash'].insert(0, hist_hash)
+        st['bond'].insert(0, 0)
+        st['answer'].insert(0, arb_answer)
+        st['addr'].insert(0, arb_payer)
+
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(arb_payer).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The arb payer gets it all for a wrong answer")
+
+
+        return
+
+        # The arbitrator cannot submit an answer that has not been requested. 
+        # (If they really want to do this, they can always pay themselves for arbitration.)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.functions.assignWinnerAndSubmitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact() 
+
+        # You cannot notify realitio of arbitration unless you are the arbitrator
+        with self.assertRaises(TransactionFailed):
+            self.rc0.functions.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), 0).transact() 
+
+        self.assertFalse(self.rc0.functions.isFinalized(self.question_id).call())
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+        question = self.rc0.functions.questions(self.question_id).call()
         #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
         self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact()
@@ -373,7 +603,9 @@ class TestRealitio(TestCase):
         self.assertNotEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 0)
 
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_cancel(self):
 
         if REALITIO_CONTRACT != 'Realitio_v2_1':
@@ -672,7 +904,7 @@ class TestRealitio(TestCase):
         h = calculate_answer_hash(to_answer_for_contract(1003), 94989)
         self.assertEqual(h, '0x23e796d2bf4f5f890b1242934a636f4802aadd480b6f83c754d2bd5920f78845')
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_normal(self):
 
         k3 = self.web3.eth.accounts[3]
@@ -1070,7 +1302,7 @@ class TestRealitio(TestCase):
         #self.assertEqual(gas_used, 120000)
         self.assertTrue(gas_used < 110000)
     
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_question_gas(self):
 
         txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))

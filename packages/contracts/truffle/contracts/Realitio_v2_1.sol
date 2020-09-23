@@ -451,7 +451,7 @@ contract Realitio_v2_1 is BalanceHolder {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
-    external {
+    public {
 
         require(answerer != NULL_ADDRESS, "answerer must be provided");
         emit LogFinalize(question_id, answer);
@@ -461,6 +461,31 @@ contract Realitio_v2_1 is BalanceHolder {
         _updateCurrentAnswer(question_id, answer, 0);
 
     }
+
+    /// @notice Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
+    /// @dev Doesn't require (or allow) a bond.
+    /// @param question_id The ID of the question
+    /// @param answer The answer, encoded into bytes32
+    /// @param payee_if_wrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
+    /// @param last_history_hash The history hash before the final one
+    /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
+    /// @param last_answerer The address that supplied the last answer
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
+    external {
+        bool is_commitment = _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer_or_commitment_id, questions[question_id].bond, last_answerer);
+
+        address payee;
+        // If the last answer is an unrevealed commit, it's always wrong.
+        // For anything else, the last answer was set as the "best answer" in submitAnswer or submitAnswerReveal.
+        if (is_commitment && !commitments[last_answer_or_commitment_id].is_revealed) {
+            require(commitments[last_answer_or_commitment_id].reveal_ts < uint32(now), "You must wait for the reveal deadline before finalizing");
+            payee = payee_if_wrong;
+        } else {
+            payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
+        }
+        submitAnswerByArbitrator(question_id, answer, payee);
+    }
+
 
     /// @notice Report whether the answer to the specified question is finalized
     /// @param question_id The ID of the question
