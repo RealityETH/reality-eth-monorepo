@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.25;
 
 import './RealitioSafeMath256.sol';
 import './RealitioSafeMath32.sol';
