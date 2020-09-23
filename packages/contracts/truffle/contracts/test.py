@@ -354,6 +354,43 @@ class TestRealitio(TestCase):
         with self.assertRaises(TransactionFailed):
             self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact() 
 
+        # You cannot notify realitio of arbitration unless you are the arbitrator
+        with self.assertRaises(TransactionFailed):
+            self.rc0.functions.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), 0).transact() 
+
+        self.assertFalse(self.rc0.functions.isFinalized(self.question_id).call())
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration")
+        question = self.rc0.functions.questions(self.question_id).call()
+        #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
+        self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
+        self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact()
+
+        self.assertTrue(self.rc0.functions.isFinalized(self.question_id).call())
+        self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(self.question_id).call()), 123456, "Arbitrator submitting final answer calls finalize")
+
+        self.assertNotEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 0)
+
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_cancel(self):
+
+        if REALITIO_CONTRACT != 'Realitio_v2_1':
+            print("Skipping test_arbitrator_cancel, not a feature of this contract")
+            return
+
+        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+
+        # The arbitrator cannot submit an answer that has not been requested. 
+        # (If they really want to do this, they can always pay themselves for arbitration.)
+        with self.assertRaises(TransactionFailed):
+            self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact() 
+
+        # The arbitrator cannot cancel arbitration that has not been requested
+        with self.assertRaises(TransactionFailed):
+            self.arb0.functions.cancelArbitration(self.question_id).transact()
+
         self.assertFalse(self.rc0.functions.isFinalized(self.question_id).call())
 
         fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
@@ -362,17 +399,28 @@ class TestRealitio(TestCase):
         #self.assertEqual(question[QINDEX_FINALIZATION_TS], 1, "When arbitration is pending for an answered question, we set the finalization_ts to 1")
         self.assertTrue(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration is pending for an answered question, we set the is_pending_arbitration flag to True")
 
-
-        # You cannot notify realitio of arbitration unless you are the arbitrator
+        # Only the arbitrator can cancel arbitration
         with self.assertRaises(TransactionFailed):
-            self.rc0.functions.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), 0).transact() 
+            self.rc0.functions.cancelArbitration(self.question_id).transact()
+        
+        cancelled_ts = self._block_timestamp()
+        self.arb0.functions.cancelArbitration(self.question_id).transact();
+        question = self.rc0.functions.questions(self.question_id).call()
 
-        self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact()
+        self.assertFalse(self.rc0.functions.isFinalized(self.question_id).call())
 
-        self.assertTrue(self.rc0.functions.isFinalized(self.question_id).call())
-        self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(self.question_id).call()), 123456, "Arbitrator submitting final answer calls finalize")
+        # The arbitrator cannot cancel arbitration again as it is no longer pending arbitratin
+        with self.assertRaises(TransactionFailed):
+            self.arb0.functions.cancelArbitration(self.question_id).transact()
 
-        self.assertNotEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 0)
+        self.assertFalse(question[QINDEX_IS_PENDING_ARBITRATION], "When arbitration has been cancelled, is_pending_arbitration flag is set back to False")
+        self.assertEqual(question[QINDEX_FINALIZATION_TS], cancelled_ts + 30, "Cancelling arbitration extends the timeout")
+
+        # You can submit answers again
+        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=2))
+
+        # You can request arbitration again
+        self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration again")
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")

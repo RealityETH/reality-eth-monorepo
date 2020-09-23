@@ -112,6 +112,15 @@ contract Arbitrator is Owned {
         realitio.submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
+    /// @notice Cancel a previous arbitration request
+    /// @dev This is intended for situations where the arbitration is happening non-atomically and the fee or something change.
+    /// @param question_id The question in question
+    function cancelArbitration(bytes32 question_id) 
+        onlyOwner 
+    public {
+        realitio.cancelArbitration(question_id);
+    }
+
     /// @notice Request arbitration, freezing the question until we send submitAnswerByArbitrator
     /// @dev The bounty can be paid only in part, in which case the last person to pay will be considered the payer
     /// Will trigger an error if the notification fails, eg because the question has already been finalized

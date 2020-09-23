@@ -35,5 +35,6 @@ interface IRealitio {
   function submitAnswerCommitment ( bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer ) external payable;
   function notifyOfArbitrationRequest ( bytes32 question_id, address requester, uint256 max_previous ) external;
   function submitAnswerByArbitrator ( bytes32 question_id, bytes32 answer, address answerer ) external;
+  function cancelArbitration(bytes32 question_id) external; // Only available from v2.1
 }
 

@@ -85,6 +85,10 @@ contract Realitio_v2_1 is BalanceHolder {
         address indexed user 
     );
 
+    event LogCancelArbitrationRequest(
+        bytes32 indexed question_id
+    );
+
     event LogFinalize(
         bytes32 indexed question_id,
         bytes32 indexed answer
@@ -422,6 +426,18 @@ contract Realitio_v2_1 is BalanceHolder {
         require(questions[question_id].bond > 0, "Question must already have an answer when arbitration is requested");
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
+    }
+
+    /// @notice Cancel a previously-requested arbitration and extend the timeout
+    /// @dev Useful when doing arbitration across chains that can't be requested atomically
+    /// @param question_id The ID of the question
+    function cancelArbitration(bytes32 question_id) 
+        onlyArbitrator(question_id)
+        statePendingArbitration(question_id)
+    external {
+        questions[question_id].is_pending_arbitration = false;
+        questions[question_id].finalize_ts = uint32(now).add(questions[question_id].timeout);
+        emit LogCancelArbitrationRequest(question_id);
     }
 
     /// @notice Submit the answer for a question, for use by the arbitrator.
