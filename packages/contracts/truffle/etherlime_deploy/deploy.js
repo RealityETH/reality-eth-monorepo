@@ -30,11 +30,14 @@ const networks = {
     'rinkeby': 4,
     'goerli': 5,
     'kovan': 42,
+    'sokol': 77,
     'xdai': 100
 }
 const non_infura_networks = {
-    'xdai': 'https://xdai.poanetwork.dev'
+    'xdai': 'https://xdai.poanetwork.dev',
+    'sokol': 'https://sokol.poa.network'
 }
+
 
 function usage_error(msg) {
     msg = msg + "\n";
@@ -114,6 +117,7 @@ function store_deployed_contract(contract_type, path, token, address) {
 
 function deployer_for_network() {
     if (non_infura_networks[network]) {
+        console.log('Using network', non_infura_networks[network]);
         return new etherlime.JSONRPCPrivateKeyDeployer(priv, non_infura_networks[network], defaultConfigs);
     } else {
         return new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
