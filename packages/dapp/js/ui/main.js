@@ -91,6 +91,7 @@ const BLOCK_EXPLORERS = {
     3: 'https://ropsten.etherscan.io',
     4: 'https://rinkeby.etherscan.io',
     42: 'https://kovan.etherscan.io',
+    77: 'https://blockscout.com/poa/xdai/',
     100: 'https://blockscout.com/poa/xdai/',
     1337: 'https://etherscan.io'
 };
@@ -100,6 +101,7 @@ const RPC_NODES = {
     3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     4: 'https://rinkeby.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
     42: 'https://kovan.socialminds.jp',
+    77: 'https://sokol.poa.network',
     100: 'https://xdai.poanetwork.dev',
     1337: 'https://localhost:8545'
 };
@@ -110,6 +112,7 @@ const START_BLOCKS = {
     1: 6531147,
     4: 3175028, // for quicker loading start more like 4800000,
     42: 10350865,
+    77: 17307140,
     100: 11938534
 }
 var START_BLOCK;
@@ -4534,7 +4537,7 @@ window.addEventListener('load', function() {
             } 
 
             // Special case for XDAI, which looks like ETH underneath
-            if (net_id == "100") {
+            if (net_id == "100" || net_id == "77") {
                 $('.token-ticker-text').text('XDAI');
             } else {
                 $('select#token-selection').removeClass('uninitialized');
