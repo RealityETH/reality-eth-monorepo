@@ -1,10 +1,11 @@
 pragma solidity ^0.4.25;
 
 import './Owned.sol';
+import './IArbitrator.sol';
 import './IRealitio.sol';
 import './IERC20.sol';
 
-contract Arbitrator is Owned {
+contract Arbitrator is Owned, IArbitrator {
 
     IRealitio public realitio;
 
@@ -196,7 +197,7 @@ contract Arbitrator is Owned {
     /// @notice Set a metadata string, expected to be JSON, containing things like arbitrator TOS address
     function setMetaData(string _metadata) 
         onlyOwner
-    public {
+    external {
         metadata = _metadata;
     }
 
