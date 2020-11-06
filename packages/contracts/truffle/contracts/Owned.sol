@@ -1,7 +1,8 @@
 pragma solidity ^0.4.25;
 
+import './IOwned.sol';
 
-contract Owned {
+contract Owned is IOwned {
     address public owner;
 
     constructor() 
@@ -16,7 +17,7 @@ contract Owned {
 
     function transferOwnership(address newOwner) 
         onlyOwner 
-    public {
+    external {
         owner = newOwner;
     }
 }
