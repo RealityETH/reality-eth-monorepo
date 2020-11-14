@@ -18,6 +18,34 @@
   {
    "constant": true,
    "inputs": [],
+   "name": "foreignProxy",
+   "outputs": [
+    {
+     "name": "",
+     "type": "address"
+    }
+   ],
+   "payable": false,
+   "stateMutability": "view",
+   "type": "function"
+  },
+  {
+   "constant": true,
+   "inputs": [],
+   "name": "foreignChainId",
+   "outputs": [
+    {
+     "name": "",
+     "type": "uint256"
+    }
+   ],
+   "payable": false,
+   "stateMutability": "view",
+   "type": "function"
+  },
+  {
+   "constant": true,
+   "inputs": [],
    "name": "owner",
    "outputs": [
     {

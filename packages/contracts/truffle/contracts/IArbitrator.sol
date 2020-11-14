@@ -21,5 +21,7 @@ interface IArbitrator {
   function withdrawERC20 ( IERC20 _token, address addr ) external;
   function callWithdraw (  ) external;
   function setMetaData ( string _metadata ) external;
+  function foreignProxy() external returns (address);
+  function foreignChainId() external returns (uint256);
 }
 
