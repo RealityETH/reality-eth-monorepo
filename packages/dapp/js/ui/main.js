@@ -59,6 +59,8 @@ const arbitrator_list_by_curr = {
 }
 var arbitrator_list;
 
+var foreign_proxy_data;
+
 const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
 
 const contract = require("truffle-contract");
@@ -68,6 +70,9 @@ const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 
 const LEGACY_CONTRACT_ADDRESSES = require('../../v1/addresses.json');
+
+// Special ABI for Kleros
+const ProxiedArbABI = require('../../abi/ProxiedArbitrator.json');
 
 // Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
 var verified_arbitrators = {};
@@ -2558,12 +2563,47 @@ console.log(ans);
 
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
+        console.log('getting arb stuff')
         Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+            console.log('arb is there, getting dispute fee')
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
+            console.log('get fee, rendering')
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
+        }).catch(function(err) {
+            // If it doesn't implement the getDisputeFee method, we might want to use foreignProxy
+            // TODO: We should really be initially loading the metadata
+            // This will tell us if we have a foreign proxy or not
+            Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+                console.log('getting metadata');
+                arb.metadata.call().then(function(md) {
+                    console.log('md', md);
+                    var metadata_json = JSON.parse(md);
+                    console.log('metadata', metadata_json);
+                    if (metadata_json.foreignProxy) {
+                        arb.foreignProxy.call().then(function(foreign_proxy) {
+                            console.log('fp', foreign_proxy);
+                            arb.foreignChainId.call().then(function(foreign_chain_id) {
+                                var btn = rcqa.find('.arbitration-button-foreign-proxy');
+                                btn.click(function(evt) {
+                                    evt.stopPropagation();
+                                    var url_data = question_detail;
+                                    url_data['network_id'] = foreign_chain_id
+                                    url_data['foreign_proxy'] = foreign_proxy;
+                                    //delete url_data['history_unconfirmed'];
+                                    console.log('fpwin', url_data);
+                                    var proxy_url = 'index.html#!/foreign-proxy/' + encodeURIComponent(JSON.stringify(url_data));
+                                    console.log('proxy_url', proxy_url);
+                                    window.open(proxy_url);
+                                });
+                                btn.removeClass('unpopulated').attr('data-foreign-proxy', foreign_proxy).attr('data-foreign-chain-id', foreign_chain_id);
+                            });
+                        });
+                    }
+                });
+            });
         });
     }
 
@@ -3952,11 +3992,16 @@ function handleEvent(error, result) {
 
 function pageInit(account) {
 
+    if ($('body').hasClass('foreign-proxy')) {
+        return;
+    }
+
     //console.log('in pageInit for account', account);
 
     // Just used to get the default arbitator address
     Arbitrator = contract(arb_json);
     Arbitrator.setProvider(web3js.currentProvider);
+
 
     /*
         1) Start watching for all actions.
@@ -4489,6 +4534,75 @@ function initCurrency(curr) {
     $('select#token-selection').val(curr);
 }
 
+function displayForeignProxy(datastr) {
+    $('body').addClass('foreign-proxy');
+    var dec = decodeURIComponent(datastr);
+    var qdata = JSON.parse(dec);
+    foreign_proxy_data = qdata;
+    $('body').attr('data-foreign-proxy-network-id', qdata['network_id']);
+    var netid_label = 'network-id-'+parseInt(qdata['network_id']);
+    var txt = $('.network-status-container .network-status.'+netid_label).first().text();
+    console.log(netid_label, txt);
+    var fpsec = $('div.foreign-proxy-section');
+    var qjson = qdata[Qi_question_json];
+    fpsec.find('.foreign-proxy-network-text').text(txt);
+    fpsec.find('.question-title').text(qjson['title']);
+    console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').size());
+    console.log('displayForeignProxy', qdata);
+}
+
+function foreignProxyInitNetwork(net_id) {
+    if (!$('body').hasClass('foreign-proxy')) {
+        return;
+    }
+    if (parseInt(net_id) != $('body').attr('data-foreign-proxy-network-id')) {
+        $('body').addClass('foreign-proxy-network-mismatch');
+        return;
+    }
+    var arb_addr = foreign_proxy_data['foreign_proxy'];
+    var question_id = foreign_proxy_data[Qi_question_id];
+    var arbitrator;
+
+    // The Kleros mainnet contract for this has a non-standard ABI that wants the last answer instead of the max_previous
+    var special_abi = ProxiedArbABI;
+    Arbitrator = contract({abi: special_abi});
+    Arbitrator.setProvider(web3js.currentProvider);
+
+    var arb;
+    Arbitrator.at(arb_addr).then(function(a) {
+        arb = a;
+        console.log('got arb, calling fee');
+        return arb.arbitrations.call(question_id);
+    }).then(function(existing) {
+        var arb_status = existing[0].toNumber();
+        console.log('existing status', arb_status);
+        if (arb_status > 0) {
+            $('body').addClass('foreign-proxy-transaction-complete').removeClass('foreign-proxy-ready').removeClass('foreign-proxy-transaction-sent');
+        } else {
+            arb.getDisputeFee.call(question_id).then(function(fee) {
+                $('.proxy-arbitration-fee').text(humanReadableWei(fee));
+                $('.proxy-request-arbitration-button').attr('data-question-fee', '0x' + fee.toString(16));
+                $('.proxy-contested-answer').text(rc_question.getAnswerString(foreign_proxy_data[Qi_question_json], foreign_proxy_data[Qi_best_answer]));
+               
+                $('.proxy-request-arbitration-button').click(function() {
+                    console.log('fee si', fee.toNumber());
+                    // Normally would be, but Kleros didn't like the max_previous method
+                    //  arb.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
+                    console.log('sending arbitration requiest');
+                    arb.requestArbitration(question_id, foreign_proxy_data[Qi_best_answer], {from:account, value: fee}).then(function(result) {
+                        $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
+                    });
+                });
+
+                $('body').addClass('foreign-proxy-ready');
+
+            }).catch(function(err) {
+                console.log('at err', err);
+            });
+        }
+    });
+}
+
 window.addEventListener('load', function() {
 
     var args = parseHash();
@@ -4516,6 +4630,13 @@ window.addEventListener('load', function() {
         web3js = new Web3(web3.currentProvider);
     }
 
+    var args = parseHash()
+    console.log('args', args);
+
+    if (args['foreign-proxy']) {
+        displayForeignProxy(args['foreign-proxy']);
+    }
+
     // Set up a filter so we always know the latest block number.
     // This helps us keep track of how fresh our question data etc is.
     web3js.eth.filter('latest').watch(function(err, res) {
@@ -4540,9 +4661,12 @@ window.addEventListener('load', function() {
             if (net_id == "100" || net_id == "77") {
                 $('.token-ticker-text').text('XDAI');
             } else {
-                $('select#token-selection').removeClass('uninitialized');
+                if (!$('body').hasClass('foreign-proxy')) {
+                    $('select#token-selection').removeClass('uninitialized');
+                }
             }
             populateArbitratorSelect(arbitrator_list[net_id]);
+            foreignProxyInitNetwork(net_id);
         }
 
         USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
@@ -4581,7 +4705,6 @@ window.addEventListener('load', function() {
 
     });
 
-    var args = parseHash()
     if (args['category']) {
         $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
     } else {
