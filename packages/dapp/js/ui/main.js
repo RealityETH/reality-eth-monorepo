@@ -2800,7 +2800,7 @@ function answersByMaxBond(answer_logs) {
         var an = answer_logs[i];
         var aval = an.args.answer;
         var bond = an.args.bond;
-        if (ans[aval] && ans[aval].args.bond >= bond) {
+        if (ans[aval] && ans[aval].args.bond.gt(bond)) {
             continue;
         }
         ans[aval] = an;
