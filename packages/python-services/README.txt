@@ -1,4 +1,4 @@
-Realitio Services
+Reality.eth Services
 Edmund Edgar, 2018-06-29
 
 This repo is for back-end services that support Reality.eth.
