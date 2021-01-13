@@ -338,6 +338,7 @@ contract Realitio_v2_1 is BalanceHolder {
         bondMustDouble(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
+        require(answerer != NULL_ADDRESS, "answerer must be non-zero");
         _addAnswerToHistory(question_id, answer, answerer, msg.value, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }

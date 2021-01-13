@@ -1291,6 +1291,10 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
 
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, "0x0000000000000000000000000000000000000000").transact(self._txargs(val=100, sender=k4))
+            self.raiseOnZeroStatus(txid)
+
         self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, k5).transact(self._txargs(val=100, sender=k4))
         self._advance_clock(33)
         self.rc0.functions.claimWinnings(self.question_id, [decode_hex("0x00")], [k5], [100], [to_answer_for_contract(12345)]).transact(self._txargs(sender=k5))
