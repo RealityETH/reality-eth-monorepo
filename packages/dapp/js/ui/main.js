@@ -4603,6 +4603,23 @@ function foreignProxyInitNetwork(net_id) {
     });
 }
 
+function displayWrongNetwork(specified, detected) {
+    console.log('displayWrongNetwork', specified, detected);
+    var specified_network_txt = $('.network-status.network-id-'+specified).text();
+    var detected_network_txt = $('.network-status.network-id-'+detected).text();
+    if (specified_network_txt == '') {
+        specified_network_txt = '[unknown]';
+    }
+    if (detected_network_txt == '') {
+        detected_network_txt = '[unknown]';
+    }
+    console.log(specified_network_txt, detected_network_txt);
+    $('.network-specified-text').text(specified_network_txt);
+    $('.network-detected-text').text(detected_network_txt);
+    $('body').addClass('error-not-specified-network').addClass('error');
+    return;
+}
+
 window.addEventListener('load', function() {
 
     var args = parseHash();
@@ -4656,6 +4673,11 @@ window.addEventListener('load', function() {
                 $('body').addClass('error-invalid-network').addClass('error');
                 return;
             } 
+
+            if (args['network'] && (parseInt(args['network']) != parseInt(net_id))) {
+                displayWrongNetwork(parseInt(args['network']), parseInt(net_id));
+                return;
+            }
 
             // Special case for XDAI, which looks like ETH underneath
             if (net_id == "100" || net_id == "77") {

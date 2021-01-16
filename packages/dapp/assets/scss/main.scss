@@ -2693,11 +2693,17 @@ div.error-bar .metamask-icon {
 span.error-label.invalid-network{ display:none}
 body.error-invalid-network div.error-bar span.error-label.invalid-network{ display:inline !important}
 
+span.error-label.not-specified-network{ display:none}
+body.error-not-specified-network div.error-bar span.error-label.not-specified-network{ display:inline !important}
+
 span.error-label.no-metamask-accounts { display:none}
 body.error-no-metamask-accounts div.error-bar span.error-label.no-metamask-accounts { display:inline !important}
 
 span.error-label.no-metamask-plugin { display:none}
 body.error-no-metamask-plugin div.error-bar span.error-label.no-metamask-plugin { display:inline !important}
+
+div.error-label.no-metamask-plugin { display:none}
+body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin { display:inline !important}
 
 div.error-label.no-metamask-plugin-image { display:none}
 body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-image { margin-right:8px; margin-top:-5px; float:right; display:inline !important}
