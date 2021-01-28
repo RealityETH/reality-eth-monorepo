@@ -4572,7 +4572,7 @@ function foreignProxyInitNetwork(net_id) {
     Arbitrator.at(arb_addr).then(function(a) {
         arb = a;
         console.log('got arb, calling fee');
-        return arb.arbitrations.call(question_id);
+        return arb.arbitrationRequests.call(question_id, foreign_proxy_data[Qi_best_answer]);
     }).then(function(existing) {
         var arb_status = existing[0].toNumber();
         console.log('existing status', arb_status);
