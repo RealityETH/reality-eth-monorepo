@@ -31,6 +31,7 @@
             </div>
             <span class="error-label no-metamask-accounts">No accounts found. Please make sure MetaMask is unlocked then refresh the page.</span>
             <span class="error-label invalid-network">Invalid network. Please use the main Ethereum network.</span>
+            <span class="error-label not-specified-network">You followed a link to the <span class="network-specified-text"></span> network but you are currently on <span class="network-detected-text"></span>. Please switch network.</span>
         </div>
     </div>
     <div id="main">
@@ -224,7 +225,31 @@
                 </div>
             </div>
         </div><!-- /#questions-container -->
+
+    <div class="foreign-proxy-section">
+        <h3>Arbitration request: <span class="question-title"></span></h3>
+        <p class="foreign-proxy-network-mismatch-only">This arbitrator requires you to pay for arbitration on a different network. Please switch to <span class="foreign-proxy-network-text"></span>.
+        </p>
+
+        <div class="foreign-proxy-ready-only">
+            Fee: <span class="proxy-arbitration-fee"></span>
+            <br />
+            Contested Answer: <span class="proxy-contested-answer"></span>
+            <div class="proxy-request-arbitration-button">Request Arbitration</div>
+        </div>
+
+        <div class="foreign-proxy-transaction-sent-only">
+            The arbitration transaction has been sent. The Reality.eth question should be frozen soon, but this does not happen instantly. 
+        </div>
+
+        <div class="foreign-proxy-transaction-complete-only">
+            The arbitration transaction has been confirmed. 
+        </div>
+
+    </div>
+
     </div><!-- /#main -->
+
 
     <div id="footer-notification-bar" style="display: none;">
         <div>We updated the contracts on October, 26th, 2018.<br />If you have money to claim from before that, go <a href="v1/">here</a>.</div>
@@ -985,6 +1010,7 @@
                     <div class="answer-deadline-container">Deadline: <span class="answer-deadline timeago"></span></div>
 
                     <div class="clearfix apply-for-arbitration-container">
+                        <a href="" class="arbitration-button-foreign-proxy unpopulated">Apply for arbitration (Switch network)</a>
                         <a href="" class="arbitration-button unpopulated">Apply for arbitration (<span class="arbitration-fee"></span> <span class="token-always-eth">ETH</span>)</a>
                     </div>
 
@@ -1098,6 +1124,7 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
+
     <script src="assets/js/bundle.js?20201329"></script>
 
 </body>

@@ -1498,6 +1498,20 @@ span.rcbrowser__close-button {
 }
 
 // arbitration button
+.arbitration-button-foreign-proxy {
+    font-size: 12px;
+    color: $rcBrowserSubText;
+    text-decoration: none;
+    display: block;
+    float: right;
+    margin: 0;
+}
+
+.arbitration-button-foreign-proxy.unpopulated {
+    display: none;
+}
+
+// arbitration button
 .arbitration-button--applied {
     font-size: 12px;
     color: $rcBrowserSubText;
@@ -2679,11 +2693,17 @@ div.error-bar .metamask-icon {
 span.error-label.invalid-network{ display:none}
 body.error-invalid-network div.error-bar span.error-label.invalid-network{ display:inline !important}
 
+span.error-label.not-specified-network{ display:none}
+body.error-not-specified-network div.error-bar span.error-label.not-specified-network{ display:inline !important}
+
 span.error-label.no-metamask-accounts { display:none}
 body.error-no-metamask-accounts div.error-bar span.error-label.no-metamask-accounts { display:inline !important}
 
 span.error-label.no-metamask-plugin { display:none}
 body.error-no-metamask-plugin div.error-bar span.error-label.no-metamask-plugin { display:inline !important}
+
+div.error-label.no-metamask-plugin { display:none}
+body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin { display:inline !important}
 
 div.error-label.no-metamask-plugin-image { display:none}
 body.error-no-metamask-plugin div.error-bar div.error-label.no-metamask-plugin-image { margin-right:8px; margin-top:-5px; float:right; display:inline !important}
@@ -2964,3 +2984,33 @@ table.ui-datepicker-calendar {
                     -webkit-transform: rotate(-360deg);
                 }
             }
+
+.foreign-proxy-section {display:none; margin-bottom:200px; margin-top:-100px;}
+body.foreign-proxy #questions-container {display:none}
+body.foreign-proxy #site-introduction__buttons {display:none}
+body.foreign-proxy .foreign-proxy-section {display:block}
+
+.foreign-proxy-network-mismatch-only { display: none}
+body.foreign-proxy-network-mismatch .foreign-proxy-network-mismatch-only { display: block}
+
+.foreign-proxy-ready-only { display: none }
+body.foreign-proxy-ready .foreign-proxy-ready-only { display: block}
+
+.foreign-proxy-transaction-complete-only {display: none}
+body.foreign-proxy-transaction-complete .foreign-proxy-transaction-complete-only {display: block}
+
+.foreign-proxy-transaction-sent-only {display: none}
+body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {display: block}
+
+.proxy-request-arbitration-button {
+    margin: 15px 0 0;
+    padding: 9px;
+    border-radius: 3px;
+    font-size: 12px;
+    // background-color: $blue;
+    @include button_blue;
+    text-align: center;
+    cursor: pointer;
+}
+
+
