@@ -4563,7 +4563,7 @@ function foreignProxyInitNetwork(net_id) {
     var question_id = foreign_proxy_data[Qi_question_id];
     var arbitrator;
 
-    // The Kleros mainnet contract for this has a non-standard ABI that wants the last answer instead of the max_previous
+    // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
     var special_abi = ProxiedArbABI;
     Arbitrator = contract({abi: special_abi});
     Arbitrator.setProvider(web3js.currentProvider);
@@ -4572,7 +4572,7 @@ function foreignProxyInitNetwork(net_id) {
     Arbitrator.at(arb_addr).then(function(a) {
         arb = a;
         console.log('got arb, calling fee');
-        return arb.arbitrationRequests.call(question_id, foreign_proxy_data[Qi_best_answer]);
+        return arb.arbitrationRequests.call(question_id, foreign_proxy_data[Qi_bond]);
     }).then(function(existing) {
         var arb_status = existing[0].toNumber();
         console.log('existing status', arb_status);
