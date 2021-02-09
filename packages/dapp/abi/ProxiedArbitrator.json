@@ -12,9 +12,9 @@
           "type": "address"
         },
         {
-          "internalType": "uint256",
+          "internalType": "bytes32",
           "name": "_homeChainId",
-          "type": "uint256"
+          "type": "bytes32"
         },
         {
           "internalType": "contract IArbitrator",
@@ -51,9 +51,9 @@
         },
         {
           "indexed": true,
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
         }
       ],
       "name": "ArbitrationCanceled",
@@ -70,9 +70,9 @@
         },
         {
           "indexed": true,
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
         },
         {
           "indexed": true,
@@ -95,9 +95,9 @@
         },
         {
           "indexed": true,
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
         }
       ],
       "name": "ArbitrationFailed",
@@ -114,15 +114,15 @@
         },
         {
           "indexed": true,
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
-        },
-        {
-          "indexed": true,
           "internalType": "address",
           "name": "_requester",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_maxPrevious",
+          "type": "uint256"
         }
       ],
       "name": "ArbitrationRequested",
@@ -261,24 +261,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "_questionID",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
-        }
-      ],
-      "name": "acknowledgeArbitration",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "amb",
       "outputs": [
@@ -299,9 +281,9 @@
           "type": "bytes32"
         },
         {
-          "internalType": "bytes32",
+          "internalType": "address",
           "name": "",
-          "type": "bytes32"
+          "type": "address"
         }
       ],
       "name": "arbitrationRequests",
@@ -312,14 +294,9 @@
           "type": "uint8"
         },
         {
-          "internalType": "address payable",
-          "name": "requester",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
+          "internalType": "uint248",
           "name": "deposit",
-          "type": "uint256"
+          "type": "uint248"
         }
       ],
       "stateMutability": "view",
@@ -354,40 +331,22 @@
     {
       "inputs": [
         {
-          "internalType": "bytes32",
-          "name": "_questionID",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
-        }
-      ],
-      "name": "cancelArbitration",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        },
-        {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
         }
       ],
-      "name": "disputeIDToQuestionAndAnswer",
+      "name": "disputeIDToDisputeDetails",
       "outputs": [
         {
           "internalType": "bytes32",
-          "name": "",
+          "name": "questionID",
           "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "requester",
+          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -397,7 +356,7 @@
       "inputs": [
         {
           "internalType": "bytes32",
-          "name": "questionID",
+          "name": "_questionID",
           "type": "bytes32"
         }
       ],
@@ -420,9 +379,9 @@
           "type": "bytes32"
         },
         {
-          "internalType": "bytes32",
-          "name": "_contestedAnswer",
-          "type": "bytes32"
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
         }
       ],
       "name": "handleFailedDisputeCreation",
@@ -435,9 +394,9 @@
       "name": "homeChainId",
       "outputs": [
         {
-          "internalType": "uint256",
+          "internalType": "bytes32",
           "name": "",
-          "type": "uint256"
+          "type": "bytes32"
         }
       ],
       "stateMutability": "view",
@@ -483,16 +442,52 @@
           "type": "bytes32"
         },
         {
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
+        }
+      ],
+      "name": "receiveArbitrationAcknowledgement",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes32",
-          "name": "_contestedAnswer",
+          "name": "_questionID",
           "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "_requester",
+          "type": "address"
+        }
+      ],
+      "name": "receiveArbitrationCancelation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_questionID",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_maxPrevious",
+          "type": "uint256"
         }
       ],
       "name": "requestArbitration",
       "outputs": [],
       "stateMutability": "payable",
-      "type": "function",
-      "payable": true
+      "payable": "true",
+      "type": "function"
     },
     {
       "inputs": [
