@@ -1,0 +1,11 @@
+141a142,143
+>     try {
+> 
+145d146
+< 
+163a165,169
+> 
+>     } catch (err) {
+>         console.log('Caught invalid data');
+>         result = {'invalid_data': true};
+>     }
