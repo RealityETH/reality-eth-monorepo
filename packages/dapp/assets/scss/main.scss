@@ -3013,4 +3013,12 @@ body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {displa
     cursor: pointer;
 }
 
+.failed-arbitrator-only { display:none; }
+.failed-arbitrator .failed-arbitrator-only { display:block; }
 
+.failed-arbitrator-message {
+    font-size: 14px;
+    background-color: $ultralight-gray;
+    padding:6px;
+    border: 1px solid $blue;
+}

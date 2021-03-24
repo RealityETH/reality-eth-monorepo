@@ -280,6 +280,13 @@ function rcbrowserHeight() {
 }
 rcbrowserHeight();
 
+function markArbitratorFailed(addr, question_id) {
+    failed_arbitrators[addr.toLowerCase()] = true;
+    if (question_id) {
+        $('[data-question-id="' + question_id + '"]').addClass('failed-arbitrator');
+    }
+}
+
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
@@ -412,7 +419,10 @@ $(document).on('change', 'input.arbitrator-other', function() {
                     populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), new BigNumber(0));
                 });
             });
+        }).catch(function(err) {
+            markArbitratorFailed(arb_text);
         });
+
     } else {
         populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), new BigNumber(0));
     }
@@ -1817,6 +1827,10 @@ function populateSection(section_name, question_data, before_item) {
 
     entry = populateSectionEntry(entry, question_data);
 
+    if (failed_arbitrators[question_data[Qi_arbitrator].toLowerCase()]) {
+        entry.addClass('failed-arbitrator');
+    }
+
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.css('display', 'none');
 
@@ -2496,6 +2510,10 @@ console.log(ans);
     }
     let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
 
+    if (failed_arbitrators[question_detail[Qi_arbitrator].toLowerCase()]) {
+        rcqa.addClass('failed-arbitrator');
+    }
+
     if (!valid_arbirator) {
         balloon_html += 'We do not recognize this arbitrator.<br />Do not believe this information unless you trust them.';
     }
@@ -2573,6 +2591,7 @@ console.log(ans);
             rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
         }).catch(function(err) {
+            console.log('caught error with getDisputeFee');
             // If it doesn't implement the getDisputeFee method, we might want to use foreignProxy
             // TODO: We should really be initially loading the metadata
             // This will tell us if we have a foreign proxy or not
@@ -2602,8 +2621,13 @@ console.log(ans);
                             });
                         });
                     }
+                }).catch(function(err) {
+                    // If it doesn't implement foreign proxy either, it's a contract without the proper interface.
+                    console.log('arbitrator failed with error', err);
+                    markArbitratorFailed(question_detail[Qi_arbitrator], question_id);
                 });
-            });
+
+            })
         });
     }
 
@@ -3718,6 +3742,9 @@ $(document).on('click', '.arbitration-button', function(e) {
                 console.log('arbitration is requested.', result);
             });
 
+        }).catch(function(err) {
+            console.log('arbitrator failed with error', err);
+            markArbitratorFailed(question_detail[Qi_arbitrator], question_id);
         });
     });
 });
@@ -4358,7 +4385,7 @@ function populateArbitratorSelect(network_arbs) {
                     // For this we'll check our original list for the network, then just check against the failed list
                     // TODO: Once loaded, we should really go back through the page and update anything failed
                     if (!is_arb_valid) {
-                        failed_arbitrators[na_addr] = true;
+                        markArbitratorFailed(na_addr);
                     }
                     console.log(verified_arbitrators);
                     return is_arb_valid;
@@ -4381,6 +4408,9 @@ function populateArbitratorSelect(network_arbs) {
                     } else {
                         console.log('Arbitrator does not work for this contract:', na_addr);
                     }
+                }).catch(function(err) {
+                    console.log('arbitrator failed with error', err);
+                    markArbitratorFailed(na_addr);
                 });
             });
         });
@@ -4600,6 +4630,9 @@ function foreignProxyInitNetwork(net_id) {
                 console.log('at err', err);
             });
         }
+    }).catch(function(err) {
+        console.log('Arbitrator failed with error', err);
+        markArbitratorFailed(arb_addr);
     });
 }
 
