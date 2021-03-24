@@ -34,8 +34,6 @@ popd
 
 rsync -avz --delete $SRC_DIR/docs/html/ $BUILD_DIR/docs/html/
 rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
-rsync -avz --delete $SRC_DIR/truffle/build/ $BUILD_DIR/truffle/build/
-rsync -avz --delete $SRC_DIR/cli/ $BUILD_DIR/cli/
 rsync -avz --delete $SRC_DIR/js/ $BUILD_DIR/js/
 rsync -avz --delete $SRC_DIR/rinkeby/ $BUILD_DIR/rinkeby/
 rsync -avz --delete $SRC_DIR/v1/ $BUILD_DIR/v1/

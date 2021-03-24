@@ -45,12 +45,8 @@ popd
 
 rsync -avz --delete $SRC_DIR/docs/html/ $DAPP_DIR/docs/html/
 rsync -avz --delete $SRC_DIR/assets/ $DAPP_DIR/assets/
-#rsync -avz --delete $SRC_DIR/truffle/build/ $DAPP_DIR/truffle/build/
-# rsync -avz --delete $SRC_DIR/cli/ $DAPP_DIR/cli/
 rsync -avz --delete $SRC_DIR/js/ $DAPP_DIR/js/
-# rsync -avz --delete $SRC_DIR/rinkeby/ $DAPP_DIR/rinkeby/
 rsync -avz --delete $SRC_DIR/v1/ $DAPP_DIR/v1/
-# rsync -avz --delete $SRC_DIR/beta/ $DAPP_DIR/beta/
 cp $SRC_DIR/index.html $DAPP_DIR/index.html
 
 cd $BUILD_DIR/webroot
