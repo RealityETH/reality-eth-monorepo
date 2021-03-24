@@ -3507,7 +3507,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                     break;
             }
 
-            var min_amount = current_question[Qi_bond] * 2;
+            var min_amount = current_question[Qi_bond].times(2)
             if (bond.lt(min_amount)) {
                 parent_div.find('div.input-container.input-container--bond').addClass('is-error');
                 parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
@@ -3798,12 +3798,13 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
         }
 
-        if (ctrl.val() === '' || value.lt(humanToDecimalizedBigNumber(current_bond.times(2)))) {
+        let min_bond = current_bond.times(2);
+        if (ctrl.val() === '' || value.lt(min_bond)) {
+            console.log('The minimum bond is ', min_bond, 'rejecting value ',value);
             ctrl.parent().parent().addClass('is-error');
-            let min_bond = current_bond.times(2);
-            min_bond = decimalizedBigNumberToHuman(min_bond);
-            ctrl.parent('div').next('div').find('.min-amount').text(min_bond.toNumber());
+            ctrl.parent('div').next('div').find('.min-amount').text(decimalizedBigNumberToHuman(min_bond));
         } else {
+            console.log('The minimum bond is ', min_bond, 'accepting value ',value);
             ctrl.parent().parent().removeClass('is-error');
         }
         show_bond_payments(ctrl);
