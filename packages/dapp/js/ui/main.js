@@ -3370,6 +3370,25 @@ $(document).on('click', '.answer-item', function() {
     }
 });
 
+// Do an initial validity check
+function isAnswerInputLookingValid(parent_div, question_json) {
+
+    var answer_element = parent_div.find('[name="input-answer"]');
+    if (question_json['type'] == 'uint') {
+        if (answer_element.val() == '') {
+            console.log('empty number');
+            return false;
+        } 
+    } else if (question_json['type'] == 'bool') {
+        if ((answer_element.val() == '') || (answer_element.val() == 'default')) {
+            console.log('empty bool');
+            return false;
+        } 
+    }
+    return true;
+
+}
+
 function formattedAnswerFromForm(parent_div, question_json) {
 
     var new_answer;
@@ -3449,6 +3468,11 @@ $(document).on('click', '.post-answer-button', function(e) {
 
             question_json = current_question[Qi_question_json];
             //console.log('got question_json', question_json);
+
+            if (!isAnswerInputLookingValid(parent_div, question_json)) {
+                parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                return;
+            }
 
             new_answer = formattedAnswerFromForm(parent_div, question_json);
             const invalid_value = rc_question.getInvalidValue(question_json);
