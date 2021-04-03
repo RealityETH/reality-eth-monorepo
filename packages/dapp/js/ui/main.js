@@ -38,6 +38,9 @@ const token_info = {
     }
 }
 
+// From https://chainid.network/chains.json
+const full_chain_list = require('../chains.json');
+
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
 var web3js; // This should be the normal metamask instance
@@ -4672,9 +4675,56 @@ function displayWrongNetwork(specified, detected) {
         detected_network_txt = '[unknown]';
     }
     console.log(specified_network_txt, detected_network_txt);
+
+    var chainparams;
+    for (var ci = 0; ci< full_chain_list.length; ci++) {
+        var chain_info = full_chain_list[ci];
+        if (chain_info.chainId == specified) {
+            if ('disableSwitch' in chain_info) {
+                break;
+            }
+            chainparams = {};
+            chainparams['chainId'] = "0x"+Number(specified).toString(16),
+            chainparams['chainName'] = chain_info.name;
+            chainparams['rpcUrls'] =  chain_info.rpc;
+            chainparams['nativeCurrency'] = chain_info.nativeCurrency;
+            // We add these two ourselves, they may not be there
+            if ('iconUrls' in chain_info) {
+                chainparams['iconUrls'] = chain_info['iconUrls'];
+            }
+            if ('blockExplorerUrls' in chain_info) {
+                chainparams['blockExplorerUrls'] = chain_info['blockExplorerUrls'];
+            }
+        }
+    }
+
+    if (chainparams) {
+        var lnk = $('<a>');
+        lnk.text($('.add-network-button').text());
+        lnk.bind('click', function(evt) {
+            console.log('add net');
+            evt.stopPropagation();
+            console.log('getting', specified);
+            ethereum
+            .request({
+                method: 'wallet_addEthereumChain',
+                params: [chainparams]
+            })
+            .then((result) => {
+                console.log('result was', result);
+                location.reload();	
+            }).catch((error) => {
+                console.log('error', error)
+            });
+            return false;
+        });
+        $('.add-network-button').empty().append(lnk);
+    }
+
     $('.network-specified-text').text(specified_network_txt);
     $('.network-detected-text').text(detected_network_txt);
     $('body').addClass('error-not-specified-network').addClass('error');
+
     return;
 }
 
