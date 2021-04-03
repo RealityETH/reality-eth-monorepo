@@ -9,7 +9,8 @@
     "nativeCurrency": {"name":"Ether","symbol":"ETH","decimals":18},
     "rpc": ["https://mainnet.infura.io/v3/${INFURA_API_KEY}","wss://mainnet.infura.io/ws/v3/${INFURA_API_KEY}","https://api.mycryptoapi.com/eth","https://cloudflare-eth.com"],
     "faucets": [],
-    "infoURL": "https://ethereum.org"
+    "infoURL": "https://ethereum.org",
+    "disableSwitch": "metamask disallows prompt"
   },
   {
     "name": "Optimistic Ethereum",
@@ -33,7 +34,9 @@
     "nativeCurrency": {"name":"xDAI","symbol":"xDAI","decimals":18},
     "rpc": ["https://rpc.xdaichain.com","https://xdai.poanetwork.dev","wss://rpc.xdaichain.com/wss","wss://xdai.poanetwork.dev/wss","http://xdai.poanetwork.dev","https://dai.poa.network","ws://xdai.poanetwork.dev:8546"],
     "faucets": [],
-    "infoURL": "https://forum.poa.network/c/xdai-chain"
+    "infoURL": "https://forum.poa.network/c/xdai-chain",
+    "iconUrls": ["https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"],
+    "blockExplorerUrls": ["https://blockscout.com/poa/xdai/"]
   },
   {
     "name": "Klaytn Testnet Baobab",
@@ -753,7 +756,7 @@
     "nativeCurrency": {"name":"Ropsten Ether","symbol":"ROP","decimals":18},
     "rpc": ["https://ropsten.infura.io/v3/${INFURA_API_KEY}","wss://ropsten.infura.io/ws/v3/${INFURA_API_KEY}"],
     "faucets": ["https://faucet.ropsten.be?${ADDRESS}"],
-    "infoURL": "https://github.com/ethereum/ropsten"
+    "infoURL": "https://github.com/ethereum/ropsten",
   },
   {
     "name": "RSK Mainnet",
@@ -897,7 +900,8 @@
     "nativeCurrency": {"name":"Rinkeby Ether","symbol":"RIN","decimals":18},
     "rpc": ["https://rinkeby.infura.io/v3/${INFURA_API_KEY}","wss://rinkeby.infura.io/ws/v3/${INFURA_API_KEY}"],
     "faucets": ["https://faucet.rinkeby.io"],
-    "infoURL": "https://www.rinkeby.io"
+    "infoURL": "https://www.rinkeby.io",
+    "disableSwitch": "rpcs with infura no good"
   },
   {
     "name": "Telos EVM Mainnet",

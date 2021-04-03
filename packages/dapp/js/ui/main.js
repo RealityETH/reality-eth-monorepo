@@ -4676,35 +4676,50 @@ function displayWrongNetwork(specified, detected) {
     }
     console.log(specified_network_txt, detected_network_txt);
 
-    $('.add-network-button').unbind('click').bind('click', function(evt) {
-        console.log('add net');
-        evt.stopPropagation();
-        for (var ci = 0; ci< full_chain_list.length; ci++) {
-            var chain_info = full_chain_list[ci];
-            if (chain_info.chainId == specified) {
-                console.log('getting', specified);
-                ethereum
-                .request({
-                    method: 'wallet_addEthereumChain',
-					params: [{
-						chainId: "0x"+Number(specified).toString(16),
-						chainName: chain_info.name,
-						rpcUrls: chain_info.rpc,
-						//iconUrls: ["https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"],
-						nativeCurrency: chain_info.nativeCurrency,
-						//blockExplorerUrls: ["https://blockscout.com/poa/xdai/"]
-					}]
-                })
-                .then((result) => {
-                    console.log('result was', result);
-					location.reload();	
-                }).catch((error) => {
-                    console.log('error', error)
-                });
+    var chainparams;
+    for (var ci = 0; ci< full_chain_list.length; ci++) {
+        var chain_info = full_chain_list[ci];
+        if (chain_info.chainId == specified) {
+            if ('disableSwitch' in chain_info) {
+                break;
+            }
+            chainparams = {};
+            chainparams['chainId'] = "0x"+Number(specified).toString(16),
+            chainparams['chainName'] = chain_info.name;
+            chainparams['rpcUrls'] =  chain_info.rpc;
+            chainparams['nativeCurrency'] = chain_info.nativeCurrency;
+            // We add these two ourselves, they may not be there
+            if ('iconUrls' in chain_info) {
+                chainparams['iconUrls'] = chain_info['iconUrls'];
+            }
+            if ('blockExplorerUrls' in chain_info) {
+                chainparams['blockExplorerUrls'] = chain_info['blockExplorerUrls'];
             }
         }
-        return false;
-    });
+    }
+
+    if (chainparams) {
+        var lnk = $('<a>');
+        lnk.text($('.add-network-button').text());
+        lnk.bind('click', function(evt) {
+            console.log('add net');
+            evt.stopPropagation();
+            console.log('getting', specified);
+            ethereum
+            .request({
+                method: 'wallet_addEthereumChain',
+                params: [chainparams]
+            })
+            .then((result) => {
+                console.log('result was', result);
+                location.reload();	
+            }).catch((error) => {
+                console.log('error', error)
+            });
+            return false;
+        });
+        $('.add-network-button').empty().append(lnk);
+    }
 
     $('.network-specified-text').text(specified_network_txt);
     $('.network-detected-text').text(detected_network_txt);

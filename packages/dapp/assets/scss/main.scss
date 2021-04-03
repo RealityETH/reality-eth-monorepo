@@ -3029,3 +3029,10 @@ body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {displa
     padding:6px;
     border: 1px solid $blue;
 }
+
+span.add-network-button > a {
+    text-decoration:underline;
+}
+span.add-network-button > a:hover {
+    text-decoration:none;
+}
