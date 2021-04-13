@@ -18,6 +18,7 @@ interface IRealitio {
   function balanceOf ( address ) external view returns ( uint256 );
   function askQuestion ( uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce ) external payable returns ( bytes32 );
   function submitAnswer ( bytes32 question_id, bytes32 answer, uint256 max_previous ) external payable;
+  function submitAnswerFor ( bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer ) external payable; 
   function isFinalized ( bytes32 question_id ) external view returns ( bool );
   function getHistoryHash ( bytes32 question_id ) external view returns ( bytes32 );
   function commitments ( bytes32 ) external view returns ( uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer );
