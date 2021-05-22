@@ -411,7 +411,7 @@ $(document).on('change', 'input.arbitrator-other', function() {
     var sel_cont = $(this).closest('.select-container');
     if (/^(0x)?[0-9a-f]{1,40}$/i.test(arb_text)) {
         Arbitrator.at(arb_text).then(function(ar) {
-            ar.realitio().call().then(function(rcaddr) {
+            ar.realitio.call().then(function(rcaddr) {
                 if (rcaddr != rc.address) {
                     console.log('reality check mismatch');
                     return;
