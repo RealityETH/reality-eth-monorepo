@@ -1,0 +1,286 @@
+{
+  "contractName": "IBalanceHolder",
+  "abi": [
+    {
+      "constant": true,
+      "inputs": [
+        {
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "constant": false,
+      "inputs": [],
+      "name": "withdraw",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5060de8061001f6000396000f30060806040526004361060485763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416633ccfd60b8114604d57806370a08231146061575b600080fd5b348015605857600080fd5b50605f609e565b005b348015606c57600080fd5b50608c73ffffffffffffffffffffffffffffffffffffffff6004351660a0565b60408051918252519081900360200190f35b565b600060208190529081526040902054815600a165627a7a72305820181738a630036362a18afef9e4653bf22d8747502844d7ae010cc8c7ea4a96380029",
+  "deployedBytecode": "0x60806040526004361060485763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416633ccfd60b8114604d57806370a08231146061575b600080fd5b348015605857600080fd5b50605f609e565b005b348015606c57600080fd5b50608c73ffffffffffffffffffffffffffffffffffffffff6004351660a0565b60408051918252519081900360200190f35b565b600060208190529081526040902054815600a165627a7a72305820181738a630036362a18afef9e4653bf22d8747502844d7ae010cc8c7ea4a96380029",
+  "sourceMap": "26:124:4:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;26:124:4;;;;;;;",
+  "deployedSourceMap": "26:124:4:-;;;;;;;;;;;;;;;;;;;;;;;;;;;;108:39;;8:9:-1;5:2;;;30:1;27;20:12;5:2;108:39:4;;;;;;57:44;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;57:44:4;;;;;;;;;;;;;;;;;;;;;;;108:39;:::o;57:44::-;;;;;;;;;;;;;;:::o",
+  "source": "pragma solidity ^0.4.18;\n\ncontract IBalanceHolder {\n\n    mapping(address => uint256) public balanceOf;\n\n    function withdraw() \n    public {\n    }\n\n}\n",
+  "sourcePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/IBalanceHolder.sol",
+  "ast": {
+    "absolutePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/IBalanceHolder.sol",
+    "exportedSymbols": {
+      "IBalanceHolder": [
+        415
+      ]
+    },
+    "id": 416,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 406,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".18"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:4"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 415,
+        "linearizedBaseContracts": [
+          415
+        ],
+        "name": "IBalanceHolder",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 410,
+            "name": "balanceOf",
+            "nodeType": "VariableDeclaration",
+            "scope": 415,
+            "src": "57:44:4",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+              "typeString": "mapping(address => uint256)"
+            },
+            "typeName": {
+              "id": 409,
+              "keyType": {
+                "id": 407,
+                "name": "address",
+                "nodeType": "ElementaryTypeName",
+                "src": "65:7:4",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "57:27:4",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                "typeString": "mapping(address => uint256)"
+              },
+              "valueType": {
+                "id": 408,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "76:7:4",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 413,
+              "nodeType": "Block",
+              "src": "140:7:4",
+              "statements": []
+            },
+            "documentation": null,
+            "id": 414,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "withdraw",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 411,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "125:2:4"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 412,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "140:0:4"
+            },
+            "scope": 415,
+            "src": "108:39:4",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 416,
+        "src": "26:124:4"
+      }
+    ],
+    "src": "0:151:4"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/IBalanceHolder.sol",
+    "exportedSymbols": {
+      "IBalanceHolder": [
+        415
+      ]
+    },
+    "id": 416,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 406,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".18"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:4"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 415,
+        "linearizedBaseContracts": [
+          415
+        ],
+        "name": "IBalanceHolder",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 410,
+            "name": "balanceOf",
+            "nodeType": "VariableDeclaration",
+            "scope": 415,
+            "src": "57:44:4",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+              "typeString": "mapping(address => uint256)"
+            },
+            "typeName": {
+              "id": 409,
+              "keyType": {
+                "id": 407,
+                "name": "address",
+                "nodeType": "ElementaryTypeName",
+                "src": "65:7:4",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                }
+              },
+              "nodeType": "Mapping",
+              "src": "57:27:4",
+              "typeDescriptions": {
+                "typeIdentifier": "t_mapping$_t_address_$_t_uint256_$",
+                "typeString": "mapping(address => uint256)"
+              },
+              "valueType": {
+                "id": 408,
+                "name": "uint256",
+                "nodeType": "ElementaryTypeName",
+                "src": "76:7:4",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_uint256",
+                  "typeString": "uint256"
+                }
+              }
+            },
+            "value": null,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 413,
+              "nodeType": "Block",
+              "src": "140:7:4",
+              "statements": []
+            },
+            "documentation": null,
+            "id": 414,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "withdraw",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 411,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "125:2:4"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 412,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "140:0:4"
+            },
+            "scope": 415,
+            "src": "108:39:4",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 416,
+        "src": "26:124:4"
+      }
+    ],
+    "src": "0:151:4"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.25+commit.59dbf8f1.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "2.0.2",
+  "updatedAt": "2019-05-25T02:18:58.911Z"
+}

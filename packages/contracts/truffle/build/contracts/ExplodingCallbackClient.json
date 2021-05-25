@@ -1,0 +1,304 @@
+{
+  "contractName": "ExplodingCallbackClient",
+  "abi": [
+    {
+      "constant": false,
+      "inputs": [
+        {
+          "name": "question_id",
+          "type": "bytes32"
+        },
+        {
+          "name": "question_answer",
+          "type": "bytes32"
+        }
+      ],
+      "name": "__realitycheck_callback",
+      "outputs": [],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b5060898061001e6000396000f300608060405260043610603e5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631d7dbb4381146043575b600080fd5b348015604e57600080fd5b50605b600435602435603e565b0000a165627a7a72305820db091b88ed360dc8b6fb1803910b7eee684665f06b0a2db14ec59abda30dca770029",
+  "deployedBytecode": "0x608060405260043610603e5763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416631d7dbb4381146043575b600080fd5b348015604e57600080fd5b50605b600435602435603e565b0000a165627a7a72305820db091b88ed360dc8b6fb1803910b7eee684665f06b0a2db14ec59abda30dca770029",
+  "sourceMap": "25:144:3:-;;;;8:9:-1;5:2;;;30:1;27;20:12;5:2;25:144:3;;;;;;;",
+  "deployedSourceMap": "25:144:3:-;;;;;;;;;;;;;;;;;;;;;;;65:101;;8:9:-1;5:2;;;30:1;27;20:12;5:2;-1:-1;65:101:3;;;;;;;;",
+  "source": "pragma solidity ^0.4.6;\n\ncontract ExplodingCallbackClient {\n\n    function __realitycheck_callback(bytes32 question_id, bytes32 question_answer) {\n        throw;\n    }\n\n}\n",
+  "sourcePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/ExplodingCallbackClient.sol",
+  "ast": {
+    "absolutePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/ExplodingCallbackClient.sol",
+    "exportedSymbols": {
+      "ExplodingCallbackClient": [
+        404
+      ]
+    },
+    "id": 405,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 394,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".6"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:3"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 404,
+        "linearizedBaseContracts": [
+          404
+        ],
+        "name": "ExplodingCallbackClient",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 402,
+              "nodeType": "Block",
+              "src": "144:22:3",
+              "statements": [
+                {
+                  "id": 401,
+                  "nodeType": "Throw",
+                  "src": "154:5:3"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 403,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "__realitycheck_callback",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 399,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 396,
+                  "name": "question_id",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 403,
+                  "src": "98:19:3",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 395,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "98:7:3",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 398,
+                  "name": "question_answer",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 403,
+                  "src": "119:23:3",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 397,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "119:7:3",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "97:46:3"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 400,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "144:0:3"
+            },
+            "scope": 404,
+            "src": "65:101:3",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 405,
+        "src": "25:144:3"
+      }
+    ],
+    "src": "0:170:3"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/ed/working/realitio-contracts-newtest/truffle/contracts/ExplodingCallbackClient.sol",
+    "exportedSymbols": {
+      "ExplodingCallbackClient": [
+        404
+      ]
+    },
+    "id": 405,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 394,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".6"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:23:3"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 404,
+        "linearizedBaseContracts": [
+          404
+        ],
+        "name": "ExplodingCallbackClient",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "body": {
+              "id": 402,
+              "nodeType": "Block",
+              "src": "144:22:3",
+              "statements": [
+                {
+                  "id": 401,
+                  "nodeType": "Throw",
+                  "src": "154:5:3"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 403,
+            "implemented": true,
+            "isConstructor": false,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "__realitycheck_callback",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 399,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 396,
+                  "name": "question_id",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 403,
+                  "src": "98:19:3",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 395,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "98:7:3",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 398,
+                  "name": "question_answer",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 403,
+                  "src": "119:23:3",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes32",
+                    "typeString": "bytes32"
+                  },
+                  "typeName": {
+                    "id": 397,
+                    "name": "bytes32",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "119:7:3",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes32",
+                      "typeString": "bytes32"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "97:46:3"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 400,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "144:0:3"
+            },
+            "scope": 404,
+            "src": "65:101:3",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 405,
+        "src": "25:144:3"
+      }
+    ],
+    "src": "0:170:3"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.25+commit.59dbf8f1.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "2.0.2",
+  "updatedAt": "2019-05-25T02:18:58.911Z"
+}

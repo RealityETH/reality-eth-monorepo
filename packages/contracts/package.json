@@ -1,0 +1,29 @@
+{
+  "name": "@realitio/realitio-contracts",
+  "version": "2.2.8",
+  "description": "Collection of smart contracts for the Realitio fact verification platform",
+  "scripts": {},
+  "keywords": [
+    "Ethereum",
+    "Reality.eth",
+    "Realitio",
+    "Reality Check",
+    "Reality Keys",
+    "oracle"
+  ],
+  "author": "Edmund Edgar (https://reality.eth.link)",
+  "license": "GPL-3.0",
+  "dependencies": {},
+  "devDependencies": {
+    "etherlime": "^2.3.3",
+    "etherlime-lib": "^1.2.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realitio/realitio-contracts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/realitio/realitio-contracts/issues"
+  },
+  "homepage": "https://realit.io"
+}
