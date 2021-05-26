@@ -1,7 +1,7 @@
 {
-  "name": "@realitio/realitio-lib",
-  "version": "2.0.2",
-  "description": "Tools for handling questions in the Realitio fact verification platform",
+  "name": "@reality.eth/reality-eth-lib",
+  "version": "2.0.5",
+  "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "test": "mocha ./test"
   },
@@ -13,10 +13,10 @@
     "Solidity",
     "Truffle"
   ],
-  "author": "Edmund Edgar (https://realit.io)",
+  "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {
-    "@realitio/realitio-contracts": "^2.0.0",
+    "@reality.eth/contracts": "^2.0.0",
     "bignumber.js": "^7.2.1",
     "bn.js": "^4.11.8",
     "ethereumjs-abi": "^0.6.5",
@@ -30,10 +30,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/realitio/realitio-lib.git"
+    "url": "git+https://github.com/RealityETH/monorepo.git"
   },
   "bugs": {
-    "url": "https://github.com/realitio/realitio-lib/issues"
+    "url": "https://github.com/RealityETH/monorepo/issues"
   },
-  "homepage": "https://realit.io"
+  "homepage": "https://reality.eth.link"
 }
