@@ -1,5 +1,5 @@
-const rc_json = require('@realitio/realitio-contracts/truffle/build/contracts/Realitio.json');
-const arb_json = require('@realitio/realitio-contracts/truffle/build/contracts/Arbitrator.json');
+const rc_json = require('@reality.eth/contracts/truffle/build/contracts/Realitio.json');
+const arb_json = require('@reality.eth/contracts/truffle/build/contracts/Arbitrator.json');
 
 const wallet_json = require('./abi/MultiSigWallet.json');
 const splitter_json = require('./abi/SplitterWallet.json');
