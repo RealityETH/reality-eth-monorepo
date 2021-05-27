@@ -1,6 +1,6 @@
 'use strict';
 
-const TEMPLATE_CONFIG = require('@realitio/realitio-contracts/config/templates.json');
+const TEMPLATE_CONFIG = require('@reality.eth/contracts/config/templates.json');
 
 exports.defaultTemplateIDForType = function(template_type) {
   return TEMPLATE_CONFIG.base_ids[template_type];
