@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/contracts",
-  "version": "2.2.10",
+  "version": "2.2.11",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {},
   "keywords": [
@@ -13,7 +13,6 @@
   ],
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
-  "dependencies": {},
   "devDependencies": {
     "etherlime": "^2.3.3",
     "etherlime-lib": "^1.2.3"
