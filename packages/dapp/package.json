@@ -1,7 +1,7 @@
 {
-  "name": "realitycheck-demo",
-  "version": "1.0.0",
-  "description": "RealityCheck demo",
+  "name": "@reality.eth/dapp",
+  "version": "1.1.0",
+  "description": "Reality.eth dapp",
   "main": "",
   "scripts": {
     "css:sass": "node-sass assets/scss/main.scss assets/css/main.css",
@@ -26,11 +26,11 @@
     ]
   },
   "sasslintConfig": "sass-lint.yml",
-  "author": "Kazunori Miura",
-  "license": "MIT",
+  "author": "Edmund Edgar",
+  "license": "GPL3",
   "dependencies": {
-    "@realitio/realitio-contracts": "^2.2.8",
-    "@realitio/realitio-lib": "^2.0.2",
+    "@reality.eth/contracts": "^2.2.9",
+    "@reality.eth/reality-eth-lib": "^2.0.7",
     "autoprefixer": "^6.7.0",
     "babel-cli": "^6.22.2",
     "babel-preset-es2015": "^6.22.0",
