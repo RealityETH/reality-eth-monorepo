@@ -1,5 +1,5 @@
-# realitio-contracts
-Contracts for Realitio, including source code, ABI and addresses of contracts on mainnet and test networks
+# @reality.eth/contracts
+Contracts for Reality.eth, including source code, ABI and addresses of contracts on mainnet and test networks
 
 We now use Etherlime instead of Truffle, but we still use the old Truffle layout to avoid breaking things.
 
