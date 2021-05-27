@@ -1,6 +1,6 @@
 {
-  "name": "@realitio/realitio-contracts",
-  "version": "2.2.8",
+  "name": "@reality.eth/contracts",
+  "version": "2.2.9",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {},
   "keywords": [
@@ -20,10 +20,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/realitio/realitio-contracts.git"
+    "url": "git+https://github.com/RealityETH/monorepo.git"
   },
   "bugs": {
-    "url": "https://github.com/realitio/realitio-contracts/issues"
+    "url": "https://github.com/RealityETH/monorepo/issues"
   },
   "homepage": "https://realit.io"
 }
