@@ -1,19 +1,16 @@
 #!/bin/bash -x
 
-SRC_DIR="."
-BUILD_DIR=/tmp/realitio-build-ipfs
-REPO1=git@github.com:realitio/realitio-website.git
-REPO2=git@github.com:realitio/realitio-dapp.git
+SRC_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && cd .. && pwd)
+REPO_DIR=/tmp/RealityETH-repo
+BUILD_DIR=/tmp/RealityETH-build-ipfs
+REPO=git@github.com:RealityETH/monorepo.git
 ME=`basename "$0"`
-DAPP=app
-
-DAPP_DIR="$BUILD_DIR/webroot/$DAPP"
 
 CURR_COMMIT=`git log | head -1`
 
 # Set up static website at the top
 
-if [ ! -f "$SRC_DIR/$ME" ]
+if [ ! -f "$SRC_DIR/tools/$ME" ]
 then
     echo "Expected files not found in $SRC_DIR"
     exit 1
@@ -26,30 +23,37 @@ then
 fi
 
 if [ ! -d $BUILD_DIR ]
-then 
+then
     mkdir $BUILD_DIR
-    git clone $REPO1 $BUILD_DIR
-    git clone $REPO2 $DAPP_DIR
-    popd
 fi
 
-pushd $BUILD_DIR
-git pull
+# Get a clean copy of the repo, we'll only copy over stuff we needed to build from our local directory
+if [ ! -d $REPO_DIR ]
+then
+    git clone $REPO $REPO_DIR
+fi
+
+pushd $REPO_DIR
 git fetch -v
 git checkout master
 popd
 
-pushd $DAPP_DIR
-git pull
-popd
+rsync -avz --delete $REPO_DIR/packages/website/webroot/ $BUILD_DIR/
+rsync -avz --delete $REPO_DIR/packages/dapp/ $BUILD_DIR/app/
 
-rsync -avz --delete $SRC_DIR/docs/html/ $DAPP_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/assets/ $DAPP_DIR/assets/
-rsync -avz --delete $SRC_DIR/js/ $DAPP_DIR/js/
-rsync -avz --delete $SRC_DIR/v1/ $DAPP_DIR/v1/
-cp $SRC_DIR/index.html $DAPP_DIR/index.html
+# TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
+mkdir -p $BUILD_DIR/app/docs
+rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/app/docs/html/
 
-cd $BUILD_DIR/webroot
+# TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
+rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/app/assets/
+rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/app/js/
+
+cd $BUILD_DIR
+
+echo "exiting without ipfs add"
+exit
+
 IPFS_HASH=`ipfs add -r --ignore=.git . | tail -n1 | awk '{print $2}'`
 
 echo $IPFS_HASH > "$BUILD_DIR/ipfs.txt"

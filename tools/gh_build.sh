@@ -1,13 +1,13 @@
 #!/bin/bash -x
 
-SRC_DIR="."
-BUILD_DIR=/tmp/realitio-build
-REPO=git@github.com:realitio/realitio.github.io.git
+SRC_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && cd .. && pwd)
+BUILD_DIR=/tmp/RealityETH-build
+REPO=git@github.com:RealityETH/RealityETH.github.io.git
 ME=`basename "$0"`
 
 CURR_COMMIT=`git log | head -1`
 
-if [ ! -f "$SRC_DIR/$ME" ]
+if [ ! -f "$SRC_DIR/tools/$ME" ]
 then
     echo "Expected files not found in $SRC_DIR"
     exit 1
@@ -24,7 +24,7 @@ then
     mkdir $BUILD_DIR
     git clone $REPO $BUILD_DIR
     pushd $BUILD_DIR
-    git checkout realitio.github.io
+    git checkout RealityETH.github.io
     popd
 fi
 
@@ -32,12 +32,15 @@ pushd $BUILD_DIR
 git pull
 popd
 
-rsync -avz --delete $SRC_DIR/docs/html/ $BUILD_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/assets/ $BUILD_DIR/assets/
-rsync -avz --delete $SRC_DIR/js/ $BUILD_DIR/js/
-rsync -avz --delete $SRC_DIR/rinkeby/ $BUILD_DIR/rinkeby/
-rsync -avz --delete $SRC_DIR/v1/ $BUILD_DIR/v1/
+rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/docs/html/
+rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/assets/
+rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/js/
+rsync -avz --delete $SRC_DIR/packages/dapp/rinkeby/ $BUILD_DIR/rinkeby/
+rsync -avz --delete $SRC_DIR/packages/dapp/v1/ $BUILD_DIR/v1/
 cp $SRC_DIR/index.html $BUILD_DIR/index.html
+
+echo "Exiting without pushing for now"
+exit
 
 cd $BUILD_DIR
 git add .
