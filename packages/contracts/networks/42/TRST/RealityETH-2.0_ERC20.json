@@ -1,0 +1,15 @@
+{
+    "version": "2.0-erc20",
+    "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
+    "block": 8050824,
+    "commit": "https://github.com/realitio/realitio-contracts/tree/16dd24c5ccb676b7c099852ea13b18b8298387a5",
+    "solc": "v0.4.25+commit.59dbf8f1",
+    "interface": "IRealityETH-v2.1.sol",
+    "abi": "QmdTEgjf8E8QsNaNueijLeVcKCUzf6W9R6tGiceRMxNJxC",
+    "optimization": 200,
+    "audit": "TODO",
+    "notes": null,
+    "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
+    "flat": "Realitio_ERC20_QmTrJ4ZEJobV6SAcShmeNAGcDtEsUgUbcJG1moyJWTTg42",
+    "bin": ""
+}

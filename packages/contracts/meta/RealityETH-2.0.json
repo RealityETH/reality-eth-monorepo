@@ -1,0 +1,6 @@
+{
+    "artifact": "truffle/build/contracts/Realitio.json",
+    "commit": "https://github.com/realitio/realitio-contracts/commit/40ab84fc2a1342ba36d1a36aed8e7f81c84844ed",
+    "solc": "v0.4.25+commit.59dbf8f1",
+    "audit": "RealityETH_2.0.rst"
+}
