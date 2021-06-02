@@ -1,13 +1,8 @@
 const fs = require('fs');
 const etherlime = require('etherlime-lib');
-const build_dir = './../build/contracts/';
-const contract_templates = {
-    'Realitio': require(build_dir + 'Realitio.json'),
-    'Realitio_v2_1': require(build_dir + 'Realitio_v2_1.json'),
-    'RealitioERC20': require(build_dir + 'RealitioERC20.json'),
-    'Arbitrator': require(build_dir + 'Arbitrator.json'),
-    'ERC20': require(build_dir + 'ERC20.json')
-}
+const project_base = './../../';
+const build_dir = './../../truffle/build/contracts/';
+
 var undef;
 
 const defaultConfigs = {
@@ -16,11 +11,12 @@ const defaultConfigs = {
     etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
 const task = process.argv[2]
-const network = process.argv[3]
-const token_name = process.argv[4]
-const token_address = process.argv[5]
-var arb_fee = process.argv[6]
-var arbitrator_owner = process.argv[7]
+const version = process.argv[3]
+const network = process.argv[4]
+const token_name = process.argv[5]
+const token_address = process.argv[6]
+var arb_fee = process.argv[7]
+var arbitrator_owner = process.argv[8]
 
 var contract_type;
 
@@ -38,18 +34,35 @@ const non_infura_networks = {
     'sokol': 'https://sokol.poa.network'
 }
 
+function constructContractTemplate(contract_name) {
+console.log('constructing template for ',contract_name);
+    const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi'));
+    const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
+    //console.log('bytecode', bytecode);
+    return {
+        "abi": abi,
+        "contractName": contract_name,
+        "bytecode": bytecode
+    };
+	/*
+const contract_templates = {
+    'RealityETH': require(build_dir + 'RealityETH.json'),
+    'RealityETH_v2_1': require(build_dir + 'RealityETH_v2_1.json'),
+    'RealityETHERC20': require(build_dir + 'RealityETHERC20.json'),
+    'Arbitrator': require(build_dir + 'Arbitrator.json'),
+    'ERC20': require(build_dir + 'ERC20.json')
+}
+	*/
+}
+
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
 const network_id = networks[network];
-
-if (contract_templates[task] == undef) {
-    usage_error("Contract to deploy unknown");
-}
 
 if (!network_id) {
     usage_error("Network unknown");
@@ -71,48 +84,38 @@ if (arbitrator_owner == undef) {
     arbitrator_owner = "0xdd8a989e5e89ad23ed2f91c6f106aea678a1a3d0";
 }
 
+const priv = fs.readFileSync('/home/ed/secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
 
-const priv = fs.readFileSync('./secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
+ensure_network_directory_exists(token_name, network_id);
 
-if (task == 'Realitio') {
-    deployRealitio();
+if (task == 'RealityETH') {
+    deployRealityETH();
 } else if (task == 'Arbitrator') {
     deployArbitrator();
 } else if (task == 'ERC20') {
     deployERC20();
 }
 
-function token_contract_file(contract_type, path, token) {
-    // NB We store XDAI in the Realitio.json file as it has the same API, even though we load it from a different version
-    if (token == 'ETH' || token == 'XDAI') {
-        return path + contract_type + '.json';
-    } else {
-        return path + contract_type + '.'+token+'.json';
+function ensure_network_directory_exists(network, token) {
+    const dir = project_base + '/networks/' + network + '/' + token;    
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, {
+            recursive: true
+        });
     }
+    return true;
 }
 
-function load_or_create(contract_type, path, token) {
-    contract_file = token_contract_file(contract_type, path, token);
-    if (fs.existsSync(contract_file)) {
-        rc = require(contract_file);
-    } else {
-        rc = contract_templates[contract_type];
+function store_deployed_contract(template, network_id, token_name, address, block, token_address) {
+    const out_json = {
+        "address": address,
+        "block": block,
+        "token_address": token_address,
+        "notes": null
     }
-    return rc;
-}
-
-function store_deployed_contract(contract_type, path, token, address) {
-    rc = load_or_create(contract_type, path, token);
-    if (!rc['networks']) {
-        rc['networks'] = {};
-    }
-    rc['networks'][""+network_id] = {
-      "events": {},
-      "links": {},
-      "address": address,
-      "transactionHash": ""
-    };
-    fs.writeFileSync(token_contract_file(contract_type, path, token), JSON.stringify(rc, null, " "));
+    const file = project_base + '/networks/' + network_id + '/' + token_name + '/' + template + '.json';
+    fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
+    console.log('wrote file', file);
 }
 
 function deployer_for_network() {
@@ -124,24 +127,27 @@ function deployer_for_network() {
     }
 }
 
-function deployRealitio() {
-    const is_erc20 = (token_name != 'ETH' && token_name != 'XDAI'); 
-    const is_v21 = (token_name == 'XDAI'); 
-    const tmpl = is_erc20 ? 'RealitioERC20' : (is_v21 ? 'Realitio_v2_1' : 'Realitio') ;
-    var txt = 'deploying realitio';
-    if (is_erc20) {
-        txt = txt + ' (ERC20) ';
-    }
-    if (is_v21) {
-        txt = txt + ' (v2.1) ';
-    }
+function isERC20() {
+    return (token_name != 'ETH' && token_name != 'XDAI'); 
+}
+
+function realityETHName() {
+    let tmpl = isERC20() ? 'RealityETH_ERC20' : 'RealityETH';
+    tmpl = tmpl + '-' + version;
+    return tmpl;
+}
+
+function deployRealityETH() {
+    var tmpl = realityETHName();
+    var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
-	console.log(txt);
+    console.log(txt);
     const deployer = deployer_for_network();
-    deployer.deploy(contract_templates[tmpl], {}).then(function(result) {
+    deployer.deploy(constructContractTemplate(tmpl), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
-        store_deployed_contract('Realitio', build_dir, token_name, result.contractAddress); 
-        if (is_erc20) {
+        //console.log('result was', result);
+        store_deployed_contract(tmpl, network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, token_address); 
+        if (isERC20()) {
             result.setToken(token_address);
         }
     });
@@ -149,13 +155,16 @@ function deployRealitio() {
 
 function deployArbitrator() {
     console.log('deploying arbitrator');
-    var rc = load_or_create('Realitio', build_dir, token_name);
-    var addr = rc.networks[""+network_id].address;
+    var tmpl = realityETHName();
+    var rc_file = project_base + '/networks/' + network_id + '/' + token_name + '/' + tmpl + '.json';
+    var rc_conf = require(rc_file);
+    var addr = rc_conf.address;
 
     const deployer = deployer_for_network();
-    deployer.deploy(contract_templates['Arbitrator'], {}).then(function(result) {
+    deployer.deploy(constructContractTemplate('Arbitrator'), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
-        store_deployed_contract('Arbitrator', build_dir, token_name, result.contractAddress); 
+        store_deployed_contract('Arbitrator', network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, null);
+
         result.setRealitio(addr).then(function() {
             return result.setDisputeFee(arb_fee);
         }).then(function() {
@@ -167,9 +176,10 @@ function deployArbitrator() {
 function deployERC20() {
     console.log('deploying an erc20 token', token_name);
     const deployer = deployer_for_network();
-    deployer.deploy(contract_templates['ERC20'], {}).then(function(result) {
+    deployer.deploy(constructContractTemplate('ERC20'), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
-        store_deployed_contract('ERC20', build_dir, token_name, result.contractAddress); 
+        store_deployed_contract(template, network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, null);
+
         //result.setToken(token_address);
         //result.setToken(result.contractAddress);
     });
