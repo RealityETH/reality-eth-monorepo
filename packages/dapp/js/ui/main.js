@@ -4,18 +4,7 @@
 
 const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js');
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
-
-const rc_json_by_curr = {
-    'ETH': require('@reality.eth/contracts/truffle/build/contracts/Realitio.json'),
-   // 'DAI': require('@reality.eth/contracts/truffle/build/contracts/Realitio.DAI.json'),
-    'TRST': require('@reality.eth/contracts/truffle/build/contracts/Realitio.TRST.json')
-}
-
-const arb_json_by_curr = {
-    'ETH': require('@reality.eth/contracts/truffle/build/contracts/Arbitrator.json'),
-   // 'DAI': require('@reality.eth/contracts/truffle/build/contracts/Arbitrator.DAI.json'),
-    'TRST': require('@reality.eth/contracts/truffle/build/contracts/Arbitrator.TRST.json')
-}
+const rc_contracts = require('@reality.eth/contracts');
 
 const token_json_by_curr = {
     'ETH': null,
@@ -4734,12 +4723,6 @@ window.addEventListener('load', function() {
     if (args['token'] && args['token'] != 'ETH') {
         currency = args['token'];
     }
-    rc_json = rc_json_by_curr[currency];
-    if (!rc_json) {
-        console.log('Token not recognized', currency);
-        return;
-    }
-
     initCurrency(currency);
     
     var is_web3_fallback = false;
@@ -4777,6 +4760,13 @@ window.addEventListener('load', function() {
 
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {
+
+            rc_json = rc_contracts.realityETHObject(net_id, currency);
+            if (!rc_json) {
+                console.log('Token not recognized', currency);
+                return;
+            }
+
             if (!initNetwork(net_id)) {
                 $('body').addClass('error-invalid-network').addClass('error');
                 return;
