@@ -3,6 +3,7 @@
   "version": "2.2.11",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {},
+  "main": "index.js",
   "keywords": [
     "Ethereum",
     "Reality.eth",
