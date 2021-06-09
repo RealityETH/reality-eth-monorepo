@@ -6,12 +6,6 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 const rc_contracts = require('@reality.eth/contracts');
 
-const token_json_by_curr = {
-    'ETH': null,
-   // 'DAI': require('@reality.eth/contracts/truffle/build/contracts/ERC20.DAI.json'),
-    'TRST': require('@reality.eth/contracts/truffle/build/contracts/ERC20.TRST.json'),
-}
-
 const token_info = {
     'ETH': {
         'decimals': 1000000000000000000,
@@ -44,13 +38,7 @@ var erc20_token;
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
 const arb_tos = require('./arbitrator_tos.json');
 
-const arbitrator_list_by_curr = {
-    'ETH': require('@reality.eth/contracts/config/arbitrators.json'),
-    // 'DAI': require('@reality.eth/contracts/config/arbitrators.DAI.json'),
-    'TRST': require('@reality.eth/contracts/config/arbitrators.TRST.json')
-}
 var arbitrator_list;
-
 var foreign_proxy_data;
 
 const TEMPLATE_CONFIG = require('@reality.eth/contracts/config/templates.json');
@@ -839,7 +827,7 @@ function isArbitratorValid(arb) {
 // This is used for fast rendering of the warnings on the list page.
 // TODO: We should really go back through them later and set warnings on anything that turned out to be bad
 function isArbitratorValidFast(test_arb) {
-    for (var a in arbitrator_list[""+network_id]) {
+    for (var a in arbitrator_list) {
         if (a.toLowerCase() == test_arb.toLowerCase()) {
             return true;
         }
@@ -848,9 +836,9 @@ function isArbitratorValidFast(test_arb) {
 }
 
 function arbitratorAddressToText(addr) {
-    for (var a in arbitrator_list[""+network_id]) {
+    for (var a in arbitrator_list) {
         if (a.toLowerCase() == addr.toLowerCase()) {
-            return arbitrator_list[network_id][a];
+            return arbitrator_list[a];
         }
     }
     return addr;
@@ -4573,9 +4561,6 @@ function accountInit(account) {
 }
 
 function initCurrency(curr) {
-    arb_json = arb_json_by_curr[currency];
-    arbitrator_list = arbitrator_list_by_curr[currency];
-    token_json = token_json_by_curr[currency];
     // NB For XDAI we consider it ETH underneath and just change the text, which we don't know until network load
     $('.token-ticker-text').text(currency);
     $('select#token-selection').val(curr);
@@ -4723,7 +4708,6 @@ window.addEventListener('load', function() {
     if (args['token'] && args['token'] != 'ETH') {
         currency = args['token'];
     }
-    initCurrency(currency);
     
     var is_web3_fallback = false;
 
@@ -4761,11 +4745,19 @@ window.addEventListener('load', function() {
     web3js.version.getNetwork((err, net_id) => {
         if (err === null) {
 
-            rc_json = rc_contracts.realityETHObject(net_id, currency);
+            const rc_config = rc_contracts.realityETHConfig(net_id, currency);
+            arbitrator_list = rc_config.arbitrators;
+
+            rc_json = rc_contracts.realityETHInstance(rc_config);
+            arb_json = rc_contracts.arbitratorInstance();
+
             if (!rc_json) {
                 console.log('Token not recognized', currency);
                 return;
             }
+
+            token_json = rc_contracts.erc20Instance(rc_config);
+            initCurrency(currency);
 
             if (!initNetwork(net_id)) {
                 $('body').addClass('error-invalid-network').addClass('error');
@@ -4785,7 +4777,7 @@ window.addEventListener('load', function() {
                     $('select#token-selection').removeClass('uninitialized');
                 }
             }
-            populateArbitratorSelect(arbitrator_list[net_id]);
+            populateArbitratorSelect(arbitrator_list);
             foreignProxyInitNetwork(net_id);
         }
 
