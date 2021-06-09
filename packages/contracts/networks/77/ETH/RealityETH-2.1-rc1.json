@@ -2,5 +2,8 @@
     "address": "0x63975d9e7CF434dCd04bD808d8c79d03EF69100B",
     "block": 17307142,
     "token_address": null,
-    "notes": "Same as 2.1 except missing an empty address check"
+    "notes": "Same as 2.1 except missing an empty address check",
+    "arbitrators": {
+        "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
+    }
 }

@@ -2,5 +2,9 @@
     "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
     "block": 8050824,
     "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
-    "notes": null
+    "notes": null,
+    "arbitrators": {
+        "0xB403D7440a70b60aee93178E2F11110f1EFAC8D0": "Realitio Team",
+        "0xcE9B84c5612Beaa234ad0d9fa7d283293479510E": "Kleros"
+    }
 }
