@@ -1,16 +1,6 @@
 const fs = require('fs');
 const all_config = require('./generated/networks.json');
-
-const nativeTokens = { 
-    "1": "ETH",
-    "3": "ETH",
-    "4": "ETH",
-    "5": "ETH",
-    "42": "ETH",
-    "56": "BNB",
-    "77": "XDAI",
-    "100": "XDAI"
-}
+const token_info = require('./generated/tokens.json');
 
 function realityETHInstance(config) {
     const contract_version = config.contract_version
@@ -52,10 +42,25 @@ function erc20Instance(config) {
     };
 }
 
+function networkTokenInfo(network_id) {
+    let ret = {};
+    for (t in token_info) {
+        if (all_config[""+network_id][t]) {
+            ret[t] = token_info[t];
+            ret[t].is_native = (token_info[t].native_networks && token_info[t].native_networks[""+network_id]);
+        }
+    }
+console.log('ret', ret);
+    return ret;
+}
+
 function realityETHConfig(network_id, token, version) {
     const versions = ['2.1', '2.0'];
-    const is_erc20 = (token != nativeTokens[network_id+""]);
-    const contract_name = is_erc20 ? 'RealityETH_ERC20' : 'RealityETH';
+    const token_info = networkTokenInfo(network_id);
+    if (!token_info[token]) {
+        throw new Error("Token not found for network");
+    }
+    const contract_name = token_info[token].is_native ? 'RealityETH' : 'RealityETH_ERC20';
     // If no version specified, crawl for the latest
     if (version == null) {
         for (let i=0; i<versions.length; i++) {
@@ -65,7 +70,7 @@ function realityETHConfig(network_id, token, version) {
             }
         }
         if (!version) {
-            throw new Error("Could not find any version for "+network_id + "/" + token);
+            throw new Error("Could not find any version for "+network_id + "/" + token + "/" + contract_name);
         } 
     }
     //const configf = './networks/'+network_id+'/'+token+'/'+contract_name+'-'+version+'.json';
@@ -85,4 +90,4 @@ module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHInstance = realityETHInstance;
 module.exports.arbitratorInstance = arbitratorInstance;
 module.exports.erc20Instance = erc20Instance;
-
+module.exports.networkTokenInfo = networkTokenInfo;

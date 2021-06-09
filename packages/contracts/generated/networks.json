@@ -14,7 +14,7 @@
             }
         },
         "TRST": {
-            "RealityETH-2.0_ERC20": {
+            "RealityETH_ERC20-2.0": {
                 "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
                 "block": 8050824,
                 "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
