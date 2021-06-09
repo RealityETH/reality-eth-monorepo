@@ -112,7 +112,7 @@
         }
     },
     "77": {
-        "ETH": {
+        "DAI": {
             "RealityETH-2.1-rc1": {
                 "address": "0x63975d9e7CF434dCd04bD808d8c79d03EF69100B",
                 "block": 17307142,
@@ -125,7 +125,7 @@
         }
     },
     "100": {
-        "ETH": {
+        "DAI": {
             "RealityETH-2.1": {
                 "address": "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57",
                 "block": 14005802,

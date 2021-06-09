@@ -32,6 +32,8 @@ function arbitratorInstance(network_id) {
 function erc20Instance(config) {
     const abi = require('./abi/solc-0.4.25/ERC20.abi.json');
     if (!config.token_address) {
+console.log('config', config);
+throw new Error("token address for erc20 instance not found");
         return null;
     }
     return {
@@ -55,7 +57,7 @@ console.log('ret', ret);
 }
 
 function realityETHConfig(network_id, token, version) {
-    const versions = ['2.1', '2.0'];
+    const versions = ['2.1', '2.1-rc1', '2.0'];
     const token_info = networkTokenInfo(network_id);
     if (!token_info[token]) {
         throw new Error("Token not found for network");
