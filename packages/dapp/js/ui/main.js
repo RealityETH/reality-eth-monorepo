@@ -6,20 +6,7 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 const rc_contracts = require('@reality.eth/contracts');
 
-const token_info = {
-    'ETH': {
-        'decimals': 1000000000000000000,
-        'small_number': 0.01 * 1000000000000000000
-    },
-    'DAI': {
-        'decimals': 1000000000000000000,
-        'small_number': 1 * 1000000000000000000
-    },
-    'TRST': {
-        'decimals': 1000000,
-        'small_number': 100 * 1000000
-    }
-}
+let token_info = {};
 
 // From https://chainid.network/chains.json
 const full_chain_list = require('../chains.json');
@@ -4561,9 +4548,16 @@ function accountInit(account) {
 }
 
 function initCurrency(curr) {
-    // NB For XDAI we consider it ETH underneath and just change the text, which we don't know until network load
     $('.token-ticker-text').text(currency);
-    $('select#token-selection').val(curr);
+    for(t in token_info) {
+        let op = $('<option>');
+        op.attr('value', t).text(t);
+        if (t == curr) {
+            op.prop('selected', 'selected');
+        }
+        $('select#token-selection').append(op);
+    }
+    //$('select#token-selection').val(curr);
 }
 
 function displayForeignProxy(datastr) {
@@ -4748,6 +4742,9 @@ window.addEventListener('load', function() {
             const rc_config = rc_contracts.realityETHConfig(net_id, currency);
             arbitrator_list = rc_config.arbitrators;
 
+            token_info = rc_contracts.networkTokenInfo(net_id);
+            console.log('got token info', token_info);
+
             rc_json = rc_contracts.realityETHInstance(rc_config);
             arb_json = rc_contracts.arbitratorInstance();
 
@@ -4757,6 +4754,7 @@ window.addEventListener('load', function() {
             }
 
             token_json = rc_contracts.erc20Instance(rc_config);
+
             initCurrency(currency);
 
             if (!initNetwork(net_id)) {
@@ -4769,51 +4767,47 @@ window.addEventListener('load', function() {
                 return;
             }
 
-            // Special case for XDAI, which looks like ETH underneath
-            if (net_id == "100" || net_id == "77") {
-                $('.token-ticker-text').text('XDAI');
-            } else {
-                if (!$('body').hasClass('foreign-proxy')) {
-                    $('select#token-selection').removeClass('uninitialized');
-                }
+            if (!$('body').hasClass('foreign-proxy')) {
+                $('select#token-selection').removeClass('uninitialized');
             }
             populateArbitratorSelect(arbitrator_list);
             foreignProxyInitNetwork(net_id);
-        }
 
-        USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
-        if (args['category']) {
-            category = args['category'];
-            $('body').addClass('category-' + category);
-            var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
-            $('#filterby').text(cat_txt);
-            if (CATEGORY_STARTS[net_id] && CATEGORY_STARTS[net_id][category] && CATEGORY_STARTS[net_id][category] > START_BLOCK) {
-                START_BLOCK = CATEGORY_STARTS[net_id][category];
-            }
-        }
-        //console.log('args:', args);
-        web3js.eth.getBlock('latest', function(err, result) {
-            if (result.number > current_block_number) {
-                current_block_number = result.number;
+            USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
+            if (args['category']) {
+                category = args['category'];
+                $('body').addClass('category-' + category);
+                var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+                $('#filterby').text(cat_txt);
+                if (CATEGORY_STARTS[net_id] && CATEGORY_STARTS[net_id][category] && CATEGORY_STARTS[net_id][category] > START_BLOCK) {
+                    START_BLOCK = CATEGORY_STARTS[net_id][category];
+                }
             }
 
-            RealityCheck = contract(rc_json);
-            RealityCheck.setProvider(web3js.currentProvider);
-            RealityCheck.deployed().then(function(instance) {
-                rc = instance;
-                pageInit();
-                if (args['question']) {
-                    //console.log('fetching question');
-                    ensureQuestionDetailFetched(args['question']).then(function(question) {
-                        openQuestionWindow(question[Qi_question_id]);
-
-                    })
+            //console.log('args:', args);
+            web3js.eth.getBlock('latest', function(err, result) {
+                if (result.number > current_block_number) {
+                    current_block_number = result.number;
                 }
 
-                // NB If this fails we'll try again when we need to do something using the account
-                getAccount(true);
+                RealityCheck = contract(rc_json);
+                RealityCheck.setProvider(web3js.currentProvider);
+                RealityCheck.deployed().then(function(instance) {
+                    rc = instance;
+                    pageInit();
+                    if (args['question']) {
+                        //console.log('fetching question');
+                        ensureQuestionDetailFetched(args['question']).then(function(question) {
+                            openQuestionWindow(question[Qi_question_id]);
+
+                        })
+                    }
+
+                    // NB If this fails we'll try again when we need to do something using the account
+                    getAccount(true);
+                });
             });
-        });
+        }
 
     });
 
