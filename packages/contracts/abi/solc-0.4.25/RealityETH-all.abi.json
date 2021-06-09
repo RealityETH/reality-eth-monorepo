@@ -1,0 +1,1152 @@
+[
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "claimWinnings",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32[]",
+                "name": "history_hashes"
+            },
+            {
+                "type": "address[]",
+                "name": "addrs"
+            },
+            {
+                "type": "uint256[]",
+                "name": "bonds"
+            },
+            {
+                "type": "bytes32[]",
+                "name": "answers"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [],
+        "name": "submitAnswerFor",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer"
+            },
+            {
+                "type": "uint256",
+                "name": "max_previous"
+            },
+            {
+                "type": "address",
+                "name": "answerer"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "getFinalAnswerIfMatches",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "content_hash"
+            },
+            {
+                "type": "address",
+                "name": "arbitrator"
+            },
+            {
+                "type": "uint32",
+                "name": "min_timeout"
+            },
+            {
+                "type": "uint256",
+                "name": "min_bond"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "getBounty",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "address",
+                "name": ""
+            }
+        ],
+        "name": "getArbitrator",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "getBond",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "claimMultipleAndWithdrawBalance",
+        "inputs": [
+            {
+                "type": "bytes32[]",
+                "name": "question_ids"
+            },
+            {
+                "type": "uint256[]",
+                "name": "lengths"
+            },
+            {
+                "type": "bytes32[]",
+                "name": "hist_hashes"
+            },
+            {
+                "type": "address[]",
+                "name": "addrs"
+            },
+            {
+                "type": "uint256[]",
+                "name": "bonds"
+            },
+            {
+                "type": "bytes32[]",
+                "name": "answers"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "withdraw",
+        "inputs": [],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "submitAnswerReveal",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer"
+            },
+            {
+                "type": "uint256",
+                "name": "nonce"
+            },
+            {
+                "type": "uint256",
+                "name": "bond"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "setQuestionFee",
+        "inputs": [
+            {
+                "type": "uint256",
+                "name": "fee"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "template_hashes",
+        "inputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "getContentHash",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "address",
+                "name": "payee"
+            },
+            {
+                "type": "uint256",
+                "name": "last_bond"
+            },
+            {
+                "type": "uint256",
+                "name": "queued_funds"
+            }
+        ],
+        "name": "question_claims",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [],
+        "name": "fundAnswerBounty",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "arbitrator_question_fees",
+        "inputs": [
+            {
+                "type": "address",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "balanceOf",
+        "inputs": [
+            {
+                "type": "address",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "askQuestion",
+        "inputs": [
+            {
+                "type": "uint256",
+                "name": "template_id"
+            },
+            {
+                "type": "string",
+                "name": "question"
+            },
+            {
+                "type": "address",
+                "name": "arbitrator"
+            },
+            {
+                "type": "uint32",
+                "name": "timeout"
+            },
+            {
+                "type": "uint32",
+                "name": "opening_ts"
+            },
+            {
+                "type": "uint256",
+                "name": "nonce"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [],
+        "name": "submitAnswer",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer"
+            },
+            {
+                "type": "uint256",
+                "name": "max_previous"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bool",
+                "name": ""
+            }
+        ],
+        "name": "isFinalized",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "getHistoryHash",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint32",
+                "name": "reveal_ts"
+            },
+            {
+                "type": "bool",
+                "name": "is_revealed"
+            },
+            {
+                "type": "bytes32",
+                "name": "revealed_answer"
+            }
+        ],
+        "name": "commitments",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "createTemplate",
+        "inputs": [
+            {
+                "type": "string",
+                "name": "content"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "getBestAnswer",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bool",
+                "name": ""
+            }
+        ],
+        "name": "isPendingArbitration",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": "content_hash"
+            },
+            {
+                "type": "address",
+                "name": "arbitrator"
+            },
+            {
+                "type": "uint32",
+                "name": "opening_ts"
+            },
+            {
+                "type": "uint32",
+                "name": "timeout"
+            },
+            {
+                "type": "uint32",
+                "name": "finalize_ts"
+            },
+            {
+                "type": "bool",
+                "name": "is_pending_arbitration"
+            },
+            {
+                "type": "uint256",
+                "name": "bounty"
+            },
+            {
+                "type": "bytes32",
+                "name": "best_answer"
+            },
+            {
+                "type": "bytes32",
+                "name": "history_hash"
+            },
+            {
+                "type": "uint256",
+                "name": "bond"
+            }
+        ],
+        "name": "questions",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint32",
+                "name": ""
+            }
+        ],
+        "name": "getOpeningTS",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint32",
+                "name": ""
+            }
+        ],
+        "name": "getTimeout",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "createTemplateAndAskQuestion",
+        "inputs": [
+            {
+                "type": "string",
+                "name": "content"
+            },
+            {
+                "type": "string",
+                "name": "question"
+            },
+            {
+                "type": "address",
+                "name": "arbitrator"
+            },
+            {
+                "type": "uint32",
+                "name": "timeout"
+            },
+            {
+                "type": "uint32",
+                "name": "opening_ts"
+            },
+            {
+                "type": "uint256",
+                "name": "nonce"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "getFinalAnswer",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint32",
+                "name": ""
+            }
+        ],
+        "name": "getFinalizeTS",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "name": "templates",
+        "inputs": [
+            {
+                "type": "uint256",
+                "name": ""
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "view",
+        "payable": false,
+        "outputs": [
+            {
+                "type": "bytes32",
+                "name": ""
+            }
+        ],
+        "name": "resultFor",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": true
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "assignWinnerAndSubmitAnswerByArbitrator",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer"
+            },
+            {
+                "type": "address",
+                "name": "payee_if_wrong"
+            },
+            {
+                "type": "bytes32",
+                "name": "last_history_hash"
+            },
+            {
+                "type": "bytes32",
+                "name": "last_answer_or_commitment_id"
+            },
+            {
+                "type": "address",
+                "name": "last_answerer"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "payable",
+        "payable": true,
+        "outputs": [],
+        "name": "submitAnswerCommitment",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer_hash"
+            },
+            {
+                "type": "uint256",
+                "name": "max_previous"
+            },
+            {
+                "type": "address",
+                "name": "_answerer"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "cancelArbitration",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "notifyOfArbitrationRequest",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "address",
+                "name": "requester"
+            },
+            {
+                "type": "uint256",
+                "name": "max_previous"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "function",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "outputs": [],
+        "name": "submitAnswerByArbitrator",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id"
+            },
+            {
+                "type": "bytes32",
+                "name": "answer"
+            },
+            {
+                "type": "address",
+                "name": "answerer"
+            }
+        ],
+        "constant": false
+    },
+    {
+        "type": "constructor",
+        "stateMutability": "nonpayable",
+        "payable": false,
+        "inputs": []
+    },
+    {
+        "type": "event",
+        "name": "LogSetQuestionFee",
+        "inputs": [
+            {
+                "type": "address",
+                "name": "arbitrator",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "amount",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogNewTemplate",
+        "inputs": [
+            {
+                "type": "uint256",
+                "name": "template_id",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "string",
+                "name": "question_text",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogNewQuestion",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "uint256",
+                "name": "template_id",
+                "indexed": false
+            },
+            {
+                "type": "string",
+                "name": "question",
+                "indexed": false
+            },
+            {
+                "type": "bytes32",
+                "name": "content_hash",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "arbitrator",
+                "indexed": false
+            },
+            {
+                "type": "uint32",
+                "name": "timeout",
+                "indexed": false
+            },
+            {
+                "type": "uint32",
+                "name": "opening_ts",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "nonce",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "created",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogFundAnswerBounty",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "uint256",
+                "name": "bounty_added",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "bounty",
+                "indexed": false
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogNewAnswer",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "answer",
+                "indexed": false
+            },
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "bytes32",
+                "name": "history_hash",
+                "indexed": false
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "uint256",
+                "name": "bond",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "ts",
+                "indexed": false
+            },
+            {
+                "type": "bool",
+                "name": "is_commitment",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogAnswerReveal",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "bytes32",
+                "name": "answer_hash",
+                "indexed": true
+            },
+            {
+                "type": "bytes32",
+                "name": "answer",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "nonce",
+                "indexed": false
+            },
+            {
+                "type": "uint256",
+                "name": "bond",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogNotifyOfArbitrationRequest",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogCancelArbitration",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogFinalize",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "bytes32",
+                "name": "answer",
+                "indexed": true
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogClaim",
+        "inputs": [
+            {
+                "type": "bytes32",
+                "name": "question_id",
+                "indexed": true
+            },
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "uint256",
+                "name": "amount",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "event",
+        "name": "LogWithdraw",
+        "inputs": [
+            {
+                "type": "address",
+                "name": "user",
+                "indexed": true
+            },
+            {
+                "type": "uint256",
+                "name": "amount",
+                "indexed": false
+            }
+        ],
+        "anonymous": false
+    }
+]
