@@ -23,4 +23,4 @@ function keygen(options, fileObj) {
 }
 
 const all_config = requireGlob.sync('./../networks/*/*/*.json', {"keygen": keygen});
-fs.writeFileSync(__dirname + '/../generated/networks.json', JSON.stringify(all_config, null, 4));
+fs.writeFileSync(__dirname + '/../generated/contracts.json', JSON.stringify(all_config, null, 4));

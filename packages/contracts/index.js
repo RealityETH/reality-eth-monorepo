@@ -1,5 +1,5 @@
 const fs = require('fs');
-const all_config = require('./generated/networks.json');
+const all_config = require('./generated/contracts.json');
 const token_info = require('./generated/tokens.json');
 
 function realityETHInstance(config) {
