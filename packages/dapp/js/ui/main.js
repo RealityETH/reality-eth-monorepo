@@ -20,6 +20,7 @@ var arb_json;
 var token_json;
 
 var erc20_token;
+var is_currency_native = false;
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
@@ -78,15 +79,6 @@ const RPC_NODES = {
     1337: 'https://localhost:8545'
 };
 
-// The point where we deployed the contract on the network
-// No point in looking for questions any further back than that
-const START_BLOCKS = {
-    1: 6531147,
-    4: 3175028, // for quicker loading start more like 4800000,
-    42: 10350865,
-    77: 17307140,
-    100: 11938534
-}
 var START_BLOCK;
 
 // If we know that the first post for a category was at block X, we can skip loading before that
@@ -1720,7 +1712,7 @@ function updateUserBalanceDisplay() {
     if (!account) {
         return;
     }
-    if (currency == 'ETH') {
+    if (is_currency_native) {
         // console.log('updating balacne for', account);
         web3js.eth.getBalance(account, function(error, result) {
             // console.log('got updated balacne for', account, result.toNumber());
@@ -4473,11 +4465,6 @@ function initNetwork(net_id) {
         // If you've got some unknown test network then we'll just link to main net
         block_explorer = BLOCK_EXPLORERS[1];
     }
-    if (START_BLOCKS[net_id]) {
-        START_BLOCK = START_BLOCKS[net_id];
-    } else {
-        START_BLOCK = 1;
-    }
     return true;
 }
 
@@ -4553,6 +4540,12 @@ function initCurrency(curr) {
         let op = $('<option>');
         op.attr('value', t).text(t);
         if (t == curr) {
+                if (token_info[t].is_native) {
+        console.log('is_native');
+                        is_currency_native = true;
+        } else {
+        console.log('not native');
+        }
             op.prop('selected', 'selected');
         }
         $('select#token-selection').append(op);
@@ -4740,10 +4733,14 @@ window.addEventListener('load', function() {
         if (err === null) {
 
             const rc_config = rc_contracts.realityETHConfig(net_id, currency);
+
+            START_BLOCK = rc_config.block;
+
             arbitrator_list = rc_config.arbitrators;
 
             token_info = rc_contracts.networkTokenInfo(net_id);
             console.log('got token info', token_info);
+
 
             rc_json = rc_contracts.realityETHInstance(rc_config);
             arb_json = rc_contracts.arbitratorInstance();
@@ -4753,9 +4750,11 @@ window.addEventListener('load', function() {
                 return;
             }
 
-            token_json = rc_contracts.erc20Instance(rc_config);
 
             initCurrency(currency);
+            if (!is_currency_native) {
+                token_json = rc_contracts.erc20Instance(rc_config);
+            }
 
             if (!initNetwork(net_id)) {
                 $('body').addClass('error-invalid-network').addClass('error');
