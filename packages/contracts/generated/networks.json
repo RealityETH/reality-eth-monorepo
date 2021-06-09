@@ -1,0 +1,134 @@
+{
+    "1": {
+        "ETH": {
+            "RealityETH-2.0": {
+                "address": "0x325a2e0F3CCA2ddbaeBB4DfC38Df8D19ca165b47",
+                "block": 6531265,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xdc0a2185031ecf89f091a39c63c2857a7d5c301a": "Reality.eth Team",
+                    "0xd47f72a2d1d0E91b0Ec5e5f5d02B2dc26d00A14D": "Kleros",
+                    "0x4072cadf953ad0a1bbacbbb50ac513411ae620db": "Gnosis Corona Information Arbitrator"
+                }
+            }
+        },
+        "TRST": {
+            "RealityETH-2.0_ERC20": {
+                "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
+                "block": 8050824,
+                "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
+                "notes": null,
+                "arbitrators": {
+                    "0xB403D7440a70b60aee93178E2F11110f1EFAC8D0": "Realitio Team",
+                    "0xcE9B84c5612Beaa234ad0d9fa7d283293479510E": "Kleros"
+                }
+            }
+        }
+    },
+    "4": {
+        "ETH": {
+            "RealityETH-2.0": {
+                "address": "0x3D00D77ee771405628a4bA4913175EcC095538da",
+                "block": 3175028,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0x02321745bE4a141E78db6C39834396f8df00e2a0": "Reality.eth Team (rinkeby main)"
+                }
+            }
+        },
+        "TRST": {
+            "Arbitrator": {
+                "address": "0x9563C508DeC0bEC244E763e88dd0Ae300D036e5A",
+                "block": 8692055,
+                "token_address": null,
+                "notes": null
+            },
+            "RealityETH_ERC20-2.0": {
+                "address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288",
+                "block": 4643634,
+                "token_address": "0x21036c54e16521b8809553956123e44054120226",
+                "notes": null
+            },
+            "RealityETH-2.0_ERC20": {
+                "address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288",
+                "block": 4643634,
+                "token_address": "0x21036C54e16521B8809553956123E44054120226",
+                "notes": null,
+                "arbitrators": {
+                    "0x1184313B3690A4B4cF2436924C2d09dAC730628A": "Realitio Team (rinkeby main)"
+                }
+            }
+        }
+    },
+    "42": {
+        "ETH": {
+            "RealityETH-2.0": {
+                "address": "0x50e35a1ed424ab9c0b8c7095b3d9ec2fb791a168",
+                "block": 0,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xB4683794998215B59a429e86c3A33F796F9aeb0f": "Reality.eth Team (dev)",
+                    "0xA6EAd513D05347138184324392d8ceb24C116118": "Kleros"
+                }
+            }
+        },
+        "TRST": {
+            "RealityETH-2.0_ERC20": {
+                "version": "2.0-erc20",
+                "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
+                "block": 8050824,
+                "commit": "https://github.com/realitio/realitio-contracts/tree/16dd24c5ccb676b7c099852ea13b18b8298387a5",
+                "solc": "v0.4.25+commit.59dbf8f1",
+                "interface": "IRealityETH-v2.1.sol",
+                "abi": "QmdTEgjf8E8QsNaNueijLeVcKCUzf6W9R6tGiceRMxNJxC",
+                "optimization": 200,
+                "audit": "TODO",
+                "notes": null,
+                "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
+                "flat": "Realitio_ERC20_QmTrJ4ZEJobV6SAcShmeNAGcDtEsUgUbcJG1moyJWTTg42",
+                "bin": ""
+            }
+        }
+    },
+    "56": {
+        "BNB": {
+            "RealityETH-2.1": {
+                "address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716",
+                "block": 7962044,
+                "token_address": null,
+                "notes": null
+            }
+        }
+    },
+    "77": {
+        "ETH": {
+            "RealityETH-2.1-rc1": {
+                "address": "0x63975d9e7CF434dCd04bD808d8c79d03EF69100B",
+                "block": 17307142,
+                "token_address": null,
+                "notes": "Same as 2.1 except missing an empty address check",
+                "arbitrators": {
+                    "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
+                }
+            }
+        }
+    },
+    "100": {
+        "ETH": {
+            "RealityETH-2.1": {
+                "address": "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57",
+                "block": 14005802,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd": "Kleros",
+                    "0x7202deD6f13525A8298Ea53fBFD4395fDCc8d5f1": "Reality.eth team - testing only",
+                    "0x34a8B97bd8Ac4AfBe91C71E961C3f9c1F064717F": "DXdao - Test"
+                }
+            }
+        }
+    }
+}
