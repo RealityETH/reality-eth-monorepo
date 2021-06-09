@@ -75,6 +75,14 @@
                 }
             }
         },
+        "POLK": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0x1346800BC8915536B9eaa388fa9A6B93398E5999",
+                "block": 25355307,
+                "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
+                "notes": null
+            }
+        },
         "TRST": {
             "RealityETH-2.0_ERC20": {
                 "version": "2.0-erc20",
