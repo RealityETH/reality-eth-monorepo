@@ -16,7 +16,8 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "etherlime": "^2.3.3",
-    "etherlime-lib": "^1.2.3"
+    "etherlime-lib": "^1.2.3",
+    "require-glob": "^3.2.0"
   },
   "repository": {
     "type": "git",
@@ -25,5 +26,5 @@
   "bugs": {
     "url": "https://github.com/RealityETH/monorepo/issues"
   },
-  "homepage": "https://realit.io"
+  "homepage": "https://reality.eth.link"
 }
