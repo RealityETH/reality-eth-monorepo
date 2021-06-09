@@ -26,16 +26,22 @@ const networks = {
     'rinkeby': 4,
     'goerli': 5,
     'kovan': 42,
+    'bsc': 56,
     'sokol': 77,
     'xdai': 100
 }
 const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
-    'sokol': 'https://sokol.poa.network'
+    'sokol': 'https://sokol.poa.network',
+    'bsc': 'https://bsc-dataseed.binance.org'
+}
+const native_coins = {
+    'ETH': true,
+    'XDAI': true,
+    'BNB': true
 }
 
 function constructContractTemplate(contract_name) {
-console.log('constructing template for ',contract_name);
     const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi'));
     const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
     //console.log('bytecode', bytecode);
@@ -44,21 +50,11 @@ console.log('constructing template for ',contract_name);
         "contractName": contract_name,
         "bytecode": bytecode
     };
-	/*
-const contract_templates = {
-    'RealityETH': require(build_dir + 'RealityETH.json'),
-    'RealityETH_v2_1': require(build_dir + 'RealityETH_v2_1.json'),
-    'RealityETHERC20': require(build_dir + 'RealityETHERC20.json'),
-    'Arbitrator': require(build_dir + 'Arbitrator.json'),
-    'ERC20': require(build_dir + 'ERC20.json')
 }
-	*/
-}
-
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
@@ -72,7 +68,7 @@ if (token_name == undef) {
     usage_error("token_name not supplied");
 }
 
-if ((token_name != 'XDAI' && token_name != 'ETH' && token_address == undef) && (task != 'ERC20')) {
+if ((isERC20() && token_address == undef) && (task != 'ERC20')) {
     usage_error("token_address not supplied");
 }
 
@@ -128,7 +124,7 @@ function deployer_for_network() {
 }
 
 function isERC20() {
-    return (token_name != 'ETH' && token_name != 'XDAI'); 
+    return (!native_coins[token_name]);
 }
 
 function realityETHName() {
