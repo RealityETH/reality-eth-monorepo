@@ -93,8 +93,9 @@ if (task == 'RealityETH') {
 }
 
 function ensure_network_directory_exists(network, token) {
-    const dir = project_base + '/networks/' + network + '/' + token;    
+    const dir = project_base + '/networks/' + token + '/' + network;    
     if (!fs.existsSync(dir)) {
+        console.log('creating directory for token', network, token, dir);
         fs.mkdirSync(dir, {
             recursive: true
         });
