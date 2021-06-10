@@ -1,0 +1,18 @@
+{
+    "1": {
+        "hostedRPC": "https://mainnet.socialminds.jp"
+    },
+    "3": {
+        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"
+    },
+    "4": {
+        "hostedRPC": "https://rinkeby.socialminds.jp"
+    },
+    "42": {
+    },
+    "77": {
+    },
+    "100": {
+        "iconURL": "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
+    }
+}

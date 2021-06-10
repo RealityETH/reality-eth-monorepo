@@ -1,0 +1,90 @@
+{
+    "1": {
+        "chainId": "0x1",
+        "chainName": "Ethereum Mainnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://api.mycryptoapi.com/eth",
+            "https://cloudflare-eth.com"
+        ],
+        "hostedRPC": "https://mainnet.socialminds.jp"
+    },
+    "3": {
+        "chainId": "0x3",
+        "chainName": "Ethereum Testnet Ropsten",
+        "nativeCurrency": {
+            "name": "Ropsten Ether",
+            "symbol": "ROP",
+            "decimals": 18
+        },
+        "rpcUrls": [],
+        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"
+    },
+    "4": {
+        "chainId": "0x4",
+        "chainName": "Ethereum Testnet Rinkeby",
+        "nativeCurrency": {
+            "name": "Rinkeby Ether",
+            "symbol": "RIN",
+            "decimals": 18
+        },
+        "rpcUrls": [],
+        "hostedRPC": "https://rinkeby.socialminds.jp"
+    },
+    "42": {
+        "chainId": "0x2a",
+        "chainName": "Ethereum Testnet Kovan",
+        "nativeCurrency": {
+            "name": "Kovan Ether",
+            "symbol": "KOV",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://kovan.poa.network",
+            "http://kovan.poa.network:8545",
+            "ws://kovan.poa.network:8546"
+        ],
+        "hostedRPC": "https://kovan.poa.network"
+    },
+    "77": {
+        "chainId": "0x4d",
+        "chainName": "POA Network Sokol",
+        "nativeCurrency": {
+            "name": "POA Sokol Ether",
+            "symbol": "POA",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://sokol.poa.network",
+            "wss://sokol.poa.network/wss",
+            "ws://sokol.poa.network:8546"
+        ],
+        "hostedRPC": "https://sokol.poa.network"
+    },
+    "100": {
+        "chainId": "0x64",
+        "chainName": "xDAI Chain",
+        "nativeCurrency": {
+            "name": "xDAI",
+            "symbol": "xDAI",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://rpc.xdaichain.com",
+            "https://xdai.poanetwork.dev",
+            "wss://rpc.xdaichain.com/wss",
+            "wss://xdai.poanetwork.dev/wss",
+            "http://xdai.poanetwork.dev",
+            "https://dai.poa.network",
+            "ws://xdai.poanetwork.dev:8546"
+        ],
+        "hostedRPC": "https://rpc.xdaichain.com",
+        "iconUrls": [
+            "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
+        ]
+    }
+}
