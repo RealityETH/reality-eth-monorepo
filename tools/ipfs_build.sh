@@ -31,6 +31,10 @@ fi
 if [ ! -d $REPO_DIR ]
 then
     git clone $REPO $REPO_DIR
+else
+    pushd $REPO_DIR
+    git pull
+    popd
 fi
 
 pushd $REPO_DIR
