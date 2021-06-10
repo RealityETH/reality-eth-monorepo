@@ -35,8 +35,6 @@ popd
 rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/docs/html/
 rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/assets/
 rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/js/
-rsync -avz --delete $SRC_DIR/packages/dapp/rinkeby/ $BUILD_DIR/rinkeby/
-rsync -avz --delete $SRC_DIR/packages/dapp/v1/ $BUILD_DIR/v1/
 cp $SRC_DIR/packages/dapp/index.html $BUILD_DIR/index.html
 
 pushd $BUILD_DIR
