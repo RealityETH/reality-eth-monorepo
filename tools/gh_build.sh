@@ -37,12 +37,12 @@ rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/assets/
 rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/js/
 rsync -avz --delete $SRC_DIR/packages/dapp/rinkeby/ $BUILD_DIR/rinkeby/
 rsync -avz --delete $SRC_DIR/packages/dapp/v1/ $BUILD_DIR/v1/
-cp $SRC_DIR/index.html $BUILD_DIR/index.html
+cp $SRC_DIR/packages/dapp/index.html $BUILD_DIR/index.html
 
-echo "Exiting without pushing for now"
-exit
+pushd $BUILD_DIR
 
-cd $BUILD_DIR
 git add .
 git commit -m "Update to latest build to $CURR_COMMIT"
 git push
+
+popd
