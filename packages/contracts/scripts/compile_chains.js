@@ -51,12 +51,19 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['iconUrls'] = [our_data['iconURL']];
     } 
 
+    chainparams['blockExplorerUrls'] = [];
     if ('explorers' in chain_info) {
-        for(var ex in chain_info['explorers']) {
-            chainparams['blockExplorerUrl'] = ex['url'];
-            break
+        for(var exi in chain_info['explorers']) {
+            var ex = chain_info['explorers'][exi];
+            chainparams['blockExplorerUrls'].push(ex['url']);
         }
     }
+    if (our_data['explorerURL']) {
+        if (chainparams['blockExplorerUrls'].indexOf(our_data['explorerURL']) === -1) {
+            chainparams['blockExplorerUrls'].push(our_data['explorerURL']);
+        }
+    }
+
     out[chainId.toString()] = chainparams;
 }
 

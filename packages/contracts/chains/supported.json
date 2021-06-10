@@ -1,18 +1,24 @@
 {
     "1": {
-        "hostedRPC": "https://mainnet.socialminds.jp"
+        "hostedRPC": "https://mainnet.socialminds.jp",
+        "explorerURL": "https://etherscan.io"
     },
     "3": {
-        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"
+        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
+        "explorerURL": "https://ropsten.etherscan.io"
     },
     "4": {
-        "hostedRPC": "https://rinkeby.socialminds.jp"
+        "hostedRPC": "https://rinkeby.socialminds.jp",
+        "explorerURL": "https://rinkeby.etherscan.io"
     },
     "42": {
+        "explorerURL": "https://kovan.etherscan.io"
     },
     "77": {
+        "explorerURL": "https://blockscout.com/poa/sokol/"
     },
     "100": {
-        "iconURL": "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
+        "iconURL": "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png",
+        "explorerURL": "https://blockscout.com/poa/xdai/"
     }
 }

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const all_config = require('./generated/contracts.json');
 const token_info = require('./generated/tokens.json');
+const chain_info = require('./generated/chains.json');
 
 function realityETHInstance(config) {
     const contract_version = config.contract_version
@@ -95,8 +96,13 @@ function realityETHConfig(network_id, token, version) {
     return config;
 }
 
+function networkData(network_id) {
+    return chain_info[""+network_id];
+}
+
 module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHInstance = realityETHInstance;
 module.exports.arbitratorInstance = arbitratorInstance;
 module.exports.erc20Instance = erc20Instance;
 module.exports.networkTokenInfo = networkTokenInfo;
+module.exports.networkData = networkData;

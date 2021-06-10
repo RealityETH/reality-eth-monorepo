@@ -11,7 +11,10 @@
             "https://api.mycryptoapi.com/eth",
             "https://cloudflare-eth.com"
         ],
-        "hostedRPC": "https://mainnet.socialminds.jp"
+        "hostedRPC": "https://mainnet.socialminds.jp",
+        "blockExplorerUrls": [
+            "https://etherscan.io"
+        ]
     },
     "3": {
         "chainId": "0x3",
@@ -22,7 +25,10 @@
             "decimals": 18
         },
         "rpcUrls": [],
-        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK"
+        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
+        "blockExplorerUrls": [
+            "https://ropsten.etherscan.io"
+        ]
     },
     "4": {
         "chainId": "0x4",
@@ -33,7 +39,10 @@
             "decimals": 18
         },
         "rpcUrls": [],
-        "hostedRPC": "https://rinkeby.socialminds.jp"
+        "hostedRPC": "https://rinkeby.socialminds.jp",
+        "blockExplorerUrls": [
+            "https://rinkeby.etherscan.io"
+        ]
     },
     "42": {
         "chainId": "0x2a",
@@ -48,7 +57,10 @@
             "http://kovan.poa.network:8545",
             "ws://kovan.poa.network:8546"
         ],
-        "hostedRPC": "https://kovan.poa.network"
+        "hostedRPC": "https://kovan.poa.network",
+        "blockExplorerUrls": [
+            "https://kovan.etherscan.io"
+        ]
     },
     "77": {
         "chainId": "0x4d",
@@ -63,7 +75,10 @@
             "wss://sokol.poa.network/wss",
             "ws://sokol.poa.network:8546"
         ],
-        "hostedRPC": "https://sokol.poa.network"
+        "hostedRPC": "https://sokol.poa.network",
+        "blockExplorerUrls": [
+            "https://blockscout.com/poa/sokol/"
+        ]
     },
     "100": {
         "chainId": "0x64",
@@ -85,6 +100,9 @@
         "hostedRPC": "https://rpc.xdaichain.com",
         "iconUrls": [
             "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
+        ],
+        "blockExplorerUrls": [
+            "https://blockscout.com/poa/xdai/"
         ]
     }
 }
