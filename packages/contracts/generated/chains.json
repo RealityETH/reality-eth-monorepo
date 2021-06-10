@@ -62,6 +62,35 @@
             "https://kovan.etherscan.io"
         ]
     },
+    "56": {
+        "chainId": "0x38",
+        "chainName": "Binance Smart Chain Mainnet",
+        "nativeCurrency": {
+            "name": "Binance Chain Native Token",
+            "symbol": "BNB",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://bsc-dataseed1.binance.org",
+            "https://bsc-dataseed2.binance.org",
+            "https://bsc-dataseed3.binance.org",
+            "https://bsc-dataseed4.binance.org",
+            "https://bsc-dataseed1.defibit.io",
+            "https://bsc-dataseed2.defibit.io",
+            "https://bsc-dataseed3.defibit.io",
+            "https://bsc-dataseed4.defibit.io",
+            "https://bsc-dataseed1.ninicoin.io",
+            "https://bsc-dataseed2.ninicoin.io",
+            "https://bsc-dataseed3.ninicoin.io",
+            "https://bsc-dataseed4.ninicoin.io",
+            "wss://bsc-ws-node.nariox.org"
+        ],
+        "hostedRPC": "https://bsc-dataseed1.binance.org",
+        "blockExplorerUrls": [
+            "https://bscscan.com",
+            "https://www.bscscan.com"
+        ]
+    },
     "77": {
         "chainId": "0x4d",
         "chainName": "POA Network Sokol",
@@ -77,7 +106,7 @@
         ],
         "hostedRPC": "https://sokol.poa.network",
         "blockExplorerUrls": [
-            "https://blockscout.com/poa/sokol/"
+            "https://blockscout.com/poa/sokol"
         ]
     },
     "100": {

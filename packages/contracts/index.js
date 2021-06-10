@@ -34,8 +34,8 @@ function arbitratorInstance(network_id) {
 function erc20Instance(config) {
     const abi = require('./abi/solc-0.4.25/ERC20.abi.json');
     if (!config.token_address) {
-console.log('config', config);
-throw new Error("token address for erc20 instance not found");
+        console.log('config', config);
+        throw new Error("token address for erc20 instance not found");
         return null;
     }
     return {
@@ -54,7 +54,6 @@ function networkTokenInfo(network_id) {
             ret[t].is_native = (token_info[t].native_networks && token_info[t].native_networks[""+network_id]);
         }
     }
-console.log('ret', ret);
     return ret;
 }
 
@@ -101,8 +100,42 @@ function networkData(network_id) {
     return chain_info[""+network_id];
 }
 
+function walletAddParameters(network_id) {
+    var params = ['chainId', 'chainName', 'nativeCurrency', 'rpcUrls', 'blockExplorerUrls']
+    var ret = {};
+console.log('looking for config for network ', network_id);
+    var config = chain_info[""+network_id];
+    for (var i=0; i<params.length; i++) {
+        var item = params[i];
+        ret[item] = config[item];
+    }
+    return ret; 
+}
+
 function templateConfig() {
     return template_config;
+}
+
+function defaultTokenForNetwork(network_id) {
+    // Use the native token if we have one
+    // If not, use the first one
+    const config = all_config[""+network_id];
+console.log('config', config);
+    var ret = null;
+    for (var token in config) {
+console.log('token', token);
+        var token_info = networkTokenInfo(network_id);
+        if (!token_info) {
+            continue;
+        }
+        if (token_info.is_native) {
+            return token;
+        }
+        if (!ret) {
+            ret = token;
+        }
+    }
+    return ret;
 }
 
 module.exports.realityETHConfig = realityETHConfig;
@@ -111,4 +144,6 @@ module.exports.arbitratorInstance = arbitratorInstance;
 module.exports.erc20Instance = erc20Instance;
 module.exports.networkTokenInfo = networkTokenInfo;
 module.exports.networkData = networkData;
+module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;
+module.exports.defaultTokenForNetwork = defaultTokenForNetwork;
