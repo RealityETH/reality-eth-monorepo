@@ -7,9 +7,7 @@ const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js
 const rc_contracts = require('@reality.eth/contracts');
 
 let token_info = {};
-
-// From https://chainid.network/chains.json
-const full_chain_list = require('../chains.json');
+let chain_info = {};
 
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
@@ -59,30 +57,12 @@ var is_initial_load_done = false;
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 var USE_COMMIT_REVEAL = false;
 
-const BLOCK_EXPLORERS = {
-    1: 'https://etherscan.io',
-    3: 'https://ropsten.etherscan.io',
-    4: 'https://rinkeby.etherscan.io',
-    42: 'https://kovan.etherscan.io',
-    77: 'https://blockscout.com/poa/xdai/',
-    100: 'https://blockscout.com/poa/xdai/',
-    1337: 'https://etherscan.io'
-};
-
-const RPC_NODES = {
-    1: 'https://mainnet.socialminds.jp', // 'https://mainnet.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    3: 'https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    4: 'https://rinkeby.socialminds.jp', // 'https://rinkeby.infura.io/tSrhlXUe1sNEO5ZWhpUK',
-    42: 'https://kovan.socialminds.jp',
-    77: 'https://sokol.poa.network',
-    100: 'https://xdai.poanetwork.dev',
-    1337: 'https://localhost:8545'
-};
+var HOSTED_RPC_NODE;
 
 var START_BLOCK;
 
 var network_id = null;
-var block_explorer = null;
+var BLOCK_EXPLORER = null;
 
 const FETCH_NUMBERS = [100, 2500, 5000];
 
@@ -727,7 +707,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                             win = populateQuestionWindow(win, q, false);
 
                             // TODO: Once we have code to know which network we're on, link to a block explorer
-                            win.find('.pending-question-txid a').attr('href', block_explorer + '/tx/' + txid);
+                            win.find('.pending-question-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
                             win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
                             win.addClass('unconfirmed-transaction').addClass('has-warnings');
                             win.attr('data-pending-txid', txid);
@@ -1170,7 +1150,7 @@ function updateClaimableDisplay() {
         var txids = claiming.txids;
         $('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
         var txid = txids.join(', '); // TODO: Handle multiple links properly
-        $('.answer-claiming-container').find('a.txid').attr('href', block_explorer + '/tx/' + txid);
+        $('.answer-claiming-container').find('a.txid').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
         $('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
         $('.answer-claiming-container').show();
     } else {
@@ -1730,9 +1710,9 @@ function updateUserBalanceDisplay() {
 function getERC20TokenInstance() {
         return new Promise((resolve, reject)=>{
             var ERC20 = contract(token_json);
-            //ERC20.setProvider(new Web3.providers.HttpProvider(RPC_NODES[network_id]));
+            //ERC20.setProvider(new Web3.providers.HttpProvider(HOSTED_RPC_NODE));
             ERC20.setProvider(web3js.currentProvider);
-            //console.log('using network', RPC_NODES[network_id]);
+            //console.log('using network', HOSTED_RPC_NODE);
             ERC20.deployed().then(function(instance) {
                 resolve(instance);
             });
@@ -2498,7 +2478,7 @@ console.log(ans);
         var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].args;
 
         var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].txid;
-        unconfirmed_container.find('.pending-answer-txid a').attr('href', block_explorer + '/tx/' + txid);
+        unconfirmed_container.find('.pending-answer-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
 
@@ -4026,8 +4006,8 @@ function pageInit(account) {
     */
 
     var RealityCheckRealitio = contract(rc_json);
-    RealityCheckRealitio.setProvider(new Web3.providers.HttpProvider(RPC_NODES[network_id]));
-    console.log('using network', RPC_NODES[network_id]);
+    RealityCheckRealitio.setProvider(new Web3.providers.HttpProvider(HOSTED_RPC_NODE));
+    console.log('using network', HOSTED_RPC_NODE);
     RealityCheckRealitio.deployed().then(function(instance) {
         rcrealitio = instance;
 
@@ -4451,12 +4431,6 @@ function initNetwork(net_id) {
         return false;
     }
     $('.network-status'+net_cls).show();
-    if (BLOCK_EXPLORERS[net_id]) {
-        block_explorer = BLOCK_EXPLORERS[net_id];
-    } else {
-        // If you've got some unknown test network then we'll just link to main net
-        block_explorer = BLOCK_EXPLORERS[1];
-    }
     return true;
 }
 
@@ -4486,7 +4460,7 @@ function getAccount(fail_soft) {
                     if (acc && acc.length > 0) {
                         //console.log('accounts', acc);
                         account = acc[0];
-                        $('.account-balance-link').attr('href', block_explorer + '/address/' + account);
+                        $('.account-balance-link').attr('href', BLOCK_EXPLORER + '/address/' + account);
                     } else {
                         if (!is_web3_fallback) {
                             console.log('no accounts');
@@ -4629,29 +4603,7 @@ function displayWrongNetwork(specified, detected) {
     }
     console.log(specified_network_txt, detected_network_txt);
 
-    var chainparams;
-    for (var ci = 0; ci< full_chain_list.length; ci++) {
-        var chain_info = full_chain_list[ci];
-        if (chain_info.chainId == specified) {
-            if ('disableSwitch' in chain_info) {
-                break;
-            }
-            chainparams = {};
-            chainparams['chainId'] = "0x"+Number(specified).toString(16),
-            chainparams['chainName'] = chain_info.name;
-            chainparams['rpcUrls'] =  chain_info.rpc;
-            chainparams['nativeCurrency'] = chain_info.nativeCurrency;
-            // We add these two ourselves, they may not be there
-            if ('iconUrls' in chain_info) {
-                chainparams['iconUrls'] = chain_info['iconUrls'];
-            }
-            if ('blockExplorerUrls' in chain_info) {
-                chainparams['blockExplorerUrls'] = chain_info['blockExplorerUrls'];
-            }
-        }
-    }
-
-    if (chainparams) {
+    if (chain_info) {
         var lnk = $('<a>');
         lnk.text($('.add-network-button').text());
         lnk.bind('click', function(evt) {
@@ -4661,7 +4613,7 @@ function displayWrongNetwork(specified, detected) {
             ethereum
             .request({
                 method: 'wallet_addEthereumChain',
-                params: [chainparams]
+                params: [chain_info]
             })
             .then((result) => {
                 console.log('result was', result);
@@ -4693,7 +4645,7 @@ window.addEventListener('load', function() {
     if (typeof web3 === 'undefined') {
         var is_web3_fallback = true;
         // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        web3js = new Web3(new Web3.providers.HttpProvider(RPC_NODES["1"]));
+        web3js = new Web3(new Web3.providers.HttpProvider(HOSTED_RPC_NODE));
         console.log('no web3js, using infura on network', "1");
     } else {
         // Use Mist/MetaMask's provider
@@ -4737,7 +4689,6 @@ window.addEventListener('load', function() {
             token_info = rc_contracts.networkTokenInfo(net_id);
             console.log('got token info', token_info);
 
-
             rc_json = rc_contracts.realityETHInstance(rc_config);
             arb_json = rc_contracts.arbitratorInstance();
 
@@ -4746,11 +4697,14 @@ window.addEventListener('load', function() {
                 return;
             }
 
-
             initCurrency(currency);
             if (!is_currency_native) {
                 token_json = rc_contracts.erc20Instance(rc_config);
             }
+
+            chain_info = rc_contracts.networkData(net_id);
+            HOSTED_RPC_NODE = chain_info['hostedRPC'];
+            BLOCK_EXPLORER = chain_info['blockExplorerUrls'][0];
 
             if (!initNetwork(net_id)) {
                 $('body').addClass('error-invalid-network').addClass('error');
@@ -4769,6 +4723,7 @@ window.addEventListener('load', function() {
             foreignProxyInitNetwork(net_id);
 
             USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
+
             if (args['category']) {
                 category = args['category'];
                 $('body').addClass('category-' + category);
