@@ -735,7 +735,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
 
                     }
 
-                    if (currency == 'ETH') { 
+                    if (is_currency_native) { 
                         rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
                                 from: account,
                                 gas: 200000,
@@ -3521,7 +3521,7 @@ $(document).on('click', '.post-answer-button', function(e) {
 
                 // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
                 // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
-                if (currency == 'ETH') {
+                if (is_currency_native) {
                     return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
                         console.log('got submitAnswerCommitment txid', txid);
                         rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
@@ -3537,7 +3537,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                     });
                 }
             } else {
-                if (currency == 'ETH') {
+                if (is_currency_native) {
                     rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
                         from: account,
                         gas: 200000,
@@ -3628,7 +3628,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', functi
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         getAccount().then(function() {
-            if (currency == 'ETH') {
+            if (is_currency_native) {
                 rc.fundAnswerBounty(question_id, {
                     from: account,
                     value: reward
@@ -4430,7 +4430,7 @@ function initNetwork(net_id) {
     }
     $('.network-status'+net_cls).show();
 
-    if (typeof ethereum === 'undefined') {
+    if (typeof ethereum !== 'undefined') {
         ethereum.on('chainChanged', () => {
           document.location.reload()
         })
