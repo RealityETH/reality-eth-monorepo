@@ -85,6 +85,9 @@ function realityETHConfig(network_id, token, version) {
         return null;
         //throw new Error("Could not find config for "+network_id + "/" + token + "/" + contract_version);
     }
+    if (!config.arbitrators) {
+        config.arbitrators = [];
+    }
     config.version_number = version;
     config.network_id = network_id;
     config.contract_name = contract_name;
