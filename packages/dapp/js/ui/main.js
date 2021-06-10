@@ -27,7 +27,7 @@ const arb_tos = require('./arbitrator_tos.json');
 var arbitrator_list;
 var foreign_proxy_data;
 
-const TEMPLATE_CONFIG = require('@reality.eth/contracts/config/templates.json');
+const TEMPLATE_CONFIG = rc_contracts.templateConfig();
 
 const contract = require("truffle-contract");
 const BigNumber = require('bignumber.js');
