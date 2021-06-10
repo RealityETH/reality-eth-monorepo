@@ -4725,6 +4725,10 @@ window.addEventListener('load', function() {
         if (err === null) {
 
             const rc_config = rc_contracts.realityETHConfig(net_id, currency);
+            if (!rc_config) {
+                $('body').addClass('error-invalid-network-for-token').addClass('error');
+                return;
+            }
 
             START_BLOCK = rc_config.block;
 

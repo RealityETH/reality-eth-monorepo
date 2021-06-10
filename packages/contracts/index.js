@@ -60,7 +60,9 @@ function realityETHConfig(network_id, token, version) {
     const versions = ['2.1', '2.1-rc1', '2.0'];
     const token_info = networkTokenInfo(network_id);
     if (!token_info[token]) {
-        throw new Error("Token not found for network");
+        console.log("Token not found for network");
+        return null;
+        //throw new Error("Token not found for network");
     }
     const contract_name = token_info[token].is_native ? 'RealityETH' : 'RealityETH_ERC20';
     // If no version specified, crawl for the latest
@@ -79,7 +81,9 @@ function realityETHConfig(network_id, token, version) {
     const contract_version = contract_name + '-' + version;
     const config = all_config[""+network_id][token][contract_version];
     if (!config) {
-        throw new Error("Could not find config for "+network_id + "/" + token + "/" + contract_version);
+        console.log("Could not find config for "+network_id + "/" + token + "/" + contract_version);
+        return null;
+        //throw new Error("Could not find config for "+network_id + "/" + token + "/" + contract_version);
     }
     config.version_number = version;
     config.network_id = network_id;
