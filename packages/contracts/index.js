@@ -58,8 +58,22 @@ function networkTokenList(network_id) {
 }
 
 function tokenConfig(token, network_id) {
-    const all_tokens = networkTokenList(network_id);
-    return all_tokens[token];
+    const t = token_info[token];
+    if (!t) {
+        console.log('token not found in token_info');
+        return null;
+    }
+    if (t.native_networks && t.native_networks[network_id+""]) {
+        t.is_native = true;
+        return t;
+    }
+    if (t.erc20_networks && t.erc20_networks[network_id+""]) {
+        t.address = t.erc20_networks[network_id+""];
+        t.is_native = false;
+        return t;
+    }
+    console.log("Token config not found for network");
+    return null;
 }
 
 function realityETHConfig(network_id, token, version) {
