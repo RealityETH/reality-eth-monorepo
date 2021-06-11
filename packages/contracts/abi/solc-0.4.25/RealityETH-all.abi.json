@@ -1148,5 +1148,150 @@
             }
         ],
         "anonymous": false
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "question_id",
+                "type": "bytes32"
+            },
+            {
+                "name": "tokens",
+                "type": "uint256"
+            }
+        ],
+        "name": "fundAnswerBountyERC20",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_token",
+                "type": "address"
+            }
+        ],
+        "name": "setToken",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "question_id",
+                "type": "bytes32"
+            },
+            {
+                "name": "answer",
+                "type": "bytes32"
+            },
+            {
+                "name": "max_previous",
+                "type": "uint256"
+            },
+            {
+                "name": "tokens",
+                "type": "uint256"
+            }
+        ],
+        "name": "submitAnswerERC20",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "question_id",
+                "type": "bytes32"
+            },
+            {
+                "name": "answer_hash",
+                "type": "bytes32"
+            },
+            {
+                "name": "max_previous",
+                "type": "uint256"
+            },
+            {
+                "name": "_answerer",
+                "type": "address"
+            },
+            {
+                "name": "tokens",
+                "type": "uint256"
+            }
+        ],
+        "name": "submitAnswerCommitmentERC20",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "template_id",
+                "type": "uint256"
+            },
+            {
+                "name": "question",
+                "type": "string"
+            },
+            {
+                "name": "arbitrator",
+                "type": "address"
+            },
+            {
+                "name": "timeout",
+                "type": "uint32"
+            },
+            {
+                "name": "opening_ts",
+                "type": "uint32"
+            },
+            {
+                "name": "nonce",
+                "type": "uint256"
+            },
+            {
+                "name": "tokens",
+                "type": "uint256"
+            }
+        ],
+        "name": "askQuestionERC20",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "token",
+        "outputs": [
+            {
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
     }
 ]
