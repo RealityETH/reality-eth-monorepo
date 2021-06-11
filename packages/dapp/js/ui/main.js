@@ -4671,7 +4671,7 @@ window.addEventListener('load', function() {
 
             if (!currency) {
                 currency = rc_contracts.defaultTokenForNetwork(net_id);
-console.log('picked token', currency);
+                console.log('picked token', currency);
             }
 
             const rc_config = rc_contracts.realityETHConfig(net_id, currency);
