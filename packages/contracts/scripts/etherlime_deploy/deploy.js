@@ -104,13 +104,7 @@ function ensure_network_directory_exists(network, token) {
     return true;
 }
 
-function store_deployed_contract(template, network_id, token_name, address, block, token_address) {
-    const out_json = {
-        "address": address,
-        "block": block,
-        "token_address": token_address,
-        "notes": null
-    }
+function store_deployed_contract(template, network_id, token_name, out_json) {
     const file = project_base + '/networks/' + network_id + '/' + token_name + '/' + template + '.json';
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
@@ -143,8 +137,17 @@ function deployRealityETH() {
     const deployer = deployer_for_network();
     deployer.deploy(constructContractTemplate(tmpl), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
+
+        const settings = {
+            "address": result.contractAddress,
+            "block": result.provider._lastBlockNumber,
+            "token_address": token_address,
+            "notes": null,
+            "arbitrators": {}
+        }
+
         //console.log('result was', result);
-        store_deployed_contract(tmpl, network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, token_address); 
+        store_deployed_contract(tmpl, network_id, token_name, settings); 
         if (isERC20()) {
             result.setToken(token_address);
         }
@@ -166,7 +169,12 @@ function deployArbitrator() {
 
     deployer.deploy(constructContractTemplate('Arbitrator'), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
-        store_deployed_contract('Arbitrator', network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, null);
+        const settings = {
+            "address": result.contractAddress,
+            "block": result.provider._lastBlockNumber,
+            "reality_eth_address": rc_conf.address
+        }
+        store_deployed_contract('Arbitrator', network_id, token_name, settings);
 
         console.log('doing setRealitio');
         result.setRealitio(rc_conf.address).then(function() {
@@ -191,7 +199,11 @@ function deployERC20() {
     const deployer = deployer_for_network();
     deployer.deploy(constructContractTemplate('ERC20'), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
-        store_deployed_contract(template, network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, null);
+        const settings = {
+            "address": result.contractAddress,
+            "block": result.provider._lastBlockNumber
+        }
+        store_deployed_contract(template, network_id, token_name, settings);
 
         //result.setToken(token_address);
         //result.setToken(result.contractAddress);
