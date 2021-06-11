@@ -70,11 +70,19 @@
             }
         },
         "POLK": {
+            "Arbitrator": {
+                "address": "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8",
+                "block": 25399305,
+                "reality_eth_address": "0x1346800BC8915536B9eaa388fa9A6B93398E5999"
+            },
             "RealityETH_ERC20-2.0": {
                 "address": "0x1346800BC8915536B9eaa388fa9A6B93398E5999",
                 "block": 25355307,
                 "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
-                "notes": null
+                "notes": null,
+                "arbitrators": {
+                    "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8": "Test POLK arbitrator (reality.eth)"
+                }
             }
         },
         "TRST": {
