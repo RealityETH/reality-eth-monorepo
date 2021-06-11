@@ -85,7 +85,7 @@ if (arbitrator_owner == undef) {
 
 const priv = fs.readFileSync('/home/ed/secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
 
-ensure_network_directory_exists(token_name, network_id);
+ensure_network_directory_exists(network_id, token_name);
 
 if (task == 'RealityETH') {
     deployRealityETH();
@@ -96,7 +96,7 @@ if (task == 'RealityETH') {
 }
 
 function ensure_network_directory_exists(network, token) {
-    const dir = project_base + '/networks/' + token + '/' + network;    
+    const dir = project_base + '/networks/' + network + '/' + token;    
     if (!fs.existsSync(dir)) {
         console.log('creating directory for token', network, token, dir);
         fs.mkdirSync(dir, {
