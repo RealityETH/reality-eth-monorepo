@@ -2,6 +2,7 @@ const fs = require('fs');
 const etherlime = require('etherlime-lib');
 const project_base = './../../';
 const build_dir = './../../truffle/build/contracts/';
+const rc = require('../../index.js');
 
 var undef;
 
@@ -42,7 +43,7 @@ const native_coins = {
 }
 
 function constructContractTemplate(contract_name) {
-    const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi'));
+    const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
     const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
     //console.log('bytecode', bytecode);
     return {
@@ -151,21 +152,36 @@ function deployRealityETH() {
 }
 
 function deployArbitrator() {
-    console.log('deploying arbitrator');
-    var tmpl = realityETHName();
+
+    const rc_conf = rc.realityETHConfig(network_id, token_name, version); 
+    if (rc_conf.token_address != token_address) {
+        throw new Error('Reality.eth contract does not seem to use the token address you specified');
+    }
+
+    var tmpl = 'Arbitrator';
     var rc_file = project_base + '/networks/' + network_id + '/' + token_name + '/' + tmpl + '.json';
-    var rc_conf = require(rc_file);
-    var addr = rc_conf.address;
 
     const deployer = deployer_for_network();
+    const timer = ms => new Promise( res => setTimeout(res, ms));
+
     deployer.deploy(constructContractTemplate('Arbitrator'), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
         store_deployed_contract('Arbitrator', network_id, token_name, result.contractAddress, result.provider._lastBlockNumber, null);
 
-        result.setRealitio(addr).then(function() {
+        console.log('doing setRealitio');
+        result.setRealitio(rc_conf.address).then(function() {
+            console.log('done setRealitio');
+            return timer(9000);
+        }).then(function() {
+            console.log('doing setDisputeFee');
             return result.setDisputeFee(arb_fee);
         }).then(function() {
-            result.transferOwnership(arbitrator_owner);
+            console.log('done setDisputeFee');
+            return timer(9000);
+        }).then(function() {
+            if (arbitrator_owner) {
+                result.transferOwnership(arbitrator_owner);
+            }
         });
     });
 }
