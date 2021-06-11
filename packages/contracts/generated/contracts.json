@@ -40,10 +40,9 @@
         },
         "TRST": {
             "Arbitrator": {
-                "address": "0x9563C508DeC0bEC244E763e88dd0Ae300D036e5A",
-                "block": 8692055,
-                "token_address": null,
-                "notes": null
+                "address": "0xa682C58333F4959cbF728c2a871548E3D8978Fa2",
+                "block": 8743912,
+                "reality_eth_address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288"
             },
             "RealityETH_ERC20-2.0": {
                 "address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288",
@@ -84,32 +83,23 @@
                     "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8": "Test POLK arbitrator (reality.eth)"
                 }
             }
-        },
-        "TRST": {
-            "RealityETH_ERC20-2.0": {
-                "version": "2.0-erc20",
-                "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
-                "block": 8050824,
-                "commit": "https://github.com/realitio/realitio-contracts/tree/16dd24c5ccb676b7c099852ea13b18b8298387a5",
-                "solc": "v0.4.25+commit.59dbf8f1",
-                "interface": "IRealityETH-v2.1.sol",
-                "abi": "QmdTEgjf8E8QsNaNueijLeVcKCUzf6W9R6tGiceRMxNJxC",
-                "optimization": 200,
-                "audit": "TODO",
-                "notes": null,
-                "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
-                "flat": "Realitio_ERC20_QmTrJ4ZEJobV6SAcShmeNAGcDtEsUgUbcJG1moyJWTTg42",
-                "bin": ""
-            }
         }
     },
     "56": {
         "BNB": {
+            "Arbitrator": {
+                "address": "0xec634BD4c5766e96dbDC3cf89D15B4D340690118",
+                "block": 8215956,
+                "reality_eth_address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716"
+            },
             "RealityETH-2.1": {
                 "address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716",
                 "block": 7962044,
                 "token_address": null,
-                "notes": null
+                "notes": null,
+                "arbitrators": {
+                    "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (for testing only)"
+                }
             }
         }
     },
