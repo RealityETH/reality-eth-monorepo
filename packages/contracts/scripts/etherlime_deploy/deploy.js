@@ -7,7 +7,7 @@ const rc = require('../../index.js');
 var undef;
 
 const defaultConfigs = {
-    gasPrice: 8000000000,
+    //gasPrice: 8000000000,
     gasLimit: 6000000,
     etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
