@@ -15,9 +15,8 @@ const task = process.argv[2]
 const version = process.argv[3]
 const network = process.argv[4]
 const token_name = process.argv[5]
-const token_address = process.argv[6]
-var arb_fee = process.argv[7]
-var arbitrator_owner = process.argv[8]
+var arb_fee = process.argv[6]
+var arbitrator_owner = process.argv[7]
 
 var contract_type;
 
@@ -36,11 +35,6 @@ const non_infura_networks = {
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org'
 }
-const native_coins = {
-    'ETH': true,
-    'XDAI': true,
-    'BNB': true
-}
 
 function constructContractTemplate(contract_name) {
     const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
@@ -55,7 +49,7 @@ function constructContractTemplate(contract_name) {
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
@@ -69,8 +63,16 @@ if (token_name == undef) {
     usage_error("token_name not supplied");
 }
 
-if ((isERC20() && token_address == undef) && (task != 'ERC20')) {
-    usage_error("token_address not supplied");
+var token_address;
+
+const token_info = rc.tokenConfig(token_name, network_id);
+if (!token_info) {
+    usage_error("token not found, please configure it first");
+}
+
+console.log('token', token_info);
+if (isERC20()) {
+    token_address = token_info.address; 
 }
 
 if (arb_fee == undef) {
@@ -120,7 +122,7 @@ function deployer_for_network() {
 }
 
 function isERC20() {
-    return (!native_coins[token_name]);
+    return (!token_info.is_native);
 }
 
 function realityETHName() {
