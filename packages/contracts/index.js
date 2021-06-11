@@ -46,7 +46,7 @@ function erc20Instance(config) {
     };
 }
 
-function networkTokenInfo(network_id) {
+function networkTokenList(network_id) {
     let ret = {};
     for (t in token_info) {
         if (all_config[""+network_id][t]) {
@@ -57,9 +57,14 @@ function networkTokenInfo(network_id) {
     return ret;
 }
 
+function tokenConfig(token, network_id) {
+    const all_tokens = networkTokenList(network_id);
+    return all_tokens[token];
+}
+
 function realityETHConfig(network_id, token, version) {
     const versions = ['2.1', '2.1-rc1', '2.0'];
-    const token_info = networkTokenInfo(network_id);
+    const token_info = networkTokenList(network_id);
     if (!token_info[token]) {
         console.log("Token not found for network");
         return null;
@@ -120,11 +125,9 @@ function defaultTokenForNetwork(network_id) {
     // Use the native token if we have one
     // If not, use the first one
     const config = all_config[""+network_id];
-console.log('config', config);
     var ret = null;
     for (var token in config) {
-console.log('token', token);
-        var token_info = networkTokenInfo(network_id);
+        var token_info = networkTokenList(network_id);
         if (!token_info) {
             continue;
         }
@@ -142,7 +145,8 @@ module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHInstance = realityETHInstance;
 module.exports.arbitratorInstance = arbitratorInstance;
 module.exports.erc20Instance = erc20Instance;
-module.exports.networkTokenInfo = networkTokenInfo;
+module.exports.networkTokenList = networkTokenList;
+module.exports.tokenConfig = tokenConfig
 module.exports.networkData = networkData;
 module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;

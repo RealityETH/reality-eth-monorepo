@@ -4684,7 +4684,7 @@ window.addEventListener('load', function() {
 
             arbitrator_list = rc_config.arbitrators;
 
-            token_info = rc_contracts.networkTokenInfo(net_id);
+            token_info = rc_contracts.networkTokenList(net_id);
             console.log('got token info', token_info);
 
             rc_json = rc_contracts.realityETHInstance(rc_config);
