@@ -53,10 +53,7 @@ rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/app/docs/html/
 rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/app/assets/
 rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/app/js/
 
-cd $BUILD_DIR
-
-echo "exiting without ipfs add"
-exit
+pushd $BUILD_DIR
 
 IPFS_HASH=`ipfs add -r --ignore=.git . | tail -n1 | awk '{print $2}'`
 
@@ -66,3 +63,5 @@ ipfs pin add -r $IPFS_HASH
 
 echo "Preview site at:"
 echo "https://ipfs.io/ipfs/${IPFS_HASH}"
+
+popd
