@@ -2519,6 +2519,9 @@ console.log(ans);
             //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
             rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
+            if (chain_info.nativeCurrency && chain_info.nativeCurrency.symbol) {
+                rcqa.find('.token-always-native').text(chain_info.nativeCurrency.symbol);
+            }
         }).catch(function(err) {
             console.log('caught error with getDisputeFee');
             // If it doesn't implement the getDisputeFee method, we might want to use foreignProxy
@@ -4498,12 +4501,12 @@ function initCurrency(curr) {
         let op = $('<option>');
         op.attr('value', t).text(t);
         if (t == curr) {
-                if (token_info[t].is_native) {
-        console.log('is_native');
-                        is_currency_native = true;
-        } else {
-        console.log('not native');
-        }
+            if (token_info[t].is_native) {
+                console.log('is_native');
+                is_currency_native = true;
+            } else {
+                console.log('not native');
+            }
             op.prop('selected', 'selected');
         }
         $('select#token-selection').append(op);
@@ -4588,15 +4591,15 @@ function displayWrongNetwork(specified, detected) {
     var specified_network_txt = $('.network-status.network-id-'+specified).text();
     var detected_network_txt = $('.network-status.network-id-'+detected).text();
     if (specified_network_txt == '') {
-        specified_network_txt = '[unknown]';
+        specified_network_txt = '[unknown network]';
     }
     if (detected_network_txt == '') {
-        detected_network_txt = '[unknown]';
+        detected_network_txt = '[unknown network]';
     }
     console.log(specified_network_txt, detected_network_txt);
 
-    const chain_info = rc_contracts.walletAddParameters(specified);
-    if (chain_info) {
+    const wallet_info = rc_contracts.walletAddParameters(specified);
+    if (wallet_info) {
         var lnk = $('<a>');
         lnk.text($('.add-network-button').text());
         lnk.bind('click', function(evt) {
@@ -4606,7 +4609,7 @@ function displayWrongNetwork(specified, detected) {
             ethereum
             .request({
                 method: 'wallet_addEthereumChain',
-                params: [chain_info]
+                params: [wallet_info]
             })
             .then((result) => {
                 console.log('result was', result);
