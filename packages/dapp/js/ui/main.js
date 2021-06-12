@@ -4659,6 +4659,10 @@ window.addEventListener('load', function() {
     // Set up a filter so we always know the latest block number.
     // This helps us keep track of how fresh our question data etc is.
     web3js.eth.filter('latest').watch(function(err, res) {
+        if (err) {
+            console.log('filter failed', err);
+            return;
+        }
         web3js.eth.getBlock('latest', function(err, result) {
             if (result.number > current_block_number) {
                 current_block_number = result.number;
