@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/reality-eth-lib",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "test": "mocha ./test"
@@ -16,7 +16,7 @@
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {
-    "@reality.eth/contracts": "^2.2.13",
+    "@reality.eth/contracts": "^2.2.14",
     "bignumber.js": "^7.2.1",
     "bn.js": "^4.11.8",
     "ethereumjs-abi": "^0.6.5",

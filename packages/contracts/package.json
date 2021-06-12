@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/contracts",
-  "version": "2.2.13",
+  "version": "2.2.14",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {},
   "main": "index.js",
