@@ -1,0 +1,7 @@
+{
+    "decimals": 1000000000000000000,
+    "small_number": 1000000000000000000,
+    "native_networks": {
+        "137": true
+    }
+}

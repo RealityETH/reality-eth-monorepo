@@ -133,5 +133,22 @@
         "blockExplorerUrls": [
             "https://blockscout.com/poa/xdai/"
         ]
+    },
+    "137": {
+        "chainId": "0x89",
+        "chainName": "Matic Mainnet",
+        "nativeCurrency": {
+            "name": "Matic",
+            "symbol": "MATIC",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://rpc-mainnet.matic.network",
+            "wss://ws-mainnet.matic.network"
+        ],
+        "hostedRPC": "https://rpc-mainnet.matic.network",
+        "blockExplorerUrls": [
+            "https://polygonscan.com/"
+        ]
     }
 }

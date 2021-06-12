@@ -28,12 +28,14 @@ const networks = {
     'kovan': 42,
     'bsc': 56,
     'sokol': 77,
-    'xdai': 100
+    'xdai': 100,
+    'polygon': 137
 }
 const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
     'sokol': 'https://sokol.poa.network',
-    'bsc': 'https://bsc-dataseed.binance.org'
+    'bsc': 'https://bsc-dataseed.binance.org',
+    'polygon': 'https://rpc-mainnet.maticvigil.com'
 }
 
 function constructContractTemplate(contract_name) {
