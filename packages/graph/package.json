@@ -1,0 +1,34 @@
+{
+  "name": "realitio-graph-test",
+  "version": "0.1.0",
+  "scripts": {
+    "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
+    "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy-local": "graph deploy realityeth/realityeth --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
+    "deploy:mainnet": "yarn && yarn prepare:mainnet && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-rinkeby",
+    "deploy:rinkeby": "yarn && yarn prepare:rinkeby && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth",
+    "prep:addresses:rinkeby": "ts-node config/rinkebyAddressScript.ts && mustache ./config/generatedAddresses.json ./config/addresses.template.ts > ./config/addresses.ts",
+    "prepare:rinkeby": "yarn prep:addresses:rinkeby && mustache ./config/generatedAddresses.json subgraph.template.yaml > subgraph.yaml && graph codegen --output-dir src/types/",
+    "prep:addresses:mainnet": "ts-node config/mainnetAddressScript.ts && mustache ./config/generatedAddresses.json ./config/addresses.template.ts > ./config/addresses.ts",
+    "prepare:mainnet": "yarn prep:addresses:mainnet && mustache ./config/generatedAddresses.json subgraph.template.yaml > subgraph.yaml && graph codegen --output-dir src/types/",
+    "publish-graph:rinkeby": "yarn codegen:rinkeby && yarn deploy:rinkeby",
+    "publish-graph:mainnet": "yarn codegen:mainnet && yarn deploy:mainnet",
+    "lint": "yarn eslint .",
+    "lint-fix": "eslint . --fix",
+    "prettier": "prettier '**/*.ts'",
+    "prettier-write": "prettier --write '**/*.ts'"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.20.0",
+    "@graphprotocol/graph-ts": "^0.20.0"
+  },
+  "dependencies": {
+    "@reality.eth/contracts": "^2.2.14",
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0",
+    "mustache": "^4.2.0",
+    "truffle-hdwallet-provider": "^1.0.4"
+  }
+}

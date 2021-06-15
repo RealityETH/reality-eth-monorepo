@@ -1,0 +1,73 @@
+type Question @entity {
+  id: ID!
+
+  templateId: BigInt!
+  data: String!
+  json_str: String
+
+  q_title: String
+  q_category: String
+  q_lang: String
+  q_type: String
+
+  arbitrator: Bytes!
+  openingTimestamp: BigInt!
+  timeout: BigInt!
+
+  currentAnswer: Bytes
+  currentAnswerBond: BigInt!
+  currentAnswerTimestamp: BigInt
+
+  lastBond: BigInt!
+  cumulativeBonds: BigInt!
+
+  arbitrationRequestedTimestamp: BigInt
+  arbitrationRequestedBy: String
+  isPendingArbitration: Boolean!
+  arbitrationOccurred: Boolean!
+  answerFinalizedTimestamp: BigInt
+
+  outcomes: [Outcome!] @derivedFrom(field: "question")
+  answers: [Answer!] @derivedFrom(field: "question")
+  responses: [Response!] @derivedFrom(field: "question")
+}
+
+type Outcome @entity {
+  id: ID!
+  answer: String!
+  question: Question!
+}
+
+type Response @entity {
+  id: ID!
+  timestamp: BigInt!
+  answer: Bytes
+  isUnrevealed: Boolean!
+  isCommitment: Boolean!
+  commitmentId: Bytes
+  bond: BigInt!
+  answerer: Bytes!
+  question: Question!
+}
+
+type Answer @entity {
+  id: ID!
+  timestamp: BigInt!
+  answer: Bytes
+  lastBond: BigInt!
+  bondAggregate: BigInt!
+  question: Question!
+}
+
+type Category @entity {
+  id: ID!
+  numConditions: Int!
+  numOpenConditions: Int!
+  numClosedConditions: Int!
+}
+
+type Template @entity {
+  id: ID!
+  user: Bytes!
+  question_text: String 
+}
