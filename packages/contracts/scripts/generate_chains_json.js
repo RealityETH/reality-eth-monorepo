@@ -4,7 +4,7 @@ Add new lines to the abi file for more meaningful version control
 
 const fs = require('fs');
 
-const project_base = './../';
+const project_base = __dirname + '/../';
 const chains_file = 'chains/chainid.network.json';
 const supported_file = 'chains/supported.json';
 const generated_file = 'generated/chains.json';

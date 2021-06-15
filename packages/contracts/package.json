@@ -19,6 +19,12 @@
     "etherlime-lib": "^1.2.3",
     "require-glob": "^3.2.0"
   },
+  "scripts": {
+    "generate-chains": "node scripts/generate_chains_json.js",  
+    "generate-contracts": "node scripts/generate_contract_json.js",
+    "generate-tokens": "node scripts/generate_token_json.js",
+    "generate": "node scripts/generate_token_json.js && node scripts/generate_chains_json.js && node scripts/generate_contract_json.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RealityETH/monorepo.git"
