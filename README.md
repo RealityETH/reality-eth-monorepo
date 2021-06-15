@@ -1,4 +1,4 @@
-== Reality.eth monorepo ==
+## Reality.eth monorepo
 
 This repo replaces the old separate repos that were previously at realitio.github.com.
 
@@ -17,7 +17,7 @@ The following scripts are used for deployment, under tools/:
   * ipfs_build.sh: Deploy web-accessible parts of the project to a web-accessible URL, and pin it to IPFS on the local server. You should then manually add it to pinata and register it with ENS.
   * gh_build.sh: As with ipfs_build.sh but deploying the dapp only, to github.io repo at https://realityeth.github.io/. This is usually updated more frequently than the IPFS build.
 
---- NPM packages ---
+### NPM packages
 
 The following are published to npm. They are version individually, and updated by running `lerna publish`.
 
