@@ -1,8 +1,13 @@
 {
   "name": "@reality.eth/contracts",
-  "version": "2.2.14",
+  "version": "2.2.15",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
-  "scripts": {},
+  "scripts": {
+    "generate-chains": "node scripts/generate_chains_json.js",
+    "generate-contracts": "node scripts/generate_contract_json.js",
+    "generate-tokens": "node scripts/generate_token_json.js",
+    "generate": "node scripts/generate_token_json.js && node scripts/generate_chains_json.js && node scripts/generate_contract_json.js"
+  },
   "main": "index.js",
   "keywords": [
     "Ethereum",
@@ -18,12 +23,6 @@
     "etherlime": "^2.3.3",
     "etherlime-lib": "^1.2.3",
     "require-glob": "^3.2.0"
-  },
-  "scripts": {
-    "generate-chains": "node scripts/generate_chains_json.js",  
-    "generate-contracts": "node scripts/generate_contract_json.js",
-    "generate-tokens": "node scripts/generate_token_json.js",
-    "generate": "node scripts/generate_token_json.js && node scripts/generate_chains_json.js && node scripts/generate_contract_json.js"
   },
   "repository": {
     "type": "git",
