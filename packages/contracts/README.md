@@ -1,21 +1,26 @@
 # @reality.eth/contracts
-Contracts for Reality.eth, including source code, ABI and addresses of contracts on mainnet and test networks
+Contracts for Reality.eth, including source code, ABI and addresses of contracts on mainnet and test networks.
 
-We now use Etherlime instead of Truffle, but we still use the old Truffle layout to avoid breaking things.
+*networks/* contains a directory hierarchy with a file for the deployed version of each live contract on the specified network for the specified token. Each file also lists any whitelisted arbitrators. It may also contain additional post-deployment files for arbitrators we deployed.
 
-*truffle/* contains source files and build files for contracts, as laid out by truffle.
+*tokens/* contains a file describing each supported token.
 
-*config/* contains:
+*chains/* contains the full raw data from chainid.network, and a file listing chains we specifically support, and adding useful configuration information not supplied by chainid.network.
 
-  * information about arbitrators subsequently deployed.
-  * information about templates deployed by the constructor to save fetching them from the event logs.
+The above are combined into JSON files under generated/ using `npm run-script generate`.
+
+
+*truffle/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
+
+
+*config/templates* contains information about templates deployed by the constructor to save fetching them from the event logs.
 
 
 ## Tests
 
 Contract tests use python3.
 
-`$ cd truffle/contracts`
+`$ cd tests/python`
 
 `$ pip install -r requirements.txt`
 
@@ -51,14 +56,12 @@ To deploy contracts using the code compiled under truffle/build/contracts, use
 
 `$ cd truffle/etherlime_deploy`
 
-`$ node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<token_address>] [<dispute_fee>] [<arbitrator_owner>]`
+`$ node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `realitio-dapp` ui.
 
+If the token or network was not previously supported, you will need to add its configuration files and run `npm run-script generate`.
 
 ## Adding your contracts to the dapp
 
 If you have added Reality.eth for a new token, or a new arbitrator, or both, please submit the changes to this repo as a PR.
-
-If you are adding a token, please also let us know the approximate value of the token (in USD or ETH as you prefer) for use in dapp settings like "this bond is very low".
-
