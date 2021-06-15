@@ -11,6 +11,7 @@ It comprises the following packages, under packages/:
   * website: The project website as seen at reality.eth/
   * cli-tools: Javascript tools, mainly used for arbitration
   * python-services: Python code used for back-end services, specifically the twitter bot @RealityEthBot
+  * graph: Subgraph definitions for https://thegraph.com/
 
 See the README of each respective package for details.
 
