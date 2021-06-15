@@ -169,7 +169,7 @@ class TestRealitio(TestCase):
 
         contract_json = {}
         json_fname = con_name + '.json'
-        with open('../build/contracts/'+json_fname) as f:
+        with open('../../truffle/build/contracts/'+json_fname) as f:
             contract_json = f.read()
             f.close()
 
