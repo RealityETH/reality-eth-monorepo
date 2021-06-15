@@ -27,6 +27,7 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
     chainparams['chainId'] = "0x"+Number(chainId).toString(16),
     chainparams['chainName'] = chain_info.name;
     chainparams['nativeCurrency'] = chain_info.nativeCurrency;
+    chainparams['network_name'] = chain_info.network;
 
     let rpc = [];
     if (chain_info.rpc) {

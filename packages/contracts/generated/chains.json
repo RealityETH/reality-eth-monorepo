@@ -7,6 +7,7 @@
             "symbol": "ETH",
             "decimals": 18
         },
+        "network_name": "mainnet",
         "rpcUrls": [
             "https://api.mycryptoapi.com/eth",
             "https://cloudflare-eth.com"
@@ -24,6 +25,7 @@
             "symbol": "ROP",
             "decimals": 18
         },
+        "network_name": "ropsten",
         "rpcUrls": [],
         "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
         "blockExplorerUrls": [
@@ -38,6 +40,7 @@
             "symbol": "RIN",
             "decimals": 18
         },
+        "network_name": "rinkeby",
         "rpcUrls": [],
         "hostedRPC": "https://rinkeby.socialminds.jp",
         "blockExplorerUrls": [
@@ -52,6 +55,7 @@
             "symbol": "KOV",
             "decimals": 18
         },
+        "network_name": "kovan",
         "rpcUrls": [
             "https://kovan.poa.network",
             "http://kovan.poa.network:8545",
@@ -70,6 +74,7 @@
             "symbol": "BNB",
             "decimals": 18
         },
+        "network_name": "mainnet",
         "rpcUrls": [
             "https://bsc-dataseed1.binance.org",
             "https://bsc-dataseed2.binance.org",
@@ -99,6 +104,7 @@
             "symbol": "POA",
             "decimals": 18
         },
+        "network_name": "sokol",
         "rpcUrls": [
             "https://sokol.poa.network",
             "wss://sokol.poa.network/wss",
@@ -117,6 +123,7 @@
             "symbol": "xDAI",
             "decimals": 18
         },
+        "network_name": "mainnet",
         "rpcUrls": [
             "https://rpc.xdaichain.com",
             "https://xdai.poanetwork.dev",
@@ -142,6 +149,7 @@
             "symbol": "MATIC",
             "decimals": 18
         },
+        "network_name": "mainnet",
         "rpcUrls": [
             "https://rpc-mainnet.matic.network",
             "wss://ws-mainnet.matic.network"
