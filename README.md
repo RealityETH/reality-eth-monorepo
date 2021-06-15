@@ -12,6 +12,8 @@ It comprises the following packages, under packages/:
   * cli-tools: Javascript tools, mainly used for arbitration
   * python-services: Python code used for back-end services, specifically the twitter bot @RealityEthBot
 
+See the README of each respective package for details.
+
 The following scripts are used for deployment, under tools/:
   
   * ipfs_build.sh: Deploy web-accessible parts of the project to a web-accessible URL, and pin it to IPFS on the local server. You should then manually add it to pinata and register it with ENS.
