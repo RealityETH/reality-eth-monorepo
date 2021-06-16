@@ -74,7 +74,7 @@
             "symbol": "BNB",
             "decimals": 18
         },
-        "network_name": "mainnet",
+        "network_name": "bsc",
         "rpcUrls": [
             "https://bsc-dataseed1.binance.org",
             "https://bsc-dataseed2.binance.org",
@@ -123,7 +123,7 @@
             "symbol": "xDAI",
             "decimals": 18
         },
-        "network_name": "mainnet",
+        "network_name": "xdai",
         "rpcUrls": [
             "https://rpc.xdaichain.com",
             "https://xdai.poanetwork.dev",
@@ -149,7 +149,7 @@
             "symbol": "MATIC",
             "decimals": 18
         },
-        "network_name": "mainnet",
+        "network_name": "polygon",
         "rpcUrls": [
             "https://rpc-mainnet.matic.network",
             "wss://ws-mainnet.matic.network"
