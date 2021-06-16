@@ -1717,9 +1717,9 @@ function getERC20TokenInstance() {
         });
 }
 
-function populateSection(section_name, question_data, before_item) {
+function populateSection(section_name, question, before_item) {
 
-    var question_id = question_data.question_id;
+    var question_id = question.question_id;
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
@@ -1754,9 +1754,9 @@ function populateSection(section_name, question_data, before_item) {
     var is_found = (section.find('#' + before_item_id).length > 0);
     var entry = $('.questions__item.template-item').clone();
 
-    entry = populateSectionEntry(entry, question_data);
+    entry = populateSectionEntry(entry, question);
 
-    if (failed_arbitrators[question_data.arbitrator.toLowerCase()]) {
+    if (failed_arbitrators[question.arbitrator.toLowerCase()]) {
         entry.addClass('failed-arbitrator');
     }
 
@@ -1790,14 +1790,14 @@ function populateSection(section_name, question_data, before_item) {
 
     // question settings warning balloon
     let balloon_html = '';
-    if (question_data.timeout < 86400) {
+    if (question.timeout < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (isFinalized(question_data) && question_data.bounty.plus(question_data.bond).lt(token_info[currency]['small_number'])) {
+    if (isFinalized(question) && question.bounty.plus(question.bond).lt(token_info[currency]['small_number'])) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValidFast(question_data.arbitrator);
+    let valid_arbirator = isArbitratorValidFast(question.arbitrator);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -1824,18 +1824,18 @@ function updateSectionEntryDisplay(question) {
     });
 }
 
-function populateSectionEntry(entry, question_data) {
+function populateSectionEntry(entry, question) {
 
-    var question_id = question_data.question_id;
-    var question_json = question_data.question_json;
-    var posted_ts = question_data.creation_ts;
-    var arbitrator = question_data.arbitrator;
-    var timeout = question_data.timeout;
-    var bounty = decimalizedBigNumberToHuman(question_data.bounty);
-    var is_arbitration_pending = isArbitrationPending(question_data);
-    var is_finalized = isFinalized(question_data);
-    var best_answer = question_data.best_answer;
-    var bond = question_data.bond;
+    var question_id = question.question_id;
+    var question_json = question.question_json;
+    var posted_ts = question.creation_ts;
+    var arbitrator = question.arbitrator;
+    var timeout = question.timeout;
+    var bounty = decimalizedBigNumberToHuman(question.bounty);
+    var is_arbitration_pending = isArbitrationPending(question);
+    var is_finalized = isFinalized(question);
+    var best_answer = question.best_answer;
+    var bond = question.bond;
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -1856,7 +1856,7 @@ function populateSectionEntry(entry, question_data) {
     entry.find('.bond-value').text(decimalizedBigNumberToHuman(bond));
 
     // For these purposes we just ignore any outstanding commits
-    if (isAnswered(question_data)) {
+    if (isAnswered(question)) {
         entry.find('.questions__item__answer').text(rc_question.getAnswerString(question_json, best_answer));
         entry.addClass('has-answer');
     } else {
@@ -1864,11 +1864,11 @@ function populateSectionEntry(entry, question_data) {
         entry.removeClass('has-answer');
     }
 
-    if (isQuestionBeforeOpeningDate(question_data)) {
+    if (isQuestionBeforeOpeningDate(question)) {
         entry.addClass('not-yet-open');
     }
 
-    var is_answered = isAnswered(question_data);
+    var is_answered = isAnswered(question);
 
     if (is_answered) {
         entry.addClass('has-answers').removeClass('no-answers');
@@ -1877,21 +1877,21 @@ function populateSectionEntry(entry, question_data) {
     }
 
     timeago.cancel(entry.find('.timeago'));
-    if (isArbitrationPending(question_data)) {
+    if (isArbitrationPending(question)) {
         entry.addClass('arbitration-pending');
     } else {
         entry.removeClass('arbitration-pending');
         if (is_answered) {
-            entry.find('.closing-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.finalization_ts));
+            entry.find('.closing-time-label .timeago').attr('datetime', rc_question.convertTsToString(question.finalization_ts));
             timeAgo.render(entry.find('.closing-time-label .timeago'));
         } else {
-            entry.find('.created-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.creation_ts));
+            entry.find('.created-time-label .timeago').attr('datetime', rc_question.convertTsToString(question.creation_ts));
             timeAgo.render(entry.find('.created-time-label .timeago'));
         }
     }
     
-    if (isQuestionBeforeOpeningDate(question_data)) {
-        entry.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.opening_ts));
+    if (isQuestionBeforeOpeningDate(question)) {
+        entry.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(question.opening_ts));
         timeAgo.render(entry.find('.opening-time-label .timeago'));
     }
 
@@ -1971,31 +1971,31 @@ function handleQuestionLog(item) {
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', question_detail_list[question_id]);
-    var question_data = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+    var question = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
     //console.log('after filling in handleQuestionLog', question_detail_list[question_id]);
 
     // Then fetch anything else we need to display
-    ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question_data) {
+    ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question) {
 
-        updateQuestionWindowIfOpen(question_data);
+        updateQuestionWindowIfOpen(question);
 
-        if (category && question_data.question_json.category != category) {
-            //console.log('mismatch for cat', category, question_data.question_json.category);
+        if (category && question.question_json.category != category) {
+            //console.log('mismatch for cat', category, question.question_json.category);
             return;
         } else {
-            //console.log('category match', category, question_data.question_json.category);
+            //console.log('category match', category, question.question_json.category);
         }
 
-        var is_finalized = isFinalized(question_data);
-        var is_before_opening = isQuestionBeforeOpeningDate(question_data);
-        var bounty = question_data.bounty;
-        var opening_ts = question_data.opening_ts;
+        var is_finalized = isFinalized(question);
+        var is_before_opening = isQuestionBeforeOpeningDate(question);
+        var bounty = question.bounty;
+        var opening_ts = question.opening_ts;
 
         if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, question_data.finalization_ts, 'desc');
+            var insert_before = update_ranking_data('questions-resolved', question_id, question.finalization_ts, 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
-                populateSection('questions-resolved', question_data, insert_before);
+                populateSection('questions-resolved', question, insert_before);
                 $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
                 if (display_entries['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-resolved').find('.loadmore-button').css('display', 'block');
@@ -2006,7 +2006,7 @@ function handleQuestionLog(item) {
 
             var insert_before = update_ranking_data('questions-upcoming', question_id, opening_ts, 'asc');
             if (insert_before !== -1) {
-                populateSection('questions-upcoming', question_data, insert_before);
+                populateSection('questions-upcoming', question, insert_before);
                 $('#questions-upcoming').find('.scanning-questions-category').css('display', 'none');
                 if (display_entries['questions-upcoming']['ids'].length > 3 && $('#questions-upcoming').find('.loadmore-button').css('display') == 'none') {
                     $('#questions-upcoming').find('.loadmore-button').css('display', 'block');
@@ -2015,10 +2015,10 @@ function handleQuestionLog(item) {
 
         } else {
 
-            if (!question_data.is_pending_arbitration) {
-                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question_data.bounty, question_data.bond), 'desc');
+            if (!question.is_pending_arbitration) {
+                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question.bounty, question.bond), 'desc');
                 if (insert_before !== -1) {
-                    populateSection('questions-active', question_data, insert_before);
+                    populateSection('questions-active', question, insert_before);
                     $('#questions-active').find('.scanning-questions-category').css('display', 'none');
                     if (display_entries['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
                         $('#questions-active').find('.loadmore-button').css('display', 'block');
@@ -2026,10 +2026,10 @@ function handleQuestionLog(item) {
                 }
             }
 
-            if (isAnswered(question_data)) {
-                var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data.finalization_ts, 'asc');
+            if (isAnswered(question)) {
+                var insert_before = update_ranking_data('questions-closing-soon', question_id, question.finalization_ts, 'asc');
                 if (insert_before !== -1) {
-                    populateSection('questions-closing-soon', question_data, insert_before);
+                    populateSection('questions-closing-soon', question, insert_before);
                     $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
                     if (display_entries['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
                         $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
@@ -2037,7 +2037,7 @@ function handleQuestionLog(item) {
                 }
             }
 
-            scheduleFinalizationDisplayUpdate(question_data);
+            scheduleFinalizationDisplayUpdate(question);
             //console.log(display_entries);
         }
 
@@ -2705,7 +2705,7 @@ function possibleClaimableItems(question_detail) {
     question_ids.push(question_detail.question_id);
     answer_lengths.push(claimable_bonds.length);
 
-    //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail.history_hash);
+    //console.log('item 0 should match question', claimable_history_hashes[0], question_detail.history_hash);
 
     // For the history hash, each time we need to provide the previous hash in the history
     // So delete the first item, and add 0x0 to the end.
@@ -3494,8 +3494,8 @@ $(document).on('click', '.post-answer-button', function(e) {
                     'txid': txid
                 };
 
-                var question_data = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
-                //console.log('after answer made question_data', question_data);
+                var question = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+                //console.log('after answer made question', question);
 
                 ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
                     updateQuestionWindowIfOpen(question);
