@@ -73,16 +73,16 @@ var currency;
 // Assumes we unshift the ID onto the start
 
 // Question, as returned by questions()
-const Qi_content_hash = 1;
-const Qi_arbitrator = 2;
-const Qi_opening_ts = 3;
-const Qi_timeout = 4;
-const Qi_finalization_ts = 5;
-const Qi_is_pending_arbitration = 6;
-const Qi_bounty = 7;
-const Qi_best_answer = 8;
-const Qi_history_hash = 9;
-const Qi_bond = 10;
+const Qi_content_hash = 0;
+const Qi_arbitrator = 1;
+const Qi_opening_ts = 2;
+const Qi_timeout = 3;
+const Qi_finalization_ts = 4;
+const Qi_is_pending_arbitration = 5;
+const Qi_bounty = 6;
+const Qi_best_answer = 7;
+const Qi_history_hash = 8;
+const Qi_bond = 9;
 
 BigNumber.config({
     RABGE: 256
@@ -674,16 +674,16 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                                 }
                             }
                             var fake_call = [];
-                            fake_call[Qi_finalization_ts - 1] = new BigNumber(0);
+                            fake_call[Qi_finalization_ts] = new BigNumber(0);
                             fake_call[Qi_is_pending_arbitration] = false;
-                            fake_call[Qi_arbitrator - 1] = arbitrator;
-                            fake_call[Qi_timeout - 1] = new BigNumber(timeout_val);
-                            fake_call[Qi_content_hash - 1] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-                            fake_call[Qi_bounty - 1] = reward;
-                            fake_call[Qi_best_answer - 1] = "0x0";
-                            fake_call[Qi_bond - 1] = new BigNumber(0);
-                            fake_call[Qi_history_hash - 1] = "0x0";
-                            fake_call[Qi_opening_ts - 1] = new BigNumber(opening_ts);
+                            fake_call[Qi_arbitrator] = arbitrator;
+                            fake_call[Qi_timeout] = new BigNumber(timeout_val);
+                            fake_call[Qi_content_hash] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+                            fake_call[Qi_bounty] = reward;
+                            fake_call[Qi_best_answer] = "0x0";
+                            fake_call[Qi_bond] = new BigNumber(0);
+                            fake_call[Qi_history_hash] = "0x0";
+                            fake_call[Qi_opening_ts] = new BigNumber(opening_ts);
 
                             var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
                             q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
@@ -1386,15 +1386,15 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
                 question.freshness.question_call = freshness;
                 //question.question_id = question_id;
-                question.finalization_ts = data[Qi_finalization_ts - 1];
-                question.is_pending_arbitration = data[Qi_is_pending_arbitration - 1];
-                question.arbitrator = data[Qi_arbitrator - 1];
-                question.timeout = data[Qi_timeout - 1];
-                question.content_hash = data[Qi_content_hash - 1];
-                question.bounty = data[Qi_bounty - 1];
-                question.best_answer = data[Qi_best_answer - 1];
-                question.bond = data[Qi_bond - 1];
-                question.history_hash = data[Qi_history_hash - 1];
+                question.finalization_ts = data[Qi_finalization_ts];
+                question.is_pending_arbitration = data[Qi_is_pending_arbitration];
+                question.arbitrator = data[Qi_arbitrator];
+                question.timeout = data[Qi_timeout];
+                question.content_hash = data[Qi_content_hash];
+                question.bounty = data[Qi_bounty];
+                question.best_answer = data[Qi_best_answer];
+                question.bond = data[Qi_bond];
+                question.history_hash = data[Qi_history_hash];
                 //console.log('set question', question_id, question);
             } else {
                 //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
@@ -3675,7 +3675,7 @@ $(document).on('click', '.arbitration-button', function(e) {
         }
 
         var arbitration_fee;
-        //if (!question_detail[Qi_is_arbitration_due]) {}
+        //if (!question_detail.is_arbitration_pending) {}
         var arbitrator;
         Arbitrator.at(question_detail.arbitrator).then(function(arb) {
             arbitrator = arb;
