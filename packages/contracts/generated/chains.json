@@ -149,7 +149,7 @@
             "symbol": "MATIC",
             "decimals": 18
         },
-        "network_name": "polygon",
+        "network_name": "matic",
         "rpcUrls": [
             "https://rpc-mainnet.matic.network",
             "wss://ws-mainnet.matic.network"
