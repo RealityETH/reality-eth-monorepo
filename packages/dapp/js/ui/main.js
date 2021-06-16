@@ -794,7 +794,7 @@ function arbitratorAddressToText(addr) {
 }
 
 function isArbitrationPending(question) {
-    return (question[Qi_is_pending_arbitration]);
+    return (question.is_pending_arbitration);
 }
 
 // Return true if a user has started a commit or given an answer
@@ -803,7 +803,7 @@ function isAnswerActivityStarted(question) {
     if (isAnswered(question)) {
         return true;
     }
-    var history_hash = new BigNumber(question[Qi_history_hash]);
+    var history_hash = new BigNumber(question.history_hash);
     return (history_hash.gt(0));
 }
 
@@ -861,22 +861,22 @@ function hasUnrevealedCommits(question) {
 // ...or if there's an uncommitted answer that hasn't timed out yet
 // TODO: Check for timeouts
 function isAnsweredOrAnswerActive(question) {
-    var history_hash = new BigNumber(question[Qi_history_hash]);
+    var history_hash = new BigNumber(question.history_hash);
     return (history_hash.gt(0));
 }
 
 function isAnswered(question) {
-    var finalization_ts = question[Qi_finalization_ts].toNumber();
+    var finalization_ts = question.finalization_ts.toNumber();
     return (finalization_ts > 1);
 }
 
 function commitExpiryTS(question, posted_ts) {
-    var commit_secs = question[Qi_timeout].div(8);
+    var commit_secs = question.timeout.div(8);
     return posted_ts.plus(commit_secs);
 }
 
 function isCommitExpired(question, posted_ts) {
-    var commit_secs = question[Qi_timeout].toNumber() / 8;
+    var commit_secs = question.timeout.toNumber() / 8;
     // console.log('commit secs are ', commit_secs);
     return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
 }
@@ -886,7 +886,7 @@ function isFinalized(question) {
     if (isArbitrationPending(question)) {
         return false;
     }
-    var fin = question[Qi_finalization_ts].toNumber()
+    var fin = question.finalization_ts.toNumber()
     var res = ((fin > 1) && (fin * 1000 < new Date().getTime()));
     return res;
 }
@@ -1131,11 +1131,11 @@ function handlePotentialUserAction(entry, is_watch) {
 
 function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     var poss = possibleClaimableItems(question);
-    //console.log('made poss for question', poss, question[Qi_question_id]);
+    //console.log('made poss for question', poss, question.question_id);
     if (poss['total'].isZero()) {
-        delete user_claimable[question[Qi_question_id]];
+        delete user_claimable[question.question_id];
     } else {
-        user_claimable[question[Qi_question_id]] = poss;
+        user_claimable[question.question_id] = poss;
     }
     return true; // TODO: Make this only return true if it changed something
 }
@@ -1207,10 +1207,10 @@ function scheduleFinalizationDisplayUpdate(question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
-        var question_id = question[Qi_question_id];
+        var question_id = question.question_id;
         var is_done = false;
         if (question_event_times[question_id]) {
-            if (question_event_times[question_id].finalization_ts == question[Qi_finalization_ts]) {
+            if (question_event_times[question_id].finalization_ts == question.finalization_ts) {
                 //console.log('leaving existing timeout for question', question_id)
                 is_done = true;
             } else {
@@ -1221,7 +1221,7 @@ function scheduleFinalizationDisplayUpdate(question) {
         if (!is_done) {
             //console.log('scheduling');
             // Run 1 second after the finalization timestamp
-            var update_time = (1000 + (question[Qi_finalization_ts].toNumber() * 1000) - new Date().getTime());
+            var update_time = (1000 + (question.finalization_ts.toNumber() * 1000) - new Date().getTime());
             //console.log('update_time is ', update_time);
             var timeout_id = setTimeout(function() {
                 // TODO: Call again here in case it changed and we missed it
@@ -1232,7 +1232,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
                     if (isFinalized(question)) {
                         updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts]);
+                        updateRankingSections(question, Qi_finalization_ts, question.finalization_ts);
 
                         // The notification code sorts by block number
                         // So get the current block
@@ -1244,9 +1244,9 @@ function scheduleFinalizationDisplayUpdate(question) {
                             var fake_entry = {
                                     event: 'LogFinalize',
                                     blockNumber: result.number,
-                                    timestamp: question[Qi_finalization_ts].toNumber(),
+                                    timestamp: question.finalization_ts.toNumber(),
                                     args: {
-                                        question_id: question[Qi_question_id],
+                                        question_id: question.question_id,
                                     }
                                 }
                                 //console.log('sending fake entry', fake_entry, question);
@@ -1263,7 +1263,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
             }, update_time);
             question_event_times[question_id] = {
-                'finalization_ts': question[Qi_finalization_ts],
+                'finalization_ts': question.finalization_ts,
                 'timeout_id': timeout_id
             };
         }
@@ -1358,7 +1358,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
         'history': [],
         'history_unconfirmed': []
     };
-    question[Qi_question_id] = question_id;
+    question.question_id = question_id;
     if (question_detail_list[question_id]) {
         question = question_detail_list[question_id];
     }
@@ -1368,23 +1368,23 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
         case 'question_log':
             if (data && (freshness >= question.freshness.question_log)) {
                 question.freshness.question_log = freshness;
-                //question[Qi_question_id] = data.args['question_id'];
-                question[Qi_creation_ts] = data.args['created'];
-                question[Qi_question_creator] = data.args['user'];
-                question[Qi_question_created_block] = data.blockNumber;
-                question[Qi_content_hash] = data.args['content_hash'];
-                question[Qi_question_text] = data.args['question'];
-                question[Qi_template_id] = data.args['template_id'].toNumber();
-                question[Qi_block_mined] = data.blockNumber;
-                question[Qi_opening_ts] = data.args['opening_ts'];
-                //question[Qi_bounty] = data.args['bounty'];
+                //question.question_id = data.args['question_id'];
+                question.creation_ts = data.args['created'];
+                question.question_creator = data.args['user'];
+                question.question_created_block = data.blockNumber;
+                question.content_hash = data.args['content_hash'];
+                question.question_text = data.args['question'];
+                question.template_id = data.args['template_id'].toNumber();
+                question.block_mined = data.blockNumber;
+                question.opening_ts = data.args['opening_ts'];
+                //question.bounty = data.args['bounty'];
             }
             break;
 
         case 'question_json':
             if (data && (freshness >= question.freshness.question_json)) {
                 question.freshness.question_json = freshness;
-                question[Qi_question_json] = data;
+                question.question_json = data;
             }
             break;
 
@@ -1395,16 +1395,16 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 // Question ID is tacked on after the call.
                 // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
                 question.freshness.question_call = freshness;
-                //question[Qi_question_id] = question_id;
-                question[Qi_finalization_ts] = data[Qi_finalization_ts - 1];
-                question[Qi_is_pending_arbitration] = data[Qi_is_pending_arbitration - 1];
-                question[Qi_arbitrator] = data[Qi_arbitrator - 1];
-                question[Qi_timeout] = data[Qi_timeout - 1];
-                question[Qi_content_hash] = data[Qi_content_hash - 1];
-                question[Qi_bounty] = data[Qi_bounty - 1];
-                question[Qi_best_answer] = data[Qi_best_answer - 1];
-                question[Qi_bond] = data[Qi_bond - 1];
-                question[Qi_history_hash] = data[Qi_history_hash - 1];
+                //question.question_id = question_id;
+                question.finalization_ts = data[Qi_finalization_ts - 1];
+                question.is_pending_arbitration = data[Qi_is_pending_arbitration - 1];
+                question.arbitrator = data[Qi_arbitrator - 1];
+                question.timeout = data[Qi_timeout - 1];
+                question.content_hash = data[Qi_content_hash - 1];
+                question.bounty = data[Qi_bounty - 1];
+                question.best_answer = data[Qi_best_answer - 1];
+                question.bond = data[Qi_bond - 1];
+                question.history_hash = data[Qi_history_hash - 1];
                 //console.log('set question', question_id, question);
             } else {
                 //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
@@ -1631,9 +1631,9 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data)
         _ensureQuestionLogFetched(question_id, ql).then(function(q) {
             return _ensureQuestionDataFetched(question_id, qc);
         }).then(function(q) {
-            return _ensureQuestionTemplateFetched(question_id, q[Qi_template_id], q[Qi_question_text], qi);
+            return _ensureQuestionTemplateFetched(question_id, q.template_id, q.question_text, qi);
         }).then(function(q) {
-            return _ensureAnswersFetched(question_id, al, q[Qi_question_created_block], injected_data);
+            return _ensureAnswersFetched(question_id, al, q.question_created_block, injected_data);
         }).then(function(q) {
             resolve(q);
         }).catch(function(e) {
@@ -1719,7 +1719,7 @@ function getERC20TokenInstance() {
 
 function populateSection(section_name, question_data, before_item) {
 
-    var question_id = question_data[Qi_question_id];
+    var question_id = question_data.question_id;
 
     var idx = display_entries[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
@@ -1756,7 +1756,7 @@ function populateSection(section_name, question_data, before_item) {
 
     entry = populateSectionEntry(entry, question_data);
 
-    if (failed_arbitrators[question_data[Qi_arbitrator].toLowerCase()]) {
+    if (failed_arbitrators[question_data.arbitrator.toLowerCase()]) {
         entry.addClass('failed-arbitrator');
     }
 
@@ -1790,14 +1790,14 @@ function populateSection(section_name, question_data, before_item) {
 
     // question settings warning balloon
     let balloon_html = '';
-    if (question_data[Qi_timeout] < 86400) {
+    if (question_data.timeout < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (isFinalized(question_data) && question_data[Qi_bounty].plus(question_data[Qi_bond]).lt(token_info[currency]['small_number'])) {
+    if (isFinalized(question_data) && question_data.bounty.plus(question_data.bond).lt(token_info[currency]['small_number'])) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValidFast(question_data[Qi_arbitrator]);
+    let valid_arbirator = isArbitratorValidFast(question_data.arbitrator);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -1818,24 +1818,24 @@ function activateSection(section_name) {
 }
 
 function updateSectionEntryDisplay(question) {
-    $('div.questions__item[data-question-id="' + question[Qi_question_id] + '"]').each(function() {
-        //console.log('updateSectionEntryDisplay update question', question[Qi_question_id]);
+    $('div.questions__item[data-question-id="' + question.question_id + '"]').each(function() {
+        //console.log('updateSectionEntryDisplay update question', question.question_id);
         populateSectionEntry($(this), question);
     });
 }
 
 function populateSectionEntry(entry, question_data) {
 
-    var question_id = question_data[Qi_question_id];
-    var question_json = question_data[Qi_question_json];
-    var posted_ts = question_data[Qi_creation_ts];
-    var arbitrator = question_data[Qi_arbitrator];
-    var timeout = question_data[Qi_timeout];
-    var bounty = decimalizedBigNumberToHuman(question_data[Qi_bounty]);
+    var question_id = question_data.question_id;
+    var question_json = question_data.question_json;
+    var posted_ts = question_data.creation_ts;
+    var arbitrator = question_data.arbitrator;
+    var timeout = question_data.timeout;
+    var bounty = decimalizedBigNumberToHuman(question_data.bounty);
     var is_arbitration_pending = isArbitrationPending(question_data);
     var is_finalized = isFinalized(question_data);
-    var best_answer = question_data[Qi_best_answer];
-    var bond = question_data[Qi_bond];
+    var best_answer = question_data.best_answer;
+    var bond = question_data.bond;
 
     var options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
@@ -1882,16 +1882,16 @@ function populateSectionEntry(entry, question_data) {
     } else {
         entry.removeClass('arbitration-pending');
         if (is_answered) {
-            entry.find('.closing-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_finalization_ts]));
+            entry.find('.closing-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.finalization_ts));
             timeAgo.render(entry.find('.closing-time-label .timeago'));
         } else {
-            entry.find('.created-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_creation_ts]));
+            entry.find('.created-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.creation_ts));
             timeAgo.render(entry.find('.created-time-label .timeago'));
         }
     }
     
     if (isQuestionBeforeOpeningDate(question_data)) {
-        entry.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data[Qi_opening_ts]));
+        entry.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(question_data.opening_ts));
         timeAgo.render(entry.find('.opening-time-label .timeago'));
     }
 
@@ -1979,20 +1979,20 @@ function handleQuestionLog(item) {
 
         updateQuestionWindowIfOpen(question_data);
 
-        if (category && question_data[Qi_question_json].category != category) {
-            //console.log('mismatch for cat', category, question_data[Qi_question_json].category);
+        if (category && question_data.question_json.category != category) {
+            //console.log('mismatch for cat', category, question_data.question_json.category);
             return;
         } else {
-            //console.log('category match', category, question_data[Qi_question_json].category);
+            //console.log('category match', category, question_data.question_json.category);
         }
 
         var is_finalized = isFinalized(question_data);
         var is_before_opening = isQuestionBeforeOpeningDate(question_data);
-        var bounty = question_data[Qi_bounty];
-        var opening_ts = question_data[Qi_opening_ts];
+        var bounty = question_data.bounty;
+        var opening_ts = question_data.opening_ts;
 
         if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, question_data[Qi_finalization_ts], 'desc');
+            var insert_before = update_ranking_data('questions-resolved', question_id, question_data.finalization_ts, 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
                 populateSection('questions-resolved', question_data, insert_before);
@@ -2015,8 +2015,8 @@ function handleQuestionLog(item) {
 
         } else {
 
-            if (!question_data[Qi_is_pending_arbitration]) {
-                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question_data[Qi_bounty], question_data[Qi_bond]), 'desc');
+            if (!question_data.is_pending_arbitration) {
+                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question_data.bounty, question_data.bond), 'desc');
                 if (insert_before !== -1) {
                     populateSection('questions-active', question_data, insert_before);
                     $('#questions-active').find('.scanning-questions-category').css('display', 'none');
@@ -2027,7 +2027,7 @@ function handleQuestionLog(item) {
             }
 
             if (isAnswered(question_data)) {
-                var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data[Qi_finalization_ts], 'asc');
+                var insert_before = update_ranking_data('questions-closing-soon', question_id, question_data.finalization_ts, 'asc');
                 if (insert_before !== -1) {
                     populateSection('questions-closing-soon', question_data, insert_before);
                     $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
@@ -2212,7 +2212,7 @@ function openQuestionWindow(question_id) {
 
 function updateQuestionWindowIfOpen(question) {
 
-    var question_id = question[Qi_question_id];
+    var question_id = question.question_id;
     var window_id = 'qadetail-' + question_id;
     var rcqa = $('#' + window_id);
     if (rcqa.length) {
@@ -2223,7 +2223,7 @@ function updateQuestionWindowIfOpen(question) {
 
 function displayQuestionDetail(question_detail) {
 
-    var question_id = question_detail[Qi_question_id];
+    var question_id = question_detail.question_id;
     //console.log('question_id', question_id);
 
     // If already open, refresh and bring to the front
@@ -2298,8 +2298,8 @@ function category_text(question_json, target_el) {
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     //console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
-    var question_id = question_detail[Qi_question_id];
-    var question_json = question_detail[Qi_question_json];
+    var question_id = question_detail.question_id;
+    var question_json = question_detail.question_json;
     var question_type = question_json['type'];
 
     //console.log('current list last item in history, which is ', question_detail['history'])
@@ -2309,22 +2309,22 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     cat_el.text(category_text(question_json, cat_el)); 
 
     let date = new Date();
-    date.setTime(question_detail[Qi_creation_ts] * 1000);
+    date.setTime(question_detail.creation_ts * 1000);
     let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']).expander({
         slicePoint: 200
     });
-    rcqa.find('.reward-value').text(decimalizedBigNumberToHuman(question_detail[Qi_bounty]));
+    rcqa.find('.reward-value').text(decimalizedBigNumberToHuman(question_detail.bounty));
 
-    if (question_detail[Qi_block_mined] > 0) {
+    if (question_detail.block_mined > 0) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
     var bond = new BigNumber(token_info[currency]['small_number']).div(2);
-    if (question_detail[Qi_bounty] && question_detail[Qi_bounty].gt(0)) {
-        bond = question_detail[Qi_bounty].div(2);
+    if (question_detail.bounty && question_detail.bounty.gt(0)) {
+        bond = question_detail.bounty.div(2);
     }
 
     if (isAnswerActivityStarted(question_detail)) {
@@ -2333,11 +2333,11 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
         if (isAnswered(question_detail)) {
             // label for show the current answer.
-            var label = rc_question.getAnswerString(question_json, question_detail[Qi_best_answer]);
+            var label = rc_question.getAnswerString(question_json, question_detail.best_answer);
             current_container.find('.current-answer-body').find('.current-answer').text(label);
         }
 
-        bond = question_detail[Qi_bond];
+        bond = question_detail.bond;
 
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
@@ -2422,24 +2422,24 @@ console.log(ans);
         }
     }
 
-    rcqa.find('.bond-value').text(decimalizedBigNumberToHuman(question_detail[Qi_bond]));
+    rcqa.find('.bond-value').text(decimalizedBigNumberToHuman(question_detail.bond));
     // Set the dispute value on a slight delay
     // This ensures the latest entry was updated and the user had time to see it when arbitration was requested
     window.setTimeout(function() {
-        rcqa.find('.arbitration-button').attr('data-last-seen-bond', '0x' + question_detail[Qi_bond].toString(16));
+        rcqa.find('.arbitration-button').attr('data-last-seen-bond', '0x' + question_detail.bond.toString(16));
     }, 2000);
 
     // question settings warning balloon
     let balloon_html = '';
-    if (question_detail[Qi_timeout] < 86400) {
+    if (question_detail.timeout < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (isFinalized(question_detail) && question_detail[Qi_bounty].plus(question_detail[Qi_bond]).lt(token_info[currency]['small_number'])) {
+    if (isFinalized(question_detail) && question_detail.bounty.plus(question_detail.bond).lt(token_info[currency]['small_number'])) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
-    let valid_arbirator = isArbitratorValid(question_detail[Qi_arbitrator]);
+    let valid_arbirator = isArbitratorValid(question_detail.arbitrator);
 
-    if (failed_arbitrators[question_detail[Qi_arbitrator].toLowerCase()]) {
+    if (failed_arbitrators[question_detail.arbitrator.toLowerCase()]) {
         rcqa.addClass('failed-arbitrator');
     }
 
@@ -2452,20 +2452,20 @@ console.log(ans);
         rcqa.find('.question-setting-warning').find('.balloon').html(balloon_html);
     }
 
-    let questioner = question_detail[Qi_question_creator]
-    let timeout = question_detail[Qi_timeout];
+    let questioner = question_detail.question_creator
+    let timeout = question_detail.timeout;
     var balloon = rcqa.find('.question-setting-info').find('.balloon')
-    balloon.find('.setting-info-bounty').text(decimalizedBigNumberToHuman(question_detail[Qi_bounty]));
-    balloon.find('.setting-info-bond').text(decimalizedBigNumberToHuman(question_detail[Qi_bond]));
-    balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail[Qi_timeout]));
-    balloon.find('.setting-info-content-hash').text(question_detail[Qi_content_hash]);
-    balloon.find('.setting-info-question-id').text(question_detail[Qi_question_id]);
-    balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail[Qi_arbitrator]));
+    balloon.find('.setting-info-bounty').text(decimalizedBigNumberToHuman(question_detail.bounty));
+    balloon.find('.setting-info-bond').text(decimalizedBigNumberToHuman(question_detail.bond));
+    balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail.timeout));
+    balloon.find('.setting-info-content-hash').text(question_detail.content_hash);
+    balloon.find('.setting-info-question-id').text(question_detail.question_id);
+    balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail.arbitrator));
     balloon.find('.setting-info-questioner').text(questioner);
-    balloon.find('.setting-info-created-ts').text(new Date(question_detail[Qi_creation_ts]*1000).toUTCString().replace('GMT', 'UTC'));
+    balloon.find('.setting-info-created-ts').text(new Date(question_detail.creation_ts*1000).toUTCString().replace('GMT', 'UTC'));
     var opening_ts_str = 'Unset';
-    if (question_detail[Qi_opening_ts].gt(0)) {
-        opening_ts_str = new Date(question_detail[Qi_opening_ts]*1000).toUTCString().replace('GMT', 'UTC');
+    if (question_detail.opening_ts.gt(0)) {
+        opening_ts_str = new Date(question_detail.opening_ts*1000).toUTCString().replace('GMT', 'UTC');
     }
     balloon.find('.setting-info-opening-ts').text(opening_ts_str);
     balloon.css('z-index', ++zindex);
@@ -2511,12 +2511,12 @@ console.log(ans);
     // Arbitrator
     if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
         console.log('getting arb stuff')
-        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+        Arbitrator.at(question_detail.arbitrator).then(function(arb) {
             console.log('arb is there, getting dispute fee')
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
             console.log('get fee, rendering')
-            //rcqa.find('.arbitrator').text(question_detail[Qi_arbitrator]);
+            //rcqa.find('.arbitrator').text(question_detail.arbitrator);
             rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
             if (chain_info.nativeCurrency && chain_info.nativeCurrency.symbol) {
@@ -2527,7 +2527,7 @@ console.log(ans);
             // If it doesn't implement the getDisputeFee method, we might want to use foreignProxy
             // TODO: We should really be initially loading the metadata
             // This will tell us if we have a foreign proxy or not
-            Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+            Arbitrator.at(question_detail.arbitrator).then(function(arb) {
                 console.log('getting metadata');
                 arb.metadata.call().then(function(md) {
                     console.log('md', md);
@@ -2556,7 +2556,7 @@ console.log(ans);
                 }).catch(function(err) {
                     // If it doesn't implement foreign proxy either, it's a contract without the proper interface.
                     console.log('arbitrator failed with error', err);
-                    markArbitratorFailed(question_detail[Qi_arbitrator], question_id);
+                    markArbitratorFailed(question_detail.arbitrator, question_id);
                 });
 
             })
@@ -2571,7 +2571,7 @@ console.log(ans);
     
     if (!is_refresh) {
         // answer form
-        var ans_frm = makeSelectAnswerInput(question_json, question_detail[Qi_opening_ts].toNumber());
+        var ans_frm = makeSelectAnswerInput(question_json, question_detail.opening_ts.toNumber());
         ans_frm.addClass('is-open');
         ans_frm.removeClass('template-item');
         rcqa.find('.answered-history-container').after(ans_frm);
@@ -2618,8 +2618,8 @@ function possibleClaimableItems(question_detail) {
     var ttl = new BigNumber(0);
     var is_your_claim = false;
 
-    if (new BigNumber(question_detail[Qi_history_hash]).equals(0)) {
-        //console.log('everything already claimed', question_detail[Qi_history_hash]);
+    if (new BigNumber(question_detail.history_hash).equals(0)) {
+        //console.log('everything already claimed', question_detail.history_hash);
         return {
             total: new BigNumber(0)
         };
@@ -2633,7 +2633,7 @@ function possibleClaimableItems(question_detail) {
     }
 
     //console.log('should be able to claim question ', question_detail);
-    //console.log('history_hash', question_detail[Qi_history_hash]);
+    //console.log('history_hash', question_detail.history_hash);
 
     var question_ids = [];
     var answer_lengths = [];
@@ -2646,7 +2646,7 @@ function possibleClaimableItems(question_detail) {
     var num_claimed = 0;
     var is_yours = false;
 
-    var final_answer = question_detail[Qi_best_answer];
+    var final_answer = question_detail.best_answer;
     for (var i = question_detail['history'].length - 1; i >= 0; i--) {
 
         // TODO: Check the history hash, and if we haven't reached it, keep going until we do
@@ -2683,8 +2683,8 @@ function possibleClaimableItems(question_detail) {
         }
         if (is_first && is_yours) {
             //console.log('adding your bounty');
-            //console.log(ttl.toString(), 'plus', question_detail[Qi_bounty].toString());
-            ttl = ttl.plus(question_detail[Qi_bounty]);
+            //console.log(ttl.toString(), 'plus', question_detail.bounty.toString());
+            ttl = ttl.plus(question_detail.bounty);
         }
 
         claimable_bonds.push(bond);
@@ -2702,10 +2702,10 @@ function possibleClaimableItems(question_detail) {
         };
     }
 
-    question_ids.push(question_detail[Qi_question_id]);
+    question_ids.push(question_detail.question_id);
     answer_lengths.push(claimable_bonds.length);
 
-    //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail[Qi_history_hash]);
+    //console.log('item 0 should match question_data', claimable_history_hashes[0], question_detail.history_hash);
 
     // For the history hash, each time we need to provide the previous hash in the history
     // So delete the first item, and add 0x0 to the end.
@@ -2871,10 +2871,10 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
 
 function renderNotifications(qdata, entry) {
 
-    var question_id = qdata[Qi_question_id];
+    var question_id = qdata.question_id;
     //console.log('renderNotification', action, entry, qdata);
 
-    var question_json = qdata[Qi_question_json];
+    var question_json = qdata.question_json;
 
     var your_qa_window = $('#your-question-answer-window');
 
@@ -3124,10 +3124,10 @@ function renderQAItemAnswer(question_id, answer_history, question_json, is_final
 
 function renderUserQandA(qdata, entry) {
 
-    var question_id = qdata[Qi_question_id];
+    var question_id = qdata.question_id;
     var answer_history = qdata['history'];
 
-    var question_json = qdata[Qi_question_json];
+    var question_json = qdata.question_json;
 
     var question_section;
     if (entry['event'] == 'LogNewQuestion') {
@@ -3228,11 +3228,11 @@ function updateQuestionState(question, question_window) {
     if (isAnsweredOrAnswerActive(question)) {
         if (isFinalized(question)) {
             timeago.cancel(question_window.find('.resolved-at-value.timeago'));
-            question_window.find('.resolved-at-value').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
+            question_window.find('.resolved-at-value').attr('datetime', rc_question.convertTsToString(question.finalization_ts));
             timeAgo.render(question_window.find('.resolved-at-value.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         } else {
             timeago.cancel(question_window.find('.answer-deadline.timeago'));
-            question_window.find('.answer-deadline').attr('datetime', rc_question.convertTsToString(question[Qi_finalization_ts]));
+            question_window.find('.answer-deadline').attr('datetime', rc_question.convertTsToString(question.finalization_ts));
             timeAgo.render(question_window.find('.answer-deadline.timeago')); // TODO: Does this work if we haven't displayed the item yet?
         }
     } 
@@ -3267,7 +3267,7 @@ function isBeforeOpeningDate(opening_ts) {
 }
 
 function isQuestionBeforeOpeningDate(question_detail) {    
-    return isBeforeOpeningDate(question_detail[Qi_opening_ts].toNumber())
+    return isBeforeOpeningDate(question_detail.opening_ts.toNumber())
 }
 
 // TODO
@@ -3394,11 +3394,11 @@ $(document).on('click', '.post-answer-button', function(e) {
             //console.log('got current_question', current_question);
 
             // This may not be defined for an unconfirmed question
-            if (current_question[Qi_bond] == null) {
-                current_question[Qi_bond] = new BigNumber(0);
+            if (current_question.bond == null) {
+                current_question.bond = new BigNumber(0);
             }
 
-            question_json = current_question[Qi_question_json];
+            question_json = current_question.question_json;
             //console.log('got question_json', question_json);
 
             if (!isAnswerInputLookingValid(parent_div, question_json)) {
@@ -3463,7 +3463,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                     break;
             }
 
-            var min_amount = current_question[Qi_bond].times(2)
+            var min_amount = current_question.bond.times(2)
             if (bond.lt(min_amount)) {
                 parent_div.find('div.input-container.input-container--bond').addClass('is-error');
                 parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
@@ -3525,14 +3525,14 @@ $(document).on('click', '.post-answer-button', function(e) {
                 // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
                 // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
                 if (is_currency_native) {
-                    return rc.submitAnswerCommitment(question_id, answer_hash, current_question[Qi_bond], account, {from:account, gas:200000, value:bond}).then( function(txid) {
+                    return rc.submitAnswerCommitment(question_id, answer_hash, current_question.bond, account, {from:account, gas:200000, value:bond}).then( function(txid) {
                         console.log('got submitAnswerCommitment txid', txid);
                         rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
                         .then(function(txid) { handleAnswerSubmit(txid) });
                     });
                 } else {
                     ensureAmountApproved(rc.address, account, bond).then(function() {
-                        return rc.submitAnswerCommitmentERC20(question_id, answer_hash, current_question[Qi_bond], account, bond, {from:account, gas:200000}).then( function(txid) {
+                        return rc.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, account, bond, {from:account, gas:200000}).then( function(txid) {
                             console.log('got submitAnswerCommitment txid', txid);
                             rc.submitAnswerReveal.sendTransaction(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
                             .then(function(txid) { handleAnswerSubmit(txid) });
@@ -3541,14 +3541,14 @@ $(document).on('click', '.post-answer-button', function(e) {
                 }
             } else {
                 if (is_currency_native) {
-                    rc.submitAnswer.sendTransaction(question_id, new_answer, current_question[Qi_bond], {
+                    rc.submitAnswer.sendTransaction(question_id, new_answer, current_question.bond, {
                         from: account,
                         gas: 200000,
                         value: bond
                     }).then(function(txid) { handleAnswerSubmit(txid) });
                 } else {
                     ensureAmountApproved(rc.address, account, bond).then(function() {
-                        rc.submitAnswerERC20.sendTransaction(question_id, new_answer, current_question[Qi_bond], bond, {
+                        rc.submitAnswerERC20.sendTransaction(question_id, new_answer, current_question.bond, bond, {
                             from: account,
                             gas: 200000,
                         }).then(function(txid) { handleAnswerSubmit(txid) });
@@ -3687,7 +3687,7 @@ $(document).on('click', '.arbitration-button', function(e) {
         var arbitration_fee;
         //if (!question_detail[Qi_is_arbitration_due]) {}
         var arbitrator;
-        Arbitrator.at(question_detail[Qi_arbitrator]).then(function(arb) {
+        Arbitrator.at(question_detail.arbitrator).then(function(arb) {
             arbitrator = arb;
             return arb.getDisputeFee.call(question_id);
         }).then(function(fee) {
@@ -3700,7 +3700,7 @@ $(document).on('click', '.arbitration-button', function(e) {
 
         }).catch(function(err) {
             console.log('arbitrator failed with error', err);
-            markArbitratorFailed(question_detail[Qi_arbitrator], question_id);
+            markArbitratorFailed(question_detail.arbitrator, question_id);
         });
     });
 });
@@ -3710,7 +3710,7 @@ function show_bond_payments(ctrl) {
     var question_id = frm.attr('data-question-id');
     //console.log('got question_id', question_id);
     ensureQuestionDetailFetched(question_id).then(function(question) {
-        var question_json = question[Qi_question_json];
+        var question_json = question.question_json;
         var existing_answers = answersByMaxBond(question['history']);
         var payable = 0;
         var new_answer = formattedAnswerFromForm(frm, question_json);
@@ -3851,7 +3851,7 @@ function updateRankingSections(question, changed_field, changed_val) {
     // closing soon changes when we add an answer
     // high reward changes if we add reward. TODO: Should maybe include bond value, in which case it would also change on new answer
 
-    var question_id = question[Qi_question_id];
+    var question_id = question.question_id;
     //console.log('updateRankingSections', question_id, changed_field, changed_val);
     if (changed_field == Qi_finalization_ts) {
         if (isFinalized(question)) {
@@ -3868,7 +3868,7 @@ function updateRankingSections(question, changed_field, changed_val) {
                     depopulateSection(s, question_id);
                 }
             }
-            var insert_before = update_ranking_data('questions-resolved', question_id, question[Qi_finalization_ts], 'desc');
+            var insert_before = update_ranking_data('questions-resolved', question_id, question.finalization_ts, 'desc');
             //console.log('insert_before iss ', insert_before);
             if (insert_before !== -1) {
                 //console.log('poulating', question);
@@ -3876,8 +3876,8 @@ function updateRankingSections(question, changed_field, changed_val) {
                 populateSection('questions-resolved', question, insert_before);
             }
         } else {
-            //console.log('updating closing soon with timestamp', question_id, question[Qi_finalization_ts].toString());
-            var insert_before = update_ranking_data('questions-closing-soon', question_id, question[Qi_finalization_ts], 'asc');
+            //console.log('updating closing soon with timestamp', question_id, question.finalization_ts.toString());
+            var insert_before = update_ranking_data('questions-closing-soon', question_id, question.finalization_ts, 'asc');
             //console.log('insert_before was', insert_before);
             if (insert_before !== -1) {
                 populateSection('questions-closing-soon', question, insert_before);
@@ -3887,9 +3887,9 @@ function updateRankingSections(question, changed_field, changed_val) {
 
     } 
     if (changed_field == Qi_bounty || changed_field == Qi_finalization_ts) {
-        //var insert_before = update_ranking_data('questions-upcoming', question_id, question[Qi_bounty].plus(question[Qi_bond]), 'desc');
-        var insert_before = update_ranking_data('questions-upcoming', question_id, question[Qi_opening_ts], 'desc');
-        //console.log('update for new bounty', question[Qi_bounty], 'insert_before is', insert_before);
+        //var insert_before = update_ranking_data('questions-upcoming', question_id, question.bounty.plus(question.bond), 'desc');
+        var insert_before = update_ranking_data('questions-upcoming', question_id, question.opening_ts, 'desc');
+        //console.log('update for new bounty', question.bounty, 'insert_before is', insert_before);
         if (insert_before !== -1) {
             populateSection('questions-upcoming', question, insert_before);
         }
@@ -3945,7 +3945,7 @@ function handleEvent(error, result) {
                         updateQuestionWindowIfOpen(question);
                         //console.log('should be getting latest', question, result.blockNumber);
                         scheduleFinalizationDisplayUpdate(question);
-                        updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                        updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
                     });
                 });
                 break;
@@ -3954,14 +3954,14 @@ function handleEvent(error, result) {
                 ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     //console.log('updating with question', question);
                     updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_bounty, question[Qi_bounty])
+                    updateRankingSections(question, Qi_bounty, question.bounty)
                 });
                 break;
 
             default:
                 ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                    updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
                 });
 
         }
@@ -4155,7 +4155,7 @@ function scheduleFallbackTimer() {
                  ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
                     updateQuestionWindowIfOpen(question);
                     scheduleFinalizationDisplayUpdate(question);
-                    updateRankingSections(question, Qi_finalization_ts, question[Qi_finalization_ts])
+                    updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
                  });
              }
         });
@@ -4524,7 +4524,7 @@ function displayForeignProxy(datastr) {
     var txt = $('.network-status-container .network-status.'+netid_label).first().text();
     console.log(netid_label, txt);
     var fpsec = $('div.foreign-proxy-section');
-    var qjson = qdata[Qi_question_json];
+    var qjson = qdata.question_json;
     fpsec.find('.foreign-proxy-network-text').text(txt);
     fpsec.find('.question-title').text(qjson['title']);
     console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').size());
@@ -4540,7 +4540,7 @@ function foreignProxyInitNetwork(net_id) {
         return;
     }
     var arb_addr = foreign_proxy_data['foreign_proxy'];
-    var question_id = foreign_proxy_data[Qi_question_id];
+    var question_id = foreign_proxy_data.question_id;
     var arbitrator;
 
     // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
@@ -4552,7 +4552,7 @@ function foreignProxyInitNetwork(net_id) {
     Arbitrator.at(arb_addr).then(function(a) {
         arb = a;
         console.log('got arb, calling fee');
-        return arb.arbitrationRequests.call(question_id, foreign_proxy_data[Qi_bond]);
+        return arb.arbitrationRequests.call(question_id, foreign_proxy_data.bond);
     }).then(function(existing) {
         var arb_status = existing[0].toNumber();
         console.log('existing status', arb_status);
@@ -4562,14 +4562,14 @@ function foreignProxyInitNetwork(net_id) {
             arb.getDisputeFee.call(question_id).then(function(fee) {
                 $('.proxy-arbitration-fee').text(humanReadableWei(fee));
                 $('.proxy-request-arbitration-button').attr('data-question-fee', '0x' + fee.toString(16));
-                $('.proxy-contested-answer').text(rc_question.getAnswerString(foreign_proxy_data[Qi_question_json], foreign_proxy_data[Qi_best_answer]));
+                $('.proxy-contested-answer').text(rc_question.getAnswerString(foreign_proxy_data.question_json, foreign_proxy_data.best_answer));
                
                 $('.proxy-request-arbitration-button').click(function() {
                     console.log('fee si', fee.toNumber());
                     // Normally would be, but Kleros didn't like the max_previous method
                     //  arb.requestArbitration(question_id, new BigNumber(last_seen_bond_hex, 16), {from:account, value: arbitration_fee})
                     console.log('sending arbitration requiest');
-                    arb.requestArbitration(question_id, foreign_proxy_data[Qi_best_answer], {from:account, value: fee}).then(function(result) {
+                    arb.requestArbitration(question_id, foreign_proxy_data.best_answer, {from:account, value: fee}).then(function(result) {
                         $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
                     });
                 });
@@ -4750,7 +4750,7 @@ window.addEventListener('load', function() {
                     if (args['question']) {
                         //console.log('fetching question');
                         ensureQuestionDetailFetched(args['question']).then(function(question) {
-                            openQuestionWindow(question[Qi_question_id]);
+                            openQuestionWindow(question.question_id);
 
                         })
                     }
@@ -4798,3 +4798,4 @@ if (window.location.href.indexOf('realitio') != -1) {
 } else if (window.location.href.indexOf('ipfs.io') != -1) {
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
 }
+
