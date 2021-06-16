@@ -34,6 +34,7 @@ const BigNumber = require('bignumber.js');
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
+const axios = require('axios');
 
 // Special ABI for Kleros
 const ProxiedArbABI = require('../../abi/ProxiedArbitrator.json');
@@ -1268,8 +1269,8 @@ function isAnythingUnrevealed(question) {
     return false;
 }
 
-function _ensureAnswerRevealsFetched(question_id, freshness, start_block, question) {
-    var called_block = current_block_number;
+function _ensureAnswerRevealsFetched(question_id, freshness, start_block, question, found_at_block) {
+    var called_block = found_at_block ? found_at_block : current_block_number;
     var earliest_block = 0;
     var bond_indexes = {};
     for (var i=0; i<question['history'].length; i++) {
@@ -1466,8 +1467,8 @@ function isDataFreshEnough(question_id, data_type, freshness) {
 }
 
 // No freshness as this only happens once per question
-function _ensureQuestionLogFetched(question_id, freshness) {
-    var called_block = current_block_number;
+function _ensureQuestionLogFetched(question_id, freshness, found_at_block) {
+    var called_block = found_at_block ? found_at_block : current_block_number;
     return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'question_log', freshness)) {
             resolve(question_detail_list[question_id]);
@@ -1494,8 +1495,8 @@ function _ensureQuestionLogFetched(question_id, freshness) {
     });
 }
 
-function _ensureQuestionDataFetched(question_id, freshness) {
-    var called_block = current_block_number;
+function _ensureQuestionDataFetched(question_id, freshness, found_at_block) {
+    var called_block = found_at_block ? found_at_block : current_block_number;
     return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'question_call', freshness)) {
             resolve(question_detail_list[question_id]);
@@ -1552,8 +1553,8 @@ function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshne
     });
 }
 
-function _ensureAnswersFetched(question_id, freshness, start_block, injected_data) {
-    var called_block = current_block_number;
+function _ensureAnswersFetched(question_id, freshness, start_block, injected_data, found_at_block) {
+    var called_block = found_at_block ? found_at_block : current_block_number;
     return new Promise((resolve, reject) => {
         if (isDataFreshEnough(question_id, 'answers', freshness)) {
             resolve(question_detail_list[question_id]);
@@ -1603,7 +1604,7 @@ function _ensureAnswersFetched(question_id, freshness, start_block, injected_dat
 }
 
 // question_log is optional, pass it in when we already have it
-function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data) {
+function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data, found_at_block) {
 
     var params = {};
     if (ql == undefined) ql = 1;
@@ -1615,7 +1616,7 @@ function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data)
         throw new Error('no questin_id, wtf');
     }
 
-    var called_block = current_block_number;
+    var called_block = found_at_block ? found_at_block : current_block_number;
     //console.log('ensureQuestionDetailFetched with called_block', called_block);
     return new Promise((resolve, reject) => {
         _ensureQuestionLogFetched(question_id, ql).then(function(q) {
@@ -3966,6 +3967,7 @@ function handleEvent(error, result) {
 
 function pageInit(account) {
 
+
     if ($('body').hasClass('foreign-proxy')) {
         return;
     }
@@ -4021,9 +4023,14 @@ function pageInit(account) {
 
     });
 
+    fetchAndDisplayFromGraph('questions-active-answered'); 
+    fetchAndDisplayFromGraph('questions-active-unanswered'); 
+    fetchAndDisplayFromGraph('questions-upcoming'); 
+    fetchAndDisplayFromGraph('questions-resolved'); 
+
     // Now the rest of the questions
     last_polled_block = current_block_number;
-    fetchAndDisplayQuestions(current_block_number, 0);
+//    fetchAndDisplayQuestions(current_block_number, 0);
 
 };
 
@@ -4051,6 +4058,74 @@ function reflectDisplayEntryChanges() {
         }
 
     } 
+}
+
+function fetchAndDisplayFromGraph(ranking) {
+
+    var ts_now = parseInt(new Date()/1000);
+    const ranking_where = {
+        'questions-active-answered': `{answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{answerFinalizedTimestamp_lt: ${ts_now}}`,
+    }
+
+    const ranking_order = {
+        'questions-active-answered': 'lastBond', 
+        'questions-active-unanswered': 'createdTimestamp',
+        'questions-upcoming': 'createdTimestamp',
+        'questions-resolved': 'answerFinalizedTimestamp'
+    }
+
+    var where = ranking_where[ranking];
+    var orderBy = ranking_order[ranking];
+
+    var network_graph_url = chain_info.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+    console.log('graph url is ', network_graph_url);
+
+    var query = `
+      {
+        questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
+            id,
+            createdBlock
+        }
+      }  
+      `;
+
+    console.log('query', query);
+    axios.post(network_graph_url, {query: query})
+    .then((res) => {
+      console.log('res', res.data);
+      for (const q of res.data.data.questions) {
+        console.log(q)
+        var question_posted = rc.LogNewQuestion({ 
+            question_id: q.id
+        }, {
+            fromBlock: parseInt(q.createdBlock),
+            toBlock: parseInt(q.createdBlock)
+        });
+        question_posted.get(function(error, result) {
+            if (error === null && typeof result !== 'undefined') {
+                for (var i = 0; i < result.length; i++) {
+                    if (result[i].invalid_data) {
+                        continue;
+                    }
+                    handlePotentialUserAction(result[i]);
+                    handleQuestionLog(result[i]);
+                }
+            } else {
+                console.log(error);
+            }
+        });
+      }
+    })
+    .catch((error) => {
+      console.error(error)
+    })
 }
 
 function fetchAndDisplayQuestions(end_block, fetch_i) {
