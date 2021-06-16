@@ -73,9 +73,6 @@ var currency;
 // Assumes we unshift the ID onto the start
 
 // Question, as returned by questions()
-const Qi_question_id = 0;
-
-// NB This has magic values - 0 for no answer, 1 for pending arbitration, 2 for pending arbitration with answer, otherwise timestamp
 const Qi_content_hash = 1;
 const Qi_arbitrator = 2;
 const Qi_opening_ts = 3;
@@ -86,13 +83,6 @@ const Qi_bounty = 7;
 const Qi_best_answer = 8;
 const Qi_history_hash = 9;
 const Qi_bond = 10;
-const Qi_question_json = 11; // We add this manually after we load the template data
-const Qi_creation_ts = 12; // We add this manually from the event log
-const Qi_question_creator = 13; // We add this manually from the event log
-const Qi_question_created_block = 14;
-const Qi_question_text = 15;
-const Qi_template_id = 16;
-const Qi_block_mined = 17;
 
 BigNumber.config({
     RABGE: 256
@@ -1232,7 +1222,7 @@ function scheduleFinalizationDisplayUpdate(question) {
 
                     if (isFinalized(question)) {
                         updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, Qi_finalization_ts, question.finalization_ts);
+                        updateRankingSections(question, 'finalization_ts', question.finalization_ts);
 
                         // The notification code sorts by block number
                         // So get the current block
@@ -3842,7 +3832,7 @@ $('#filter-list a').on('click', function(e) {
 });
 
 
-// This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and Qi_finalization_ts.
+// This should be called with a question array containing, at a minimum, up-to-date versions of the changed_field and finalization_ts.
 // A full repopulate will work, but so will an array with these fields overwritten from a log event.
 function updateRankingSections(question, changed_field, changed_val) {
     //console.log('in updateRankingSections', question, changed_field, changed_val);
@@ -3853,7 +3843,7 @@ function updateRankingSections(question, changed_field, changed_val) {
 
     var question_id = question.question_id;
     //console.log('updateRankingSections', question_id, changed_field, changed_val);
-    if (changed_field == Qi_finalization_ts) {
+    if (changed_field == 'finalization_ts') {
         if (isFinalized(question)) {
             //console.log('isFinalized');
             var sections = ['questions-active', 'questions-closing-soon', 'questions-upcoming'];
@@ -3886,7 +3876,7 @@ function updateRankingSections(question, changed_field, changed_val) {
         }
 
     } 
-    if (changed_field == Qi_bounty || changed_field == Qi_finalization_ts) {
+    if (changed_field == 'bounty' || changed_field == 'finalization_ts') {
         //var insert_before = update_ranking_data('questions-upcoming', question_id, question.bounty.plus(question.bond), 'desc');
         var insert_before = update_ranking_data('questions-upcoming', question_id, question.opening_ts, 'desc');
         //console.log('update for new bounty', question.bounty, 'insert_before is', insert_before);
@@ -3945,7 +3935,7 @@ function handleEvent(error, result) {
                         updateQuestionWindowIfOpen(question);
                         //console.log('should be getting latest', question, result.blockNumber);
                         scheduleFinalizationDisplayUpdate(question);
-                        updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
+                        updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                     });
                 });
                 break;
@@ -3954,14 +3944,14 @@ function handleEvent(error, result) {
                 ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     //console.log('updating with question', question);
                     updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_bounty, question.bounty)
+                    updateRankingSections(question, 'bounty', question.bounty)
                 });
                 break;
 
             default:
                 ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
+                    updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                 });
 
         }
@@ -4155,7 +4145,7 @@ function scheduleFallbackTimer() {
                  ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
                     updateQuestionWindowIfOpen(question);
                     scheduleFinalizationDisplayUpdate(question);
-                    updateRankingSections(question, Qi_finalization_ts, question.finalization_ts)
+                    updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                  });
              }
         });
