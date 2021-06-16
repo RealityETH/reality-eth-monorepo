@@ -56,6 +56,11 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['graphURL'] = our_data['graphURL'];
     }
 
+    // Sometimes this is "mainnet" and we have to override it, there's "shortname" but that doesn't seem quite right either
+    if (our_data['network_name']) {
+        chainparams['network_name'] = our_data['network_name'];
+    }
+
     chainparams['blockExplorerUrls'] = [];
     if ('explorers' in chain_info) {
         for(var exi in chain_info['explorers']) {

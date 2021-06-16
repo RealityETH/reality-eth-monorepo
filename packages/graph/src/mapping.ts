@@ -87,6 +87,9 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.data = data
   question.json_str = json_str
 
+  question.createdBlock = event.block.number;
+  question.createdTimestamp = event.params.created;
+
   question.arbitrator = event.params.arbitrator;
   question.openingTimestamp = event.params.opening_ts;
   question.timeout = event.params.timeout;
