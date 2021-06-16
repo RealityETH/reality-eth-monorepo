@@ -12,6 +12,7 @@
     "deploy:ropsten": "yarn prepare:ropsten && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-ropsten",
     "deploy:kovan": "yarn prepare:kovan && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-kovan",
     "deploy:bsc": "yarn prepare:bsc && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-bsc",
+    "deploy:sokol": "yarn prepare:sokol && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-sokol",
     "deploy:xdai": "yarn prepare:xdai && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-xdai",
     "deploy:polygon": "yarn prepare:polygon && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-polygon",
     "prepare:mainnet": "node render-templates.js 1 && graph codegen",
