@@ -13,6 +13,7 @@
             "https://cloudflare-eth.com"
         ],
         "hostedRPC": "https://mainnet.socialminds.jp",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
         "blockExplorerUrls": [
             "https://etherscan.io"
         ]
@@ -28,6 +29,7 @@
         "network_name": "ropsten",
         "rpcUrls": [],
         "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten",
         "blockExplorerUrls": [
             "https://ropsten.etherscan.io"
         ]
@@ -43,6 +45,7 @@
         "network_name": "rinkeby",
         "rpcUrls": [],
         "hostedRPC": "https://rinkeby.socialminds.jp",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
         "blockExplorerUrls": [
             "https://rinkeby.etherscan.io"
         ]
@@ -62,6 +65,7 @@
             "ws://kovan.poa.network:8546"
         ],
         "hostedRPC": "https://kovan.poa.network",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-kovan",
         "blockExplorerUrls": [
             "https://kovan.etherscan.io"
         ]
@@ -91,6 +95,7 @@
             "wss://bsc-ws-node.nariox.org"
         ],
         "hostedRPC": "https://bsc-dataseed1.binance.org",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "blockExplorerUrls": [
             "https://bscscan.com",
             "https://www.bscscan.com"
@@ -111,6 +116,7 @@
             "ws://sokol.poa.network:8546"
         ],
         "hostedRPC": "https://sokol.poa.network",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
         "blockExplorerUrls": [
             "https://blockscout.com/poa/sokol"
         ]
@@ -137,6 +143,7 @@
         "iconUrls": [
             "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
         ],
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-xdai",
         "blockExplorerUrls": [
             "https://blockscout.com/poa/xdai/"
         ]
@@ -155,6 +162,7 @@
             "wss://ws-mainnet.matic.network"
         ],
         "hostedRPC": "https://rpc-mainnet.matic.network",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "blockExplorerUrls": [
             "https://polygonscan.com/"
         ]

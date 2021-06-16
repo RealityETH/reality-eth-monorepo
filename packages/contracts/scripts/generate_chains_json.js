@@ -52,6 +52,10 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['iconUrls'] = [our_data['iconURL']];
     } 
 
+    if (our_data['graphURL']) {
+        chainparams['graphURL'] = our_data['graphURL'];
+    }
+
     chainparams['blockExplorerUrls'] = [];
     if ('explorers' in chain_info) {
         for(var exi in chain_info['explorers']) {
