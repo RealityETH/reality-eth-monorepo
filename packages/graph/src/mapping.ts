@@ -32,6 +32,7 @@ export function handleNewTemplate(event: LogNewTemplate): void {
 
 export function handleNewQuestion(event: LogNewQuestion): void {
   let questionId = event.params.question_id.toHexString();
+  let contract = event.address;
   let question = new Question(questionId);
   let templateId = event.params.template_id
   let templateIdI32 = templateId.toI32();
@@ -84,6 +85,8 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   } else {
     log.info('Could not parse json for question {}', [questionId]);
   }
+
+  question.contract = contract;
 
   question.data = data
   question.json_str = json_str
