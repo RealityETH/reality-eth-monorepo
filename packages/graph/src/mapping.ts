@@ -75,7 +75,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
     if (q_outcomes_val != null && q_outcomes_val.kind === JSONValueKind.ARRAY) {
       let q_outcomes = q_outcomes_val.toArray()
       for(let i = 0; i < q_outcomes.length; i++) {
-          let outcomeID = questionId + '_' + i.toString();
+          let outcomeID = questionId + '-' + i.toString();
           let outcome = new Outcome(outcomeID);
           outcome.answer = q_outcomes[i].toString()
           outcome.question = questionId;
@@ -125,7 +125,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   let ts = event.params.ts
   let isCommitment = event.params.is_commitment;
 
-  let responseId = questionId + '_' + event.params.bond.toHexString();
+  let responseId = questionId + '-' + event.params.bond.toHexString();
   let response = new Response(responseId);
   response.question = questionId;
   if (isCommitment) {
@@ -163,7 +163,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
 
 export function handleAnswerReveal(event: LogAnswerReveal): void {
   let questionId = event.params.question_id.toHexString();
-  let responseId = questionId + '_' + event.params.bond.toHexString();
+  let responseId = questionId + '-' + event.params.bond.toHexString();
 
   let response = Response.load(responseId);
   if (response == null) {
@@ -229,7 +229,7 @@ function saveAnswer(questionId: string, answer: Bytes, bond: BigInt, ts: BigInt)
 
   let question = Question.load(questionId);
 
-  let answerId = questionId + '_' + answer.toHexString();
+  let answerId = questionId + '-' + answer.toHexString();
   let answerEntity = Answer.load(answerId);
   if(answerEntity == null) {
     answerEntity = new Answer(answerId);
