@@ -4023,14 +4023,14 @@ function pageInit(account) {
 
     });
 
-    fetchAndDisplayFromGraph('questions-active-answered'); 
-    fetchAndDisplayFromGraph('questions-active-unanswered'); 
-    fetchAndDisplayFromGraph('questions-upcoming'); 
-    fetchAndDisplayFromGraph('questions-resolved'); 
+    fetchAndDisplayQuestionFromGraph('questions-active-answered'); 
+    fetchAndDisplayQuestionFromGraph('questions-active-unanswered'); 
+    fetchAndDisplayQuestionFromGraph('questions-upcoming'); 
+    fetchAndDisplayQuestionFromGraph('questions-resolved'); 
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
-//    fetchAndDisplayQuestions(current_block_number, 0);
+//    fetchAndDisplayQuestionsFromLogs(current_block_number, 0);
 
 };
 
@@ -4060,7 +4060,7 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-function fetchAndDisplayFromGraph(ranking) {
+function fetchAndDisplayQuestionFromGraph(ranking) {
 
     var ts_now = parseInt(new Date()/1000);
     const ranking_where = {
@@ -4096,10 +4096,10 @@ function fetchAndDisplayFromGraph(ranking) {
       }  
       `;
 
-    console.log('query', query);
+    //console.log('query', query);
     axios.post(network_graph_url, {query: query})
     .then((res) => {
-      console.log('res', res.data);
+      //console.log('res', res.data);
       for (const q of res.data.data.questions) {
         console.log(q)
         var question_posted = rc.LogNewQuestion({ 
@@ -4128,7 +4128,7 @@ function fetchAndDisplayFromGraph(ranking) {
     })
 }
 
-function fetchAndDisplayQuestions(end_block, fetch_i) {
+function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
     var fetch_num;
@@ -4160,7 +4160,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         return;
     }
 
-    //console.log('fetchAndDisplayQuestions', start_block, end_block, fetch_i);
+    //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
     var question_posted = rc.LogNewQuestion({}, {
         fromBlock: start_block,
@@ -4180,7 +4180,7 @@ function fetchAndDisplayQuestions(end_block, fetch_i) {
         }
 
         console.log('fetch start end ', start_block, end_block, fetch_i);
-        fetchAndDisplayQuestions(start_block - 1, fetch_i + 1);
+        fetchAndDisplayQuestionsFromLogs(start_block - 1, fetch_i + 1);
     });
 }
 
