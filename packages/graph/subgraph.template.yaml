@@ -33,6 +33,8 @@ dataSources:
           handler: handleArbitrationRequest
         - event: LogFinalize(indexed bytes32,indexed bytes32)
           handler: handleFinalize
+        - event: LogFundAnswerBounty(indexed bytes32,uint256,uint256,indexed address)
+          handler: handleFundAnswerBounty
       file: ./src/mapping.ts
 features:
   - nonFatalErrors
