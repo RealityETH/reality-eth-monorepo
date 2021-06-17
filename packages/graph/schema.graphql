@@ -17,6 +17,8 @@ type Question @entity {
   openingTimestamp: BigInt!
   timeout: BigInt!
 
+  bounty: BigInt!
+
   currentAnswer: Bytes
   currentAnswerBond: BigInt!
   currentAnswerTimestamp: BigInt
@@ -29,6 +31,8 @@ type Question @entity {
   isPendingArbitration: Boolean!
   arbitrationOccurred: Boolean!
   answerFinalizedTimestamp: BigInt
+
+  currentScheduledFinalizationTimestamp: BigInt!
 
   outcomes: [Outcome!] @derivedFrom(field: "question")
   answers: [Answer!] @derivedFrom(field: "question")

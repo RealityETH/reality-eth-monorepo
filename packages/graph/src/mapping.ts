@@ -20,6 +20,7 @@ import {
   LogNotifyOfArbitrationRequest,
   LogFinalize,
   LogAnswerReveal,
+  LogFundAnswerBounty
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
@@ -101,6 +102,11 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.lastBond = new BigInt(0);
   question.cumulativeBonds = new BigInt(0);
 
+  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+
+  // TODO: This may theoretically be wrong if the arbitrator snaffled part of the transaction value
+  question.bounty = event.transaction.value;
+
   question.save();
 }
 
@@ -142,7 +148,8 @@ export function handleNewAnswer(event: LogNewAnswer): void {
     response.timestamp = ts;
 */
 
-  let answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
+  question.answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
+  question.currentScheduledFinalizationTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
 
   question.lastBond = event.params.bond;
   question.cumulativeBonds = question.cumulativeBonds.plus(event.params.bond);
@@ -182,6 +189,8 @@ export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): 
   question.arbitrationRequestedTimestamp = event.block.timestamp;
   question.arbitrationRequestedBy = event.params.user.toHexString();
 
+  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+
   question.save();
 
 }
@@ -200,6 +209,17 @@ export function handleFinalize(event: LogFinalize): void {
 
   question.save();
 
+}
+
+export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
+  let questionId = event.params.question_id.toHexString()
+  let question = Question.load(questionId);
+  if (question == null) {
+    log.info('cannot find question {} to finalize', [questionId]);
+    return;
+  }
+  question.bounty = event.params.bounty;
+  question.save()
 }
 
 function saveAnswer(questionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
