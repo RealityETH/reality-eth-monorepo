@@ -4063,11 +4063,12 @@ function reflectDisplayEntryChanges() {
 function fetchAndDisplayQuestionFromGraph(ranking) {
 
     var ts_now = parseInt(new Date()/1000);
+    var ctr = rc_json.address;
     const ranking_where = {
-        'questions-active-answered': `{answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-active-answered': `{contract: "${ctr}", answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{contract: "${ctr}", answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{contract: "${ctr}", openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{contract: "${ctr}", answerFinalizedTimestamp_lt: ${ts_now}}`,
     }
 
     const ranking_order = {
@@ -4091,19 +4092,20 @@ function fetchAndDisplayQuestionFromGraph(ranking) {
       {
         questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
             id,
+            questionId,
             createdBlock
         }
       }  
       `;
 
-    //console.log('query', query);
+    console.log('query', query);
     axios.post(network_graph_url, {query: query})
     .then((res) => {
-      //console.log('res', res.data);
+      console.log('res', res.data);
       for (const q of res.data.data.questions) {
         console.log(q)
         var question_posted = rc.LogNewQuestion({ 
-            question_id: q.id
+            question_id: q.question_id
         }, {
             fromBlock: parseInt(q.createdBlock),
             toBlock: parseInt(q.createdBlock)
