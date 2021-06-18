@@ -1,5 +1,5 @@
 {
-  "name": "graph",
+  "name": "@reality.eth/graph",
   "version": "0.1.2",
   "scripts": {
     "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
