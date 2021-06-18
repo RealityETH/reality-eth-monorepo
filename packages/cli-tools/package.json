@@ -33,5 +33,6 @@
   "bugs": {
     "url": "https://github.com/realitio/realitio-cli/issues"
   },
-  "homepage": "https://realit.io"
+  "homepage": "https://realit.io",
+  "gitHead": "a695f49c89a3704a081329657e5e40f4a354270e"
 }
