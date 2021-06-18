@@ -1,5 +1,7 @@
 type Question @entity {
   id: ID!
+  questionId: Bytes!
+  contract: Bytes!
 
   createdBlock: BigInt!
   createdTimestamp: BigInt!
