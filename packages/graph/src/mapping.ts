@@ -20,6 +20,7 @@ import {
   LogNotifyOfArbitrationRequest,
   LogFinalize,
   LogAnswerReveal,
+  LogFundAnswerBounty
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
@@ -30,8 +31,11 @@ export function handleNewTemplate(event: LogNewTemplate): void {
 }
 
 export function handleNewQuestion(event: LogNewQuestion): void {
-  let questionId = event.params.question_id.toHexString();
-  let question = new Question(questionId);
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let contract = event.address;
+  let question = new Question(contractQuestionId);
+  question.questionId = event.params.question_id;  
+
   let templateId = event.params.template_id
   let templateIdI32 = templateId.toI32();
 
@@ -73,16 +77,18 @@ export function handleNewQuestion(event: LogNewQuestion): void {
     if (q_outcomes_val != null && q_outcomes_val.kind === JSONValueKind.ARRAY) {
       let q_outcomes = q_outcomes_val.toArray()
       for(let i = 0; i < q_outcomes.length; i++) {
-          let outcomeID = questionId + '_' + i.toString();
+          let outcomeID = contractQuestionId + '-' + i.toString();
           let outcome = new Outcome(outcomeID);
           outcome.answer = q_outcomes[i].toString()
-          outcome.question = questionId;
+          outcome.question = contractQuestionId;
           outcome.save()
         }
     }
   } else {
-    log.info('Could not parse json for question {}', [questionId]);
+    log.info('Could not parse json for question {}', [contractQuestionId]);
   }
+
+  question.contract = contract;
 
   question.data = data
   question.json_str = json_str
@@ -101,24 +107,29 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.lastBond = new BigInt(0);
   question.cumulativeBonds = new BigInt(0);
 
+  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+
+  // TODO: This may theoretically be wrong if the arbitrator snaffled part of the transaction value
+  question.bounty = event.transaction.value;
+
   question.save();
 }
 
 export function handleNewAnswer(event: LogNewAnswer): void {
 
-  let questionId = event.params.question_id.toHexString();
-  let question = Question.load(questionId);
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let question = Question.load(contractQuestionId);
   if (question == null) {
-    log.info('cannot find question {} to answer', [questionId]);
+    log.info('cannot find question {} to answer', [contractQuestionId]);
     return;
   }
 
   let ts = event.params.ts
   let isCommitment = event.params.is_commitment;
 
-  let responseId = questionId + '_' + event.params.bond.toHexString();
+  let responseId = contractQuestionId + '-' + event.params.bond.toHexString();
   let response = new Response(responseId);
-  response.question = questionId;
+  response.question = contractQuestionId;
   if (isCommitment) {
     response.commitmentId = event.params.answer;
     response.isUnrevealed = true;
@@ -133,7 +144,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   response.save();
 
   if (!isCommitment) {
-    saveAnswer(questionId, event.params.answer, event.params.bond, event.params.ts);
+    saveAnswer(contractQuestionId, event.params.answer, event.params.bond, event.params.ts);
   }
   // response.bondAggregate = response.bondAggregate.plus(bond);
 
@@ -142,7 +153,8 @@ export function handleNewAnswer(event: LogNewAnswer): void {
     response.timestamp = ts;
 */
 
-  let answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
+  question.answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
+  question.currentScheduledFinalizationTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
 
   question.lastBond = event.params.bond;
   question.cumulativeBonds = question.cumulativeBonds.plus(event.params.bond);
@@ -152,8 +164,8 @@ export function handleNewAnswer(event: LogNewAnswer): void {
 }
 
 export function handleAnswerReveal(event: LogAnswerReveal): void {
-  let questionId = event.params.question_id.toHexString();
-  let responseId = questionId + '_' + event.params.bond.toHexString();
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let responseId = contractQuestionId + '-' + event.params.bond.toHexString();
 
   let response = Response.load(responseId);
   if (response == null) {
@@ -170,10 +182,10 @@ export function handleAnswerReveal(event: LogAnswerReveal): void {
 }
 
 export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): void {
-  let questionId = event.params.question_id.toHexString()
-  let question = Question.load(questionId);
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let question = Question.load(contractQuestionId);
   if (question == null) {
-    log.info('cannot find question {} to begin arbitration', [questionId]);
+    log.info('cannot find question {} to begin arbitration', [contractQuestionId]);
     return;
   }
 
@@ -182,15 +194,17 @@ export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): 
   question.arbitrationRequestedTimestamp = event.block.timestamp;
   question.arbitrationRequestedBy = event.params.user.toHexString();
 
+  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+
   question.save();
 
 }
 
 export function handleFinalize(event: LogFinalize): void {
-  let questionId = event.params.question_id.toHexString()
-  let question = Question.load(questionId);
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let question = Question.load(contractQuestionId);
   if (question == null) {
-    log.info('cannot find question {} to finalize', [questionId]);
+    log.info('cannot find question {} to finalize', [contractQuestionId]);
     return;
   }
 
@@ -202,15 +216,26 @@ export function handleFinalize(event: LogFinalize): void {
 
 }
 
-function saveAnswer(questionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
+export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let question = Question.load(contractQuestionId);
+  if (question == null) {
+    log.info('cannot find question {} to finalize', [contractQuestionId]);
+    return;
+  }
+  question.bounty = event.params.bounty;
+  question.save()
+}
 
-  let question = Question.load(questionId);
+function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
 
-  let answerId = questionId + '_' + answer.toHexString();
+  let question = Question.load(contractQuestionId);
+
+  let answerId = contractQuestionId + '-' + answer.toHexString();
   let answerEntity = Answer.load(answerId);
   if(answerEntity == null) {
     answerEntity = new Answer(answerId);
-    answerEntity.question = questionId;
+    answerEntity.question = contractQuestionId;
     answerEntity.answer = answer;
     answerEntity.bondAggregate = bond;
     answerEntity.lastBond = bond;

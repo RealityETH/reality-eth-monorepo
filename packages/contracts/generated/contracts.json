@@ -13,6 +13,15 @@
                 }
             }
         },
+        "GNO": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0x8f1CC53bf34932591177CDA24723486205CA7510",
+                "block": 12654677,
+                "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "TRST": {
             "RealityETH_ERC20-2.0": {
                 "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",

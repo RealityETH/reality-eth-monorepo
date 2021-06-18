@@ -109,7 +109,7 @@
             "symbol": "POA",
             "decimals": 18
         },
-        "network_name": "sokol",
+        "network_name": "poa-sokol",
         "rpcUrls": [
             "https://sokol.poa.network",
             "wss://sokol.poa.network/wss",
