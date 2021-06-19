@@ -672,7 +672,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                                     'question': qtext,
                                     'created': new BigNumber(parseInt(new Date().getTime() / 1000)),
                                     'opening_ts': new BigNumber(parseInt(opening_ts))
-                                }
+                                },
+                                'address': rc.address
                             }
                             var fake_call = [];
                             fake_call[Qi_finalization_ts] = new BigNumber(0);
@@ -1368,6 +1369,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
                 question.template_id = data.args['template_id'].toNumber();
                 question.block_mined = data.blockNumber;
                 question.opening_ts = data.args['opening_ts'];
+                question.contract = data.address;
                 //question.bounty = data.args['bounty'];
             }
             break;
@@ -2500,7 +2502,9 @@ console.log(ans);
     }
 
     // Arbitrator
-    if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
+    if (question_detail.arbitrator.toLowerCase() == question_detail.contract.toLowerCase()) {
+        rcqa.addClass('no-arbitrator');
+    } else if (!isArbitrationPending(question_detail) && !isFinalized(question_detail)) {
         console.log('getting arb stuff')
         Arbitrator.at(question_detail.arbitrator).then(function(arb) {
             console.log('arb is there, getting dispute fee')
@@ -4098,12 +4102,12 @@ function fetchAndDisplayQuestionFromGraph(ranking) {
       }  
       `;
 
-    console.log('query', query);
+    //console.log('query', query);
     axios.post(network_graph_url, {query: query})
     .then((res) => {
-      console.log('res', res.data);
+      //console.log('res', res.data);
       for (const q of res.data.data.questions) {
-        console.log(q)
+        //console.log(q)
         var question_posted = rc.LogNewQuestion({ 
             question_id: q.question_id
         }, {
@@ -4399,6 +4403,13 @@ function populateArbitratorSelect(network_arbs) {
 
         myr.deployed().then(function(myri) {
             $.each(network_arbs, function(na_addr, na_title) {
+                if (na_addr.toLowerCase() == myr.address.toLowerCase()) {
+                    var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                    populateArbitratorOptionLabel(arb_item, new BigNumber(0), na_title, "");
+                    arb_item.val(na_addr);
+                    append_before.after(arb_item);
+                    return true;
+                }
                 mya.at(na_addr).then(function(arb_inst) {
                     return arb_inst.realitio.call();
                 }).then(function(rc_addr) {
@@ -4768,6 +4779,8 @@ window.addEventListener('load', function() {
                 console.log('Token not recognized', currency);
                 return;
             }
+            arbitrator_list[rc_json.address] = 'No arbitration (highest bond wins)';
+            verified_arbitrators[rc_json.address] = true;
 
             initCurrency(currency);
             if (!is_currency_native) {

@@ -3023,6 +3023,17 @@ body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {displa
     cursor: pointer;
 }
 
+.no-arbitrator-only { display:none; }
+.no-arbitrator .no-arbitrator-only { display:block; }
+
+.no-arbitrator-message {
+    font-size: 14px;
+    background-color: $ultralight-gray;
+    padding:6px;
+    border: 1px solid $blue;
+    text-align:center;
+}
+
 .failed-arbitrator-only { display:none; }
 .failed-arbitrator .failed-arbitrator-only { display:block; }
 
