@@ -107,7 +107,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.lastBond = new BigInt(0);
   question.cumulativeBonds = new BigInt(0);
 
-  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+  question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
 
   // TODO: This may theoretically be wrong if the arbitrator snaffled part of the transaction value
   question.bounty = event.transaction.value;
@@ -194,7 +194,7 @@ export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): 
   question.arbitrationRequestedTimestamp = event.block.timestamp;
   question.arbitrationRequestedBy = event.params.user.toHexString();
 
-  question.currentScheduledFinalizationTimestamp = new BigInt((2^63)-1);
+  question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
 
   question.save();
 
