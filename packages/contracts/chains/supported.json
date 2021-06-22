@@ -20,15 +20,12 @@
     },
     "56": {
         "explorerURL": "https://www.bscscan.com",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc"
-    },
-    "77": {
-        "explorerURL": "https://blockscout.com/poa/sokol",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "network_name": "bsc"
     },
     "77": {
         "explorerURL": "https://blockscout.com/poa/sokol",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
         "network_name": "poa-sokol"
     },
     "100": {
