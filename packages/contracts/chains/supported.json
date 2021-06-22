@@ -20,29 +20,23 @@
     },
     "56": {
         "explorerURL": "https://www.bscscan.com",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc"
-    },
-    "77": {
-        "explorerURL": "https://blockscout.com/poa/sokol",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "network_name": "bsc"
     },
     "77": {
         "explorerURL": "https://blockscout.com/poa/sokol",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
         "network_name": "poa-sokol"
     },
     "100": {
         "iconURL": "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png",
         "explorerURL": "https://blockscout.com/poa/xdai/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-xdai"
-    },
-    "137": {
-        "explorerURL": "https://polygonscan.com/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-xdai",
         "network_name": "xdai"
     },
     "137": {
         "explorerURL": "https://polygonscan.com/",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "network_name": "matic"
     }
 }
