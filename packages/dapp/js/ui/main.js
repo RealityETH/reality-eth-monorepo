@@ -4034,7 +4034,7 @@ function pageInit(account) {
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
-//    fetchAndDisplayQuestionsFromLogs(current_block_number, 0);
+    fetchAndDisplayQuestionsFromLogs(current_block_number, 0);
 
 };
 
