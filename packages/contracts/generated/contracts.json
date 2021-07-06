@@ -37,6 +37,11 @@
     },
     "4": {
         "ETH": {
+            "Arbitrator_RealityETH-2.1": {
+                "address": "0xA63Db03F2706a6DFFccE58B8B567872104d7B48f",
+                "block": 8886242,
+                "reality_eth_address": "0xa09CE5E7943f281A782A0dC021c4029F9088BEC4"
+            },
             "RealityETH-2.0": {
                 "address": "0x3D00D77ee771405628a4bA4913175EcC095538da",
                 "block": 3175028,
@@ -44,6 +49,14 @@
                 "notes": null,
                 "arbitrators": {
                     "0x02321745bE4a141E78db6C39834396f8df00e2a0": "Reality.eth Team (rinkeby main)"
+                }
+            },
+            "RealityETH-2.1": {
+                "address": "0xa09CE5E7943f281A782A0dC021c4029F9088BEC4",
+                "block": 8886224,
+                "notes": null,
+                "arbitrators": {
+                    "0xA63Db03F2706a6DFFccE58B8B567872104d7B48f": "Reality.eth Team (rinkeby main)"
                 }
             }
         },
