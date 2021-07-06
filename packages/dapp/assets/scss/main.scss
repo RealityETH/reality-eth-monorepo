@@ -113,7 +113,7 @@ a.upper-button:hover {
 #site-header {
     width: 100%;
     display: inline-block;
-    height: 240px;
+    height: 250px;
     text-align: right;
 }
 
@@ -131,15 +131,8 @@ a.upper-button:hover {
 }
 
 #token-selection {
-    text-align:right;
-    text-align-last:right;
-    margin-left: 4px;
-    margin-bottom: 4px;
-    margin-top: 10px;
-    padding: 4px;
     font-weight: normal;
     display: inline-block;
-    margin-top: none;
     color: #939596;
 }
 
@@ -3049,4 +3042,13 @@ span.add-network-button > a {
 }
 span.add-network-button > a:hover {
     text-decoration:none;
+}
+
+div.top-content-controls {
+    width:100%;
+    height:34px;
+}
+
+div.top-content-controls select {
+    padding:8px;
 }
