@@ -156,7 +156,7 @@ function nonceFromSeed(paramstr) {
     var seed = window.localStorage.getItem('commitment-seed');
     if (seed == null) {
         var crypto = require('crypto');
-        seed = crypto.randomBytes(32).toHexString();
+        seed = crypto.randomBytes(32).toString('hex');
         console.log('made seed', seed);
         window.localStorage.setItem('commitment-seed', seed);
     }
