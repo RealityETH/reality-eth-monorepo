@@ -1379,6 +1379,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
             if (data && (freshness >= question.freshness.question_log)) {
                 question.freshness.question_log = freshness;
                 //question.question_id = data.args['question_id'];
+                question.arbitrator = data.args['arbitrator'];
                 question.creation_ts = data.args['created'];
                 question.question_creator = data.args['user'];
                 question.question_created_block = data.blockNumber;
@@ -1499,8 +1500,11 @@ async function _ensureQuestionLogFetched(question_id, freshness, found_at_block)
     } else {
         var question_filter = RealityCheck.filters.LogNewQuestion(question_id);
         var question_arr = await RealityCheck.queryFilter(question_filter, START_BLOCK, 'latest');
+        if (question_arr.length == 0) {
+            throw new Error("Question log not found, maybe try again later");
+        }
         if (question_arr.invalid_data) { 
-            reject('invalid data');
+            throw new Error("Invalid data");
         }
         var question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
         return question;
@@ -1513,6 +1517,9 @@ async function _ensureQuestionDataFetched(question_id, freshness, found_at_block
         return (question_detail_list[question_id]);
     } else {
         const result = await RealityCheck.functions.questions(question_id);
+        if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
+            throw new Error("question not found in call, maybe try again later", question_id);
+        }
         var q = await filledQuestionDetail(question_id, 'question_call', called_block, result);
         return q;
         /*
@@ -2527,7 +2534,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         // Normal arbitrators should respond correctly to getDisputeFee()
         arb.functions.getDisputeFee(question_id).then(function(fee_arr) {
             const fee = fee_arr[0];
-            console.log('get fee, rendering')
+            console.log('got arbitration fee, rendering', fee)
             //rcqa.find('.arbitrator').text(question_detail.arbitrator);
             rcqa.find('.arbitration-fee').text(decimalizedBigNumberToHuman(fee, true));
             rcqa.find('.arbitration-button').removeClass('unpopulated');
@@ -2541,7 +2548,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             // This will tell us if we have a foreign proxy or not
 
             // Non-standard arbitrators should tell us how they're non-standard with their metadata
-            console.log('caught error with getDisputeFee');
+            // console.log('caught error with getDisputeFee, question was', question_detail, err);
             const metadata = await loadArbitratorMetaData(question_detail.arbitrator);
             if (metadata.foreignProxy) {
                 const fp_abi = [
