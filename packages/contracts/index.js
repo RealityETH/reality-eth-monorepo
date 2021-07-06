@@ -115,6 +115,44 @@ function realityETHConfig(network_id, token, version) {
     return config;
 }
 
+function realityETHConfigs(network_id, token) {
+    let configs = {};
+    const versions = ['2.1', '2.1-rc1', '2.0'];
+    const token_info = networkTokenList(network_id);
+    if (!token_info[token]) {
+        console.log("Token not found for network");
+        return null;
+        //throw new Error("Token not found for network");
+    }
+    const contract_name = token_info[token].is_native ? 'RealityETH' : 'RealityETH_ERC20';
+    // If no version specified, crawl for the latest
+    let is_latest_found = false;
+    for (let i=0; i<versions.length; i++) {
+        if (all_config[""+network_id][token][contract_name + '-' + versions[i]]) {
+            const version = versions[i];
+            //const configf = './networks/'+network_id+'/'+token+'/'+contract_name+'-'+version+'.json';
+            const contract_version = contract_name + '-' + version;
+            const config = all_config[""+network_id][token][contract_version];
+            if (!config) {
+                console.log("Could not find config for "+network_id + "/" + token + "/" + contract_version);
+                return null;
+                //throw new Error("Could not find config for "+network_id + "/" + token + "/" + contract_version);
+            }
+            if (!config.arbitrators) {
+                config.arbitrators = [];
+            }
+            config.version_number = version;
+            config.network_id = network_id;
+            config.contract_name = contract_name;
+            config.contract_version = contract_version;
+            config.is_latest = !is_latest_found;
+            configs[config.address] = config;
+            is_latest_found = true;
+        }
+    }
+    return configs;
+}
+
 function networkData(network_id) {
     return chain_info[""+network_id];
 }
@@ -156,6 +194,7 @@ function defaultTokenForNetwork(network_id) {
 }
 
 module.exports.realityETHConfig = realityETHConfig;
+module.exports.realityETHConfigs = realityETHConfigs;
 module.exports.realityETHInstance = realityETHInstance;
 module.exports.arbitratorInstance = arbitratorInstance;
 module.exports.erc20Instance = erc20Instance;
