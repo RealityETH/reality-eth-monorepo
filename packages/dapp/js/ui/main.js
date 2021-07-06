@@ -4502,6 +4502,20 @@ function accountInit(account) {
 
 }
 
+function initContractSelect(available_configs, selected_config) {
+    let sel = $('select#contract-selection');
+    for(const ac in available_configs) {
+        const acobj = available_configs[ac];
+        let op = $('<option>');
+        op.attr('value', ac).text('reality.eth v'+acobj.version_number);
+        if (ac.toLowerCase() == selected_config.address.toLowerCase()) {
+            op.prop('selected', 'selected');
+        }
+        sel.append(op);
+    }
+    sel.removeClass('uninitialized');
+}
+
 function initCurrency(curr) {
     $('.token-ticker-text').text(currency);
     for(t in token_info) {
@@ -4715,11 +4729,23 @@ window.addEventListener('load', async function() {
         console.log('picked token', currency);
     }
 
-    const rc_config = rc_contracts.realityETHConfig(net_id, currency);
+    const all_rc_configs = rc_contracts.realityETHConfigs(net_id, currency);
+    let rc_config = null;
+    if (args['contract']) {
+        rc_config = all_rc_configs[args['contract']]; 
+    }
+
+    // If not found, load the default
+    if (!rc_config) {
+        rc_config = rc_contracts.realityETHConfig(net_id, currency);
+    }
+    
     if (!rc_config) {
         $('body').addClass('error-invalid-network-for-token').addClass('error');
         return;
     }
+
+    initContractSelect(all_rc_configs, rc_config);
 
     START_BLOCK = rc_config.block;
 
@@ -4816,6 +4842,18 @@ $('#token-selection').change(function(e) {
         return;
     }
     window.location.hash = '#!/token/'+tkn;
+    location.reload();
+});
+
+$('#contract-selection').change(function(e) { 
+    e.preventDefault();
+    e.stopPropagation();
+    var ctr = $(this).val();
+    if (ctr.toLowerCase() == RealityCheck.address.toLowerCase()) {
+        // already selected
+        return;
+    }
+    window.location.hash = '#!/contract/'+ctr;
     location.reload();
 });
 

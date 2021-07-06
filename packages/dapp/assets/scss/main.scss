@@ -140,6 +140,19 @@ a.upper-button:hover {
     visibility: hidden
 }
 
+#contract-selection {
+    font-weight: normal;
+    display: inline-block;
+    color: #939596;
+    float:right;
+}
+
+#ZZZcontract-selection.uninitialized {
+    visibility: hidden
+}
+
+
+
 hr.upper-divider {
     height: 3px;
     border: none;
