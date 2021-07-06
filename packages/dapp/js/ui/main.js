@@ -4420,20 +4420,13 @@ function waitForBlock(result) {
     });
 }
 
-function validateArbitratorForContract(arb_addr) {
-    return new Promise((resolve, reject) => {
-        if (verified_arbitrators[arb_addr]) {
-            resolve(true);
-        }
-
-        const mya = contract(arb_json);
-        mya.setProvider(web3js.currentProvider);
-        mya.at(arb_addr).then(function(myainst) {
-            myainst.realitio.call().then(function(rslt) {
-                resolve(RealityCheck.address.toLowerCase() == rslt.toLowerCase());
-            });
-        });
-    })
+async function validateArbitratorForContract(arb_addr) {
+    if (verified_arbitrators[arb_addr]) {
+        return true;
+    }
+    const ar = Arbitrator.attach(arb_addr);
+    const rslt = ar.functions.realitio();
+    return (RealityCheck.address.toLowerCase() == rslt.toLowerCase());
 }
 
 
