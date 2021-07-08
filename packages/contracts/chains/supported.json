@@ -38,5 +38,8 @@
         "explorerURL": "https://polygonscan.com/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "network_name": "matic"
+    },
+    "421611": {
+        "network_name": "arbitrum_testnet_tbd"
     }
 }
