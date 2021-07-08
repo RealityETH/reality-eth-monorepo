@@ -60,7 +60,7 @@ var USE_COMMIT_REVEAL = false;
 
 var HOSTED_RPC_NODE;
 
-var START_BLOCK;
+let START_BLOCKS = {};
 
 var network_id = null;
 var BLOCK_EXPLORER = null;
@@ -100,6 +100,7 @@ var q_min_activity_blocks = {};
 // These will be populated in onload, once web3js is loaded
 let RC_INSTANCES = {};
 let RC_DEFAULT_ADDRESS = null;
+let RC_DISPLAYED_CONTRACTS = [];
 var RealityCheck; // TODO remove
 var Arbitrator;
 
@@ -328,9 +329,13 @@ function dragMoveListener(event) {
     target.setAttribute('data-y', y);
 }
 
+function RCStartBlock(ctr) {
+    return START_BLOCKS[ctr.toLowerCase()]; 
+}
+
 function RCInstance(ctr, signed) {
     if (!ctr) {
-        throw new Error("contract address not found for question", question);
+        throw new Error("contract address not supplied", ctr);
     }
     let ret = RC_INSTANCES[ctr.toLowerCase()];;
     if (!ret) {
@@ -767,7 +772,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
         });
 
-        set_hash_param({'question': question_id});
+        set_hash_param({'question': contractQuestionID(q)});
 
         var window_id = 'qadetail-' + contractQuestionID(q);
         win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
@@ -1098,7 +1103,6 @@ function handlePotentialUserAction(entry, is_watch) {
     }
 
     if (!account) {
-console.log('no account');
         return;
     }
 
@@ -1116,7 +1120,7 @@ console.log('no account');
     // This is the same for all events
     var question_id = entry.args['question_id'];
     var contract_question_id = cqToID(contract, question_id);
-console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
+    // console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
 
     // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
     // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
@@ -1129,10 +1133,10 @@ console.log('handlePotentialUserAction made contract_question_id', contract_ques
             return;
         }
 
-console.log('blockNumber was ', entry.blockNumber);
+        //console.log('blockNumber was ', entry.blockNumber);
         q_min_activity_blocks[contract_question_id] = entry.blockNumber;
 
-        fetchUserEventsAndHandle(null, entry.address, question_id, START_BLOCK, 'latest');
+        fetchUserEventsAndHandle(null, entry.address, question_id, RCStartBlock(contract), 'latest');
 
         updateUserBalanceDisplay();
 
@@ -1534,12 +1538,12 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
     var called_block = found_at_block ? found_at_block : current_block_number;
     var contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract_question_id, 'question_log', freshness)) {
-console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, question_detail_list[contract_question_id]);
+        //console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, question_detail_list[contract_question_id]);
         return question_detail_list[contract_question_id];
     } else {
-console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
+        //console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
         var question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
-        var question_arr = await RCInstance(contract).queryFilter(question_filter, START_BLOCK, 'latest');
+        var question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
         if (question_arr.length == 0) {
             throw new Error("Question log not found, maybe try again later");
         }
@@ -1620,10 +1624,10 @@ async function _ensureAnswersFetched(contract, question_id, freshness, start_blo
     var called_block = found_at_block ? found_at_block : current_block_number;
     var contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract, question_id, 'answers', freshness)) {
-console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
+        //console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
         return (question_detail_list[contract_question_id]);
     } 
-console.log('_ensureAnswersFetched fresh ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
+    //console.log('_ensureAnswersFetched fresh ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
     const answer_filter = RCInstance(contract).filters.LogNewAnswer(null, question_id);
     const answer_arr = await RCInstance(contract).queryFilter(answer_filter, start_block, 'latest');
 
@@ -2036,7 +2040,7 @@ function handleQuestionLog(item) {
     // Then fetch anything else we need to display
     ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1).then(function(question) {
 
-console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
+        //console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
         updateQuestionWindowIfOpen(question);
 
         if (category && question.question_json.category != category) {
@@ -2252,8 +2256,22 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 });
 
-function parseContractQuestionID(id) {
-    return id.split('-');
+function parseContractQuestionID(id, fallback_contract) {
+console.log('fallback_contract', fallback_contract);
+    const bits = id.split('-');
+    if (bits.length === 2) {
+        return bits; 
+    }
+    if (bits.length === 1) {
+console.log('try fallback');
+        if (fallback_contract) {
+console.log('got fallback');
+            return [fallback_contract, bits[0]]; 
+        }
+    } else {
+console.log('bits length was', bits.length);
+    throw new Error("Could not parse contract-question-id " + id); 
+    }
 }
 
 function contractQuestionID(question) {
@@ -2286,7 +2304,7 @@ function openQuestionWindow(contract_question_id) {
 
 function updateQuestionWindowIfOpen(question) {
 
-console.log('updateQuestionWindowIfOpen', question);
+    //console.log('updateQuestionWindowIfOpen', question);
     var window_id = 'qadetail-' + contractQuestionID(question);
     var rcqa = $('#' + window_id);
     if (rcqa.length) {
@@ -2917,7 +2935,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
         return true;
     }
 
-console.log('insertNotificationItem has contractd', contract,' from evt', evt);
+    //console.log('insertNotificationItem has contractd', contract,' from evt', evt);
 
     var existing_notification_items = notifications.find('.notifications-item');
 
@@ -2964,6 +2982,8 @@ console.log('insertNotificationItem has contractd', contract,' from evt', evt);
 
 function renderNotifications(qdata, entry) {
 
+    const contract = entry.address;
+
     var question_id = qdata.question_id;
     //console.log('renderNotification', action, entry, qdata);
 
@@ -2973,11 +2993,10 @@ function renderNotifications(qdata, entry) {
 
     // TODO: Handle whether you asked the question
 
-    const qfilter = RealityCheck.filters.LogNewQuestion(question_id);
+    const qfilter = RCInstance(contract).filters.LogNewQuestion(question_id);
 
     var ntext;
     var evt = entry['event']
-    const contract = entry.address;
     switch (evt) {
         case 'LogNewQuestion':
             var notification_id = web3js.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
@@ -2996,7 +3015,7 @@ function renderNotifications(qdata, entry) {
                 }
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
+                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone answered your question';
                     } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -3018,7 +3037,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
+                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone revealed their answer to your question';
                     } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -3039,7 +3058,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
+                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone added reward to your question';
                     } else {
@@ -3063,7 +3082,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
+                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     var history_idx = qdata['history'].length - 2;
                     if (result2[0].args.user == account) {
                         ntext = 'Someone requested arbitration to your question';
@@ -3085,7 +3104,7 @@ function renderNotifications(qdata, entry) {
             var finalized_question = rc.LogNewQuestion({
                 question_id: question_id
             }, {
-                fromBlock: START_BLOCK,
+                fromBlock: RCStartBlock(contract),
                 toBlock: 'latest'
             });
             var timestamp = null;
@@ -3093,7 +3112,7 @@ function renderNotifications(qdata, entry) {
             if (entry.timestamp) {
                 timestamp = entry.timestamp;
             }
-            RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
+            RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                 if (result2[0].args.user == account) {
                     ntext = 'Your question is finalized';
                 } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -4128,7 +4147,10 @@ console.log('skipping graph');
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
-    fetchAndDisplayQuestionsFromLogs(current_block_number, 0);
+    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+        const ctr = RC_DISPLAYED_CONTRACTS[i];
+        fetchAndDisplayQuestionsFromLogs(ctr, current_block_number, 0);
+    }
 
 };
 
@@ -4209,7 +4231,7 @@ async function fetchAndDisplayQuestionFromGraph(ranking) {
     }
 }
 
-async function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
+async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
     var fetch_num;
@@ -4220,19 +4242,19 @@ async function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
     }
 
     var start_block = end_block - fetch_num;
-    if (start_block < START_BLOCK) {
-        start_block = START_BLOCK;
+    if (start_block < RCStartBlock(contract)) {
+        start_block = RCStartBlock(contract);
     }
-    if (end_block <= START_BLOCK) {
+    if (end_block <= RCStartBlock(contract)) {
 
-        console.log('History read complete back to block', START_BLOCK);
+        console.log('History read complete back to block', RCStartBlock(contract));
 
         is_initial_load_done = true;
         window.setTimeout( reflectDisplayEntryChanges, 10000 );
         $('body').addClass('initial-loading-done');
 
         scheduleFallbackTimer();
-        runPollingLoop(RealityCheck);
+        runPollingLoop(RCInstance(contract));
 
         //setTimeout(bounceEffect, 500);
 
@@ -4243,8 +4265,8 @@ async function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
 
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
-    var question_posted = RealityCheck.filters.LogNewQuestion();
-    var result = await RealityCheck.queryFilter(question_posted, start_block, end_block);
+    var question_posted = RCInstance(contract).filters.LogNewQuestion();
+    var result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
         /* 
         if (error === null && typeof result !== 'undefined') {
         */
@@ -4262,7 +4284,7 @@ async function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
         */
 
     console.log('fetch start end ', start_block, end_block, fetch_i);
-    fetchAndDisplayQuestionsFromLogs(start_block - 1, fetch_i + 1);
+    fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
 }
 
 function runPollingLoop(contract_instance) {
@@ -4344,9 +4366,9 @@ function scheduleFallbackTimer() {
     }, 20000);
 }
 
-function handleUserFilterItem(filter, start_block, end_block) {
+function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
-    RealityCheck.queryFilter(filter, start_block, end_block).then(function(results) {
+    rcinst.queryFilter(filter, start_block, end_block).then(function(results) {
         for (var i = 0; i < results.length; i++) {
             //console.log('handlePotentialUserAction', i, results[i]);
             handlePotentialUserAction(results[i]);
@@ -4372,16 +4394,16 @@ function handleUserFilterItem(filter, start_block, end_block) {
 
 function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
 // TODO: If question id, make sure we have the right contract, etc
-    //console.log('fetching for filter', filter);
-    const rcinst = RCInstance(contract.toLowerCase());
+    console.log('fetching user events for contract', contract);
+    const rcinst = RCInstance(contract);
 
-    handleUserFilterItem(rcinst.filters.LogNewAnswer(null, question_id, null, acc));
-    handleUserFilterItem(rcinst.filters.LogAnswerReveal(question_id, acc));
-    handleUserFilterItem(rcinst.filters.LogFundAnswerBounty(question_id, null, null, acc));
-    handleUserFilterItem(rcinst.filters.LogNotifyOfArbitrationRequest(question_id, acc));
+    handleUserFilterItem(rcinst, rcinst.filters.LogNewAnswer(null, question_id, null, acc));
+    handleUserFilterItem(rcinst, rcinst.filters.LogAnswerReveal(question_id, acc));
+    handleUserFilterItem(rcinst, rcinst.filters.LogFundAnswerBounty(question_id, null, null, acc));
+    handleUserFilterItem(rcinst, rcinst.filters.LogNotifyOfArbitrationRequest(question_id, acc));
     if (question_id) {
         // No user param
-        handleUserFilterItem(rcinst.filters.LogFinalize(question_id));
+        handleUserFilterItem(rcinst, rcinst.filters.LogFinalize(question_id));
     }
 
 }
@@ -4458,7 +4480,7 @@ console.log('got network_arbs', network_arbs);
         is_first = false;
 
         $.each(network_arbs, function(na_addr, na_title) {
-            if (na_addr.toLowerCase() == RealityCheck.address.toLowerCase()) {
+            if (na_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase()) {
                 var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                 populateArbitratorOptionLabel(arb_item, ethers.BigNumber.from(0), na_title, "");
                 arb_item.val(na_addr);
@@ -4469,7 +4491,7 @@ console.log('got network_arbs', network_arbs);
             mya.functions.realitio().then(function(call_response) {
                 const rc_addr = call_response[0];
                 console.log('arb has rc addr', rc_addr);
-                var is_arb_valid = (rc_addr.toLowerCase() == RealityCheck.address.toLowerCase());
+                var is_arb_valid = (rc_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase());
                 verified_arbitrators[na_addr] = is_arb_valid;
                 // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
                 // For this we'll check our original list for the network, then just check against the failed list
@@ -4481,7 +4503,7 @@ console.log('got network_arbs', network_arbs);
                 return is_arb_valid;
             }).then(function(is_arb_valid) {
                 if (is_arb_valid) {
-                    RealityCheck.functions.arbitrator_question_fees(na_addr).then(function(fee_call_response) {
+                    RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(na_addr).then(function(fee_call_response) {
                         const fee = fee_call_response[0];
                         var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                         arb_item.val(na_addr);
@@ -4530,7 +4552,7 @@ async function validateArbitratorForContract(arb_addr) {
     }
     const ar = Arbitrator.attach(arb_addr);
     const rslt = ar.functions.realitio();
-    return (RealityCheck.address.toLowerCase() == rslt.toLowerCase());
+    return (RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase() == rslt.toLowerCase());
 }
 
 
@@ -4600,27 +4622,34 @@ function getAccount(fail_soft) {
 
 function accountInit(account) {
 
-    for(const ctr in RC_INSTANCES) {
-        fetchUserEventsAndHandle(account, ctr, null, START_BLOCK, 'latest');
+    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+        const ctr = RC_DISPLAYED_CONTRACTS[i];
+        fetchUserEventsAndHandle(account, ctr, null, RCStartBlock(ctr), 'latest');
     }
 
     updateUserBalanceDisplay();
 
 }
 
-function initContractSelect(available_configs, selected_config) {
+function initContractSelect(available_configs, selected_config, show_all) {
     let sel = $('select#contract-selection');
     for(const ac in available_configs) {
         const acobj = available_configs[ac];
         let op = $('<option>');
         op.attr('value', ac).text('reality.eth v'+acobj.version_number);
-        if (ac.toLowerCase() == selected_config.address.toLowerCase()) {
-            op.prop('selected', 'selected');
+        if (!show_all) {
+            if (ac.toLowerCase() == selected_config.address.toLowerCase()) {
+                op.prop('selected', 'selected');
+            }
         }
         sel.append(op);
     }
+
+    sel.attr('data-old-val', sel.val());
     sel.removeClass('uninitialized');
 }
+
+
 
 function initCurrency(curr) {
     $('.token-ticker-text').text(currency);
@@ -4815,7 +4844,7 @@ window.addEventListener('load', async function() {
     provider.on("block", (blockNumber) => {
         if (blockNumber > current_block_number) {
             current_block_number = blockNumber;
-console.log('updated current_block_number to ', current_block_number);
+            //console.log('updated current_block_number to ', current_block_number);
         }
     })
 
@@ -4838,8 +4867,15 @@ console.log('updated current_block_number to ', current_block_number);
 
     const all_rc_configs = rc_contracts.realityETHConfigs(net_id, currency);
     let rc_config = null;
+    let show_all = true;
     if (args['contract']) {
         rc_config = all_rc_configs[args['contract']]; 
+        show_all = false;
+    }
+
+    for(const cfg_addr in all_rc_configs) {
+        const cfg = all_rc_configs[cfg_addr]; 
+        START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
     }
 
     // If not found, load the default
@@ -4852,9 +4888,7 @@ console.log('updated current_block_number to ', current_block_number);
         return;
     }
 
-    initContractSelect(all_rc_configs, rc_config);
-
-    START_BLOCK = rc_config.block;
+    initContractSelect(all_rc_configs, rc_config, show_all);
 
     arbitrator_list = rc_config.arbitrators;
 
@@ -4907,6 +4941,9 @@ console.log('updated current_block_number to ', current_block_number);
     for(const cfg in all_rc_configs) {
         const cfg_addr = all_rc_configs[cfg].address;
         RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
+        if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
+            RC_DISPLAYED_CONTRACTS.push(cfg_addr);
+        }
     }
     
     RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
@@ -4923,18 +4960,26 @@ console.log('updated current_block_number to ', current_block_number);
 
     pageInit();
     if (args['question']) {
-        const question = await ensureQuestionDetailFetched(args['question']);
-        openQuestionWindow(question.question_id);
+        try {
+            const [ctr, qid] = parseContractQuestionID(args['question'], RC_DEFAULT_ADDRESS);
+            const question = await ensureQuestionDetailFetched(ctr, qid);
+            openQuestionWindow(contractQuestionID(question));
+        } catch (err) {
+            console.log('could not open question in URL', err);
+        }
     }
 
     // NB If this fails we'll try again when we need to do something using the account
     getAccount(true);
 
-    // Listen for all events
-    RealityCheck.on("*", function(eventObject) {
-        console.log('got all events', eventObject);
-//        handleEvent(null, eventObject);
-    });
+    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+        const rcaddr = RC_DISPLAYED_CONTRACTS[i];
+        // Listen for all events
+        RCInstance(rcaddr).on("*", function(eventObject) {
+            console.log('got all events for contract ', rcaddr, eventObject);
+            handleEvent(null, eventObject);
+        });
+    }
     
     //runPollingLoop(RealityCheck);
     //setTimeout(bounceEffect, 8000);
@@ -4962,11 +5007,15 @@ $('#contract-selection').change(function(e) {
     e.preventDefault();
     e.stopPropagation();
     var ctr = $(this).val();
-    if (ctr.toLowerCase() == RealityCheck.address.toLowerCase()) {
+    if ($(this).attr('data-old-val') == ctr) {
         // already selected
         return;
     }
-    window.location.hash = '#!/contract/'+ctr;
+    if (ctr == '') {
+        window.location.hash = '#!/';
+    } else {
+        window.location.hash = '#!/contract/'+ctr;
+    }
     location.reload();
 });
 
