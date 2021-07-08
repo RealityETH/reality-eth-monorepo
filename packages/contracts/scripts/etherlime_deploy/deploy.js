@@ -29,13 +29,15 @@ const networks = {
     'bsc': 56,
     'sokol': 77,
     'xdai': 100,
-    'polygon': 137
+    'polygon': 137,
+    'arbitrum-rinkeby': 421611
 }
 const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
-    'polygon': 'https://rpc-mainnet.maticvigil.com'
+    'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc'
 }
 
 function constructContractTemplate(contract_name) {
