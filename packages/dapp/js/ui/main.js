@@ -47,6 +47,7 @@ var failed_arbitrators = {};
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {};
+let USER_CLAIMABLE_BY_CONTRACT = {};
 
 var category = null;
 var template_blocks = {};
@@ -938,9 +939,11 @@ function isFinalized(question) {
 
 $(document).on('click', '.answer-claim-button', function() {
 
+    const contract = $(this).closest('.contract-claim-section').attr('data-contract');
+
     var is_single_question = !$(this).hasClass('claim-all');
 
-    var doClaim = function(is_single_question, question_detail) {
+    var doClaim = function(contract, is_single_question, question_detail) {
 
         var claim_args;
         var claiming;
@@ -954,12 +957,12 @@ $(document).on('click', '.answer-claim-button', function() {
                 //console.log('nothing to claim');
                 // Nothing there, so force a refresh
                 openQuestionWindow(contractQuestionID(question_detail));
-                delete user_claimable[question_id];
+                delete USER_CLAIMABLE_BY_CONTRACT[contract][question_id];
             }
 
         } else {
 
-            claiming = user_claimable;
+            claiming = USER_CLAIMABLE_BY_CONTRACT[contract];
             claim_args = mergePossibleClaimable(claiming);
 
         }
@@ -976,7 +979,7 @@ $(document).on('click', '.answer-claim-button', function() {
         //  5 answers 73702
 
         var gas = 140000 + (30000 * claim_args['history_hashes'].length);
-        const SignedRealityCheck = RCInstance(RC_DEFAULT_ADDRESS, true); // TODO: Loop through all instances somehow
+        const SignedRealityCheck = RCInstance(contract, true); 
         console.log('claiming:', claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers']);
         SignedRealityCheck.functions.claimMultipleAndWithdrawBalance(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
             from: account
@@ -987,25 +990,28 @@ $(document).on('click', '.answer-claim-button', function() {
             //console.log('claim result txid', txid);
             for (var qid in claiming) {
                 if (claiming.hasOwnProperty(qid)) {
-                    if (user_claimable[qid]) {
-                        user_claimable[qid].txid = txid;
+                    if (USER_CLAIMABLE_BY_CONTRACT[contract][qid]) {
+                        USER_CLAIMABLE_BY_CONTRACT[contract][qid].txid = txid;
                     }
                 }
             }
-            updateClaimableDisplay();
+            updateClaimableDisplay(contract);
             updateUserBalanceDisplay();
         });
     }
 
     if (is_single_question) {
         var contract_question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-contract-question-id');
-        var [contract, question_id] = parseContractQuestionID(contract_question_id);
+        var [ctr, question_id] = parseContractQuestionID(contract_question_id);
+        if (ctr != contract) {
+            throw new Error("Contract ID mismatch", ctr, contract);
+        }
         ensureQuestionDetailFetched(contract, question_id).then(function(qdata) {
-            doClaim(is_single_question, qdata);
+            doClaim(contract, is_single_question, qdata);
         });
     } else {
         // TODO: Should we be refetching all the questions we plan to claim for?
-        doClaim(is_single_question);
+        doClaim(contract, is_single_question);
     }
 
 });
@@ -1167,7 +1173,7 @@ function handlePotentialUserAction(entry, is_watch) {
             if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
                 //console.log('got event, checking effect on claims', entry);
                 if (updateClaimableDataForQuestion(question, entry, is_watch)) {
-                    updateClaimableDisplay();
+                    updateClaimableDisplay(contract);
                     updateUserBalanceDisplay();
                 }
             }
@@ -1182,39 +1188,42 @@ function handlePotentialUserAction(entry, is_watch) {
 }
 
 function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
+    const contract = question.contract;
     var poss = possibleClaimableItems(question);
     //console.log('made poss for question', poss, question.question_id);
     if (poss['total'].isZero()) {
-        delete user_claimable[question.question_id];
+        delete USER_CLAIMABLE_BY_CONTRACT[contract][question.question_id];
     } else {
-        user_claimable[question.question_id] = poss;
+        USER_CLAIMABLE_BY_CONTRACT[contract][question.question_id] = poss;
     }
     return true; // TODO: Make this only return true if it changed something
 }
 
-async function updateClaimableDisplay() {
-    var unclaimed = mergePossibleClaimable(user_claimable, false);
+async function updateClaimableDisplay(contract) {
+    var unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], false);
     //console.log('updateClaimableDisplay with user_claimable, unclaimed', user_claimable, unclaimed);
-    var claiming = mergePossibleClaimable(user_claimable, true);
+    var claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], true);
+    //console.log('got claiming', claiming);
+    var sec = $('.contract-claim-section').filter('[data-contract=' + contract + ']'); 
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
-        $('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
+        sec.find('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
         var txid = txids.join(', '); // TODO: Handle multiple links properly
-        $('.answer-claiming-container').find('a.txid').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
-        $('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
-        $('.answer-claiming-container').show();
+        sec.find('.answer-claiming-container').find('a.txid').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
+        sec.find('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
+        sec.find('.answer-claiming-container').show();
     } else {
-        $('.answer-claiming-container').fadeOut();
+        sec.find('.answer-claiming-container').fadeOut();
     }
 
-    const balance_arr = await RCInstance(RC_DEFAULT_ADDRESS).functions.balanceOf(account); // TODO: Loop through all somehow
+    const balance_arr = await RCInstance(contract).functions.balanceOf(account); 
     const balance = balance_arr[0];
     var ttl = balance.add(unclaimed.total);
     if (ttl.gt(0)) {
-        $('.answer-claim-button.claim-all').find('.claimable-eth').text(decimalizedBigNumberToHuman(ttl));
-        $('.answer-claim-button.claim-all').show();
+        sec.find('.answer-claim-button.claim-all').find('.claimable-eth').text(decimalizedBigNumberToHuman(ttl));
+        sec.find('.answer-claim-button.claim-all').show();
     } else {
-        $('.answer-claim-button.claim-all').fadeOut();
+        sec.find('.answer-claim-button.claim-all').fadeOut();
     }
 
 }
@@ -1304,7 +1313,7 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
                                 }
                                 //console.log('sending fake entry', fake_entry, question);
                             if (updateClaimableDataForQuestion(question, fake_entry, true)) {
-                                updateClaimableDisplay();
+                                updateClaimableDisplay(contract);
                                 updateUserBalanceDisplay();
                             }
 
@@ -4394,7 +4403,7 @@ function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
 function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
 // TODO: If question id, make sure we have the right contract, etc
-    console.log('fetching user events for contract', contract);
+    //console.log('fetching user events for contract', contract);
     const rcinst = RCInstance(contract);
 
     handleUserFilterItem(rcinst, rcinst.filters.LogNewAnswer(null, question_id, null, acc));
@@ -4624,6 +4633,7 @@ function accountInit(account) {
 
     for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
+        USER_CLAIMABLE_BY_CONTRACT[ctr] = {};
         fetchUserEventsAndHandle(account, ctr, null, RCStartBlock(ctr), 'latest');
     }
 
@@ -4649,7 +4659,18 @@ function initContractSelect(available_configs, selected_config, show_all) {
     sel.removeClass('uninitialized');
 }
 
-
+// We show the claim button section for each contract
+// It's a bit hokey but having multiple contracts to claim from should be pretty unusual
+function setupContractClaimSections(rc_contracts) {
+    for(var i=0; i<rc_contracts.length; i++) {
+        const rcaddr = rc_contracts[i];
+        const tmpl = $('.contract-claim-section-template');
+        const sec = tmpl.clone();
+        sec.attr('data-contract', rcaddr);
+        sec.removeClass('contract-claim-section-template');
+        tmpl.after(sec);
+    }
+}
 
 function initCurrency(curr) {
     $('.token-ticker-text').text(currency);
@@ -4968,6 +4989,8 @@ window.addEventListener('load', async function() {
             console.log('could not open question in URL', err);
         }
     }
+
+    setupContractClaimSections(RC_DISPLAYED_CONTRACTS);
 
     // NB If this fails we'll try again when we need to do something using the account
     getAccount(true);
