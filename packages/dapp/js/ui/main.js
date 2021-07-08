@@ -98,7 +98,9 @@ var block_timestamp_cache = {};
 var q_min_activity_blocks = {};
 
 // These will be populated in onload, once web3js is loaded
-var RealityCheck;
+let RC_INSTANCES = {};
+let RC_DEFAULT_ADDRESS = null;
+var RealityCheck; // TODO remove
 var Arbitrator;
 
 var account;
@@ -202,20 +204,21 @@ function rcbrowserHeight() {
 }
 rcbrowserHeight();
 
-function markArbitratorFailed(addr, question_id) {
+function markArbitratorFailed(addr, contract_question_id) {
     failed_arbitrators[addr.toLowerCase()] = true;
-    if (question_id) {
-        $('[data-question-id="' + question_id + '"]').addClass('failed-arbitrator');
+    if (contract_question_id) {
+        $('[data-contract-question-id="' + contract_question_id + '"]').addClass('failed-arbitrator');
     }
 }
 
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        var question_id = rcbrowser.attr('data-question-id');
-        if (typeof window_position[question_id] !== 'undefined') {
-            let left = parseInt(window_position[question_id]['x']) + 'px';
-            let top = parseInt(window_position[question_id]['y']) + 'px';
+        var contract_question_id = rcbrowser.attr('data-contract-question-id');
+        var [contract, question_id] = parseContractQuestionID(contract_question_id);
+        if (typeof window_position[contract_question_id] !== 'undefined') {
+            let left = parseInt(window_position[contract_question_id]['x']) + 'px';
+            let top = parseInt(window_position[contract_question_id]['y']) + 'px';
             rcbrowser.css('left', left);
             rcbrowser.css('top', top);
             return;
@@ -325,6 +328,20 @@ function dragMoveListener(event) {
     target.setAttribute('data-y', y);
 }
 
+function RCInstance(ctr, signed) {
+    if (!ctr) {
+        throw new Error("contract address not found for question", question);
+    }
+    let ret = RC_INSTANCES[ctr.toLowerCase()];;
+    if (!ret) {
+        throw new Error("contract not found", ctr, signed, is_new);
+    }
+    if (signed) {
+        return ret.connect(signer);
+    } 
+    return ret;
+}
+
 $(document).on('change', 'input.arbitrator-other', function() {
     var arb_text = $(this).val();
     var sel_cont = $(this).closest('.select-container');
@@ -332,11 +349,11 @@ $(document).on('change', 'input.arbitrator-other', function() {
         const ar = Arbitrator.attach(arb_text);
         ar.functions.realitio.then(function(rcaddr_arr) {
             const rcaddr = rcaddr_arr[0];
-            if (rcaddr != RealityCheck.address) {
+            if (rcaddr != RCInstance(RC_DEFAULT_ADDRESS).address) {
                 console.log('reality check mismatch');
                 return;
             }
-            RealityCheck.functions.arbitrator_question_fees(arb_text).then(function(fee_arr) {
+            RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(arb_text).then(function(fee_arr) {
                 const fee = fee_arr[0];
                 populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), fee);
             }).catch(function() {
@@ -674,7 +691,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         return;
     }
 
-    const fee_response = await RealityCheck.functions.arbitrator_question_fees(arbitrator);
+    const fee_response = await RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(arbitrator);
 console.log('got fee response', fee_response, 'for arb', arbitrator);
     const fee = fee_response[0];
     if (!fee.eq(expected_question_fee)) {
@@ -687,6 +704,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         //console.log('sent tx with id', txid);
 
         const txid = tx_response.hash;
+        const contract = RC_DEFAULT_ADDRESS;
 
         // Make a fake log entry
         var fake_log = {
@@ -703,7 +721,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
                 'created': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
                 'opening_ts': ethers.BigNumber.from(parseInt(opening_ts))
             },
-            'address': RealityCheck.address
+            'address': contract 
         }
         var fake_call = [];
         fake_call[Qi_finalization_ts] = ethers.BigNumber.from(0);
@@ -717,9 +735,9 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         fake_call[Qi_history_hash] = "0x0000000000000000000000000000000000000000000000000000000000000000";
         fake_call[Qi_opening_ts] = ethers.BigNumber.from(opening_ts);
 
-        var q = filledQuestionDetail(question_id, 'question_log', 0, fake_log);
-        q = filledQuestionDetail(question_id, 'question_call', 0, fake_call);
-        q = filledQuestionDetail(question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+        var q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
+        q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
+        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
 
         // Turn the post question window into a question detail window
         var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -732,6 +750,8 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         win.addClass('unconfirmed-transaction').addClass('has-warnings');
         win.attr('data-pending-txid', txid);
 
+        const contract_question_id = contractQuestionID(q);
+
         win.find('.rcbrowser__close-button').on('click', function() {
             let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
             let left = parseInt(parent_div.css('left').replace('px', ''));
@@ -740,19 +760,19 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
             let data_y = (parseInt(parent_div.attr('data-y')) || 0);
             left += data_x;
             top += data_y;
-            window_position[question_id] = {};
-            window_position[question_id]['x'] = left;
-            window_position[question_id]['y'] = top;
+            window_position[contract_question_id] = {};
+            window_position[contract_question_id]['x'] = left;
+            window_position[contract_question_id]['y'] = top;
             win.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
         });
 
         set_hash_param({'question': question_id});
 
-        var window_id = 'qadetail-' + question_id;
+        var window_id = 'qadetail-' + contractQuestionID(q);
         win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
         win.attr('id', window_id);
-        win.attr('data-question-id', question_id);
+        win.attr('data-contract-question-id', contractQuestionID(q));
         Ps.initialize(win.find('.rcbrowser-inner').get(0));
 
         // TODO: Add handling for tx_response.wait() 
@@ -760,7 +780,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
 
     }
 
-    const SignedRealityCheck = RealityCheck.connect(signer);
+    const SignedRealityCheck = RCInstance(RC_DEFAULT_ADDRESS, true);
     let tx_response = null;
     if (is_currency_native) { 
         tx_response = await SignedRealityCheck.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
@@ -770,7 +790,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         });
     } else {
         var cost = reward.add(fee);
-        await ensureAmountApproved(RealityCheck.address, account, cost);
+        await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, account, cost);
         tx_response = await SignedRealityCheck.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
             from: account,
             // gas: 200000,
@@ -928,7 +948,7 @@ $(document).on('click', '.answer-claim-button', function() {
             if (claim_args['total'].isZero()) {
                 //console.log('nothing to claim');
                 // Nothing there, so force a refresh
-                openQuestionWindow(question_id);
+                openQuestionWindow(contractQuestionID(question_detail));
                 delete user_claimable[question_id];
             }
 
@@ -951,7 +971,7 @@ $(document).on('click', '.answer-claim-button', function() {
         //  5 answers 73702
 
         var gas = 140000 + (30000 * claim_args['history_hashes'].length);
-        const SignedRealityCheck = RealityCheck.connect(signer);
+        const SignedRealityCheck = RCInstance(RC_DEFAULT_ADDRESS, true); // TODO: Loop through all instances somehow
         console.log('claiming:', claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers']);
         SignedRealityCheck.functions.claimMultipleAndWithdrawBalance(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
             from: account
@@ -973,8 +993,9 @@ $(document).on('click', '.answer-claim-button', function() {
     }
 
     if (is_single_question) {
-        var question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-question-id');
-        ensureQuestionDetailFetched(question_id).then(function(qdata) {
+        var contract_question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-contract-question-id');
+        var [contract, question_id] = parseContractQuestionID(contract_question_id);
+        ensureQuestionDetailFetched(contract, question_id).then(function(qdata) {
             doClaim(is_single_question, qdata);
         });
     } else {
@@ -1056,7 +1077,8 @@ $('div.loadmore-button').on('click', function(e) {
             previd = display_entries[sec]['ids'][i + 1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
-        ensureQuestionDetailFetched(nextid, 1, 1, 1, -1).then(function(qdata) {
+        // TODO: Handle multiple contracts
+        ensureQuestionDetailFetched(RC_DEFAULT_ADDRESS, nextid, 1, 1, 1, -1).then(function(qdata) {
             populateSection(sec, qdata, previd);
         });
     }
@@ -1076,6 +1098,7 @@ function handlePotentialUserAction(entry, is_watch) {
     }
 
     if (!account) {
+console.log('no account');
         return;
     }
 
@@ -1088,13 +1111,17 @@ function handlePotentialUserAction(entry, is_watch) {
         return;
     }
 
+    const contract = entry.address;
+
     // This is the same for all events
     var question_id = entry.args['question_id'];
+    var contract_question_id = cqToID(contract, question_id);
+console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
 
     // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
     // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
     // TODO: The filter could be tigher on the case where we already knew we had it, but we didn't know how soon the user was interested in it
-    if ((!q_min_activity_blocks[question_id]) || (entry.blockNumber < q_min_activity_blocks[question_id])) {
+    if ((!q_min_activity_blocks[contract_question_id]) || (entry.blockNumber < q_min_activity_blocks[contract_question_id])) {
         // Event doesn't, in itself, have anything to show we are interested in it
         // NB we may be interested in it later if some other event shows that we should be interested in this question.
         if (!isForCurrentUser(entry)) {
@@ -1102,9 +1129,10 @@ function handlePotentialUserAction(entry, is_watch) {
             return;
         }
 
-        q_min_activity_blocks[question_id] = entry.blockNumber;
+console.log('blockNumber was ', entry.blockNumber);
+        q_min_activity_blocks[contract_question_id] = entry.blockNumber;
 
-        fetchUserEventsAndHandle(null, question_id, START_BLOCK, 'latest');
+        fetchUserEventsAndHandle(null, entry.address, question_id, START_BLOCK, 'latest');
 
         updateUserBalanceDisplay();
 
@@ -1122,16 +1150,16 @@ function handlePotentialUserAction(entry, is_watch) {
 
     // User action
     //console.log('got event as user action', entry);
-    if ((entry['event'] == 'LogNewAnswer') && (submitted_question_id_timestamp[question_id] > 0)) {
-        delete submitted_question_id_timestamp[question_id];
-        ensureQuestionDetailFetched(question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
+    if ((entry['event'] == 'LogNewAnswer') && (submitted_question_id_timestamp[contract_question_id] > 0)) {
+        delete submitted_question_id_timestamp[contract_question_id];
+        ensureQuestionDetailFetched(contract, question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
             displayQuestionDetail(question);
             renderUserAction(question, entry, is_watch);
         });
     } else {
 
         //console.log('fetch for notifications: ', question_id, current_block_number, current_block_number);
-        ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+        ensureQuestionDetailFetched(contract, question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
             if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
                 //console.log('got event, checking effect on claims', entry);
                 if (updateClaimableDataForQuestion(question, entry, is_watch)) {
@@ -1139,7 +1167,7 @@ function handlePotentialUserAction(entry, is_watch) {
                     updateUserBalanceDisplay();
                 }
             }
-            //console.log('rendering');
+            //console.log('rendering entry', entry);
             renderUserAction(question, entry, is_watch);
         }).catch(function(e) {
             console.log('got error fetching: ', question_id, e);
@@ -1175,7 +1203,7 @@ async function updateClaimableDisplay() {
         $('.answer-claiming-container').fadeOut();
     }
 
-    const balance_arr = await RealityCheck.functions.balanceOf(account);
+    const balance_arr = await RCInstance(RC_DEFAULT_ADDRESS).functions.balanceOf(account); // TODO: Loop through all somehow
     const balance = balance_arr[0];
     var ttl = balance.add(unclaimed.total);
     if (ttl.gt(0)) {
@@ -1223,18 +1251,19 @@ function mergePossibleClaimable(posses, pending) {
     return combined;
 }
 
-function scheduleFinalizationDisplayUpdate(question) {
+function scheduleFinalizationDisplayUpdate(contract, question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
         var question_id = question.question_id;
+        var contract_question_id = contractQuestionID(question);
         var is_done = false;
-        if (question_event_times[question_id]) {
-            if (question_event_times[question_id].finalization_ts == question.finalization_ts) {
+        if (question_event_times[contract_question_id]) {
+            if (question_event_times[contract_question_id].finalization_ts == question.finalization_ts) {
                 //console.log('leaving existing timeout for question', question_id)
                 is_done = true;
             } else {
-                clearTimeout(question_event_times[question_id].timeout_id);
+                clearTimeout(question_event_times[contract_question_id].timeout_id);
                 //console.log('clearing timeout for question', question_id)
             }
         }
@@ -1245,10 +1274,10 @@ function scheduleFinalizationDisplayUpdate(question) {
             //console.log('update_time is ', update_time);
             var timeout_id = setTimeout(function() {
                 // TODO: Call again here in case it changed and we missed it
-                clearTimeout(question_event_times[question_id].timeout_id);
-                delete question_event_times[question_id];
+                clearTimeout(question_event_times[contract_question_id].timeout_id);
+                delete question_event_times[contract_question_id];
 
-                ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+                ensureQuestionDetailFetched(question.contract, question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
 
                     if (isFinalized(question)) {
                         updateQuestionWindowIfOpen(question);
@@ -1282,7 +1311,7 @@ function scheduleFinalizationDisplayUpdate(question) {
                 });
 
             }, update_time);
-            question_event_times[question_id] = {
+            question_event_times[contract_question_id] = {
                 'finalization_ts': question.finalization_ts,
                 'timeout_id': timeout_id
             };
@@ -1298,7 +1327,7 @@ function isAnythingUnrevealed(question) {
     return false;
 }
 
-async function _ensureAnswerRevealsFetched(question_id, freshness, start_block, question, found_at_block) {
+async function _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question, found_at_block) {
     var called_block = found_at_block ? found_at_block : current_block_number;
     var earliest_block = 0;
     var bond_indexes = {};
@@ -1316,8 +1345,8 @@ async function _ensureAnswerRevealsFetched(question_id, freshness, start_block, 
     }
     // console.log('earliest_block', earliest_block);
     if (earliest_block > 0) {
-        const reveal_filter = RealityCheck.filters.LogAnswerReveal(question_id);
-        const answer_arr = await RealityCheck.queryFilter(reveal_filter, start_block, 'latest');
+        const reveal_filter = RCInstance(contract).filters.LogAnswerReveal(question_id);
+        const answer_arr = await RCInstance(contract).queryFilter(reveal_filter, start_block, 'latest');
         console.log('got reveals', answer_arr);
         for(var j=0; j<answer_arr.length; j++) {
             var bond = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
@@ -1332,7 +1361,7 @@ async function _ensureAnswerRevealsFetched(question_id, freshness, start_block, 
             question['history'][idx].args = args;
             delete bond_indexes[bond];
         }
-        question_detail_list[question_id] = question; // TODO : use filledQuestionDetail here? 
+        question_detail_list[contractQuestionID(question)] = question; // TODO : use filledQuestionDetail here? 
         //console.log('populated question, result is', question);
         //console.log('bond_indexes once done', bond_indexes);
     } 
@@ -1343,15 +1372,21 @@ async function _ensureAnswerRevealsFetched(question_id, freshness, start_block, 
 
 
 
-function filledQuestionDetail(question_id, data_type, freshness, data) {
+function filledQuestionDetail(contract, question_id, data_type, freshness, data) {
 
     if (!question_id) {
-        console.log(question_id, data_type, freshness, data);
+        console.log(contract, question_id, data_type, freshness, data);
         throw Error("filledQuestionDetail called without question_id, wtf")
     }
 
     // Freshness should look like this:
     // {question_log: 0, question_call: 12345, answers: -1}
+
+    // Freshness is used to tell us at what block the data was current.
+    // Since events can arrive out of order, we may get data that was older than what we already have, which we should ignore.
+    // When querying data, freshness is used to tell us how new we need the data to be, ie if we already have data for a block, we don't need to fetch it again.
+
+    // A request for freshness of -1 indicates that we don't need to fetch the data for a particular request.
 
     // Data should look like this:
     // {question_log: {}, question_call: {}, answers: []} )
@@ -1369,8 +1404,10 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
         'history_unconfirmed': []
     };
     question.question_id = question_id;
-    if (question_detail_list[question_id]) {
-        question = question_detail_list[question_id];
+    question.contract = contract;
+    const contract_question_id = contractQuestionID(question);
+    if (question_detail_list[contract_question_id]) {
+        question = question_detail_list[contract_question_id];
     }
 
     switch (data_type) {
@@ -1463,7 +1500,7 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
     }
 
-    question_detail_list[question_id] = question;
+    question_detail_list[contract_question_id] = question;
 
     //console.log('was called filledQuestionDetail', question_id, data_type, freshness, data);
     //console.log('returning question', question);
@@ -1472,18 +1509,18 @@ function filledQuestionDetail(question_id, data_type, freshness, data) {
 
 }
 
-function isDataFreshEnough(question_id, data_type, freshness) {
+function isDataFreshEnough(contract_question_id, data_type, freshness) {
     //console.log('looking at isDataFreshEnough for ', question_id, data_type, freshness);
     // We set -1 when we don't need the data at all
     if (freshness == -1) {
         //console.log('-1, not needed');
         return true;
     }
-    if (!question_detail_list[question_id]) {
+    if (!question_detail_list[contract_question_id]) {
         //console.log('question not found, definitely fetch');
         return false;
     }
-    if (question_detail_list[question_id].freshness[data_type] >= freshness) {
+    if (question_detail_list[contract_question_id].freshness[data_type] >= freshness) {
         //console.log('is fresh', question_detail_list[question_id].freshness, freshness)
         return true;
     } else {
@@ -1493,34 +1530,38 @@ function isDataFreshEnough(question_id, data_type, freshness) {
 }
 
 // No freshness as this only happens once per question
-async function _ensureQuestionLogFetched(question_id, freshness, found_at_block) {
+async function _ensureQuestionLogFetched(contract, question_id, freshness, found_at_block) {
     var called_block = found_at_block ? found_at_block : current_block_number;
-    if (isDataFreshEnough(question_id, 'question_log', freshness)) {
-        return question_detail_list[question_id];
+    var contract_question_id = cqToID(contract, question_id);
+    if (isDataFreshEnough(contract_question_id, 'question_log', freshness)) {
+console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, question_detail_list[contract_question_id]);
+        return question_detail_list[contract_question_id];
     } else {
-        var question_filter = RealityCheck.filters.LogNewQuestion(question_id);
-        var question_arr = await RealityCheck.queryFilter(question_filter, START_BLOCK, 'latest');
+console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
+        var question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
+        var question_arr = await RCInstance(contract).queryFilter(question_filter, START_BLOCK, 'latest');
         if (question_arr.length == 0) {
             throw new Error("Question log not found, maybe try again later");
         }
         if (question_arr.invalid_data) { 
             throw new Error("Invalid data");
         }
-        var question = filledQuestionDetail(question_id, 'question_log', called_block, question_arr[0]);
+        var question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
         return question;
     }
 }
 
-async function _ensureQuestionDataFetched(question_id, freshness, found_at_block) {
+async function _ensureQuestionDataFetched(contract, question_id, freshness, found_at_block) {
     var called_block = found_at_block ? found_at_block : current_block_number;
+    var contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(question_id, 'question_call', freshness)) {
-        return (question_detail_list[question_id]);
+        return (question_detail_list[contract_question_id]);
     } else {
-        const result = await RealityCheck.functions.questions(question_id);
+        const result = await RCInstance(contract).functions.questions(question_id);
         if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
             throw new Error("question not found in call, maybe try again later", question_id);
         }
-        var q = await filledQuestionDetail(question_id, 'question_call', called_block, result);
+        var q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
         return q;
         /*
         rc.questions.call(question_id).then(function(result) {
@@ -1534,21 +1575,22 @@ async function _ensureQuestionDataFetched(question_id, freshness, found_at_block
     }
 }
 
-async function _ensureQuestionTemplateFetched(question_id, template_id, qtext, freshness) {
+async function _ensureQuestionTemplateFetched(contract, question_id, template_id, qtext, freshness) {
     //console.log('ensureQuestionDetailFetched', template_id, template_content[template_id], qtext);
-    if (isDataFreshEnough(question_id, 'question_json', freshness)) {
-        return question_detail_list[question_id];
+    const contract_question_id = cqToID(contract, question_id);
+    if (isDataFreshEnough(contract_question_id, 'question_json', freshness)) {
+        return question_detail_list[contract_question_id];
     } else {
         if (template_content[template_id]) {
-            var question = filledQuestionDetail(question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
+            var question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(template_content[template_id], qtext));
             return (question);
         } else {
             // The category text should be in the log, but the contract has the block number
             // This allows us to make a more efficient pin-point log call for the template content
-            const template_block_num_bn_arr = await RealityCheck.functions.templates(template_id);
+            const template_block_num_bn_arr = await RCInstance(contract).functions.templates(template_id);
             const template_block_num = template_block_num_bn_arr[0].toNumber();
-            const template_filter = RealityCheck.filters.LogNewTemplate(template_id);
-            const cat_logs = await RealityCheck.queryFilter(template_filter, template_block_num, template_block_num);
+            const template_filter = RCInstance(contract).filters.LogNewTemplate(template_id);
+            const cat_logs = await RCInstance(contract).queryFilter(template_filter, template_block_num, template_block_num);
             if (cat_logs.length == 1) {
                 //console.log('adding template content', cat_arr, 'template_id', template_id);
                 template_content[template_id] = cat_logs[0].args.question_text;
@@ -1559,7 +1601,7 @@ async function _ensureQuestionTemplateFetched(question_id, template_id, qtext, f
                 } catch (e) {
                     console.log('error populating template', template_content[template_id], qtext, e);
                 }
-                var question = filledQuestionDetail(question_id, 'question_json', 1, populatedq);
+                var question = filledQuestionDetail(contract, question_id, 'question_json', 1, populatedq);
                 return question;
 /*
                 console.log('error fetching template - unexpected cat length');
@@ -1574,13 +1616,16 @@ async function _ensureQuestionTemplateFetched(question_id, template_id, qtext, f
     }
 }
 
-async function _ensureAnswersFetched(question_id, freshness, start_block, injected_data, found_at_block) {
+async function _ensureAnswersFetched(contract, question_id, freshness, start_block, injected_data, found_at_block) {
     var called_block = found_at_block ? found_at_block : current_block_number;
-    if (isDataFreshEnough(question_id, 'answers', freshness)) {
-        return (question_detail_list[question_id]);
+    var contract_question_id = cqToID(contract, question_id);
+    if (isDataFreshEnough(contract, question_id, 'answers', freshness)) {
+console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
+        return (question_detail_list[contract_question_id]);
     } 
-    const answer_filter = RealityCheck.filters.LogNewAnswer(null, question_id);
-    const answer_arr = await RealityCheck.queryFilter(answer_filter, start_block, 'latest');
+console.log('_ensureAnswersFetched fresh ', contract_question_id, 'because ', current_block_number, ' vs ', freshness);
+    const answer_filter = RCInstance(contract).filters.LogNewAnswer(null, question_id);
+    const answer_arr = await RCInstance(contract).queryFilter(answer_filter, start_block, 'latest');
 
                 /*
                 if (error) {
@@ -1611,13 +1656,17 @@ async function _ensureAnswersFetched(question_id, freshness, start_block, inject
         }
     }
     // console.log('made answer_arr', answer_arr);
-    var question = filledQuestionDetail(question_id, 'answers', called_block, answer_arr);
-    var q = _ensureAnswerRevealsFetched(question_id, freshness, start_block, question);
+    var question = filledQuestionDetail(contract, question_id, 'answers', called_block, answer_arr);
+    var q = _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question);
     return q;
 }
 
 // question_log is optional, pass it in when we already have it
-async function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected_data, found_at_block) {
+async function ensureQuestionDetailFetched(ctr, question_id, ql, qi, qc, al, injected_data, found_at_block) {
+
+    if (!RC_INSTANCES[ctr.toLowerCase()]) {
+        throw new Error("contract "+ctr+" not found in list, not sure how we gott that for question "+question_id);
+    }
 
     var params = {};
     if (ql == undefined) ql = 1;
@@ -1632,10 +1681,15 @@ async function ensureQuestionDetailFetched(question_id, ql, qi, qc, al, injected
     var called_block = found_at_block ? found_at_block : current_block_number;
     //console.log('ensureQuestionDetailFetched with called_block', called_block);
     //return new Promise((resolve, reject) => {
-    var qc = await _ensureQuestionLogFetched(question_id, ql);
-    var qi = await _ensureQuestionDataFetched(question_id, qc);
-    var qt = await _ensureQuestionTemplateFetched(question_id, qi.template_id, qi.question_text, qi);
-    var q = await _ensureAnswersFetched(question_id, al, qt.question_created_block, injected_data);
+//console.log('need qc, here goes');
+    var qc = await _ensureQuestionLogFetched(ctr, question_id, ql);
+//console.log('ok, got qc, now try qi');
+    var qi = await _ensureQuestionDataFetched(ctr, question_id, qc);
+//console.log('got qi, next qt, qi is', qi);
+    var qt = await _ensureQuestionTemplateFetched(ctr, question_id, qi.template_id, qi.question_text, qi);
+//console.log('got qt, now q');
+    var q = await _ensureAnswersFetched(ctr, question_id, al, qt.question_created_block, injected_data, called_block);
+//console.log('all done, q is', q);
      //   resolve(q);
     //});
     return q;
@@ -1733,7 +1787,7 @@ function populateSection(section_name, question, before_item) {
     var question_item_id = section_name + '-question-' + question_id;
     var before_item_id = section_name + '-question-' + before_item
 
-    var target_question_id = 'qadetail-' + question_id;
+    var target_question_id = 'qadetail-' + contractQuestionID(question);
 
     var section = $('#' + section_name);
 
@@ -1803,10 +1857,11 @@ function populateSection(section_name, question, before_item) {
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
+    var contract_question_id = contractQuestionID(question);
     if (balloon_html) {
-        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').css('display', 'block');
-        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').css('z-index', 5);
-        $('div[data-question-id=' + question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
+        $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('display', 'block');
+        $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('z-index', 5);
+        $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
     }
 
 }
@@ -1820,7 +1875,7 @@ function activateSection(section_name) {
 }
 
 function updateSectionEntryDisplay(question) {
-    $('div.questions__item[data-question-id="' + question.question_id + '"]').each(function() {
+    $('div.questions__item[data-contract-question-id="' + contractQuestionID(question) + '"]').each(function() {
         //console.log('updateSectionEntryDisplay update question', question.question_id);
         populateSectionEntry($(this), question);
     });
@@ -1846,7 +1901,7 @@ function populateSectionEntry(entry, question) {
         }
     }
 
-    entry.attr('data-question-id', question_id);
+    entry.attr('data-contract-question-id', contractQuestionID(question));
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
     entry.find('.question-title').text(question_json['title']).expander({
@@ -1912,7 +1967,7 @@ function depopulateSection(section_name, question_id) {
     if (item.length) {
         item.remove();
         // Add the next entry to the bottom
-        var current_last_qid = section.find('.questions__item').last().attr('data-question-id');
+        var current_last_qid = section.find('.questions__item').last().attr('data-contract-question-id');
         var current_last_idx = display_entries[section_name]['ids'].indexOf(current_last_qid);
         var next_idx = current_last_idx + 1;
         if (display_entries[section_name]['ids'].length > next_idx) {
@@ -1969,17 +2024,19 @@ function calculateActiveRank(created, bounty, bond) {
 
 function handleQuestionLog(item) {
     var question_id = item.args.question_id;
+    var contract = item.address;
     //console.log('in handleQuestionLog', question_id);
     var created = item.args.created
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', question_detail_list[question_id]);
-    var question = filledQuestionDetail(question_id, 'question_log', item.blockNumber, item);
+    var question = filledQuestionDetail(contract, question_id, 'question_log', item.blockNumber, item);
     //console.log('after filling in handleQuestionLog', question_detail_list[question_id]);
 
     // Then fetch anything else we need to display
-    ensureQuestionDetailFetched(question_id, 1, 1, item.blockNumber, -1).then(function(question) {
+    ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1).then(function(question) {
 
+console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
         updateQuestionWindowIfOpen(question);
 
         if (category && question.question_json.category != category) {
@@ -1995,7 +2052,7 @@ function handleQuestionLog(item) {
         var opening_ts = question.opening_ts;
 
         if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', question_id, question.finalization_ts, 'desc');
+            var insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
             if (insert_before !== -1) {
                 // TODO: If we include this we have to handle the history too
                 populateSection('questions-resolved', question, insert_before);
@@ -2007,7 +2064,7 @@ function handleQuestionLog(item) {
 
         } else if (is_before_opening) {
 
-            var insert_before = update_ranking_data('questions-upcoming', question_id, opening_ts, 'asc');
+            var insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), opening_ts, 'asc');
             if (insert_before !== -1) {
                 populateSection('questions-upcoming', question, insert_before);
                 $('#questions-upcoming').find('.scanning-questions-category').css('display', 'none');
@@ -2019,7 +2076,7 @@ function handleQuestionLog(item) {
         } else {
 
             if (!question.is_pending_arbitration) {
-                var insert_before = update_ranking_data('questions-active', question_id, calculateActiveRank(created, question.bounty, question.bond), 'desc');
+                var insert_before = update_ranking_data('questions-active', contractQuestionID(question), calculateActiveRank(created, question.bounty, question.bond), 'desc');
                 if (insert_before !== -1) {
                     populateSection('questions-active', question, insert_before);
                     $('#questions-active').find('.scanning-questions-category').css('display', 'none');
@@ -2030,7 +2087,7 @@ function handleQuestionLog(item) {
             }
 
             if (isAnswered(question)) {
-                var insert_before = update_ranking_data('questions-closing-soon', question_id, question.finalization_ts, 'asc');
+                var insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
                 if (insert_before !== -1) {
                     populateSection('questions-closing-soon', question, insert_before);
                     $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
@@ -2040,7 +2097,7 @@ function handleQuestionLog(item) {
                 }
             }
 
-            scheduleFinalizationDisplayUpdate(question);
+            scheduleFinalizationDisplayUpdate(contract, question);
             //console.log(display_entries);
         }
 
@@ -2163,10 +2220,10 @@ $(document).on('click', '.questions__item__title', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.questions__item').attr('data-question-id');
+    var contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
     // Should repopulate and bring to the front if already open
-    openQuestionWindow(question_id);
+    openQuestionWindow(contract_question_id);
 
 });
 
@@ -2174,10 +2231,10 @@ $(document).on('click', '.mini-action-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.questions__item').attr('data-question-id');
+    var contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
     // Should repopulate and bring to the front if already open
-    openQuestionWindow(question_id);
+    openQuestionWindow(contract_question_id);
 
 });
 
@@ -2189,20 +2246,34 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var question_id = $(this).closest('.your-qa__questions__item').attr('data-question-id');
+    var contract_question_id = $(this).closest('.your-qa__questions__item').attr('data-contract-question-id');
 
-    openQuestionWindow(question_id);
+    openQuestionWindow(contract_question_id);
 
 });
 
-function openQuestionWindow(question_id) {
+function parseContractQuestionID(id) {
+    return id.split('-');
+}
+
+function contractQuestionID(question) {
+    return cqToID(question.contract, question.question_id);
+}
+
+function cqToID(contract, question_id) {
+    return contract + '-' + question_id;
+}
+
+function openQuestionWindow(contract_question_id) {
+
+    const [contract_addr, question_id] = parseContractQuestionID(contract_question_id);
 
     // To respond quickly, start by fetching with even fairly old data and no logs
-    ensureQuestionDetailFetched(question_id, 1, 1, 1, -1).then(function(question) {
+    ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, 1, -1).then(function(question) {
         displayQuestionDetail(question);
         // Get the window open first with whatever data we have
         // Then repopulate with the most recent of everything anything has changed
-        ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+        ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
             updateQuestionWindowIfOpen(question);
         });
     });
@@ -2215,8 +2286,8 @@ function openQuestionWindow(question_id) {
 
 function updateQuestionWindowIfOpen(question) {
 
-    var question_id = question.question_id;
-    var window_id = 'qadetail-' + question_id;
+console.log('updateQuestionWindowIfOpen', question);
+    var window_id = 'qadetail-' + contractQuestionID(question);
     var rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
@@ -2227,10 +2298,11 @@ function updateQuestionWindowIfOpen(question) {
 function displayQuestionDetail(question_detail) {
 
     var question_id = question_detail.question_id;
+    var contract_question_id = contractQuestionID(question_detail);
     //console.log('question_id', question_id);
 
     // If already open, refresh and bring to the front
-    var window_id = 'qadetail-' + question_id;
+    var window_id = 'qadetail-' + contract_question_id
     var rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question_detail, true);
@@ -2238,7 +2310,7 @@ function displayQuestionDetail(question_detail) {
     } else {
         rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         rcqa.attr('id', window_id);
-        rcqa.attr('data-question-id', question_id);
+        rcqa.attr('data-contract-question-id', contract_question_id);
 
         rcqa.find('.rcbrowser__close-button').on('click', function() {
             let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
@@ -2578,7 +2650,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }).catch(function(err) {
             // If it doesn't implement foreign proxy either, it's a contract without the proper interface.
             console.log('arbitrator failed with error', err);
-            markArbitratorFailed(question_detail.arbitrator, question_id);
+            markArbitratorFailed(question_detail.arbitrator, contractQuestionID(question_detail));
         });
     }
 
@@ -2757,8 +2829,8 @@ function renderTimeAgo(i, ts) {
 
 // Anything in the document with this class gets updated
 // For when there's a single thing changed, and it's not worth doing a full refresh
-function updateAnyDisplay(question_id, txt, cls) {
-    $("[data-question-id='" + question_id + "']").find('.' + cls).text(txt);
+function updateAnyDisplay(contract_question_id, txt, cls) {
+    $("[data-contract-question-id='" + contract_question_id + "']").find('.' + cls).text(txt);
 }
 
 /*
@@ -2832,7 +2904,7 @@ function resetAccountUI() {
 
 }
 
-function insertNotificationItem(evt, notification_id, ntext, block_number, question_id, is_positive, timestamp) {
+function insertNotificationItem(evt, notification_id, ntext, block_number, contract, question_id, is_positive, timestamp) {
 
     if ($('.no-notifications-item').length > 0) {
         $('.no-notifications-item').remove();
@@ -2845,12 +2917,14 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, quest
         return true;
     }
 
+console.log('insertNotificationItem has contractd', contract,' from evt', evt);
+
     var existing_notification_items = notifications.find('.notifications-item');
 
     var item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
     item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
-    item_to_insert.attr('data-question-id', question_id);
+    item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
     item_to_insert.find('.notification-text').text(ntext).expander();
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
@@ -2903,11 +2977,12 @@ function renderNotifications(qdata, entry) {
 
     var ntext;
     var evt = entry['event']
+    const contract = entry.address;
     switch (evt) {
         case 'LogNewQuestion':
             var notification_id = web3js.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
             ntext = 'You asked a question - "' + question_json['title'] + '"';
-            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             break;
 
         case 'LogNewAnswer':
@@ -2919,7 +2994,7 @@ function renderNotifications(qdata, entry) {
                 } else {
                     ntext = 'You answered a question - "' + question_json['title'] + '"';
                 }
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
@@ -2930,7 +3005,7 @@ function renderNotifications(qdata, entry) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
+                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
                     }
                 });
             }
@@ -2941,7 +3016,7 @@ function renderNotifications(qdata, entry) {
             var notification_id = web3.sha3('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == account) {
                 ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
@@ -2952,7 +3027,7 @@ function renderNotifications(qdata, entry) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, is_positive);
+                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
                     }
                 });
             }
@@ -2962,7 +3037,7 @@ function renderNotifications(qdata, entry) {
             var notification_id = web3js.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
             if (entry.args.user == account) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
@@ -2975,7 +3050,7 @@ function renderNotifications(qdata, entry) {
                     }
                     if (typeof ntext !== 'undefined') {
                         ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
                     }
                 });
             }
@@ -2986,7 +3061,7 @@ function renderNotifications(qdata, entry) {
             var is_positive = true;
             if (entry.args.user == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RealityCheck.queryFilter(qfilter, START_BLOCK, 'latest').then(function(result2) {
                     var history_idx = qdata['history'].length - 2;
@@ -3028,16 +3103,17 @@ function renderNotifications(qdata, entry) {
                 }
                 if (typeof ntext !== 'undefined') {
                     ntext += ' - "' + question_json['title'] + '"';
-                    insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, entry.args.question_id, true, timestamp);
+                    insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true, timestamp);
                 }
             });
     }
 
 }
 
-function insertQAItem(question_id, item_to_insert, question_section, block_number) {
+function insertQAItem(contract, question_id, item_to_insert, question_section, block_number) {
 
-    question_section.find('.your-qa__questions__item[data-question-id=' + question_id + ']').remove();
+    const contract_question_id = cqToID(contract, question_id);
+    question_section.find('.your-qa__questions__item[data-contract-question-id=' + contract_question_id + ']').remove();
 
     var question_items = question_section.find('.your-qa__questions__item');
     var inserted = false;
@@ -3062,13 +3138,14 @@ function insertQAItem(question_id, item_to_insert, question_section, block_numbe
 
 }
 
-function renderQAItemAnswer(question_id, answer_history, question_json, is_finalized) {
+function renderQAItemAnswer(contract, question_id, answer_history, question_json, is_finalized) {
     var question_section = $('#your-question-answer-window').find('.your-qa__questions');
     var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
     var sections = [question_section, answer_section];
+    const contract_question_id = cqToID(contract, question_id);
 
     sections.forEach(function(section) {
-        var target = section.find('div[data-question-id=' + question_id + ']');
+        var target = section.find('div[data-contract-question-id=' + contract_question_id + ']');
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0; i--) {
@@ -3111,6 +3188,7 @@ function renderUserQandA(qdata, entry) {
     var answer_history = qdata['history'];
 
     var question_json = qdata.question_json;
+    const contract_question_id = cqToID(entry.address, question_id);
 
     var question_section;
     if (entry['event'] == 'LogNewQuestion') {
@@ -3123,15 +3201,15 @@ function renderUserQandA(qdata, entry) {
     }
 
     var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
-    qitem.attr('data-question-id', question_id);
+    qitem.attr('data-contract-question-id', contract_question_id);
     qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');
-    insertQAItem(question_id, qitem, question_section, entry.blockNumber);
+    insertQAItem(qdata.contract, question_id, qitem, question_section, entry.blockNumber);
 
     var is_finalized = isFinalized(qdata);
-    renderQAItemAnswer(question_id, answer_history, question_json, is_finalized);
+    renderQAItemAnswer(qdata.contract, question_id, answer_history, question_json, is_finalized);
 
     var updateBlockTimestamp = function(item, ts) {
         let date = new Date();
@@ -3346,7 +3424,8 @@ $(document).on('click', '.post-answer-button', function(e) {
     var parent_div = $(this).parents('div.rcbrowser--qa-detail');
     getAccount().then(function() {
 
-        var question_id = parent_div.attr('data-question-id');
+        var contract_question_id = parent_div.attr('data-contract-question-id');
+        const [contract, question_id] = parseContractQuestionID(contract_question_id);
 
         var bond = ethers.BigNumber.from(0);
         var bond_field = parent_div.find('input[name="questionBond"]');
@@ -3367,11 +3446,11 @@ $(document).on('click', '.post-answer-button', function(e) {
 
         var new_answer;
 
-        var question = ensureQuestionDetailFetched(question_id, 1, 1, 1, -1)
+        var question = ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1)
         .catch(function() {
             // If the question is unconfirmed, go with what we have
             console.log('caught failure, trying unconfirmed');
-            return ensureQuestionDetailFetched(question_id, 0, 0, 0, -1)
+            return ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1)
         })
         .then(function(current_question) {
             //console.log('got current_question', current_question);
@@ -3482,6 +3561,7 @@ console.log('check against answer', new_answer);
 
             var handleAnswerSubmit = function(tx_response) {
                 const txid = tx_response.hash;
+                const contract = tx_response.to;
                 clearForm(parent_div, question_json);
                 var fake_history = {
                     'args': {
@@ -3498,20 +3578,20 @@ console.log('check against answer', new_answer);
                     'txid': txid
                 };
 
-                var question = filledQuestionDetail(question_id, 'answers_unconfirmed', block_before_send, fake_history);
+                var question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
                 //console.log('after answer made question', question);
 
-                ensureQuestionDetailFetched(question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+                ensureQuestionDetailFetched(contract, question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
                     updateQuestionWindowIfOpen(question);
                 }).catch(function() {
                     // Question may be unconfirmed, if so go with what we have
-                    ensureQuestionDetailFetched(question_id, 0, 0, 0, -1).then(function(question) {
-                        updateQuestionWindowIfOpen(question);
+                    ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1).then(function(question) {
+                        updateQuestionWindowIfOpen(contract, question);
                     });
                 });
             };
 
-            const rc = RealityCheck.connect(signer);
+            const rc = RCInstance(contract, true);
             if (USE_COMMIT_REVEAL) {
                 var answer_plaintext = new_answer;
                 var nonce = nonceFromSeed(web3.sha3(question_id + answer_plaintext + bond));
@@ -3625,7 +3705,7 @@ $(document).on('click', '.notifications-item', function(e) {
     //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();
-    openQuestionWindow($(this).attr('data-question-id'));
+    openQuestionWindow($(this).attr('data-contract-question-id'));
 });
 
 $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async function(e) {
@@ -3633,7 +3713,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
     e.stopPropagation();
 
     var rcqa = $(this).closest('.rcbrowser--qa-detail');
-    var question_id = rcqa.attr('data-question-id');
+    var [contract, question_id] = parseContractQuestionID(rcqa.attr('data-contract-question-id'));
     var reward_inp = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
 
     var err = false;
@@ -3678,8 +3758,9 @@ $(document).on('click', '.arbitration-button', async function(e) {
     var lnk = this;
     await getAccount();
 
-    var question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
-    var question_detail = question_detail_list[question_id];
+    var contract_question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
+    var [contract, question_id] = parseContractQuestionID(contract_question_id);
+    var question_detail = question_detail_list[contract_question_id];
     if (!question_detail) {
         console.log('Error, question detail not found');
         return false;
@@ -3703,15 +3784,16 @@ $(document).on('click', '.arbitration-button', async function(e) {
         });
     }).catch(function(err) {
         console.log('arbitrator failed with error', err);
-        markArbitratorFailed(question_detail.arbitrator, question_id);
+        markArbitratorFailed(question_detail.arbitrator, contract_question_id);
     });
 });
 
 function show_bond_payments(ctrl) {
     var frm = ctrl.closest('div.rcbrowser--qa-detail')
-    var question_id = frm.attr('data-question-id');
+    var contract_question_id = frm.attr('data-contract-question-id');
+    var [contract, question_id] = parseContractQuestionID(contract_question_id);
     //console.log('got question_id', question_id);
-    ensureQuestionDetailFetched(question_id).then(function(question) {
+    ensureQuestionDetailFetched(contract, question_id).then(function(question) {
         var question_json = question.question_json;
         var existing_answers = answersByMaxBond(question['history']);
         var payable = 0;
@@ -3749,8 +3831,9 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
     //console.log($(this));
     let bond_validation = function(ctrl){
         ctrl.addClass('edited');
-        let question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-question-id');
-        let current_idx = question_detail_list[question_id]['history'].length - 1;
+        let contract_question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
+        let [contract, question_id] = parseContractQuestionID(contract_question_id);
+        let current_idx = question_detail_list[contract_question_id]['history'].length - 1;
         let current_bond = ethers.BigNumber.from(0);
         if (current_idx >= 0) {
             current_bond = question_detail_list[question_id]['history'][current_idx].args.bond;
@@ -3870,7 +3953,7 @@ function updateRankingSections(question, changed_field, changed_val) {
                     depopulateSection(s, question_id);
                 }
             }
-            var insert_before = update_ranking_data('questions-resolved', question_id, question.finalization_ts, 'desc');
+            var insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
             //console.log('insert_before iss ', insert_before);
             if (insert_before !== -1) {
                 //console.log('poulating', question);
@@ -3879,7 +3962,7 @@ function updateRankingSections(question, changed_field, changed_val) {
             }
         } else {
             //console.log('updating closing soon with timestamp', question_id, question.finalization_ts.toString());
-            var insert_before = update_ranking_data('questions-closing-soon', question_id, question.finalization_ts, 'asc');
+            var insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
             //console.log('insert_before was', insert_before);
             if (insert_before !== -1) {
                 populateSection('questions-closing-soon', question, insert_before);
@@ -3890,7 +3973,7 @@ function updateRankingSections(question, changed_field, changed_val) {
     } 
     if (changed_field == 'bounty' || changed_field == 'finalization_ts') {
         //var insert_before = update_ranking_data('questions-upcoming', question_id, question.bounty.add(question.bond), 'desc');
-        var insert_before = update_ranking_data('questions-upcoming', question_id, question.opening_ts, 'desc');
+        var insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), question.opening_ts, 'desc');
         //console.log('update for new bounty', question.bounty, 'insert_before is', insert_before);
         if (insert_before !== -1) {
             populateSection('questions-upcoming', question, insert_before);
@@ -3914,6 +3997,8 @@ function handleEvent(error, result) {
 
     // Check the action to see if it is interesting, if it is then populate notifications etc
     handlePotentialUserAction(result, true);
+
+    const contract = result.address;
 
     // Handles front page event changes.
     // NB We need to reflect other changes too...
@@ -3943,17 +4028,17 @@ function handleEvent(error, result) {
 
                 waitForBlock(result).then(function(result) {
                     //console.log('got LogNewAnswer, block ', result.blockNumber);
-                    ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
+                    ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
                         updateQuestionWindowIfOpen(question);
                         //console.log('should be getting latest', question, result.blockNumber);
-                        scheduleFinalizationDisplayUpdate(question);
+                        scheduleFinalizationDisplayUpdate(contract, question);
                         updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                     });
                 });
                 break;
 
             case ('LogFundAnswerBounty'):
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     //console.log('updating with question', question);
                     updateQuestionWindowIfOpen(question);
                     updateRankingSections(question, 'bounty', question.bounty)
@@ -3961,7 +4046,7 @@ function handleEvent(error, result) {
                 break;
 
             default:
-                ensureQuestionDetailFetched(question_id, 1, 1, result.blockNumber, -1).then(function(question) {
+                ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     updateQuestionWindowIfOpen(question);
                     updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                 });
@@ -4033,10 +4118,13 @@ TODO restore
 */
 
 
+console.log('skipping graph');
+/*
     fetchAndDisplayQuestionFromGraph('questions-active-answered'); 
     fetchAndDisplayQuestionFromGraph('questions-active-unanswered'); 
     fetchAndDisplayQuestionFromGraph('questions-upcoming'); 
     fetchAndDisplayQuestionFromGraph('questions-resolved'); 
+*/
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
@@ -4050,7 +4138,7 @@ function reflectDisplayEntryChanges() {
     //look at current sections and update blockchain scanning message to
     //no questions found if no items exist
     var detypes = Object.keys(display_entries);
-    //console.log('no questions cateogry, display_entries for detype', display_entries, detype);
+    // console.log('no questions cateogry, display_entries for detype', display_entries, detypes);
     for (var i=0; i<detypes.length; i++) {
         var detype = detypes[i];
         var has_items = ($('#' + detype).find('div.questions-list div.questions__item').size() > 0);
@@ -4140,7 +4228,7 @@ async function fetchAndDisplayQuestionsFromLogs(end_block, fetch_i) {
         console.log('History read complete back to block', START_BLOCK);
 
         is_initial_load_done = true;
-        window.setTimeout( reflectDisplayEntryChanges, 1000 );
+        window.setTimeout( reflectDisplayEntryChanges, 10000 );
         $('body').addClass('initial-loading-done');
 
         scheduleFallbackTimer();
@@ -4232,16 +4320,23 @@ return;
 
 // Sometimes things go wrong getting events
 // To mitigate the damage, run a refresh of the currently-open window etc
+
+
+// ISSUE: This sometimes blows away an unconfirmed answer
+// Options
+ //- make sure we preserve the unconfirmed history when refetching
+ //- accept that the history has vanished from the fetch, but never erase from the window unless confirmed 
 function scheduleFallbackTimer() {
      window.setInterval(function() {
         //console.log('checking for open windows');
         $('div.rcbrowser--qa-detail.is-open').each(function() {
-             var question_id = $(this).attr('data-question-id');
+             var contract_question_id = $(this).attr('data-contract-question-id');
+             var [contract, question_id] = parseContractQuestionID(contract_question_id);
              console.log('updating window on timer for question', question_id);
              if (question_id) {
-                 ensureQuestionDetailFetched(question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
+                 ensureQuestionDetailFetched(contract, question_id, 1, 1, current_block_number, current_block_number).then(function(question) {
                     updateQuestionWindowIfOpen(question);
-                    scheduleFinalizationDisplayUpdate(question);
+                    scheduleFinalizationDisplayUpdate(contract, question);
                     updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                  });
              }
@@ -4275,16 +4370,18 @@ function handleUserFilterItem(filter, start_block, end_block) {
  
 }
 
-function fetchUserEventsAndHandle(acc, question_id, start_block, end_block) {
+function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
+// TODO: If question id, make sure we have the right contract, etc
     //console.log('fetching for filter', filter);
+    const rcinst = RCInstance(contract.toLowerCase());
 
-    handleUserFilterItem(RealityCheck.filters.LogNewAnswer(null, question_id, null, acc));
-    handleUserFilterItem(RealityCheck.filters.LogAnswerReveal(question_id, acc));
-    handleUserFilterItem(RealityCheck.filters.LogFundAnswerBounty(question_id, null, null, acc));
-    handleUserFilterItem(RealityCheck.filters.LogNotifyOfArbitrationRequest(question_id, acc));
+    handleUserFilterItem(rcinst.filters.LogNewAnswer(null, question_id, null, acc));
+    handleUserFilterItem(rcinst.filters.LogAnswerReveal(question_id, acc));
+    handleUserFilterItem(rcinst.filters.LogFundAnswerBounty(question_id, null, null, acc));
+    handleUserFilterItem(rcinst.filters.LogNotifyOfArbitrationRequest(question_id, acc));
     if (question_id) {
         // No user param
-        handleUserFilterItem(RealityCheck.filters.LogFinalize(question_id));
+        handleUserFilterItem(rcinst.filters.LogFinalize(question_id));
     }
 
 }
@@ -4503,7 +4600,9 @@ function getAccount(fail_soft) {
 
 function accountInit(account) {
 
-    fetchUserEventsAndHandle(account, null, START_BLOCK, 'latest');
+    for(const ctr in RC_INSTANCES) {
+        fetchUserEventsAndHandle(account, ctr, null, START_BLOCK, 'latest');
+    }
 
     updateUserBalanceDisplay();
 
@@ -4716,6 +4815,7 @@ window.addEventListener('load', async function() {
     provider.on("block", (blockNumber) => {
         if (blockNumber > current_block_number) {
             current_block_number = blockNumber;
+console.log('updated current_block_number to ', current_block_number);
         }
     })
 
@@ -4803,6 +4903,12 @@ window.addEventListener('load', async function() {
         $('#filterby').text(cat_txt);
     }
 
+    RC_DEFAULT_ADDRESS = rc_json.address;
+    for(const cfg in all_rc_configs) {
+        const cfg_addr = all_rc_configs[cfg].address;
+        RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
+    }
+    
     RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
     Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); // For now set up a dummy object with the RealityCheck address
 
@@ -4827,7 +4933,7 @@ window.addEventListener('load', async function() {
     // Listen for all events
     RealityCheck.on("*", function(eventObject) {
         console.log('got all events', eventObject);
-        handleEvent(null, eventObject);
+//        handleEvent(null, eventObject);
     });
     
     //runPollingLoop(RealityCheck);
