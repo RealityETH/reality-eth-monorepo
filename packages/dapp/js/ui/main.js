@@ -27,7 +27,9 @@ var is_web3_fallback = false;
 // See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
 const arb_tos = require('./arbitrator_tos.json');
 
-var arbitrator_list;
+let ARBITRATOR_LIST_BY_CONTRACT = {};
+let ARBITRATOR_VERIFIED_BY_CONTRACT = {};
+let ARBITRATOR_FAILED_BY_CONTRACT = {};
 var foreign_proxy_data;
 
 const TEMPLATE_CONFIG = rc_contracts.templateConfig();
@@ -40,10 +42,6 @@ const axios = require('axios');
 
 // Special ABI for Kleros
 const ProxiedArbABI = require('../../abi/ProxiedArbitrator.json');
-
-// Cache the results of a call that checks each arbitrator is set to use the current realitycheck contract
-var verified_arbitrators = {};
-var failed_arbitrators = {};
 
 var submitted_question_id_timestamp = {};
 var user_claimable = {};
@@ -206,8 +204,8 @@ function rcbrowserHeight() {
 }
 rcbrowserHeight();
 
-function markArbitratorFailed(addr, contract_question_id) {
-    failed_arbitrators[addr.toLowerCase()] = true;
+function markArbitratorFailed(contract, addr, contract_question_id) {
+    ARBITRATOR_FAILED_BY_CONTRACT[contract.toLowerCase()][addr.toLowerCase()] = true;
     if (contract_question_id) {
         $('[data-contract-question-id="' + contract_question_id + '"]').addClass('failed-arbitrator');
     }
@@ -366,7 +364,7 @@ $(document).on('change', 'input.arbitrator-other', function() {
                 populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), ethers.BigNumber.from(0));
             });
         }).catch(function(err) {
-            markArbitratorFailed(arb_text);
+            markArbitratorFailed(RC_DEFAULT_ADDRESS, arb_text);
         });
 
     } else {
@@ -691,7 +689,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
     console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
 
-    const is_ok = await validateArbitratorForContract(arbitrator);
+    const is_ok = await validateArbitratorForContract(RC_DEFAULT_ADDRESS, arbitrator);
     if (!is_ok) {
         console.log('bad arbitrator');
         return;
@@ -821,8 +819,8 @@ function isArbitratorValid(arb) {
 // Check if an arbitrator is valid when we have not yet had time to contact all the arbitrator contracts
 // This is used for fast rendering of the warnings on the list page.
 // TODO: We should really go back through them later and set warnings on anything that turned out to be bad
-function isArbitratorValidFast(test_arb) {
-    for (var a in arbitrator_list) {
+function isArbitratorValidFast(contract, test_arb) {
+    for (var a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
         if (a.toLowerCase() == test_arb.toLowerCase()) {
             return true;
         }
@@ -830,10 +828,10 @@ function isArbitratorValidFast(test_arb) {
     return false;
 }
 
-function arbitratorAddressToText(addr) {
-    for (var a in arbitrator_list) {
+function arbitratorAddressToText(contract, addr) {
+    for (var a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
         if (a.toLowerCase() == addr.toLowerCase()) {
-            return arbitrator_list[a];
+            return ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()][a.toLowerCase()];
         }
     }
     return addr;
@@ -1825,7 +1823,7 @@ function populateSection(section_name, question, before_item) {
 
     entry = populateSectionEntry(entry, question);
 
-    if (failed_arbitrators[question.arbitrator.toLowerCase()]) {
+    if (ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase(), question.arbitrator.toLowerCase()]) {
         entry.addClass('failed-arbitrator');
     }
 
@@ -1866,7 +1864,7 @@ function populateSection(section_name, question, before_item) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValidFast(question.arbitrator);
+    let valid_arbirator = isArbitratorValidFast(question.contract, question.arbitrator);
     if (!valid_arbirator) {
         balloon_html += 'This arbitrator is unknown.';
     }
@@ -2555,7 +2553,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
     let valid_arbirator = isArbitratorValid(question_detail.arbitrator);
 
-    if (failed_arbitrators[question_detail.arbitrator.toLowerCase()]) {
+    if (ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase(), question_detail.arbitrator.toLowerCase()]) {
         rcqa.addClass('failed-arbitrator');
     }
 
@@ -2576,7 +2574,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail.timeout));
     balloon.find('.setting-info-content-hash').text(question_detail.content_hash);
     balloon.find('.setting-info-question-id').text(question_detail.question_id);
-    balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail.arbitrator));
+    balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail.contract, question_detail.arbitrator));
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.find('.setting-info-created-ts').text(new Date(question_detail.creation_ts*1000).toUTCString().replace('GMT', 'UTC'));
     var opening_ts_str = 'Unset';
@@ -2677,7 +2675,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }).catch(function(err) {
             // If it doesn't implement foreign proxy either, it's a contract without the proper interface.
             console.log('arbitrator failed with error', err);
-            markArbitratorFailed(question_detail.arbitrator, contractQuestionID(question_detail));
+            markArbitratorFailed(question_detail.contract, question_detail.arbitrator, contractQuestionID(question_detail));
         });
     }
 
@@ -3812,7 +3810,7 @@ $(document).on('click', '.arbitration-button', async function(e) {
         });
     }).catch(function(err) {
         console.log('arbitrator failed with error', err);
-        markArbitratorFailed(question_detail.arbitrator, contract_question_id);
+        markArbitratorFailed(contract, question_detail.arbitrator, contract_question_id);
     });
 });
 
@@ -4501,14 +4499,14 @@ console.log('got network_arbs', network_arbs);
                 const rc_addr = call_response[0];
                 console.log('arb has rc addr', rc_addr);
                 var is_arb_valid = (rc_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase());
-                verified_arbitrators[na_addr] = is_arb_valid;
+                ARBITRATOR_VERIFIED_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()][na_addr.toLowerCase()] = is_arb_valid;
                 // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
                 // For this we'll check our original list for the network, then just check against the failed list
                 // TODO: Once loaded, we should really go back through the page and update anything failed
                 if (!is_arb_valid) {
-                    markArbitratorFailed(na_addr);
+                    markArbitratorFailed(RC_DEFAULT_ADDRESS, na_addr);
                 }
-                console.log(verified_arbitrators);
+                console.log(ARBITRATOR_VERIFIED_BY_CONTRACT);
                 return is_arb_valid;
             }).then(function(is_arb_valid) {
                 if (is_arb_valid) {
@@ -4532,7 +4530,7 @@ console.log('got network_arbs', network_arbs);
                 }
             }).catch(function(err) {
                 console.log('arbitrator failed with error', err);
-                markArbitratorFailed(na_addr);
+                markArbitratorFailed(RC_DEFAULT_ADDRESS, na_addr);
             });
         });
     });
@@ -4555,8 +4553,8 @@ function waitForBlock(result) {
     });
 }
 
-async function validateArbitratorForContract(arb_addr) {
-    if (verified_arbitrators[arb_addr]) {
+async function validateArbitratorForContract(contract, arb_addr) {
+    if (ARBITRATOR_VERIFIED_BY_CONTRACT[contract.toLowerCase()][arb_addr.toLowerCase()]) {
         return true;
     }
     const ar = Arbitrator.attach(arb_addr);
@@ -4761,7 +4759,7 @@ console.log('arb', arb_addr, 'bond', foreign_proxy_data.bond, 'qid', question_id
         }
     }).catch(function(err) {
         console.log('Arbitrator failed with error', err);
-        markArbitratorFailed(arb_addr);
+        markArbitratorFailed(RC_DEFAULT_ADDRESS, arb_addr);
     });
 }
 
@@ -4911,8 +4909,6 @@ window.addEventListener('load', async function() {
 
     initContractSelect(all_rc_configs, rc_config, show_all);
 
-    arbitrator_list = rc_config.arbitrators;
-
     token_info = rc_contracts.networkTokenList(net_id);
     console.log('got token info', token_info);
 
@@ -4923,8 +4919,6 @@ window.addEventListener('load', async function() {
         console.log('Token not recognized', currency);
         return;
     }
-    arbitrator_list[rc_json.address] = 'No arbitration (highest bond wins)';
-    verified_arbitrators[rc_json.address] = true;
 
     initCurrency(currency);
     if (!is_currency_native) {
@@ -4959,18 +4953,33 @@ window.addEventListener('load', async function() {
     }
 
     RC_DEFAULT_ADDRESS = rc_json.address;
-    for(const cfg in all_rc_configs) {
-        const cfg_addr = all_rc_configs[cfg].address;
+    for(const cfg_addr in all_rc_configs) {
+        const cfg = all_rc_configs[cfg_addr];
         RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
         if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
             RC_DISPLAYED_CONTRACTS.push(cfg_addr);
         }
+        ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+        ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
+        ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+        ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = true;
+        ARBITRATOR_FAILED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+        if ('arbitrators' in cfg) {
+            for(var arb_addr in cfg['arbitrators']) {
+                ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = cfg['arbitrators'][arb_addr];
+                ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = true;
+            }
+        } else {
+            console.log('no arbs in config', cfg);
+        }
+
     }
+console.log('arb init', ARBITRATOR_LIST_BY_CONTRACT, ARBITRATOR_FAILED_BY_CONTRACT, ARBITRATOR_VERIFIED_BY_CONTRACT);
     
     RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
     Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); // For now set up a dummy object with the RealityCheck address
 
-    populateArbitratorSelect(arbitrator_list);
+    populateArbitratorSelect(ARBITRATOR_LIST_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()]);
     foreignProxyInitNetwork(net_id);
 
     const block = await provider.getBlock('latest');
