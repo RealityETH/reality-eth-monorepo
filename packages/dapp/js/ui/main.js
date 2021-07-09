@@ -469,11 +469,8 @@ function markViewedToDate() {
 }
 
 function humanToDecimalizedBigNumber(num, force_eth) {
-    if (force_eth || currency == 'ETH') {
-        return ethers.BigNumber.from(web3js.toWei(num, 'ether'));
-    } else {
-        return ethers.BigNumber.from(num).mul(""+token_info[currency]['decimals']);
-    }
+    const decimalstr = force_eth ? ""+1000000000000000000 : ""+token_info[currency]['decimals'];
+    return ethers.BigNumber.from(num).mul(decimalstr);
 }
 
 function decimalizedBigNumberToHuman(num, force_eth) {
