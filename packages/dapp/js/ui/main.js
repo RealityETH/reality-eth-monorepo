@@ -4083,8 +4083,7 @@ function handleEvent(error, result) {
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
-function pageInit(account) {
-
+function pageInit(only_contract) {
 
     if ($('body').hasClass('foreign-proxy')) {
         return;
@@ -4139,14 +4138,10 @@ TODO restore
     });
 */
 
-
-console.log('skipping graph');
-/*
-    fetchAndDisplayQuestionFromGraph('questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph('questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph('questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph('questions-resolved'); 
-*/
+    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-active-answered'); 
+    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-active-unanswered'); 
+    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-upcoming'); 
+    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-resolved'); 
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
@@ -4183,15 +4178,16 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-async function fetchAndDisplayQuestionFromGraph(ranking) {
+async function fetchAndDisplayQuestionFromGraph(only_contract, ranking) {
 
     var ts_now = parseInt(new Date()/1000);
     var ctr = rc_json.address;
+    const ctr_filter = only_contract ? `contract: "${only_contract}", ` : '';
     const ranking_where = {
-        'questions-active-answered': `{contract: "${ctr}", answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract: "${ctr}", answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract: "${ctr}", openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{contract: "${ctr}", answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-active-answered': `{${ctr_filter}answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{${ctr_filter}answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{${ctr_filter}openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{${ctr_filter}answerFinalizedTimestamp_lt: ${ts_now}}`,
     }
 
     const ranking_order = {
@@ -4209,13 +4205,14 @@ async function fetchAndDisplayQuestionFromGraph(ranking) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
         return false;
     }
-    console.log('graph url is ', network_graph_url);
+    // console.log('graph url is ', network_graph_url);
 
     var query = `
       {
         questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
             id,
             questionId,
+            contract,
             createdBlock
         }
       }  
@@ -4223,10 +4220,10 @@ async function fetchAndDisplayQuestionFromGraph(ranking) {
 
     //console.log('query', query);
     const res = await axios.post(network_graph_url, {query: query});
-    //console.log('res', res.data);
+    //console.log('graph res', res.data);
     for (var q of res.data.data.questions) {
-        const question_posted = RealityCheck.filters.LogNewQuestion(q.question_id);
-        const result = await RealityCheck.queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.question_id);
+        const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (var i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i]);
             handleQuestionLog(result[i]);
@@ -4971,7 +4968,9 @@ console.log('net_id is ', net_id);
             current_block_number = block.number;
         }
 
-        pageInit();
+        const limit_to_contract = show_all ? null : RC_DEFAULT_ADDRESS;
+        pageInit(limit_to_contract);
+
         if (args['question']) {
             try {
                 const [ctr, qid] = parseContractQuestionID(args['question'], RC_DEFAULT_ADDRESS);
