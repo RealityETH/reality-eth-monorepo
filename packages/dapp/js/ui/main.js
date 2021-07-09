@@ -44,7 +44,6 @@ const axios = require('axios');
 const ProxiedArbABI = require('../../abi/ProxiedArbitrator.json');
 
 var submitted_question_id_timestamp = {};
-var user_claimable = {};
 let USER_CLAIMABLE_BY_CONTRACT = {};
 
 var category = null;
@@ -2921,12 +2920,11 @@ function answersByMaxBond(answer_logs) {
 }
 
 function resetAccountUI() {
-    user_claimable = {};
+    USER_CLAIMABLE_BY_CONTRACT = {};
     q_min_activity_blocks = {};
     $('#your-question-answer-window').find('.account-specific').remove();
     $('.answer-claim-button.claim-all').find('.claimable-eth').text('');
     $('.answer-claim-button.claim-all').hide();
-
 }
 
 function insertNotificationItem(evt, notification_id, ntext, block_number, contract, question_id, is_positive, timestamp) {
