@@ -162,7 +162,7 @@ function nonceFromSeed(paramstr) {
         window.localStorage.setItem('commitment-seed', seed);
     }
 
-    return web3.sha3(paramstr + seed);
+    return uiHash(paramstr + seed);
 
 }
 
@@ -2496,7 +2496,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
             for (var i = 0; i < idx; i++) {
                 var ans = question_detail['history'][i].args;
-                var hist_id = 'question-window-history-item-' + web3js.sha3(question_id + ans.answer + ans.bond.toHexString());
+                var hist_id = 'question-window-history-item-' + uiHash(question_id + ans.answer + ans.bond.toHexString());
                 if (rcqa.find('#' + hist_id).length) {
                     //console.log('already in list, skipping', hist_id, ans);
                     continue;
@@ -2985,6 +2985,11 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
 
 }
 
+// We use the standard ethereum hashing for IDs used in the UI but we could use anything, it's just to make unique IDs
+function uiHash(str) {
+    return ethers.utils.solidityKeccak256(["string"], [str]);
+}
+
 function renderNotifications(qdata, entry) {
 
     const contract = entry.address;
@@ -3004,14 +3009,14 @@ function renderNotifications(qdata, entry) {
     var evt = entry['event']
     switch (evt) {
         case 'LogNewQuestion':
-            var notification_id = web3js.sha3('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
+            var notification_id = uiHash('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
             ntext = 'You asked a question - "' + question_json['title'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             break;
 
         case 'LogNewAnswer':
             var is_positive = true;
-            var notification_id = web3js.sha3('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
+            var notification_id = uiHash('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == account) {
                 if (entry.args.is_commitment) {
                     ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
@@ -3037,7 +3042,7 @@ function renderNotifications(qdata, entry) {
 
         case 'LogAnswerReveal':
             var is_positive = true;
-            var notification_id = web3.sha3('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
+            var notification_id = uiHash('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == account) {
                 ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
@@ -3058,7 +3063,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogFundAnswerBounty':
-            var notification_id = web3js.sha3('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
+            var notification_id = uiHash('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
             if (entry.args.user == account) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
@@ -3081,7 +3086,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogNotifyOfArbitrationRequest':
-            var notification_id = web3js.sha3('LogNotifyOfArbitrationRequest' + entry.args.question_id);
+            var notification_id = uiHash('LogNotifyOfArbitrationRequest' + entry.args.question_id);
             var is_positive = true;
             if (entry.args.user == account) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
@@ -3105,7 +3110,7 @@ function renderNotifications(qdata, entry) {
 
         case 'LogFinalize':
             //console.log('in LogFinalize', entry);
-            var notification_id = web3js.sha3('LogFinalize' + entry.args.question_id + entry.args.answer);
+            var notification_id = uiHash('LogFinalize' + entry.args.question_id + entry.args.answer);
             var finalized_question = rc.LogNewQuestion({
                 question_id: question_id
             }, {
@@ -3618,7 +3623,7 @@ console.log('check against answer', new_answer);
             const rc = RCInstance(contract, true);
             if (USE_COMMIT_REVEAL) {
                 var answer_plaintext = new_answer;
-                var nonce = nonceFromSeed(web3.sha3(question_id + answer_plaintext + bond));
+                var nonce = nonceFromSeed(uiHash(question_id + answer_plaintext + bond));
                 var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
 
                 console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
