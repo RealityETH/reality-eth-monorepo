@@ -5,7 +5,7 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 
 *tokens/* contains a file describing each supported token.
 
-*chains/* contains the full raw data from chainid.network, and a file listing chains we specifically support, and adding useful configuration information not supplied by chainid.network.
+*chains/* contains the full raw data from https://chainid.network/chains.json, and a file listing chains we specifically support, and adding useful configuration information not supplied by chainid.network.
 
 The above are combined into JSON files under generated/ using `npm run-script generate`.
 
