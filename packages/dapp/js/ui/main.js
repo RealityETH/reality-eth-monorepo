@@ -11,10 +11,6 @@ const rc_contracts = require('@reality.eth/contracts');
 let token_info = {};
 let chain_info = {};
 
-// The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
-const Web3 = require('web3');
-var web3js = new Web3();  //used for sha3 etc, TODO replace
-
 var rc_json;
 var arb_json;
 var token_json;
