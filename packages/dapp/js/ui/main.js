@@ -95,7 +95,7 @@ var block_timestamp_cache = {};
 // Array of all questions that the user is interested in
 var q_min_activity_blocks = {};
 
-// These will be populated in onload, once web3js is loaded
+// These will be populated in onload, once the provider is loaded
 let RC_INSTANCES = {};
 let RC_DEFAULT_ADDRESS = null;
 let RC_DISPLAYED_CONTRACTS = [];
@@ -783,10 +783,10 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
 
     }
 
-    const SignedRealityCheck = RCInstance(RC_DEFAULT_ADDRESS, true);
+    const signedRC = RCInstance(RC_DEFAULT_ADDRESS, true);
     let tx_response = null;
     if (is_currency_native) { 
-        tx_response = await SignedRealityCheck.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+        tx_response = await signedRC.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
             from: account,
             // gas: 200000,
             value: reward.add(fee)
@@ -794,7 +794,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
     } else {
         var cost = reward.add(fee);
         await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, account, cost);
-        tx_response = await SignedRealityCheck.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
+        tx_response = await signedRC.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
             from: account,
             // gas: 200000,
         })
@@ -976,9 +976,9 @@ $(document).on('click', '.answer-claim-button', function() {
         //  5 answers 73702
 
         var gas = 140000 + (30000 * claim_args['history_hashes'].length);
-        const SignedRealityCheck = RCInstance(contract, true); 
+        const signedRC = RCInstance(contract, true); 
         console.log('claiming:', claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers']);
-        SignedRealityCheck.functions.claimMultipleAndWithdrawBalance(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
+        signedRC.functions.claimMultipleAndWithdrawBalance(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
             from: account
             //gas: gas
         }).then(function(tx_response) {
@@ -1741,8 +1741,8 @@ async function ensureAmountApproved(spender, account, amount) {
         return allowed;
     } else {
         console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
-        const SignedERC20 = erc20.connect(signer);
-        const tx = await SignedERC20.functions.approve(spender, amount.sub(allowed));
+        const signedERC20 = erc20.connect(signer);
+        const tx = await signedERC20.functions.approve(spender, amount.sub(allowed));
         await tx.wait(); 
         // At this point we have received the approval's transaction hash and can proceed with next transaction.
         // However, Metamask may need some time to pick up this transaction, 
@@ -3020,7 +3020,7 @@ function renderNotifications(qdata, entry) {
                 }
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
+                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone answered your question';
                     } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -3042,7 +3042,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
+                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone revealed their answer to your question';
                     } else if (qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -3063,7 +3063,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
+                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     if (result2[0].args.user == account) {
                         ntext = 'Someone added reward to your question';
                     } else {
@@ -3087,7 +3087,7 @@ function renderNotifications(qdata, entry) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
-                RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
+                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                     var history_idx = qdata['history'].length - 2;
                     if (result2[0].args.user == account) {
                         ntext = 'Someone requested arbitration to your question';
@@ -3117,7 +3117,7 @@ function renderNotifications(qdata, entry) {
             if (entry.timestamp) {
                 timestamp = entry.timestamp;
             }
-            RealityCheck.queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
+            RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
                 if (result2[0].args.user == account) {
                     ntext = 'Your question is finalized';
                 } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == account) {
@@ -3645,7 +3645,7 @@ console.log('check against answer', new_answer);
                         });
                     });
                 } else {
-                    ensureAmountApproved(RealityCheck.address, account, bond).then(function() {
+                    ensureAmountApproved(rc.address, account, bond).then(function() {
                         return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, account, bond, {from:account, gas:200000}).then( function(tx_res) {
                             console.log('got submitAnswerCommitment tx_res, waiting for confirmation', tx_res);
                             rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {from:account, gas:200000})
@@ -3661,7 +3661,7 @@ console.log('check against answer', new_answer);
                         value: bond
                     }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
                 } else {
-                    ensureAmountApproved(RealityCheck.address, account, bond).then(function() {
+                    ensureAmountApproved(rc.address, account, bond).then(function() {
                         rc.functions.submitAnswerERC20(question_id, new_answer, current_question.bond, bond, {
                             from: account,
                             //gas: 200000,
@@ -3749,19 +3749,19 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
         err = true;
     }
 
-    const SignedRealityCheck = RealityCheck.connect(signer);
+    const signedRC = RCInstance(contract, true);
     if (err || reward <= 0) {
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         await getAccount();
         if (!is_currency_native) {
-            await ensureAmountApproved(RealityCheck.address, account, reward);
+            await ensureAmountApproved(contract, account, reward);
         }
         let tx_response = null;
         if (is_currency_native) {
-            tx_response = await SignedRealityCheck.fundAnswerBounty(question_id, {from: account, value: reward});
+            tx_response = await signedRC.fundAnswerBounty(question_id, {from: account, value: reward});
         } else {
-            tx_response = await SignedRealityCheck.fundAnswerBountyERC20(question_id, reward, {from: account})
+            tx_response = await signedRC.fundAnswerBountyERC20(question_id, reward, {from: account})
         }
         await tx_response.wait();
         //console.log('fund bounty', result);
@@ -4974,8 +4974,9 @@ window.addEventListener('load', async function() {
     }
 console.log('arb init', ARBITRATOR_LIST_BY_CONTRACT, ARBITRATOR_FAILED_BY_CONTRACT, ARBITRATOR_VERIFIED_BY_CONTRACT);
     
+    // Set up dummy contract objects, we'll make copies of them with the correct addresses when we need them
     RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
-    Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); // For now set up a dummy object with the RealityCheck address
+    Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); 
 
     populateArbitratorSelect(ARBITRATOR_LIST_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()]);
     foreignProxyInitNetwork(net_id);
