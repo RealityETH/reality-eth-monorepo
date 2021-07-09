@@ -24,5 +24,17 @@ function keygen(options, fileObj) {
                 .filter(Boolean);
 }
 
-const all_config = requireGlob.sync('./../tokens/*.json', {"keygen": keygen});
-fs.writeFileSync(project_base + '/generated/tokens.json', JSON.stringify(all_config, null, 4));
+var all_config = requireGlob.sync('./../tokens/*.json', {"keygen": keygen});
+var out = {};
+for (const k in all_config) {
+    if ('native_networks' in all_config[k]) {
+        out[k] = all_config[k];
+    }
+}
+for (const k in all_config) {
+    if (!('native_networks' in all_config[k])) {
+        out[k] = all_config[k];
+    }
+}
+
+fs.writeFileSync(project_base + '/generated/tokens.json', JSON.stringify(out, null, 4));

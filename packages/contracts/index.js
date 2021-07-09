@@ -145,7 +145,7 @@ function defaultTokenForNetwork(network_id) {
         if (!token_info) {
             continue;
         }
-        if (token_info.is_native) {
+        if (token_info[token].is_native) {
             return token;
         }
         if (!ret) {
