@@ -1,0 +1,7 @@
+{
+    "decimals": 1000000000000000000,
+    "small_number": 1000000000000000000,
+    "erc20_networks": {
+        "4": "0x56AE5fd086823d1892BACE27034Eb5531Fcdc3f8"
+    }
+}

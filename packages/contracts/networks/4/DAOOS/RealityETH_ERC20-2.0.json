@@ -1,0 +1,9 @@
+{
+    "address": "0x3B3ab861Deb4ED756e39f2f6A2634DEdfC182d38",
+    "block": 8903097,
+    "token_address": "0x56AE5fd086823d1892BACE27034Eb5531Fcdc3f8",
+    "notes": null,
+    "arbitrators": {
+        "0x8368d613059dcbdBF909081Bb00190a01b0d5F9D": "daoOS DAO team (rinkeby main)"
+    }
+}
