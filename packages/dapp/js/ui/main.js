@@ -13,7 +13,7 @@ let chain_info = {};
 
 // The library is Web3, metamask's instance will be web3, we instantiate our own as web3js
 const Web3 = require('web3');
-var web3js; // This should be the normal metamask instance
+var web3js = new Web3();  //used for sha3 etc, TODO replace
 
 var rc_json;
 var arb_json;
@@ -1296,7 +1296,7 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
                         // The notification code sorts by block number
                         // So get the current block
                         // But also add the timestamp for display
-                        web3js.eth.getBlock('latest', function(err, result) {
+                        provider.getBlock('latest', function(err, result) {
                             // There no blockchain event for this, but otherwise it looks to the UI like a normal event
                             // Make a pretend log to feed to the notifications handling function.
                             block_timestamp_cache[result.number] = result.timestamp
@@ -2868,7 +2868,7 @@ function populateWithBlockTimeForBlockNumber(item, num, cbk) {
     if (block_timestamp_cache[num]) {
         cbk(item, block_timestamp_cache[num]);
     } else {
-        web3js.eth.getBlock(num, function(err, result) {
+        provider.getBlock('latest', function(err, result) {
             if (err || !result) {
                 console.log('getBlock err', err, result);
                 return;
@@ -4837,23 +4837,6 @@ window.addEventListener('load', async function() {
 
     signer = provider.getSigner()
 
-    if (typeof web3 === 'undefined') {
-        var is_web3_fallback = true;
-        // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-        web3js = new Web3(new Web3.providers.HttpProvider(HOSTED_RPC_NODE));
-        console.log('no web3js, using infura on network', "1");
-    } else {
-        // Use Mist/MetaMask's provider
-        console.log('got web3js, go ahead');
-        web3js = new Web3(web3.currentProvider);
-
-        var network = await provider.getNetwork();
-        if (network) {
-            net_id = network.chainId; 
-        }
-
-    }
-
     if (args['foreign-proxy']) {
         displayForeignProxy(args['foreign-proxy']);
     }
@@ -4865,155 +4848,159 @@ window.addEventListener('load', async function() {
         }
     })
 
-    provider.on("network", (net_id, old_net_id) => {
+    provider.on("network", async function(network, old_net_id) {
+
+        net_id = network.chainId;
+
         if (old_net_id) {
             window.location.reload();
         }
-    });
+console.log('net_id is ', net_id);
 
-    if (args['category']) {
-        $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
-    } else {
-        $("#filter-list").find("[data-category='all']").addClass("selected")
-    }
-
-    if (!currency) {
-        currency = rc_contracts.defaultTokenForNetwork(net_id);
-        console.log('picked token', currency);
-    }
-
-    const all_rc_configs = rc_contracts.realityETHConfigs(net_id, currency);
-    let rc_config = null;
-    let show_all = true;
-    if (args['contract']) {
-        rc_config = all_rc_configs[args['contract']]; 
-        show_all = false;
-    }
-
-    for(const cfg_addr in all_rc_configs) {
-        const cfg = all_rc_configs[cfg_addr]; 
-        START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
-    }
-
-    // If not found, load the default
-    if (!rc_config) {
-        rc_config = rc_contracts.realityETHConfig(net_id, currency);
-    }
-    
-    if (!rc_config) {
-        $('body').addClass('error-invalid-network-for-token').addClass('error');
-        return;
-    }
-
-    initContractSelect(all_rc_configs, rc_config, show_all);
-
-    token_info = rc_contracts.networkTokenList(net_id);
-    console.log('got token info', token_info);
-
-    rc_json = rc_contracts.realityETHInstance(rc_config);
-    arb_json = rc_contracts.arbitratorInstance();
-
-    if (!rc_json) {
-        console.log('Token not recognized', currency);
-        return;
-    }
-
-    initCurrency(currency);
-    if (!is_currency_native) {
-        token_json = rc_contracts.erc20Instance(rc_config);
-    }
-
-    chain_info = rc_contracts.networkData(net_id);
-    HOSTED_RPC_NODE = chain_info['hostedRPC'];
-    BLOCK_EXPLORER = chain_info['blockExplorerUrls'][0];
-
-    if (!initNetwork(net_id)) {
-        $('body').addClass('error-invalid-network').addClass('error');
-        return;
-    } 
-
-    if (args['network'] && (parseInt(args['network']) != parseInt(net_id))) {
-        displayWrongNetwork(parseInt(args['network']), parseInt(net_id));
-        return;
-    }
-
-    if (!$('body').hasClass('foreign-proxy')) {
-        $('select#token-selection').removeClass('uninitialized');
-    }
-
-    USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
-
-    if (args['category']) {
-        category = args['category'];
-        $('body').addClass('category-' + category);
-        var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
-        $('#filterby').text(cat_txt);
-    }
-
-    RC_DEFAULT_ADDRESS = rc_json.address;
-    for(const cfg_addr in all_rc_configs) {
-        const cfg = all_rc_configs[cfg_addr];
-        RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
-        if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
-            RC_DISPLAYED_CONTRACTS.push(cfg_addr);
-        }
-        ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
-        ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
-        ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
-        ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = true;
-        ARBITRATOR_FAILED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
-        if ('arbitrators' in cfg) {
-            for(var arb_addr in cfg['arbitrators']) {
-                ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = cfg['arbitrators'][arb_addr];
-                ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = true;
-            }
+        if (args['category']) {
+            $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
         } else {
-            console.log('no arbs in config', cfg);
+            $("#filter-list").find("[data-category='all']").addClass("selected")
         }
 
-    }
-console.log('arb init', ARBITRATOR_LIST_BY_CONTRACT, ARBITRATOR_FAILED_BY_CONTRACT, ARBITRATOR_VERIFIED_BY_CONTRACT);
-    
-    // Set up dummy contract objects, we'll make copies of them with the correct addresses when we need them
-    RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
-    Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); 
-
-    populateArbitratorSelect(ARBITRATOR_LIST_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()]);
-    foreignProxyInitNetwork(net_id);
-
-    const block = await provider.getBlock('latest');
-
-    if (block.number > current_block_number) {
-        current_block_number = block.number;
-    }
-
-    pageInit();
-    if (args['question']) {
-        try {
-            const [ctr, qid] = parseContractQuestionID(args['question'], RC_DEFAULT_ADDRESS);
-            const question = await ensureQuestionDetailFetched(ctr, qid);
-            openQuestionWindow(contractQuestionID(question));
-        } catch (err) {
-            console.log('could not open question in URL', err);
+        if (!currency) {
+            currency = rc_contracts.defaultTokenForNetwork(net_id);
+            console.log('picked token', currency);
         }
-    }
 
-    setupContractClaimSections(RC_DISPLAYED_CONTRACTS);
+        const all_rc_configs = rc_contracts.realityETHConfigs(net_id, currency);
+        let rc_config = null;
+        let show_all = true;
+        if (args['contract']) {
+            rc_config = all_rc_configs[args['contract']]; 
+            show_all = false;
+        }
 
-    // NB If this fails we'll try again when we need to do something using the account
-    getAccount(true);
+        for(const cfg_addr in all_rc_configs) {
+            const cfg = all_rc_configs[cfg_addr]; 
+            START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
+        }
 
-    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
-        const rcaddr = RC_DISPLAYED_CONTRACTS[i];
-        // Listen for all events
-        RCInstance(rcaddr).on("*", function(eventObject) {
-            console.log('got all events for contract ', rcaddr, eventObject);
-            handleEvent(null, eventObject);
-        });
-    }
-    
-    //runPollingLoop(RealityCheck);
-    //setTimeout(bounceEffect, 8000);
+        // If not found, load the default
+        if (!rc_config) {
+            rc_config = rc_contracts.realityETHConfig(net_id, currency);
+        }
+        
+        if (!rc_config) {
+            $('body').addClass('error-invalid-network-for-token').addClass('error');
+            return;
+        }
+
+        initContractSelect(all_rc_configs, rc_config, show_all);
+
+        token_info = rc_contracts.networkTokenList(net_id);
+        console.log('got token info', token_info);
+
+        rc_json = rc_contracts.realityETHInstance(rc_config);
+        arb_json = rc_contracts.arbitratorInstance();
+
+        if (!rc_json) {
+            console.log('Token not recognized', currency);
+            return;
+        }
+
+        initCurrency(currency);
+        if (!is_currency_native) {
+            token_json = rc_contracts.erc20Instance(rc_config);
+        }
+
+        chain_info = rc_contracts.networkData(net_id);
+        HOSTED_RPC_NODE = chain_info['hostedRPC'];
+        BLOCK_EXPLORER = chain_info['blockExplorerUrls'][0];
+
+        if (!initNetwork(net_id)) {
+            $('body').addClass('error-invalid-network').addClass('error');
+            return;
+        } 
+
+        if (args['network'] && (parseInt(args['network']) != parseInt(net_id))) {
+            displayWrongNetwork(parseInt(args['network']), parseInt(net_id));
+            return;
+        }
+
+        if (!$('body').hasClass('foreign-proxy')) {
+            $('select#token-selection').removeClass('uninitialized');
+        }
+
+        USE_COMMIT_REVEAL = (parseInt(args['commit']) == 1);
+
+        if (args['category']) {
+            category = args['category'];
+            $('body').addClass('category-' + category);
+            var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+            $('#filterby').text(cat_txt);
+        }
+
+        RC_DEFAULT_ADDRESS = rc_json.address;
+        for(const cfg_addr in all_rc_configs) {
+            const cfg = all_rc_configs[cfg_addr];
+            RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
+            if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
+                RC_DISPLAYED_CONTRACTS.push(cfg_addr);
+            }
+            ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+            ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
+            ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+            ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = true;
+            ARBITRATOR_FAILED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
+            if ('arbitrators' in cfg) {
+                for(var arb_addr in cfg['arbitrators']) {
+                    ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = cfg['arbitrators'][arb_addr];
+                    ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = true;
+                }
+            } else {
+                console.log('no arbs in config', cfg);
+            }
+
+        }
+        //console.log('arb init', ARBITRATOR_LIST_BY_CONTRACT, ARBITRATOR_FAILED_BY_CONTRACT, ARBITRATOR_VERIFIED_BY_CONTRACT);
+        
+        // Set up dummy contract objects, we'll make copies of them with the correct addresses when we need them
+        RealityCheck = new ethers.Contract(rc_json.address, rc_json.abi, provider);
+        Arbitrator = new ethers.Contract(rc_json.address, arb_json.abi, provider); 
+
+        populateArbitratorSelect(ARBITRATOR_LIST_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()]);
+        foreignProxyInitNetwork(net_id);
+
+        const block = await provider.getBlock('latest');
+
+        if (block.number > current_block_number) {
+            current_block_number = block.number;
+        }
+
+        pageInit();
+        if (args['question']) {
+            try {
+                const [ctr, qid] = parseContractQuestionID(args['question'], RC_DEFAULT_ADDRESS);
+                const question = await ensureQuestionDetailFetched(ctr, qid);
+                openQuestionWindow(contractQuestionID(question));
+            } catch (err) {
+                console.log('could not open question in URL', err);
+            }
+        }
+
+        setupContractClaimSections(RC_DISPLAYED_CONTRACTS);
+
+        // NB If this fails we'll try again when we need to do something using the account
+        getAccount(true);
+
+        for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+            const rcaddr = RC_DISPLAYED_CONTRACTS[i];
+            // Listen for all events
+            RCInstance(rcaddr).on("*", function(eventObject) {
+                console.log('got all events for contract ', rcaddr, eventObject);
+                handleEvent(null, eventObject);
+            });
+        }
+
+        //runPollingLoop(RealityCheck);
+        //setTimeout(bounceEffect, 8000);
+    });
 });
 
 $('.continue-read-only-message').click(function(e) {
