@@ -53,10 +53,8 @@
     "postcss-cli": "^2.6.0",
     "sass-lint": "^1.10.2",
     "timeago.js": "^3.0.1",
-    "truffle-contract": "^2.0.0",
     "uglify-js": "^2.7.5",
-    "watch": "^1.0.1",
-    "web3": "^0.19.0"
+    "watch": "^1.0.1"
   },
   "gitHead": "a695f49c89a3704a081329657e5e40f4a354270e"
 }
