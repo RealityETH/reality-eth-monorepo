@@ -466,7 +466,9 @@ function markViewedToDate() {
 
 function humanToDecimalizedBigNumber(num, force_eth) {
     const decimalstr = force_eth ? ""+1000000000000000000 : ""+token_info[currency]['decimals'];
-    return ethers.BigNumber.from(num).mul(decimalstr);
+    const num_trad_bn = new BigNumber(num).times(decimalstr);
+    const num_hex_str = '0x'+num_trad_bn.toString(16);
+    return ethers.BigNumber.from(num_hex_str);
 }
 
 function decimalizedBigNumberToHuman(num, force_eth) {
@@ -1334,12 +1336,13 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
     var called_block = found_at_block ? found_at_block : current_block_number;
     var earliest_block = 0;
     var bond_indexes = {};
+    //console.log('checking his', question['history']);
     for (var i=0; i<question['history'].length; i++) {
         if (question['history'][i].args['is_commitment']) {
             if (!question['history'][i].args['revealed_block']) {
-                var bond = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
-                console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond);
-                bond_indexes[bond] = i;
+                var bond_hex = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
+                console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond_hex);
+                bond_indexes[bond_hex] = i;
                 if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
                     earliest_block = question['history'][i].blockNumber;
                 }
@@ -1352,17 +1355,17 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
         const answer_arr = await RCInstance(contract).queryFilter(reveal_filter, start_block, 'latest');
         console.log('got reveals', answer_arr);
         for(var j=0; j<answer_arr.length; j++) {
-            var bond = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
-            var idx = bond_indexes[bond];
+            var bond_hex = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
+            var idx = bond_indexes[bond_hex];
             // Copy the object as we are not allowed to extend the original one
             var args = Object.assign({}, question['history'][idx].args);
             // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
             args['revealed_block'] = answer_arr[j].blockNumber;
             args['answer'] = answer_arr[j].args['answer'];
-            var commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond);
+            var commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], new BigNumber(bond_hex));
             args['commitment_id'] = commitment_id;
             question['history'][idx].args = args;
-            delete bond_indexes[bond];
+            delete bond_indexes[bond_hex];
         }
         question_detail_list[contractQuestionID(question)] = question; // TODO : use filledQuestionDetail here? 
         //console.log('populated question, result is', question);
@@ -3626,13 +3629,18 @@ console.log('check against answer', new_answer);
                 console.log('made bond', bond);
                 console.log('made answer_hash', answer_hash);
 
-                var commitment_id = rc_question.commitmentID(question_id, answer_hash, bond);
+                var commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
                 console.log('resulting  commitment_id', commitment_id);
 
                 // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
                 // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
                 if (is_currency_native) {
-                    return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, account, {from:account, gas:200000, value:bond}).then( function(tx_res) {
+console.log('try submitAnswerCommitment, val ', bond);
+                    return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, account, {
+                        from:account, 
+                        // gas:200000, 
+                        value:bond
+                    }).then( function(tx_res) {
                         console.log('got submitAnswerCommitment tx, waiting for confirmation', tx_res);
                         tx_res.wait().then(function(tx_res) {
                             rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {
@@ -4040,13 +4048,15 @@ function handleEvent(error, result) {
         switch (evt) {
 
             case ('LogNewAnswer'):
-                if (result.args.is_commitment) {
+                var args = Object.assign({}, result.args);
+                if (args.is_commitment) {
                     console.log('got commitment', result);
-                    result.args.commitment_id = result.args.answer;
+                    args.commitment_id = args.answer;
                     // TODO: Get deadline
-                    result.args.answer = null;
+                    args.answer = null;
                     // break;
                 }
+                result.args = args;
 
                 waitForBlock(result).then(function(result) {
                     //console.log('got LogNewAnswer, block ', result.blockNumber);
