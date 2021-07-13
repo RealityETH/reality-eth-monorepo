@@ -333,7 +333,7 @@ function RCInstance(ctr, signed) {
     }
     let ret = RC_INSTANCES[ctr.toLowerCase()];;
     if (!ret) {
-        throw new Error("contract not found", ctr, signed, is_new);
+        throw new Error("contract not found:" + ctr + ":"+ signed);
     }
     if (signed) {
         return ret.connect(signer);
@@ -1341,7 +1341,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
         if (question['history'][i].args['is_commitment']) {
             if (!question['history'][i].args['revealed_block']) {
                 var bond_hex = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
-                console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond_hex);
+                // console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond_hex);
                 bond_indexes[bond_hex] = i;
                 if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
                     earliest_block = question['history'][i].blockNumber;
@@ -1353,7 +1353,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
     if (earliest_block > 0) {
         const reveal_filter = RCInstance(contract).filters.LogAnswerReveal(question_id);
         const answer_arr = await RCInstance(contract).queryFilter(reveal_filter, start_block, 'latest');
-        console.log('got reveals', answer_arr);
+        // console.log('got reveals', answer_arr);
         for(var j=0; j<answer_arr.length; j++) {
             var bond_hex = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
             var idx = bond_indexes[bond_hex];
@@ -4148,10 +4148,10 @@ TODO restore
     });
 */
 
-    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph(only_contract, 'questions-resolved'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
 
     // Now the rest of the questions
     last_polled_block = current_block_number;
@@ -4188,16 +4188,16 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-async function fetchAndDisplayQuestionFromGraph(only_contract, ranking) {
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
+    //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
-    var ts_now = parseInt(new Date()/1000);
-    var ctr = rc_json.address;
-    const ctr_filter = only_contract ? `contract: "${only_contract}", ` : '';
+    const ts_now = parseInt(new Date()/1000);
+    const contract_str = JSON.stringify(displayed_contracts);
     const ranking_where = {
-        'questions-active-answered': `{${ctr_filter}answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{${ctr_filter}answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{${ctr_filter}openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{${ctr_filter}answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-active-answered': `{contract_in: ${contract_str}, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{contract_in: ${contract_str}, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{contract_in: ${contract_str}, openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
     }
 
     const ranking_order = {
@@ -4228,7 +4228,7 @@ async function fetchAndDisplayQuestionFromGraph(only_contract, ranking) {
       }  
       `;
 
-    //console.log('query', query);
+    // console.log('query', query);
     const res = await axios.post(network_graph_url, {query: query});
     //console.log('graph res', res.data);
     for (var q of res.data.data.questions) {
