@@ -7,8 +7,7 @@ const rc = require('../../index.js');
 var undef;
 
 const defaultConfigs = {
-    //gasPrice: 8000000000,
-    gasLimit: 6000000,
+    // gasPrice: 8000000000,
     etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
 const task = process.argv[2]
@@ -30,6 +29,7 @@ const networks = {
     'sokol': 77,
     'xdai': 100,
     'polygon': 137,
+    'arbitrum': 42161,
     'arbitrum-rinkeby': 421611
 }
 const non_infura_networks = {
@@ -37,6 +37,7 @@ const non_infura_networks = {
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'arbitrum': 'https://arb1.arbitrum.io/rpc',
     'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc'
 }
 
@@ -139,8 +140,9 @@ function deployRealityETH() {
     var tmpl = realityETHName();
     var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
-    console.log(txt);
     const deployer = deployer_for_network();
+    txt = txt + ' (from address ' + deployer.signer.signingKey.address + ')';
+    console.log(txt);
     deployer.deploy(constructContractTemplate(tmpl), {}).then(function(result) {
         console.log('storing address', result.contractAddress);
 
