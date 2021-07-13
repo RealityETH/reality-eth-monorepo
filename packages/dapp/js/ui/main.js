@@ -2569,6 +2569,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail.timeout));
     balloon.find('.setting-info-content-hash').text(question_detail.content_hash);
     balloon.find('.setting-info-question-id').text(question_detail.question_id);
+    balloon.find('.setting-info-contract-address').text(question_detail.contract);
     balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail.contract, question_detail.arbitrator));
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.find('.setting-info-created-ts').text(new Date(question_detail.creation_ts*1000).toUTCString().replace('GMT', 'UTC'));
