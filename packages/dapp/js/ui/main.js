@@ -4293,7 +4293,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         }
         */
 
-    console.log('fetch start end ', start_block, end_block, fetch_i);
+    console.log('fetch range', contract, start_block, end_block, fetch_i);
     fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
 }
 
@@ -4644,12 +4644,17 @@ function accountInit(account) {
 
 function initContractSelect(available_configs, selected_config, show_all) {
     let sel = $('select#contract-selection');
+    let only_have_default = true;
     for(const ac in available_configs) {
         const acobj = available_configs[ac];
+        const is_selected = (ac.toLowerCase() == selected_config.address.toLowerCase());
+        if (!is_selected) {
+            only_have_default = false;
+        }
         let op = $('<option>');
         op.attr('value', ac).text('reality.eth v'+acobj.version_number);
         if (!show_all) {
-            if (ac.toLowerCase() == selected_config.address.toLowerCase()) {
+            if (is_selected) {
                 op.prop('selected', 'selected');
             }
         }
@@ -4657,6 +4662,9 @@ function initContractSelect(available_configs, selected_config, show_all) {
     }
 
     sel.attr('data-old-val', sel.val());
+    if (only_have_default) {
+        sel.find('.all-contracts').remove();
+    }
     sel.removeClass('uninitialized');
 }
 
