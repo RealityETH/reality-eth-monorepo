@@ -1,5 +1,5 @@
   - kind: ethereum/contract
-    name: RealityETH-{{token}}
+    name: {{contract-name-with-version}}-{{token}}
     network: {{network}}
     source:
       startBlock: {{block}}

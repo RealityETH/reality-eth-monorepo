@@ -16,15 +16,19 @@ const ds_template = fs.readFileSync('subgraph.datasource.template.yaml').toStrin
 let dses = [];
 
 for(var token in token_list) {
-    const config = rc_contracts.realityETHConfig(net_id, token);
-    const dsData = {
-        "network": network,
-        "address": config.address,
-        "block": config.block,
-        "token": token
+    const configs = rc_contracts.realityETHConfigs(net_id, token);
+    for (var config_addr in configs) {
+        const config = configs[config_addr];
+        const dsData = {
+            "network": network,
+            "address": config.address,
+            "block": config.block,
+            "token": token,
+            "contract-name-with-version": config.contract_version
+        }
+        const ds_section = mustache.render(ds_template, dsData);
+        dses.push(ds_section);
     }
-    const ds_section = mustache.render(ds_template, dsData);
-    dses.push(ds_section);
 }
 
 const templateData = {
