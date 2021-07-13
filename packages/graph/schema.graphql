@@ -1,3 +1,19 @@
+type _Schema_
+  @fulltext(
+    name: "questionSearch",
+    language: en
+    algorithm: rank,
+    include: [
+      {
+        entity: "Question",
+        fields: [
+          { name: "q_title" },
+          { name: "q_category" }
+        ]
+      }
+    ]
+  )
+
 type Question @entity {
   id: ID!
   questionId: Bytes!
