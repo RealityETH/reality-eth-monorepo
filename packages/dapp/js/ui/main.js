@@ -40,7 +40,7 @@ let SUBMITTED_QUESTION_ID_BY_TIMESTAMP = {};
 let USER_CLAIMABLE_BY_CONTRACT = {};
 
 let CATEGORY = null;
-let TEMPLATE_CONTENT = TEMPLATE_CONFIG.content;
+let CONTRACT_TEMPLATE_CONTENT = {}; TEMPLATE_CONFIG.content;
 
 let LAST_POLLED_BLOCK = null;
 let IS_INITIAL_LOAD_DONE = false;
@@ -82,10 +82,10 @@ BigNumber.config({
 });
 const ONE_ETH = 1000000000000000000;
 
-var BLOCK_TIMESTAMP_CACHE = {};
+let BLOCK_TIMESTAMP_CACHE = {};
 
 // Array of all questions that the user is interested in
-var Q_MIN_ACTIVITY_BLOCKS = {};
+let Q_MIN_ACTIVITY_BLOCKS = {};
 
 // These will be populated in onload, once the provider is loaded
 let RC_INSTANCES = {};
@@ -124,8 +124,8 @@ let DISPLAY_ENTRIES = {
 }
 
 // data for question detail window
-var QUESTION_DETAIL_CACHE = [];
-var QUESTION_EVENT_TIMES = {}; // Hold timer IDs for things we display that need to be moved when finalized
+let QUESTION_DETAIL_CACHE = {};
+let QUESTION_EVENT_TIMES = {}; // Hold timer IDs for things we display that need to be moved when finalized
 
 var WINDOW_POSITION = [];
 
@@ -156,7 +156,7 @@ function nonceFromSeed(paramstr) {
 
 }
 
-var zindex = 10;
+var ZINDEX = 10;
 
 const monthList = [
     'Jan',
@@ -384,11 +384,11 @@ $(document).on('change', 'select.arbitrator', function() {
 });
 
 $(document).on('click', '.rcbrowser', function() {
-    zindex += 1;
-    $(this).css('z-index', zindex);
-    $('.ui-datepicker').css('z-index', zindex + 1);
-    $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
-    $(this).find('.question-setting-info').find('.balloon').css('z-index', zindex);
+    ZINDEX += 1;
+    $(this).css('z-index', ZINDEX);
+    $('.ui-datepicker').css('z-index', ZINDEX + 1);
+    $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
+    $(this).find('.question-setting-info').find('.balloon').css('z-index', ZINDEX);
 });
 
 // see all notifications
@@ -424,7 +424,7 @@ $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.stopPropagation();
     getAccount().then(function() {
         var yourwin = $('#your-question-answer-window');
-        yourwin.css('z-index', ++zindex);
+        yourwin.css('z-index', ++ZINDEX);
         yourwin.addClass('is-open');
         var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
         yourwin.css('height', winheight + 'px');
@@ -438,7 +438,7 @@ $('#your-qa-button,.your-qa-link').on('click', function(e) {
 $('#help-center-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    $('#help-center-window').css('z-index', ++zindex).addClass('is-open');
+    $('#help-center-window').css('z-index', ++ZINDEX).addClass('is-open');
 });
 
 function setViewedBlockNumber(network_id, block_number) {
@@ -531,7 +531,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
         });
 
         if (!question_window.hasClass('is-open')) {
-            question_window.css('z-index', ++zindex);
+            question_window.css('z-index', ++ZINDEX);
             question_window.addClass('is-open');
             question_window.css('height', question_window.height() + 'px');
             setRcBrowserPosition(question_window);
@@ -729,7 +729,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
 
         var q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
         q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
-        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(TEMPLATE_CONTENT[template_id], qtext));
+        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract][template_id], qtext));
 
         // Turn the post question window into a question detail window
         var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -1577,13 +1577,13 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
 }
 
 async function _ensureQuestionTemplateFetched(contract, question_id, template_id, qtext, freshness) {
-    //console.log('ensureQuestionDetailFetched', template_id, TEMPLATE_CONTENT[template_id], qtext);
+    //console.log('ensureQuestionDetailFetched', template_id, CONTRACT_TEMPLATE_CONTENT[template_id], qtext);
     const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract_question_id, 'question_json', freshness)) {
         return QUESTION_DETAIL_CACHE[contract_question_id];
     } else {
-        if (TEMPLATE_CONTENT[template_id]) {
-            var question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(TEMPLATE_CONTENT[template_id], qtext));
+        if (CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id]) {
+            var question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
             return (question);
         } else {
             // The category text should be in the log, but the contract has the block number
@@ -1594,13 +1594,13 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
             const cat_logs = await RCInstance(contract).queryFilter(template_filter, template_block_num, template_block_num);
             if (cat_logs.length == 1) {
                 //console.log('adding template content', cat_arr, 'template_id', template_id);
-                TEMPLATE_CONTENT[template_id] = cat_logs[0].args.question_text;
-                //console.log(TEMPLATE_CONTENT);
+                CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = cat_logs[0].args.question_text;
+                //console.log(CONTRACT_TEMPLATE_CONTENT);
                 var populatedq;
                 try {
-                    populatedq = rc_question.populatedJSONForTemplate(TEMPLATE_CONTENT[template_id], qtext)
+                    populatedq = rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext)
                 } catch (e) {
-                    console.log('error populating template', TEMPLATE_CONTENT[template_id], qtext, e);
+                    console.log('error populating template', CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, e);
                 }
                 var question = filledQuestionDetail(contract, question_id, 'question_json', 1, populatedq);
                 return question;
@@ -2321,7 +2321,7 @@ function displayQuestionDetail(question_detail) {
     var rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question_detail, true);
-        rcqa.css('z-index', ++zindex);
+        rcqa.css('z-index', ++ZINDEX);
     } else {
         rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         rcqa.attr('id', window_id);
@@ -2351,7 +2351,7 @@ function displayQuestionDetail(question_detail) {
 
         rcqa.css('display', 'block');
         rcqa.addClass('is-open');
-        rcqa.css('z-index', ++zindex);
+        rcqa.css('z-index', ++ZINDEX);
         rcqa.css('height', "80%");
         rcqa.css('max-height', "80%");
         setRcBrowserPosition(rcqa);
@@ -2552,7 +2552,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
     if (balloon_html) {
         rcqa.find('.question-setting-warning').css('display', 'block');
-        rcqa.find('.question-setting-warning').find('.balloon').css('z-index', ++zindex);
+        rcqa.find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
         rcqa.find('.question-setting-warning').find('.balloon').html(balloon_html);
     }
 
@@ -2573,7 +2573,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         opening_ts_str = new Date(question_detail.opening_ts*1000).toUTCString().replace('GMT', 'UTC');
     }
     balloon.find('.setting-info-opening-ts').text(opening_ts_str);
-    balloon.css('z-index', ++zindex);
+    balloon.css('z-index', ++ZINDEX);
 
     var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
     if (question_detail['history_unconfirmed'].length) {
@@ -4032,7 +4032,7 @@ function handleEvent(error, result) {
     if (evt == 'LogNewTemplate') {
         var template_id = result.args.template_id;
         var question_text = result.args.question_text;
-        TEMPLATE_CONTENT[template_id] = question_text;
+        CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = question_text;
         return;
     } else if (evt == 'LogNewQuestion') {
         handleQuestionLog(result);
@@ -4951,6 +4951,10 @@ console.log('net_id is ', net_id);
             if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
                 RC_DISPLAYED_CONTRACTS.push(cfg_addr);
             }
+
+            // Everyone gets the initial config
+            CONTRACT_TEMPLATE_CONTENT[cfg_addr.toLowerCase()] = TEMPLATE_CONFIG.content;
+
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
             ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
