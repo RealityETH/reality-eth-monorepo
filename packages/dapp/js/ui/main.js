@@ -158,7 +158,7 @@ function nonceFromSeed(paramstr) {
 
 var ZINDEX = 10;
 
-const monthList = [
+const MONTH_LIST = [
     'Jan',
     'Feb',
     'Mar',
@@ -2395,7 +2395,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     let date = new Date();
     date.setTime(question_detail.creation_ts * 1000);
-    let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+    let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']).expander({
@@ -3215,7 +3215,7 @@ function renderUserQandA(qdata, entry) {
     var updateBlockTimestamp = function(item, ts) {
         let date = new Date();
         date.setTime(ts * 1000);
-        let date_str = monthList[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
+        let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
             ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
         item.find('.item-date').text(date_str);
     }
