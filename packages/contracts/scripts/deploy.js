@@ -1,8 +1,8 @@
 const fs = require('fs');
 const ethers = require('ethers');
-const project_base = './../../';
-const build_dir = './../../truffle/build/contracts/';
-const rc = require('../../index.js');
+const project_base = './../';
+const build_dir = './../truffle/build/contracts/';
+const rc = require('../index.js');
 
 var undef;
 
