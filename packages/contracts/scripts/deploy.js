@@ -1,15 +1,15 @@
 const fs = require('fs');
-const etherlime = require('etherlime-lib');
-const project_base = './../../';
-const build_dir = './../../truffle/build/contracts/';
-const rc = require('../../index.js');
+const ethers = require('ethers');
+const project_base = './../';
+const build_dir = './../truffle/build/contracts/';
+const rc = require('../index.js');
 
 var undef;
 
 const defaultConfigs = {
     //gasPrice: 8000000000,
     gasLimit: 6000000,
-    etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
+    //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
 const task = process.argv[2]
 const version = process.argv[3]
@@ -114,12 +114,13 @@ function store_deployed_contract(template, network_id, token_name, out_json) {
     console.log('wrote file', file);
 }
 
-function deployer_for_network() {
+function provider_for_network() {
     if (non_infura_networks[network]) {
         console.log('Using network', non_infura_networks[network]);
-        return new etherlime.JSONRPCPrivateKeyDeployer(priv, non_infura_networks[network], defaultConfigs);
+        return new ethers.providers.JsonRpcProvider(non_infura_networks[network]);
     } else {
-        return new etherlime.InfuraPrivateKeyDeployer(priv, network, null, defaultConfigs);
+        console.log('Using infura on network', network);
+        return new ethers.providers.InfuraProvider(network);
     }
 }
 
@@ -138,29 +139,42 @@ function deployRealityETH() {
     var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
     console.log(txt);
-    const deployer = deployer_for_network();
-    deployer.deploy(constructContractTemplate(tmpl), {}).then(function(result) {
-        console.log('storing address', result.contractAddress);
 
-        const settings = {
-            "address": result.contractAddress,
-            "block": result.provider._lastBlockNumber,
-            "token_address": token_address,
-            "notes": null,
-            "arbitrators": {}
-        }
+    const provider = provider_for_network();
+    const t = constructContractTemplate(tmpl);
+    const signer = new ethers.Wallet(priv, provider);
+    const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
 
-        //console.log('result was', result);
-        store_deployed_contract(tmpl, network_id, token_name, settings); 
-        if (isERC20()) {
-            result.setToken(token_address);
-        }
+    confac.deploy(defaultConfigs).then(function(result) {
+        const txid = result.deployTransaction.hash;
+        const address = result.address;
+        console.log('storing address', address);
+        console.log('deploying at address with tx ', txid);
+        result.deployed().then(function(depres) {
+            // console.log('depres', depres);
+            const settings = {
+                "address": address,
+                "block": depres.provider._lastBlockNumber,
+                "token_address": token_address,
+                "notes": null,
+                "arbitrators": {}
+            }
+
+            //console.log('result was', result);
+            store_deployed_contract(tmpl, network_id, token_name, settings); 
+            if (isERC20()) {
+                result.setToken(token_address);
+            }
+
+        });
+
     });
 }
 
 function deployArbitrator() {
 
     const rc_conf = rc.realityETHConfig(network_id, token_name, version); 
+    console.log('using reality.eth config', rc_conf);
     if (rc_conf.token_address != token_address) {
         throw new Error('Reality.eth contract does not seem to use the token address you specified');
     }
@@ -168,47 +182,76 @@ function deployArbitrator() {
     var tmpl = 'Arbitrator';
     var rc_file = project_base + '/networks/' + network_id + '/' + token_name + '/' + tmpl + '.json';
 
-    const deployer = deployer_for_network();
     const timer = ms => new Promise( res => setTimeout(res, ms));
 
-    deployer.deploy(constructContractTemplate('Arbitrator'), {}).then(function(result) {
-        console.log('storing address', result.contractAddress);
-        const settings = {
-            "address": result.contractAddress,
-            "block": result.provider._lastBlockNumber,
-            "reality_eth_address": rc_conf.address
-        }
-        store_deployed_contract('Arbitrator', network_id, token_name, settings);
+    const provider = provider_for_network();
+    const t = constructContractTemplate('Arbitrator');
+    const signer = new ethers.Wallet(priv, provider);
+    const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
 
-        console.log('doing setRealitio');
-        result.setRealitio(rc_conf.address).then(function() {
-            console.log('done setRealitio');
-            return timer(9000);
-        }).then(function() {
-            console.log('doing setDisputeFee');
-            return result.setDisputeFee(arb_fee);
-        }).then(function() {
-            console.log('done setDisputeFee');
-            return timer(9000);
-        }).then(function() {
-            if (arbitrator_owner) {
-                result.transferOwnership(arbitrator_owner);
+    confac.deploy(defaultConfigs).then(function(result) {
+        const txid = result.deployTransaction.hash;
+        const address = result.address;
+        console.log('storing address', address);
+        console.log('deploying at address with tx ', txid);
+        result.deployed().then(function(depres) {
+            // console.log('depres', depres);
+            const settings = {
+                "address": address,
+                "block": depres.provider._lastBlockNumber,
+                "reality_eth_address": rc_conf.address
             }
+
+            console.log('storing address', address);
+            store_deployed_contract('Arbitrator', network_id, token_name, settings);
+
+            console.log('doing setRealitio');
+            result.setRealitio(rc_conf.address).then(function() {
+                console.log('done setRealitio');
+                return timer(9000);
+            }).then(function() {
+                console.log('doing setDisputeFee');
+                return result.setDisputeFee(arb_fee);
+            }).then(function() {
+                console.log('done setDisputeFee');
+                return timer(9000);
+            }).then(function() {
+                if (arbitrator_owner) {
+                    result.transferOwnership(arbitrator_owner);
+                }
+            });
+
+
         });
+
     });
 }
 
+
 function deployERC20() {
     console.log('deploying an erc20 token', token_name);
-    const deployer = deployer_for_network();
-    deployer.deploy(constructContractTemplate('ERC20'), {}).then(function(result) {
-        console.log('storing address', result.contractAddress);
-        const settings = {
-            "address": result.contractAddress,
-            "block": result.provider._lastBlockNumber
-        }
-        store_deployed_contract(template, network_id, token_name, settings);
 
+    const provider = provider_for_network();
+    const t = constructContractTemplate('ERC20');
+    const signer = new ethers.Wallet(priv, provider);
+    const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+
+    confac.deploy(defaultConfigs).then(function(result) {
+        const txid = result.deployTransaction.hash;
+        const address = result.address;
+        console.log('storing address', address);
+        console.log('deploying at address with tx ', txid);
+        result.deployed().then(function(depres) {
+            // console.log('depres', depres);
+            const settings = {
+                "address": address,
+                "block": depres.provider._lastBlockNumber
+            }
+
+            console.log('storing address', address);
+            store_deployed_contract(template, network_id, token_name, settings);
+
+        });
         //result.setToken(token_address);
         //result.setToken(result.contractAddress);
     });
