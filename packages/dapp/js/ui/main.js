@@ -173,26 +173,6 @@ const monthList = [
     'Dec'
 ];
 
-function rcbrowserHeight() {
-    console.log('skipping auto rcbrowserHeight');
-    return;
-    const rcbrowserHeaders = document.querySelectorAll('.rcbrowser-header');
-    const rcbrowserMains = document.querySelectorAll('.rcbrowser-main');
-    var _maxHeight = document.documentElement.clientHeight * .9;
-    for (let i = 0, len = rcbrowserHeaders.length; i < len; i += 1) {
-        let parent = rcbrowserHeaders[i].parentNode.parentNode;
-        let parentRect = parent.getBoundingClientRect();
-        let parentRectTop = parentRect.top;
-        let maxHeight = _maxHeight - parentRectTop;
-        let _headerHeight = rcbrowserHeaders[i].clientHeight;
-        let _mainHeight = rcbrowserMains[i].clientHeight + 15;
-        let _height = _headerHeight + _mainHeight;
-        let height = Math.min(_height, maxHeight);
-        parent.style.height = height + 'px';
-    }
-}
-rcbrowserHeight();
-
 function markArbitratorFailed(contract, addr, contract_question_id) {
     ARBITRATOR_FAILED_BY_CONTRACT[contract.toLowerCase()][addr.toLowerCase()] = true;
     if (contract_question_id) {
