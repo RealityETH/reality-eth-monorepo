@@ -35,7 +35,7 @@ The version we will deploy on XDai, v2.1, has an additional fee, called the clai
 
 ## Compilation 
 
-We now use Etherlime rather than Truffle for compilation and deployment. The existing build files already contain the compiled code, so if you're not changing the code and just deploying versions of a previous contract for a new token, you don't need to compile.
+We now use Etherlime rather than Truffle for compilation. The existing build files already contain the compiled code, so if you're not changing the code and just deploying versions of a previous contract for a new token, you don't need to compile.
 
 `$ cd truffle`
 
@@ -48,13 +48,13 @@ The above builds contracts under `truffle/build`. If you don't need to merge wit
 
 You will need the private key of an account with funds to deploy on the relevant network. It should be in hex, beginning "0x", in a file called `mainnet.sec` or `rinkeby.sec` or the equivalent for the network you will deploy to.
 
-`$ mkdir truffle/etherlime_deploy/secrets`
+`$ mkdir packages/contracts/secrets`
 
 The `.gitignore` file should prevent it from being checked into Git, but be careful not to share it.
 
 To deploy contracts using the code compiled under truffle/build/contracts, use
 
-`$ cd truffle/etherlime_deploy`
+`$ cd packages/contracts/scripts`
 
 `$ node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
