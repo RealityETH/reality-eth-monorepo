@@ -50,6 +50,22 @@
             "https://rinkeby.etherscan.io"
         ]
     },
+    "8": {
+        "chainId": "0x8",
+        "chainName": "Ubiq Network Mainnet",
+        "nativeCurrency": {
+            "name": "Ubiq Ether",
+            "symbol": "UBQ",
+            "decimals": 18
+        },
+        "network_name": "mainnet",
+        "rpcUrls": [
+            "https://rpc.octano.dev",
+            "https://pyrus2.ubiqscan.io"
+        ],
+        "hostedRPC": "https://rpc.octano.dev",
+        "blockExplorerUrls": []
+    },
     "42": {
         "chainId": "0x2a",
         "chainName": "Ethereum Testnet Kovan",

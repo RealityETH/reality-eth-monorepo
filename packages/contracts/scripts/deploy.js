@@ -25,6 +25,7 @@ const networks = {
     'ropsten': 3,
     'rinkeby': 4,
     'goerli': 5,
+    'ubiq': 8,
     'kovan': 42,
     'bsc': 56,
     'sokol': 77,
@@ -35,7 +36,8 @@ const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
-    'polygon': 'https://rpc-mainnet.maticvigil.com'
+    'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'ubiq': 'https://rpc.octano.dev'
 }
 
 function constructContractTemplate(contract_name) {
@@ -144,6 +146,7 @@ function deployRealityETH() {
     const t = constructContractTemplate(tmpl);
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+    // console.log(signer);
 
     confac.deploy(defaultConfigs).then(function(result) {
         const txid = result.deployTransaction.hash;
