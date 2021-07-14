@@ -1074,14 +1074,15 @@ $('div.loadmore-button').on('click', function(e) {
     display_entries[sec]['max_store'] = display_entries[sec]['max_store'] + 3;
 
     for (var i = num_in_doc; i < new_max && i < display_entries[sec]['ids'].length; i++) {
-        var nextid = display_entries[sec]['ids'][i];
-        var previd;
+        const nextid = display_entries[sec]['ids'][i];
+        const [next_ctr, next_question_id] = parseContractQuestionID(nextid);
+        let previd = null;
         if (i > 0) {
             previd = display_entries[sec]['ids'][i + 1];
         }
         //console.log('populatewith', previd, nextid, question_detail_list);
         // TODO: Handle multiple contracts
-        ensureQuestionDetailFetched(RC_DEFAULT_ADDRESS, nextid, 1, 1, 1, -1).then(function(qdata) {
+        ensureQuestionDetailFetched(next_ctr, next_question_id, 1, 1, 1, -1).then(function(qdata) {
             populateSection(sec, qdata, previd);
         });
     }
