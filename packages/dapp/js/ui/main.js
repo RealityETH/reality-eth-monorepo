@@ -133,7 +133,6 @@ const $ = require('jquery-browserify');
 require('jquery-expander')($);
 require('jquery-datepicker');
 
-import imagesLoaded from 'imagesloaded';
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 //import {TweenLite, Power3} from 'gsap';
@@ -378,18 +377,6 @@ $(function() {
         return false;
     });
 });
-
-
-// page loaded
-let bounceEffect = function() {
-    if (!$('body').hasClass('is-page-loaded')) {
-        imagesLoaded(document.getElementById('cover'), {
-            background: true
-        }, function() {
-            $('body').addClass('is-page-loaded');
-        });
-    }
-}
 
 
 /*-------------------------------------------------------------------------------------*/
@@ -4214,8 +4201,6 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         scheduleFallbackTimer();
         runPollingLoop(RCInstance(contract));
 
-        //setTimeout(bounceEffect, 500);
-
         //$('body').addClass('is-page-loaded');
 
         return;
@@ -4948,7 +4933,6 @@ window.addEventListener('load', async function() {
         }
 
         //runPollingLoop(RealityCheck);
-        //setTimeout(bounceEffect, 8000);
     });
 });
 
