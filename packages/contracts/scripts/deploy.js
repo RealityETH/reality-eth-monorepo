@@ -29,7 +29,9 @@ const networks = {
     'bsc': 56,
     'sokol': 77,
     'xdai': 100,
-    'polygon': 137
+    'polygon': 137,
+    'arbitrum': 42161,
+    'arbitrum-rinkeby': 421611
 }
 const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
