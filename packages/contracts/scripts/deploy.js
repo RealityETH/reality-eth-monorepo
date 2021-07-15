@@ -37,7 +37,9 @@ const non_infura_networks = {
     'xdai': 'https://xdai.poanetwork.dev',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
-    'polygon': 'https://rpc-mainnet.maticvigil.com'
+    'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'arbitrum': 'https://arb1.arbitrum.io/rpc',
+    'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc'
 }
 
 function constructContractTemplate(contract_name) {
