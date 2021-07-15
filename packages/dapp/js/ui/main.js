@@ -127,9 +127,9 @@ let DISPLAY_ENTRIES = {
 let QUESTION_DETAIL_CACHE = {};
 let QUESTION_EVENT_TIMES = {}; // Hold timer IDs for things we display that need to be moved when finalized
 
-var WINDOW_POSITION = [];
+let WINDOW_POSITION = [];
 
-var $ = require('jquery-browserify');
+const $ = require('jquery-browserify');
 require('jquery-expander')($);
 require('jquery-datepicker');
 
@@ -138,15 +138,16 @@ import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 //import {TweenLite, Power3} from 'gsap';
 
+const crypto = require('crypto');
+
 function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function nonceFromSeed(paramstr) {
 
-    var seed = window.localStorage.getItem('commitment-seed');
+    let seed = window.localStorage.getItem('commitment-seed');
     if (seed == null) {
-        var crypto = require('crypto');
         seed = crypto.randomBytes(32).toString('hex');
         console.log('made seed', seed);
         window.localStorage.setItem('commitment-seed', seed);
@@ -183,11 +184,11 @@ function markArbitratorFailed(contract, addr, contract_question_id) {
 function setRcBrowserPosition(rcbrowser) {
     // when position has been stored.
     if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        var contract_question_id = rcbrowser.attr('data-contract-question-id');
-        var [contract, question_id] = parseContractQuestionID(contract_question_id);
+        const contract_question_id = rcbrowser.attr('data-contract-question-id');
+        const [contract, question_id] = parseContractQuestionID(contract_question_id);
         if (typeof WINDOW_POSITION[contract_question_id] !== 'undefined') {
-            let left = parseInt(WINDOW_POSITION[contract_question_id]['x']) + 'px';
-            let top = parseInt(WINDOW_POSITION[contract_question_id]['y']) + 'px';
+            const left = parseInt(WINDOW_POSITION[contract_question_id]['x']) + 'px';
+            const top = parseInt(WINDOW_POSITION[contract_question_id]['y']) + 'px';
             rcbrowser.css('left', left);
             rcbrowser.css('top', top);
             return;
@@ -207,23 +208,13 @@ function setRcBrowserPosition(rcbrowser) {
     let leftMax = winWidth - itemWidth - paddingLeft;
     let topMax = winHeight - itemHeight - paddingTop;
 
-    if (rcbrowser.attr('id') == 'post-a-question-window') {
-        var leftMin = winWidth / 2;
-        var left = (winWidth / 2) - (itemWidth / 2);
-        var top = itemHeight / 10;
-        left += 'px';
-        top += 'px';
-
-    } else if (rcbrowser.hasClass('rcbrowser--qa-detail')) {
-        var leftMin = winWidth / 2;
-        var left = (winWidth / 2) - (itemWidth / 2);
-        var top = itemHeight / 10;
-        left += 'px';
-        top += 'px';
+    if ((rcbrowser.attr('id') == 'post-a-question-window') || rcbrowser.hasClass('rcbrowser--qa-detail')) {
+        const left = (winWidth / 2) - (itemWidth / 2) + 'px';
+        const top = itemHeight / 10 + 'px';
+        rcbrowser.css('left', left);
+        rcbrowser.css('top', top);
     }
 
-    rcbrowser.css('left', left);
-    rcbrowser.css('top', top);
 }
 
 // RCBrowser custom scrollbar
@@ -316,8 +307,8 @@ function RCInstance(ctr, signed) {
 }
 
 $(document).on('change', 'input.arbitrator-other', function() {
-    var arb_text = $(this).val();
-    var sel_cont = $(this).closest('.select-container');
+    const arb_text = $(this).val();
+    const sel_cont = $(this).closest('.select-container');
     if (/^(0x)?[0-9a-f]{1,40}$/i.test(arb_text)) {
         const ar = ARBITRATOR_INSTANCE.attach(arb_text);
         ar.functions.realitio.then(function(rcaddr_arr) {
@@ -349,11 +340,10 @@ $(document).on('change', 'select.arbitrator', function() {
         populateArbitratorOptionLabel($(this).find('option.arbitrator-other-select'), ethers.BigNumber.from(0));
         $(this).closest('form').find('input.arbitrator-other').hide();
     }
-    var tos_url;
-    var op = $(this).find('option:selected');
-    var tos_url = op.attr('data-tos-url');
+    const op = $(this).find('option:selected');
+    const tos_url = op.attr('data-tos-url');
     console.log('tos_url', tos_url, 'op', op);
-    var tos_section = $(this).closest('.select-container').find('div.arbitrator-tos');
+    const tos_section = $(this).closest('.select-container').find('div.arbitrator-tos');
     if (tos_url) {
         tos_section.find('.arbitrator-tos-link').attr('href', tos_url);
         tos_section.show(); 
@@ -403,10 +393,10 @@ $('#your-qa-button,.your-qa-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     getAccount().then(function() {
-        var yourwin = $('#your-question-answer-window');
+        const yourwin = $('#your-question-answer-window');
         yourwin.css('z-index', ++ZINDEX);
         yourwin.addClass('is-open');
-        var winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
+        const winheight = (yourwin.height() > $(window).height()) ? $(window).height() : yourwin.height();
         yourwin.css('height', winheight + 'px');
         Ps.update(yourwin.find('.rcbrowser-inner').get(0));
         $('.tooltip').removeClass('is-visible');
@@ -430,7 +420,7 @@ function getViewedBlockNumber(network_id) {
 }
 
 function markViewedToDate() {
-    var vbn = parseInt(getViewedBlockNumber(NETWORK_ID));
+    const vbn = parseInt(getViewedBlockNumber(NETWORK_ID));
     if (vbn >= LAST_DISPLAYED_BLOCK_NUMBER) {
         LAST_DISPLAYED_BLOCK_NUMBER = vbn;
     } else {
@@ -455,10 +445,10 @@ function decimalizedBigNumberToHuman(num, force_eth) {
 
 function humanReadableWei(amt) {
     amt = new BigNumber(amt.toHexString());
-    var unit;
-    var displ;
-    var div = 1;
-    var maxeth = new BigNumber(10).pow(16)
+    let unit = null;
+    let displ = null;
+    let div = 1;
+    const maxeth = new BigNumber(10).pow(16)
     if (amt.gt(maxeth)) {
         unit = 'ETH';
         div = new BigNumber(10).pow(18);
@@ -468,7 +458,7 @@ function humanReadableWei(amt) {
     } else {
         unit = 'Wei';
     }
-    var amt_txt = amt.div(div).toString();
+    const amt_txt = amt.div(div).toString();
     return amt_txt + ' ' + unit;
 }
 
@@ -533,53 +523,53 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
         $("select[name='question-category']").change(function(){
             $(this).addClass("selected");
 
-            var optionLabel = "Category: ";
+            let optionLabel = "Category: ";
 
             $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
+                const option = $(this).text().split(optionLabel)[1];
                 if (option){ $(this).text(option);}
             });
 
-            var optionText = $("option:selected",this).text();
+            const optionText = $("option:selected",this).text();
             $("option:selected", this).text(optionLabel + optionText);
 
             $(this).parent().removeClass('is-error');
         });
 
         $("select[name='question-type']").change(function(){
-            var optionLabel = "Question Type: ";
+            let optionLabel = "Question Type: ";
 
             $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
+                const option = $(this).text().split(optionLabel)[1];
                 if (option){ $(this).text(option);}
             });
 
-            var optionText = $("option:selected",this).text();
+            const optionText = $("option:selected",this).text();
             $("option:selected", this).text(optionLabel + optionText);
         });
 
         $("select[name='step-delay']").change(function(){
-            var optionLabel = "Countdown: ";
+            let optionLabel = "Countdown: ";
 
             $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
+                const option = $(this).text().split(optionLabel)[1];
                 if (option){ $(this).text(option);}
             });
 
-            var optionText = $("option:selected",this).text();
+            const optionText = $("option:selected",this).text();
             $("option:selected", this).text(optionLabel + optionText);
         });
 
         $("select[name='arbitrator']").change(function(){
             $(this).addClass("selected");
-            var optionLabel = "Arbitrator: ";
+            let optionLabel = "Arbitrator: ";
 
             $("option", this).each(function() {
-                var option = $(this).text().split(optionLabel)[1];
+                const option = $(this).text().split(optionLabel)[1];
                 if (option){ $(this).text(option);}
             });
 
-            var optionText = $("option:selected",this).text();
+            const optionText = $("option:selected",this).text();
             $("option:selected", this).text(optionLabel + optionText);
         });
     });
@@ -616,46 +606,46 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
 
     await getAccount();
 
-    var win = $('#post-a-question-window');
-    var question_body = win.find('.question-body');
-    var reward_val = win.find('.question-reward').val();
-    var timeout = win.find('.step-delay');
-    var timeout_val = parseInt(timeout.val());
-    var arbitrator = win.find('.arbitrator').val();
+    let win = $('#post-a-question-window');
+    const question_body = win.find('.question-body');
+    const reward_val = win.find('.question-reward').val();
+    const timeout = win.find('.step-delay');
+    const timeout_val = parseInt(timeout.val());
+    let arbitrator = win.find('.arbitrator').val();
 
-    var expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
-    var expected_question_fee = expected_question_fee_attr ? ethers.BigNumber.from(expected_question_fee_attr) : ethers.BigNumber.from(0);
+    const expected_question_fee_attr = win.find('.arbitrator option:selected').attr('data-question-fee');
+    const expected_question_fee = expected_question_fee_attr ? ethers.BigNumber.from(expected_question_fee_attr) : ethers.BigNumber.from(0);
 
     if (arbitrator == 'other') {
         arbitrator = win.find('input.arbitrator-other').val();
     }
-    var question_type = win.find('.question-type');
-    var answer_options = win.find('.answer-option');
-    var opening_ts_val = win.find('.opening-ts').val();
+    const question_type = win.find('.question-type');
+    const answer_options = win.find('.answer-option');
+    const opening_ts_val = win.find('.opening-ts').val();
 
-    var category = win.find('div.select-container--question-category select');
-    var outcomes = [];
+    const category = win.find('div.select-container--question-category select');
+    let outcomes = [];
     for (var i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
-    var reward = (reward_val == '') ? ethers.BigNumber.from(0) : humanToDecimalizedBigNumber(reward_val);
+    const reward = (reward_val == '') ? ethers.BigNumber.from(0) : humanToDecimalizedBigNumber(reward_val);
 
     if (!validate(win)) {
         return;
     }
 
-    var qtype = question_type.val();
-    var template_id = rc_template.defaultTemplateIDForType(qtype);
-    var qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
-    var opening_ts = 0;
+    const qtype = question_type.val();
+    const template_id = rc_template.defaultTemplateIDForType(qtype);
+    const qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
+    let opening_ts = 0;
     if (opening_ts_val != '') {
         opening_ts = new Date(opening_ts_val);
         opening_ts = parseInt(opening_ts / 1000);
     }
 
-    var question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
-    console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
-    console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
+    const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
+    //console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
+    //console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
 
     const is_ok = await validateArbitratorForContract(RC_DEFAULT_ADDRESS, arbitrator);
     if (!is_ok) {
@@ -664,7 +654,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     }
 
     const fee_response = await RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(arbitrator);
-console.log('got fee response', fee_response, 'for arb', arbitrator);
+    // console.log('got fee response', fee_response, 'for arb', arbitrator);
     const fee = fee_response[0];
     if (!fee.eq(expected_question_fee)) {
         console.log('fee has changed');
@@ -672,14 +662,14 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         return;
     }
 
-    var handleAskQuestionTX = function(tx_response) {
+    const handleAskQuestionTX = function(tx_response) {
         //console.log('sent tx with id', txid);
 
         const txid = tx_response.hash;
         const contract = RC_DEFAULT_ADDRESS;
 
         // Make a fake log entry
-        var fake_log = {
+        const fake_log = {
             'entry': 'LogNewQuestion',
             'blockNumber': 0, // unconfirmed
             'args': {
@@ -695,7 +685,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
             },
             'address': contract 
         }
-        var fake_call = [];
+        const fake_call = [];
         fake_call[Qi_finalization_ts] = ethers.BigNumber.from(0);
         fake_call[Qi_is_pending_arbitration] = false;
         fake_call[Qi_arbitrator] = arbitrator;
@@ -707,12 +697,12 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
         fake_call[Qi_history_hash] = "0x0000000000000000000000000000000000000000000000000000000000000000";
         fake_call[Qi_opening_ts] = ethers.BigNumber.from(opening_ts);
 
-        var q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
+        let q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
         q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
-        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract][template_id], qtext));
+        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
 
         // Turn the post question window into a question detail window
-        var rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+        let rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         win.html(rcqa.html());
         win = populateQuestionWindow(win, q, false);
 
@@ -741,7 +731,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
 
         set_hash_param({'question': contractQuestionID(q)});
 
-        var window_id = 'qadetail-' + contractQuestionID(q);
+        const window_id = 'qadetail-' + contractQuestionID(q);
         win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
         win.attr('id', window_id);
         win.attr('data-contract-question-id', contractQuestionID(q));
@@ -761,7 +751,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
             value: reward.add(fee)
         });
     } else {
-        var cost = reward.add(fee);
+        const cost = reward.add(fee);
         await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, ACCOUNT, cost);
         tx_response = await signedRC.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
             from: ACCOUNT,
@@ -773,7 +763,7 @@ console.log('got fee response', fee_response, 'for arb', arbitrator);
 });
 
 function isArbitratorValid(arb) {
-    var found = false;
+    let found = false;
     let arbitrator_addrs = $('select.arbitrator').children();
     arbitrator_addrs.each(function() {
         if ($(this).val().toLowerCase() == arb.toLowerCase()) {
@@ -815,14 +805,14 @@ function isAnswerActivityStarted(question) {
     if (isAnswered(question)) {
         return true;
     }
-    var history_hash = ethers.BigNumber.from(question.history_hash);
+    const history_hash = ethers.BigNumber.from(question.history_hash);
     return (history_hash.gt(0));
 }
 
 function historyItemForCurrentAnswer(question) {
     if (question['history'].length) {
-        for (var i=question['history'].length-1; i >= 0; i--) {
-            var item = question['history'][i].args;
+        for (let i=question['history'].length-1; i >= 0; i--) {
+            const item = question['history'][i].args;
             if (!item.is_commitment || item.revealed_block) {
                 return item;
             }
@@ -840,8 +830,8 @@ function isTopAnswerRevealable(question) {
     if (question['history'].length == 0) {
         return false;
     }
-    var idx = question['history'].length - 1;
-    var item = question['history'][idx].args;
+    const idx = question['history'].length - 1;
+    const item = question['history'][idx].args;
     if (!item.is_commitment) {
         return false;
     }
@@ -859,8 +849,8 @@ function hasUnrevealedCommits(question) {
         return false;
     }
     if (question['history'].length) {
-        for (var i=0; i<question['history'].length; i++) {
-            var item = question['history'][i].args;
+        for (let i=0; i<question['history'].length; i++) {
+            const item = question['history'][i].args;
             if (item.is_commitment && !item.revealed_block) {
                 return true;
             }
@@ -873,22 +863,22 @@ function hasUnrevealedCommits(question) {
 // ...or if there's an uncommitted answer that hasn't timed out yet
 // TODO: Check for timeouts
 function isAnsweredOrAnswerActive(question) {
-    var history_hash = ethers.BigNumber.from(question.history_hash);
+    const history_hash = ethers.BigNumber.from(question.history_hash);
     return (history_hash.gt(0));
 }
 
 function isAnswered(question) {
-    var finalization_ts = question.finalization_ts.toNumber();
+    const finalization_ts = question.finalization_ts.toNumber();
     return (finalization_ts > 1);
 }
 
 function commitExpiryTS(question, posted_ts) {
-    var commit_secs = question.timeout.div(8);
+    const commit_secs = question.timeout.div(8);
     return posted_ts.add(commit_secs);
 }
 
 function isCommitExpired(question, posted_ts) {
-    var commit_secs = question.timeout.toNumber() / 8;
+    const commit_secs = question.timeout.toNumber() / 8;
     // console.log('commit secs are ', commit_secs);
     return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
 }
@@ -898,8 +888,8 @@ function isFinalized(question) {
     if (isArbitrationPending(question)) {
         return false;
     }
-    var fin = question.finalization_ts.toNumber()
-    var res = ((fin > 1) && (fin * 1000 < new Date().getTime()));
+    const fin = question.finalization_ts.toNumber()
+    const res = ((fin > 1) && (fin * 1000 < new Date().getTime()));
     return res;
 }
 
@@ -907,12 +897,12 @@ $(document).on('click', '.answer-claim-button', function() {
 
     const contract = $(this).closest('.contract-claim-section').attr('data-contract');
 
-    var is_single_question = !$(this).hasClass('claim-all');
+    const is_single_question = !$(this).hasClass('claim-all');
 
-    var doClaim = function(contract, is_single_question, question_detail) {
+    const doClaim = function(contract, is_single_question, question_detail) {
 
-        var claim_args;
-        var claiming;
+        let claim_args = {};
+        let claiming = {};
         if (is_single_question) {
 
             claiming = possibleClaimableItems(question_detail);
@@ -944,7 +934,7 @@ $(document).on('click', '.answer-claim-button', function() {
         //  2 answers 54947
         //  5 answers 73702
 
-        var gas = 140000 + (30000 * claim_args['history_hashes'].length);
+        const gas = 140000 + (30000 * claim_args['history_hashes'].length);
         const signedRC = RCInstance(contract, true); 
         console.log('claiming:', claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers']);
         signedRC.functions.claimMultipleAndWithdrawBalance(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
@@ -954,7 +944,7 @@ $(document).on('click', '.answer-claim-button', function() {
             const txid = tx_response.hash;
             //console.log('claiming is ',claiming);
             //console.log('claim result txid', txid);
-            for (var qid in claiming) {
+            for (const qid in claiming) {
                 if (claiming.hasOwnProperty(qid)) {
                     if (USER_CLAIMABLE_BY_CONTRACT[contract][qid]) {
                         USER_CLAIMABLE_BY_CONTRACT[contract][qid].txid = txid;
@@ -967,8 +957,8 @@ $(document).on('click', '.answer-claim-button', function() {
     }
 
     if (is_single_question) {
-        var contract_question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-contract-question-id');
-        var [ctr, question_id] = parseContractQuestionID(contract_question_id);
+        const contract_question_id = $(this).closest('.rcbrowser--qa-detail').attr('data-contract-question-id');
+        const [ctr, question_id] = parseContractQuestionID(contract_question_id);
         if (ctr != contract) {
             throw new Error("Contract ID mismatch", ctr, contract);
         }
@@ -983,9 +973,9 @@ $(document).on('click', '.answer-claim-button', function() {
 });
 
 function validate(win) {
-    var valid = true;
+    let valid = true;
 
-    var qtext = win.find('.question-body');
+    const qtext = win.find('.question-body');
     if (qtext.val() == '') {
         qtext.closest('div').addClass('is-error');
         valid = false;
@@ -993,7 +983,7 @@ function validate(win) {
         qtext.closest('div').removeClass('is-error');
     }
 
-    var reward = win.find('.question-reward');
+    let reward = win.find('.question-reward');
     if (reward.val() === '') {
         reward.parent().parent().addClass('is-error');
         valid = false;
@@ -1001,10 +991,10 @@ function validate(win) {
         reward.parent().parent().removeClass('is-error');
     }
 
-    var options_num = 0;
-    var question_type = win.find('.question-type');
-    var answer_options = $('.answer-option').toArray();
-    for (var i = 0; i < answer_options.length; i++) {
+    let options_num = 0;
+    const question_type = win.find('.question-type');
+    const answer_options = $('.answer-option').toArray();
+    for (let i = 0; i < answer_options.length; i++) {
         if (answer_options[i].value !== '') {
             options_num += 1;
         }
@@ -1017,8 +1007,8 @@ function validate(win) {
         $('.edit-option-inner').removeClass('is-error');
     }
 
-    var select_ids = ['.question-type', '.arbitrator', '.step-delay', '.question-category'];
-    for (var id of select_ids) {
+    const select_ids = ['.question-type', '.arbitrator', '.step-delay', '.question-category'];
+    for (const id of select_ids) {
         if (win.find(id).val() == "default") {
             win.find(id).parent().addClass('is-error');
             valid = false;
@@ -1034,20 +1024,20 @@ function validate(win) {
 // make questions list
 
 $('div.loadmore-button').on('click', function(e) {
-    var sec = $(this).attr('data-questions');
+    const sec = $(this).attr('data-questions');
     //console.log('loading more sec', sec);
 
-    var old_max = DISPLAY_ENTRIES[sec]['max_show'];
-    var new_max = old_max + 3;
+    const old_max = DISPLAY_ENTRIES[sec]['max_show'];
+    const new_max = old_max + 3;
 
-    var num_in_doc = $('#' + sec).find('.questions__item').length;
+    const num_in_doc = $('#' + sec).find('.questions__item').length;
 
     DISPLAY_ENTRIES[sec]['max_show'] = new_max;
 
     // TODO: We may need to refetch to populate this store
     DISPLAY_ENTRIES[sec]['max_store'] = DISPLAY_ENTRIES[sec]['max_store'] + 3;
 
-    for (var i = num_in_doc; i < new_max && i < DISPLAY_ENTRIES[sec]['ids'].length; i++) {
+    for (let i = num_in_doc; i < new_max && i < DISPLAY_ENTRIES[sec]['ids'].length; i++) {
         const nextid = DISPLAY_ENTRIES[sec]['ids'][i];
         const [next_ctr, next_question_id] = parseContractQuestionID(nextid);
         let previd = null;
@@ -1091,8 +1081,8 @@ function handlePotentialUserAction(entry, is_watch) {
     const contract = entry.address;
 
     // This is the same for all events
-    var question_id = entry.args['question_id'];
-    var contract_question_id = cqToID(contract, question_id);
+    const question_id = entry.args['question_id'];
+    const contract_question_id = cqToID(contract, question_id);
     // console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
 
     // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
@@ -1115,7 +1105,7 @@ function handlePotentialUserAction(entry, is_watch) {
 
     }
 
-    var lastViewedBlockNumber = 0;
+    let lastViewedBlockNumber = 0;
     if (getViewedBlockNumber(NETWORK_ID)) {
         lastViewedBlockNumber = parseInt(getViewedBlockNumber(NETWORK_ID));
     }
@@ -1123,7 +1113,7 @@ function handlePotentialUserAction(entry, is_watch) {
         $('body').addClass('pushing');
     }
 
-    var is_population_done = false;
+    let is_population_done = false;
 
     // User action
     //console.log('got event as user action', entry);
@@ -1156,7 +1146,7 @@ function handlePotentialUserAction(entry, is_watch) {
 
 function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     const contract = question.contract;
-    var poss = possibleClaimableItems(question);
+    const poss = possibleClaimableItems(question);
     //console.log('made poss for question', poss, question.question_id);
     if (poss['total'].isZero()) {
         delete USER_CLAIMABLE_BY_CONTRACT[contract][question.question_id];
@@ -1167,11 +1157,11 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 }
 
 async function updateClaimableDisplay(contract) {
-    var unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], false);
+    const unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], false);
     //console.log('updateClaimableDisplay with user_claimable, unclaimed', user_claimable, unclaimed);
-    var claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], true);
+    const claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], true);
     //console.log('got claiming', claiming);
-    var sec = $('.contract-claim-section').filter('[data-contract=' + contract + ']'); 
+    const sec = $('.contract-claim-section').filter('[data-contract=' + contract + ']'); 
     if (claiming.total.gt(0)) {
         var txids = claiming.txids;
         sec.find('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
@@ -1185,7 +1175,7 @@ async function updateClaimableDisplay(contract) {
 
     const balance_arr = await RCInstance(contract).functions.balanceOf(ACCOUNT); 
     const balance = balance_arr[0];
-    var ttl = balance.add(unclaimed.total);
+    const ttl = balance.add(unclaimed.total);
     if (ttl.gt(0)) {
         sec.find('.answer-claim-button.claim-all').find('.claimable-eth').text(decimalizedBigNumberToHuman(ttl));
         sec.find('.answer-claim-button.claim-all').show();
@@ -1196,7 +1186,7 @@ async function updateClaimableDisplay(contract) {
 }
 
 function mergePossibleClaimable(posses, pending) {
-    var combined = {
+    const combined = {
         'txids': [],
         'total': ethers.BigNumber.from(0),
         'question_ids': [],
@@ -1206,7 +1196,7 @@ function mergePossibleClaimable(posses, pending) {
         'bonds': [],
         'history_hashes': []
     }
-    for (var qid in posses) {
+    for (const qid in posses) {
         if (posses.hasOwnProperty(qid)) {
             if (!pending && posses[qid].txid) {
                 continue;
@@ -1235,9 +1225,9 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
     //console.log('in scheduleFinalizationDisplayUpdate', question);
     // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
     if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
-        var question_id = question.question_id;
-        var contract_question_id = contractQuestionID(question);
-        var is_done = false;
+        const question_id = question.question_id;
+        const contract_question_id = contractQuestionID(question);
+        let is_done = false;
         if (QUESTION_EVENT_TIMES[contract_question_id]) {
             if (QUESTION_EVENT_TIMES[contract_question_id].finalization_ts == question.finalization_ts) {
                 //console.log('leaving existing timeout for question', question_id)
@@ -1250,9 +1240,9 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
         if (!is_done) {
             //console.log('scheduling');
             // Run 1 second after the finalization timestamp
-            var update_time = (1000 + (question.finalization_ts.toNumber() * 1000) - new Date().getTime());
+            const update_time = (1000 + (question.finalization_ts.toNumber() * 1000) - new Date().getTime());
             //console.log('update_time is ', update_time);
-            var timeout_id = setTimeout(function() {
+            const timeout_id = setTimeout(function() {
                 // TODO: Call again here in case it changed and we missed it
                 clearTimeout(QUESTION_EVENT_TIMES[contract_question_id].timeout_id);
                 delete QUESTION_EVENT_TIMES[contract_question_id];
@@ -1270,15 +1260,15 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
                             // There no blockchain event for this, but otherwise it looks to the UI like a normal event
                             // Make a pretend log to feed to the notifications handling function.
                             BLOCK_TIMESTAMP_CACHE[result.number] = result.timestamp
-                            var fake_entry = {
-                                    event: 'LogFinalize',
-                                    blockNumber: result.number,
-                                    timestamp: question.finalization_ts.toNumber(),
-                                    args: {
-                                        question_id: question.question_id,
-                                    }
+                            const fake_entry = {
+                                event: 'LogFinalize',
+                                blockNumber: result.number,
+                                timestamp: question.finalization_ts.toNumber(),
+                                args: {
+                                    question_id: question.question_id,
                                 }
-                                //console.log('sending fake entry', fake_entry, question);
+                            }
+                            //console.log('sending fake entry', fake_entry, question);
                             if (updateClaimableDataForQuestion(question, fake_entry, true)) {
                                 updateClaimableDisplay(contract);
                                 updateUserBalanceDisplay();
@@ -1308,14 +1298,14 @@ function isAnythingUnrevealed(question) {
 }
 
 async function _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question, found_at_block) {
-    var called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    var earliest_block = 0;
-    var bond_indexes = {};
+    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
+    let earliest_block = 0;
+    let bond_indexes = {};
     //console.log('checking his', question['history']);
-    for (var i=0; i<question['history'].length; i++) {
+    for (let i=0; i<question['history'].length; i++) {
         if (question['history'][i].args['is_commitment']) {
             if (!question['history'][i].args['revealed_block']) {
-                var bond_hex = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
+                const bond_hex = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
                 // console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond_hex);
                 bond_indexes[bond_hex] = i;
                 if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
@@ -1329,11 +1319,11 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
         const reveal_filter = RCInstance(contract).filters.LogAnswerReveal(question_id);
         const answer_arr = await RCInstance(contract).queryFilter(reveal_filter, start_block, 'latest');
         // console.log('got reveals', answer_arr);
-        for(var j=0; j<answer_arr.length; j++) {
-            var bond_hex = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
-            var idx = bond_indexes[bond_hex];
+        for(let j=0; j<answer_arr.length; j++) {
+            const bond_hex = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
+            const idx = bond_indexes[bond_hex];
             // Copy the object as we are not allowed to extend the original one
-            var args = Object.assign({}, question['history'][idx].args);
+            let args = Object.assign({}, question['history'][idx].args);
             // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
             args['revealed_block'] = answer_arr[j].blockNumber;
             args['answer'] = answer_arr[j].args['answer'];
@@ -1348,10 +1338,6 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
     } 
     return question;
 }
-
-
-
-
 
 function filledQuestionDetail(contract, question_id, data_type, freshness, data) {
 
@@ -1374,7 +1360,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
 
     // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
 
-    var question = {
+    let question = {
         'freshness': {
             'question_log': -1,
             'question_json': -1,
@@ -1452,9 +1438,9 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                 question['history'] = data;
             }
             if (data.length && question['history_unconfirmed'].length) {
-                for (var j = 0; j < question['history_unconfirmed'].length; j++) {
-                    var ubond = question['history_unconfirmed'][j].args.bond;
-                    for (var i = 0; i < question['history'].length; i++) {
+                for (let j = 0; j < question['history_unconfirmed'].length; j++) {
+                    let ubond = question['history_unconfirmed'][j].args.bond;
+                    for (let i = 0; i < question['history'].length; i++) {
                         // If there's something unconfirmed with an equal or lower bond, remove it
                         if (data[i].args.bond.gte(ubond)) {
                             //console.log('removing unconfirmed entry due to equal or higher bond from confirmed');
@@ -1468,7 +1454,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
         case 'answers_unconfirmed':
             //console.log('adding answers_unconfirmed');
             // Ignore the age and just see if we have it already
-            for (var i = 0; i < question['history'].length; i++) {
+            for (let i = 0; i < question['history'].length; i++) {
                 //console.log('already have a higher bond, removing');
                 // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
                 if (question['history'][i].args.bond.gte(data.args.bond)) {
@@ -1512,29 +1498,29 @@ function isDataFreshEnough(contract_question_id, data_type, freshness) {
 
 // No freshness as this only happens once per question
 async function _ensureQuestionLogFetched(contract, question_id, freshness, found_at_block) {
-    var called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    var contract_question_id = cqToID(contract, question_id);
+    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
+    const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract_question_id, 'question_log', freshness)) {
         //console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
         return QUESTION_DETAIL_CACHE[contract_question_id];
     } else {
         //console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
-        var question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
-        var question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
+        const question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
+        const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
         if (question_arr.length == 0) {
             throw new Error("Question log not found, maybe try again later");
         }
         if (question_arr.invalid_data) { 
             throw new Error("Invalid data");
         }
-        var question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
+        const question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
         return question;
     }
 }
 
 async function _ensureQuestionDataFetched(contract, question_id, freshness, found_at_block) {
-    var called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    var contract_question_id = cqToID(contract, question_id);
+    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
+    const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(question_id, 'question_call', freshness)) {
         return (QUESTION_DETAIL_CACHE[contract_question_id]);
     } else {
@@ -1542,7 +1528,7 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
         if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
             throw new Error("question not found in call, maybe try again later", question_id);
         }
-        var q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
+        const q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
         return q;
         /*
         rc.questions.call(question_id).then(function(result) {
@@ -1563,7 +1549,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
         return QUESTION_DETAIL_CACHE[contract_question_id];
     } else {
         if (CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id]) {
-            var question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
+            const question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
             return (question);
         } else {
             // The category text should be in the log, but the contract has the block number
@@ -1576,7 +1562,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
                 //console.log('adding template content', cat_arr, 'template_id', template_id);
                 CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = cat_logs[0].args.question_text;
                 //console.log(CONTRACT_TEMPLATE_CONTENT);
-                var populatedq;
+                let populatedq = null;
                 try {
                     populatedq = rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext)
                 } catch (e) {
@@ -1598,8 +1584,8 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
 }
 
 async function _ensureAnswersFetched(contract, question_id, freshness, start_block, injected_data, found_at_block) {
-    var called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    var contract_question_id = cqToID(contract, question_id);
+    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
+    const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract, question_id, 'answers', freshness)) {
         //console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', CURRENT_BLOCK_NUMBER, ' vs ', freshness);
         return (QUESTION_DETAIL_CACHE[contract_question_id]);
@@ -1616,13 +1602,13 @@ async function _ensureAnswersFetched(contract, question_id, freshness, start_blo
                 */
     // In theory this should get us everything but sometimes it seems to lag
     // If this is triggered by an event, and the get didn't return the event, add it to the list ourselves
-    var done_txhashes = {};
+    let done_txhashes = {};
     if (injected_data && injected_data['answers'] && injected_data['answers'].length) {
-        var inj_ans_arr = injected_data['answers'];
-        for (var i=0; i<inj_ans_arr.length; i++ ) {
-            var inj_ans = inj_ans_arr[i];
-            for (var j=0; j<answer_arr.length; j++ ) {
-                var ans = answer_arr[j];
+        let inj_ans_arr = injected_data['answers'];
+        for (let i=0; i<inj_ans_arr.length; i++ ) {
+            const inj_ans = inj_ans_arr[i];
+            for (let j=0; j<answer_arr.length; j++ ) {
+                const ans = answer_arr[j];
                 if (ans.args.bond.eq(inj_ans.args.bond)) {
                     if (ans.transactionHash != inj_ans.transactionHash) {
                         // Replaced by a new entry, old one got orphaned
@@ -1637,8 +1623,8 @@ async function _ensureAnswersFetched(contract, question_id, freshness, start_blo
         }
     }
     // console.log('made answer_arr', answer_arr);
-    var question = filledQuestionDetail(contract, question_id, 'answers', called_block, answer_arr);
-    var q = _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question);
+    const question = filledQuestionDetail(contract, question_id, 'answers', called_block, answer_arr);
+    const q = _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question);
     return q;
 }
 
@@ -1649,7 +1635,6 @@ async function ensureQuestionDetailFetched(ctr, question_id, ql, qi, qc, al, inj
         throw new Error("contract "+ctr+" not found in list, not sure how we gott that for question "+question_id);
     }
 
-    var params = {};
     if (ql == undefined) ql = 1;
     if (qi == undefined) qi = 1;
     if (qc == undefined) qc = CURRENT_BLOCK_NUMBER;
@@ -1659,21 +1644,21 @@ async function ensureQuestionDetailFetched(ctr, question_id, ql, qi, qc, al, inj
         throw new Error('no questin_id, wtf');
     }
 
-    var called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
+    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
     //console.log('ensureQuestionDetailFetched with called_block', called_block);
     //return new Promise((resolve, reject) => {
 //console.log('need qc, here goes');
-    var qc = await _ensureQuestionLogFetched(ctr, question_id, ql);
+    const qlog = await _ensureQuestionLogFetched(ctr, question_id, ql);
 //console.log('ok, got qc, now try qi');
-    var qi = await _ensureQuestionDataFetched(ctr, question_id, qc);
+    const qdat = await _ensureQuestionDataFetched(ctr, question_id, qc);
 //console.log('got qi, next qt, qi is', qi);
-    var qt = await _ensureQuestionTemplateFetched(ctr, question_id, qi.template_id, qi.question_text, qi);
+    const qtempl = await _ensureQuestionTemplateFetched(ctr, question_id, qdat.template_id, qdat.question_text, qdat);
 //console.log('got qt, now q');
-    var q = await _ensureAnswersFetched(ctr, question_id, al, qt.question_created_block, injected_data, called_block);
+    const qans = await _ensureAnswersFetched(ctr, question_id, al, qdat.question_created_block, injected_data, called_block);
 //console.log('all done, q is', q);
      //   resolve(q);
     //});
-    return q;
+    return qans;
     
 
 
@@ -1700,7 +1685,7 @@ function delay(ms) {
 
 async function ensureAmountApproved(spender, account, amount) {
     console.log('checking if we need extra approval for amount', amount.toHexString());
-    var erc20 = getERC20TokenInstance();
+    const erc20 = getERC20TokenInstance();
 
     const mybal = await erc20.functions.balanceOf(account);
     console.log('balance is ', mybal.toString());
@@ -1756,25 +1741,24 @@ function getERC20TokenInstance() {
 
 function populateSection(section_name, question, before_item) {
 
-    var question_id = question.question_id;
-
-    var idx = DISPLAY_ENTRIES[section_name].ids.indexOf(question_id);
+    const question_id = question.question_id;
+    const idx = DISPLAY_ENTRIES[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
     if (idx > DISPLAY_ENTRIES[section_name].max_show) {
         //console.log('over max show, skip', question_id);
         return;
     }
 
-    var question_item_id = section_name + '-question-' + question_id;
-    var before_item_id = section_name + '-question-' + before_item
+    const question_item_id = section_name + '-question-' + question_id;
+    const before_item_id = section_name + '-question-' + before_item
 
-    var target_question_id = 'qadetail-' + contractQuestionID(question);
+    const target_question_id = 'qadetail-' + contractQuestionID(question);
 
-    var section = $('#' + section_name);
+    const section = $('#' + section_name);
 
     // If the item is already in the document but in the wrong place, remove it.
     // If it's already in the right place, do nothing
-    var existing_in_doc = section.find('#' + question_item_id);
+    const existing_in_doc = section.find('#' + question_item_id);
     if (existing_in_doc.length) {
         if (existing_in_doc.next().attr('id') == before_item_id) {
             //console.log('already before item', before_item_id);
@@ -1788,8 +1772,8 @@ function populateSection(section_name, question, before_item) {
         //console.log('item to insert before is here? ', before_item_id, section.find('#' + before_item_id).length);
     }
 
-    var is_found = (section.find('#' + before_item_id).length > 0);
-    var entry = $('.questions__item.template-item').clone();
+    const is_found = (section.find('#' + before_item_id).length > 0);
+    let entry = $('.questions__item.template-item').clone();
 
     entry = populateSectionEntry(entry, question);
 
@@ -1833,12 +1817,11 @@ function populateSection(section_name, question, before_item) {
     if (isFinalized(question) && question.bounty.add(question.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']))) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
-    let arbitrator_addrs = $('#arbitrator').children();
-    let valid_arbirator = isArbitratorValidFast(question.contract, question.arbitrator);
-    if (!valid_arbirator) {
+    const valid_arbitrator = isArbitratorValidFast(question.contract, question.arbitrator);
+    if (!valid_arbitrator) {
         balloon_html += 'This arbitrator is unknown.';
     }
-    var contract_question_id = contractQuestionID(question);
+    const contract_question_id = contractQuestionID(question);
     if (balloon_html) {
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('display', 'block');
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('z-index', 5);
@@ -1864,18 +1847,18 @@ function updateSectionEntryDisplay(question) {
 
 function populateSectionEntry(entry, question) {
 
-    var question_id = question.question_id;
-    var question_json = question.question_json;
-    var posted_ts = question.creation_ts;
-    var arbitrator = question.arbitrator;
-    var timeout = question.timeout;
-    var bounty = decimalizedBigNumberToHuman(question.bounty);
-    var is_arbitration_pending = isArbitrationPending(question);
-    var is_finalized = isFinalized(question);
-    var best_answer = question.best_answer;
-    var bond = question.bond;
+    const question_id = question.question_id;
+    const question_json = question.question_json;
+    const posted_ts = question.creation_ts;
+    const arbitrator = question.arbitrator;
+    const timeout = question.timeout;
+    const bounty = decimalizedBigNumberToHuman(question.bounty);
+    const is_arbitration_pending = isArbitrationPending(question);
+    const is_finalized = isFinalized(question);
+    const best_answer = question.best_answer;
+    const bond = question.bond;
 
-    var options = '';
+    let options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
         for (var i = 0; i < question_json['outcomes'].length; i++) {
             options = options + i + ':' + question_json['outcomes'][i] + ', ';
@@ -1941,19 +1924,19 @@ function populateSectionEntry(entry, question) {
 function depopulateSection(section_name, question_id) {
     //console.log('depopulating', section_name, question_id);
 
-    var question_item_id = section_name + '-question-' + question_id;
-    var section = $('#' + section_name);
+    const question_item_id = section_name + '-question-' + question_id;
+    const section = $('#' + section_name);
 
-    var item = section.find('#' + question_item_id);
+    const item = section.find('#' + question_item_id);
     if (item.length) {
         item.remove();
         // Add the next entry to the bottom
-        var current_last_qid = section.find('.questions__item').last().attr('data-contract-question-id');
-        var current_last_idx = DISPLAY_ENTRIES[section_name]['ids'].indexOf(current_last_qid);
-        var next_idx = current_last_idx + 1;
+        const current_last_qid = section.find('.questions__item').last().attr('data-contract-question-id');
+        const current_last_idx = DISPLAY_ENTRIES[section_name]['ids'].indexOf(current_last_qid);
+        const next_idx = current_last_idx + 1;
         if (DISPLAY_ENTRIES[section_name]['ids'].length > next_idx) {
-            var add_qid = DISPLAY_ENTRIES[section_name]['ids'][next_idx];
-            var qdata = QUESTION_DETAIL_CACHE[add_qid];
+            const add_qid = DISPLAY_ENTRIES[section_name]['ids'][next_idx];
+            const qdata = QUESTION_DETAIL_CACHE[add_qid];
             populateSection(section_name, qdata, current_last_qid);
         }
     }
@@ -1964,9 +1947,8 @@ function depopulateSection(section_name, question_id) {
 // Intended to try to bring interesting open questions to the top
 function calculateActiveRank(created, bounty, bond) {
 
-
     // Everything should be populated with BigNumbers but in the event that something isn't due to some log query issue etc, just skip that question
-    var err = ethers.BigNumber.from(0);
+    const err = ethers.BigNumber.from(0);
     if (typeof created === 'undefined') {
         console.log('calculateActiveRank skipping undefined created');
         return err;
@@ -1982,16 +1964,16 @@ function calculateActiveRank(created, bounty, bond) {
 
     // Initial rank is bounty add bond.
     // Bond is uprated by 4 times compared to reward
-    var rank = bounty.add(bond.mul(ethers.BigNumber.from(4)));
+    let rank = bounty.add(bond.mul(ethers.BigNumber.from(4)));
 
-    var now = new Date();
-    var now_bn = ethers.BigNumber.from(parseInt(now.getTime() / 1000));
-    var age = now_bn.sub(created);
+    const now = new Date();
+    const now_bn = ethers.BigNumber.from(parseInt(now.getTime() / 1000));
+    const age = now_bn.sub(created);
 
     // Scale up anything under 24 hours so that 10 mins counts as 0.01 ETH of reward,  or 0.002 of bond
     if (age.lt(ethers.BigNumber.from(86400))) {
-        var secs = ethers.BigNumber.from(86400).sub(age);
-        var boost = secs.div(ethers.BigNumber.from(600)).mul(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']));
+        const secs = ethers.BigNumber.from(86400).sub(age);
+        const boost = secs.div(ethers.BigNumber.from(600)).mul(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']));
         rank = rank.add(boost);
     }
 
@@ -2003,87 +1985,85 @@ function calculateActiveRank(created, bounty, bond) {
 
 }
 
-function handleQuestionLog(item) {
-    var question_id = item.args.question_id;
-    var contract = item.address;
+async function handleQuestionLog(item) {
+    const question_id = item.args.question_id;
+    const contract = item.address;
     //console.log('in handleQuestionLog', question_id);
-    var created = item.args.created
+    const created = item.args.created
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
-    var question = filledQuestionDetail(contract, question_id, 'question_log', item.blockNumber, item);
+    let question = filledQuestionDetail(contract, question_id, 'question_log', item.blockNumber, item);
     //console.log('after filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
 
     // Then fetch anything else we need to display
-    ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1).then(function(question) {
+    question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1)
 
-        //console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
-        updateQuestionWindowIfOpen(question);
+    //console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
+    updateQuestionWindowIfOpen(question);
 
-        if (CATEGORY && question.question_json.category != CATEGORY) {
-            //console.log('mismatch for cat', category, question.question_json.category);
-            return;
-        } else {
-            //console.log('category match', category, question.question_json.category);
+    if (CATEGORY && question.question_json.category != CATEGORY) {
+        //console.log('mismatch for cat', category, question.question_json.category);
+        return;
+    } else {
+        //console.log('category match', category, question.question_json.category);
+    }
+
+    const is_finalized = isFinalized(question);
+    const is_before_opening = isQuestionBeforeOpeningDate(question);
+    const bounty = question.bounty;
+    const opening_ts = question.opening_ts;
+
+    if (is_finalized) {
+        const insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
+        if (insert_before !== -1) {
+            // TODO: If we include this we have to handle the history too
+            populateSection('questions-resolved', question, insert_before);
+            $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
+            if (DISPLAY_ENTRIES['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
+                $('#questions-resolved').find('.loadmore-button').css('display', 'block');
+            }
         }
 
-        var is_finalized = isFinalized(question);
-        var is_before_opening = isQuestionBeforeOpeningDate(question);
-        var bounty = question.bounty;
-        var opening_ts = question.opening_ts;
+    } else if (is_before_opening) {
 
-        if (is_finalized) {
-            var insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
-            if (insert_before !== -1) {
-                // TODO: If we include this we have to handle the history too
-                populateSection('questions-resolved', question, insert_before);
-                $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
-                if (DISPLAY_ENTRIES['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
-                    $('#questions-resolved').find('.loadmore-button').css('display', 'block');
-                }
+        const insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), opening_ts, 'asc');
+        if (insert_before !== -1) {
+            populateSection('questions-upcoming', question, insert_before);
+            $('#questions-upcoming').find('.scanning-questions-category').css('display', 'none');
+            if (DISPLAY_ENTRIES['questions-upcoming']['ids'].length > 3 && $('#questions-upcoming').find('.loadmore-button').css('display') == 'none') {
+                $('#questions-upcoming').find('.loadmore-button').css('display', 'block');
             }
-
-        } else if (is_before_opening) {
-
-            var insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), opening_ts, 'asc');
-            if (insert_before !== -1) {
-                populateSection('questions-upcoming', question, insert_before);
-                $('#questions-upcoming').find('.scanning-questions-category').css('display', 'none');
-                if (DISPLAY_ENTRIES['questions-upcoming']['ids'].length > 3 && $('#questions-upcoming').find('.loadmore-button').css('display') == 'none') {
-                    $('#questions-upcoming').find('.loadmore-button').css('display', 'block');
-                }
-            }
-
-        } else {
-
-            if (!question.is_pending_arbitration) {
-                var insert_before = update_ranking_data('questions-active', contractQuestionID(question), calculateActiveRank(created, question.bounty, question.bond), 'desc');
-                if (insert_before !== -1) {
-                    populateSection('questions-active', question, insert_before);
-                    $('#questions-active').find('.scanning-questions-category').css('display', 'none');
-                    if (DISPLAY_ENTRIES['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
-                        $('#questions-active').find('.loadmore-button').css('display', 'block');
-                    }
-                }
-            }
-
-            if (isAnswered(question)) {
-                var insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
-                if (insert_before !== -1) {
-                    populateSection('questions-closing-soon', question, insert_before);
-                    $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
-                    if (DISPLAY_ENTRIES['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
-                        $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
-                    }
-                }
-            }
-
-            scheduleFinalizationDisplayUpdate(contract, question);
-            //console.log(DISPLAY_ENTRIES);
         }
 
-        //console.log('bounty', bounty, 'is_finalized', is_finalized);
-    });
+    } else {
+
+        if (!question.is_pending_arbitration) {
+            const insert_before = update_ranking_data('questions-active', contractQuestionID(question), calculateActiveRank(created, question.bounty, question.bond), 'desc');
+            if (insert_before !== -1) {
+                populateSection('questions-active', question, insert_before);
+                $('#questions-active').find('.scanning-questions-category').css('display', 'none');
+                if (DISPLAY_ENTRIES['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
+                    $('#questions-active').find('.loadmore-button').css('display', 'block');
+                }
+            }
+        }
+
+        if (isAnswered(question)) {
+            const insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
+            if (insert_before !== -1) {
+                populateSection('questions-closing-soon', question, insert_before);
+                $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
+                if (DISPLAY_ENTRIES['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
+                    $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
+                }
+            }
+        }
+
+        scheduleFinalizationDisplayUpdate(contract, question);
+        //console.log(DISPLAY_ENTRIES);
+    }
+
 }
 
 // Inserts into the right place in the stored rankings.
@@ -2093,7 +2073,7 @@ function handleQuestionLog(item) {
 function update_ranking_data(arr_name, id, val, ord) {
 
     // Check if we already have it
-    var existing_idx = DISPLAY_ENTRIES[arr_name]['ids'].indexOf(id);
+    const existing_idx = DISPLAY_ENTRIES[arr_name]['ids'].indexOf(id);
     if (existing_idx !== -1) {
         //console.log('not found in list');
 
@@ -2110,10 +2090,10 @@ function update_ranking_data(arr_name, id, val, ord) {
     }
 
     //console.log('update_ranking_data', arr_name, id, val.toString());
-    var arr = DISPLAY_ENTRIES[arr_name]['vals']
+    const arr = DISPLAY_ENTRIES[arr_name]['vals']
         //console.log('start with array ', arr);
 
-    var max_entries = DISPLAY_ENTRIES[arr_name]['max_store'];
+    const max_entries = DISPLAY_ENTRIES[arr_name]['max_store'];
 
     // If the list is full and we're lower, give up
     if (arr.length >= max_entries) {
@@ -2126,13 +2106,12 @@ function update_ranking_data(arr_name, id, val, ord) {
     }
 
     // go through from the top until we find something we're higher than
-    var i = 0;
-    for (i = 0; i < arr.length; i++) {
+    for (let i = 0; i < arr.length; i++) {
         //console.log('see if ', val.toString(), ' is at least as great as ', arr[i].toString());
         if ((ord == 'desc' && val.gte(arr[i])) || (ord == 'asc' && val.lte(arr[i]))) {
             // found a spot, we're higher than the current occupant of this index
             // we'll return its ID to know where to insert in the document
-            var previd = DISPLAY_ENTRIES[arr_name]['ids'][i];
+            const previd = DISPLAY_ENTRIES[arr_name]['ids'][i];
 
             //console.log('found, splice in before ', previd, 'old', val.toString(), 'new', arr[i].toString());
 
@@ -2201,7 +2180,7 @@ $(document).on('click', '.questions__item__title', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
+    const contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
     // Should repopulate and bring to the front if already open
     openQuestionWindow(contract_question_id);
@@ -2212,7 +2191,7 @@ $(document).on('click', '.mini-action-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
+    const contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
     // Should repopulate and bring to the front if already open
     openQuestionWindow(contract_question_id);
@@ -2227,27 +2206,27 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var contract_question_id = $(this).closest('.your-qa__questions__item').attr('data-contract-question-id');
+    const contract_question_id = $(this).closest('.your-qa__questions__item').attr('data-contract-question-id');
 
     openQuestionWindow(contract_question_id);
 
 });
 
 function parseContractQuestionID(id, fallback_contract) {
-console.log('fallback_contract', fallback_contract);
+    // console.log('fallback_contract', fallback_contract);
     const bits = id.split('-');
     if (bits.length === 2) {
         return bits; 
     }
     if (bits.length === 1) {
-console.log('try fallback');
+        // console.log('try fallback');
         if (fallback_contract) {
-console.log('got fallback');
+            console.log('using fallback contract');
             return [fallback_contract, bits[0]]; 
         }
     } else {
-console.log('bits length was', bits.length);
-    throw new Error("Could not parse contract-question-id " + id); 
+        console.log('bits length was', bits.length, bits);
+        throw new Error("Could not parse contract-question-id " + id); 
     }
 }
 
@@ -2259,19 +2238,17 @@ function cqToID(contract, question_id) {
     return contract + '-' + question_id;
 }
 
-function openQuestionWindow(contract_question_id) {
+async function openQuestionWindow(contract_question_id) {
 
     const [contract_addr, question_id] = parseContractQuestionID(contract_question_id);
 
     // To respond quickly, start by fetching with even fairly old data and no logs
-    ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, 1, -1).then(function(question) {
-        displayQuestionDetail(question);
-        // Get the window open first with whatever data we have
-        // Then repopulate with the most recent of everything anything has changed
-        ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER).then(function(question) {
-            updateQuestionWindowIfOpen(question);
-        });
-    });
+    let question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, 1, -1)
+    displayQuestionDetail(question);
+    // Get the window open first with whatever data we have
+    // Then repopulate with the most recent of everything anything has changed
+    question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
+    updateQuestionWindowIfOpen(question);
     /*
     .catch(function(e){
         console.log(e);
@@ -2282,8 +2259,8 @@ function openQuestionWindow(contract_question_id) {
 function updateQuestionWindowIfOpen(question) {
 
     //console.log('updateQuestionWindowIfOpen', question);
-    var window_id = 'qadetail-' + contractQuestionID(question);
-    var rcqa = $('#' + window_id);
+    const window_id = 'qadetail-' + contractQuestionID(question);
+    let rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
@@ -2292,13 +2269,13 @@ function updateQuestionWindowIfOpen(question) {
 
 function displayQuestionDetail(question_detail) {
 
-    var question_id = question_detail.question_id;
-    var contract_question_id = contractQuestionID(question_detail);
+    const question_id = question_detail.question_id;
+    const contract_question_id = contractQuestionID(question_detail);
     //console.log('question_id', question_id);
 
     // If already open, refresh and bring to the front
-    var window_id = 'qadetail-' + contract_question_id
-    var rcqa = $('#' + window_id);
+    const window_id = 'qadetail-' + contract_question_id
+    let rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question_detail, true);
         rcqa.css('z-index', ++ZINDEX);
@@ -2349,8 +2326,8 @@ function displayQuestionDetail(question_detail) {
 }
 
 function category_text(question_json, target_el) {
-    var cat = question_json['category'];
-    var cat_txt = '';
+    const cat = question_json['category'];
+    let cat_txt = '';
     if (cat == '') {
         cat_txt = 'Unassigned';
     } else {
@@ -2383,19 +2360,19 @@ async function loadArbitratorMetaData(arb_addr) {
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     //console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
-    var question_id = question_detail.question_id;
-    var question_json = question_detail.question_json;
-    var question_type = question_json['type'];
+    const question_id = question_detail.question_id;
+    const question_json = question_detail.question_json;
+    const question_type = question_json['type'];
 
     //console.log('current list last item in history, which is ', question_detail['history'])
-    var idx = question_detail['history'].length - 1;
+    const idx = question_detail['history'].length - 1;
 
-    var cat_el = rcqa.find('.rcbrowser-main-header-category');
+    const cat_el = rcqa.find('.rcbrowser-main-header-category');
     cat_el.text(category_text(question_json, cat_el)); 
 
     let date = new Date();
     date.setTime(question_detail.creation_ts * 1000);
-    let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
+    const date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
     rcqa.find('.question-title').text(question_json['title']).expander({
@@ -2407,18 +2384,18 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
-    var bond = ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']).div(2);
+    let bond = ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']).div(2);
     if (question_detail.bounty && question_detail.bounty.gt(0)) {
         bond = question_detail.bounty.div(2);
     }
 
     if (isAnswerActivityStarted(question_detail)) {
 
-        var current_container = rcqa.find('.current-answer-container');
+        const current_container = rcqa.find('.current-answer-container');
 
         if (isAnswered(question_detail)) {
             // label for show the current answer.
-            var label = rc_question.getAnswerString(question_json, question_detail.best_answer);
+            const label = rc_question.getAnswerString(question_json, question_detail.best_answer);
             current_container.find('.current-answer-body').find('.current-answer').text(label);
         }
 
@@ -2426,7 +2403,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
         if (question_detail['history'].length) {
             //console.log('updateing aunswer');
-            var current_answer = historyItemForCurrentAnswer(question_detail);
+            const current_answer = historyItemForCurrentAnswer(question_detail);
             if (current_answer) {
                 current_container.attr('id', 'answer-' + current_answer.answer);
 
@@ -2447,14 +2424,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 ans_data.find('.answer-bond-value').text(decimalizedBigNumberToHuman(current_answer.bond));
             }
 
-            var last_ans = question_detail['history'][idx].args;
-            var unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
+            const last_ans = question_detail['history'][idx].args;
+            const unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
             if (last_ans.is_commitment && !last_ans.revealed_block) {
                 unrevealed_answer_container.find('.answer-bond-value').text(decimalizedBigNumberToHuman(last_ans.bond));
                 unrevealed_answer_container.find('.reveal-time.timeago').attr('datetime', rc_question.convertTsToString(commitExpiryTS(question_detail, last_ans['ts'])));
                 timeAgo.render(unrevealed_answer_container.find('.reveal-time.timeago'));
                 unrevealed_answer_container.find('.answerer').text(last_ans['user']);
-                var avjazzicon = jazzicon(32, parseInt(last_ans['user'].toLowerCase().slice(2, 10), 16));
+                const avjazzicon = jazzicon(32, parseInt(last_ans['user'].toLowerCase().slice(2, 10), 16));
                 unrevealed_answer_container.find('.answer-data__avatar').html(avjazzicon);
             } else {
                 unrevealed_answer_container.find('.answer-bond-value').text('');
@@ -2465,20 +2442,20 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             }
 
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
-            for (var i = 0; i < idx; i++) {
-                var ans = question_detail['history'][i].args;
-                var hist_id = 'question-window-history-item-' + uiHash(question_id + ans.answer + ans.bond.toHexString());
+            for (let i = 0; i < idx; i++) {
+                const ans = question_detail['history'][i].args;
+                const hist_id = 'question-window-history-item-' + uiHash(question_id + ans.answer + ans.bond.toHexString());
                 if (rcqa.find('#' + hist_id).length) {
                     //console.log('already in list, skipping', hist_id, ans);
                     continue;
                 }
                 //console.log('not already in list, adding', hist_id, ans);
-                var hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
-                var hist_item = hist_tmpl.clone();
+                const hist_tmpl = rcqa.find('.answer-item.answered-history-item.template-item');
+                const hist_item = hist_tmpl.clone();
                 hist_item.attr('id', hist_id);
                 hist_item.find('.answerer').text(ans['user']);
 
-                var avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2, 10), 16));
+                const avjazzicon = jazzicon(32, parseInt(ans['user'].toLowerCase().slice(2, 10), 16));
 
                 hist_item.find('.answer-data__avatar').html(avjazzicon);
 
@@ -2538,7 +2515,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     let questioner = question_detail.question_creator
     let timeout = question_detail.timeout;
-    var balloon = rcqa.find('.question-setting-info').find('.balloon')
+    let balloon = rcqa.find('.question-setting-info').find('.balloon')
     balloon.find('.setting-info-bounty').text(decimalizedBigNumberToHuman(question_detail.bounty));
     balloon.find('.setting-info-bond').text(decimalizedBigNumberToHuman(question_detail.bond));
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail.timeout));
@@ -2555,12 +2532,12 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-opening-ts').text(opening_ts_str);
     balloon.css('z-index', ++ZINDEX);
 
-    var unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
+    const unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
     if (question_detail['history_unconfirmed'].length) {
 
-        var unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].args;
+        const unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].args;
 
-        var txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].txid;
+        const txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].txid;
         unconfirmed_container.find('.pending-answer-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
@@ -2570,9 +2547,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         timeAgo.render(unconfirmed_container.find('.unconfirmed-answer-item').find('.timeago'));
 
         // answerer data
-        var ans_data = rcqa.find('.unconfirmed-answer-container').find('.answer-data');
+        const ans_data = rcqa.find('.unconfirmed-answer-container').find('.answer-data');
         ans_data.find('.answerer').text(unconfirmed_answer.user);
-        var avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2, 10), 16));
+        const avjazzicon = jazzicon(32, parseInt(unconfirmed_answer.user.toLowerCase().slice(2, 10), 16));
         ans_data.find('.answer-data__avatar').html(avjazzicon);
         if (unconfirmed_answer.user == ACCOUNT) {
             ans_data.addClass('unconfirmed-account');
@@ -2582,7 +2559,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         ans_data.find('.answer-bond-value').text(decimalizedBigNumberToHuman(unconfirmed_answer.bond));
 
         // label for show the unconfirmed answer.
-        var label = rc_question.getAnswerString(question_json, unconfirmed_answer.answer);
+        const label = rc_question.getAnswerString(question_json, unconfirmed_answer.answer);
         unconfirmed_container.find('.unconfirmed-answer-body').find('.unconfirmed-answer').text(label);
 
         rcqa.addClass('has-unconfirmed-answer');
@@ -2629,15 +2606,15 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 console.log('using foreign proxy', foreign_proxy);
                 const foreign_chain_id_arr = await fpArb.functions.foreignChainId()
                 const foreign_chain_id = foreign_chain_id_arr[0].toNumber();
-                var btn = rcqa.find('.arbitration-button-foreign-proxy');
+                const btn = rcqa.find('.arbitration-button-foreign-proxy');
                 btn.click(function(evt) {
                     evt.stopPropagation();
-                    var url_data = question_detail;
+                    const url_data = question_detail;
                     url_data['network_id'] = foreign_chain_id
                     url_data['foreign_proxy'] = foreign_proxy;
                     //delete url_data['history_unconfirmed'];
                     console.log('fpwin', url_data);
-                    var proxy_url = 'index.html#!/foreign-proxy/' + encodeURIComponent(JSON.stringify(url_data));
+                    const proxy_url = 'index.html#!/foreign-proxy/' + encodeURIComponent(JSON.stringify(url_data));
                     console.log('proxy_url', proxy_url);
                     window.open(proxy_url);
                 });
@@ -2658,14 +2635,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     
     if (!is_refresh) {
         // answer form
-        var ans_frm = makeSelectAnswerInput(question_json, question_detail.opening_ts.toNumber());
+        const ans_frm = makeSelectAnswerInput(question_json, question_detail.opening_ts.toNumber());
         ans_frm.addClass('is-open');
         ans_frm.removeClass('template-item');
         rcqa.find('.answered-history-container').after(ans_frm);
     }
 
     // If the user has edited the field, never repopulate it underneath them
-    var bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
+    const bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
     if (!bond_field.hasClass('edited')) {
         console.log('min bond /2', bond.toString());
         bond_field.val(decimalizedBigNumberToHuman(bond.mul(2)));
@@ -2675,7 +2652,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     rcqa = updateQuestionState(question_detail, rcqa);
 
     if (isFinalized(question_detail)) {
-        var tot = totalClaimable(question_detail);
+        const tot = totalClaimable(question_detail);
         if (tot.toNumber() == 0) {
             rcqa.removeClass('is-claimable');
         } else {
@@ -2693,7 +2670,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 }
 
 function totalClaimable(question_detail) {
-    var poss = possibleClaimableItems(question_detail);
+    const poss = possibleClaimableItems(question_detail);
     return poss['total'];
 }
 
@@ -2702,8 +2679,8 @@ If you get anything from the list, return the whole thing
 */
 function possibleClaimableItems(question_detail) {
 
-    var ttl = ethers.BigNumber.from(0);
-    var is_your_claim = false;
+    let ttl = ethers.BigNumber.from(0);
+    let is_your_claim = false;
 
     if (ethers.BigNumber.from(question_detail.history_hash).eq(0)) {
         //console.log('everything already claimed', question_detail.history_hash);
@@ -2722,33 +2699,33 @@ function possibleClaimableItems(question_detail) {
     //console.log('should be able to claim question ', question_detail);
     //console.log('history_hash', question_detail.history_hash);
 
-    var question_ids = [];
-    var answer_lengths = [];
-    var claimable_bonds = [];
-    var claimable_answers = [];
-    var claimable_answerers = [];
-    var claimable_history_hashes = [];
+    let question_ids = [];
+    let answer_lengths = [];
+    let claimable_bonds = [];
+    let claimable_answers = [];
+    let claimable_answerers = [];
+    let claimable_history_hashes = [];
 
-    var is_first = true;
-    var num_claimed = 0;
-    var is_yours = false;
+    let is_first = true;
+    let num_claimed = 0;
+    let is_yours = false;
 
-    var final_answer = question_detail.best_answer;
-    for (var i = question_detail['history'].length - 1; i >= 0; i--) {
+    let final_answer = question_detail.best_answer;
+    for (let i = question_detail['history'].length - 1; i >= 0; i--) {
 
         // TODO: Check the history hash, and if we haven't reached it, keep going until we do
         // ...since someone may have claimed partway through
 
-        var answer;
+        let answer = null;
         // Only set on reveal, otherwise the answer field still holds the commitment ID for commitments
         if (question_detail['history'][i].args.commitment_id) { 
             answer = question_detail['history'][i].args.commitment_id;
         } else {
             answer = question_detail['history'][i].args.answer;
         }
-        var answerer = question_detail['history'][i].args.user;
-        var bond = question_detail['history'][i].args.bond;
-        var history_hash = question_detail['history'][i].args.history_hash;
+        const answerer = question_detail['history'][i].args.user;
+        const bond = question_detail['history'][i].args.bond;
+        const history_hash = question_detail['history'][i].args.history_hash;
 
         if (is_yours) {
             // Somebody takes over your answer
@@ -2815,7 +2792,7 @@ function possibleClaimableItems(question_detail) {
 }
 
 function renderTimeAgo(i, ts) {
-    var old_attr = i.find('.timeago').attr('datetime');
+    const old_attr = i.find('.timeago').attr('datetime');
     if (old_attr != '') {
         timeago.cancel(i.find('.timeago'));
     }
@@ -2878,11 +2855,11 @@ function renderUserAction(question, entry, is_watch) {
 }
 
 function answersByMaxBond(answer_logs) {
-    var ans = {};
-    for (var i = 0; i < answer_logs.length; i++) {
-        var an = answer_logs[i];
-        var aval = an.args.answer;
-        var bond = an.args.bond;
+    let ans = {};
+    for (let i = 0; i < answer_logs.length; i++) {
+        const an = answer_logs[i];
+        const aval = an.args.answer;
+        const bond = an.args.bond;
         if (ans[aval] && ans[aval].args.bond.gt(bond)) {
             continue;
         }
@@ -2906,7 +2883,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
         $('.see-all-notifications').css('visibility', 'visible');
     }
 
-    var notifications = $('#your-question-answer-window').find('.notifications');
+    const notifications = $('#your-question-answer-window').find('.notifications');
     if (document.getElementById(notification_id)) {
         // Already in the doc;
         return true;
@@ -2914,9 +2891,9 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
 
     //console.log('insertNotificationItem has contractd', contract,' from evt', evt);
 
-    var existing_notification_items = notifications.find('.notifications-item');
+    const existing_notification_items = notifications.find('.notifications-item');
 
-    var item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
+    const item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
     item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
     item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
@@ -2931,9 +2908,9 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
         item_to_insert.find('.notification-badge').removeClass('notification-badge--positive').addClass('notification-badge--negative');
     }
 
-    var inserted = false;
+    let inserted = false;
     existing_notification_items.each(function() {
-        var exi = $(this);
+        const exi = $(this);
         //console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
         if (exi.attr('data-block-number') <= block_number) {
             exi.before(item_to_insert);
@@ -2965,30 +2942,30 @@ function uiHash(str) {
 function renderNotifications(qdata, entry) {
 
     const contract = entry.address;
-
-    var question_id = qdata.question_id;
+    const question_id = qdata.question_id;
     //console.log('renderNotification', action, entry, qdata);
 
-    var question_json = qdata.question_json;
+    const question_json = qdata.question_json;
 
-    var your_qa_window = $('#your-question-answer-window');
+    const your_qa_window = $('#your-question-answer-window');
 
     // TODO: Handle whether you asked the question
 
     const qfilter = RCInstance(contract).filters.LogNewQuestion(question_id);
 
-    var ntext;
-    var evt = entry['event']
+    let ntext = '';
+    const evt = entry['event']
+    let notification_id = null;
+    let is_positive = true;
     switch (evt) {
         case 'LogNewQuestion':
-            var notification_id = uiHash('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
+            notification_id = uiHash('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
             ntext = 'You asked a question - "' + question_json['title'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             break;
 
         case 'LogNewAnswer':
-            var is_positive = true;
-            var notification_id = uiHash('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
+            notification_id = uiHash('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == ACCOUNT) {
                 if (entry.args.is_commitment) {
                     ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
@@ -3013,8 +2990,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogAnswerReveal':
-            var is_positive = true;
-            var notification_id = uiHash('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
+            notification_id = uiHash('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == ACCOUNT) {
                 ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
@@ -3035,7 +3011,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogFundAnswerBounty':
-            var notification_id = uiHash('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
+            notification_id = uiHash('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
             if (entry.args.user == ACCOUNT) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
@@ -3058,8 +3034,7 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogNotifyOfArbitrationRequest':
-            var notification_id = uiHash('LogNotifyOfArbitrationRequest' + entry.args.question_id);
-            var is_positive = true;
+            notification_id = uiHash('LogNotifyOfArbitrationRequest' + entry.args.question_id);
             if (entry.args.user == ACCOUNT) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
@@ -3082,14 +3057,14 @@ function renderNotifications(qdata, entry) {
 
         case 'LogFinalize':
             //console.log('in LogFinalize', entry);
-            var notification_id = uiHash('LogFinalize' + entry.args.question_id + entry.args.answer);
-            var finalized_question = RCInstance(contract).LogNewQuestion({
+            notification_id = uiHash('LogFinalize' + entry.args.question_id + entry.args.answer);
+            const finalized_question = RCInstance(contract).LogNewQuestion({
                 question_id: question_id
             }, {
                 fromBlock: RCStartBlock(contract),
                 toBlock: 'latest'
             });
-            var timestamp = null;
+            let timestamp = null;
             // Fake timestamp for our fake finalize event
             if (entry.timestamp) {
                 timestamp = entry.timestamp;
@@ -3116,8 +3091,8 @@ function insertQAItem(contract, question_id, item_to_insert, question_section, b
     const contract_question_id = cqToID(contract, question_id);
     question_section.find('.your-qa__questions__item[data-contract-question-id=' + contract_question_id + ']').remove();
 
-    var question_items = question_section.find('.your-qa__questions__item');
-    var inserted = false;
+    const question_items = question_section.find('.your-qa__questions__item');
+    let inserted = false;
     question_items.each(function(idx, item) {
         if ($(item).hasClass('template-item')) {
             return true;
@@ -3140,13 +3115,13 @@ function insertQAItem(contract, question_id, item_to_insert, question_section, b
 }
 
 function renderQAItemAnswer(contract, question_id, answer_history, question_json, is_finalized) {
-    var question_section = $('#your-question-answer-window').find('.your-qa__questions');
-    var answer_section = $('#your-question-answer-window').find('.your-qa__answers');
-    var sections = [question_section, answer_section];
+    const question_section = $('#your-question-answer-window').find('.your-qa__questions');
+    const answer_section = $('#your-question-answer-window').find('.your-qa__answers');
+    const sections = [question_section, answer_section];
     const contract_question_id = cqToID(contract, question_id);
 
     sections.forEach(function(section) {
-        var target = section.find('div[data-contract-question-id=' + contract_question_id + ']');
+        const target = section.find('div[data-contract-question-id=' + contract_question_id + ']');
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0; i--) {
@@ -3185,13 +3160,13 @@ function renderQAItemAnswer(contract, question_id, answer_history, question_json
 
 function renderUserQandA(qdata, entry) {
 
-    var question_id = qdata.question_id;
-    var answer_history = qdata['history'];
+    const question_id = qdata.question_id;
+    const answer_history = qdata['history'];
 
-    var question_json = qdata.question_json;
+    const question_json = qdata.question_json;
     const contract_question_id = cqToID(entry.address, question_id);
 
-    var question_section;
+    let question_section;
     if (entry['event'] == 'LogNewQuestion') {
         question_section = $('#your-question-answer-window').find('.your-qa__questions .your-qa__questions-inner');
     } else if (entry['event'] == 'LogNewAnswer') {
@@ -3201,7 +3176,7 @@ function renderUserQandA(qdata, entry) {
         question_section.find('.no-your-qa__questions__item').remove();
     }
 
-    var qitem = question_section.find('.your-qa__questions__item.template-item').clone();
+    const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
     qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
@@ -3209,10 +3184,10 @@ function renderUserQandA(qdata, entry) {
     qitem.addClass('account-specific');
     insertQAItem(qdata.contract, question_id, qitem, question_section, entry.blockNumber);
 
-    var is_finalized = isFinalized(qdata);
+    const is_finalized = isFinalized(qdata);
     renderQAItemAnswer(qdata.contract, question_id, answer_history, question_json, is_finalized);
 
-    var updateBlockTimestamp = function(item, ts) {
+    const updateBlockTimestamp = function(item, ts) {
         let date = new Date();
         date.setTime(ts * 1000);
         let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
@@ -3223,38 +3198,39 @@ function renderUserQandA(qdata, entry) {
 }
 
 function makeSelectAnswerInput(question_json, opening_ts) {
-    var type = question_json['type'];
-    var options = question_json['outcomes'];
+    const type = question_json['type'];
+    const options = question_json['outcomes'];
 
+    let ans_frm;
     if (opening_ts && isBeforeOpeningDate(opening_ts)) {
-        var template_name = '.answer-form-container.before-opening.template-item';
-        var ans_frm = $(template_name).clone();
+        const template_name = '.answer-form-container.before-opening.template-item';
+        ans_frm = $(template_name).clone();
         ans_frm.removeClass('template-item');
         ans_frm.find('.opening-time-label .timeago').attr('datetime', rc_question.convertTsToString(opening_ts));
         timeAgo.render(ans_frm.find('.opening-time-label .timeago'));
     } else {
-        var template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
-        var ans_frm = $(template_name).clone();
+        const template_name = '.answer-form-container.' + question_json['type'] + '.template-item';
+        ans_frm = $(template_name).clone();
         ans_frm.removeClass('template-item');
 
         switch (type) {
             case 'single-select':
-                for (var i = 0; i < options.length; i++) {
-                    var option_elm = $('<option>');
+                for (let i = 0; i < options.length; i++) {
+                    const option_elm = $('<option>');
                     option_elm.val(i);
                     option_elm.text(options[i]);
                     ans_frm.find('.select-answer').find('.invalid-select').before(option_elm);
                 }
                 break;
             case 'multiple-select':
-                for (var i = options.length - 1; i >= 0; i--) {
-                    var elmtpl = ans_frm.find('.input-entry.template-item');
-                    var elm = elmtpl.clone();
+                for (let i = options.length - 1; i >= 0; i--) {
+                    const elmtpl = ans_frm.find('.input-entry.template-item');
+                    const elm = elmtpl.clone();
                     elm.removeClass('template-item');
-                    var elinput = elm.find('input');
+                    const elinput = elm.find('input');
                     elinput.attr('name', 'input-answer');
                     elinput.val(i);
-                    var ellabel = elm.find('span');
+                    const ellabel = elm.find('span');
                     ellabel.text(options[i]);
                     // Here we copy the content and throw away the container
                     elmtpl.after(elm);
@@ -3322,8 +3298,8 @@ function updateQuestionState(question, question_window) {
 }
 
 function isBeforeOpeningDate(opening_ts) {
-    var opening_date = opening_ts * 1000
-    var now = new Date();
+    const opening_date = opening_ts * 1000
+    const now = new Date();
     
     return now.getTime() < opening_date
 }
@@ -3337,11 +3313,11 @@ function isQuestionBeforeOpeningDate(question_detail) {
 // Potentially resurrect it with a more efficient flow
 // Also potentially do it before confirmation (See issue #44)
 function pushWatchedAnswer(answer) {
-    var question_id = answer.args.question_id;
-    var already_exists = false;
-    var length = QUESTION_DETAIL_CACHE[question_id]['history'].length;
+    const question_id = answer.args.question_id;
+    let already_exists = false;
+    const length = QUESTION_DETAIL_CACHE[question_id]['history'].length;
 
-    for (var i = 0; i < length; i++) {
+    for (let i = 0; i < length; i++) {
         if (QUESTION_DETAIL_CACHE[question_id]['history'][i].args.answer == answer.args.answer) {
             already_exists = true;
             break;
@@ -3367,7 +3343,7 @@ $(document).on('click', '.answer-item', function() {
 // Do an initial validity check
 function isAnswerInputLookingValid(parent_div, question_json) {
 
-    var answer_element = parent_div.find('[name="input-answer"]');
+    const answer_element = parent_div.find('[name="input-answer"]');
     if (question_json['type'] == 'uint') {
         if (answer_element.val() == '') {
             console.log('empty number');
@@ -3385,12 +3361,12 @@ function isAnswerInputLookingValid(parent_div, question_json) {
 
 function formattedAnswerFromForm(parent_div, question_json) {
 
-    var new_answer;
-    var answer_element = parent_div.find('[name="input-answer"]');
+    let new_answer;
+    const answer_element = parent_div.find('[name="input-answer"]');
 
     // Selects will just have "invalid" as an option in the pull-down.
     // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
-    var has_invalid_selection = (answer_element.attr('data-invalid-selected') == '1');
+    const has_invalid_selection = (answer_element.attr('data-invalid-selected') == '1');
     if (has_invalid_selection) {
         new_answer = rc_question.getInvalidValue(question_json);
         console.log('invalid selected, so submitting the invalid value ', new_answer);
@@ -3398,7 +3374,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
     }
 
     if (question_json['type'] == 'multiple-select') {
-        var answer_input = [];
+        let answer_input = [];
         parent_div.find('.input-container--checkbox input[type=checkbox]').each(function() {
             if ($(this).closest('label').hasClass('template-item')) {
                 return;
@@ -3418,240 +3394,235 @@ function formattedAnswerFromForm(parent_div, question_json) {
 }
 
 // post an answer
-$(document).on('click', '.post-answer-button', function(e) {
+$(document).on('click', '.post-answer-button', async function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var parent_div = $(this).parents('div.rcbrowser--qa-detail');
-    getAccount().then(function() {
+    const parent_div = $(this).parents('div.rcbrowser--qa-detail');
+    await getAccount()
 
-        var contract_question_id = parent_div.attr('data-contract-question-id');
-        const [contract, question_id] = parseContractQuestionID(contract_question_id);
+    const contract_question_id = parent_div.attr('data-contract-question-id');
+    const [contract, question_id] = parseContractQuestionID(contract_question_id);
 
-        var bond = ethers.BigNumber.from(0);
-        var bond_field = parent_div.find('input[name="questionBond"]');
-        try {
-            bond = humanToDecimalizedBigNumber(bond_field.val());
-        } catch (err) {
-            console.log('Could not parse bond field value', bond_field.val());
+    let bond = ethers.BigNumber.from(0);
+    const bond_field = parent_div.find('input[name="questionBond"]');
+    try {
+        bond = humanToDecimalizedBigNumber(bond_field.val());
+    } catch (err) {
+        console.log('Could not parse bond field value', bond_field.val());
+    }
+    console.log('continuing with bond as ', bond.toString());
+    let is_err = false;
+
+    const block_before_send = CURRENT_BLOCK_NUMBER;
+
+    const question = ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1)
+    .catch(function() {
+        // If the question is unconfirmed, go with what we have
+        console.log('caught failure, trying unconfirmed');
+        return ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1)
+    })
+    .then(function(current_question) {
+        //console.log('got current_question', current_question);
+
+        let current_answer;
+        let new_answer;
+
+        // This may not be defined for an unconfirmed question
+        if (current_question.bond == null) {
+            current_question.bond = ethers.BigNumber.from(0);
         }
-        console.log('continuing with bond as ', bond.toString());
 
-        var question, current_answer, new_answer;
-        var question_json;
-        var current_question;
-        var is_err = false;
+        const question_json = current_question.question_json;
+        //console.log('got question_json', question_json);
 
-        var block_before_send = CURRENT_BLOCK_NUMBER;
-        var question_json;
-
-        var new_answer;
-
-        var question = ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1)
-        .catch(function() {
-            // If the question is unconfirmed, go with what we have
-            console.log('caught failure, trying unconfirmed');
-            return ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1)
-        })
-        .then(function(current_question) {
-            //console.log('got current_question', current_question);
-
-            // This may not be defined for an unconfirmed question
-            if (current_question.bond == null) {
-                current_question.bond = ethers.BigNumber.from(0);
-            }
-
-            question_json = current_question.question_json;
-            //console.log('got question_json', question_json);
-
-            if (!isAnswerInputLookingValid(parent_div, question_json)) {
-                parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                return;
-            }
+        if (!isAnswerInputLookingValid(parent_div, question_json)) {
+            parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+            return;
+        }
 
 
-            const minNum = ethers.BigNumber.from('0x'+rc_question.minNumber(question_json).integerValue().toString(16));
-            const maxNum = ethers.BigNumber.from('0x'+rc_question.maxNumber(question_json).integerValue().toString(16));
-            new_answer = formattedAnswerFromForm(parent_div, question_json);
+        const minNum = ethers.BigNumber.from('0x'+rc_question.minNumber(question_json).integerValue().toString(16));
+        const maxNum = ethers.BigNumber.from('0x'+rc_question.maxNumber(question_json).integerValue().toString(16));
+        new_answer = formattedAnswerFromForm(parent_div, question_json);
 console.log('check against answer', new_answer);
-            const invalid_value = rc_question.getInvalidValue(question_json);
+        const invalid_value = rc_question.getInvalidValue(question_json);
 
-            switch (question_json['type']) {
-                case 'bool':
-                    var err = false;
-                    var ans;
-                    try {
-                        ans = ethers.BigNumber.from(new_answer);
-                    } catch(e) {
+        switch (question_json['type']) {
+            case 'bool':
+                var err = false;
+                var ans;
+                try {
+                    ans = ethers.BigNumber.from(new_answer);
+                } catch(e) {
+                    err = true;
+                }
+                if (err || !(ans.eq(ethers.BigNumber.from(0)) || ans.eq(ethers.BigNumber.from(1)) || ans.eq(ethers.BigNumber.from(invalid_value)))) {
+                    parent_div.find('div.select-container.select-container--answer').addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'uint':
+                var ans;
+                var err = false;
+                try {
+                    ans = ethers.BigNumber.from(new_answer);
+                } catch(e) {
+                    err = true;
+                }
+                if (!err) {
+                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
+                        err = true;
+                    } else if (ans.lt(ethers.BigNumber.from(0))) {
                         err = true;
                     }
-                    if (err || !(ans.eq(ethers.BigNumber.from(0)) || ans.eq(ethers.BigNumber.from(1)) || ans.eq(ethers.BigNumber.from(invalid_value)))) {
-                        parent_div.find('div.select-container.select-container--answer').addClass('is-error');
-                        is_err = true;
-                    }
-                    break;
-                case 'uint':
-                    var ans;
-                    var err = false;
-                    try {
-                        ans = ethers.BigNumber.from(new_answer);
-                    } catch(e) {
+                }
+                if (err) {
+                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'int':
+                var ans;
+                var err = false;
+                try {
+                    ans = ethers.BigNumber.from(new_answer);
+                } catch(e) {
+                    err = true;
+                }
+                if (!err) {
+                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
                         err = true;
                     }
-                    if (!err) {
-                        if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
-                            err = true;
-                        } else if (ans.lt(ethers.BigNumber.from(0))) {
-                            err = true;
-                        }
-                    }
-                    if (err) {
-                        parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                        is_err = true;
-                    }
-                    break;
-                case 'int':
-                    var ans;
-                    var err = false;
-                    try {
-                        ans = ethers.BigNumber.from(new_answer);
-                    } catch(e) {
-                        err = true;
-                    }
-                    if (!err) {
-                        if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
-                            err = true;
-                        }
-                    }
-                    if (err) {
-                        parent_div.find('div.input-container.input-container--answer').addClass('is-error');
-                        is_err = true;
-                    }
-                    break;
-                case 'single-select':
-                    var container = parent_div.find('div.select-container.select-container--answer');
-                    var select = container.find('select[name="input-answer"]');
-                    if (select.prop('selectedIndex') == 0) {
-                        container.addClass('is-error');
-                        is_err = true;
-                    }
-                    break;
-                case 'multiple-select':
-                    var container = parent_div.find('div.input-container.input-container--checkbox');
-                    var checked = container.find('input[name="input-answer"]:checked');
-                    if (!invalid_value && checked.length == 0) {
-                        container.addClass('is-error');
-                        is_err = true;
-                    }
-                    break;
-            }
+                }
+                if (err) {
+                    parent_div.find('div.input-container.input-container--answer').addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'single-select':
+                var container = parent_div.find('div.select-container.select-container--answer');
+                var select = container.find('select[name="input-answer"]');
+                if (select.prop('selectedIndex') == 0) {
+                    container.addClass('is-error');
+                    is_err = true;
+                }
+                break;
+            case 'multiple-select':
+                var container = parent_div.find('div.input-container.input-container--checkbox');
+                var checked = container.find('input[name="input-answer"]:checked');
+                if (!invalid_value && checked.length == 0) {
+                    container.addClass('is-error');
+                    is_err = true;
+                }
+                break;
+        }
 
-            var min_amount = current_question.bond.mul(2)
-            if (bond.lt(min_amount)) {
-                parent_div.find('div.input-container.input-container--bond').addClass('is-error');
-                parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
-                is_err = true;
-            }
+        var min_amount = current_question.bond.mul(2)
+        if (bond.lt(min_amount)) {
+            parent_div.find('div.input-container.input-container--bond').addClass('is-error');
+            parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
+            is_err = true;
+        }
 
-            if (is_err) throw ('err on submitting answer');
+        if (is_err) throw ('err on submitting answer');
 
-            SUBMITTED_QUESTION_ID_BY_TIMESTAMP[question_id] = new Date().getTime();
+        SUBMITTED_QUESTION_ID_BY_TIMESTAMP[question_id] = new Date().getTime();
 
-            // Remove the edited note to allow the field to be automatically populated again
-            bond_field.removeClass('edited'); 
+        // Remove the edited note to allow the field to be automatically populated again
+        bond_field.removeClass('edited'); 
 
-            var handleAnswerSubmit = function(tx_response) {
-                const txid = tx_response.hash;
-                const contract = tx_response.to;
-                clearForm(parent_div, question_json);
-                var fake_history = {
-                    'args': {
-                        'answer': new_answer,
-                        'question_id': question_id,
-                        'history_hash': null, // TODO Do we need this?
-                        'user': ACCOUNT,
-                        'bond': bond,
-                        'ts': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
-                        'is_commitment': false
-                    },
-                    'event': 'LogNewAnswer',
-                    'blockNumber': block_before_send,
-                    'txid': txid
-                };
-
-                var question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
-                //console.log('after answer made question', question);
-
-                ensureQuestionDetailFetched(contract, question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                }).catch(function() {
-                    // Question may be unconfirmed, if so go with what we have
-                    ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1).then(function(question) {
-                        updateQuestionWindowIfOpen(contract, question);
-                    });
-                });
+        var handleAnswerSubmit = function(tx_response) {
+            const txid = tx_response.hash;
+            const contract = tx_response.to;
+            clearForm(parent_div, question_json);
+            var fake_history = {
+                'args': {
+                    'answer': new_answer,
+                    'question_id': question_id,
+                    'history_hash': null, // TODO Do we need this?
+                    'user': ACCOUNT,
+                    'bond': bond,
+                    'ts': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
+                    'is_commitment': false
+                },
+                'event': 'LogNewAnswer',
+                'blockNumber': block_before_send,
+                'txid': txid
             };
 
-            const rc = RCInstance(contract, true);
-            if (USE_COMMIT_REVEAL) {
-                var answer_plaintext = new_answer;
-                var nonce = nonceFromSeed(uiHash(question_id + answer_plaintext + bond));
-                var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
+            var question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
+            //console.log('after answer made question', question);
 
-                console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
+            ensureQuestionDetailFetched(contract, question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
+                updateQuestionWindowIfOpen(question);
+            }).catch(function() {
+                // Question may be unconfirmed, if so go with what we have
+                ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1).then(function(question) {
+                    updateQuestionWindowIfOpen(contract, question);
+                });
+            });
+        };
 
-                console.log('made nonce', nonce);
-                console.log('made answer plaintext', answer_plaintext);
-                console.log('made bond', bond);
-                console.log('made answer_hash', answer_hash);
+        const rc = RCInstance(contract, true);
+        if (USE_COMMIT_REVEAL) {
+            var answer_plaintext = new_answer;
+            var nonce = nonceFromSeed(uiHash(question_id + answer_plaintext + bond));
+            var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
 
-                var commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
-                console.log('resulting  commitment_id', commitment_id);
+            console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
 
-                // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
-                // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
-                if (IS_CURRENCY_NATIVE) {
+            console.log('made nonce', nonce);
+            console.log('made answer plaintext', answer_plaintext);
+            console.log('made bond', bond);
+            console.log('made answer_hash', answer_hash);
+
+            var commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
+            console.log('resulting  commitment_id', commitment_id);
+
+            // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
+            // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
+            if (IS_CURRENCY_NATIVE) {
 console.log('try submitAnswerCommitment, val ', bond);
-                    return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, ACCOUNT, {
-                        from: ACCOUNT, 
-                        // gas:200000, 
-                        value:bond
-                    }).then( function(tx_res) {
-                        console.log('got submitAnswerCommitment tx, waiting for confirmation', tx_res);
-                        tx_res.wait().then(function(tx_res) {
-                            rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {
-                                from: ACCOUNT, 
-                                //gas:200000
-                            })
-                            .then(function(tx_res) { handleAnswerSubmit(tx_res) });
-                        });
+                return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, ACCOUNT, {
+                    from: ACCOUNT, 
+                    // gas:200000, 
+                    value:bond
+                }).then( function(tx_res) {
+                    console.log('got submitAnswerCommitment tx, waiting for confirmation', tx_res);
+                    tx_res.wait().then(function(tx_res) {
+                        rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {
+                            from: ACCOUNT, 
+                            //gas:200000
+                        })
+                        .then(function(tx_res) { handleAnswerSubmit(tx_res) });
                     });
-                } else {
-                    ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
-                        return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, ACCOUNT, bond, {from:ACCOUNT, gas:200000}).then( function(tx_res) {
-                            console.log('got submitAnswerCommitment tx_res, waiting for confirmation', tx_res);
-                            rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {from:ACCOUNT, gas:200000})
-                            .then(function(tx_res) { handleAnswerSubmit(tx_res) });
-                        });
-                    });
-                }
+                });
             } else {
-                if (IS_CURRENCY_NATIVE) {
-                    rc.functions.submitAnswer(question_id, new_answer, current_question.bond, {
+                ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
+                    return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, ACCOUNT, bond, {from:ACCOUNT, gas:200000}).then( function(tx_res) {
+                        console.log('got submitAnswerCommitment tx_res, waiting for confirmation', tx_res);
+                        rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {from:ACCOUNT, gas:200000})
+                        .then(function(tx_res) { handleAnswerSubmit(tx_res) });
+                    });
+                });
+            }
+        } else {
+            if (IS_CURRENCY_NATIVE) {
+                rc.functions.submitAnswer(question_id, new_answer, current_question.bond, {
+                    from: ACCOUNT,
+                    //gas: 200000,
+                    value: bond
+                }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
+            } else {
+                ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
+                    rc.functions.submitAnswerERC20(question_id, new_answer, current_question.bond, bond, {
                         from: ACCOUNT,
                         //gas: 200000,
-                        value: bond
                     }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
-                } else {
-                    ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
-                        rc.functions.submitAnswerERC20(question_id, new_answer, current_question.bond, bond, {
-                            from: ACCOUNT,
-                            //gas: 200000,
-                        }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
-                    });
-                }
+                });
             }
-        });
+        }
     });
     /*
     .catch(function(e){
@@ -3691,14 +3662,14 @@ function clearForm(parent_div, question_json) {
 
 // open/close/add reward
 $(document).on('click', '.add-reward-button', function(e) {
-    var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
+    const container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.addClass('is-open');
     container.addClass('is-bounce');
     container.css('display', 'block');
 });
 
 $(document).on('click', '.add-reward__close-button', function(e) {
-    var container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
+    const container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.removeClass('is-open');
     container.removeClass('is-bounce');
     container.css('display', 'none');
@@ -3718,11 +3689,11 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
     e.preventDefault();
     e.stopPropagation();
 
-    var rcqa = $(this).closest('.rcbrowser--qa-detail');
-    var [contract, question_id] = parseContractQuestionID(rcqa.attr('data-contract-question-id'));
-    var reward_inp = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
+    const rcqa = $(this).closest('.rcbrowser--qa-detail');
+    const [contract, question_id] = parseContractQuestionID(rcqa.attr('data-contract-question-id'));
+    const reward_inp = $(this).parent('div').prev('div.input-container').find('input[name="question-reward"]').val();
 
-    var err = false;
+    let err = false;
     let reward = ethers.BigNumber.from(0);
     try {
         reward = humanToDecimalizedBigNumber(reward_inp);
@@ -3747,7 +3718,7 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
         }
         await tx_response.wait();
         //console.log('fund bounty', result);
-        var container = rcqa.find('.add-reward-container');
+        const container = rcqa.find('.add-reward-container');
         //console.log('removing open', container.length, container);
         container.removeClass('is-open');
         container.removeClass('is-bounce');
@@ -3761,18 +3732,18 @@ $(document).on('click', '.arbitration-button', async function(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    var lnk = this;
+    const lnk = this;
     await getAccount();
 
-    var contract_question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
-    var [contract, question_id] = parseContractQuestionID(contract_question_id);
-    var question_detail = QUESTION_DETAIL_CACHE[contract_question_id];
+    const contract_question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
+    const [contract, question_id] = parseContractQuestionID(contract_question_id);
+    const question_detail = QUESTION_DETAIL_CACHE[contract_question_id];
     if (!question_detail) {
         console.log('Error, question detail not found');
         return false;
     }
 
-    var last_seen_bond_hex = $(lnk).attr('data-last-seen-bond'); 
+    const last_seen_bond_hex = $(lnk).attr('data-last-seen-bond'); 
     if (!last_seen_bond_hex) {
         console.log('Error, last seen bond not populated, aborting arbitration request');
         return false;
@@ -3795,17 +3766,17 @@ $(document).on('click', '.arbitration-button', async function(e) {
 });
 
 function show_bond_payments(ctrl) {
-    var frm = ctrl.closest('div.rcbrowser--qa-detail')
-    var contract_question_id = frm.attr('data-contract-question-id');
-    var [contract, question_id] = parseContractQuestionID(contract_question_id);
+    const frm = ctrl.closest('div.rcbrowser--qa-detail')
+    const contract_question_id = frm.attr('data-contract-question-id');
+    const [contract, question_id] = parseContractQuestionID(contract_question_id);
     //console.log('got question_id', question_id);
     ensureQuestionDetailFetched(contract, question_id).then(function(question) {
-        var question_json = question.question_json;
-        var existing_answers = answersByMaxBond(question['history']);
-        var payable = 0;
-        var new_answer = formattedAnswerFromForm(frm, question_json);
+        const question_json = question.question_json;
+        const existing_answers = answersByMaxBond(question['history']);
+        const new_answer = formattedAnswerFromForm(frm, question_json);
         //console.log('new_answer', new_answer);
         //console.log('existing_answers', existing_answers);
+        let payable = 0;
         if (existing_answers[new_answer]) {
             payable = existing_answers[new_answer].args.bond;
             if (existing_answers[new_answer].args.user == ACCOUNT) {
@@ -3832,20 +3803,21 @@ $('.rcbrowser-textarea').on('keyup', function(e) {
         $(this).closest('div').removeClass('is-error');
     }
 });
+
 $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) {
     let value = humanToDecimalizedBigNumber($(this).val());
     //console.log($(this));
-    let bond_validation = function(ctrl){
+    const bond_validation = function(ctrl){
         ctrl.addClass('edited');
-        let contract_question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
-        let [contract, question_id] = parseContractQuestionID(contract_question_id);
-        let current_idx = QUESTION_DETAIL_CACHE[contract_question_id]['history'].length - 1;
+        const contract_question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
+        const [contract, question_id] = parseContractQuestionID(contract_question_id);
+        const current_idx = QUESTION_DETAIL_CACHE[contract_question_id]['history'].length - 1;
         let current_bond = ethers.BigNumber.from(0);
         if (current_idx >= 0) {
             current_bond = QUESTION_DETAIL_CACHE[question_id]['history'][current_idx].args.bond;
         }
 
-        let min_bond = current_bond.mul(2);
+        const min_bond = current_bond.mul(2);
         if (ctrl.val() === '' || value.lt(min_bond)) {
             console.log('The minimum bond is ', min_bond, 'rejecting value ',value);
             ctrl.parent().parent().addClass('is-error');
@@ -3879,7 +3851,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
 
 $(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
     evt.stopPropagation();
-    var inp = $(this).closest('.input-container').addClass('invalid-selected').find('input');
+    const inp = $(this).closest('.input-container').addClass('invalid-selected').find('input');
     inp.attr('readonly', true);
     inp.attr('data-old-placeholder', inp.attr('placeholder'));
     inp.attr('placeholder', 'Invalid');
@@ -3888,29 +3860,30 @@ $(document).on('click', '.invalid-switch-container a.invalid-text-link', functio
 
 $(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
     evt.stopPropagation();
-    var inp = $(this).closest('.input-container').removeClass('invalid-selected').find('input');
+    const inp = $(this).closest('.input-container').removeClass('invalid-selected').find('input');
     inp.attr('readonly', false);
     inp.attr('placeholder', inp.attr('data-old-placeholder'));
     inp.removeAttr('data-old-placeholder');
     inp.removeAttr('data-invalid-selected'); // will be read in processing
 });
 
-
 $(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function(e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
     }
 });
+
 $(document).on('change', 'select[name="input-answer"]', function(e) {
     if ($(this).prop('selectedIndex') != 0) {
         $(this).parent().removeClass('is-error');
         show_bond_payments($(this));
     }
 });
+
 $(document).on('change', 'input[name="input-answer"]:checkbox', function() {
-    var parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
-    var container = parent_div.find('div.input-container.input-container--checkbox');
-    var checked = container.find('input[name="input-answer"]:checked');
+    const parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+    const container = parent_div.find('div.input-container.input-container--checkbox');
+    const checked = container.find('input[name="input-answer"]:checked');
     if (checked.length > 0) {
         container.removeClass('is-error');
     }
@@ -3922,7 +3895,7 @@ $(document).on('change', 'input[name="input-answer"]:checkbox', function() {
 $('#filter-list a').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    var cat = $(this).attr('data-category');
+    const cat = $(this).attr('data-category');
     if (cat == 'all') {
         window.location.hash = '';
         set_hash_param({'category': null})
@@ -3942,16 +3915,16 @@ function updateRankingSections(question, changed_field, changed_val) {
     // closing soon changes when we add an answer
     // high reward changes if we add reward. TODO: Should maybe include bond value, in which case it would also change on new answer
 
-    var question_id = question.question_id;
+    const question_id = question.question_id;
     //console.log('updateRankingSections', question_id, changed_field, changed_val);
     if (changed_field == 'finalization_ts') {
         if (isFinalized(question)) {
             //console.log('isFinalized');
-            var sections = ['questions-active', 'questions-closing-soon', 'questions-upcoming'];
-            for (var i = 0; i < sections.length; i++) {
-                var s = sections[i];
+            const sections = ['questions-active', 'questions-closing-soon', 'questions-upcoming'];
+            for (let i = 0; i < sections.length; i++) {
+                const s = sections[i];
                 //console.log('doing section', s);
-                var existing_idx = DISPLAY_ENTRIES[s].ids.indexOf(question_id);
+                const existing_idx = DISPLAY_ENTRIES[s].ids.indexOf(question_id);
                 if (existing_idx !== -1) {
                     DISPLAY_ENTRIES[s].ids.splice(existing_idx, 1);
                     DISPLAY_ENTRIES[s].vals.splice(existing_idx, 1);
@@ -3959,7 +3932,7 @@ function updateRankingSections(question, changed_field, changed_val) {
                     depopulateSection(s, question_id);
                 }
             }
-            var insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
+            const insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
             //console.log('insert_before iss ', insert_before);
             if (insert_before !== -1) {
                 //console.log('poulating', question);
@@ -3968,7 +3941,7 @@ function updateRankingSections(question, changed_field, changed_val) {
             }
         } else {
             //console.log('updating closing soon with timestamp', question_id, question.finalization_ts.toString());
-            var insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
+            const insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
             //console.log('insert_before was', insert_before);
             if (insert_before !== -1) {
                 populateSection('questions-closing-soon', question, insert_before);
@@ -3979,7 +3952,7 @@ function updateRankingSections(question, changed_field, changed_val) {
     } 
     if (changed_field == 'bounty' || changed_field == 'finalization_ts') {
         //var insert_before = update_ranking_data('questions-upcoming', question_id, question.bounty.add(question.bond), 'desc');
-        var insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), question.opening_ts, 'desc');
+        const insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), question.opening_ts, 'desc');
         //console.log('update for new bounty', question.bounty, 'insert_before is', insert_before);
         if (insert_before !== -1) {
             populateSection('questions-upcoming', question, insert_before);
@@ -3994,7 +3967,7 @@ function updateRankingSections(question, changed_field, changed_val) {
 }
 
 
-function handleEvent(error, result) {
+async function handleEvent(error, result) {
 
     if (result.invalid_data) { 
         console.log('skipping invalid log entry');
@@ -4008,10 +3981,10 @@ function handleEvent(error, result) {
 
     // Handles front page event changes.
     // NB We need to reflect other changes too...
-    var evt = result['event'];
+    const evt = result['event'];
     if (evt == 'LogNewTemplate') {
-        var template_id = result.args.template_id;
-        var question_text = result.args.question_text;
+        const template_id = result.args.template_id;
+        const question_text = result.args.question_text;
         CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = question_text;
         return;
     } else if (evt == 'LogNewQuestion') {
@@ -4019,12 +3992,12 @@ function handleEvent(error, result) {
     } else if (evt == 'LogWithdraw') {
         updateUserBalanceDisplay();
     } else {
-        var question_id = result.args.question_id;
+        const question_id = result.args.question_id;
 
         switch (evt) {
 
-            case ('LogNewAnswer'):
-                var args = Object.assign({}, result.args);
+            case 'LogNewAnswer':
+                let args = Object.assign({}, result.args);
                 if (args.is_commitment) {
                     console.log('got commitment', result);
                     args.commitment_id = args.answer;
@@ -4034,18 +4007,16 @@ function handleEvent(error, result) {
                 }
                 result.args = args;
 
-                waitForBlock(result).then(function(result) {
-                    //console.log('got LogNewAnswer, block ', result.blockNumber);
-                    ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]}).then(function(question) {
-                        updateQuestionWindowIfOpen(question);
-                        //console.log('should be getting latest', question, result.blockNumber);
-                        scheduleFinalizationDisplayUpdate(contract, question);
-                        updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-                    });
-                });
+                result = await waitForBlock(result);
+                //console.log('got LogNewAnswer, block ', result.blockNumber);
+                const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]})
+                updateQuestionWindowIfOpen(question);
+                //console.log('should be getting latest', question, result.blockNumber);
+                scheduleFinalizationDisplayUpdate(contract, question);
+                updateRankingSections(question, 'finalization_ts', question.finalization_ts)
                 break;
 
-            case ('LogFundAnswerBounty'):
+            case 'LogFundAnswerBounty':
                 ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, -1).then(function(question) {
                     //console.log('updating with question', question);
                     updateQuestionWindowIfOpen(question);
@@ -4143,11 +4114,11 @@ function reflectDisplayEntryChanges() {
     //console.log('checking DISPLAY_ENTRIES', DISPLAY_ENTRIES);
     //look at current sections and update blockchain scanning message to
     //no questions found if no items exist
-    var detypes = Object.keys(DISPLAY_ENTRIES);
+    const detypes = Object.keys(DISPLAY_ENTRIES);
     // console.log('no questions cateogry, DISPLAY_ENTRIES for detype', DISPLAY_ENTRIES, detypes);
-    for (var i=0; i<detypes.length; i++) {
-        var detype = detypes[i];
-        var has_items = ($('#' + detype).find('div.questions-list div.questions__item').size() > 0);
+    for (let i=0; i<detypes.length; i++) {
+        const detype = detypes[i];
+        const has_items = ($('#' + detype).find('div.questions-list div.questions__item').size() > 0);
         if (has_items) {
             $('#' + detype).find('.no-questions-category').css('display', 'none');
             $('#' + detype).find('.scanning-questions-category').css('display', 'none');
@@ -4183,17 +4154,17 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
         'questions-resolved': 'answerFinalizedTimestamp'
     }
 
-    var where = ranking_where[ranking];
-    var orderBy = ranking_order[ranking];
+    const where = ranking_where[ranking];
+    const orderBy = ranking_order[ranking];
 
-    var network_graph_url = CHAIN_INFO.graphURL;
+    const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
         return false;
     }
     // console.log('graph url is ', network_graph_url);
 
-    var query = `
+    const query = `
       {
         questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
             id,
@@ -4207,10 +4178,10 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     // console.log('query', query);
     const res = await axios.post(network_graph_url, {query: query});
     //console.log('graph res', res.data);
-    for (var q of res.data.data.questions) {
+    for (const q of res.data.data.questions) {
         const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.question_id);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
-        for (var i = 0; i < result.length; i++) {
+        for (let i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i]);
             handleQuestionLog(result[i]);
         }
@@ -4220,14 +4191,9 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
 async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
-    var fetch_num;
-    if (fetch_i < FETCH_NUMBERS.length) {
-        fetch_num = FETCH_NUMBERS[fetch_i];
-    } else {
-        fetch_num = FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
-    }
+    const fetch_num = (fetch_i < FETCH_NUMBERS.length) ? FETCH_NUMBERS[fetch_i] : FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
 
-    var start_block = end_block - fetch_num;
+    let start_block = end_block - fetch_num;
     if (start_block < RCStartBlock(contract)) {
         start_block = RCStartBlock(contract);
     }
@@ -4251,8 +4217,8 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
 
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
-    var question_posted = RCInstance(contract).filters.LogNewQuestion();
-    var result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
+    const question_posted = RCInstance(contract).filters.LogNewQuestion();
+    const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
         /* 
         if (error === null && typeof result !== 'undefined') {
         */
@@ -4280,7 +4246,7 @@ return;
     console.log('runPollingLoop, block ', LAST_POLLED_BLOCK);
     //console.log('filters', contract_instance.filters);
 
-    let filter_all = {
+    const filter_all = {
         address: contract_instance.address,
         fromBlock: LAST_POLLED_BLOCK - 10,
         toBlock: "latest"
@@ -4303,8 +4269,6 @@ return;
             handleEvent(null, logs[i]);
         }
         window.setTimeout(runPollingLoop, 30000, contract_instance);
-
-
         console.log(logs);
     });
 
@@ -4335,31 +4299,29 @@ return;
  //- make sure we preserve the unconfirmed history when refetching
  //- accept that the history has vanished from the fetch, but never erase from the window unless confirmed 
 function scheduleFallbackTimer() {
-     window.setInterval(function() {
+     window.setInterval( function() {
         //console.log('checking for open windows');
-        $('div.rcbrowser--qa-detail.is-open').each(function() {
-             var contract_question_id = $(this).attr('data-contract-question-id');
-             var [contract, question_id] = parseContractQuestionID(contract_question_id);
+        $('div.rcbrowser--qa-detail.is-open').each(async function() {
+             const contract_question_id = $(this).attr('data-contract-question-id');
+             const [contract, question_id] = parseContractQuestionID(contract_question_id);
              console.log('updating window on timer for question', question_id);
              if (question_id) {
-                 ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    scheduleFinalizationDisplayUpdate(contract, question);
-                    updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-                 });
+                const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
+                updateQuestionWindowIfOpen(question);
+                scheduleFinalizationDisplayUpdate(contract, question);
+                updateRankingSections(question, 'finalization_ts', question.finalization_ts)
              }
         });
     }, 20000);
 }
 
-function handleUserFilterItem(rcinst, filter, start_block, end_block) {
+async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
-    rcinst.queryFilter(filter, start_block, end_block).then(function(results) {
-        for (var i = 0; i < results.length; i++) {
-            //console.log('handlePotentialUserAction', i, results[i]);
-            handlePotentialUserAction(results[i]);
-        }
-    });
+    const results = await rcinst.queryFilter(filter, start_block, end_block);
+    for (let i = 0; i < results.length; i++) {
+        //console.log('handlePotentialUserAction', i, results[i]);
+        handlePotentialUserAction(results[i]);
+    }
 
     /*
     TODO: Use to have error handling like:
@@ -4395,12 +4357,8 @@ function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_b
 }
 
 function isForCurrentUser(entry) {
-    var actor_arg = 'user';
-    if (actor_arg) {
-        return (entry.args[actor_arg] == ACCOUNT);
-    } else {
-        return false;
-    }
+    const actor_arg = 'user';
+    return (entry.args[actor_arg] == ACCOUNT);
 }
 
 function parseHash() {
@@ -4421,14 +4379,14 @@ function parseHash() {
 }
 
 function set_hash_param(args) {
-    var current_args = parseHash();
-    var h = '!';
-    for (var a in args) {
+    let current_args = parseHash();
+    let h = '!';
+    for (const a in args) {
         if (args.hasOwnProperty(a)) {
             current_args[a] = args[a];
         }
     }
-    for (var ca in current_args) {
+    for (const ca in current_args) {
         if (current_args.hasOwnProperty(ca)) {
             if (current_args[ca] != null) {
                 h = h + '/' + ca + '/' + current_args[ca];
@@ -4455,19 +4413,18 @@ function populateArbitratorOptionLabel(op, fee, txt, tos) {
 }
 
 function populateArbitratorSelect(arb_contract, network_arbs) {
-console.log('got network_arbs', network_arbs);
+    console.log('got network_arbs', network_arbs);
     $("select[name='arbitrator']").each(function() {
-        var as = $(this);
-        var is_first = true;
-        var a_template = as.find('.arbitrator-template-item');
-        var append_before = a_template.parent().find('.arbitrator-other-select');
+        const as = $(this);
+        const a_template = as.find('.arbitrator-template-item');
+        const append_before = a_template.parent().find('.arbitrator-other-select');
         a_template.remove();
 
-        is_first = false;
+        let is_first = false;
 
         $.each(network_arbs, function(na_addr, na_title) {
             if (na_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase()) {
-                var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                const arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                 populateArbitratorOptionLabel(arb_item, ethers.BigNumber.from(0), na_title, "");
                 arb_item.val(na_addr);
                 append_before.after(arb_item);
@@ -4477,7 +4434,7 @@ console.log('got network_arbs', network_arbs);
             mya.functions.realitio().then(function(call_response) {
                 const rc_addr = call_response[0];
                 console.log('arb has rc addr', rc_addr);
-                var is_arb_valid = (rc_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase());
+                const is_arb_valid = (rc_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase());
                 ARBITRATOR_VERIFIED_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()][na_addr.toLowerCase()] = is_arb_valid;
                 // For faster loading, we give arbitrators in our list the benefit of the doubt when rendering the page list arbitrator warning
                 // For this we'll check our original list for the network, then just check against the failed list
@@ -4491,9 +4448,9 @@ console.log('got network_arbs', network_arbs);
                 if (is_arb_valid) {
                     RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(na_addr).then(function(fee_call_response) {
                         const fee = fee_call_response[0];
-                        var arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                        const arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                         arb_item.val(na_addr);
-                        var tos;
+                        let tos = null;
                         if (ARB_TOS[na_addr]) {
                             tos = ARB_TOS[na_addr];
                         }
@@ -4518,16 +4475,16 @@ console.log('got network_arbs', network_arbs);
 function waitForBlock(result) {
     return new Promise(function(resolve, reject) {
         (function attempt(triesLeft, result) {
-			if (CURRENT_BLOCK_NUMBER >= result.blockNumber) {
+            if (CURRENT_BLOCK_NUMBER >= result.blockNumber) {
                 // console.log('at ',CURRENT_BLOCK_NUMBER);
-				return resolve(result);
-			} else if (!triesLeft) {
+                return resolve(result);
+            } else if (!triesLeft) {
                 // console.log('out of tries',CURRENT_BLOCK_NUMBER);
-				return reject('gave up waiting for the network to catch up');
-			} else {
+                return reject('gave up waiting for the network to catch up');
+            } else {
                 console.log('node is lagging, waiting for it to catch up', CURRENT_BLOCK_NUMBER, result.blockNumber);
-				setTimeout(attempt.bind(null, triesLeft-1, result), 1000);
-			}
+                setTimeout(attempt.bind(null, triesLeft-1, result), 1000);
+            }
         })(360, result); // number of retries if first time fails
     });
 }
@@ -4541,13 +4498,10 @@ async function validateArbitratorForContract(contract, arb_addr) {
     return (RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase() == rslt.toLowerCase());
 }
 
-
-
-
 function initNetwork(net_id) {
     console.log('Initializing for network', net_id);
     NETWORK_ID = net_id;
-    var net_cls = '.network-id-' + net_id;
+    const net_cls = '.network-id-' + net_id;
     if ($('.network-status'+net_cls).size() == 0) {
         return false;
     }
@@ -4605,10 +4559,9 @@ function getAccount(fail_soft) {
     });
 }
 
-
 function accountInit(account) {
 
-    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+    for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
         USER_CLAIMABLE_BY_CONTRACT[ctr] = {};
         fetchUserEventsAndHandle(account, ctr, null, RCStartBlock(ctr), 'latest');
@@ -4619,7 +4572,7 @@ function accountInit(account) {
 }
 
 function initContractSelect(available_configs, selected_config, show_all) {
-    let sel = $('select#contract-selection');
+    const sel = $('select#contract-selection');
     let only_have_default = true;
     for(const ac in available_configs) {
         const acobj = available_configs[ac];
@@ -4647,7 +4600,7 @@ function initContractSelect(available_configs, selected_config, show_all) {
 // We show the claim button section for each contract
 // It's a bit hokey but having multiple contracts to claim from should be pretty unusual
 function setupContractClaimSections(rc_contracts) {
-    for(var i=0; i<rc_contracts.length; i++) {
+    for(let i=0; i<rc_contracts.length; i++) {
         const rcaddr = rc_contracts[i];
         const tmpl = $('.contract-claim-section-template');
         const sec = tmpl.clone();
@@ -4659,8 +4612,8 @@ function setupContractClaimSections(rc_contracts) {
 
 function initCurrency(curr) {
     $('.token-ticker-text').text(CURRENCY);
-    for(t in TOKEN_INFO) {
-        let op = $('<option>');
+    for(const t in TOKEN_INFO) {
+        const op = $('<option>');
         op.attr('value', t).text(t);
         if (t == curr) {
             if (TOKEN_INFO[t].is_native) {
@@ -4678,20 +4631,20 @@ function initCurrency(curr) {
 
 function displayForeignProxy(datastr) {
     $('body').addClass('foreign-proxy');
-    var dec = decodeURIComponent(datastr);
-    var qdata = JSON.parse(dec);
-    for (var d in qdata) {
+    const dec = decodeURIComponent(datastr);
+    const qdata = JSON.parse(dec);
+    for (const d in qdata) {
         if (qdata[d].type && qdata[d].type == 'BigNumber') {
             qdata[d] = ethers.BigNumber.from(qdata[d].hex); 
         }
     }
     FOREIGN_PROXY_DATA = qdata;
     $('body').attr('data-foreign-proxy-network-id', qdata['network_id']);
-    var netid_label = 'network-id-'+parseInt(qdata['network_id']);
-    var txt = $('.network-status-container .network-status.'+netid_label).first().text();
+    const netid_label = 'network-id-'+parseInt(qdata['network_id']);
+    const txt = $('.network-status-container .network-status.'+netid_label).first().text();
     console.log(netid_label, txt);
-    var fpsec = $('div.foreign-proxy-section');
-    var qjson = qdata.question_json;
+    const fpsec = $('div.foreign-proxy-section');
+    const qjson = qdata.question_json;
     fpsec.find('.foreign-proxy-network-text').text(txt);
     fpsec.find('.question-title').text(qjson['title']);
     console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').size());
@@ -4706,16 +4659,16 @@ function foreignProxyInitNetwork(net_id) {
         $('body').addClass('foreign-proxy-network-mismatch');
         return;
     }
-    var arb_addr = FOREIGN_PROXY_DATA['foreign_proxy'];
-    var question_id = FOREIGN_PROXY_DATA.question_id;
-    var arbitrator;
+    const arb_addr = FOREIGN_PROXY_DATA['foreign_proxy'];
+    const question_id = FOREIGN_PROXY_DATA.question_id;
+    let arbitrator;
 
     console.log('foreign proxy arbitrator is', arb_addr, 'bond', FOREIGN_PROXY_DATA.bond, 'qid', question_id);
 
     // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
     const arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI, provider);
     arb.functions.questionIDToDisputeExists(question_id).then(function(existing) {
-        var dispute_exists = existing[0];
+        const dispute_exists = existing[0];
         console.log('existing dispute_exists', dispute_exists);
         if (dispute_exists) {
             $('body').addClass('foreign-proxy-transaction-complete').removeClass('foreign-proxy-ready').removeClass('foreign-proxy-transaction-sent');
@@ -4751,8 +4704,8 @@ function foreignProxyInitNetwork(net_id) {
 
 function displayWrongNetwork(specified, detected) {
     console.log('displayWrongNetwork', specified, detected);
-    var specified_network_txt = $('.network-status.network-id-'+specified).text();
-    var detected_network_txt = $('.network-status.network-id-'+detected).text();
+    let specified_network_txt = $('.network-status.network-id-'+specified).text();
+    let detected_network_txt = $('.network-status.network-id-'+detected).text();
     if (specified_network_txt == '') {
         specified_network_txt = '[unknown network]';
     }
@@ -4763,18 +4716,16 @@ function displayWrongNetwork(specified, detected) {
 
     const wallet_info = rc_contracts.walletAddParameters(specified);
     if (wallet_info) {
-        var lnk = $('<a>');
+        const lnk = $('<a>');
         lnk.text($('.add-network-button').text());
         lnk.bind('click', function(evt) {
             console.log('add net');
             evt.stopPropagation();
             console.log('getting', specified);
-            ethereum
-            .request({
+            ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [wallet_info]
-            })
-            .then((result) => {
+            }).then((result) => {
                 console.log('result was', result);
                 location.reload();	
             }).catch((error) => {
@@ -4794,9 +4745,9 @@ function displayWrongNetwork(specified, detected) {
 
 window.addEventListener('load', async function() {
 
-    var net_id;
+    let net_id;
 
-    var args = parseHash();
+    const args = parseHash();
     if (args['token'] && args['token'] != 'ETH') {
         CURRENCY = args['token'];
     }
@@ -4843,7 +4794,7 @@ window.addEventListener('load', async function() {
         if (old_net_id) {
             window.location.reload();
         }
-console.log('net_id is ', net_id);
+        console.log('net_id is ', net_id);
 
         if (args['category']) {
             $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
@@ -4941,7 +4892,7 @@ console.log('net_id is ', net_id);
             ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = true;
             ARBITRATOR_FAILED_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
             if ('arbitrators' in cfg) {
-                for(var arb_addr in cfg['arbitrators']) {
+                for(const arb_addr in cfg['arbitrators']) {
                     ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = cfg['arbitrators'][arb_addr];
                     ARBITRATOR_VERIFIED_BY_CONTRACT[cfg_addr.toLowerCase()][arb_addr.toLowerCase()] = true;
                 }
@@ -4981,7 +4932,7 @@ console.log('net_id is ', net_id);
         // NB If this fails we'll try again when we need to do something using the account
         getAccount(true);
 
-        for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+        for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
             const rcaddr = RC_DISPLAYED_CONTRACTS[i];
             // Listen for all events
             RCInstance(rcaddr).on("*", function(eventObject) {
@@ -5016,7 +4967,7 @@ $('#token-selection').change(function(e) {
 $('#contract-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
-    var ctr = $(this).val();
+    const ctr = $(this).val();
     if ($(this).attr('data-old-val') == ctr) {
         // already selected
         return;
