@@ -169,5 +169,23 @@
             "https://polygonscan.com",
             "https://polygonscan.com/"
         ]
+    },
+    "421611": {
+        "chainId": "0x66eeb",
+        "chainName": "Arbitrum Testnet Rinkeby",
+        "nativeCurrency": {
+            "name": "Arbitrum Rinkeby Ether",
+            "symbol": "ARETH",
+            "decimals": 18
+        },
+        "network_name": "arbitrum_testnet_tbd",
+        "rpcUrls": [
+            "https://rinkeby.arbitrum.io/rpc",
+            "wss://rinkeby.arbitrum.io/ws"
+        ],
+        "hostedRPC": "https://rinkeby.arbitrum.io/rpc",
+        "blockExplorerUrls": [
+            "https://rinkeby-explorer.arbitrum.io"
+        ]
     }
 }
