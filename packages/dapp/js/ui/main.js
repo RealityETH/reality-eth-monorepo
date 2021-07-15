@@ -1,8 +1,8 @@
 'use strict';
 
 const { ethers } = require("ethers");
-var provider;
-var signer;
+let provider;
+let signer;
 
 const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js');
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
@@ -156,7 +156,7 @@ function nonceFromSeed(paramstr) {
 
 }
 
-var ZINDEX = 10;
+let ZINDEX = 10;
 
 const MONTH_LIST = [
     'Jan',
@@ -271,10 +271,10 @@ interact('.rcbrowser-header').draggable({
 });
 
 function dragMoveListener(event) {
-    var target = event.target.parentNode.parentNode;
+    const target = event.target.parentNode.parentNode;
     // keep the dragged position in the data-x/data-y attributes
-    var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-    var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
     // translate the element
     let top = parseInt(target.style.top);
@@ -618,7 +618,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
 
     const category = win.find('div.select-container--question-category select');
     let outcomes = [];
-    for (var i = 0; i < answer_options.length; i++) {
+    for (let i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
     const reward = (reward_val == '') ? ethers.BigNumber.from(0) : humanToDecimalizedBigNumber(reward_val);
@@ -771,7 +771,7 @@ function isArbitratorValid(arb) {
 // This is used for fast rendering of the warnings on the list page.
 // TODO: We should really go back through them later and set warnings on anything that turned out to be bad
 function isArbitratorValidFast(contract, test_arb) {
-    for (var a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
+    for (const a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
         if (a.toLowerCase() == test_arb.toLowerCase()) {
             return true;
         }
@@ -780,7 +780,7 @@ function isArbitratorValidFast(contract, test_arb) {
 }
 
 function arbitratorAddressToText(contract, addr) {
-    for (var a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
+    for (const a in ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()]) {
         if (a.toLowerCase() == addr.toLowerCase()) {
             return ARBITRATOR_LIST_BY_CONTRACT[contract.toLowerCase()][a.toLowerCase()];
         }
@@ -1156,9 +1156,9 @@ async function updateClaimableDisplay(contract) {
     //console.log('got claiming', claiming);
     const sec = $('.contract-claim-section').filter('[data-contract=' + contract + ']'); 
     if (claiming.total.gt(0)) {
-        var txids = claiming.txids;
+        const txids = claiming.txids;
         sec.find('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
-        var txid = txids.join(', '); // TODO: Handle multiple links properly
+        const txid = txids.join(', '); // TODO: Handle multiple links properly
         sec.find('.answer-claiming-container').find('a.txid').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
         sec.find('.answer-claiming-container').find('a.txid').text(txid.substr(0, 12) + "...");
         sec.find('.answer-claiming-container').show();
@@ -1320,7 +1320,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
             // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
             args['revealed_block'] = answer_arr[j].blockNumber;
             args['answer'] = answer_arr[j].args['answer'];
-            var commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], new BigNumber(bond_hex));
+            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], new BigNumber(bond_hex));
             args['commitment_id'] = commitment_id;
             question['history'][idx].args = args;
             delete bond_indexes[bond_hex];
@@ -1561,7 +1561,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
                 } catch (e) {
                     console.log('error populating template', CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, e);
                 }
-                var question = filledQuestionDetail(contract, question_id, 'question_json', 1, populatedq);
+                const question = filledQuestionDetail(contract, question_id, 'question_json', 1, populatedq);
                 return question;
 /*
                 console.log('error fetching template - unexpected cat length');
@@ -1853,7 +1853,7 @@ function populateSectionEntry(entry, question) {
 
     let options = '';
     if (typeof question_json['outcomes'] !== 'undefined') {
-        for (var i = 0; i < question_json['outcomes'].length; i++) {
+        for (let i = 0; i < question_json['outcomes'].length; i++) {
             options = options + i + ':' + question_json['outcomes'][i] + ', ';
         }
     }
@@ -1882,7 +1882,7 @@ function populateSectionEntry(entry, question) {
         entry.addClass('not-yet-open');
     }
 
-    var is_answered = isAnswered(question);
+    const is_answered = isAnswered(question);
 
     if (is_answered) {
         entry.addClass('has-answers').removeClass('no-answers');
@@ -2091,7 +2091,7 @@ function update_ranking_data(arr_name, id, val, ord) {
     // If the list is full and we're lower, give up
     if (arr.length >= max_entries) {
         //console.log('list full and lower, give up');
-        var last_entry = arr[arr.length - 1];
+        const last_entry = arr[arr.length - 1];
         if (last_entry.gte(val)) {
             //  console.log('we are full and last entry is at least as high')
             return -1;
@@ -2134,9 +2134,12 @@ function update_ranking_data(arr_name, id, val, ord) {
 // question detail window
 
 (function() {
+
+function initQuestionTypeUI() {
+
     $(document).on('change', '.question-type', function(e) {
-        var win = $(this).closest('.rcbrowser');
-        var container = win.find('.answer-option-container');
+        const win = $(this).closest('.rcbrowser');
+        const container = win.find('.answer-option-container');
         if (win.find('.question-type').val() == 'single-select' || win.find('.question-type').val() == 'multiple-select') {
             if (!container.hasClass('is-open')) {
                 container.css('display', 'block');
@@ -2154,15 +2157,20 @@ function update_ranking_data(arr_name, id, val, ord) {
     });
 
     $(document).on('click', '.add-option-button', function(e) {
-        var win = $(this).closest('.rcbrowser');
-        var element = $('<div>');
+        const win = $(this).closest('.rcbrowser');
+        const element = $('<div>');
         element.addClass('input-container input-container--answer-option');
-        var input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter an answer...">';
+        const input = '<input type="text" name="editOption0" class="rcbrowser-input answer-option form-item" placeholder="Enter an answer...">';
         element.append(input);
         win.find('.error-container--answer-option').before(element);
         element.addClass('is-bounce');
         Ps.update(win.find('.rcbrowser-inner').get(0));
     });
+
+}
+
+initQuestionTypeUI();
+
 })();
 
 $(document).on('click', '.questions__item__title', function(e) {
@@ -2405,9 +2413,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 timeAgo.render(current_container.find('.current-answer-item').find('.timeago'));
 
                 // answerer data
-                var ans_data = rcqa.find('.current-answer-container').find('.answer-data');
+                const ans_data = rcqa.find('.current-answer-container').find('.answer-data');
                 ans_data.find('.answerer').text(current_answer.user);
-                var avjazzicon = jazzicon(32, parseInt(current_answer.user.toLowerCase().slice(2, 10), 16));
+                const avjazzicon = jazzicon(32, parseInt(current_answer.user.toLowerCase().slice(2, 10), 16));
                 ans_data.find('.answer-data__avatar').html(avjazzicon);
                 if (current_answer.user == ACCOUNT) {
                     ans_data.addClass('current-account');
@@ -2518,7 +2526,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     balloon.find('.setting-info-arbitrator').text(arbitratorAddressToText(question_detail.contract, question_detail.arbitrator));
     balloon.find('.setting-info-questioner').text(questioner);
     balloon.find('.setting-info-created-ts').text(new Date(question_detail.creation_ts*1000).toUTCString().replace('GMT', 'UTC'));
-    var opening_ts_str = 'Unset';
+    let opening_ts_str = 'Unset';
     if (question_detail.opening_ts.gt(0)) {
         opening_ts_str = new Date(question_detail.opening_ts*1000).toUTCString().replace('GMT', 'UTC');
     }
@@ -3013,7 +3021,7 @@ function renderNotifications(qdata, entry) {
                     if (result2[0].args.user == ACCOUNT) {
                         ntext = 'Someone added reward to your question';
                     } else {
-                        var prev_hist_idx = qdata['history'].length - 2;
+                        const prev_hist_idx = qdata['history'].length - 2;
                         if ((prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.user == ACCOUNT)) {
                             ntext = 'Someone added reward to the question you answered';
                         }
@@ -3033,7 +3041,7 @@ function renderNotifications(qdata, entry) {
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    var history_idx = qdata['history'].length - 2;
+                    const history_idx = qdata['history'].length - 2;
                     if (result2[0].args.user == ACCOUNT) {
                         ntext = 'Someone requested arbitration to your question';
                     } else {
@@ -3441,10 +3449,10 @@ $(document).on('click', '.post-answer-button', async function(e) {
 console.log('check against answer', new_answer);
         const invalid_value = rc_question.getInvalidValue(question_json);
 
+        let ans;
+        let err = false;
         switch (question_json['type']) {
             case 'bool':
-                var err = false;
-                var ans;
                 try {
                     ans = ethers.BigNumber.from(new_answer);
                 } catch(e) {
@@ -3456,8 +3464,6 @@ console.log('check against answer', new_answer);
                 }
                 break;
             case 'uint':
-                var ans;
-                var err = false;
                 try {
                     ans = ethers.BigNumber.from(new_answer);
                 } catch(e) {
@@ -3476,8 +3482,6 @@ console.log('check against answer', new_answer);
                 }
                 break;
             case 'int':
-                var ans;
-                var err = false;
                 try {
                     ans = ethers.BigNumber.from(new_answer);
                 } catch(e) {
@@ -3494,24 +3498,24 @@ console.log('check against answer', new_answer);
                 }
                 break;
             case 'single-select':
-                var container = parent_div.find('div.select-container.select-container--answer');
-                var select = container.find('select[name="input-answer"]');
-                if (select.prop('selectedIndex') == 0) {
-                    container.addClass('is-error');
+                const sing_container = parent_div.find('div.select-container.select-container--answer');
+                const sing_select = sing_container.find('select[name="input-answer"]');
+                if (sing_select.prop('selectedIndex') == 0) {
+                    sing_container.addClass('is-error');
                     is_err = true;
                 }
                 break;
             case 'multiple-select':
-                var container = parent_div.find('div.input-container.input-container--checkbox');
-                var checked = container.find('input[name="input-answer"]:checked');
+                const mult_container = parent_div.find('div.input-container.input-container--checkbox');
+                const checked = mult_container.find('input[name="input-answer"]:checked');
                 if (!invalid_value && checked.length == 0) {
-                    container.addClass('is-error');
+                    mult_container.addClass('is-error');
                     is_err = true;
                 }
                 break;
         }
 
-        var min_amount = current_question.bond.mul(2)
+        let min_amount = current_question.bond.mul(2)
         if (bond.lt(min_amount)) {
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
@@ -3525,11 +3529,11 @@ console.log('check against answer', new_answer);
         // Remove the edited note to allow the field to be automatically populated again
         bond_field.removeClass('edited'); 
 
-        var handleAnswerSubmit = function(tx_response) {
+        const handleAnswerSubmit = function(tx_response) {
             const txid = tx_response.hash;
             const contract = tx_response.to;
             clearForm(parent_div, question_json);
-            var fake_history = {
+            const fake_history = {
                 'args': {
                     'answer': new_answer,
                     'question_id': question_id,
@@ -3544,7 +3548,7 @@ console.log('check against answer', new_answer);
                 'txid': txid
             };
 
-            var question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
+            const question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
             //console.log('after answer made question', question);
 
             ensureQuestionDetailFetched(contract, question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
@@ -3559,9 +3563,9 @@ console.log('check against answer', new_answer);
 
         const rc = RCInstance(contract, true);
         if (USE_COMMIT_REVEAL) {
-            var answer_plaintext = new_answer;
-            var nonce = nonceFromSeed(uiHash(question_id + answer_plaintext + bond));
-            var answer_hash = rc_question.answerHash(answer_plaintext, nonce);
+            const answer_plaintext = new_answer;
+            const nonce = nonceFromSeed(uiHash(question_id + answer_plaintext + bond));
+            const answer_hash = rc_question.answerHash(answer_plaintext, nonce);
 
             console.log('answerHash for is ',rc_question.answerHash(answer_plaintext, nonce));
 
@@ -3570,7 +3574,7 @@ console.log('check against answer', new_answer);
             console.log('made bond', bond);
             console.log('made answer_hash', answer_hash);
 
-            var commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
+            const commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
             console.log('resulting  commitment_id', commitment_id);
 
             // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
@@ -3646,7 +3650,7 @@ function clearForm(parent_div, question_json) {
             parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
             break;
         case 'multiple-select':
-            var container = parent_div.find('div.input-container.input-container--checkbox');
+            const container = parent_div.find('div.input-container.input-container--checkbox');
             container.find('input[name="input-answer"]:checked').prop('checked', false);
             break;
     }
@@ -4095,7 +4099,7 @@ TODO restore
 
     // Now the rest of the questions
     LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
-    for(var i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
+    for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
         fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0);
     }
@@ -4213,7 +4217,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         /* 
         if (error === null && typeof result !== 'undefined') {
         */
-    for (var i = 0; i < result.length; i++) {
+    for (let i = 0; i < result.length; i++) {
         if (result[i].invalid_data) {
             continue;
         }
@@ -4256,7 +4260,7 @@ return;
     provider.getLogs(filter_all).then((logs) => {
         console.log('filter_all got evts', logs);
         LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
-        for (var i = 0; i < logs.length; i++) {
+        for (let i = 0; i < logs.length; i++) {
             handleEvent(null, logs[i]);
         }
         window.setTimeout(runPollingLoop, 30000, contract_instance);
@@ -4357,11 +4361,11 @@ function parseHash() {
     if (location.hash.substring(0, 3) != '#!/') {
         return {};
     }
-    var arg_arr = location.hash.substring(3).split('/');
-    var args = {};
-    for (var i = 0; i < arg_arr.length + 1; i = i + 2) {
-        var n = arg_arr[i];
-        var v = arg_arr[i + 1];
+    const arg_arr = location.hash.substring(3).split('/');
+    const args = {};
+    for (let i = 0; i < arg_arr.length + 1; i = i + 2) {
+        const n = arg_arr[i];
+        const v = arg_arr[i + 1];
         if (n && v) {
             args[n] = v;
         }
@@ -4862,7 +4866,7 @@ window.addEventListener('load', async function() {
         if (args['category']) {
             CATEGORY = args['category'];
             $('body').addClass('category-' + category);
-            var cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+            const cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
             $('#filterby').text(cat_txt);
         }
 
@@ -4945,7 +4949,7 @@ $('.continue-read-only-message').click(function(e) {
 $('#token-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
-    var tkn = $(this).val();
+    const tkn = $(this).val();
     if (tkn == CURRENCY) {
         // already selected
         return;
