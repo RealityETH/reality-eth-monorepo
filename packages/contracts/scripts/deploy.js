@@ -8,7 +8,7 @@ var undef;
 
 const defaultConfigs = {
     //gasPrice: 8000000000,
-    gasLimit: 6000000,
+    //; gasLimit: 6000000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
 const task = process.argv[2]
@@ -142,12 +142,14 @@ function deployRealityETH() {
     var tmpl = realityETHName();
     var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
-    console.log(txt);
 
     const provider = provider_for_network();
     const t = constructContractTemplate(tmpl);
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+
+    txt = txt + ' (from address ' + signer.signingKey.address + ')';
+    console.log(txt);
 
     confac.deploy(defaultConfigs).then(function(result) {
         const txid = result.deployTransaction.hash;
