@@ -1,0 +1,9 @@
+{
+    "address": "0xf4585A9944A390615E7cec6756C1c082173B93eB",
+    "block": 12821080,
+    "token_address": "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d",
+    "notes": null,
+    "arbitrators": {
+        "0x90A48D5CF7343B08dA12E067680B4C6dbfE551Be": "ShapeShift DAO"
+    }
+}
