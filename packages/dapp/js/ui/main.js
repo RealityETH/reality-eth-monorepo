@@ -1,5 +1,11 @@
 'use strict';
 
+import interact from 'interactjs';
+import Ps from 'perfect-scrollbar';
+//import {TweenLite, Power3} from 'gsap';
+
+(function() {
+
 const { ethers } = require("ethers");
 let provider;
 let signer;
@@ -133,10 +139,6 @@ const $ = require('jquery-browserify');
 require('jquery-expander')($);
 require('jquery-datepicker');
 
-import interact from 'interactjs';
-import Ps from 'perfect-scrollbar';
-//import {TweenLite, Power3} from 'gsap';
-
 const crypto = require('crypto');
 
 function rand(min, max) {
@@ -216,8 +218,6 @@ function setRcBrowserPosition(rcbrowser) {
 
 }
 
-// RCBrowser custom scrollbar
-(function() {
 
     function initScrollBars() {
         const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
@@ -241,7 +241,6 @@ function setRcBrowserPosition(rcbrowser) {
 
     initScrollBars();
 
-})();
 
 // draggable
 interact('.rcbrowser-header').draggable({
@@ -1668,7 +1667,6 @@ async function ensureQuestionDetailFetched(ctr, question_id, ql, qi, qc, al, inj
             console.log('cauught error', question_id, e);
             reject(e);
         });
-    });
     */
 }
 
@@ -2133,8 +2131,6 @@ function update_ranking_data(arr_name, id, val, ord) {
 /*-------------------------------------------------------------------------------------*/
 // question detail window
 
-(function() {
-
 function initQuestionTypeUI() {
 
     $(document).on('change', '.question-type', function(e) {
@@ -2171,7 +2167,6 @@ function initQuestionTypeUI() {
 
 initQuestionTypeUI();
 
-})();
 
 $(document).on('click', '.questions__item__title', function(e) {
     if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
@@ -4981,3 +4976,5 @@ if (window.location.href.indexOf('realitio') != -1) {
 } else if (window.location.href.indexOf('ipfs.io') != -1) {
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
 }
+
+})();
