@@ -48,6 +48,11 @@ contract Realitio is BalanceHolder {
         uint256 created
     );
 
+    event LogReopenQuestion(
+        bytes32 indexed question_id,
+        bytes32 indexed reopened_question_id
+    );
+
     event LogFundAnswerBounty(
         bytes32 indexed question_id,
         uint256 bounty_added,
@@ -125,6 +130,7 @@ contract Realitio is BalanceHolder {
     mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
+    mapping(bytes32 => bytes32) reopened_questions;
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
@@ -463,7 +469,7 @@ contract Realitio is BalanceHolder {
     /// @return The answer formatted as a bytes32
     function resultFor(bytes32 question_id) 
         stateFinalized(question_id)
-    external view returns (bytes32) {
+    public view returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
@@ -750,6 +756,69 @@ contract Realitio is BalanceHolder {
     function getBond(bytes32 question_id) 
     public view returns(uint256) {
         return questions[question_id].bond;
+    }
+
+    /// @notice Returns whether the question was answered before it had an answer, ie resolved to bytes32(-2)
+    /// @param question_id The ID of the question 
+    function isSettledTooSoon(bytes32 question_id)
+    public view returns(bool) {
+        return (resultFor(question_id) == bytes32(-2));
+    }
+
+    /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
+    /// @param question_id The ID of the question 
+    function resultForOnceSettled(bytes32 question_id)
+    external view returns(bytes32) {
+        bytes32 result = resultFor(question_id);
+        if (result == bytes32(-2)) {
+            // Try the replacement
+            bytes32 replacement_id = reopened_questions[question_id];
+            require(replacement_id != bytes32(0x0), "Question was settled too soon and has not been reopened");
+            // We only try one layer down rather than recursing to keep the gas costs predictable
+            result = resultFor(replacement_id);
+            require(result != bytes32(-2), "Question replacement was settled too soon and has not been reopened");
+        }
+        return result;
+    }
+
+    /// @notice Asks a new question reopening a previously-asked question that was settled too soon
+    /// @dev A special version of askQuestion() that replaces a previous question that was settled too soon
+    /// @param template_id The ID number of the template the question will use
+    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
+    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
+    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param reopens_question_id The ID of the question this reopens
+    /// @return The ID of the newly-created question, created deterministically.
+    function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, bytes32 reopens_question_id)
+        // stateNotCreated is enforced by the internal _askQuestion
+    public payable returns (bytes32) {
+
+        require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
+
+        // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
+        bytes32 existing_reopen_question_id = reopened_questions[reopens_question_id];
+        if (existing_reopen_question_id != bytes32(0)) {
+            require(isSettledTooSoon(existing_reopen_question_id), "Question has already been reopened");
+        }
+
+        bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
+
+        // A reopening must exactly match the original question, except for the nonce and the creator
+        require(content_hash == questions[reopens_question_id].content_hash, "content hash mismatch");
+        require(arbitrator == questions[reopens_question_id].arbitrator, "arbitrator mismatch");
+        require(timeout == questions[reopens_question_id].timeout, "timeout mismatch");
+        require(opening_ts == questions[reopens_question_id].opening_ts , "opening_ts mismatch");
+
+        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
+        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
+
+        reopened_questions[reopens_question_id] = question_id;
+        emit LogReopenQuestion(question_id, reopens_question_id);
+
+        return question_id;
     }
 
 }
