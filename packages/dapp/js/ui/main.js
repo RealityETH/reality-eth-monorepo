@@ -730,7 +730,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', functio
                     if (is_currency_native) { 
                         rc.askQuestion.sendTransaction(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
                                 from: account,
-                                gas: 200000,
+                           //     gas: 200000,
                                 value: reward.plus(fee)
                             })
                             .then(function(txid) { handleAskQuestionTX(txid) });
@@ -925,7 +925,7 @@ $(document).on('click', '.answer-claim-button', function() {
         var gas = 140000 + (30000 * claim_args['history_hashes'].length);
         rc.claimMultipleAndWithdrawBalance.sendTransaction(claim_args['question_ids'], claim_args['answer_lengths'], claim_args['history_hashes'], claim_args['answerers'], claim_args['bonds'], claim_args['answers'], {
                 from: account,
-                gas: gas
+                // gas: gas
             })
             .then(function(txid) {
                 //console.log('claiming is ',claiming);
@@ -3538,7 +3538,7 @@ $(document).on('click', '.post-answer-button', function(e) {
                 if (is_currency_native) {
                     rc.submitAnswer.sendTransaction(question_id, new_answer, current_question.bond, {
                         from: account,
-                        gas: 200000,
+                       //  gas: 200000,
                         value: bond
                     }).then(function(txid) { handleAnswerSubmit(txid) });
                 } else {
