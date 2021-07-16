@@ -22,5 +22,5 @@ function keygen(options, fileObj) {
                 .filter(Boolean);
 }
 
-const all_config = requireGlob.sync('./../networks/*/*/*.json', {"keygen": keygen});
+const all_config = requireGlob.sync('./../chains/deployments/*/*/*.json', {"keygen": keygen});
 fs.writeFileSync(__dirname + '/../generated/contracts.json', JSON.stringify(all_config, null, 4));

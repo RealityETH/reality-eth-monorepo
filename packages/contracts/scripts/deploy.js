@@ -102,7 +102,7 @@ if (task == 'RealityETH') {
 }
 
 function ensure_network_directory_exists(network, token) {
-    const dir = project_base + '/networks/' + network + '/' + token;    
+    const dir = project_base + '/chains/deployments/' + network + '/' + token;    
     if (!fs.existsSync(dir)) {
         console.log('creating directory for token', network, token, dir);
         fs.mkdirSync(dir, {
@@ -113,7 +113,7 @@ function ensure_network_directory_exists(network, token) {
 }
 
 function store_deployed_contract(template, network_id, token_name, out_json) {
-    const file = project_base + '/networks/' + network_id + '/' + token_name + '/' + template + '.json';
+    const file = project_base + '/chains/deployments/' + network_id + '/' + token_name + '/' + template + '.json';
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
 }
@@ -186,7 +186,7 @@ function deployArbitrator() {
     }
 
     var tmpl = 'Arbitrator';
-    var rc_file = project_base + '/networks/' + network_id + '/' + token_name + '/' + tmpl + '.json';
+    var rc_file = project_base + '/chains/deployments/' + network_id + '/' + token_name + '/' + tmpl + '.json';
 
     const timer = ms => new Promise( res => setTimeout(res, ms));
 
