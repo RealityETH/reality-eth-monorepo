@@ -4755,7 +4755,7 @@ window.addEventListener('load', function() {
         if (err === null) {
 
             if (!currency) {
-                currency = rc_contracts.defaultTokenForNetwork(net_id);
+                currency = rc_contracts.defaultTokenForChain(net_id); // TODO: Use chain id here
                 console.log('picked token', currency);
             }
 
@@ -4769,7 +4769,7 @@ window.addEventListener('load', function() {
 
             arbitrator_list = rc_config.arbitrators;
 
-            token_info = rc_contracts.networkTokenList(net_id);
+            token_info = rc_contracts.chainTokenList(net_id);
             console.log('got token info', token_info);
 
             rc_json = rc_contracts.realityETHInstance(rc_config);
@@ -4787,7 +4787,7 @@ window.addEventListener('load', function() {
                 token_json = rc_contracts.erc20Instance(rc_config);
             }
 
-            chain_info = rc_contracts.networkData(net_id);
+            chain_info = rc_contracts.chainData(net_id);
             HOSTED_RPC_NODE = chain_info['hostedRPC'];
             BLOCK_EXPLORER = chain_info['blockExplorerUrls'][0];
 
