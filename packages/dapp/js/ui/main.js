@@ -2,11 +2,21 @@
 
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
-//import {TweenLite, Power3} from 'gsap';
 
 (function() {
 
-const { ethers } = require("ethers");
+const ethers = require("ethers");
+const BigNumber = require('bignumber.js');
+const timeago = require('timeago.js');
+const timeAgo = new timeago();
+const jazzicon = require('jazzicon');
+const axios = require('axios');
+const crypto = require('crypto');
+
+const $ = require('jquery-browserify');
+require('jquery-expander')($);
+require('jquery-datepicker');
+
 let provider;
 let signer;
 
@@ -32,12 +42,7 @@ let ARBITRATOR_FAILED_BY_CONTRACT = {};
 let FOREIGN_PROXY_DATA = {};
 
 const TEMPLATE_CONFIG = rc_contracts.templateConfig();
-
-const BigNumber = require('bignumber.js');
-const timeago = require('timeago.js');
-const timeAgo = new timeago();
-const jazzicon = require('jazzicon');
-const axios = require('axios');
+const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
 // Special ABI for Kleros
 const PROXIED_ARBITRATOR_ABI = require('../../abi/ProxiedArbitrator.json');
@@ -51,14 +56,13 @@ let CONTRACT_TEMPLATE_CONTENT = {}; TEMPLATE_CONFIG.content;
 let LAST_POLLED_BLOCK = null;
 let IS_INITIAL_LOAD_DONE = false;
 
-const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 let USE_COMMIT_REVEAL = false;
 
 let HOSTED_RPC_NODE = null;
 
 let START_BLOCKS = {};
 
-let NETWORK_ID = null;
+let CHAIN_ID = null;
 let BLOCK_EXPLORER = null;
 
 const FETCH_NUMBERS = [100, 2500, 5000];
@@ -67,9 +71,6 @@ let LAST_DISPLAYED_BLOCK_NUMBER = 0;
 let CURRENT_BLOCK_NUMBER = 1;
 
 let CURRENCY = null;
-
-// Struct array offsets
-// Assumes we unshift the ID onto the start
 
 // Question, as returned by questions()
 const Qi_content_hash = 0;
@@ -86,7 +87,6 @@ const Qi_bond = 9;
 BigNumber.config({
     RABGE: 256
 });
-const ONE_ETH = 1000000000000000000;
 
 let BLOCK_TIMESTAMP_CACHE = {};
 
@@ -134,12 +134,6 @@ let QUESTION_DETAIL_CACHE = {};
 let QUESTION_EVENT_TIMES = {}; // Hold timer IDs for things we display that need to be moved when finalized
 
 let WINDOW_POSITION = [];
-
-const $ = require('jquery-browserify');
-require('jquery-expander')($);
-require('jquery-datepicker');
-
-const crypto = require('crypto');
 
 function rand(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
@@ -412,11 +406,11 @@ function getViewedBlockNumber(network_id) {
 }
 
 function markViewedToDate() {
-    const vbn = parseInt(getViewedBlockNumber(NETWORK_ID));
+    const vbn = parseInt(getViewedBlockNumber(CHAIN_ID));
     if (vbn >= LAST_DISPLAYED_BLOCK_NUMBER) {
         LAST_DISPLAYED_BLOCK_NUMBER = vbn;
     } else {
-        setViewedBlockNumber(NETWORK_ID, LAST_DISPLAYED_BLOCK_NUMBER);
+        setViewedBlockNumber(CHAIN_ID, LAST_DISPLAYED_BLOCK_NUMBER);
     }
 }
 
@@ -1098,8 +1092,8 @@ function handlePotentialUserAction(entry, is_watch) {
     }
 
     let lastViewedBlockNumber = 0;
-    if (getViewedBlockNumber(NETWORK_ID)) {
-        lastViewedBlockNumber = parseInt(getViewedBlockNumber(NETWORK_ID));
+    if (getViewedBlockNumber(CHAIN_ID)) {
+        lastViewedBlockNumber = parseInt(getViewedBlockNumber(CHAIN_ID));
     }
     if (entry.blockNumber > lastViewedBlockNumber) {
         $('body').addClass('pushing');
@@ -2841,7 +2835,7 @@ function renderUserAction(question, entry, is_watch) {
         if (isForCurrentUser(entry)) {
             renderUserQandA(question, entry);
             if (is_watch) {
-                if (entry.blockNumber > parseInt(getViewedBlockNumber(NETWORK_ID))) {
+                if (entry.blockNumber > parseInt(getViewedBlockNumber(CHAIN_ID))) {
                     $('.tooltip').addClass('is-visible');
                 }
             }
@@ -4488,10 +4482,10 @@ async function validateArbitratorForContract(contract, arb_addr) {
     return (RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase() == rslt.toLowerCase());
 }
 
-function initNetwork(net_id) {
-    console.log('Initializing for network', net_id);
-    NETWORK_ID = net_id;
-    const net_cls = '.network-id-' + net_id;
+function initChain(cid) {
+    console.log('Initializing for chain', cid);
+    CHAIN_ID = cid;
+    const net_cls = '.network-id-' + cid;
     if ($('.network-status'+net_cls).size() == 0) {
         return false;
     }
@@ -4641,11 +4635,11 @@ function displayForeignProxy(datastr) {
     console.log('displayForeignProxy', qdata);
 }
 
-function foreignProxyInitNetwork(net_id) {
+function foreignProxyInitChain(cid) {
     if (!$('body').hasClass('foreign-proxy')) {
         return;
     }
-    if (parseInt(net_id) != $('body').attr('data-foreign-proxy-network-id')) {
+    if (parseInt(cid) != $('body').attr('data-foreign-proxy-network-id')) {
         $('body').addClass('foreign-proxy-network-mismatch');
         return;
     }
@@ -4692,8 +4686,8 @@ function foreignProxyInitNetwork(net_id) {
     });
 }
 
-function displayWrongNetwork(specified, detected) {
-    console.log('displayWrongNetwork', specified, detected);
+function displayWrongChain(specified, detected) {
+    console.log('displayWrongChain', specified, detected);
     let specified_network_txt = $('.network-status.network-id-'+specified).text();
     let detected_network_txt = $('.network-status.network-id-'+detected).text();
     if (specified_network_txt == '') {
@@ -4735,7 +4729,7 @@ function displayWrongNetwork(specified, detected) {
 
 window.addEventListener('load', async function() {
 
-    let net_id;
+    let cid;
 
     const args = parseHash();
     if (args['token'] && args['token'] != 'ETH') {
@@ -4750,15 +4744,15 @@ window.addEventListener('load', async function() {
         IS_WEB3_FALLBACK = true;
 
         // Default to mainnet
-        let want_net_id = 1;
+        let want_cid = 1;
         if (args['network'] && parseInt(args['network'])) {
-            want_net_id = parseInt(args['network']);
+            want_cid = parseInt(args['network']);
         }
 
-        CHAIN_INFO = rc_contracts.networkData(want_net_id);
+        CHAIN_INFO = rc_contracts.networkData(want_cid);
         // TODO: Handle a supplied unsupported network
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
-        net_id = want_net_id;
+        cid = want_cid;
 
         provider = new ethers.providers.JsonRpcProvider(HOSTED_RPC_NODE);
         console.log('no window.ethereum, using node ', HOSTED_RPC_NODE);
@@ -4777,14 +4771,14 @@ window.addEventListener('load', async function() {
         }
     })
 
-    provider.on("network", async function(network, old_net_id) {
+    provider.on("network", async function(network, old_network_id) {
 
-        net_id = network.chainId;
+        cid = network.chainId;
 
-        if (old_net_id) {
+        if (old_network_id) {
             window.location.reload();
         }
-        console.log('net_id is ', net_id);
+        console.log('cid is ', cid);
 
         if (args['category']) {
             $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
@@ -4793,11 +4787,11 @@ window.addEventListener('load', async function() {
         }
 
         if (!CURRENCY) {
-            CURRENCY = rc_contracts.defaultTokenForNetwork(net_id);
+            CURRENCY = rc_contracts.defaultTokenForNetwork(cid); // TODO: Rename to defaultTokenForChain
             console.log('picked token', CURRENCY);
         }
 
-        const all_rc_configs = rc_contracts.realityETHConfigs(net_id, CURRENCY);
+        const all_rc_configs = rc_contracts.realityETHConfigs(cid, CURRENCY);
         let rc_config = null;
         let show_all = true;
         if (args['contract']) {
@@ -4812,7 +4806,7 @@ window.addEventListener('load', async function() {
 
         // If not found, load the default
         if (!rc_config) {
-            rc_config = rc_contracts.realityETHConfig(net_id, CURRENCY);
+            rc_config = rc_contracts.realityETHConfig(cid, CURRENCY);
         }
         
         if (!rc_config) {
@@ -4822,7 +4816,7 @@ window.addEventListener('load', async function() {
 
         initContractSelect(all_rc_configs, rc_config, show_all);
 
-        TOKEN_INFO = rc_contracts.networkTokenList(net_id);
+        TOKEN_INFO = rc_contracts.networkTokenList(cid);
         console.log('got token info', TOKEN_INFO);
 
         const rc_json = rc_contracts.realityETHInstance(rc_config);
@@ -4838,17 +4832,17 @@ window.addEventListener('load', async function() {
             TOKEN_JSON = rc_contracts.erc20Instance(rc_config);
         }
 
-        CHAIN_INFO = rc_contracts.networkData(net_id);
+        CHAIN_INFO = rc_contracts.networkData(cid);
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         BLOCK_EXPLORER = CHAIN_INFO['blockExplorerUrls'][0];
 
-        if (!initNetwork(net_id)) {
+        if (!initChain(cid)) {
             $('body').addClass('error-invalid-network').addClass('error');
             return;
         } 
 
-        if (args['network'] && (parseInt(args['network']) != parseInt(net_id))) {
-            displayWrongNetwork(parseInt(args['network']), parseInt(net_id));
+        if (args['network'] && (parseInt(args['network']) != parseInt(cid))) {
+            displayWrongChain(parseInt(args['network']), parseInt(cid));
             return;
         }
 
@@ -4896,7 +4890,7 @@ window.addEventListener('load', async function() {
         // Set up dummy contract objects, we'll make copies of them with the correct addresses when we need them
         ARBITRATOR_INSTANCE = new ethers.Contract(rc_json.address, arb_json.abi, provider); 
         populateArbitratorSelect(ARBITRATOR_INSTANCE, ARBITRATOR_LIST_BY_CONTRACT[RC_DEFAULT_ADDRESS.toLowerCase()]);
-        foreignProxyInitNetwork(net_id);
+        foreignProxyInitChain(cid);
 
         const block = await provider.getBlock('latest');
 
