@@ -29,7 +29,7 @@ let CHAIN_INFO = {};
 
 let TOKEN_JSON = {};
 
-let IS_CURRENCY_NATIVE = false;
+let IS_TOKEN_NATIVE = false;
 let IS_WEB3_FALLBACK = false;
 
 // For now we have a json file hard-coding the TOS of known arbitrators.
@@ -70,7 +70,7 @@ const FETCH_NUMBERS = [100, 2500, 5000];
 let LAST_DISPLAYED_BLOCK_NUMBER = 0;
 let CURRENT_BLOCK_NUMBER = 1;
 
-let CURRENCY = null;
+let TOKEN_TICKER = null;
 
 // Question, as returned by questions()
 const Qi_content_hash = 0;
@@ -415,7 +415,7 @@ function markViewedToDate() {
 }
 
 function humanToDecimalizedBigNumber(num, force_eth) {
-    const decimalstr = force_eth ? ""+1000000000000000000 : ""+TOKEN_INFO[CURRENCY]['decimals'];
+    const decimalstr = force_eth ? ""+1000000000000000000 : ""+TOKEN_INFO[TOKEN_TICKER]['decimals'];
     const num_trad_bn = new BigNumber(num).times(decimalstr);
     const num_hex_str = '0x'+num_trad_bn.toString(16);
     return ethers.BigNumber.from(num_hex_str);
@@ -424,7 +424,7 @@ function humanToDecimalizedBigNumber(num, force_eth) {
 function decimalizedBigNumberToHuman(num, force_eth) {
     // For formatting for humans we use a traditional BigNumber not the ethers version
     // TODO See if we can get the ethers version to format decimals nicely
-    const decs = force_eth ? 1000000000000000000 : TOKEN_INFO[CURRENCY]['decimals'];
+    const decs = force_eth ? 1000000000000000000 : TOKEN_INFO[TOKEN_TICKER]['decimals'];
     const num_trad_bn = new BigNumber(num.toHexString());
     return num_trad_bn.div(decs).toString();
 }
@@ -730,7 +730,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
 
     const signedRC = RCInstance(RC_DEFAULT_ADDRESS, true);
     let tx_response = null;
-    if (IS_CURRENCY_NATIVE) { 
+    if (IS_TOKEN_NATIVE) { 
         tx_response = await signedRC.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
             from: ACCOUNT,
             // gas: 200000,
@@ -1702,7 +1702,7 @@ async function updateUserBalanceDisplay() {
     }
 
     let bal = 0;
-    if (IS_CURRENCY_NATIVE) {
+    if (IS_TOKEN_NATIVE) {
         // console.log('updating balacne for', account);
         bal = await provider.getBalance(ACCOUNT);
     } else {
@@ -1799,7 +1799,7 @@ function populateSection(section_name, question, before_item) {
     if (question.timeout < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (isFinalized(question) && question.bounty.add(question.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']))) {
+    if (isFinalized(question) && question.bounty.add(question.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']))) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     const valid_arbitrator = isArbitratorValidFast(question.contract, question.arbitrator);
@@ -1958,7 +1958,7 @@ function calculateActiveRank(created, bounty, bond) {
     // Scale up anything under 24 hours so that 10 mins counts as 0.01 ETH of reward,  or 0.002 of bond
     if (age.lt(ethers.BigNumber.from(86400))) {
         const secs = ethers.BigNumber.from(86400).sub(age);
-        const boost = secs.div(ethers.BigNumber.from(600)).mul(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']));
+        const boost = secs.div(ethers.BigNumber.from(600)).mul(ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']));
         rank = rank.add(boost);
     }
 
@@ -2374,7 +2374,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
-    let bond = ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']).div(2);
+    let bond = ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']).div(2);
     if (question_detail.bounty && question_detail.bounty.gt(0)) {
         bond = question_detail.bounty.div(2);
     }
@@ -2485,7 +2485,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     if (question_detail.timeout < 86400) {
         balloon_html += 'The timeout is very low.<br /><br />This means there may not be enough time for people to correct mistakes or lies.<br /><br />';
     }
-    if (isFinalized(question_detail) && question_detail.bounty.add(question_detail.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[CURRENCY]['small_number']))) {
+    if (isFinalized(question_detail) && question_detail.bounty.add(question_detail.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']))) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
     let valid_arbirator = isArbitratorValid(question_detail.arbitrator);
@@ -3568,7 +3568,7 @@ console.log('check against answer', new_answer);
 
             // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
             // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
-            if (IS_CURRENCY_NATIVE) {
+            if (IS_TOKEN_NATIVE) {
 console.log('try submitAnswerCommitment, val ', bond);
                 return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, ACCOUNT, {
                     from: ACCOUNT, 
@@ -3594,7 +3594,7 @@ console.log('try submitAnswerCommitment, val ', bond);
                 });
             }
         } else {
-            if (IS_CURRENCY_NATIVE) {
+            if (IS_TOKEN_NATIVE) {
                 rc.functions.submitAnswer(question_id, new_answer, current_question.bond, {
                     from: ACCOUNT,
                     //gas: 200000,
@@ -3693,11 +3693,11 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
         $(this).parent('div').prev('div.input-container').addClass('is-error');
     } else {
         await getAccount();
-        if (!IS_CURRENCY_NATIVE) {
+        if (!IS_TOKEN_NATIVE) {
             await ensureAmountApproved(contract, ACCOUNT, reward);
         }
         let tx_response = null;
-        if (IS_CURRENCY_NATIVE) {
+        if (IS_TOKEN_NATIVE) {
             tx_response = await signedRC.fundAnswerBounty(question_id, {from: ACCOUNT, value: reward});
         } else {
             tx_response = await signedRC.fundAnswerBountyERC20(question_id, reward, {from: ACCOUNT})
@@ -4594,15 +4594,15 @@ function setupContractClaimSections(rc_contracts) {
     }
 }
 
-function initCurrency(curr) {
-    $('.token-ticker-text').text(CURRENCY);
+function initToken(curr) {
+    $('.token-ticker-text').text(TOKEN_TICKER);
     for(const t in TOKEN_INFO) {
         const op = $('<option>');
         op.attr('value', t).text(t);
         if (t == curr) {
             if (TOKEN_INFO[t].is_native) {
                 console.log('is_native');
-                IS_CURRENCY_NATIVE = true;
+                IS_TOKEN_NATIVE = true;
             } else {
                 console.log('not native');
             }
@@ -4733,7 +4733,7 @@ window.addEventListener('load', async function() {
 
     const args = parseHash();
     if (args['token'] && args['token'] != 'ETH') {
-        CURRENCY = args['token'];
+        TOKEN_TICKER = args['token'];
     }
     
     // Get a provider from metamask etc if possible, we'll detect the network ID from it
@@ -4786,12 +4786,12 @@ window.addEventListener('load', async function() {
             $("#filter-list").find("[data-category='all']").addClass("selected")
         }
 
-        if (!CURRENCY) {
-            CURRENCY = rc_contracts.defaultTokenForNetwork(cid); // TODO: Rename to defaultTokenForChain
-            console.log('picked token', CURRENCY);
+        if (!TOKEN_TICKER) {
+            TOKEN_TICKER = rc_contracts.defaultTokenForNetwork(cid); // TODO: Rename to defaultTokenForChain
+            console.log('picked token', TOKEN_TICKER);
         }
 
-        const all_rc_configs = rc_contracts.realityETHConfigs(cid, CURRENCY);
+        const all_rc_configs = rc_contracts.realityETHConfigs(cid, TOKEN_TICKER);
         let rc_config = null;
         let show_all = true;
         if (args['contract']) {
@@ -4806,7 +4806,7 @@ window.addEventListener('load', async function() {
 
         // If not found, load the default
         if (!rc_config) {
-            rc_config = rc_contracts.realityETHConfig(cid, CURRENCY);
+            rc_config = rc_contracts.realityETHConfig(cid, TOKEN_TICKER);
         }
         
         if (!rc_config) {
@@ -4823,12 +4823,12 @@ window.addEventListener('load', async function() {
         const arb_json = rc_contracts.arbitratorInstance();
 
         if (!rc_json) {
-            console.log('Token not recognized', CURRENCY);
+            console.log('Token not recognized', TOKEN_TICKER);
             return;
         }
 
-        initCurrency(CURRENCY);
-        if (!IS_CURRENCY_NATIVE) {
+        initToken(TOKEN_TICKER);
+        if (!IS_TOKEN_NATIVE) {
             TOKEN_JSON = rc_contracts.erc20Instance(rc_config);
         }
 
@@ -4939,7 +4939,7 @@ $('#token-selection').change(function(e) {
     e.preventDefault();
     e.stopPropagation();
     const tkn = $(this).val();
-    if (tkn == CURRENCY) {
+    if (tkn == TOKEN_TICKER) {
         // already selected
         return;
     }
