@@ -1,7 +1,7 @@
 {
     "decimals": 1000000000000000000,
     "small_number": 1000000000000000000,
-    "erc20_networks": {
+    "erc20_chains": {
         "42": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a"
     }
 }

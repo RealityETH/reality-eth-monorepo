@@ -51,7 +51,7 @@ function chainTokenList(network_id) {
     for (t in token_info) {
         if (all_config[""+network_id][t]) {
             ret[t] = token_info[t];
-            ret[t].is_native = (token_info[t].native_networks && token_info[t].native_networks[""+network_id]);
+            ret[t].is_native = (token_info[t].native_chains && token_info[t].native_chains[""+network_id]);
         }
     }
     return ret;
@@ -63,12 +63,12 @@ function tokenConfig(token, network_id) {
         console.log('token not found in token_info');
         return null;
     }
-    if (t.native_networks && t.native_networks[network_id+""]) {
+    if (t.native_chains && t.native_chains[network_id+""]) {
         t.is_native = true;
         return t;
     }
-    if (t.erc20_networks && t.erc20_networks[network_id+""]) {
-        t.address = t.erc20_networks[network_id+""];
+    if (t.erc20_chains && t.erc20_chains[network_id+""]) {
+        t.address = t.erc20_chains[network_id+""];
         t.is_native = false;
         return t;
     }

@@ -1,7 +1,7 @@
 {
     "decimals": 1000000000000000000,
     "small_number": 10000000000000000,
-    "native_networks": {
+    "native_chains": {
         "1": true,  
         "4": true,
         "42": true
