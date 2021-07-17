@@ -50,7 +50,8 @@ contract Realitio is BalanceHolder {
 
     event LogReopenQuestion(
         bytes32 indexed question_id,
-        bytes32 indexed reopened_question_id
+        bytes32 indexed reopened_question_id,
+        uint256 transferred_bounty
     );
 
     event LogFundAnswerBounty(
@@ -130,7 +131,9 @@ contract Realitio is BalanceHolder {
     mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
+
     mapping(bytes32 => bytes32) reopened_questions;
+    mapping(bytes32 => bool) reopener_questions;
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
@@ -613,7 +616,7 @@ contract Realitio is BalanceHolder {
 
         if (answer == best_answer) {
 
-            if (payee == NULL_ADDRESS) {
+            if (payee == NULL_ADDRESS && best_answer != bytes32(-2)) {
 
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
@@ -797,10 +800,23 @@ contract Realitio is BalanceHolder {
 
         require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
 
+        // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
+        // This ensures the bounty can be passed on to the next attempt.
+        require(!reopener_questions[reopens_question_id], "Question is already reopening a previous question");
+
         // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
         bytes32 existing_reopen_question_id = reopened_questions[reopens_question_id];
+
+        // Normally when we reopen a question we will take its bounty and pass it on to the reopened version.
+        bytes32 take_bounty_from_question_id = reopens_question_id;
+
+        // If the question has already been reopened but was also settled too soon, we can transfer its bounty to the next attempt.
         if (existing_reopen_question_id != bytes32(0)) {
             require(isSettledTooSoon(existing_reopen_question_id), "Question has already been reopened");
+            // We'll overwrite the reopening with our new question and move the bounty.
+            // Once that's done we'll detach the failed reopener and you'll be able to reopen that too if you really want, but without the bounty.
+            reopener_questions[question_id] = false;
+            take_bounty_from_question_id = existing_reopen_question_id;
         }
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
@@ -816,7 +832,12 @@ contract Realitio is BalanceHolder {
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
 
         reopened_questions[reopens_question_id] = question_id;
-        emit LogReopenQuestion(question_id, reopens_question_id);
+        reopener_questions[question_id] = true;
+
+        questions[question_id].bounty = questions[take_bounty_from_question_id].bounty;
+        questions[take_bounty_from_question_id].bounty = 0;
+
+        emit LogReopenQuestion(question_id, reopens_question_id, questions[question_id].bounty);
 
         return question_id;
     }
