@@ -142,7 +142,7 @@ function realityETHConfigs(chain_id, token) {
                 config.arbitrators = [];
             }
             config.version_number = version;
-            config.network_id = network_id;
+            config.chain_id = chain_id;
             config.contract_name = contract_name;
             config.contract_version = contract_version;
             config.is_latest = !is_latest_found;
