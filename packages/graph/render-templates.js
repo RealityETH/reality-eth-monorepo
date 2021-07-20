@@ -5,10 +5,10 @@ const rc_contracts = require('@reality.eth/contracts');
 const net_id = process.argv[2];
 //console.log('net_id', net_id);
 
-const net_config = rc_contracts.networkData(net_id);
+const net_config = rc_contracts.chainData(net_id);
 const network = net_config.network_name;
 
-const token_list = rc_contracts.networkTokenList(net_id)
+const token_list = rc_contracts.chainTokenList(net_id)
 
 const template = fs.readFileSync('subgraph.template.yaml').toString();
 const ds_template = fs.readFileSync('subgraph.datasource.template.yaml').toString();

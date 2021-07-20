@@ -4749,7 +4749,7 @@ window.addEventListener('load', async function() {
             want_cid = parseInt(args['network']);
         }
 
-        CHAIN_INFO = rc_contracts.networkData(want_cid);
+        CHAIN_INFO = rc_contracts.chainData(want_cid);
         // TODO: Handle a supplied unsupported network
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         cid = want_cid;
@@ -4787,7 +4787,7 @@ window.addEventListener('load', async function() {
         }
 
         if (!TOKEN_TICKER) {
-            TOKEN_TICKER = rc_contracts.defaultTokenForNetwork(cid); // TODO: Rename to defaultTokenForChain
+            TOKEN_TICKER = rc_contracts.defaultTokenForChain(cid); // TODO: Rename to defaultTokenForChain
             console.log('picked token', TOKEN_TICKER);
         }
 
@@ -4816,7 +4816,7 @@ window.addEventListener('load', async function() {
 
         initContractSelect(all_rc_configs, rc_config, show_all);
 
-        TOKEN_INFO = rc_contracts.networkTokenList(cid);
+        TOKEN_INFO = rc_contracts.chainTokenList(cid);
         console.log('got token info', TOKEN_INFO);
 
         const rc_json = rc_contracts.realityETHInstance(rc_config);
@@ -4832,7 +4832,7 @@ window.addEventListener('load', async function() {
             TOKEN_JSON = rc_contracts.erc20Instance(rc_config);
         }
 
-        CHAIN_INFO = rc_contracts.networkData(cid);
+        CHAIN_INFO = rc_contracts.chainData(cid);
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         BLOCK_EXPLORER = CHAIN_INFO['blockExplorerUrls'][0];
 

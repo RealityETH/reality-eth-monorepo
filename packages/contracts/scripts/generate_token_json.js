@@ -27,12 +27,12 @@ function keygen(options, fileObj) {
 var all_config = requireGlob.sync('./../tokens/*.json', {"keygen": keygen});
 var out = {};
 for (const k in all_config) {
-    if ('native_networks' in all_config[k]) {
+    if ('native_chains' in all_config[k]) {
         out[k] = all_config[k];
     }
 }
 for (const k in all_config) {
-    if (!('native_networks' in all_config[k])) {
+    if (!('native_chains' in all_config[k])) {
         out[k] = all_config[k];
     }
 }
