@@ -13,14 +13,14 @@ const defaultConfigs = {
 }
 const task = process.argv[2]
 const version = process.argv[3]
-const network = process.argv[4]
+const chain = process.argv[4]
 const token_name = process.argv[5]
 var arb_fee = process.argv[6]
 var arbitrator_owner = process.argv[7]
 
 var contract_type;
 
-const networks = {
+const chains = {
     'mainnet': 1,
     'ropsten': 3,
     'rinkeby': 4,
@@ -33,7 +33,7 @@ const networks = {
     'arbitrum': 42161,
     'arbitrum-rinkeby': 421611
 }
-const non_infura_networks = {
+const non_infura_chains = {
     'xdai': 'https://xdai.poanetwork.dev',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
@@ -55,13 +55,13 @@ function constructContractTemplate(contract_name) {
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <chain_name> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
-const network_id = networks[network];
+const chain_id = chains[chain];
 
-if (!network_id) {
+if (!chain_id) {
     usage_error("Network unknown");
 }
 
@@ -71,7 +71,7 @@ if (token_name == undef) {
 
 var token_address;
 
-const token_info = rc.tokenConfig(token_name, network_id);
+const token_info = rc.tokenConfig(token_name, chain_id);
 if (!token_info) {
     usage_error("token not found, please configure it first");
 }
@@ -89,9 +89,9 @@ if (arbitrator_owner == undef) {
     arbitrator_owner = "0xdd8a989e5e89ad23ed2f91c6f106aea678a1a3d0";
 }
 
-const priv = fs.readFileSync('/home/ed/secrets/' + network + '.sec', 'utf8').replace(/\n/, '')
+const priv = fs.readFileSync('/home/ed/secrets/' + chain + '.sec', 'utf8').replace(/\n/, '')
 
-ensure_network_directory_exists(network_id, token_name);
+ensure_chain_directory_exists(chain_id, token_name);
 
 if (task == 'RealityETH') {
     deployRealityETH();
@@ -101,10 +101,10 @@ if (task == 'RealityETH') {
     deployERC20();
 }
 
-function ensure_network_directory_exists(network, token) {
-    const dir = project_base + '/chains/deployments/' + network + '/' + token;    
+function ensure_chain_directory_exists(chain, token) {
+    const dir = project_base + '/chains/deployments/' + chain+ '/' + token;    
     if (!fs.existsSync(dir)) {
-        console.log('creating directory for token', network, token, dir);
+        console.log('creating directory for token', chain, token, dir);
         fs.mkdirSync(dir, {
             recursive: true
         });
@@ -112,19 +112,19 @@ function ensure_network_directory_exists(network, token) {
     return true;
 }
 
-function store_deployed_contract(template, network_id, token_name, out_json) {
-    const file = project_base + '/chains/deployments/' + network_id + '/' + token_name + '/' + template + '.json';
+function store_deployed_contract(template, chain_id, token_name, out_json) {
+    const file = project_base + '/chains/deployments/' + chain_id + '/' + token_name + '/' + template + '.json';
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
 }
 
-function provider_for_network() {
-    if (non_infura_networks[network]) {
-        console.log('Using network', non_infura_networks[network]);
-        return new ethers.providers.JsonRpcProvider(non_infura_networks[network]);
+function provider_for_chain() {
+    if (non_infura_chains[chain]) {
+        console.log('Using chain', non_infura_chains[chain]);
+        return new ethers.providers.JsonRpcProvider(non_infura_chains[chain]);
     } else {
-        console.log('Using infura on network', network);
-        return new ethers.providers.InfuraProvider(network);
+        console.log('Using infura on chain', chain);
+        return new ethers.providers.InfuraProvider(chain);
     }
 }
 
@@ -143,7 +143,7 @@ function deployRealityETH() {
     var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
 
-    const provider = provider_for_network();
+    const provider = provider_for_chain();
     const t = constructContractTemplate(tmpl);
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
@@ -167,7 +167,7 @@ function deployRealityETH() {
             }
 
             //console.log('result was', result);
-            store_deployed_contract(tmpl, network_id, token_name, settings); 
+            store_deployed_contract(tmpl, chain_id, token_name, settings); 
             if (isERC20()) {
                 result.setToken(token_address);
             }
@@ -179,18 +179,18 @@ function deployRealityETH() {
 
 function deployArbitrator() {
 
-    const rc_conf = rc.realityETHConfig(network_id, token_name, version); 
+    const rc_conf = rc.realityETHConfig(chain_id, token_name, version); 
     console.log('using reality.eth config', rc_conf);
     if (rc_conf.token_address != token_address) {
         throw new Error('Reality.eth contract does not seem to use the token address you specified');
     }
 
     var tmpl = 'Arbitrator';
-    var rc_file = project_base + '/chains/deployments/' + network_id + '/' + token_name + '/' + tmpl + '.json';
+    var rc_file = project_base + '/chains/deployments/' + chain_id + '/' + token_name + '/' + tmpl + '.json';
 
     const timer = ms => new Promise( res => setTimeout(res, ms));
 
-    const provider = provider_for_network();
+    const provider = provider_for_chain();
     const t = constructContractTemplate('Arbitrator');
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
@@ -209,7 +209,7 @@ function deployArbitrator() {
             }
 
             console.log('storing address', address);
-            store_deployed_contract('Arbitrator', network_id, token_name, settings);
+            store_deployed_contract('Arbitrator', chain_id, token_name, settings);
 
             console.log('doing setRealitio');
             result.setRealitio(rc_conf.address).then(function() {
@@ -237,7 +237,7 @@ function deployArbitrator() {
 function deployERC20() {
     console.log('deploying an erc20 token', token_name);
 
-    const provider = provider_for_network();
+    const provider = provider_for_chain();
     const t = constructContractTemplate('ERC20');
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
@@ -255,7 +255,7 @@ function deployERC20() {
             }
 
             console.log('storing address', address);
-            store_deployed_contract(template, network_id, token_name, settings);
+            store_deployed_contract(template, chain_id, token_name, settings);
 
         });
         //result.setToken(token_address);
