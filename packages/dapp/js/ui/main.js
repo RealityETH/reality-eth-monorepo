@@ -2311,7 +2311,7 @@ function displayQuestionDetail(question_detail) {
         });
     }
 
-    set_hash_param({'question': question_id});
+    set_hash_param({'question': contractQuestionID(question_detail)});
 
 }
 
