@@ -13,6 +13,17 @@
                 }
             }
         },
+        "FOX": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0xf4585A9944A390615E7cec6756C1c082173B93eB",
+                "block": 12821080,
+                "token_address": "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d",
+                "notes": null,
+                "arbitrators": {
+                    "0x90A48D5CF7343B08dA12E067680B4C6dbfE551Be": "ShapeShift DAO"
+                }
+            }
+        },
         "GNO": {
             "RealityETH_ERC20-2.0": {
                 "address": "0x8f1CC53bf34932591177CDA24723486205CA7510",
@@ -177,6 +188,40 @@
                 "notes": null,
                 "arbitrators": {
                     "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (testing only)"
+                }
+            }
+        }
+    },
+    "42161": {
+        "ARETH": {
+            "Arbitrator": {
+                "address": "0xba1f68fC8283051C0BCeB8770673d5af14081731",
+                "block": 112029,
+                "reality_eth_address": "0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691"
+            },
+            "RealityETH-2.1": {
+                "address": "0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691",
+                "block": 112029,
+                "notes": null,
+                "arbitrators": {
+                    "0xba1f68fC8283051C0BCeB8770673d5af14081731": "Reality.eth Team"
+                }
+            }
+        }
+    },
+    "421611": {
+        "ARETH": {
+            "Arbitrator": {
+                "address": "0x0442820A55bA71b8e67e035CD10eAec3fFAa66b1",
+                "block": 838745,
+                "reality_eth_address": "0x592D5cdF8464E3a71C7d5e4C8A549a386B625534"
+            },
+            "RealityETH-2.1": {
+                "address": "0x592D5cdF8464E3a71C7d5e4C8A549a386B625534",
+                "block": 838745,
+                "notes": null,
+                "arbitrators": {
+                    "0x0442820A55bA71b8e67e035CD10eAec3fFAa66b1": "Reality.eth Team"
                 }
             }
         }

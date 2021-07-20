@@ -20,8 +20,6 @@
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "devDependencies": {
-    "etherlime": "^2.3.3",
-    "etherlime-lib": "^1.2.3",
     "require-glob": "^3.2.0"
   },
   "repository": {
