@@ -3333,6 +3333,10 @@ $(document).on('click', '.answer-item', function() {
 // Do an initial validity check
 function isAnswerInputLookingValid(parent_div, question_json) {
 
+    if (parent_div.find('.invalid-selected').size() > 0) {
+        return true;
+    }
+
     const answer_element = parent_div.find('[name="input-answer"]');
     if (question_json['type'] == 'uint') {
         if (answer_element.val() == '') {
@@ -3361,7 +3365,9 @@ function formattedAnswerFromForm(parent_div, question_json) {
         new_answer = rc_question.getInvalidValue(question_json);
         console.log('invalid selected, so submitting the invalid value ', new_answer);
         return new_answer;
-    }
+    } else {
+console.log('not invalid');
+}
 
     if (question_json['type'] == 'multiple-select') {
         let answer_input = [];
