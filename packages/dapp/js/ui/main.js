@@ -2305,13 +2305,25 @@ function displayQuestionDetail(question_detail) {
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
 
+    set_hash_param({'question': contractQuestionID(question_detail)});
+
+}
+
+function setupDatetimeDatePicker(rcqa) {
+
     if (rcqa.find('[name="input-answer"]').hasClass('rcbrowser-input--date--answer')) {
         rcqa.find('[name="input-answer"]').datepicker({
-            dateFormat: 'yy-mm-dd'
+            dateFormat: 'yy-mm-dd',
+            beforeShow: function(input, inst) {
+                if ($(this).closest('.input-container').hasClass('invalid-selected')) {
+                    return false;
+                }
+            }, 
+            onSelect: function(dateText) {
+                $(this).closest('.input-container').removeClass('is-error');
+            }
         });
     }
-
-    set_hash_param({'question': contractQuestionID(question_detail)});
 
 }
 
@@ -2652,6 +2664,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('is-claimable');
     }
+
+    setupDatetimeDatePicker(rcqa);
 
     //console.log(claimableItems(question_detail));
 
@@ -3365,9 +3379,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
         new_answer = rc_question.getInvalidValue(question_json);
         console.log('invalid selected, so submitting the invalid value ', new_answer);
         return new_answer;
-    } else {
-console.log('not invalid');
-}
+    }
 
     if (question_json['type'] == 'multiple-select') {
         let answer_input = [];
@@ -3379,6 +3391,9 @@ console.log('not invalid');
         });
         new_answer = rc_question.answerToBytes32(answer_input, question_json);
     } else if (question_json['type'] == 'datetime') {
+        if (answer_element.val() == '') {
+            return null;
+        }
         let answer_date = new Date(answer_element.val());
         new_answer = rc_question.answerToBytes32(answer_date.getTime() / 1000, question_json);
     } else {
@@ -3441,7 +3456,6 @@ $(document).on('click', '.post-answer-button', async function(e) {
         const minNum = ethers.BigNumber.from('0x'+rc_question.minNumber(question_json).integerValue().toString(16));
         const maxNum = ethers.BigNumber.from('0x'+rc_question.maxNumber(question_json).integerValue().toString(16));
         new_answer = formattedAnswerFromForm(parent_div, question_json);
-console.log('check against answer', new_answer);
         const invalid_value = rc_question.getInvalidValue(question_json);
 
         let ans;
@@ -3508,6 +3522,12 @@ console.log('check against answer', new_answer);
                     is_err = true;
                 }
                 break;
+            case 'datetime': 
+                if (new_answer === null) {
+                    const dt_container = parent_div.find('div.input-container.input-container--answer');
+                    dt_container.addClass('is-error');
+                    is_err = true;
+                }
         }
 
         let min_amount = current_question.bond.mul(2)
@@ -3843,7 +3863,8 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
 
 $(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
     evt.stopPropagation();
-    const inp = $(this).closest('.input-container').addClass('invalid-selected').find('input');
+    const inp = $(this).closest('.input-container').addClass('invalid-selected').removeClass('is-error').find('input');
+    inp.val('');
     inp.attr('readonly', true);
     inp.attr('data-old-placeholder', inp.attr('placeholder'));
     inp.attr('placeholder', 'Invalid');
@@ -3852,9 +3873,13 @@ $(document).on('click', '.invalid-switch-container a.invalid-text-link', functio
 
 $(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
     evt.stopPropagation();
-    const inp = $(this).closest('.input-container').removeClass('invalid-selected').find('input');
+    const inp = $(this).closest('.input-container').removeClass('invalid-selected').removeClass('is-error').find('input');
     inp.attr('readonly', false);
-    inp.attr('placeholder', inp.attr('data-old-placeholder'));
+    let placeholder = inp.attr('data-old-placeholder');
+    if (typeof placeholder === typeof undefined || placeholder === false) {
+        placeholder = '';
+    }
+    inp.attr('placeholder', placeholder);
     inp.removeAttr('data-old-placeholder');
     inp.removeAttr('data-invalid-selected'); // will be read in processing
 });
