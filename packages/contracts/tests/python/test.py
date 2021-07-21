@@ -13,8 +13,6 @@ import time
 from sha3 import keccak_256
 from hashlib import sha256
 
-import eth.exceptions
-
 from web3.providers.eth_tester import EthereumTesterProvider
 from web3 import Web3
 
@@ -1342,7 +1340,7 @@ class TestRealitio(TestCase):
         txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
         rcpt = self.web3.eth.getTransactionReceipt(txid)
 
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 100000)
+        self.assertTrue(rcpt['cumulativeGasUsed'] < 102000)
 
         # NB The second answer should be cheaper than the first.
         # This is what we want, because you may need to be able to get a challenge through at busy times
