@@ -4,10 +4,7 @@ pragma solidity ^0.8.6;
 
 import './BalanceHolder.sol';
 
-// Next version of Realitio v2, will be deployed on xdai, may be deployed to other networks in future
-// API-compatible with Realitio v2, address will be stored in Realitio.json
 contract RealityETH_v3_0 is BalanceHolder {
-
 
     address constant NULL_ADDRESS = address(0);
 
@@ -274,7 +271,6 @@ contract RealityETH_v3_0 is BalanceHolder {
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(timeout > 0, "timeout must be positive"); 
         require(timeout < 365 days, "timeout must be less than 365 days"); 
-        require(arbitrator != NULL_ADDRESS, "arbitrator must be set");
 
         uint256 bounty = msg.value;
 
@@ -283,7 +279,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         // The fee is waived if the arbitrator is asking the question.
         // This allows them to set an impossibly high fee and make users proxy the question through them.
         // This would allow more sophisticated pricing, question whitelisting etc.
-        if (msg.sender != arbitrator) {
+        if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
             require(bounty >= question_fee, "ETH provided must cover question fee"); 
             bounty = bounty - question_fee;
