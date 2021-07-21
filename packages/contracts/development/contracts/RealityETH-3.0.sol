@@ -256,7 +256,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         require(templates[template_id] > 0, "template must exist");
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
-        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
+        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, address(this), msg.sender, nonce));
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);

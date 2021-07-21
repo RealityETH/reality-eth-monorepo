@@ -68,9 +68,9 @@ def calculate_commitment_id(question_id, answer_hash, bond):
 def calculate_content_hash(template_id, question_str, opening_ts):
     return "0x"+encode_hex(bytes(Web3.solidityKeccak(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])))
 
-def calculate_question_id(template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender):
+def calculate_question_id(cntrct, template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender):
     content_hash = calculate_content_hash(template_id, question_str, opening_ts)
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
+    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, cntrct, sender, nonce])))
 
 def calculate_history_hash(last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment):
     return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
@@ -190,7 +190,7 @@ class TestRealitio(TestCase):
 
         txid = self.arb0.functions.setQuestionFee(100).transact(self.standard_tx)
 
-        expected_question_id = calculate_question_id(0, "my question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0])
+        expected_question_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0])
         
         txid = self.rc0.functions.askQuestion(
             0,
@@ -1432,7 +1432,7 @@ class TestRealitio(TestCase):
             0,
             0
         ).transact(self._txargs(val=126, sender=k4))
-        question_id = calculate_question_id(0, "my question 2", k5, 10, 0, 0, k4)
+        question_id = calculate_question_id(self.rc0.address, 0, "my question 2", k5, 10, 0, 0, k4)
 
         bounty = self.rc0.functions.questions(question_id).call()[QINDEX_BOUNTY]
         self.assertEqual(bounty, 126-123, "The bounty is what's left after the question fee is deducted")
@@ -1445,7 +1445,7 @@ class TestRealitio(TestCase):
             0,
             0
         ).transact(self._txargs(val=122, sender=k5))
-        question_id = calculate_question_id(0, "my question 3", k5, 10, 0, 0, k5)
+        question_id = calculate_question_id(self.rc0.address, 0, "my question 3", k5, 10, 0, 0, k5)
 
         bounty = self.rc0.functions.questions(question_id).call()[QINDEX_BOUNTY]
         self.assertEqual(bounty, 122, "The arbitrator isn't charged their fee, so their whole payment goes to the bounty")
