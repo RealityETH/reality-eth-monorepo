@@ -2,16 +2,11 @@
 
 pragma solidity ^0.8.6;
 
-import './RealitioSafeMath256.sol';
-import './RealitioSafeMath32.sol';
 import './BalanceHolder.sol';
 
 // Next version of Realitio v2, will be deployed on xdai, may be deployed to other networks in future
 // API-compatible with Realitio v2, address will be stored in Realitio.json
 contract Realitio_v2_1 is BalanceHolder {
-
-    using RealitioSafeMath256 for uint256;
-    using RealitioSafeMath32 for uint32;
 
     address constant NULL_ADDRESS = address(0);
 
@@ -181,7 +176,7 @@ contract Realitio_v2_1 is BalanceHolder {
 
     modifier bondMustDouble(bytes32 question_id) {
         require(msg.value > 0, "bond must be positive"); 
-        require(msg.value >= (questions[question_id].bond.mul(2)), "bond must be double at least previous bond");
+        require(msg.value >= (questions[question_id].bond * 2), "bond must be double at least previous bond");
         _;
     }
 
@@ -224,7 +219,7 @@ contract Realitio_v2_1 is BalanceHolder {
         templates[id] = block.number;
         template_hashes[id] = keccak256(abi.encodePacked(content));
         emit LogNewTemplate(id, msg.sender, content);
-        nextTemplateID = id.add(1);
+        nextTemplateID = id + 1;
         return id;
     }
 
@@ -290,8 +285,8 @@ contract Realitio_v2_1 is BalanceHolder {
         if (msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
             require(bounty >= question_fee, "ETH provided must cover question fee"); 
-            bounty = bounty.sub(question_fee);
-            balanceOf[arbitrator] = balanceOf[arbitrator].add(question_fee);
+            bounty = bounty - question_fee;
+            balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
 
         questions[question_id].content_hash = content_hash;
@@ -308,7 +303,7 @@ contract Realitio_v2_1 is BalanceHolder {
     function fundAnswerBounty(bytes32 question_id) 
         stateOpen(question_id)
     external payable {
-        questions[question_id].bounty = questions[question_id].bounty.add(msg.value);
+        questions[question_id].bounty = questions[question_id].bounty + msg.value;
         emit LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
 
@@ -353,7 +348,7 @@ contract Realitio_v2_1 is BalanceHolder {
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(block.timestamp).add(commitment_timeout);
+        commitments[commitment_id].reveal_ts = uint32(block.timestamp) + commitment_timeout;
     }
 
     /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
@@ -426,7 +421,7 @@ contract Realitio_v2_1 is BalanceHolder {
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(block.timestamp).add(timeout_secs);
+        questions[question_id].finalize_ts = uint32(block.timestamp) + timeout_secs;
     }
 
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -452,7 +447,7 @@ contract Realitio_v2_1 is BalanceHolder {
         statePendingArbitration(question_id)
     external {
         questions[question_id].is_pending_arbitration = false;
-        questions[question_id].finalize_ts = uint32(block.timestamp).add(questions[question_id].timeout);
+        questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
         emit LogCancelArbitration(question_id);
     }
 
@@ -592,7 +587,7 @@ contract Realitio_v2_1 is BalanceHolder {
             // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
             
-            queued_funds = queued_funds.add(last_bond); 
+            queued_funds = queued_funds + last_bond; 
             (queued_funds, payee) = _processHistoryItem(
                 question_id, best_answer, queued_funds, payee, 
                 addrs[i], bonds[i], answers[i], is_commitment);
@@ -603,7 +598,7 @@ contract Realitio_v2_1 is BalanceHolder {
             // Burn (just leave in contract balance) a fraction of all bonds except the final one.
             // This creates a cost to increasing your own bond, which could be used to delay resolution maliciously
             if (last_bond != questions[question_id].bond) {
-                last_bond = last_bond.sub(last_bond / BOND_CLAIM_FEE_PROPORTION);
+                last_bond = last_bond - last_bond / BOND_CLAIM_FEE_PROPORTION;
             }
 
             last_history_hash = history_hashes[i];
@@ -626,7 +621,7 @@ contract Realitio_v2_1 is BalanceHolder {
             question_claims[question_id].queued_funds = queued_funds;
         } else {
             // There is nothing left below us so the payee can keep what remains
-            _payPayee(question_id, payee, queued_funds.add(last_bond));
+            _payPayee(question_id, payee, queued_funds + last_bond);
             delete question_claims[question_id];
         }
 
@@ -636,7 +631,7 @@ contract Realitio_v2_1 is BalanceHolder {
 
     function _payPayee(bytes32 question_id, address payee, uint256 value) 
     internal {
-        balanceOf[payee] = balanceOf[payee].add(value);
+        balanceOf[payee] = balanceOf[payee] + value;
         emit LogClaim(question_id, payee, value);
     }
 
@@ -682,7 +677,7 @@ contract Realitio_v2_1 is BalanceHolder {
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
                 payee = addr;
-                queued_funds = queued_funds.add(questions[question_id].bounty);
+                queued_funds = queued_funds + questions[question_id].bounty;
                 questions[question_id].bounty = 0;
 
             } else if (addr != payee) {
@@ -697,7 +692,7 @@ contract Realitio_v2_1 is BalanceHolder {
                 // There's an edge case involving weird arbitrator behaviour where we may be short.
                 uint256 answer_takeover_fee = (queued_funds >= bond) ? bond : queued_funds;
                 // Settle up with the old (higher-bonded) payee
-                _payPayee(question_id, payee, queued_funds.sub(answer_takeover_fee));
+                _payPayee(question_id, payee, queued_funds - answer_takeover_fee);
 
                 // Now start queued_funds again for the new (lower-bonded) payee
                 payee = addr;
