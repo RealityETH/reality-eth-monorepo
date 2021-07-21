@@ -1517,6 +1517,22 @@ class TestRealitio(TestCase):
         self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
 
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_null_arbitrator_permitted(self):
+
+        NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+        k2 = self.web3.eth.accounts[2]
+        txid = self.rc0.functions.askQuestion(
+            0,
+            "my question 3",
+            NULL_ADDRESS,
+            # self.arb0.address,
+            10,
+            0,
+            0
+        ).transact(self._txargs(val=1000, sender=k2))
+        self.raiseOnZeroStatus(txid)
 
 if __name__ == '__main__':
     main()
