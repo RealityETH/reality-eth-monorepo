@@ -1,12 +1,11 @@
-pragma solidity ^0.4.25;
+// SPDX-License-Identifier: GPL-3.0-only
 
-import './IOwned.sol';
+pragma solidity ^0.8.6;
 
-contract Owned is IOwned {
+contract Owned {
     address public owner;
 
-    constructor() 
-    public {
+    constructor() {
         owner = msg.sender;
     }
 
