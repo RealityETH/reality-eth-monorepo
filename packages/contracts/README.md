@@ -10,7 +10,7 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 The above are combined into JSON files under generated/ using `npm run-script generate`.
 
 
-*truffle/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
+*development/* contains source files and build files for contracts from the original build. These files are no longer supported as a way of managing contract addresses.
 
 
 *config/templates* contains information about templates deployed by the constructor to save fetching them from the event logs.
@@ -32,16 +32,22 @@ The version we will deploy on XDai, v2.1, has an additional fee, called the clai
 
 `$ CLAIM_FEE=40 REALITIO=Realitio_v2_1 python test.py`
 
+Note that the tests use the compiled code and ABI directly rather than compiling the source code themselves, so if you change the code you will need to run the Compilation step first.
+
 
 ## Compilation 
 
-We now use Etherlime rather than Truffle for compilation. The existing build files already contain the compiled code, so if you're not changing the code and just deploying versions of a previous contract for a new token, you don't need to compile.
+We now use solc directly for compilation. The existing build files already contain the compiled code, so if you're not changing the code and just deploying versions of a previous contract for a new token, you don't need to compile.
 
-`$ cd truffle`
+Example to compile and deploy as version RealityETH-2.2:
 
-`$ etherlime compile --solcVersion=0.4.25 --runs=200`
+`$ cd development/contracts`
 
-The above builds contracts under `truffle/build`. If you don't need to merge with any existing contract definitions (eg to preserve the addresses of existing contracts) you can copy them to the normal truffle location under `truffle/build/contracts`.
+`$ solc-0.8.6 --bin --abi --optimize-runs=200 --overwrite Realitio.sol -o out && mv out/Realitio.bin ../../bytecode/RealityETH-2.2.bin && mv out/Realitio.abi ../../abi/solc-0.8.6/RealityETH-2.2.abi.json`
+
+If you created a new version, you will need to add it to the version list in `contracts/index.js` to get it picked up by the UI.
+
+Even for new releases, it may be useful to provide additional versions of the ABI using earlier solc releases, as the ABI sometimes changes in breaking ways.
 
 
 ## Deployment

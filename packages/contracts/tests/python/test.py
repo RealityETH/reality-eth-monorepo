@@ -165,7 +165,7 @@ class TestRealitio(TestCase):
         }
 
 
-        self.arb0 = self._contractFromBuildJSON('RegisteredWalletArbitrator')
+        self.arb0 = self._contractFromBuildJSON('Arbitrator')
         tx_hash = self.arb0.functions.setDisputeFee(10000000000000000).transact(self.standard_tx)
         self.assertIsNotNone(tx_hash)
 
@@ -1382,7 +1382,7 @@ class TestRealitio(TestCase):
         self.assertEqual(end_bal - start_bal, (321*2))
 
         start_arb_bal = self.web3.eth.getBalance(self.arb0.address)
-        txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
+        txid = self.arb0.functions.callWithdraw().transact(self._txargs())
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         end_arb_bal = self.web3.eth.getBalance(self.arb0.address)
 
@@ -1451,58 +1451,6 @@ class TestRealitio(TestCase):
 
         self.arb0.functions.setMetaData("oink").transact(self._txargs(sender=k0))
         self.assertEqual(self.arb0.functions.metadata().call(), 'oink')
-
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_arbitrator_registered_wallet(self):
-
-        k2 = self.web3.eth.accounts[2]
-        k4 = self.web3.eth.accounts[4]
-        k5 = self.web3.eth.accounts[5]
-        k7 = self.web3.eth.accounts[7]
-
-        start_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
-        self.arb0.functions.setQuestionFee(321).transact()
-
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 3",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=1000, sender=k4))
-
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 4",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=2000, sender=k5))
-
-        end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
-        self.assertEqual(end_bal - start_bal, (321*2))
-
-        with self.assertRaises(TransactionFailed):
-            txid = self.arb0.functions.withdrawToRegisteredWallet().transact()
-            self.raiseOnZeroStatus(txid)
-
-        with self.assertRaises(TransactionFailed):
-            txid = self.arb0.functions.updateRegisteredWallet(t.a8).transact(self._txargs(sender=k2))
-            self.raiseOnZeroStatus(txid)
-        
-        self.arb0.functions.updateRegisteredWallet(t.a8).transact()
-        start_arb_bal = self.web3.eth.getBalance(t.a8)
-
-        self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
-        self.arb0.functions.withdrawToRegisteredWallet().transact(self._txargs(sender=k4))
-
-        end_arb_bal = self.web3.eth.getBalance(t.a8)
-
-        self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
-        self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
 
 
 if __name__ == '__main__':

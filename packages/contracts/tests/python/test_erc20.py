@@ -208,7 +208,7 @@ class TestRealitio(TestCase):
         self.token0.functions.mint(k0, 100000000000000).transact()
         self.assertEqual(self.token0.functions.balanceOf(k0).call(), 100000000000000)
 
-        self.arb0 = self._contractFromBuildJSON('RegisteredWalletArbitrator')
+        self.arb0 = self._contractFromBuildJSON('Arbitrator')
         tx_hash = self.arb0.functions.setDisputeFee(10000000000000000).transact(self.standard_tx)
         self.assertIsNotNone(tx_hash)
 
@@ -1307,7 +1307,7 @@ class TestRealitio(TestCase):
         self.assertEqual(end_bal - start_bal, (321*2))
 
         start_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
-        txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
+        txid = self.arb0.functions.callWithdraw().transact(self._txargs())
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         end_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
 
@@ -1428,7 +1428,7 @@ class TestRealitio(TestCase):
         # Some tokens should be piled up in the arbitrator's account in the RealitioERC20 contract
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100+321+321)
 
-        self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
+        self.arb0.functions.callWithdraw().transact(self._txargs())
 
         # Now the tokens have moved to the arbitrator's own account directly from the Token contract
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
@@ -1446,68 +1446,6 @@ class TestRealitio(TestCase):
 
         self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
-
-
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_arbitrator_registered_wallet(self):
-
-        k2 = self.web3.eth.accounts[2]
-        k4 = self.web3.eth.accounts[4]
-        k5 = self.web3.eth.accounts[5]
-        k7 = self.web3.eth.accounts[7]
-
-        self._issueTokens(k2, 1000000, 1000000)
-        self._issueTokens(k4, 1000000, 1000000)
-        self._issueTokens(k5, 1000000, 1000000)
-        self._issueTokens(k7, 1000000, 1000000)
-
-        start_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
-        self.arb0.functions.setQuestionFee(321).transact()
-
-        question_id = self.rc0.functions.askQuestionERC20(
-            0,
-            "my question 3",
-            self.arb0.address,
-            10,
-            0,
-            0
-            ,1000
-        ).transact(self._txargs(sender=k4))
-
-        question_id = self.rc0.functions.askQuestionERC20(
-            0,
-            "my question 4",
-            self.arb0.address,
-            10,
-            0,
-            0
-            ,2000
-        ).transact(self._txargs(sender=k5))
-
-        end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
-        self.assertEqual(end_bal - start_bal, (321*2))
-
-        with self.assertRaises(TransactionFailed):
-            txid = self.arb0.functions.withdrawToRegisteredWallet().transact()
-            self.raiseOnZeroStatus(txid)
-
-        with self.assertRaises(TransactionFailed):
-            txid = self.arb0.functions.updateRegisteredWallet(t.a8).transact(self._txargs(sender=k2))
-            self.raiseOnZeroStatus(txid)
-        
-        self.arb0.functions.updateRegisteredWallet(t.a8).transact()
-
-        start_reg_wal_bal = self.token0.functions.balanceOf(t.a8).call()
-
-        # Some tokens should be piled up in the arbitrator's account in the RealitioERC20 contract
-        self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100+321+321)
-
-        self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
-
-        # Now the tokens have moved to the arbitrator's own account directly from the Token contract
-        self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
-        self.assertEqual(self.token0.functions.balanceOf(self.arb0.address).call(), 100+321+321)
 
 
 if __name__ == '__main__':
