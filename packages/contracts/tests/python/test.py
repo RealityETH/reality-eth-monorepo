@@ -13,8 +13,6 @@ import time
 from sha3 import keccak_256
 from hashlib import sha256
 
-import eth.exceptions
-
 from web3.providers.eth_tester import EthereumTesterProvider
 from web3 import Web3
 
