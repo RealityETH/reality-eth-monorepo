@@ -6,7 +6,8 @@ import './BalanceHolder.sol';
 
 // Next version of Realitio v2, will be deployed on xdai, may be deployed to other networks in future
 // API-compatible with Realitio v2, address will be stored in Realitio.json
-contract Realitio_v2_1 is BalanceHolder {
+contract RealityETH_v3_0 is BalanceHolder {
+
 
     address constant NULL_ADDRESS = address(0);
 
