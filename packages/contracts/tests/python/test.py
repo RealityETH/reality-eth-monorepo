@@ -136,8 +136,6 @@ class TestRealitio(TestCase):
             sender = t.k0
 
         bytecode_file = '../../bytecode/' + con_name + '.bin'
-        abi_file = '../../abi/solc-0.4.25/' + con_name + '.abi.json'
-
         bcode = None
         contract_if = None
 
@@ -145,9 +143,13 @@ class TestRealitio(TestCase):
             bcode = f.read().strip("\n")
             f.close()
 
-        with open(abi_file) as f:
-            contract_if = f.read()
-            f.close()
+        for solcv in ['solc-0.4.25', 'solc-0.8.6']:
+            abi_file = '../../abi/'+solcv+'/' + con_name + '.abi.json'
+            if os.path.exists(abi_file):
+                with open(abi_file) as f:
+                    contract_if = f.read()
+                    f.close()
+                break
 
         tx_hash = self.web3.eth.contract(abi=contract_if, bytecode=bcode).constructor().transact(self.deploy_tx)
         addr = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
