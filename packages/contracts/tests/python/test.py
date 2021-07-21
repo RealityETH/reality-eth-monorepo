@@ -35,7 +35,7 @@ VERNUM = float(bits[1])
 
 print("Version is "+str(VERNUM))
 
-DEPLOY_GAS = 4500000
+DEPLOY_GAS = 8000000
 
 QINDEX_CONTENT_HASH = 0
 QINDEX_ARBITRATOR = 1
