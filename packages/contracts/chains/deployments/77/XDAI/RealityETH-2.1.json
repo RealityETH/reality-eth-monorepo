@@ -1,0 +1,9 @@
+{
+    "address": "0x90a617ed516ab7fAaBA56CcEDA0C5D952f294d03",
+    "block": 18849434,
+    "token_address": null,
+    "notes": null,
+    "arbitrators": {
+        "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
+    }
+}
