@@ -25,6 +25,15 @@ import time
 
 from eth_tester import EthereumTester, PyEVMBackend
 
+REALITIO_CONTRACT = os.environ.get('REALITIO', 'RealityETH_ERC20-2.0')
+print(REALITIO_CONTRACT)
+CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
+
+bits = REALITIO_CONTRACT.split('-')
+VERNUM = float(bits[1])
+
+print("Version is "+str(VERNUM))
+
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 
@@ -163,18 +172,22 @@ class TestRealitio(TestCase):
         self.token0.functions.approve(self.rc0.address, approved).transact(self._txargs(sender=addr))
 
     def _contractFromBuildJSON(self, con_name, sender=None, startgas=DEPLOY_GAS):
-
         if sender is None:
             sender = t.k0
 
-        contract_json = {}
-        json_fname = con_name + '.json'
-        with open('../../truffle/build/contracts/'+json_fname) as f:
-            contract_json = f.read()
+        bytecode_file = '../../bytecode/' + con_name + '.bin'
+        abi_file = '../../abi/solc-0.4.25/' + con_name + '.abi.json'
+
+        bcode = None
+        contract_if = None
+
+        with open(bytecode_file) as f:
+            bcode = f.read().strip("\n")
             f.close()
 
-        bcode = json.loads(contract_json)['bytecode']
-        contract_if = json.loads(contract_json)['abi']
+        with open(abi_file) as f:
+            contract_if = f.read()
+            f.close()
 
         tx_hash = self.web3.eth.contract(abi=contract_if, bytecode=bcode).constructor().transact(self.deploy_tx)
         addr = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
@@ -215,7 +228,7 @@ class TestRealitio(TestCase):
         fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         self.assertEqual(fee, 10000000000000000) 
             
-        self.rc0 = self._contractFromBuildJSON('RealitioERC20')
+        self.rc0 = self._contractFromBuildJSON(REALITIO_CONTRACT)
 
         self.rc0.functions.setToken(self.token0.address).transact()
         self.token0.functions.approve(self.rc0.address, 100000000000000).transact()

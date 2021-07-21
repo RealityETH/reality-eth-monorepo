@@ -30,7 +30,7 @@ You can then run the tests with:
 
 The version we will deploy on XDai, v2.1, has an additional fee, called the claim fee. You can test it with:
 
-`$ CLAIM_FEE=40 REALITIO=Realitio_v2_1 python test.py`
+`$ CLAIM_FEE=40 REALITIO=RealityETH-2.1 python test.py`
 
 
 ## Compilation 

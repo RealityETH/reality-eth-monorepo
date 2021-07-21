@@ -26,8 +26,14 @@ from eth_tester import EthereumTester, PyEVMBackend
 
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
-REALITIO_CONTRACT = os.environ.get('REALITIO', 'Realitio')
+REALITIO_CONTRACT = os.environ.get('REALITIO', 'RealityETH-2.0')
+print(REALITIO_CONTRACT)
 CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
+
+bits = REALITIO_CONTRACT.split('-')
+VERNUM = float(bits[1])
+
+print("Version is "+str(VERNUM))
 
 DEPLOY_GAS = 4500000
 
@@ -129,14 +135,19 @@ class TestRealitio(TestCase):
         if sender is None:
             sender = t.k0
 
-        contract_json = {}
-        json_fname = con_name + '.json'
-        with open('../../truffle/build/contracts/'+json_fname) as f:
-            contract_json = f.read()
+        bytecode_file = '../../bytecode/' + con_name + '.bin'
+        abi_file = '../../abi/solc-0.4.25/' + con_name + '.abi.json'
+
+        bcode = None
+        contract_if = None
+
+        with open(bytecode_file) as f:
+            bcode = f.read().strip("\n")
             f.close()
 
-        bcode = json.loads(contract_json)['bytecode']
-        contract_if = json.loads(contract_json)['abi']
+        with open(abi_file) as f:
+            contract_if = f.read()
+            f.close()
 
         tx_hash = self.web3.eth.contract(abi=contract_if, bytecode=bcode).constructor().transact(self.deploy_tx)
         addr = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
@@ -372,7 +383,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_right(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_right, not a feature of this contract")
             return
 
@@ -414,7 +425,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_right_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_right_commit, not a feature of this contract")
             return
 
@@ -455,7 +466,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong_commit, not a feature of this contract")
             return
 
@@ -495,7 +506,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong, not a feature of this contract")
             return
 
@@ -533,7 +544,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_unrevealed_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_unrevealed_commit, not a feature of this contract")
             return
 
@@ -606,7 +617,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_cancel(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_cancel, not a feature of this contract")
             return
 
@@ -1282,7 +1293,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_submit_answer_for_withdrawal(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_submit_answer_for_withdrawal, submitAnswerFor is not a feature of this contract")
             return
 

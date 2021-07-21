@@ -1,0 +1,440 @@
+[
+{
+  "constant": true,
+  "inputs": [],
+  "name": "realitycheck",
+  "outputs": [
+    {
+      "name": "",
+      "type": "address"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "setDisputeFee",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": true,
+  "inputs": [],
+  "name": "metadata",
+  "outputs": [
+    {
+      "name": "",
+      "type": "string"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "setCustomDisputeFee",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "setQuestionFee",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "addr",
+      "type": "address"
+    }
+  ],
+  "name": "withdraw",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "addr",
+      "type": "address"
+    }
+  ],
+  "name": "setRealitio",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": true,
+  "inputs": [],
+  "name": "owner",
+  "outputs": [
+    {
+      "name": "",
+      "type": "address"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "_token",
+      "type": "address"
+    },
+    {
+      "name": "addr",
+      "type": "address"
+    }
+  ],
+  "name": "withdrawERC20",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": true,
+  "inputs": [
+    {
+      "name": "",
+      "type": "bytes32"
+    }
+  ],
+  "name": "arbitration_bounties",
+  "outputs": [
+    {
+      "name": "",
+      "type": "uint256"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": true,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    }
+  ],
+  "name": "getDisputeFee",
+  "outputs": [
+    {
+      "name": "",
+      "type": "uint256"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "name": "max_previous",
+      "type": "uint256"
+    }
+  ],
+  "name": "requestArbitration",
+  "outputs": [
+    {
+      "name": "",
+      "type": "bool"
+    }
+  ],
+  "payable": true,
+  "stateMutability": "payable",
+  "type": "function"
+},
+{
+  "constant": true,
+  "inputs": [],
+  "name": "realitio",
+  "outputs": [
+    {
+      "name": "",
+      "type": "address"
+    }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "name": "answer",
+      "type": "bytes32"
+    },
+    {
+      "name": "payee_if_wrong",
+      "type": "address"
+    },
+    {
+      "name": "last_history_hash",
+      "type": "bytes32"
+    },
+    {
+      "name": "last_answer_or_commitment_id",
+      "type": "bytes32"
+    },
+    {
+      "name": "last_answerer",
+      "type": "address"
+    }
+  ],
+  "name": "assignWinnerAndSubmitAnswerByArbitrator",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "_metadata",
+      "type": "string"
+    }
+  ],
+  "name": "setMetaData",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    }
+  ],
+  "name": "cancelArbitration",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "newOwner",
+      "type": "address"
+    }
+  ],
+  "name": "transferOwnership",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "name": "answer",
+      "type": "bytes32"
+    },
+    {
+      "name": "answerer",
+      "type": "address"
+    }
+  ],
+  "name": "submitAnswerByArbitrator",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "payable": true,
+  "stateMutability": "payable",
+  "type": "fallback"
+},
+{
+  "anonymous": false,
+  "inputs": [
+    {
+      "indexed": true,
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "indexed": false,
+      "name": "fee_paid",
+      "type": "uint256"
+    },
+    {
+      "indexed": false,
+      "name": "requester",
+      "type": "address"
+    },
+    {
+      "indexed": false,
+      "name": "remaining",
+      "type": "uint256"
+    }
+  ],
+  "name": "LogRequestArbitration",
+  "type": "event"
+},
+{
+  "anonymous": false,
+  "inputs": [
+    {
+      "indexed": false,
+      "name": "realitio",
+      "type": "address"
+    }
+  ],
+  "name": "LogSetRealitio",
+  "type": "event"
+},
+{
+  "anonymous": false,
+  "inputs": [
+    {
+      "indexed": false,
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "LogSetQuestionFee",
+  "type": "event"
+},
+{
+  "anonymous": false,
+  "inputs": [
+    {
+      "indexed": false,
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "LogSetDisputeFee",
+  "type": "event"
+},
+{
+  "anonymous": false,
+  "inputs": [
+    {
+      "indexed": true,
+      "name": "question_id",
+      "type": "bytes32"
+    },
+    {
+      "indexed": false,
+      "name": "fee",
+      "type": "uint256"
+    }
+  ],
+  "name": "LogSetCustomDisputeFee",
+  "type": "event"
+},
+{
+  "constant": false,
+  "inputs": [],
+  "name": "callWithdraw",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "_token",
+      "type": "address"
+    }
+  ],
+  "name": "withdrawToRegisteredWalletERC20",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [],
+  "name": "withdrawToRegisteredWallet",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+},
+{
+  "constant": false,
+  "inputs": [
+    {
+      "name": "addr",
+      "type": "address"
+    }
+  ],
+  "name": "updateRegisteredWallet",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+}
+]
