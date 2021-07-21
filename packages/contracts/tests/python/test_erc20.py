@@ -25,11 +25,11 @@ import time
 
 from eth_tester import EthereumTester, PyEVMBackend
 
-REALITIO_CONTRACT = os.environ.get('REALITIO', 'RealityETH_ERC20-2.0')
-print(REALITIO_CONTRACT)
+REALITYETH_CONTRACT = os.environ.get('REALITYETH', 'RealityETH_ERC20-2.0')
+print(REALITYETH_CONTRACT)
 CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
 
-bits = REALITIO_CONTRACT.split('-')
+bits = REALITYETH_CONTRACT.split('-')
 VERNUM = float(bits[1])
 
 print("Version is "+str(VERNUM))
@@ -228,7 +228,7 @@ class TestRealitio(TestCase):
         fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         self.assertEqual(fee, 10000000000000000) 
             
-        self.rc0 = self._contractFromBuildJSON(REALITIO_CONTRACT)
+        self.rc0 = self._contractFromBuildJSON(REALITYETH_CONTRACT)
 
         self.rc0.functions.setToken(self.token0.address).transact()
         self.token0.functions.approve(self.rc0.address, 100000000000000).transact()
