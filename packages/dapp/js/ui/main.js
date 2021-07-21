@@ -3612,10 +3612,12 @@ console.log('try submitAnswerCommitment, val ', bond);
                 });
             } else {
                 ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
-                    return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, ACCOUNT, bond, {from:ACCOUNT, gas:200000}).then( function(tx_res) {
+                    return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, ACCOUNT, bond, {from:ACCOUNT}).then( function(tx_res) {
                         console.log('got submitAnswerCommitment tx_res, waiting for confirmation', tx_res);
-                        rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {from:ACCOUNT, gas:200000})
-                        .then(function(tx_res) { handleAnswerSubmit(tx_res) });
+                        tx_res.wait().then(function(tx_res) {
+                            rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {from: ACCOUNT})
+                            .then(function(tx_res) { handleAnswerSubmit(tx_res) });
+                        });
                     });
                 });
             }
