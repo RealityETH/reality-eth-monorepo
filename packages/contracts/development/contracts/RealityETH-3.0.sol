@@ -23,6 +23,10 @@ contract RealityETH_v3_0 is BalanceHolder {
     // Proportion withheld when you claim an earlier bond.
     uint256 constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
+    // Special value representing a question that was answered too soon.
+    // By convention we use bytes32(-2) for "invalid", although the contract does not handle this.
+    bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
+
     event LogSetQuestionFee(
         address arbitrator,
         uint256 amount
@@ -98,6 +102,11 @@ contract RealityETH_v3_0 is BalanceHolder {
         uint256 amount
     );
 
+    event LogReopenQuestion(
+        bytes32 indexed question_id,
+        bytes32 indexed reopened_question_id
+    );
+
     struct Question {
         bytes32 content_hash;
         address arbitrator;
@@ -134,6 +143,9 @@ contract RealityETH_v3_0 is BalanceHolder {
     mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
+    mapping(bytes32 => bytes32) public reopened_questions;
+    mapping(bytes32 => bool) public reopener_questions;
+
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
@@ -563,10 +575,89 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @return The answer formatted as a bytes32
     function resultFor(bytes32 question_id) 
         stateFinalized(question_id)
-    external view returns (bytes32) {
+    public view returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
+    /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
+    /// @param question_id The ID of the question 
+    function isSettledTooSoon(bytes32 question_id)
+    public view returns(bool) {
+        return (resultFor(question_id) == UNRESOLVED_ANSWER);
+    }
+
+    /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
+    /// @param question_id The ID of the question 
+    function resultForOnceSettled(bytes32 question_id)
+    external view returns(bytes32) {
+        bytes32 result = resultFor(question_id);
+        if (result == UNRESOLVED_ANSWER) {
+            // Try the replacement
+            bytes32 replacement_id = reopened_questions[question_id];
+            require(replacement_id != bytes32(0x0), "Question was settled too soon and has not been reopened");
+            // We only try one layer down rather than recursing to keep the gas costs predictable
+            result = resultFor(replacement_id);
+            require(result != UNRESOLVED_ANSWER, "Question replacement was settled too soon and has not been reopened");
+        }
+        return result;
+    }
+
+    /// @notice Asks a new question reopening a previously-asked question that was settled too soon
+    /// @dev A special version of askQuestion() that replaces a previous question that was settled too soon
+    /// @param template_id The ID number of the template the question will use
+    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
+    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
+    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
+    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param min_bond The minimum bond that can be used to provide the first answer.
+    /// @param reopens_question_id The ID of the question this reopens
+    /// @return The ID of the newly-created question, created deterministically.
+    function reopenQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id)
+        // stateNotCreated is enforced by the internal _askQuestion
+    public payable returns (bytes32) {
+
+        require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
+
+        bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
+
+        // A reopening must exactly match the original question, except for the nonce and the creator
+        require(content_hash == questions[reopens_question_id].content_hash, "content hash mismatch");
+        require(arbitrator == questions[reopens_question_id].arbitrator, "arbitrator mismatch");
+        require(timeout == questions[reopens_question_id].timeout, "timeout mismatch");
+        require(opening_ts == questions[reopens_question_id].opening_ts , "opening_ts mismatch");
+        require(min_bond == questions[reopens_question_id].min_bond, "min_bond mismatch");
+
+        // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
+        // This ensures the bounty can be passed on to the next attempt of the original question.
+        require(!reopener_questions[reopens_question_id], "Question is already reopening a previous question");
+
+        // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
+        bytes32 existing_reopen_question_id = reopened_questions[reopens_question_id];
+
+        // Normally when we reopen a question we will take its bounty and pass it on to the reopened version.
+        bytes32 take_bounty_from_question_id = reopens_question_id;
+        // If the question has already been reopened but was again settled too soon, we can transfer its bounty to the next attempt.
+        if (existing_reopen_question_id != bytes32(0)) {
+            require(isSettledTooSoon(existing_reopen_question_id), "Question has already been reopened");
+            // We'll overwrite the reopening with our new question and move the bounty.
+            // Once that's done we'll detach the failed reopener and you'll be able to reopen that too if you really want, but without the bounty.
+            reopener_questions[existing_reopen_question_id] = false;
+            take_bounty_from_question_id = existing_reopen_question_id;
+        }
+
+        bytes32 question_id = askQuestionWithMinBond(template_id, question, arbitrator, timeout, opening_ts, nonce, min_bond);
+
+        reopened_questions[reopens_question_id] = question_id;
+        reopener_questions[question_id] = true;
+
+        questions[question_id].bounty = questions[take_bounty_from_question_id].bounty + questions[question_id].bounty;
+        questions[take_bounty_from_question_id].bounty = 0;
+
+        emit LogReopenQuestion(question_id, reopens_question_id);
+
+        return question_id;
+    }
 
     /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
     /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
@@ -714,7 +805,7 @@ contract RealityETH_v3_0 is BalanceHolder {
 
         if (answer == best_answer) {
 
-            if (payee == NULL_ADDRESS) {
+            if (payee == NULL_ADDRESS && best_answer != UNRESOLVED_ANSWER) {
 
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.

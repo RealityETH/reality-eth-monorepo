@@ -49,6 +49,8 @@ QINDEX_HISTORY_HASH = 8
 QINDEX_BOND = 9
 QINDEX_MIN_BOND = 10
 
+ANSWERED_TOO_SOON_VAL = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+
 def calculate_answer_hash(answer, nonce):
     if answer[:2] == "0x":
         raise Exception("hash functions expect bytes for bytes32 parameters")
@@ -1570,6 +1572,96 @@ class TestRealitio(TestCase):
             0
         ).transact(self._txargs(val=1000, sender=k2))
         self.raiseOnZeroStatus(txid)
+
+    # TODO: Test reopening a question
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_reopen_question(self):
+
+        k0 = self.web3.eth.accounts[0]
+
+        self.rc0.functions.submitAnswer(self.question_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+
+        self._advance_clock(33)
+
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.resultFor(self.question_id).call()), ANSWERED_TOO_SOON_VAL)
+        self.assertTrue(self.rc0.functions.isSettledTooSoon(self.question_id).call())
+
+        with self.assertRaises(TransactionFailed):
+            self.rc0.functions.resultForOnceSettled(self.question_id).call()
+
+        self.assertEqual(self.rc0.functions.balanceOf(k0).call(), 0)
+        self.rc0.functions.claimWinnings(self.question_id, [decode_hex("0x00")], [k0], [3], [ANSWERED_TOO_SOON_VAL]).transact()
+        self.assertEqual(self.rc0.functions.balanceOf(k0).call(), 3, "Winner gets their bond back but no bounty")
+
+        self.assertEqual(self.rc0.functions.reopened_questions(self.question_id).call(), to_answer_for_contract(0), "reopened_questions empty until reopened")
+
+        old_bounty = self.rc0.functions.questions(self.question_id).call()[QINDEX_BOUNTY]
+        self.assertEqual(old_bounty, 1000)
+
+        # Make one of the details different to the original question and it should fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.reopenQuestion( 0, "my questionz", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+
+        expected_reopen_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 1, self.web3.eth.accounts[0], 0)
+        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+        txr = self.web3.eth.getTransactionReceipt(txid)
+
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.reopened_questions(self.question_id).call()), expected_reopen_id, "reopened_questions returns reopened question id")
+
+        old_bounty_now = self.rc0.functions.questions(self.question_id).call()[QINDEX_BOUNTY]
+        self.assertEqual(old_bounty_now, 0)
+
+        new_bounty = self.rc0.functions.questions(expected_reopen_id).call()[QINDEX_BOUNTY]
+        question_fee = 100
+        self.assertEqual(new_bounty, old_bounty + 123 - question_fee)
+
+        # Second time should fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+
+        # Different nonce should still fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+
+        self.rc0.functions.submitAnswer(expected_reopen_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+        self._advance_clock(33)
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.getFinalAnswer(expected_reopen_id).call()), ANSWERED_TOO_SOON_VAL)
+
+        # If the question is a reopen, it can't itself be reopened until the previous question has been reopened
+        # This prevents to bounty from being moved to a child before it can be returned to the new replacement of the original question.
+        expected_reopen_id_b = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 4, self.web3.eth.accounts[0], 0)
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+
+        pre_reopen_bounty = self.rc0.functions.questions(expected_reopen_id).call()[QINDEX_BOUNTY]
+
+        expected_reopen_id_2 = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 2, self.web3.eth.accounts[0], 0)
+        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=543))
+        self.raiseOnZeroStatus(txid)
+
+        post_reopen_bounty = self.rc0.functions.questions(expected_reopen_id).call()[QINDEX_BOUNTY]
+        self.assertEqual(post_reopen_bounty, 0, "reopening a question moves the bounty from the reopened question to the new question")
+
+        post_reopen_bounty_b = self.rc0.functions.questions(expected_reopen_id_2).call()[QINDEX_BOUNTY]
+        self.assertEqual(post_reopen_bounty_b, pre_reopen_bounty + 543 - question_fee)
+
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.reopened_questions(self.question_id).call()), expected_reopen_id_2, "reopened_questions returns now new question id")
+
+        # Now you've reopened the parent you can reopen the child if you like, although this is usually a bad idea because you should be using the parent
+        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
+        self.raiseOnZeroStatus(txid)
+
+        self.rc0.functions.submitAnswer(expected_reopen_id_2, to_answer_for_contract(432), 0).transact(self._txargs(val=3)) 
+        self._advance_clock(33)
+        self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(expected_reopen_id_2).call()), 432)
+        self.assertFalse(self.rc0.functions.isSettledTooSoon(expected_reopen_id_2).call())
+
+        self.assertEqual(from_answer_for_contract(self.rc0.functions.resultForOnceSettled(self.question_id).call()), 432)
+
 
 if __name__ == '__main__':
     main()
