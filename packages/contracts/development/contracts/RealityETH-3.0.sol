@@ -269,8 +269,9 @@ contract RealityETH_v3_0 is BalanceHolder {
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
 
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
+        // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
 
         return question_id;
     }
@@ -293,8 +294,6 @@ contract RealityETH_v3_0 is BalanceHolder {
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, min_bond, address(this), msg.sender, nonce));
 
-        // We emit this event here because _askQuestion doesn't need to know the unhashed question.
-        // Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond);
 
@@ -327,7 +326,11 @@ contract RealityETH_v3_0 is BalanceHolder {
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].opening_ts = opening_ts;
         questions[question_id].timeout = timeout;
-        questions[question_id].bounty = bounty;
+
+        if (bounty > 0) {
+            questions[question_id].bounty = bounty;
+            emit LogFundAnswerBounty(question_id, bounty, bounty, msg.sender);
+        }
 
         if (min_bond > 0) {
             questions[question_id].min_bond = min_bond;

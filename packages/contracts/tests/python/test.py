@@ -1454,7 +1454,6 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_minimum_bond(self):
 
-
         txid = self.rc0.functions.askQuestionWithMinBond(
             0,
             "my question 2",
@@ -1467,7 +1466,7 @@ class TestRealitio(TestCase):
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
         #self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 130000)
+        self.assertTrue(gas_used < 135000)
 
         expected_question_id = calculate_question_id(self.rc0.address, 0, "my question 2", self.arb0.address, 10, 0, 0, self.web3.eth.accounts[0], 1000)
 
