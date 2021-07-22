@@ -47,6 +47,7 @@ QINDEX_BOUNTY = 6
 QINDEX_BEST_ANSWER = 7
 QINDEX_HISTORY_HASH = 8
 QINDEX_BOND = 9
+QINDEX_MIN_BOND = 10
 
 def calculate_answer_hash(answer, nonce):
     if answer[:2] == "0x":
@@ -1449,6 +1450,43 @@ class TestRealitio(TestCase):
 
         bounty = self.rc0.functions.questions(question_id).call()[QINDEX_BOUNTY]
         self.assertEqual(bounty, 122, "The arbitrator isn't charged their fee, so their whole payment goes to the bounty")
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_minimum_bond(self):
+
+
+        txid = self.rc0.functions.askQuestionWithMinBond(
+            0,
+            "my question 2",
+            self.arb0.address,
+            10,
+            0,
+            0,
+            1000
+        ).transact(self._txargs(val=1100))
+        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        gas_used = rcpt['cumulativeGasUsed']
+        #self.assertEqual(gas_used, 120000)
+        self.assertTrue(gas_used < 130000)
+
+        expected_question_id = calculate_question_id(self.rc0.address, 0, "my question 2", self.arb0.address, 10, 0, 0, self.web3.eth.accounts[0], 1000)
+
+        min_bond = self.rc0.functions.questions(expected_question_id).call()[QINDEX_MIN_BOND]
+        self.assertEqual(min_bond, 1000)
+
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(123), 0).transact(self._txargs(val=0))
+            self.raiseOnZeroStatus(txid)
+
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(1234), 0).transact(self._txargs(val=999))
+            self.raiseOnZeroStatus(txid)
+
+        txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1000))
+        self.raiseOnZeroStatus(txid)
+
+        best_answer = self.rc0.functions.questions(expected_question_id).call()[QINDEX_BEST_ANSWER]
+        self.assertEqual(12345, from_answer_for_contract(best_answer))
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_metadata(self):
