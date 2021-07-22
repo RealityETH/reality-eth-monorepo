@@ -73,7 +73,10 @@ def calculate_content_hash(template_id, question_str, opening_ts):
 
 def calculate_question_id(cntrct, template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender, min_bond):
     content_hash = calculate_content_hash(template_id, question_str, opening_ts)
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, cntrct, sender, nonce])))
+    if VERNUM >= 3:
+        return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, cntrct, sender, nonce])))
+    else:
+        return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
 
 def calculate_history_hash(last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment):
     return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
@@ -1456,6 +1459,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_minimum_bond(self):
 
+        if VERNUM < 3:
+            print("Skipping askQuestionWithMinBond, not a feature of this contract")
+            return
+
         txid = self.rc0.functions.askQuestionWithMinBond(
             0,
             "my question 2",
@@ -1576,6 +1583,10 @@ class TestRealitio(TestCase):
     # TODO: Test reopening a question
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_reopen_question(self):
+
+        if VERNUM < 3.0:
+            print("Skipping test_reopen_question, not a feature of this contract")
+            return
 
         k0 = self.web3.eth.accounts[0]
 
