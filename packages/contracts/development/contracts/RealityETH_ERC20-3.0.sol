@@ -694,6 +694,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param min_bond The minimum bond that can be used to provide the first answer.
     /// @param reopens_question_id The ID of the question this reopens
+    /// @param tokens The number of tokens you want to use as an additional question reward for the reopened question.
     /// @return The ID of the newly-created question, created deterministically.
     function reopenQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id, uint256 tokens)
         // stateNotCreated is enforced by the internal _askQuestion
