@@ -333,6 +333,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param min_bond The minimum bond that may be used for an answer.
     /// @param tokens Number of tokens sent
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestionWithMinBondERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens) 
