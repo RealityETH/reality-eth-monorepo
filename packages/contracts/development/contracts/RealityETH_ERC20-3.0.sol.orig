@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.6;
 
+import './BalanceHolder.sol';
 
-import './BalanceHolderERC20.sol';
 contract RealityETH_v3_0 is BalanceHolder {
 
     address constant NULL_ADDRESS = address(0);
@@ -182,13 +182,6 @@ contract RealityETH_v3_0 is BalanceHolder {
         require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
-    function setToken(IERC20 _token) 
-    public
-    {
-        require(token == IERC20(address(0x0)), "Token can only be initialized once");
-        token = _token;
-    }
-
         _;
     }
 
@@ -265,15 +258,13 @@ contract RealityETH_v3_0 is BalanceHolder {
         string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
-    public returns (bytes32) {
+    public payable returns (bytes32) {
         uint256 template_id = createTemplate(content);
         return askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
 
-    /// @notice Ask a new question without a bounty and return the ID
+    /// @notice Ask a new question and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @dev Calling without the token param will only work if there is no arbitrator-set question fee.
-    /// @dev This has the same function signature as askQuestion() in the non-ERC20 version, which is optionally payable.
     /// @param template_id The ID number of the template the question will use
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -283,34 +274,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
-    public returns (bytes32) {
-
-        require(templates[template_id] > 0, "template must exist");
-
-        bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
-        bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
-
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
-        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-
-        return question_id;
-    }
-
-    /// @notice Ask a new question with a bounty and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param template_id The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param opening_ts If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @param tokens The combined initial question bounty and question fee
-    /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 tokens) 
-        // stateNotCreated is enforced by the internal _askQuestion
-    public returns (bytes32) {
-
-        _deductTokensOrRevert(tokens);
+    public payable returns (bytes32) {
 
         require(templates[template_id] > 0, "template must exist");
 
@@ -327,8 +291,6 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @notice Ask a new question and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param template_id The ID number of the template the question will use
-        uint256 bounty = tokens;
-
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
@@ -358,6 +320,8 @@ contract RealityETH_v3_0 is BalanceHolder {
         require(timeout > 0, "timeout must be positive"); 
         require(timeout < 365 days, "timeout must be less than 365 days"); 
 
+        uint256 bounty = msg.value;
+
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
         // The fee is waived if the arbitrator is asking the question.
@@ -365,7 +329,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "Tokens provided must cover question fee"); 
+            require(bounty >= question_fee, "ETH provided must cover question fee"); 
             bounty = bounty - question_fee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
@@ -390,8 +354,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
-    /// @param tokens The number of tokens to fund
-    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) 
+    function fundAnswerBounty(bytes32 question_id) 
         stateOpen(question_id)
     external payable {
         questions[question_id].bounty = questions[question_id].bounty + msg.value;
@@ -404,14 +367,12 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    /// @param tokens The amount of tokens to submit
-    function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens) 
+    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external {
-        _deductTokensOrRevert(tokens);
-        _addAnswerToHistory(question_id, answer, msg.sender, tokens, false);
+    external payable {
+        _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
@@ -435,7 +396,6 @@ contract RealityETH_v3_0 is BalanceHolder {
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment
-    /// @param tokens Number of tokens sent
     function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
     internal
     {
@@ -454,19 +414,16 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
-    function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens) 
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) 
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external {
+    external payable {
 
-        _deductTokensOrRevert(tokens);
-
-        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, tokens));
+        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, msg.value));
         address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
-
         _storeCommitment(question_id, commitment_id);
-        _addAnswerToHistory(question_id, commitment_id, answerer, tokens, true);
+        _addAnswerToHistory(question_id, commitment_id, answerer, msg.value, true);
 
     }
 
