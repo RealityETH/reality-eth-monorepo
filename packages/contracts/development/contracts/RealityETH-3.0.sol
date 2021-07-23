@@ -24,7 +24,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     uint256 constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
     // Special value representing a question that was answered too soon.
-    // By convention we use bytes32(-2) for "invalid", although the contract does not handle this.
+    // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
     bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     event LogSetQuestionFee(
