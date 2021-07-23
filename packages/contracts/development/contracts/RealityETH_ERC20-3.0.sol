@@ -4,7 +4,7 @@ pragma solidity ^0.8.6;
 
 
 import './BalanceHolderERC20.sol';
-contract RealityETH_v3_0 is BalanceHolder {
+contract RealityETH_ERC20_v3_0 is BalanceHolder {
 
     address constant NULL_ADDRESS = address(0);
 
@@ -182,6 +182,10 @@ contract RealityETH_v3_0 is BalanceHolder {
         require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
         require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
+        _;
+    }
+
+
     function setToken(IERC20 _token) 
     public
     {
@@ -189,21 +193,18 @@ contract RealityETH_v3_0 is BalanceHolder {
         token = _token;
     }
 
-        _;
-    }
-
     modifier stateFinalized(bytes32 question_id) {
         require(isFinalized(question_id), "question must be finalized");
         _;
     }
 
-    modifier bondMustDoubleAndMatchMinimum(bytes32 question_id) {
-        require(msg.value > 0, "bond must be positive"); 
+    modifier bondMustDoubleAndMatchMinimum(bytes32 question_id, uint256 tokens) {
+        require(tokens > 0, "bond must be positive"); 
         uint256 current_bond = questions[question_id].bond;
         if (current_bond == 0) {
-            require(msg.value >= (questions[question_id].min_bond), "bond must exceed the minimum");
+            require(tokens >= (questions[question_id].min_bond), "bond must exceed the minimum");
         } else {
-            require(msg.value >= (current_bond * 2), "bond must be double at least previous bond");
+            require(tokens >= (current_bond * 2), "bond must be double at least previous bond");
         }
         _;
     }
@@ -290,7 +291,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
 
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, 0);
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
 
         return question_id;
@@ -311,6 +312,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     public returns (bytes32) {
 
         _deductTokensOrRevert(tokens);
+        uint256 bounty = tokens;
 
         require(templates[template_id] > 0, "template must exist");
 
@@ -319,7 +321,7 @@ contract RealityETH_v3_0 is BalanceHolder {
 
         // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, tokens);
 
         return question_id;
     }
@@ -327,15 +329,14 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @notice Ask a new question and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param template_id The ID number of the template the question will use
-        uint256 bounty = tokens;
-
     /// @param question A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
+    /// @param tokens Number of tokens sent
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionWithMinBond(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) 
+    function askQuestionWithMinBondERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
@@ -345,18 +346,45 @@ contract RealityETH_v3_0 is BalanceHolder {
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, min_bond, address(this), msg.sender, nonce));
 
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond, tokens);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond) 
+    function _deductTokensOrRevert(uint256 tokens) 
+    internal {
+ 
+        if (tokens == 0) {
+            return;
+        }
+
+        uint256 bal = balanceOf[msg.sender];
+
+        // Deduct any tokens you have in your internal balance first
+        if (bal > 0) {
+            if (bal >= tokens) {
+                balanceOf[msg.sender] = bal - tokens;
+                return;
+            } else {
+                tokens = tokens - bal;
+                balanceOf[msg.sender] = 0;
+            }
+        }
+        // Now we need to charge the rest from 
+        require(token.transferFrom(msg.sender, address(this), tokens), "Transfer of tokens failed, insufficient approved balance?");
+        return;
+
+    }
+
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens) 
         stateNotCreated(question_id)
     internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
         require(timeout > 0, "timeout must be positive"); 
         require(timeout < 365 days, "timeout must be less than 365 days"); 
+
+        uint256 bounty = tokens;
 
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
@@ -407,7 +435,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param tokens The amount of tokens to submit
     function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens) 
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
         _deductTokensOrRevert(tokens);
@@ -422,20 +450,21 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param answerer The account to which the answer should be credited
-    function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer)
+    /// @param tokens Number of tokens sent
+    function submitAnswerERC20For(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer, uint256 tokens)
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
+        _deductTokensOrRevert(tokens);
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
-        _addAnswerToHistory(question_id, answer, answerer, msg.value, false);
+        _addAnswerToHistory(question_id, answer, answerer, tokens, false);
         _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
     }
 
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment
-    /// @param tokens Number of tokens sent
     function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
     internal
     {
@@ -453,10 +482,11 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param answer_hash The hash of your answer, plus a nonce that you will later reveal
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
+    /// @param tokens Number of tokens sent
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
     function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens) 
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
 
@@ -656,7 +686,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     /// @param min_bond The minimum bond that can be used to provide the first answer.
     /// @param reopens_question_id The ID of the question this reopens
     /// @return The ID of the newly-created question, created deterministically.
-    function reopenQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id)
+    function reopenQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id, uint256 tokens)
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
@@ -689,7 +719,7 @@ contract RealityETH_v3_0 is BalanceHolder {
             take_bounty_from_question_id = existing_reopen_question_id;
         }
 
-        bytes32 question_id = askQuestionWithMinBond(template_id, question, arbitrator, timeout, opening_ts, nonce, min_bond);
+        bytes32 question_id = askQuestionWithMinBondERC20(template_id, question, arbitrator, timeout, opening_ts, nonce, min_bond, tokens);
 
         reopened_questions[reopens_question_id] = question_id;
         reopener_questions[question_id] = true;
