@@ -312,7 +312,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     public returns (bytes32) {
 
         _deductTokensOrRevert(tokens);
-        uint256 bounty = tokens;
 
         require(templates[template_id] > 0, "template must exist");
 
@@ -421,9 +420,10 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @param tokens The number of tokens to fund
     function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) 
         stateOpen(question_id)
-    external payable {
-        questions[question_id].bounty = questions[question_id].bounty + msg.value;
-        emit LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
+    external {
+        _deductTokensOrRevert(tokens);
+        questions[question_id].bounty = questions[question_id].bounty + tokens;
+        emit LogFundAnswerBounty(question_id, tokens, questions[question_id].bounty, msg.sender);
     }
 
     /// @notice Submit an answer for a question.
@@ -440,7 +440,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     external {
         _deductTokensOrRevert(tokens);
         _addAnswerToHistory(question_id, answer, msg.sender, tokens, false);
-        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+        _updateCurrentAnswer(question_id, answer);
     }
 
     /// @notice Submit an answer for a question, crediting it to the specified account.
@@ -451,7 +451,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param answerer The account to which the answer should be credited
     /// @param tokens Number of tokens sent
-    function submitAnswerERC20For(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer, uint256 tokens)
+    function submitAnswerForERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer, uint256 tokens)
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
@@ -459,7 +459,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         _deductTokensOrRevert(tokens);
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
         _addAnswerToHistory(question_id, answer, answerer, tokens, false);
-        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+        _updateCurrentAnswer(question_id, answer);
     }
 
     // @notice Verify and store a commitment, including an appropriate timeout
@@ -524,7 +524,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         commitments[commitment_id].is_revealed = true;
 
         if (bond == questions[question_id].bond) {
-            _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+            _updateCurrentAnswer(question_id, answer);
         }
 
         emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
@@ -545,10 +545,17 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
     }
 
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(block.timestamp) + timeout_secs;
+        questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
+    }
+
+    // Like _updateCurrentAnswer but without advancing the timeout
+    function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer)
+    internal {
+        questions[question_id].best_answer = answer;
+        questions[question_id].finalize_ts = uint32(block.timestamp);
     }
 
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -596,8 +603,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
 
         questions[question_id].is_pending_arbitration = false;
         _addAnswerToHistory(question_id, answer, answerer, 0, false);
-        _updateCurrentAnswer(question_id, answer, 0);
-
+        _updateCurrentAnswerByArbitrator(question_id, answer);
     }
 
     /// @notice Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
