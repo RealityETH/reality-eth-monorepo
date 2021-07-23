@@ -337,7 +337,9 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @return The ID of the newly-created question, created deterministically.
     function askQuestionWithMinBondERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens) 
         // stateNotCreated is enforced by the internal _askQuestion
-    public payable returns (bytes32) {
+    public returns (bytes32) {
+
+        _deductTokensOrRevert(tokens);
 
         require(templates[template_id] > 0, "template must exist");
 
@@ -455,7 +457,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id, tokens)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external payable {
+    external {
         _deductTokensOrRevert(tokens);
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
         _addAnswerToHistory(question_id, answer, answerer, tokens, false);
@@ -694,7 +696,9 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     /// @return The ID of the newly-created question, created deterministically.
     function reopenQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id, uint256 tokens)
         // stateNotCreated is enforced by the internal _askQuestion
-    public payable returns (bytes32) {
+    public returns (bytes32) {
+
+        // _deductTokensOrRevert will be called when we call askQuestionWithMinBondERC20
 
         require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
 

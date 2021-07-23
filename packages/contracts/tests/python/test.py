@@ -2020,7 +2020,12 @@ class TestRealitio(TestCase):
             print("Skipping askQuestionWithMinBond, not a feature of this contract")
             return
 
+        k0 = self.web3.eth.accounts[0]
+
         if ERC20:
+            bal_before_in_contract = self.rc0.functions.balanceOf(k0).call()
+            self.assertEqual(bal_before_in_contract, 0, "nothing in the contract at the start")
+            bal_before = self.token0.functions.balanceOf(k0).call()
             txid = self.rc0.functions.askQuestionWithMinBondERC20(
                 0,
                 "my question 2",
@@ -2031,7 +2036,12 @@ class TestRealitio(TestCase):
                 1000,
                 1100
             ).transact(self._txargs())
+            bal_after = self.token0.functions.balanceOf(k0).call()
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            self.assertEqual(bal_after, bal_before - 1100, "New question bounty is deducted")
+            gas_used = rcpt['cumulativeGasUsed']
         else:
+            bal_before = self.web3.eth.getBalance(k0)
             txid = self.rc0.functions.askQuestionWithMinBond(
                 0,
                 "my question 2",
@@ -2041,8 +2051,11 @@ class TestRealitio(TestCase):
                 0,
                 1000
             ).transact(self._txargs(val=1100))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
-        gas_used = rcpt['cumulativeGasUsed']
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_used = rcpt['cumulativeGasUsed']
+            bal_after = self.web3.eth.getBalance(k0)
+            self.assertEqual(bal_after, bal_before - 1100 - gas_used, "New question bouny is deducted")
+
         #self.assertEqual(gas_used, 120000)
         self.assertTrue(gas_used < 135000)
 
@@ -2212,7 +2225,7 @@ class TestRealitio(TestCase):
             ).transact(self._txargs(val=1000, sender=k2))
         self.raiseOnZeroStatus(txid)
 
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_reopen_question(self):
 
         if VERNUM < 3.0:
@@ -2224,9 +2237,10 @@ class TestRealitio(TestCase):
             self._issueTokens(k0, 1000000, 1000000)
 
         if ERC20:
-            self.rc0.functions.submitAnswerERC20(self.question_id, ANSWERED_TOO_SOON_VAL, 0, 3).transact() 
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, ANSWERED_TOO_SOON_VAL, 0, 3).transact() 
         else:
-            self.rc0.functions.submitAnswer(self.question_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+            txid = self.rc0.functions.submitAnswer(self.question_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+            self.raiseOnZeroStatus(txid)
 
         self._advance_clock(33)
 
@@ -2248,19 +2262,32 @@ class TestRealitio(TestCase):
         # Make one of the details different to the original question and it should fail
         if ERC20:
             with self.assertRaises(TransactionFailed):
-                txid = self.rc0.functions.reopenQuestionERC20( 0, "my questionz", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs())
+                txid = self.rc0.functions.reopenQuestionERC20( 0, "not my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs())
                 self.raiseOnZeroStatus(txid)
         else:
             with self.assertRaises(TransactionFailed):
-                txid = self.rc0.functions.reopenQuestion( 0, "my questionz", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+                txid = self.rc0.functions.reopenQuestion( 0, "not my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
                 self.raiseOnZeroStatus(txid)
 
         expected_reopen_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 1, self.web3.eth.accounts[0], 0)
 
         if ERC20:
-            txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs())
+            # withdraw anything we have in contract balance as it complicates the test
+            self.rc0.functions.withdraw().transact(self._txargs())
+            bal_before = self.token0.functions.balanceOf(k0).call()
+            txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs(gas=300000))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            self.raiseOnZeroStatus(txid)
+            bal_after = self.token0.functions.balanceOf(k0).call()
+            self.assertEqual(bal_after, bal_before - 123, "New question bounty is deducted")
         else:
+            bal_before = self.web3.eth.getBalance(k0)
             txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_spent = rcpt['cumulativeGasUsed']
+            bal_after = self.web3.eth.getBalance(k0)
+            self.assertEqual(bal_after, bal_before - 123 - gas_spent, "New question bounty is deducted")
         txr = self.web3.eth.getTransactionReceipt(txid)
 
         self.assertEqual("0x"+encode_hex(self.rc0.functions.reopened_questions(self.question_id).call()), expected_reopen_id, "reopened_questions returns reopened question id")
