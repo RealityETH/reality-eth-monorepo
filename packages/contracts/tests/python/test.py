@@ -1773,6 +1773,46 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_fee_received(self):
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_non_erc_ask_question_id(self):
+
+        # ERC20 also supports a plain askQuestion without a bounty
+        expected_question_id = calculate_question_id(self.rc0.address, 0, "my question x", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
+
+        # Non-ERC version only has one method which is already tested elsewhere
+        if not ERC20:
+            return
+
+        NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+        # There's a question fee so this should fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.askQuestion(
+                0,
+                "my question x",
+                self.arb0.address,
+                30,
+                0,
+                0
+            ).transact(self._txargs())
+            self.raiseOnZeroStatus(txid)
+
+        self.assertEqual(self.rc0.functions.questions(expected_question_id).call()[QINDEX_ARBITRATOR], NULL_ADDRESS)
+
+        self.arb0.functions.setQuestionFee(0).transact()
+
+        txid = self.rc0.functions.askQuestion(
+            0,
+            "my question x",
+            self.arb0.address,
+            30,
+            0,
+            0
+        ).transact(self._txargs())
+        self.raiseOnZeroStatus(txid)
+        self.assertNotEqual(self.rc0.functions.questions(expected_question_id).call()[QINDEX_ARBITRATOR], NULL_ADDRESS, "We have a question at the expected address")
+
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_ask_question_gas(self):
@@ -2057,7 +2097,7 @@ class TestRealitio(TestCase):
             self.assertEqual(bal_after, bal_before - 1100 - gas_used, "New question bouny is deducted")
 
         #self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 135000)
+        self.assertTrue(gas_used < 160000)
 
         expected_question_id = calculate_question_id(self.rc0.address, 0, "my question 2", self.arb0.address, 10, 0, 0, self.web3.eth.accounts[0], 1000)
 
@@ -2369,6 +2409,8 @@ class TestRealitio(TestCase):
         self.assertFalse(self.rc0.functions.isSettledTooSoon(expected_reopen_id_2).call())
 
         self.assertEqual(from_answer_for_contract(self.rc0.functions.resultForOnceSettled(self.question_id).call()), 432)
+
+
 
 
 if __name__ == '__main__':
