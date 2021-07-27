@@ -28,7 +28,6 @@ from eth_tester import EthereumTester, PyEVMBackend
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 REALITYETH_CONTRACT = os.environ.get('REALITYETH', 'RealityETH-2.0')
 print(REALITYETH_CONTRACT)
-CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
 
 bits = REALITYETH_CONTRACT.split('-')
 VERNUM = float(bits[1])
@@ -37,8 +36,12 @@ if "ERC20" in REALITYETH_CONTRACT:
 else:
     ERC20 = False
 
-
 print("Version is "+str(VERNUM))
+
+if VERNUM >= 2.1:
+    CLAIM_FEE = 40
+else:
+    CLAIM_FEE = 0
 
 DEPLOY_GAS = 8000000
 
