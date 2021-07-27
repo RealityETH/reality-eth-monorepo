@@ -376,7 +376,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
-        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+        _updateCurrentAnswer(question_id, answer);
     }
 
     /// @notice Submit an answer for a question, crediting it to the specified account.
@@ -393,7 +393,7 @@ contract RealityETH_v3_0 is BalanceHolder {
     external payable {
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
         _addAnswerToHistory(question_id, answer, answerer, msg.value, false);
-        _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+        _updateCurrentAnswer(question_id, answer);
     }
 
     // @notice Verify and store a commitment, including an appropriate timeout
@@ -454,7 +454,7 @@ contract RealityETH_v3_0 is BalanceHolder {
         commitments[commitment_id].is_revealed = true;
 
         if (bond == questions[question_id].bond) {
-            _updateCurrentAnswer(question_id, answer, questions[question_id].timeout);
+            _updateCurrentAnswer(question_id, answer);
         }
 
         emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
@@ -475,10 +475,17 @@ contract RealityETH_v3_0 is BalanceHolder {
         emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
     }
 
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(block.timestamp) + timeout_secs;
+        questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
+    }
+
+    // Like _updateCurrentAnswer but without advancing the timeout
+    function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer)
+    internal {
+        questions[question_id].best_answer = answer;
+        questions[question_id].finalize_ts = uint32(block.timestamp);
     }
 
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -526,7 +533,7 @@ contract RealityETH_v3_0 is BalanceHolder {
 
         questions[question_id].is_pending_arbitration = false;
         _addAnswerToHistory(question_id, answer, answerer, 0, false);
-        _updateCurrentAnswer(question_id, answer, 0);
+        _updateCurrentAnswerByArbitrator(question_id, answer);
 
     }
 
