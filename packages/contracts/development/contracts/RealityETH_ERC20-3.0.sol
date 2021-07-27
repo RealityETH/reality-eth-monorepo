@@ -185,14 +185,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         _;
     }
 
-
-    function setToken(IERC20 _token) 
-    public
-    {
-        require(token == IERC20(address(0x0)), "Token can only be initialized once");
-        token = _token;
-    }
-
     modifier stateFinalized(bytes32 question_id) {
         require(isFinalized(question_id), "question must be finalized");
         _;
@@ -224,6 +216,13 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
+    }
+
+    function setToken(IERC20 _token) 
+    public
+    {
+        require(token == IERC20(address(0x0)), "Token can only be initialized once");
+        token = _token;
     }
 
     /// @notice Function for arbitrator to set an optional per-question fee. 
