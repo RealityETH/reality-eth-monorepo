@@ -952,4 +952,11 @@ contract RealityETH_v3_0 is BalanceHolder {
         return questions[question_id].bond;
     }
 
+    /// @notice Returns the minimum bond that can answer the question
+    /// @param question_id The ID of the question
+    function getMinBond(bytes32 question_id)
+    public view returns(uint256) {
+        return questions[question_id].min_bond;
+    }
+
 }
