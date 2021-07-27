@@ -218,6 +218,8 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
     }
 
+    /// @notice Set the address of the ERC20 token that will be used for bonds.
+    /// @param _token The ERC20 token that will be used for bonds.
     function setToken(IERC20 _token) 
     public
     {
