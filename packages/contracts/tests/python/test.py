@@ -26,10 +26,16 @@ from eth_tester import EthereumTester, PyEVMBackend
 
 # Command-line flag to skip tests we're not working on
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
-REALITIO_CONTRACT = os.environ.get('REALITIO', 'Realitio')
+REALITYETH_CONTRACT = os.environ.get('REALITYETH', 'RealityETH-2.0')
+print(REALITYETH_CONTRACT)
 CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
 
-DEPLOY_GAS = 4500000
+bits = REALITYETH_CONTRACT.split('-')
+VERNUM = float(bits[1])
+
+print("Version is "+str(VERNUM))
+
+DEPLOY_GAS = 8000000
 
 QINDEX_CONTENT_HASH = 0
 QINDEX_ARBITRATOR = 1
@@ -129,14 +135,21 @@ class TestRealitio(TestCase):
         if sender is None:
             sender = t.k0
 
-        contract_json = {}
-        json_fname = con_name + '.json'
-        with open('../../truffle/build/contracts/'+json_fname) as f:
-            contract_json = f.read()
+        bytecode_file = '../../bytecode/' + con_name + '.bin'
+        bcode = None
+        contract_if = None
+
+        with open(bytecode_file) as f:
+            bcode = f.read().strip("\n")
             f.close()
 
-        bcode = json.loads(contract_json)['bytecode']
-        contract_if = json.loads(contract_json)['abi']
+        for solcv in ['solc-0.4.25', 'solc-0.8.6']:
+            abi_file = '../../abi/'+solcv+'/' + con_name + '.abi.json'
+            if os.path.exists(abi_file):
+                with open(abi_file) as f:
+                    contract_if = f.read()
+                    f.close()
+                break
 
         tx_hash = self.web3.eth.contract(abi=contract_if, bytecode=bcode).constructor().transact(self.deploy_tx)
         addr = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
@@ -172,7 +185,7 @@ class TestRealitio(TestCase):
         fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         self.assertEqual(fee, 10000000000000000) 
             
-        self.rc0 = self._contractFromBuildJSON(REALITIO_CONTRACT)
+        self.rc0 = self._contractFromBuildJSON(REALITYETH_CONTRACT)
         txid = self.arb0.functions.setRealitio(self.rc0.address).transact(self.standard_tx)
 
         txid = self.arb0.functions.setQuestionFee(100).transact(self.standard_tx)
@@ -372,7 +385,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_right(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_right, not a feature of this contract")
             return
 
@@ -414,7 +427,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_right_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_right_commit, not a feature of this contract")
             return
 
@@ -455,7 +468,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong_commit, not a feature of this contract")
             return
 
@@ -495,7 +508,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong, not a feature of this contract")
             return
 
@@ -533,7 +546,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_unrevealed_commit(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_unrevealed_commit, not a feature of this contract")
             return
 
@@ -606,7 +619,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_cancel(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_arbitrator_cancel, not a feature of this contract")
             return
 
@@ -1282,7 +1295,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_submit_answer_for_withdrawal(self):
 
-        if REALITIO_CONTRACT != 'Realitio_v2_1':
+        if VERNUM < 2.1:
             print("Skipping test_submit_answer_for_withdrawal, submitAnswerFor is not a feature of this contract")
             return
 

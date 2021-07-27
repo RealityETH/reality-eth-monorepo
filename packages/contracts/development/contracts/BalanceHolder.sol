@@ -1,4 +1,6 @@
-pragma solidity ^0.4.25;
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.6;
 
 contract BalanceHolder {
 
@@ -13,7 +15,7 @@ contract BalanceHolder {
     public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
-        msg.sender.transfer(bal);
+        payable(msg.sender).transfer(bal);
         emit LogWithdraw(msg.sender, bal);
     }
 
