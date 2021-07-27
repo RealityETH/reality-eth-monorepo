@@ -329,7 +329,11 @@ contract RealityETH_v3_0 is BalanceHolder {
         questions[question_id].arbitrator = arbitrator;
         questions[question_id].opening_ts = opening_ts;
         questions[question_id].timeout = timeout;
-        questions[question_id].bounty = bounty;
+
+        if (bounty > 0) {
+            questions[question_id].bounty = bounty;
+            emit LogFundAnswerBounty(question_id, bounty, bounty, msg.sender);
+        }
 
         if (min_bond > 0) {
             questions[question_id].min_bond = min_bond;
