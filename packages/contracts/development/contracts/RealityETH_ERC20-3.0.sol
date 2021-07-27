@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.6;
 
-
 import './BalanceHolderERC20.sol';
+
 contract RealityETH_ERC20_v3_0 is BalanceHolder {
 
     address constant NULL_ADDRESS = address(0);
