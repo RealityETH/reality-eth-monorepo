@@ -28,12 +28,20 @@ from eth_tester import EthereumTester, PyEVMBackend
 WORKING_ONLY = os.environ.get('WORKING_ONLY', False)
 REALITYETH_CONTRACT = os.environ.get('REALITYETH', 'RealityETH-2.0')
 print(REALITYETH_CONTRACT)
-CLAIM_FEE = int(os.environ.get('CLAIM_FEE', 0))
 
 bits = REALITYETH_CONTRACT.split('-')
 VERNUM = float(bits[1])
+if "ERC20" in REALITYETH_CONTRACT:
+    ERC20 = True
+else:
+    ERC20 = False
 
 print("Version is "+str(VERNUM))
+
+if VERNUM >= 2.1:
+    CLAIM_FEE = 40
+else:
+    CLAIM_FEE = 0
 
 DEPLOY_GAS = 8000000
 
@@ -50,6 +58,9 @@ QINDEX_BOND = 9
 QINDEX_MIN_BOND = 10
 
 ANSWERED_TOO_SOON_VAL = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe"
+
+
+
 
 def calculate_answer_hash(answer, nonce):
     if answer[:2] == "0x":
@@ -73,7 +84,10 @@ def calculate_content_hash(template_id, question_str, opening_ts):
 
 def calculate_question_id(cntrct, template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender, min_bond):
     content_hash = calculate_content_hash(template_id, question_str, opening_ts)
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, cntrct, sender, nonce])))
+    if VERNUM >= 3:
+        return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, cntrct, sender, nonce])))
+    else:
+        return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
 
 def calculate_history_hash(last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment):
     return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
@@ -96,6 +110,50 @@ def subfee(bond):
         return int(bond - int(bond/fee))
 
 class TestRealitio(TestCase):
+
+    # Creates a question and answers it to create a balance that can be withdrawn
+    # NB This calls _issueTokens which alters approved, so you may need to reset it 
+    def _setup_balance(self, acct, amt):
+
+        fee = self.rc0.functions.arbitrator_question_fees(self.arb0.address).call()
+        self.assertEqual(fee, 100)
+
+        self._issueTokens(acct, amt+fee, amt+fee)
+
+        starting_bal = self.rc0.functions.balanceOf(acct).call()
+
+        bond = 1
+
+        txid = self.rc0.functions.askQuestionERC20(
+            0,
+            "my question _setup_balance",
+            self.arb0.address,
+            30,
+            0,
+            0
+            ,(amt + fee - bond)
+        ).transact(self._txargs(gas=300000, sender=acct))
+        self.raiseOnZeroStatus(txid)
+
+        qid = calculate_question_id(self.rc0.address, 0, "my question _setup_balance", self.arb0.address, 30, 0, 0, acct, 0)
+        q = self.rc0.functions.questions(qid).call()
+        self.assertEqual(q[QINDEX_BOUNTY], (amt - bond))
+
+        st = self.submitAnswerReturnUpdatedState( None, qid, 1002, 0, bond, acct, False, False, False, None)
+        q = self.rc0.functions.questions(qid).call()
+        self.assertEqual(q[QINDEX_BOND], (bond))
+        self.assertEqual(q[QINDEX_BEST_ANSWER], to_answer_for_contract(1002))
+
+        self.web3.testing.mine()
+        self._advance_clock(33)
+        self.web3.testing.mine()
+
+        self.rc0.functions.claimWinnings(qid, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+        ending_bal = self.rc0.functions.balanceOf(acct).call()
+
+        self.assertEqual(amt, ending_bal - starting_bal)
+
+
 
     def assertZeroStatus(self, txid, msg=None):
         self.assertEqual(self.web3.eth.getTransactionReceipt(txid)['status'], 0, msg)
@@ -132,6 +190,10 @@ class TestRealitio(TestCase):
             standard_tx['from'] = sender
 
         return standard_tx
+
+    def _issueTokens(self, addr, issued, approved):
+        self.token0.functions.mint(addr, issued).transact()
+        self.token0.functions.approve(self.rc0.address, approved).transact(self._txargs(sender=addr))
 
     def _contractFromBuildJSON(self, con_name, sender=None, startgas=DEPLOY_GAS):
 
@@ -180,6 +242,11 @@ class TestRealitio(TestCase):
             'gas': 200000
         }
 
+        if ERC20:
+            k0 = self.web3.eth.accounts[0]
+            self.token0 = self._contractFromBuildJSON('ERC20')
+            self.token0.functions.mint(k0, 100000000000000).transact()
+            self.assertEqual(self.token0.functions.balanceOf(k0).call(), 100000000000000)
 
         self.arb0 = self._contractFromBuildJSON('RegisteredWalletArbitrator')
         tx_hash = self.arb0.functions.setDisputeFee(10000000000000000).transact(self.standard_tx)
@@ -191,18 +258,33 @@ class TestRealitio(TestCase):
         self.rc0 = self._contractFromBuildJSON(REALITYETH_CONTRACT)
         txid = self.arb0.functions.setRealitio(self.rc0.address).transact(self.standard_tx)
 
+        if ERC20:
+            self.rc0.functions.setToken(self.token0.address).transact()
+            self.token0.functions.approve(self.rc0.address, 100000000000000).transact()
+
         txid = self.arb0.functions.setQuestionFee(100).transact(self.standard_tx)
 
         expected_question_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
         
-        txid = self.rc0.functions.askQuestion(
-            0,
-            "my question",
-            self.arb0.address,
-            30,
-            0,
-            0
-        ).transact(self._txargs(val=1100))
+        if ERC20:
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question",
+                self.arb0.address,
+                30,
+                0,
+                0
+                ,1100
+            ).transact(self._txargs())
+        else:
+            txid = self.rc0.functions.askQuestion(
+                0,
+                "my question",
+                self.arb0.address,
+                30,
+                0,
+                0
+            ).transact(self._txargs(val=1100))
         txr = self.web3.eth.getTransactionReceipt(txid)
 
         expected_content_hash = calculate_content_hash(0, "my question", 0)
@@ -224,12 +306,21 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_fund_increase(self):
 
-        question = self.rc0.functions.questions(self.question_id).call()
-        self.assertEqual(question[QINDEX_BOUNTY], 1000)
+        k0 = self.web3.eth.accounts[0]
 
-        txargs = self.standard_tx
-        txargs['value'] = 500
-        self.rc0.functions.fundAnswerBounty(self.question_id).transact(txargs)
+        if ERC20:
+            start_bal = self.token0.functions.balanceOf(k0).call()
+
+            self.rc0.functions.fundAnswerBountyERC20(self.question_id
+            ,500
+            ).transact()
+
+            end_bal = self.token0.functions.balanceOf(k0).call()
+            self.assertEqual(end_bal, start_bal - 500)
+        else:
+            txargs = self.standard_tx
+            txargs['value'] = 500
+            self.rc0.functions.fundAnswerBounty(self.question_id).transact(txargs)
 
         question = self.rc0.functions.questions(self.question_id).call()
         self.assertEqual(question[QINDEX_BOUNTY], 1500)
@@ -249,7 +340,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_response_finalization(self):
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0 ,1).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
 
         self._advance_clock(33)
 
@@ -272,7 +366,12 @@ class TestRealitio(TestCase):
         expect_ch = calculate_content_hash(0, "my question", 0)
         wrong_ch = calculate_content_hash(0, "not my question", 0)
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1) )
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0 ,1
+            ).transact()
+
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1) )
 
         # Not finalized yet
         with self.assertRaises(TransactionFailed):
@@ -335,13 +434,19 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_earliest_finalization_ts(self):
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=10))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(54321), 0 ,10).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=10))
         ts1 = self.rc0.functions.questions(self.question_id).call()[QINDEX_FINALIZATION_TS]
-        self.assertEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 10)
 
         self._advance_clock(1)
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=20))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(54321), 0 ,20).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=20))
+
         self.assertEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 20)
         ts2 = self.rc0.functions.questions(self.question_id).call()[QINDEX_FINALIZATION_TS]
 
@@ -350,8 +455,16 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_conflicting_response_finalization(self):
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1)) 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=10))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1
+            ).transact()
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(54321), 0,
+            10
+            ).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1)) 
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=10))
 
         self._advance_clock(33)
 
@@ -361,7 +474,12 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_answered(self):
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1
+            ).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
 
         # The arbitrator cannot submit an answer that has not been requested. 
         # (If they really want to do this, they can always pay themselves for arbitration.)
@@ -395,6 +513,12 @@ class TestRealitio(TestCase):
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -437,6 +561,12 @@ class TestRealitio(TestCase):
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -466,8 +596,6 @@ class TestRealitio(TestCase):
         self.rc0.functions.claimWinnings(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
         self.assertEqual(self.rc0.functions.balanceOf(k4).call(), 2+subfee(4)+subfee(8)+subfee(16)+1000, "The last answerer gets it all for a right answer")
 
-
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
 
@@ -478,6 +606,12 @@ class TestRealitio(TestCase):
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -518,6 +652,12 @@ class TestRealitio(TestCase):
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -556,6 +696,12 @@ class TestRealitio(TestCase):
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -617,8 +763,6 @@ class TestRealitio(TestCase):
         self.assertNotEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_BOND], 0)
 
 
-
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_cancel(self):
 
@@ -626,7 +770,10 @@ class TestRealitio(TestCase):
             print("Skipping test_arbitrator_cancel, not a feature of this contract")
             return
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0, 1).transact(self._txargs())
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
 
         # The arbitrator cannot submit an answer that has not been requested. 
         # (If they really want to do this, they can always pay themselves for arbitration.)
@@ -663,7 +810,10 @@ class TestRealitio(TestCase):
         self.assertEqual(question[QINDEX_FINALIZATION_TS], cancelled_ts + 30, "Cancelling arbitration extends the timeout")
 
         # You can submit answers again
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=2))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(54321), 0, 2).transact(self._txargs())
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(54321), 0).transact(self._txargs(val=2))
 
         # You can request arbitration again
         self.assertTrue(self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee)), "Requested arbitration again")
@@ -686,7 +836,11 @@ class TestRealitio(TestCase):
 
         self.assertFalse(self.rc0.functions.questions(self.question_id).call()[QINDEX_IS_PENDING_ARBITRATION])
 
-    def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False, skip_sender = False):
+    def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False, skip_sender = False, tx_acct = None):
+
+        if tx_acct is None:
+            tx_acct = sdr
+
         if st is None:
             st = {
                 'addr': [],
@@ -695,6 +849,7 @@ class TestRealitio(TestCase):
                 'hash': [],
                 'nonce': [], # only for commitments
             }
+
         hist_hash = self.rc0.functions.questions(qid).call()[QINDEX_HISTORY_HASH]
         st['hash'].insert(0, hist_hash)
         st['bond'].insert(0, bond)
@@ -703,21 +858,51 @@ class TestRealitio(TestCase):
         nonce = None
         NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-        if is_commitment:
-            nonce = 1234
-            answer_hash = calculate_answer_hash(to_answer_for_contract(ans), nonce)
-            commitment_id = calculate_commitment_id(decode_hex(self.question_id[2:]), decode_hex(answer_hash[2:]), bond)
-            #self.assertEqual(to_answer_for_contract(ans), commitment_id)
-            if skip_sender:
-                self.rc0.functions.submitAnswerCommitment(qid, decode_hex(answer_hash[2:]), max_last, NULL_ADDRESS).transact(self._txargs(val=bond, sender=sdr))
+        if ERC20:
+
+            if is_commitment:
+                nonce = 1234
+                answer_hash = calculate_answer_hash(to_answer_for_contract(ans), nonce)
+                commitment_id = calculate_commitment_id(decode_hex(self.question_id[2:]), decode_hex(answer_hash[2:]), bond)
+                if skip_sender:
+                    txid = self.rc0.functions.submitAnswerCommitmentERC20(qid, decode_hex(answer_hash[2:]), max_last, NULL_ADDRESS
+                    ,bond
+                    ).transact(self._txargs(sender=tx_acct))
+                    self.raiseOnZeroStatus(txid)
+                else:
+                    txid = self.rc0.functions.submitAnswerCommitmentERC20(qid, decode_hex(answer_hash[2:]), max_last, sdr
+                    ,bond
+                    ).transact(self._txargs(sender=tx_acct))
+                    self.raiseOnZeroStatus(txid)
+                st['answer'][0] = decode_hex(commitment_id[2:])
             else:
-                self.rc0.functions.submitAnswerCommitment(qid, decode_hex(answer_hash[2:]), max_last, sdr).transact(self._txargs(val=bond, sender=sdr))
-            st['answer'][0] = decode_hex(commitment_id[2:])
+                if is_arbitrator:
+                    txid = self.arb0.functions.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, sdr).transact(self._txargs(sender=tx_acct))
+                    self.raiseOnZeroStatus(txid)
+                else:
+                    txid = self.rc0.functions.submitAnswerERC20(qid, to_answer_for_contract(ans), max_last
+                    ,bond
+                    ).transact(self._txargs(sender=tx_acct))
+                    self.raiseOnZeroStatus(txid)
+
         else:
-            if is_arbitrator:
-                self.arb0.functions.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, sdr).transact(self._txargs(val=bond, sender=sdr))
+
+            if is_commitment:
+                nonce = 1234
+                answer_hash = calculate_answer_hash(to_answer_for_contract(ans), nonce)
+                commitment_id = calculate_commitment_id(decode_hex(self.question_id[2:]), decode_hex(answer_hash[2:]), bond)
+                #self.assertEqual(to_answer_for_contract(ans), commitment_id)
+                if skip_sender:
+                    self.rc0.functions.submitAnswerCommitment(qid, decode_hex(answer_hash[2:]), max_last, NULL_ADDRESS).transact(self._txargs(val=bond, sender=sdr))
+                else:
+                    self.rc0.functions.submitAnswerCommitment(qid, decode_hex(answer_hash[2:]), max_last, sdr).transact(self._txargs(val=bond, sender=sdr))
+                st['answer'][0] = decode_hex(commitment_id[2:])
             else:
-                self.rc0.functions.submitAnswer(qid, to_answer_for_contract(ans), max_last).transact(self._txargs(val=bond, sender=sdr))
+                if is_arbitrator:
+                    self.arb0.functions.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, sdr).transact(self._txargs(val=bond, sender=sdr))
+                else:
+                    self.rc0.functions.submitAnswer(qid, to_answer_for_contract(ans), max_last).transact(self._txargs(val=bond, sender=sdr))
+
         st['nonce'].insert(0, nonce)
         return st
 
@@ -727,6 +912,9 @@ class TestRealitio(TestCase):
         st = None
 
         sdr = self.web3.eth.accounts[3]
+
+        if ERC20:
+            self._issueTokens(sdr, 100000, 50000)
 
         ##hist_hash = self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH]
         ##self.assertEqual(hist_hash, '0x0000000000000000000000000000000000000000000000000000000000000000')
@@ -767,6 +955,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_same_person_contradicting_self(self):
         k3 = self.web3.eth.accounts[3]
+
+        if ERC20:
+            self._issueTokens(k3, 100000, 50000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 20, k3)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 20, 40, k3)
@@ -812,6 +1004,11 @@ class TestRealitio(TestCase):
     def test_arbitration_max_previous(self):
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -835,6 +1032,11 @@ class TestRealitio(TestCase):
         fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
@@ -858,6 +1060,9 @@ class TestRealitio(TestCase):
 
         k4 = self.web3.eth.accounts[4]
 
+        if ERC20:
+            self._issueTokens(k4, 1000000, 1000000)
+
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k4)
@@ -877,6 +1082,12 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
         k6 = self.web3.eth.accounts[6]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k6, 1000000, 1000000)
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, False)
@@ -898,6 +1109,12 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
         k6 = self.web3.eth.accounts[6]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k6, 1000000, 1000000)
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, False)
@@ -925,6 +1142,12 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
         k6 = self.web3.eth.accounts[6]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k6, 1000000, 1000000)
 
         self.web3.testing.mine()
         self.assertEqual(self.rc0.functions.questions(self.question_id).call()[QINDEX_STEP_DELAY], 30)
@@ -978,6 +1201,12 @@ class TestRealitio(TestCase):
         k5 = self.web3.eth.accounts[5]
         k6 = self.web3.eth.accounts[6]
 
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k6, 1000000, 1000000)
+
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, True, False, True)
         nonce = st['nonce'][0]
         hh = st['hash'][0]
@@ -999,6 +1228,8 @@ class TestRealitio(TestCase):
     def test_answer_no_answer_no_commit(self):
 
         k3 = self.web3.eth.accounts[3]
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, True)
@@ -1021,6 +1252,8 @@ class TestRealitio(TestCase):
     def test_answer_commit_expired(self):
 
         k3 = self.web3.eth.accounts[3]
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, True)
@@ -1036,6 +1269,9 @@ class TestRealitio(TestCase):
     def test_answer_commit_with_arbitration_pending(self):
     
         k3 = self.web3.eth.accounts[3]
+        if ERC20:
+            self._issueTokens(k3, 1000, 1000)
+
         fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
 
         st = None
@@ -1050,10 +1286,103 @@ class TestRealitio(TestCase):
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_token_deductions_no_balance(self):
+
+        if not ERC20:
+            return
+
+        k0 = self.web3.eth.accounts[0]
+        k3 = self.web3.eth.accounts[3]
+        bal = self.token0.functions.balanceOf(k3).call()
+        self.assertEqual(bal, 0)
+
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1000
+            ).transact(self._txargs(sender=k3))
+            self.raiseOnZeroStatus(txid)
+
+        self._issueTokens(k3, 500, 500)
+
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1000
+            ).transact(self._txargs(sender=k3))
+            self.raiseOnZeroStatus(txid)
+
+        self._issueTokens(k3, 501, 1001)
+
+        bal = self.token0.functions.balanceOf(k3).call()
+        self.assertEqual(bal, 1001)
+
+        txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+        ,1000
+        ).transact(self._txargs(sender=k3))
+        self.raiseOnZeroStatus(txid)
+
+        bal = self.token0.functions.balanceOf(k3).call()
+        self.assertEqual(bal, 1)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_token_deductions_with_existing_balance(self):
+
+        if not ERC20:
+            return
+
+        k3 = self.web3.eth.accounts[3]
+        self._setup_balance(k3, 1000)
+
+        start_rcbal = self.rc0.functions.balanceOf(k3).call()
+        start_tbal = self.token0.functions.balanceOf(k3).call()
+
+        self.assertEqual(start_rcbal, 1000)
+
+        # There's enough in the balance, so this will deduct from the balance and leave the token alone
+        self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+        ,1
+        ).transact(self._txargs(sender=k3))
+
+        rcbal = self.rc0.functions.balanceOf(k3).call()
+        self.assertEqual(rcbal, 999)
+        tbal = self.token0.functions.balanceOf(k3).call()
+        self.assertEqual(tbal, start_tbal)
+
+        # Sets the approval to 500, and makes sure there at least 500
+        self._issueTokens(k3, 500, 500)
+        start_tbal = self.token0.functions.balanceOf(k3).call()
+
+        # We have 999 in the balance and only 500 approved, so this should fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,2000
+            ).transact(self._txargs(sender=k3))
+            self.raiseOnZeroStatus(txid)
+
+
+        start_tbal = self.token0.functions.balanceOf(k3).call()
+
+        # This will consume all the remaining balance, plus take 1 from the token
+        txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+        ,1000
+        ).transact(self._txargs(sender=k3))
+        self.raiseOnZeroStatus(txid)
+
+        rcbal = self.rc0.functions.balanceOf(k3).call()
+        self.assertEqual(rcbal, 0)
+        tbal = self.token0.functions.balanceOf(k3).call()
+        self.assertEqual(tbal, start_tbal - 1)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_not_final(self):
     
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
 
         fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
 
@@ -1082,18 +1411,46 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=2, sender=k3)) 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 0).transact(self._txargs(val=5, sender=k4)) 
+        if ERC20:
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 5).transact(self._txargs(val=(22+5), sender=k5)) 
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1
+            ).transact()
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10001), 0
+            ,2
+            ).transact(self._txargs(sender=k3))
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10002), 0
+            ,5
+            ).transact(self._txargs(sender=k4))
+
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10002), 5,
+            22+5
+            ).transact(self._txargs(sender=k5))
+
+        else:
+
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=2, sender=k3)) 
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 0).transact(self._txargs(val=5, sender=k4)) 
+
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 5).transact(self._txargs(val=(22+5), sender=k5)) 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_simple_bond_claim(self):
 
         k0 = self.web3.eth.accounts[0]
 
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=3)) 
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,3
+            ).transact()
+
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=3)) 
 
         self._advance_clock(33)
 
@@ -1111,6 +1468,11 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
 
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+
         claim_args_state = []
         claim_args_addrs = []
         claim_args_bonds = []
@@ -1119,49 +1481,99 @@ class TestRealitio(TestCase):
         self.assertEqual(self.rc0.functions.balanceOf(k4).call(), 0)
 
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=0)) 
+            if ERC20:
+                txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0,
+                0
+                ).transact()
+            else:
+                txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=0)) 
+                
             self.raiseOnZeroStatus(txid)
 
         claim_args_state.append(decode_hex("0x00"))
         claim_args_addrs.append(k0)
         claim_args_bonds.append(1)
         claim_args_answs.append(to_answer_for_contract(12345))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1)) 
+
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1
+            ).transact()
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1)) 
         
 
         # "You must increase"
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=1, sender=k3)) 
+            if ERC20:
+                txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10001), 0
+                ,1
+                ).transact(self._txargs(sender=k3))
+            else:
+                txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=1, sender=k3)) 
             self.raiseOnZeroStatus(txid)
 
         claim_args_state.append(self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH])
         claim_args_addrs.append(k3)
         claim_args_bonds.append(2)
         claim_args_answs.append(to_answer_for_contract(10001))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=2, sender=k3))
+
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10001), 0
+            ,2
+            ).transact(self._txargs(sender=k3))
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10001), 0).transact(self._txargs(val=2, sender=k3))
 
         # We will ultimately finalize on this answer
         claim_args_state.append(self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH])
         claim_args_addrs.append(k4)
         claim_args_bonds.append(4)
         claim_args_answs.append(to_answer_for_contract(10002))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 0).transact(self._txargs(val=4, sender=k4)) 
 
-        # You have to at least double
-        ###with self.assertRaises(TransactionFailed):
-        ###    self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10003), 0).transact(self._txargs(val=7)) 
-        self.assertZeroStatus(self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10003), 0).transact(self._txargs(val=7)))
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10002), 0
+            ,4
+            ).transact(self._txargs(sender=k4))
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 0).transact(self._txargs(val=4, sender=k4)) 
 
-        # You definitely can't drop back to zero
-        ###with self.assertRaises(TransactionFailed):
-        ###    self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10004), 0).transact(self._txargs(val=0)) 
-        self.assertZeroStatus(self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10004), 0).transact(self._txargs(val=0)))
+        if ERC20:
+            # You have to at least double
+            with self.assertRaises(TransactionFailed):
+                self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10003), 0
+                ,7
+                ).transact()
+
+            # You definitely can't drop back to zero
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10004), 0
+                ,0
+                ).transact()
+                self.raiseOnZeroStatus(txid)
+
+        else:
+            # You have to at least double
+            ###with self.assertRaises(TransactionFailed):
+            ###    self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10003), 0).transact(self._txargs(val=7)) 
+            self.assertZeroStatus(self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10003), 0).transact(self._txargs(val=7)))
+
+            # You definitely can't drop back to zero
+            ###with self.assertRaises(TransactionFailed):
+            ###    self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10004), 0).transact(self._txargs(val=0)) 
+            self.assertZeroStatus(self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10004), 0).transact(self._txargs(val=0)))
 
         claim_args_state.append(self.rc0.functions.questions(self.question_id).call()[QINDEX_HISTORY_HASH])
         claim_args_addrs.append(k3)
         claim_args_bonds.append(11)
         claim_args_answs.append(to_answer_for_contract(10005))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10005), 0).transact(self._txargs(val=11, sender=k3))
+
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10005), 0
+            ,11
+            ).transact(self._txargs(sender=k3))
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10005), 0).transact(self._txargs(val=11, sender=k3))
 
         # The extra amount you have to send should be passed in a parameters
         #with self.assertRaises(TransactionFailed): 
@@ -1171,7 +1583,13 @@ class TestRealitio(TestCase):
         claim_args_addrs.append(k5)
         claim_args_bonds.append(22)
         claim_args_answs.append(to_answer_for_contract(10002))
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 11).transact(self._txargs(val=22, sender=k5)) 
+
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(10002), 11
+            ,22
+            ).transact(self._txargs(sender=k5))
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(10002), 11).transact(self._txargs(val=22, sender=k5)) 
 
         self.assertFalse(self.rc0.functions.isFinalized(self.question_id).call())
 
@@ -1203,24 +1621,32 @@ class TestRealitio(TestCase):
 
         self.assertEqual(self.rc0.functions.balanceOf(k3).call(), 0, "Wrong answerers get nothing")
 
-        starting_bal = self.web3.eth.getBalance(k5)
+        if ERC20:
+            starting_bal = self.token0.functions.balanceOf(k5).call()
+        else:
+            starting_bal = self.web3.eth.getBalance(k5)
+
         txid = self.rc0.functions.withdraw().transact(self._txargs(sender=k5))
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_spent = rcpt['cumulativeGasUsed']
 
-        ending_bal = self.web3.eth.getBalance(k5)
-
-        self.assertEqual(ending_bal, starting_bal + k5bal - gas_spent)
+        if ERC20:
+            ending_bal = self.token0.functions.balanceOf(k5).call()
+            self.assertEqual(ending_bal, starting_bal + k5bal)
+        else:
+            ending_bal = self.web3.eth.getBalance(k5)
+            self.assertEqual(ending_bal, starting_bal + k5bal - gas_spent)
 
         self.assertEqual(self.rc0.functions.balanceOf(k5).call(), 0)
-
-        
-
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_bulk_withdrawal_other_user(self):
 
         k3 = self.web3.eth.accounts[3]
+        k5 = self.web3.eth.accounts[5]
+
+        if ERC20:
+            self._issueTokens(k3, 100000, 50000)
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k3)
@@ -1231,9 +1657,9 @@ class TestRealitio(TestCase):
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 32, 64, k3)
         claimable = 64+32+16+8+4+2+1000
 
-        self._advance_clock(11)
+        self._advance_clock(33)
 
-        self.assertEqual(self.rc0.functions.balanceOf(k3), 0)
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), 0)
 
         # Have an unconnected user do the claim
         # This will leave the balance in the contract rather than withdrawing it
@@ -1241,41 +1667,20 @@ class TestRealitio(TestCase):
         
         self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
 
-
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_bond_bulk_withdrawal_other_user(self):
-
-        k3 = self.web3.eth.accounts[3]
-
-        st = None
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k3)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 2, 4, k3)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 4, 8, k3)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k3)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 16, 32, k3)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 32, 64, k3)
-        claimable = 64+32+16+8+4+2+1000
-
-        self._advance_clock(33)
-
-        starting_bal = self.web3.eth.getBalance(k3)
-
-        # Have the user who gets all the cash do the claim
-        # This will empty their balance from the contract and assign it to their normal account
-        txid = self.rc0.functions.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs(sender=k3))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
-        ending_bal = self.web3.eth.getBalance(k3)
-        gas_used = rcpt['cumulativeGasUsed']
-
-        self.assertEqual(starting_bal+claimable-gas_used, ending_bal)
-        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), 0, "All funds are gone from the contract once withdrawal is complete")
-
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_withdrawal(self):
 
         k5 = self.web3.eth.accounts[5]
-
-        self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=100, sender=k5))
+        
+        if ERC20:
+              self._issueTokens(k5, 1000000, 1000000)
+        
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,100
+            ).transact(self._txargs(sender=k5))
+        else:
+            self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=100, sender=k5))
         self._advance_clock(33)
         self.rc0.functions.claimWinnings(self.question_id, [decode_hex("0x00")], [k5], [100], [to_answer_for_contract(12345)]).transact(self._txargs(sender=k5))
 
@@ -1283,15 +1688,26 @@ class TestRealitio(TestCase):
         self.assertEqual(starting_deposited, 1100)
 
         gas_used = 0
-        starting_bal = self.web3.eth.getBalance(k5)
+        if ERC20:
+            starting_bal = self.token0.functions.balanceOf(k5).call()
+        else:
+            starting_bal = self.web3.eth.getBalance(k5)
 
         txid = self.rc0.functions.withdraw().transact(self._txargs(sender=k5))
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
-        ending_bal = self.web3.eth.getBalance(k5)
+
+        if ERC20:
+            ending_bal = self.token0.functions.balanceOf(k5).call()
+        else:
+            ending_bal = self.web3.eth.getBalance(k5)
 
         self.assertEqual(self.rc0.functions.balanceOf(k5).call(), 0)
-        self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
+
+        if ERC20:
+            self.assertEqual(ending_bal, starting_bal + starting_deposited)
+        else:
+            self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
 
         return
 
@@ -1305,11 +1721,26 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
 
-        with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, "0x0000000000000000000000000000000000000000").transact(self._txargs(val=100, sender=k4))
-            self.raiseOnZeroStatus(txid)
+        if ERC20:
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+        
+        if ERC20:
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.submitAnswerForERC20(self.question_id, to_answer_for_contract(12345), 0, "0x0000000000000000000000000000000000000000", 100).transact(self._txargs(sender=k4))
+                self.raiseOnZeroStatus(txid)
+        else:
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, "0x0000000000000000000000000000000000000000").transact(self._txargs(val=100, sender=k4))
+                self.raiseOnZeroStatus(txid)
 
-        self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, k5).transact(self._txargs(val=100, sender=k4))
+        return
+
+        if ERC20:
+            self.rc0.functions.submitAnswerForERC20(self.question_id, to_answer_for_contract(12345), 0, k5, 100).transact(self._txargs(sender=k4))
+        else:
+            self.rc0.functions.submitAnswerFor(self.question_id, to_answer_for_contract(12345), 0, k5).transact(self._txargs(val=100, sender=k4))
+
         self._advance_clock(33)
         self.rc0.functions.claimWinnings(self.question_id, [decode_hex("0x00")], [k5], [100], [to_answer_for_contract(12345)]).transact(self._txargs(sender=k5))
 
@@ -1317,15 +1748,27 @@ class TestRealitio(TestCase):
         self.assertEqual(starting_deposited, 1100)
 
         gas_used = 0
-        starting_bal = self.web3.eth.getBalance(k5)
+
+        if ERC20:
+            starting_bal = self.token0.functions.balanceOf(k5).call()
+        else:
+            starting_bal = self.web3.eth.getBalance(k5)
 
         txid = self.rc0.functions.withdraw().transact(self._txargs(sender=k5))
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
-        ending_bal = self.web3.eth.getBalance(k5)
+
+        if ERC20:
+            ending_bal = self.token0.functions.balanceOf(k5).call()
+        else:
+            ending_bal = self.web3.eth.getBalance(k5)
 
         self.assertEqual(self.rc0.functions.balanceOf(k5).call(), 0)
-        self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
+
+        if ERC20:
+            self.assertEqual(ending_bal, starting_bal + starting_deposited)
+        else:
+            self.assertEqual(ending_bal, starting_bal + starting_deposited - gas_used)
 
         return
 
@@ -1333,37 +1776,111 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_fee_received(self):
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_non_erc_ask_question_id(self):
+
+        # ERC20 also supports a plain askQuestion without a bounty
+        expected_question_id = calculate_question_id(self.rc0.address, 0, "my question x", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
+
+        # Non-ERC version only has one method which is already tested elsewhere
+        if not ERC20:
+            return
+
+        NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+        # There's a question fee so this should fail
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.askQuestion(
+                0,
+                "my question x",
+                self.arb0.address,
+                30,
+                0,
+                0
+            ).transact(self._txargs())
+            self.raiseOnZeroStatus(txid)
+
+        self.assertEqual(self.rc0.functions.questions(expected_question_id).call()[QINDEX_ARBITRATOR], NULL_ADDRESS)
+
+        self.arb0.functions.setQuestionFee(0).transact()
+
+        txid = self.rc0.functions.askQuestion(
+            0,
+            "my question x",
+            self.arb0.address,
+            30,
+            0,
+            0
+        ).transact(self._txargs())
+        self.raiseOnZeroStatus(txid)
+        self.assertNotEqual(self.rc0.functions.questions(expected_question_id).call()[QINDEX_ARBITRATOR], NULL_ADDRESS, "We have a question at the expected address")
+
         
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_ask_question_gas(self):
 
-        txid = self.rc0.functions.askQuestion(
-            0,
-            "my question 2",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=1100))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
-        gas_used = rcpt['cumulativeGasUsed']
-        #self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 110000)
+        if ERC20:
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 2",
+                self.arb0.address,
+                10,
+                0,
+                0
+                ,1100
+            ).transact()
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_used = rcpt['cumulativeGasUsed']
+            self.assertTrue(gas_used < 140000)
+        else:
+            txid = self.rc0.functions.askQuestion(
+                0,
+                "my question 2",
+                self.arb0.address,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=1100))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_used = rcpt['cumulativeGasUsed']
+            #self.assertEqual(gas_used, 120000)
+            self.assertTrue(gas_used < 110000)
     
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_question_gas(self):
 
-        txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        if ERC20:
 
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 103000)
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
+            ,1
+            ).transact()
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
 
-        # NB The second answer should be cheaper than the first.
-        # This is what we want, because you may need to be able to get a challenge through at busy times
+            self.assertTrue(rcpt['cumulativeGasUsed'] < 140000)
 
-        txid2 = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12346), 0).transact(self._txargs(val=2)) 
-        rcpt = self.web3.eth.getTransactionReceipt(txid2)
-        self.assertTrue(rcpt['cumulativeGasUsed'] < 56000)
+            # NB The second answer should be cheaper than the first.
+            # This is what we want, because you may need to be able to get a challenge through at busy times
+
+            txid2 = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12346), 0
+            ,2
+            ).transact()
+            rcpt = self.web3.eth.getTransactionReceipt(txid2)
+            self.assertTrue(rcpt['cumulativeGasUsed'] < 80000)
+
+        else:
+
+            txid = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+
+            self.assertTrue(rcpt['cumulativeGasUsed'] < 103000)
+
+            # NB The second answer should be cheaper than the first.
+            # This is what we want, because you may need to be able to get a challenge through at busy times
+
+            txid2 = self.rc0.functions.submitAnswer(self.question_id, to_answer_for_contract(12346), 0).transact(self._txargs(val=2)) 
+            rcpt = self.web3.eth.getTransactionReceipt(txid2)
+            self.assertTrue(rcpt['cumulativeGasUsed'] < 56000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_question_fee_withdrawal(self):
@@ -1373,34 +1890,76 @@ class TestRealitio(TestCase):
         k5 = self.web3.eth.accounts[5]
         k7 = self.web3.eth.accounts[7]
 
+        if ERC20:
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k7, 1000000, 1000000)
+
         start_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
         self.arb0.functions.setQuestionFee(321).transact()
 
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 3",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=1000, sender=k4))
 
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 4",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=2000, sender=k5))
+        if ERC20:
 
-        end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
-        self.assertEqual(end_bal - start_bal, (321*2))
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 3",
+                self.arb0.address,
+                10,
+                0,
+                0
+                ,1000
+            ).transact(self._txargs(sender=k4))
 
-        start_arb_bal = self.web3.eth.getBalance(self.arb0.address)
-        txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
-        end_arb_bal = self.web3.eth.getBalance(self.arb0.address)
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 4",
+                self.arb0.address,
+                10,
+                0,
+                0
+                ,2000
+            ).transact(self._txargs(sender=k5))
+
+            end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
+            self.assertEqual(end_bal - start_bal, (321*2))
+
+            start_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
+            txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            end_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
+
+            self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
+            self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
+
+        else:
+
+            question_id = self.rc0.functions.askQuestion(
+                0,
+                "my question 3",
+                self.arb0.address,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=1000, sender=k4))
+
+            question_id = self.rc0.functions.askQuestion(
+                0,
+                "my question 4",
+                self.arb0.address,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=2000, sender=k5))
+
+            end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
+            self.assertEqual(end_bal - start_bal, (321*2))
+
+            start_arb_bal = self.web3.eth.getBalance(self.arb0.address)
+            txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            end_arb_bal = self.web3.eth.getBalance(self.arb0.address)
 
         self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
@@ -1412,11 +1971,51 @@ class TestRealitio(TestCase):
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
 
+        if ERC20:
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+
         # Treat k5 as the arbitrator for these purposes, although really the arbitrator would be a contract
         self.rc0.functions.setQuestionFee(123).transact(self._txargs(sender=k5))
 
-        # Should fail with insufficient payment to cover the question fee
-        with self.assertRaises(TransactionFailed):
+        if ERC20:
+            # Should fail with insufficient payment to cover the question fee
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.askQuestionERC20(
+                    0,
+                    "my question 2",
+                    k5,
+                    10,
+                    0,
+                    0
+                    ,122
+                ).transact( self._txargs(sender=k4))
+                self.raiseOnZeroStatus(txid)
+
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 2",
+                k5,
+                10,
+                0,
+                0
+                ,126
+            ).transact(self._txargs(sender=k4))
+
+        else:
+
+            # Should fail with insufficient payment to cover the question fee
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.askQuestion(
+                    0,
+                    "my question 2",
+                    k5,
+                    10,
+                    0,
+                    0
+                ).transact( self._txargs(val=122, sender=k4))
+                self.raiseOnZeroStatus(txid)
+
             txid = self.rc0.functions.askQuestion(
                 0,
                 "my question 2",
@@ -1424,30 +2023,34 @@ class TestRealitio(TestCase):
                 10,
                 0,
                 0
-            ).transact( self._txargs(val=122, sender=k4))
-            self.raiseOnZeroStatus(txid)
+            ).transact(self._txargs(val=126, sender=k4))
 
-        txid = self.rc0.functions.askQuestion(
-            0,
-            "my question 2",
-            k5,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=126, sender=k4))
         question_id = calculate_question_id(self.rc0.address, 0, "my question 2", k5, 10, 0, 0, k4, 0)
 
         bounty = self.rc0.functions.questions(question_id).call()[QINDEX_BOUNTY]
         self.assertEqual(bounty, 126-123, "The bounty is what's left after the question fee is deducted")
 
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 3",
-            k5,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=122, sender=k5))
+        if ERC20:
+            question_id = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 3",
+                k5,
+                10,
+                0,
+                0
+                ,122
+            ).transact(self._txargs(sender=k5))
+        else:
+            question_id = self.rc0.functions.askQuestion(
+                0,
+                "my question 3",
+                k5,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=122, sender=k5))
+
+
         question_id = calculate_question_id(self.rc0.address, 0, "my question 3", k5, 10, 0, 0, k5, 0)
 
         bounty = self.rc0.functions.questions(question_id).call()[QINDEX_BOUNTY]
@@ -1456,20 +2059,48 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_minimum_bond(self):
 
+        if VERNUM < 3:
+            print("Skipping askQuestionWithMinBond, not a feature of this contract")
+            return
 
-        txid = self.rc0.functions.askQuestionWithMinBond(
-            0,
-            "my question 2",
-            self.arb0.address,
-            10,
-            0,
-            0,
-            1000
-        ).transact(self._txargs(val=1100))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
-        gas_used = rcpt['cumulativeGasUsed']
+        k0 = self.web3.eth.accounts[0]
+
+        if ERC20:
+            bal_before_in_contract = self.rc0.functions.balanceOf(k0).call()
+            self.assertEqual(bal_before_in_contract, 0, "nothing in the contract at the start")
+            bal_before = self.token0.functions.balanceOf(k0).call()
+            txid = self.rc0.functions.askQuestionWithMinBondERC20(
+                0,
+                "my question 2",
+                self.arb0.address,
+                10,
+                0,
+                0,
+                1000,
+                1100
+            ).transact(self._txargs())
+            bal_after = self.token0.functions.balanceOf(k0).call()
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            self.assertEqual(bal_after, bal_before - 1100, "New question bounty is deducted")
+            gas_used = rcpt['cumulativeGasUsed']
+        else:
+            bal_before = self.web3.eth.getBalance(k0)
+            txid = self.rc0.functions.askQuestionWithMinBond(
+                0,
+                "my question 2",
+                self.arb0.address,
+                10,
+                0,
+                0,
+                1000
+            ).transact(self._txargs(val=1100))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_used = rcpt['cumulativeGasUsed']
+            bal_after = self.web3.eth.getBalance(k0)
+            self.assertEqual(bal_after, bal_before - 1100 - gas_used, "New question bouny is deducted")
+
         #self.assertEqual(gas_used, 120000)
-        self.assertTrue(gas_used < 130000)
+        self.assertTrue(gas_used < 160000)
 
         expected_question_id = calculate_question_id(self.rc0.address, 0, "my question 2", self.arb0.address, 10, 0, 0, self.web3.eth.accounts[0], 1000)
 
@@ -1477,14 +2108,23 @@ class TestRealitio(TestCase):
         self.assertEqual(min_bond, 1000)
 
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(123), 0).transact(self._txargs(val=0))
+            if ERC20:
+                txid = self.rc0.functions.submitAnswerERC20(expected_question_id, to_answer_for_contract(123), 0, 0).transact(self._txargs())
+            else:
+                txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(123), 0).transact(self._txargs(val=0))
             self.raiseOnZeroStatus(txid)
 
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(1234), 0).transact(self._txargs(val=999))
+            if ERC20:
+                txid = self.rc0.functions.submitAnswerERC20(expected_question_id, to_answer_for_contract(1234), 0, 999).transact(self._txargs())
+            else:
+                txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(1234), 0).transact(self._txargs(val=999))
             self.raiseOnZeroStatus(txid)
 
-        txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1000))
+        if ERC20:
+            txid = self.rc0.functions.submitAnswerERC20(expected_question_id, to_answer_for_contract(12345), 0, 1000).transact(self._txargs())
+        else:
+            txid = self.rc0.functions.submitAnswer(expected_question_id, to_answer_for_contract(12345), 0).transact(self._txargs(val=1000))
         self.raiseOnZeroStatus(txid)
 
         best_answer = self.rc0.functions.questions(expected_question_id).call()[QINDEX_BEST_ANSWER]
@@ -1514,26 +2154,54 @@ class TestRealitio(TestCase):
         k5 = self.web3.eth.accounts[5]
         k7 = self.web3.eth.accounts[7]
 
+        if ERC20:
+            self._issueTokens(k2, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k7, 1000000, 1000000)
+
         start_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
         self.arb0.functions.setQuestionFee(321).transact()
 
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 3",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=1000, sender=k4))
+        if ERC20:
+            question_id = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 3",
+                self.arb0.address,
+                10,
+                0,
+                0
+                ,1000
+            ).transact(self._txargs(sender=k4))
 
-        question_id = self.rc0.functions.askQuestion(
-            0,
-            "my question 4",
-            self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=2000, sender=k5))
+            question_id = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 4",
+                self.arb0.address,
+                10,
+                0,
+                0
+                ,2000
+            ).transact(self._txargs(sender=k5))
+
+        else:
+            question_id = self.rc0.functions.askQuestion(
+                0,
+                "my question 3",
+                self.arb0.address,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=1000, sender=k4))
+
+            question_id = self.rc0.functions.askQuestion(
+                0,
+                "my question 4",
+                self.arb0.address,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=2000, sender=k5))
 
         end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
         self.assertEqual(end_bal - start_bal, (321*2))
@@ -1547,12 +2215,23 @@ class TestRealitio(TestCase):
             self.raiseOnZeroStatus(txid)
         
         self.arb0.functions.updateRegisteredWallet(t.a8).transact()
-        start_arb_bal = self.web3.eth.getBalance(t.a8)
+
+        if ERC20:
+            # Skip this for now as we're not actually using the RegisteredWallet
+            return
+
+        if ERC20:
+            start_arb_bal = self.token0.functions.balanceOf(t.a8).call()
+        else:
+            start_arb_bal = self.web3.eth.getBalance(t.a8)
 
         self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
         self.arb0.functions.withdrawToRegisteredWallet().transact(self._txargs(sender=k4))
 
-        end_arb_bal = self.web3.eth.getBalance(t.a8)
+        if ERC20:
+            end_arb_bal = self.token0.functions.balanceOf(t.a8).call()
+        else:
+            end_arb_bal = self.web3.eth.getBalance(t.a8)
 
         self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
@@ -1560,27 +2239,51 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_null_arbitrator_permitted(self):
 
+        if VERNUM < 3:
+            return
+
         NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
 
         k2 = self.web3.eth.accounts[2]
-        txid = self.rc0.functions.askQuestion(
-            0,
-            "my question 3",
-            NULL_ADDRESS,
-            # self.arb0.address,
-            10,
-            0,
-            0
-        ).transact(self._txargs(val=1000, sender=k2))
+
+        if ERC20:
+            self._issueTokens(k2, 1000000, 1000000)
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question 3",
+                NULL_ADDRESS,
+                10,
+                0,
+                0,
+                1000
+            ).transact(self._txargs(sender=k2))
+        else:
+            txid = self.rc0.functions.askQuestion(
+                0,
+                "my question 3",
+                NULL_ADDRESS,
+                10,
+                0,
+                0
+            ).transact(self._txargs(val=1000, sender=k2))
         self.raiseOnZeroStatus(txid)
 
-    # TODO: Test reopening a question
-    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_reopen_question(self):
 
-        k0 = self.web3.eth.accounts[0]
+        if VERNUM < 3.0:
+            print("Skipping test_reopen_question, not a feature of this contract")
+            return
 
-        self.rc0.functions.submitAnswer(self.question_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+        k0 = self.web3.eth.accounts[0]
+        if ERC20:
+            self._issueTokens(k0, 1000000, 1000000)
+
+        if ERC20:
+            txid = self.rc0.functions.submitAnswerERC20(self.question_id, ANSWERED_TOO_SOON_VAL, 0, 3).transact() 
+        else:
+            txid = self.rc0.functions.submitAnswer(self.question_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+            self.raiseOnZeroStatus(txid)
 
         self._advance_clock(33)
 
@@ -1600,12 +2303,34 @@ class TestRealitio(TestCase):
         self.assertEqual(old_bounty, 1000)
 
         # Make one of the details different to the original question and it should fail
-        with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.reopenQuestion( 0, "my questionz", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
-            self.raiseOnZeroStatus(txid)
+        if ERC20:
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.reopenQuestionERC20( 0, "not my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs())
+                self.raiseOnZeroStatus(txid)
+        else:
+            with self.assertRaises(TransactionFailed):
+                txid = self.rc0.functions.reopenQuestion( 0, "not my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+                self.raiseOnZeroStatus(txid)
 
         expected_reopen_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 1, self.web3.eth.accounts[0], 0)
-        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+
+        if ERC20:
+            # withdraw anything we have in contract balance as it complicates the test
+            self.rc0.functions.withdraw().transact(self._txargs())
+            bal_before = self.token0.functions.balanceOf(k0).call()
+            txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs(gas=300000))
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            self.raiseOnZeroStatus(txid)
+            bal_after = self.token0.functions.balanceOf(k0).call()
+            self.assertEqual(bal_after, bal_before - 123, "New question bounty is deducted")
+        else:
+            bal_before = self.web3.eth.getBalance(k0)
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+            self.raiseOnZeroStatus(txid)
+            rcpt = self.web3.eth.getTransactionReceipt(txid)
+            gas_spent = rcpt['cumulativeGasUsed']
+            bal_after = self.web3.eth.getBalance(k0)
+            self.assertEqual(bal_after, bal_before - 123 - gas_spent, "New question bounty is deducted")
         txr = self.web3.eth.getTransactionReceipt(txid)
 
         self.assertEqual("0x"+encode_hex(self.rc0.functions.reopened_questions(self.question_id).call()), expected_reopen_id, "reopened_questions returns reopened question id")
@@ -1619,15 +2344,25 @@ class TestRealitio(TestCase):
 
         # Second time should fail
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+            if ERC20:
+                txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id, 123).transact(self._txargs())
+            else:
+                txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 1, 0, self.question_id).transact(self._txargs(val=123))
+
             self.raiseOnZeroStatus(txid)
 
         # Different nonce should still fail
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=123))
+            if ERC20:
+                txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id, 123).transact(self._txargs(val=123))
+            else:
+                txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=123))
             self.raiseOnZeroStatus(txid)
 
-        self.rc0.functions.submitAnswer(expected_reopen_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(expected_reopen_id, ANSWERED_TOO_SOON_VAL, 0, 3).transact(self._txargs()) 
+        else:
+            self.rc0.functions.submitAnswer(expected_reopen_id, ANSWERED_TOO_SOON_VAL, 0).transact(self._txargs(val=3)) 
         self._advance_clock(33)
         self.assertEqual("0x"+encode_hex(self.rc0.functions.getFinalAnswer(expected_reopen_id).call()), ANSWERED_TOO_SOON_VAL)
 
@@ -1635,13 +2370,21 @@ class TestRealitio(TestCase):
         # This prevents to bounty from being moved to a child before it can be returned to the new replacement of the original question.
         expected_reopen_id_b = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 4, self.web3.eth.accounts[0], 0)
         with self.assertRaises(TransactionFailed):
-            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
+            if ERC20:
+                txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id, 123).transact(self._txargs())
+            else:
+                txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
             self.raiseOnZeroStatus(txid)
 
         pre_reopen_bounty = self.rc0.functions.questions(expected_reopen_id).call()[QINDEX_BOUNTY]
 
         expected_reopen_id_2 = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 2, self.web3.eth.accounts[0], 0)
-        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=543))
+
+        if ERC20:
+            txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id, 543).transact(self._txargs())
+        else:
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 2, 0, self.question_id).transact(self._txargs(val=543))
+
         self.raiseOnZeroStatus(txid)
 
         post_reopen_bounty = self.rc0.functions.questions(expected_reopen_id).call()[QINDEX_BOUNTY]
@@ -1653,15 +2396,24 @@ class TestRealitio(TestCase):
         self.assertEqual("0x"+encode_hex(self.rc0.functions.reopened_questions(self.question_id).call()), expected_reopen_id_2, "reopened_questions returns now new question id")
 
         # Now you've reopened the parent you can reopen the child if you like, although this is usually a bad idea because you should be using the parent
-        txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
+        if ERC20:
+            txid = self.rc0.functions.reopenQuestionERC20( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id, 123).transact(self._txargs())
+        else:
+            txid = self.rc0.functions.reopenQuestion( 0, "my question", self.arb0.address, 30, 0, 4, 0, expected_reopen_id).transact(self._txargs(val=123))
         self.raiseOnZeroStatus(txid)
 
-        self.rc0.functions.submitAnswer(expected_reopen_id_2, to_answer_for_contract(432), 0).transact(self._txargs(val=3)) 
+        if ERC20:
+            self.rc0.functions.submitAnswerERC20(expected_reopen_id_2, to_answer_for_contract(432), 0, 3).transact(self._txargs()) 
+        else:
+            self.rc0.functions.submitAnswer(expected_reopen_id_2, to_answer_for_contract(432), 0).transact(self._txargs(val=3)) 
+
         self._advance_clock(33)
         self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(expected_reopen_id_2).call()), 432)
         self.assertFalse(self.rc0.functions.isSettledTooSoon(expected_reopen_id_2).call())
 
         self.assertEqual(from_answer_for_contract(self.rc0.functions.resultForOnceSettled(self.question_id).call()), 432)
+
+
 
 
 if __name__ == '__main__':
