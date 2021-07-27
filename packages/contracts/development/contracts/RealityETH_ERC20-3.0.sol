@@ -292,8 +292,9 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
 
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, 0);
+        // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, 0);
 
         return question_id;
     }
