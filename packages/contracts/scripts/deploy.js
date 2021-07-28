@@ -25,6 +25,7 @@ const chains = {
     'ropsten': 3,
     'rinkeby': 4,
     'goerli': 5,
+    'ubiq': 8,
     'kovan': 42,
     'bsc': 56,
     'sokol': 77,
@@ -39,7 +40,8 @@ const non_infura_chains = {
     'bsc': 'https://bsc-dataseed.binance.org',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
     'arbitrum': 'https://arb1.arbitrum.io/rpc',
-    'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc'
+    'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc',
+    'ubiq': 'https://rpc.octano.dev'
 }
 
 function constructContractTemplate(contract_name) {
@@ -147,6 +149,7 @@ function deployRealityETH() {
     const t = constructContractTemplate(tmpl);
     const signer = new ethers.Wallet(priv, provider);
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+    // console.log(signer);
 
     txt = txt + ' (from address ' + signer.signingKey.address + ')';
     console.log(txt);

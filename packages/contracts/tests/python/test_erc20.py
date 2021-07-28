@@ -1246,7 +1246,7 @@ class TestRealitio(TestCase):
         ).transact()
         rcpt = self.web3.eth.getTransactionReceipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
-        self.assertTrue(gas_used < 130000)
+        self.assertTrue(gas_used < 140000)
     
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_question_gas(self):
