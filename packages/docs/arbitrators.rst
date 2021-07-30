@@ -19,34 +19,26 @@ Arbitration Models
 Trusted third-parties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We provide a centralized arbitration service, run by Reality Keys, similar to the model we have been operating with since 2013.
+The Reality.eth team have been providing a centralized arbitration service since 2013 beginning with the Reality Keys service. Use of this service is currently discouraged as decentralized alternatives are available.
 
-Jury pools
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Pools of trusted have often been used successfully in Ethereum, particularly for contract resolution, where pools of keyholders, named "curators" or "custodians", are able to report on the equivalent of "Does contract x have a serious bug that justifies letting its developers upgrade it" or "Is X a legitimate upgrade to contract Y?". 
+Kleros
+^^^^^^
 
-These share the same basic security risks as centralized trusted arbitrators (coercion, bribery, blackmail, key leakage, key loss) but will substantially decrease their likelihood for many use-cases.
+Kleros provide a decentralized court system that is integrated with reality.eth and has been used successfully for high-stakes settlement.
 
 Stakeholder voting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote.
+Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote. Alternatively, it is possible to deploy a reality.eth contract using that token for bonds, and turning off arbitration, so that the group able to martial the greatest amount of the token will prevail.
 
-
-Coordination games
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Some designs have attempted to leverage coordination games to encourage reporters to report correctly. This is done in Augur, which also contains elements of Subjectivocracy (see below). A system like this, or Augur itself, could be used as an arbitrator via a bridge contract.
 
 Subjectivocracy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We are developing a system along the lines described in `Get the facts, hard-fork all the things`_.
-
-You can join the conversation in `our Gitter channel`_.
+We are developing a system along the lines described in `Get the facts, hard-fork all the things`_. The `current design` envisages using a forkable Layer 2 ledger.
 
 .. _`Get the facts, hard-fork all the things`: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
-.. _`our Gitter channel`: https://gitter.im/realitykeys/token
+.. _`current design`: https://github.com/RealityETH/subjectivocracy
 
 
 

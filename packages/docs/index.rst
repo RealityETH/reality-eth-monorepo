@@ -17,8 +17,6 @@ Reality.eth can be used either from our web application or by calling our contra
 
    dapp
    contracts
-   encoding 
-   availability
    arbitrators
    fees
    whitepaper 

@@ -1,12 +1,12 @@
 Contract Internals
 ==================
 
-This document is intended to help you read and understand the Realitio.sol contract, in particular its internal data structures. See the previous documents for a higher-level description of what the contract does.
+This document is intended to help you read and understand the RealityETH.sol and RealityETH_ERC20 contracts, in particular their internal data structures. See the previous documents for a higher-level description of what the contracts do.
 
 Questions
 ---------
 
-A question consists of a string encoding a JSON object. See :doc:`encoding`.
+A question consists of a string encoding a JSON object. See :doc:`contracts`.
 This is structured as a reusable template, plus delimited string supplying parameters.
 
 The resulting document (template + parameters) identifies a particular question content.
@@ -15,7 +15,11 @@ The resulting document (template + parameters) identifies a particular question 
 
 A question with a particular Content Hash may be asked on multiple occasions, some of which may have different arbitrator and timeout settings.
 
+Versions 2 and 2.1: 
 ``Content Hash`` + ``Arbitrator`` + ``Timeout`` + ``Creator`` + ``Nonce`` -> ``Question ID``
+
+Version3: 
+``Content Hash`` + ``Arbitrator`` + ``Timeout`` + ``Min Bond`` + ``Creator`` + ``Contract address`` ``Nonce`` -> ``Question ID``
 
 
 Answer history entries

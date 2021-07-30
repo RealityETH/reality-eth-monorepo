@@ -4,13 +4,14 @@ Using the Reality.eth dapp
 Requirements
 ------------
 
-You will need the Metamask_ Chrome extension. 
+You will need the Metamask_ extension for Chrome or Firefox or a a browser with equivalent functionality like Brave_.
 
-To post or answer questions you will need ETH. 
+To post or answer questions you will need ETH or the equivalent on the network you are on.
 
 If you prefer to try the app without using real money, you can switch Metamask to the Rinkeby or Kovan Testnet. You can get testnet coins at the `Rinkeby Faucet`_ and the `Kovan Faucet`_.
 
 .. _Metamask: http://metamask.io/
+.. _Brave: https://brave.com/
 .. _`Rinkeby Faucet`: https://faucet.rinkeby.io/
 .. _`Kovan Faucet`: https://faucet.kovan.network/
 

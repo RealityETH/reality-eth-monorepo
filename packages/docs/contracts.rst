@@ -23,7 +23,7 @@ You can fetch the final answer for a question by calling
    bytes32 response = resultFor(bytes32 question_id);
 
 
-This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. You often want to cast the resulting ``bytes32`` to a ``uint256`` when you process it. By convention all supported types use ``0xff...ff`` to mean "invalid". This will depend on the Question Type (see below).
+This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. You often want to cast the resulting ``bytes32`` to a ``uint256`` when you process it. By convention all supported types use ``0xff...ff`` (aka ``bytes32(-1)``) to mean "invalid".
 
 
 Interpreting the result of a question
@@ -149,8 +149,25 @@ If the arbitrator you have selected charges a per-question fee, you must supply 
 
 See :ref:`templates` for the ``template_id``, and how the ``question`` parameter is structured.
 
+If you are using a version of the contract that uses an ERC20 token, the same call will work but you cannot use it to supply funds. If you need to supply funds, either for an initial bond or because the arbitrator requires a per-question fee, you should instead call the ERC20 version, ``askQuestionERC20()``. This has an additional parameter for the number of tokens you wish to supply. This will attempt to debit the tokens from the token contract, or ``revert`` if they have not been approved.
 
-The ``arbitrator`` is the address of the contract that will be able to arbitrate. See :doc:`arbitrators` for more information.
+.. code-block:: javascript
+   :linenos:
+
+   function askQuestionERC20(
+      uint256 template_id, 
+      string question, 
+      address arbitrator, 
+      uint32 timeout, 
+      uint32 opening_ts, 
+      uint256 nonce,
+      uint256 tokens,
+   )
+   returns (bytes32 question_id);
+
+
+
+The ``arbitrator`` is the address of the contract that will be able to arbitrate. See :doc:`arbitrators` for more information. From version 3, this parameter may be left empty. For prior versions, if you wish to make arbitration impossible, you can instead supply the address of the `reality.eth` contract itself.
 
 The ``timeout`` is the time in seconds the question will have after adding an answer before it is automatically finalized. It would typically be around ``1 days``. The contract sanity-checks set the maximum possible value at ``365 days``.
 
@@ -158,17 +175,21 @@ The ``opening_ts`` is the timestamp for the earliest time at which it will be po
 
 The ``nonce`` is a user-supplied number that can be used to disambiguated deliberate repeated uses of the same question. You can use ``0`` if you never intend to ask the same question with the same settings twice.
 
-Any ETH provided with the ``askQuestion`` call will be used as a question reward, minus any fee the specified arbitrator requires when a new question is asked.
+Any ETH or tokens provided with the ``askQuestion`` or ``askQuestionERC20`` call will be used as a question reward, minus any fee the specified arbitrator requires when a new question is asked.
 
 
-The ``askQuestion`` call returns a ``bytes32`` ID. This ID is made by hashing the parameters, plus ``msg.sender``.
+The ``askQuestion`` call returns a ``bytes32`` ID. This ID is made by hashing the parameters, plus ``msg.sender``. Note that the format will change in version 3.
 
 .. note:: The Etherscan "write contract" feature has been known to mangle the delimiter character.
 
+As of version 3, you can also specify a mimimum bond below which the initial answer will not be accepted. For this, use the ``askQuestionWithMinBond()`` or ``askQuestionWithMinBondERC20()`` method.
 
 
-Accepting an answer only if something has happened
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+Accepting an answer only if something has happened (pre version 3)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once a question has been created and the opening date (if set) reached, it can be answered immediately.
 
@@ -193,6 +214,15 @@ To make this easier, we provide a method called ``getFinalAnswerIfMatches()``. T
 
 You can then screen ``answer`` in your contract and only act on results that your contract is interested in.
 
+
+Accepting an answer only if something has happened (version 3 onwards)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To simplify the process of accepting only questions with an answer, from version 3 you can substitute ``forResult()`` with ``forResultOnceSettled()``. This screens the result for an answer representing "not yet settled", represented as ``bytes32(-2)``. Rather than returning this answer, it will revert as it would if the question question had not yet been answered. The contract allows any user to reopen a question in this state, creating a new question, repeatedly if necessary. Once a replacement question has been settled, its result is returned using the ID of the original question. A calling contract can ignore the details of this process and know only that it needs to call ``forResultOnceSettled()``.
+
+If using this feature it is also advisable to set a mimimum bond.
+
+
 .. _creating-templates:
 
 Custom templates
@@ -213,13 +243,5 @@ If you want to create many similar requests, it will be more efficient to create
 This can then by called with a string including only the flight number, the delimiter and the date, eg:
     ``MH17␟2017-12-01``
 
-A template can be created by calling ``createTemplate("template")``, where "template" is the JSON template. This returns a numerical ID.
-
-
-Making sure a question has an answer
-------------------------------------
-
-As discussed in :doc:`availability`, when a question is asked, the answer may be "don't know" or "don't understand" or "this isn't settled yet". Contracts relying on Reality.eth for information need to be designed to take account of this possibility.
-
-After settlement Reality.eth will preserve information about the ``content_hash``, ``arbitrator``, ``timeout``, ``finalization_ts`` (finalization timestamp) and highest-posted ``bond``. Contracts can either check this information directly or pass their requirements to ``getFinalAnswerIfMatches()``.
+A template can be created by calling ``createTemplate("template")``, where "template" is the JSON template. This returns a numerical ID. If you wish to reference particular template on code running on multiple networks with the same content, you may find it useful to call ``template_hashes(bytes32 template_hash)`` to get the numerical ID.
 
