@@ -29,7 +29,7 @@ Kleros provide a decentralized court system that is integrated with reality.eth 
 Stakeholder voting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote. Alternatively, it is possible to deploy a reality.eth contract using that token for bonds, and turning off arbitration, so that the group able to martial the greatest amount of the token will prevail.
+Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote. Alternatively, it is possible to deploy a reality.eth contract using the token in question for bonds, then create questions without a registered arbitrator. That way the side able to martial the greatest amount of the token will prevail.
 
 
 Subjectivocracy
