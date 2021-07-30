@@ -35,7 +35,7 @@ Where a consumer contract has their own token, they may choose to provide their 
 Subjectivocracy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We are developing a system along the lines described in `Get the facts, hard-fork all the things`_. The `current design` envisages using a forkable Layer 2 ledger.
+We are developing a system along the lines described in `Get the facts, hard-fork all the things`_. The `current design`_ envisages using a forkable Layer 2 ledger.
 
 .. _`Get the facts, hard-fork all the things`: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
 .. _`current design`: https://github.com/RealityETH/subjectivocracy
