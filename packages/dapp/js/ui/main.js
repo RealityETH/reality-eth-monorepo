@@ -1694,9 +1694,9 @@ async function ensureAmountApproved(spender, account, amount) {
         console.log('already got enough, continuing', allowed.toHexString());
         return allowed;
     } else {
-        console.log('not enough to cover cost, approving', amount.sub(allowed), spender);
+        console.log('not enough to cover cost, approving', amount, spender);
         const signedERC20 = erc20.connect(signer);
-        const tx = await signedERC20.functions.approve(spender, amount.sub(allowed));
+        const tx = await signedERC20.functions.approve(spender, amount);
         await tx.wait(); 
         // At this point we have received the approval's transaction hash and can proceed with next transaction.
         // However, Metamask may need some time to pick up this transaction, 
@@ -1775,7 +1775,7 @@ function populateSection(section_name, question, before_item) {
 
     entry = populateSectionEntry(entry, question);
 
-    if (ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase(), question.arbitrator.toLowerCase()]) {
+    if (ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase()] && ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase()][question.arbitrator.toLowerCase()]) {
         entry.addClass('failed-arbitrator');
     }
 
@@ -2520,7 +2520,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
     let valid_arbirator = isArbitratorValid(question_detail.arbitrator);
 
-    if (ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase(), question_detail.arbitrator.toLowerCase()]) {
+    if (ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase()] && ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase()][question_detail.arbitrator.toLowerCase()]) {
         rcqa.addClass('failed-arbitrator');
     }
 
@@ -2673,7 +2673,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     if (isFinalized(question_detail)) {
         const tot = totalClaimable(question_detail);
-        if (tot.toNumber() == 0) {
+        if (tot.eq(0)) {
             rcqa.removeClass('is-claimable');
         } else {
             rcqa.addClass('is-claimable');
@@ -3613,7 +3613,6 @@ $(document).on('click', '.post-answer-button', async function(e) {
             // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
             // If USE_COMMIT_REVEAL becomes common, we should add a listener and do everything asychronously....
             if (IS_TOKEN_NATIVE) {
-console.log('try submitAnswerCommitment, val ', bond);
                 return rc.functions.submitAnswerCommitment(question_id, answer_hash, current_question.bond, ACCOUNT, {
                     from: ACCOUNT, 
                     // gas:200000, 
@@ -3622,7 +3621,7 @@ console.log('try submitAnswerCommitment, val ', bond);
                     console.log('got submitAnswerCommitment tx, waiting for confirmation', tx_res);
                     tx_res.wait().then(function(tx_res) {
                         rc.functions.submitAnswerReveal(question_id, answer_plaintext, nonce, bond, {
-                            from: ACCOUNT, 
+                            from: ACCOUNT
                             //gas:200000
                         })
                         .then(function(tx_res) { handleAnswerSubmit(tx_res) });
@@ -3649,7 +3648,7 @@ console.log('try submitAnswerCommitment, val ', bond);
             } else {
                 ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
                     rc.functions.submitAnswerERC20(question_id, new_answer, current_question.bond, bond, {
-                        from: ACCOUNT,
+                        from: ACCOUNT
                         //gas: 200000,
                     }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
                 });
