@@ -899,12 +899,14 @@ $(document).on('click', '.answer-claim-button', function() {
                 //console.log('nothing to claim');
                 // Nothing there, so force a refresh
                 openQuestionWindow(contractQuestionID(question_detail));
-                delete USER_CLAIMABLE_BY_CONTRACT[contract][question_id];
+                if (USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()]) {
+                    delete USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()][question_id];
+                }
             }
 
         } else {
 
-            claiming = USER_CLAIMABLE_BY_CONTRACT[contract];
+            claiming = USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()];
             claim_args = mergePossibleClaimable(claiming);
 
         }
@@ -932,7 +934,10 @@ $(document).on('click', '.answer-claim-button', function() {
             //console.log('claim result txid', txid);
             for (const qid in claiming) {
                 if (claiming.hasOwnProperty(qid)) {
-                    if (USER_CLAIMABLE_BY_CONTRACT[contract][qid]) {
+                    if (!USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()]) {
+                        USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()] = {};
+                    }
+                    if (USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()][qid]) {
                         USER_CLAIMABLE_BY_CONTRACT[contract][qid].txid = txid;
                     }
                 }
@@ -1043,7 +1048,7 @@ $('div.loadmore-button').on('click', function(e) {
 // We may or may not have already seen this event.
 // We may or may not have known that the event was related to the user already.
 // We may or may not have fetched information about the question.
-function handlePotentialUserAction(entry, is_watch) {
+async function handlePotentialUserAction(entry, is_watch) {
     //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
 
     if (entry.invalid_data) { 
@@ -1105,27 +1110,22 @@ function handlePotentialUserAction(entry, is_watch) {
     //console.log('got event as user action', entry);
     if ((entry['event'] == 'LogNewAnswer') && (SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id] > 0)) {
         delete SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id];
-        ensureQuestionDetailFetched(contract, question_id, 1, 1, entry.blockNumber, entry.blockNumber).then(function(question) {
-            displayQuestionDetail(question);
-            renderUserAction(question, entry, is_watch);
-        });
+        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, entry.blockNumber, entry.blockNumber);
+        displayQuestionDetail(question);
+        renderUserAction(question, entry, is_watch);
     } else {
-
-        //console.log('fetch for notifications: ', question_id, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
-        ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER).then(function(question) {
-            if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
-                //console.log('got event, checking effect on claims', entry);
-                if (updateClaimableDataForQuestion(question, entry, is_watch)) {
-                    updateClaimableDisplay(contract);
-                    updateUserBalanceDisplay();
-                }
+        // console.log('fetch for notifications: ', question_id, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
+        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
+        if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
+            // console.log('got event, checking effect on claims', entry, question, is_watch, contract);
+            if (updateClaimableDataForQuestion(question, entry, is_watch)) {
+                updateClaimableDisplay(contract);
+                updateUserBalanceDisplay();
             }
-            //console.log('rendering entry', entry);
-            renderUserAction(question, entry, is_watch);
-        }).catch(function(e) {
-            console.log('got error fetching: ', question_id, e);
-        });
-
+        }
+        //console.log('rendering entry', entry);
+        renderUserAction(question, entry, is_watch);
+        //console.log('got error fetching: ', question_id, e);
     }
 
 }
@@ -1134,20 +1134,25 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
     const contract = question.contract;
     const poss = possibleClaimableItems(question);
     //console.log('made poss for question', poss, question.question_id);
+    if (!USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()]) {
+        USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()] = {};
+    }
     if (poss['total'].isZero()) {
-        delete USER_CLAIMABLE_BY_CONTRACT[contract][question.question_id];
+        delete USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()][question.question_id];
     } else {
-        USER_CLAIMABLE_BY_CONTRACT[contract][question.question_id] = poss;
+        USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()][question.question_id] = poss;
     }
     return true; // TODO: Make this only return true if it changed something
 }
 
 async function updateClaimableDisplay(contract) {
-    const unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], false);
-    //console.log('updateClaimableDisplay with user_claimable, unclaimed', user_claimable, unclaimed);
-    const claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract], true);
-    //console.log('got claiming', claiming);
-    const sec = $('.contract-claim-section').filter('[data-contract=' + contract + ']'); 
+    if (!USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()]) {
+        USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()] = {};
+    }
+    const unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], false);
+    // console.log('updateClaimableDisplay with user_claimable, unclaimed', USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], unclaimed);
+    const claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], true);
+    const sec = $('.contract-claim-section').filter('[data-contract=' + contract.toLowerCase() + ']'); 
     if (claiming.total.gt(0)) {
         const txids = claiming.txids;
         sec.find('.answer-claiming-container').find('.claimable-eth').text(decimalizedBigNumberToHuman(claiming.total));
@@ -1466,20 +1471,24 @@ function isDataFreshEnough(contract_question_id, data_type, freshness) {
     //console.log('looking at isDataFreshEnough for ', question_id, data_type, freshness);
     // We set -1 when we don't need the data at all
     if (freshness == -1) {
-        //console.log('-1, not needed');
+        // console.log('-1, not needed');
         return true;
     }
     if (!QUESTION_DETAIL_CACHE[contract_question_id]) {
-        //console.log('question not found, definitely fetch');
+        // console.log('question not found, definitely fetch');
         return false;
     }
     if (QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type] >= freshness) {
-        //console.log('is fresh', QUESTION_DETAIL_CACHE[question_id].freshness, freshness)
+        // console.log('is fresh', QUESTION_DETAIL_CACHE[contract_question_id].freshness, freshness)
         return true;
-    } else {
-        //console.log('is not fresh', QUESTION_DETAIL_CACHE[question_id].freshness[data_type], freshness)
-        return false;
+    } 
+    // question_json never changes so 1 should be enough
+    if (data_type == 'question_json' && QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type] > 0) {
+        // console.log('questino_json always fresh');
+        return true;
     }
+    // console.log('is not fresh', QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type], data_type, freshness)
+    return false;
 }
 
 // No freshness as this only happens once per question
@@ -1487,10 +1496,10 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
     const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
     const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract_question_id, 'question_log', freshness)) {
-        //console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
+        // console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
         return QUESTION_DETAIL_CACHE[contract_question_id];
     } else {
-        //console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
+        // console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
         const question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
         const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
         if (question_arr.length == 0) {
@@ -1507,9 +1516,11 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
 async function _ensureQuestionDataFetched(contract, question_id, freshness, found_at_block) {
     const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
     const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(question_id, 'question_call', freshness)) {
+    if (isDataFreshEnough(contract_question_id, 'question_call', freshness)) {
+        // console.log('_ensureQuestionDataFetched return from cache ', contract_question_id, freshness, QUESTION_DETAIL_CACHE[contract_question_id]);
         return (QUESTION_DETAIL_CACHE[contract_question_id]);
     } else {
+        // console.log('_ensureQuestionDataFetched fetch fresh', contract_question_id, freshness, QUESTION_DETAIL_CACHE[contract_question_id]);
         const result = await RCInstance(contract).functions.questions(question_id);
         if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
             throw new Error("question not found in call, maybe try again later", question_id);
@@ -1532,8 +1543,10 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
     //console.log('ensureQuestionDetailFetched', template_id, CONTRACT_TEMPLATE_CONTENT[template_id], qtext);
     const contract_question_id = cqToID(contract, question_id);
     if (isDataFreshEnough(contract_question_id, 'question_json', freshness)) {
+        // console.log('_ensureQuestionTemplateFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
         return QUESTION_DETAIL_CACHE[contract_question_id];
     } else {
+        // console.log('_ensureQuestionTemplateFetched fetch fresh', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
         if (CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id]) {
             const question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
             return (question);
@@ -1572,7 +1585,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
 async function _ensureAnswersFetched(contract, question_id, freshness, start_block, injected_data, found_at_block) {
     const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
     const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(contract, question_id, 'answers', freshness)) {
+    if (isDataFreshEnough(contract_question_id, 'answers', freshness)) {
         //console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', CURRENT_BLOCK_NUMBER, ' vs ', freshness);
         return (QUESTION_DETAIL_CACHE[contract_question_id]);
     } 
@@ -1984,7 +1997,7 @@ async function handleQuestionLog(item) {
     // Then fetch anything else we need to display
     question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1)
 
-    //console.log('ensureQuestionDetailFetched for', contract, question_id, 'returned', question);
+    // console.log('updateQuestionWindowIfOpen after ensureQuestionDetailFetched for', contract, question_id, 'returned', question, 'block num is', item.blockNumber );
     updateQuestionWindowIfOpen(question);
 
     if (CATEGORY && question.question_json.category != CATEGORY) {
@@ -2172,6 +2185,7 @@ $(document).on('click', '.questions__item__title', function(e) {
 
     const contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
+console.log('open window', contract_question_id);
     // Should repopulate and bring to the front if already open
     openQuestionWindow(contract_question_id);
 
@@ -2204,6 +2218,7 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
 
 function parseContractQuestionID(id, fallback_contract) {
     // console.log('fallback_contract', fallback_contract);
+    id = id.toLowerCase();
     const bits = id.split('-');
     if (bits.length === 2) {
         return bits; 
@@ -2212,7 +2227,7 @@ function parseContractQuestionID(id, fallback_contract) {
         // console.log('try fallback');
         if (fallback_contract) {
             console.log('using fallback contract');
-            return [fallback_contract, bits[0]]; 
+            return [fallback_contract.toLowerCase(), bits[0]]; 
         }
     } else {
         console.log('bits length was', bits.length, bits);
@@ -2225,16 +2240,19 @@ function contractQuestionID(question) {
 }
 
 function cqToID(contract, question_id) {
-    return contract + '-' + question_id;
+    return contract.toLowerCase() + '-' + question_id.toLowerCase();
 }
 
 async function openQuestionWindow(contract_question_id) {
 
     const [contract_addr, question_id] = parseContractQuestionID(contract_question_id);
 
+    // console.log('quick load');
     // To respond quickly, start by fetching with even fairly old data and no logs
     let question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, 1, -1)
     displayQuestionDetail(question);
+
+    // console.log('now reload');
     // Get the window open first with whatever data we have
     // Then repopulate with the most recent of everything anything has changed
     question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
@@ -2361,7 +2379,7 @@ async function loadArbitratorMetaData(arb_addr) {
 
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
-    //console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
+    // console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
     const question_id = question_detail.question_id;
     const question_json = question_detail.question_json;
     const question_type = question_json['type'];
@@ -3828,16 +3846,16 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         const current_idx = QUESTION_DETAIL_CACHE[contract_question_id]['history'].length - 1;
         let current_bond = ethers.BigNumber.from(0);
         if (current_idx >= 0) {
-            current_bond = QUESTION_DETAIL_CACHE[question_id]['history'][current_idx].args.bond;
+            current_bond = QUESTION_DETAIL_CACHE[contract_question_id]['history'][current_idx].args.bond;
         }
 
         const min_bond = current_bond.mul(2);
         if (ctrl.val() === '' || value.lt(min_bond)) {
-            console.log('The minimum bond is ', min_bond, 'rejecting value ',value);
+            // console.log('The minimum bond is ', min_bond, 'rejecting value ',value);
             ctrl.parent().parent().addClass('is-error');
             ctrl.parent('div').next('div').find('.min-amount').text(decimalizedBigNumberToHuman(min_bond));
         } else {
-            console.log('The minimum bond is ', min_bond, 'accepting value ',value);
+            // console.log('The minimum bond is ', min_bond, 'accepting value ',value);
             ctrl.parent().parent().removeClass('is-error');
         }
         show_bond_payments(ctrl);
@@ -4201,7 +4219,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
         const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.question_id);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (let i = 0; i < result.length; i++) {
-            handlePotentialUserAction(result[i]);
+            handlePotentialUserAction(result[i], false);
             handleQuestionLog(result[i]);
         }
     }
@@ -4243,7 +4261,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         if (result[i].invalid_data) {
             continue;
         }
-        handlePotentialUserAction(result[i]);
+        handlePotentialUserAction(result[i], false);
         handleQuestionLog(result[i]);
     }
         /*
@@ -4337,7 +4355,7 @@ async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
     const results = await rcinst.queryFilter(filter, start_block, end_block);
     for (let i = 0; i < results.length; i++) {
         //console.log('handlePotentialUserAction', i, results[i]);
-        handlePotentialUserAction(results[i]);
+        handlePotentialUserAction(results[i], false);
     }
 
     /*
@@ -4359,7 +4377,7 @@ async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
 function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
 // TODO: If question id, make sure we have the right contract, etc
-    //console.log('fetching user events for contract', contract);
+    // console.log('fetching user events for contract', contract, acc, start_block, end_block);
     const rcinst = RCInstance(contract);
 
     handleUserFilterItem(rcinst, rcinst.filters.LogNewAnswer(null, question_id, null, acc));
@@ -4580,7 +4598,6 @@ function accountInit(account) {
 
     for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
-        USER_CLAIMABLE_BY_CONTRACT[ctr] = {};
         fetchUserEventsAndHandle(account, ctr, null, RCStartBlock(ctr), 'latest');
     }
 
@@ -4621,7 +4638,7 @@ function setupContractClaimSections(rc_contracts) {
         const rcaddr = rc_contracts[i];
         const tmpl = $('.contract-claim-section-template');
         const sec = tmpl.clone();
-        sec.attr('data-contract', rcaddr);
+        sec.attr('data-contract', rcaddr.toLowerCase());
         sec.removeClass('contract-claim-section-template');
         tmpl.after(sec);
     }
