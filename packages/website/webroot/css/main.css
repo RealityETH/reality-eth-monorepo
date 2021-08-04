@@ -884,3 +884,11 @@ footer section a.button {
         page-break-after: avoid;
     }
 }
+
+
+blockquote.supporters li {
+    margin-left: 30px;
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
