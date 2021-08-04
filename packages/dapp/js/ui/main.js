@@ -4177,9 +4177,9 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
     const ranking_where = {
-        'questions-active-answered': `{contract_in: ${contract_str}, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract_in: ${contract_str}, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract_in: ${contract_str}, openingTimestamp_gt: ${ts_now}}`,
+        'questions-active-answered': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, openingTimestamp_gt: ${ts_now}}`,
         'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
     }
 
@@ -4211,11 +4211,11 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
       }  
       `;
 
-    // console.log('query', query);
+    // console.log('sending graph query', ranking, query);
     const res = await axios.post(network_graph_url, {query: query});
-    //console.log('graph res', res.data);
+    // console.log('graph res', ranking, res.data);
     for (const q of res.data.data.questions) {
-        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.question_id);
+        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (let i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i], false);
