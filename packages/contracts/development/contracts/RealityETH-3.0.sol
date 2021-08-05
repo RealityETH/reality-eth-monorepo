@@ -815,13 +815,16 @@ contract RealityETH_v3_0 is BalanceHolder {
 
         if (answer == best_answer) {
 
-            if (payee == NULL_ADDRESS && best_answer != UNRESOLVED_ANSWER) {
+            if (payee == NULL_ADDRESS) {
 
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
                 payee = addr;
-                queued_funds = queued_funds + questions[question_id].bounty;
-                questions[question_id].bounty = 0;
+
+                if (best_answer != UNRESOLVED_ANSWER) {
+                    queued_funds = queued_funds + questions[question_id].bounty;
+                    questions[question_id].bounty = 0;
+                }
 
             } else if (addr != payee) {
 
