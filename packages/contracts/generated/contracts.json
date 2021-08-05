@@ -102,8 +102,8 @@
     "8": {
         "UBIQ": {
             "Arbitrator": {
-                "address": "0xD31566493ac99fCa63BF17E62724b41010b4AFB6",
-                "block": 1635513,
+                "address": "0x9A43FC860c56eC158f77aC620fFac6080572A38D",
+                "block": 1621782,
                 "reality_eth_address": "0x0dE8A0B6d37FBfD704090245F517e52D7Ad9a903"
             },
             "RealityETH-2.1": {
@@ -111,7 +111,7 @@
                 "block": 1621781,
                 "notes": null,
                 "arbitrators": {
-                    "0xD31566493ac99fCa63BF17E62724b41010b4AFB6": "Ubiq Core Dev Team"
+                    "0x9A43FC860c56eC158f77aC620fFac6080572A38D": "Reality.eth team (for testing)"
                 }
             }
         }
