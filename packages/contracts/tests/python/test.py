@@ -850,10 +850,17 @@ class TestRealitio(TestCase):
                 'nonce': [], # only for commitments
             }
 
+        # ANSWERED_TOO_SOON_VAL is already encoded
+        # For anything else we pass in an int which we should hex-encode
+        if ans == ANSWERED_TOO_SOON_VAL:
+            encoded_ans = ans
+        else:
+            encoded_ans = to_answer_for_contract(ans)
+
         hist_hash = self.rc0.functions.questions(qid).call()[QINDEX_HISTORY_HASH]
         st['hash'].insert(0, hist_hash)
         st['bond'].insert(0, bond)
-        st['answer'].insert(0, to_answer_for_contract(ans))
+        st['answer'].insert(0, encoded_ans)
         st['addr'].insert(0, sdr)
         nonce = None
         NULL_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -862,7 +869,7 @@ class TestRealitio(TestCase):
 
             if is_commitment:
                 nonce = 1234
-                answer_hash = calculate_answer_hash(to_answer_for_contract(ans), nonce)
+                answer_hash = calculate_answer_hash(encoded_ans, nonce)
                 commitment_id = calculate_commitment_id(decode_hex(self.question_id[2:]), decode_hex(answer_hash[2:]), bond)
                 if skip_sender:
                     txid = self.rc0.functions.submitAnswerCommitmentERC20(qid, decode_hex(answer_hash[2:]), max_last, NULL_ADDRESS
@@ -877,10 +884,10 @@ class TestRealitio(TestCase):
                 st['answer'][0] = decode_hex(commitment_id[2:])
             else:
                 if is_arbitrator:
-                    txid = self.arb0.functions.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, sdr).transact(self._txargs(sender=tx_acct))
+                    txid = self.arb0.functions.submitAnswerByArbitrator(qid, encoded_ans, 0, 0, sdr).transact(self._txargs(sender=tx_acct))
                     self.raiseOnZeroStatus(txid)
                 else:
-                    txid = self.rc0.functions.submitAnswerERC20(qid, to_answer_for_contract(ans), max_last
+                    txid = self.rc0.functions.submitAnswerERC20(qid, encoded_ans, max_last
                     ,bond
                     ).transact(self._txargs(sender=tx_acct))
                     self.raiseOnZeroStatus(txid)
@@ -889,7 +896,7 @@ class TestRealitio(TestCase):
 
             if is_commitment:
                 nonce = 1234
-                answer_hash = calculate_answer_hash(to_answer_for_contract(ans), nonce)
+                answer_hash = calculate_answer_hash(encoded_ans, nonce)
                 commitment_id = calculate_commitment_id(decode_hex(self.question_id[2:]), decode_hex(answer_hash[2:]), bond)
                 #self.assertEqual(to_answer_for_contract(ans), commitment_id)
                 if skip_sender:
@@ -899,9 +906,9 @@ class TestRealitio(TestCase):
                 st['answer'][0] = decode_hex(commitment_id[2:])
             else:
                 if is_arbitrator:
-                    self.arb0.functions.submitAnswerByArbitrator(qid, to_answer_for_contract(ans), 0, 0, sdr).transact(self._txargs(val=bond, sender=sdr))
+                    self.arb0.functions.submitAnswerByArbitrator(qid, encoded_ans, 0, 0, sdr).transact(self._txargs(val=bond, sender=sdr))
                 else:
-                    self.rc0.functions.submitAnswer(qid, to_answer_for_contract(ans), max_last).transact(self._txargs(val=bond, sender=sdr))
+                    self.rc0.functions.submitAnswer(qid, encoded_ans, max_last).transact(self._txargs(val=bond, sender=sdr))
 
         st['nonce'].insert(0, nonce)
         return st
@@ -2268,7 +2275,7 @@ class TestRealitio(TestCase):
             ).transact(self._txargs(val=1000, sender=k2))
         self.raiseOnZeroStatus(txid)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_reopen_question(self):
 
         if VERNUM < 3.0:
@@ -2412,6 +2419,82 @@ class TestRealitio(TestCase):
         self.assertFalse(self.rc0.functions.isSettledTooSoon(expected_reopen_id_2).call())
 
         self.assertEqual(from_answer_for_contract(self.rc0.functions.resultForOnceSettled(self.question_id).call()), 432)
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_too_soon_bounty(self):
+
+        if VERNUM < 3.0:
+            print("Skipping test_reopen_question, not a feature of this contract")
+            return
+
+        k0 = self.web3.eth.accounts[0]
+        k3 = self.web3.eth.accounts[3]
+        k5 = self.web3.eth.accounts[5]
+        if ERC20:
+            self._issueTokens(k0, 1000000, 1000000)
+            self._issueTokens(k3, 1000000, 1000000)
+
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 2, 4, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 4, 8, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 8, 16, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 16, 32, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, ANSWERED_TOO_SOON_VAL, 32, 64, k3)
+        claimable = 64+32+16+8+4+2 # no 1000, which was the original bounty
+
+        self._advance_clock(33)
+
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.getFinalAnswer(self.question_id).call()), ANSWERED_TOO_SOON_VAL)
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), 0)
+
+        # Have an unconnected user do the claim
+        # This will leave the balance in the contract rather than withdrawing it
+        self.rc0.functions.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs(sender=k5))
+        
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_too_soon_bonds_under_unrevealed_commit(self):
+
+        if VERNUM < 3.0:
+            print("Skipping test_reopen_question, not a feature of this contract")
+            return
+
+        k0 = self.web3.eth.accounts[0]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        k5 = self.web3.eth.accounts[5]
+        if ERC20:
+            self._issueTokens(k0, 1000000, 1000000)
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 200, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 200, 400, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 400, 800, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 800, 1600, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 1600, 3200, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, ANSWERED_TOO_SOON_VAL, 3200, 6400, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 6400, 12800, k4, True) # We'll submit this but not reveal it
+        claimable = 12800+subfee(6400)+subfee(3200)+subfee(1600)+subfee(800)+subfee(400)+subfee(200) # no 1000, which was the original bounty
+
+        self._advance_clock(33)
+
+        self.assertEqual("0x"+encode_hex(self.rc0.functions.getFinalAnswer(self.question_id).call()), ANSWERED_TOO_SOON_VAL)
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), 0)
+
+        # Have an unconnected user do the claim
+        # This will leave the balance in the contract rather than withdrawing it
+        self.rc0.functions.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs(sender=k5))
+        
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
+
+
+ 
+
+
 
 
 
