@@ -64,7 +64,9 @@
             "https://pyrus2.ubiqscan.io"
         ],
         "hostedRPC": "https://rpc.octano.dev",
-        "blockExplorerUrls": []
+        "blockExplorerUrls": [
+            "https://ubqblockexplorer.com/"
+        ]
     },
     "42": {
         "chainId": "0x2a",

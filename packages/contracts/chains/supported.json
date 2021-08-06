@@ -15,7 +15,8 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby"
     },
     "8": {
-        "hostedRPC": "https://rpc.octano.dev"
+        "hostedRPC": "https://rpc.octano.dev",
+        "explorerURL": "https://ubqblockexplorer.com/"
     },
     "42": {
         "explorerURL": "https://kovan.etherscan.io",
