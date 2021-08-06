@@ -1640,10 +1640,24 @@ div.rcbrowser--qa-detail.top-entry-unrevealed .unrevealed-top-answer-container {
     margin-right: 6px;
 }
 
-.unconfirmed-question-header {
+.unconfirmed-question-header, .unconfirmed-approval-header {
     font-size: 13px;
-    margin-bottom: 18px;
+    margin-top: 24px;
     display:none;
+}
+
+.unconfirmed-approval .unconfirmed-approval-header {
+    display:block;
+}
+
+.unconfirmed-approval-header::before {
+    display: inline-block;
+    content: "";
+    width: 8px;
+    height: 8px;
+    background-color: $purple;
+    border-radius: 50%;
+    margin-right: 6px;
 }
 
 .unconfirmed-question-header::before {
@@ -1691,6 +1705,10 @@ div.unconfirmed-answer-container span.pending-answer-txid {
 }
 
 div.unconfirmed-question-header span.pending-question-txid {
+    float:right;
+}
+
+div.unconfirmed-approval-header span.pending-approval-txid {
     float:right;
 }
 

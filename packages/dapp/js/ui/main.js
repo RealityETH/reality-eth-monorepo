@@ -738,7 +738,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         });
     } else {
         const cost = reward.add(fee);
-        await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, ACCOUNT, cost);
+        await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, ACCOUNT, cost, win);
         tx_response = await signedRC.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
             from: ACCOUNT,
             // gas: 200000,
@@ -1681,7 +1681,7 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function ensureAmountApproved(spender, account, amount) {
+async function ensureAmountApproved(spender, account, amount, tell_div) {
     console.log('checking if we need extra approval for amount', amount.toHexString());
     const erc20 = getERC20TokenInstance();
 
@@ -1697,7 +1697,18 @@ async function ensureAmountApproved(spender, account, amount) {
         console.log('not enough to cover cost, approving', amount, spender);
         const signedERC20 = erc20.connect(signer);
         const tx = await signedERC20.functions.approve(spender, amount);
+        if (tell_div) {
+            const txid = tx.hash;
+            tell_div.attr('data-approval-txid', txid);
+            tell_div.addClass('unconfirmed-approval');
+
+            tell_div.find('.pending-approval-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
+            tell_div.find('.pending-approval-txid a').text(txid.substr(0, 12) + "...");
+        }
         await tx.wait(); 
+        if (tell_div) {
+            tell_div.removeClass('unconfirmed-approval');
+        }
         // At this point we have received the approval's transaction hash and can proceed with next transaction.
         // However, Metamask may need some time to pick up this transaction, 
         // which is needed to validate next transactions, and 3 seconds is considered a "safe" waiting time.
@@ -3630,7 +3641,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                     });
                 });
             } else {
-                ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
+                ensureAmountApproved(rc.address, ACCOUNT, bond, parent_div).then(function() {
                     return rc.functions.submitAnswerCommitmentERC20(question_id, answer_hash, current_question.bond, ACCOUNT, bond, {from:ACCOUNT}).then( function(tx_res) {
                         console.log('got submitAnswerCommitment tx_res, waiting for confirmation', tx_res);
                         tx_res.wait().then(function(tx_res) {
@@ -3648,7 +3659,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                     value: bond
                 }).then(function(tx_res) { handleAnswerSubmit(tx_res) });
             } else {
-                ensureAmountApproved(rc.address, ACCOUNT, bond).then(function() {
+                ensureAmountApproved(rc.address, ACCOUNT, bond, parent_div).then(function() {
                     rc.functions.submitAnswerERC20(question_id, new_answer, current_question.bond, bond, {
                         from: ACCOUNT
                         //gas: 200000,
