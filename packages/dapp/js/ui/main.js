@@ -2008,7 +2008,9 @@ async function handleQuestionLog(item) {
     }
 
     const is_finalized = isFinalized(question);
-    const is_before_opening = isQuestionBeforeOpeningDate(question);
+
+    // Pending arbitration doesn't exactly fit but it fits better than the other categories
+    const is_before_opening = isQuestionBeforeOpeningDate(question) || isArbitrationPending(question);
     const bounty = question.bounty;
     const opening_ts = question.opening_ts;
 
@@ -4135,6 +4137,7 @@ TODO restore
     fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
     fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
     fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration'); 
 
     // Now the rest of the questions
     LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
@@ -4177,17 +4180,19 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
     const ranking_where = {
-        'questions-active-answered': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract_in: ${contract_str}, arbitrationRequestedTimestamp: null, openingTimestamp_gt: ${ts_now}}`,
+        'questions-active-answered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
         'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-awaiting-arbitration': `{contract_in: ${contract_str}, isPendingArbitration: true}`,
     }
 
     const ranking_order = {
         'questions-active-answered': 'lastBond', 
         'questions-active-unanswered': 'createdTimestamp',
         'questions-upcoming': 'createdTimestamp',
-        'questions-resolved': 'answerFinalizedTimestamp'
+        'questions-resolved': 'answerFinalizedTimestamp',
+        'questions-awaiting-arbitration': 'lastBond'
     }
 
     const where = ranking_where[ranking];
