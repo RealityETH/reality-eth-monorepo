@@ -6,11 +6,17 @@ const fs = require('fs');
 
 const project_base = __dirname + '/../';
 const chains_file = 'chains/chainid.network.json';
+const chains_local_file = 'chains/chainid.network.local.json';
 const supported_file = 'chains/supported.json';
 const generated_file = 'generated/chains.json';
 
 const chain_id_list = require(project_base + chains_file);
+const chain_id_list_local = require(project_base + chains_local_file);
 const supported_data = require(project_base + supported_file);
+
+for(var cl = 0; cl<chain_id_list_local.length; cl++) {
+    chain_id_list.push(chain_id_list_local[cl]);
+}
 
 let out = {};
 for (var ci = 0; ci< chain_id_list.length; ci++) {
