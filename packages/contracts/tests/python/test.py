@@ -764,6 +764,39 @@ class TestRealitio(TestCase):
 
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_arbitrator_answering_single_unrevealed_commit(self):
+
+        if VERNUM < 3.0:
+            print("Skipping test_arbitrator_answering_assigning_answerer_single_unrevealed_commit, not a feature of this contract")
+            return
+
+        k0 = self.web3.eth.accounts[0]
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+
+        if ERC20:
+            self._issueTokens(k2, 100000, 50000)
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
+
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4, True)
+        nonce = st['nonce'][0]
+
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
+        txid = self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee))
+        with self.assertRaises(TransactionFailed):
+            self.raiseOnZeroStatus(txid)
+
+        txid = self.rc0.functions.submitAnswerReveal( self.question_id, to_answer_for_contract(1001), nonce, 2).transact(self._txargs(sender=k4))
+        self.raiseOnZeroStatus(txid)
+
+        txid = self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee))
+        self.raiseOnZeroStatus(txid)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_cancel(self):
 
         if VERNUM < 2.1:
@@ -2420,7 +2453,7 @@ class TestRealitio(TestCase):
 
         self.assertEqual(from_answer_for_contract(self.rc0.functions.resultForOnceSettled(self.question_id).call()), 432)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_too_soon_bounty(self):
 
         if VERNUM < 3.0:
@@ -2454,7 +2487,7 @@ class TestRealitio(TestCase):
         
         self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_too_soon_bonds_under_unrevealed_commit(self):
 
         if VERNUM < 3.0:
