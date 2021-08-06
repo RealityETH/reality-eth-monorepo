@@ -3787,7 +3787,7 @@ $(document).on('click', '.arbitration-button', async function(e) {
         //console.log('got fee', arbitration_fee.toString());
 
         const signed_arbitrator = arb.connect(signer);
-        signed_arbitrator.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from: ACCOUNT, value: arbitration_fee}).then(function() {
+        signed_arbitrator.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from: ACCOUNT, value: arbitration_fee}).then(function(result) {
             console.log('arbitration is requested.', result);
         });
     }).catch(function(err) {
