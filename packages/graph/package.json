@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/graph",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "scripts": {
     "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
     "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
@@ -35,7 +35,7 @@
     "@graphprotocol/graph-ts": "^0.20.0"
   },
   "dependencies": {
-    "@reality.eth/contracts": "^2.3.0",
+    "@reality.eth/contracts": "^2.3.1",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "mustache": "^4.2.0",

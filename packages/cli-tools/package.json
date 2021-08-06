@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/cli-tools",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Command-line tools for interacting with the Reality.eth fact verification platform. Mainly intended for doing arbitration from an offline computer.",
   "scripts": {
     "test": "mocha ./test"
@@ -17,8 +17,8 @@
   "author": "Edmund Edgar (https://realit.io)",
   "license": "GPL-3.0",
   "dependencies": {
-    "@reality.eth/contracts": "^2.3.0",
-    "@reality.eth/reality-eth-lib": "^2.1.0",
+    "@reality.eth/contracts": "^2.3.1",
+    "@reality.eth/reality-eth-lib": "^2.1.1",
     "bignumber.js": "^4.0.2",
     "ethereumjs-tx": "^1.3.7",
     "keccak": "^1.4.0",
