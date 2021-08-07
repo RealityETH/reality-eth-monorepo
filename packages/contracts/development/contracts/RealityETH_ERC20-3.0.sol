@@ -900,8 +900,8 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
                 // They get the question bounty.
                 payee = addr;
 
-                if (best_answer != UNRESOLVED_ANSWER) {
-                    queued_funds = queued_funds + questions[question_id].bounty;
+                if (best_answer != UNRESOLVED_ANSWER && questions[question_id].bounty > 0) {
+                    _payPayee(question_id, payee, questions[question_id].bounty);
                     questions[question_id].bounty = 0;
                 }
 
