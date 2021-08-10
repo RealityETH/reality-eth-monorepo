@@ -219,6 +219,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
     }
 
     /// @notice Set the address of the ERC20 token that will be used for bonds.
+    /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
     /// @param _token The ERC20 token that will be used for bonds.
     function setToken(IERC20 _token) 
     public
