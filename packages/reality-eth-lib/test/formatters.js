@@ -2,6 +2,7 @@ const rc_question = require('../formatters/question.js');
 const rc_template = require('../formatters/template.js');
 
 const chai = require("chai")
+const BigNumber = require('bignumber.js')
 chai.use(require('chai-bignumber')());
 
 const expect = chai.expect;
@@ -160,3 +161,27 @@ describe('Broken questions', function() {
     expect(q.type).to.equal('broken-question');
   });
 });
+
+describe('Commitment ID tests', function() {
+  // Using rinkeby question:
+  // 0xa09ce5e7943f281a782a0dc021c4029f9088bec4-0x0ade9a55d4dfca644062792d8e66cec9fbd5579761d760a6e0ae9856e81086a4
+  const answer_plaintext = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const nonce = '0xd51bebd80f5957927ae583c751186503d6ca49cf78050553ba275af9a0f1e68a';
+  const commitment_id = '0xbf854989de33a0a9f2cc70553aab7f15700d6f9b93063dcff6bea0fb9fc13991';
+  const bond = '0x01d1a94a2000';
+  const question_id ='0x0ade9a55d4dfca644062792d8e66cec9fbd5579761d760a6e0ae9856e81086a4';
+  const answer_hash = '0xfca4ba5dfb962f23cd78c5f660d96ef55f3cb92908c308c794260153ec14b0a0';
+  it('Returns the expected answer hash', function() {
+    const ah = rc_question.answerHash(answer_plaintext, nonce);
+    expect(answer_hash).to.equal(ah);
+  });
+  it('Returns the expected commitment ID when passed using a BigNumber for the bond', function() {
+    const cid = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond)); 
+    expect(commitment_id).to.equal(cid);
+  });
+  it('Returns the expected commitment ID when passed using a hex string for the bond', function() {
+    const cid = rc_question.commitmentID(question_id, answer_hash, bond); 
+    expect(commitment_id).to.equal(cid);
+  });
+});
+

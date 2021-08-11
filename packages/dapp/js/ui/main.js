@@ -6,7 +6,6 @@ import Ps from 'perfect-scrollbar';
 (function() {
 
 const ethers = require("ethers");
-const BigNumber = require('bignumber.js');
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
@@ -83,10 +82,6 @@ const Qi_bounty = 6;
 const Qi_best_answer = 7;
 const Qi_history_hash = 8;
 const Qi_bond = 9;
-
-BigNumber.config({
-    RABGE: 256
-});
 
 let BLOCK_TIMESTAMP_CACHE = {};
 
@@ -415,39 +410,22 @@ function markViewedToDate() {
 }
 
 function humanToDecimalizedBigNumber(num, force_eth) {
-    const decimalstr = force_eth ? ""+1000000000000000000 : ""+TOKEN_INFO[TOKEN_TICKER]['decimals'];
-    const num_trad_bn = new BigNumber(num).times(decimalstr);
-    const num_hex_str = '0x'+num_trad_bn.toString(16);
-    return ethers.BigNumber.from(num_hex_str);
+    const decimalstr = force_eth ? "1000000000000000000" : ""+TOKEN_INFO[TOKEN_TICKER]['decimals'];
+    const decimals = (decimalstr.match(/0/g) || []).length;
+    return ethers.utils.parseUnits(num, decimals);
 }
 
 function decimalizedBigNumberToHuman(num, force_eth) {
-    // For formatting for humans we use a traditional BigNumber not the ethers version
-    // TODO See if we can get the ethers version to format decimals nicely
-    const decs = force_eth ? 1000000000000000000 : TOKEN_INFO[TOKEN_TICKER]['decimals'];
-    const num_trad_bn = new BigNumber(num.toHexString());
-    return num_trad_bn.div(decs).toString();
+    // TODO: Change the token list to use a number like 18
+    const decimalstr = force_eth ? "1000000000000000000" : ""+TOKEN_INFO[TOKEN_TICKER]['decimals'];
+    const decimals = (decimalstr.match(/0/g) || []).length;
+    // console.log('decimals are', decimals);
+    return ethers.utils.formatUnits(num, decimals).replace(/\.0+$/,'');
 }
 
 function humanReadableWei(amt) {
-    amt = new BigNumber(amt.toHexString());
-    let unit = null;
-    let displ = null;
-    let div = 1;
-    const maxeth = new BigNumber(10).pow(16)
-    if (amt.gt(maxeth)) {
-        unit = 'ETH';
-        div = new BigNumber(10).pow(18);
-    } else if (amt.gt(new BigNumber(10).pow(7))) {
-        unit = 'Gwei';
-        div = new BigNumber(10).pow(9);
-    } else {
-        unit = 'Wei';
-    }
-    const amt_txt = amt.div(div).toString();
-    return amt_txt + ' ' + unit;
+    return decimalizedBigNumberToHuman(amt, true) + ' ETH';
 }
-
 
 $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
@@ -1318,7 +1296,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
             // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
             args['revealed_block'] = answer_arr[j].blockNumber;
             args['answer'] = answer_arr[j].args['answer'];
-            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], new BigNumber(bond_hex));
+            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond_hex);
             args['commitment_id'] = commitment_id;
             question['history'][idx].args = args;
             delete bond_indexes[bond_hex];
@@ -3609,7 +3587,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
             console.log('made bond', bond);
             console.log('made answer_hash', answer_hash);
 
-            const commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
+            const commitment_id = rc_question.commitmentID(question_id, answer_hash, bond.toHexString());
             console.log('resulting  commitment_id', commitment_id);
 
             // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.
