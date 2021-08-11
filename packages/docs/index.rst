@@ -21,4 +21,5 @@ Reality.eth can be used either from our web application or by calling our contra
    fees
    whitepaper 
    contract_explanation
+   dapp_links
    audit
