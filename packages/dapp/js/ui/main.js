@@ -420,29 +420,13 @@ function decimalizedBigNumberToHuman(num, force_eth) {
     // TODO: Change the token list to use a number like 18
     const decimalstr = force_eth ? "1000000000000000000" : ""+TOKEN_INFO[TOKEN_TICKER]['decimals'];
     const decimals = (decimalstr.match(/0/g) || []).length;
-    console.log('decimals are', decimals);
+    // console.log('decimals are', decimals);
     return ethers.utils.formatUnits(num, decimals).replace(/\.0+$/,'');
 }
 
 function humanReadableWei(amt) {
-    amt = new BigNumber(amt.toHexString());
-    let unit = null;
-    let displ = null;
-    let div = 1;
-    const maxeth = new BigNumber(10).pow(16)
-    if (amt.gt(maxeth)) {
-        unit = 'ETH';
-        div = new BigNumber(10).pow(18);
-    } else if (amt.gt(new BigNumber(10).pow(7))) {
-        unit = 'Gwei';
-        div = new BigNumber(10).pow(9);
-    } else {
-        unit = 'Wei';
-    }
-    const amt_txt = amt.div(div).toString();
-    return amt_txt + ' ' + unit;
+    return decimalizedBigNumberToHuman(amt, true) + ' ETH';
 }
-
 
 $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
