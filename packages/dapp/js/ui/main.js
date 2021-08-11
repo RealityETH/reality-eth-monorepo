@@ -6,7 +6,6 @@ import Ps from 'perfect-scrollbar';
 (function() {
 
 const ethers = require("ethers");
-const BigNumber = require('bignumber.js'); // TODO: Remove BigNumber from reality-eth-lib calls and remove
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
