@@ -1313,7 +1313,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
             // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
             args['revealed_block'] = answer_arr[j].blockNumber;
             args['answer'] = answer_arr[j].args['answer'];
-            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], new BigNumber(bond_hex));
+            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond_hex);
             args['commitment_id'] = commitment_id;
             question['history'][idx].args = args;
             delete bond_indexes[bond_hex];
@@ -3604,7 +3604,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
             console.log('made bond', bond);
             console.log('made answer_hash', answer_hash);
 
-            const commitment_id = rc_question.commitmentID(question_id, answer_hash, new BigNumber(bond.toHexString()));
+            const commitment_id = rc_question.commitmentID(question_id, answer_hash, bond.toHexString());
             console.log('resulting  commitment_id', commitment_id);
 
             // TODO: We wait for the txid here, as this is not expected to be the main UI pathway.

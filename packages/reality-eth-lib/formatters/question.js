@@ -255,9 +255,10 @@ exports.getAnswerString = function(question_json, answer) {
 }
 
 exports.commitmentID = function(question_id, answer_hash, bond) {
+    const bond_hex = (typeof(bond) === 'string') ? bond : bond.toString(16);
     return "0x" + ethereumjs_abi.soliditySHA3(
         ["uint256", "uint256", "uint256"],
-        [ new BN(question_id.replace(/^0x/, ''), 16), new BN(answer_hash.replace(/^0x/, ''), 16), new BN(bond.toString(16), 16)]
+        [ new BN(question_id.replace(/^0x/, ''), 16), new BN(answer_hash.replace(/^0x/, ''), 16), new BN(bond_hex.replace(/^0x/, ''), 16)]
     ).toString('hex');
 }
 
