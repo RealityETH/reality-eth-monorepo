@@ -185,3 +185,27 @@ describe('Commitment ID tests', function() {
   });
 });
 
+describe('Question ID tests', function() {
+
+  const template_id = 0;
+  const qtext = 'Test question␟arts␟en_US';
+  const arbitrator = '0xa63db03f2706a6dffcce58b8b567872104d7b48f';
+  const timeout_val = 900;
+  const opening_ts = 0;
+  const account = '0xF74B5F5775a7d55f4F9Ec3EB9bDFF93dDfd3432e';
+  const nonce = 0;
+
+  const content_hash = '0x3266c7acb47bcf1f648a6669f6e100fd178c6ad6ce342b93857317181ee1a0f5';
+
+  const question_id = '0xe42c3f74f45fed2c02f2a67e8956847b6ce0a0a63ef1c8237161c74483dd588b';
+
+  it('Returns the expected content hash', function() { 
+    const ch = rc_question.contentHash(template_id, opening_ts, qtext);
+    expect(ch).to.equal(content_hash);
+  });
+
+  it('Returns the expected question ID', function() {
+    const qid = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
+    expect(qid).to.equal(question_id);
+  });
+});
