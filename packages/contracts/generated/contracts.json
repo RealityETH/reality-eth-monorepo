@@ -80,6 +80,12 @@
                 "arbitrators": {
                     "0xA63Db03F2706a6DFFccE58B8B567872104d7B48f": "Reality.eth Team (rinkeby main)"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xDf33060F476F8cff7511F806C72719394da1Ad64",
+                "block": 9106451,
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "TRST": {
