@@ -17,14 +17,44 @@ exports.contentHash = function(template_id, opening_ts, content) {
     ).toString('hex');
 }
 
-exports.questionID = function(template_id, question, arbitrator, timeout, opening_ts, sender, nonce) {
+exports.questionID = function(template_id, question, arbitrator, timeout, opening_ts, sender, nonce, min_bond, contract, version) {
+    // If there's a min_bond or a contract, insist we also get a version parameter
+    if (typeof version === 'undefined') {
+        if (typeof min_bond === 'string' || typeof contract === 'string') {
+            throw Error("Version not defined");
+        }
+    }
+    if (!version) {
+        version = 'v2';
+    }
+    if (version != 'v2' && version != 'v3') {
+        throw Error("Version not recognized");
+    }
+    if (version == 'v3') {
+        if (typeof min_bond !== 'string') {
+            throw Error('min_bond not supplied or invalid. Required in v3. Pass "0x0" for a zero bond')
+        }
+    } 
+
     var content_hash = this.contentHash(template_id, opening_ts, question);
-    // The seems to be something wrong with how soliditySHA3 handles bytes32, so tell it we gave it uint256
-    return "0x" + ethereumjs_abi.soliditySHA3(
+
+    let qid;
+    if (version == 'v2') {
+      qid = ethereumjs_abi.soliditySHA3(
         //["bytes32", "address", "uint256", "address", "uint256"],
         ["uint256", "address", "uint32", "address", "uint256"],
         [ new BN(content_hash.replace(/^0x/, ''), 16), arbitrator, new BN(timeout), sender, new BN(nonce)]
-    ).toString('hex');
+      );
+    } else {
+      // bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, uint256(min_bond), address(this), msg.sender, nonce));
+      qid = ethereumjs_abi.soliditySHA3(
+        ["uint256", "address", "uint32", "uint256", "address", "address", "uint256"],
+        [ new BN(content_hash.replace(/^0x/, ''), 16), arbitrator, new BN(timeout), new BN(min_bond.replace(/^0x/, ''), 16), contract, sender, new BN(nonce)]
+      );
+    }
+
+    // The seems to be something wrong with how soliditySHA3 handles bytes32, so tell it we gave it uint256
+    return "0x" + qid.toString('hex');
 }
 
 exports.minNumber = function(qjson) {

@@ -186,7 +186,6 @@ describe('Commitment ID tests', function() {
 });
 
 describe('Question ID tests', function() {
-
   const template_id = 0;
   const qtext = 'Test question␟arts␟en_US';
   const arbitrator = '0xa63db03f2706a6dffcce58b8b567872104d7b48f';
@@ -204,8 +203,33 @@ describe('Question ID tests', function() {
     expect(ch).to.equal(content_hash);
   });
 
-  it('Returns the expected question ID', function() {
+  it('Returns the expected question ID for a simple v2 question', function() {
     const qid = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0);
     expect(qid).to.equal(question_id);
   });
+
+  it('Throws an error if v3 is specified but the min_bond or contract arguments are missing', function() {
+    expect(() => rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0, null, null, 'v3')).to.throw('min_bond not supplied or invalid. Required in v3. Pass "0x0" for a zero bond');
+  });
+
+  it('Throws an error if min_bond or contract arguments specified but the version argument is missing', function() {
+    expect(() => rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0, "0x0", "0xabcd")).to.throw('Version not defined');
+  });
+
+  it('Throws an error if an unknown version is specified', function() {
+    expect(() => rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0, "0x0", "0x0abcd", 'oink')).to.throw('Version not recognized');
+  });
+
+  it('Returns a different ID if the version is different', function() {
+    const v2qid = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0, "0x0", "0x0", 'v2')
+    const v3qid = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, account, 0, "0x0", "0x0", 'v3')
+    expect(v2qid).not.to.equal(v3qid);
+  });
+
+  it('Returns the id for v3 that the v3 contract did', function() {
+     // https://rc-dev-5.socialminds.jp/monorepo/packages/dapp/#!/contract/0xDf33060F476F8cff7511F806C72719394da1Ad64/question/0xdf33060f476f8cff7511f806c72719394da1ad64-0xb1d1cad2a10db4d4b3693f4fb859cb2e7f772702acb1b5daa54080910c0734c9
+    const v3qid = rc_question.questionID(0, 'Does the existing ui work with v3␟arts␟en_US', '0xdf33060f476f8cff7511f806c72719394da1ad64', 180, 0, '0xF74B5F5775a7d55f4F9Ec3EB9bDFF93dDfd3432e', 0, "0x0", "0xdf33060f476f8cff7511f806c72719394da1ad64", 'v3')
+    expect(v3qid).to.equal('0xb1d1cad2a10db4d4b3693f4fb859cb2e7f772702acb1b5daa54080910c0734c9');
+  });
+
 });
