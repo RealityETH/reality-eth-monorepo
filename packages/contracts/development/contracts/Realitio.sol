@@ -1,4 +1,6 @@
-pragma solidity ^0.4.25;
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.6;
 
 import './RealitioSafeMath256.sol';
 import './RealitioSafeMath32.sol';
@@ -144,9 +146,9 @@ contract Realitio is BalanceHolder {
         require(questions[question_id].timeout > 0, "question must exist");
         require(!questions[question_id].is_pending_arbitration, "question must not be pending arbitration");
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now), "finalization deadline must not have passed");
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization deadline must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(now), "opening date must have passed"); 
+        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
         _;
     }
 
@@ -158,9 +160,9 @@ contract Realitio is BalanceHolder {
     modifier stateOpenOrPendingArbitration(bytes32 question_id) {
         require(questions[question_id].timeout > 0, "question must exist");
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(now), "finalization dealine must not have passed");
+        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(now), "opening date must have passed"); 
+        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
         _;
     }
 
@@ -184,8 +186,7 @@ contract Realitio is BalanceHolder {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor() 
-    public {
+    constructor() {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
@@ -208,7 +209,7 @@ contract Realitio is BalanceHolder {
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string content) 
+    function createTemplate(string memory content) 
         stateAny()
     public returns (uint256) {
         uint256 id = nextTemplateID;
@@ -229,8 +230,8 @@ contract Realitio is BalanceHolder {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
-        string content, 
-        string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
+        string memory content, 
+        string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
     ) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
@@ -247,7 +248,7 @@ contract Realitio is BalanceHolder {
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
+    function askQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
         // stateNotCreated is enforced by the internal _askQuestion
     public payable returns (bytes32) {
 
@@ -257,7 +258,7 @@ contract Realitio is BalanceHolder {
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, msg.sender, nonce));
 
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts);
-        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, now);
+        emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
 
         return question_id;
     }
@@ -327,7 +328,7 @@ contract Realitio is BalanceHolder {
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(now).add(commitment_timeout);
+        commitments[commitment_id].reveal_ts = uint32(block.timestamp).add(commitment_timeout);
     }
 
     /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
@@ -370,7 +371,7 @@ contract Realitio is BalanceHolder {
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
 
         require(!commitments[commitment_id].is_revealed, "commitment must not have been revealed yet");
-        require(commitments[commitment_id].reveal_ts > uint32(now), "reveal deadline must not have passed");
+        require(commitments[commitment_id].reveal_ts > uint32(block.timestamp), "reveal deadline must not have passed");
 
         commitments[commitment_id].revealed_answer = answer;
         commitments[commitment_id].is_revealed = true;
@@ -394,13 +395,13 @@ contract Realitio is BalanceHolder {
         }
         questions[question_id].history_hash = new_history_hash;
 
-        emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, now, is_commitment);
+        emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
     }
 
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer, uint32 timeout_secs)
     internal {
         questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(now).add(timeout_secs);
+        questions[question_id].finalize_ts = uint32(block.timestamp).add(timeout_secs);
     }
 
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -446,7 +447,7 @@ contract Realitio is BalanceHolder {
     function isFinalized(bytes32 question_id) 
     view public returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(now)) );
+        return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)) );
     }
 
     /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
@@ -496,7 +497,7 @@ contract Realitio is BalanceHolder {
     /// That means we can't pay out the bond added at n until we have looked at n-1
     /// The first answer is authenticated by checking against the stored history_hash.
     /// One of the inputs to history_hash is the history_hash before it, so we use that to authenticate the next entry, etc
-    /// Once we get to a null hash we'll know we're done and there are no more answers.
+    /// Once we get to a null hash we'll kblock.timestamp we're done and there are no more answers.
     /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
     /// @param question_id The ID of the question
     /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
@@ -505,7 +506,7 @@ contract Realitio is BalanceHolder {
     /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
     function claimWinnings(
         bytes32 question_id, 
-        bytes32[] history_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+        bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
     ) 
         stateFinalized(question_id)
     public {
@@ -544,8 +545,8 @@ contract Realitio is BalanceHolder {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
 
-            // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
-            // (We always know who to pay unless all we saw were unrevealed commits)
+            // If we kblock.timestamp who to pay we can go ahead and pay them out, only keeping back last_bond
+            // (We always kblock.timestamp who to pay unless all we saw were unrevealed commits)
             if (payee != NULL_ADDRESS) {
                 _payPayee(question_id, payee, queued_funds);
                 queued_funds = 0;
@@ -652,8 +653,8 @@ contract Realitio is BalanceHolder {
     /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
     /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID 
     function claimMultipleAndWithdrawBalance(
-        bytes32[] question_ids, uint256[] lengths, 
-        bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers
+        bytes32[] memory question_ids, uint256[] memory lengths, 
+        bytes32[] memory hist_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
     ) 
         stateAny() // The finalization checks are done in the claimWinnings function
     public {

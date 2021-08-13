@@ -1,0 +1,25 @@
+Audit notes, Reality.eth v3
+Edmund Edgar, 2021-07-28
+
+Versions covered by previous audits
+
+RealityETH_2.0.rst  
+ * https://github.com/realitio/realitio-contracts/blob/feature-erc20-audit/truffle/contracts/Realitio.sol
+RealityETH_2.0_ERC20.txt
+ * https://github.com/realitio/realitio-contracts/blob/feature-erc20-audit/truffle/contracts/RealitioERC20.sol
+
+Changes in production for version 2.1 (no ERC version produced), subject to Kleros bug bounty etc but not formally audited:
+ * https://github.com/realitio/realitio-contracts/commits/master/truffle/contracts/Realitio_v2_1.sol
+
+Changes proposed for v3 (Code changes begin on Jul 27, 2021)
+ * https://github.com/RealityETH/monorepo/commits/feature-v3-audit
+
+Code under the scope of this audit:
+ * https://github.com/RealityETH/monorepo/blob/feature-v3-audit/packages/contracts/development/contracts/RealityETH-3.0.sol
+ * https://github.com/RealityETH/monorepo/blob/feature-v3-audit/packages/contracts/development/contracts/RealityETH_ERC20-3.0.sol
+ ...and any dependencies such as BalanceHolder.sol
+
+Notes
+ * Naming has changed, Reality Check, Realitio and Reality.eth all refer to the same thing.
+ * The ERC20 version for v3 was created by copying the non-ERC20 version and applying similar changes to those made in the vR ERC20 diff, not the other way around.
+

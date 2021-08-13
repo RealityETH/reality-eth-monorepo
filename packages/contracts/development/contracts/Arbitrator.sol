@@ -1,11 +1,12 @@
-pragma solidity ^0.4.25;
+// SPDX-License-Identifier: GPL-3.0-only
 
-import './Owned.sol';
-import './IArbitrator.sol';
+pragma solidity ^0.8.6;
+
 import './IRealitio.sol';
 import './IERC20.sol';
+import './Owned.sol';
 
-contract Arbitrator is Owned, IArbitrator {
+contract Arbitrator is Owned {
 
     IRealitio public realitio;
 
@@ -42,8 +43,7 @@ contract Arbitrator is Owned, IArbitrator {
     );
 
     /// @notice Constructor. Sets the deploying address as owner.
-    constructor() 
-    public {
+    constructor() {
         owner = msg.sender;
     }
 
@@ -167,7 +167,7 @@ contract Arbitrator is Owned, IArbitrator {
     function withdraw(address addr) 
         onlyOwner 
     public {
-        addr.transfer(address(this).balance); 
+        payable(addr).transfer(address(this).balance); 
     }
 
     /// @notice Withdraw any accumulated token fees to the specified address
@@ -181,7 +181,7 @@ contract Arbitrator is Owned, IArbitrator {
         IERC20(_token).transfer(addr, bal); 
     }
 
-    function() 
+    receive() 
     external payable {
     }
 
@@ -195,7 +195,7 @@ contract Arbitrator is Owned, IArbitrator {
     }
 
     /// @notice Set a metadata string, expected to be JSON, containing things like arbitrator TOS address
-    function setMetaData(string _metadata) 
+    function setMetaData(string memory _metadata) 
         onlyOwner
     external {
         metadata = _metadata;

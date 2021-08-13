@@ -10,10 +10,15 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 The above are combined into JSON files under generated/ using `npm run-script generate`.
 
 
-*truffle/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
-
+*development/contracts/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
 
 *config/templates* contains information about templates deployed by the constructor to save fetching them from the event logs.
+
+## Compilation
+
+`$ cd development/contracts/`
+
+`$ ./compile.py RealityETH-3.0
 
 
 ## Tests
@@ -24,25 +29,9 @@ Contract tests use python3.
 
 `$ pip install -r requirements.txt`
 
-You can then run the tests with:
+You can then test the version in question with, eg
 
-`$ python test.py`
-
-The version we will deploy on XDai, v2.1, has an additional fee, called the claim fee. You can test it with:
-
-`$ CLAIM_FEE=40 REALITIO=Realitio_v2_1 python test.py`
-
-
-## Compilation 
-
-We now use Etherlime rather than Truffle for compilation. The existing build files already contain the compiled code, so if you're not changing the code and just deploying versions of a previous contract for a new token, you don't need to compile.
-
-`$ cd truffle`
-
-`$ etherlime compile --solcVersion=0.4.25 --runs=200`
-
-The above builds contracts under `truffle/build`. If you don't need to merge with any existing contract definitions (eg to preserve the addresses of existing contracts) you can copy them to the normal truffle location under `truffle/build/contracts`.
-
+`$ REALITYETH=RealityETH-3.0 python test.py`
 
 ## Deployment
 
@@ -52,7 +41,7 @@ You will need the private key of an account with funds to deploy on the relevant
 
 The `.gitignore` file should prevent it from being checked into Git, but be careful not to share it.
 
-To deploy contracts using the code compiled under truffle/build/contracts, use
+To deploy contracts using the code compiled under contracts/bytecode, use
 
 `$ cd packages/contracts/scripts`
 
