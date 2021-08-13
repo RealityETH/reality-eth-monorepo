@@ -45,7 +45,12 @@ const non_infura_chains = {
 }
 
 function constructContractTemplate(contract_name) {
-    const abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
+    let abi; 
+    try {
+        abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
+    } catch(e) {
+        abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.6/'+contract_name+'.abi.json'));
+    }
     const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
     //console.log('bytecode', bytecode);
     return {
