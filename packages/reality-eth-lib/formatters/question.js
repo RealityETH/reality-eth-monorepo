@@ -25,12 +25,13 @@ exports.questionID = function(template_id, question, arbitrator, timeout, openin
         }
     }
     if (!version) {
-        version = 'v2';
+        version = '2.0';
     }
-    if (version != 'v2' && version != 'v3') {
+    const vernum = parseInt(version);
+    if (isNaN(vernum) || vernum <2 || vernum > 4) {
         throw Error("Version not recognized");
-    }
-    if (version == 'v3') {
+    } 
+    if (vernum >= 3) {
         if (typeof min_bond !== 'string') {
             throw Error('min_bond not supplied or invalid. Required in v3. Pass "0x0" for a zero bond')
         }
@@ -39,7 +40,7 @@ exports.questionID = function(template_id, question, arbitrator, timeout, openin
     var content_hash = this.contentHash(template_id, opening_ts, question);
 
     let qid;
-    if (version == 'v2') {
+    if (vernum < 3) {
       qid = ethereumjs_abi.soliditySHA3(
         //["bytes32", "address", "uint256", "address", "uint256"],
         ["uint256", "address", "uint32", "address", "uint256"],
