@@ -90,6 +90,7 @@ let Q_MIN_ACTIVITY_BLOCKS = {};
 
 // These will be populated in onload, once the provider is loaded
 let RC_INSTANCES = {};
+let RC_INSTANCE_VERSIONS = {};
 let RC_DEFAULT_ADDRESS = null;
 let RC_DISPLAYED_CONTRACTS = [];
 
@@ -607,7 +608,10 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         opening_ts = parseInt(opening_ts / 1000);
     }
 
-    const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
+    const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
+    const min_bond = "0x0";
+
+    const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0, min_bond, RC_DEFAULT_ADDRESS, rcver);
     //console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
     //console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
 
@@ -4834,6 +4838,7 @@ window.addEventListener('load', async function() {
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr]; 
             START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
+            RC_INSTANCE_VERSIONS[cfg.address.toLowerCase()] = cfg.version_number;
         }
 
         // If not found, load the default
