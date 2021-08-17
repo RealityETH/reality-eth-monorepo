@@ -1413,7 +1413,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                 question.block_mined = data.blockNumber;
                 question.opening_ts = ethers.BigNumber.from(data.args['opening_ts']);
                 question.contract = data.address;
-                question.contract_version = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
+                question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
                 //question.bounty = data.args['bounty'];
             }
             break;
@@ -1422,8 +1422,8 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
             if (data && (freshness >= question.freshness.question_json)) {
                 question.freshness.question_json = freshness;
                 question.question_json = data;
-                question.has_invalid_option = rc_question.hasInvalidOption(data, question.contract_version);
-                question.has_answered_too_soon_option = rc_question.hasAnsweredTooSoonOption(data, question.contract_version);
+                question.has_invalid_option = rc_question.hasInvalidOption(data, question.version_number);
+                question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(data, question.version_number);
             }
             break;
 
@@ -2421,6 +2421,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     //console.log('current list last item in history, which is ', question_detail['history'])
     const idx = question_detail['history'].length - 1;
 
+    if (question_detail.has_invalid_option) {
+        rcqa.addClass('has-invalid-option');
+    }
+    if (question_detail.has_too_soon_option) {
+        rcqa.addClass('has-too-soon-option');
+    }
+
     const cat_el = rcqa.find('.rcbrowser-main-header-category');
     cat_el.text(category_text(question_json, cat_el)); 
 
@@ -2692,7 +2699,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     
     if (!is_refresh) {
         // answer form
-        const ans_frm = makeSelectAnswerInput(question_json, question_detail.opening_ts.toNumber());
+        const ans_frm = makeSelectAnswerInput(question_json, question_detail.opening_ts.toNumber(), question_detail.has_invalid_option, question_detail.has_too_soon_option);
         ans_frm.addClass('is-open');
         ans_frm.removeClass('template-item');
         rcqa.find('.answered-history-container').after(ans_frm);
@@ -3256,7 +3263,7 @@ function renderUserQandA(qdata, entry) {
     populateWithBlockTimeForBlockNumber(qitem, entry.blockNumber, updateBlockTimestamp);
 }
 
-function makeSelectAnswerInput(question_json, opening_ts) {
+function makeSelectAnswerInput(question_json, opening_ts, has_invalid, has_answered_too_soon) {
     const type = question_json['type'];
     const options = question_json['outcomes'];
 
@@ -3296,6 +3303,13 @@ function makeSelectAnswerInput(question_json, opening_ts) {
                 }
                 break;
         }
+    }
+
+    if (!has_invalid) {
+        ans_frm.find('.invalid-select').remove();
+    }
+    if (!has_answered_too_soon) {
+        ans_frm.find('.too-soon-select').remove();
     }
 
     return ans_frm;
@@ -3596,12 +3610,12 @@ $(document).on('click', '.post-answer-button', async function(e) {
         }
 
         // UI shouldn't let you do this
-        if (new_answer == invalid_value && !rc_question.hasInvalidOption(question_json, current_question.contract_version)) {
+        if (new_answer == invalid_value && !rc_question.hasInvalidOption(question_json, current_question.version_number)) {
             console.log('invalid not supported');
             is_err = true;
         }
 
-        if (new_answer == answered_too_soon_value && !rc_question.hasAnsweredTooSoonOption(question_json, current_question.contract_version)) {
+        if (new_answer == answered_too_soon_value && !rc_question.hasAnsweredTooSoonOption(question_json, current_question.version_number)) {
             console.log('answered too soon not supported');
             is_err = true;
         }
