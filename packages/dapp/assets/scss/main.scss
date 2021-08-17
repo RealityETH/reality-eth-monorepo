@@ -3072,3 +3072,10 @@ div.top-content-controls select {
 div.contract-claim-section-template {
     display:none;
 }
+
+.version-supports-min-bond-only {
+    display:none;
+}
+.version-supports-min-bond .version-supports-min-bond-only {
+    display:block;
+}

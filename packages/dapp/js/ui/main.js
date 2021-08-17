@@ -6,6 +6,7 @@ import Ps from 'perfect-scrollbar';
 (function() {
 
 const ethers = require("ethers");
+const semver = require("semver");
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
@@ -82,6 +83,7 @@ const Qi_bounty = 6;
 const Qi_best_answer = 7;
 const Qi_history_hash = 8;
 const Qi_bond = 9;
+const Qi_min_bond = 10; // v3 or above only
 
 let BLOCK_TIMESTAMP_CACHE = {};
 
@@ -609,9 +611,14 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     }
 
     const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
-    const min_bond = "0x0";
 
-    const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0, min_bond, RC_DEFAULT_ADDRESS, rcver);
+    let min_bond = ethers.BigNumber.from(0);
+    if (win.hasClass('version-supports-min-bond')) {
+        const min_bond_val = win.find('.question-min-bond').val();
+        min_bond = humanToDecimalizedBigNumber(min_bond_val);
+    }
+
+    const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0, min_bond.toHexString(), RC_DEFAULT_ADDRESS, rcver);
     //console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
     //console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
 
@@ -662,6 +669,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         fake_call[Qi_bounty] = reward;
         fake_call[Qi_best_answer] = "0x0000000000000000000000000000000000000000000000000000000000000000";
         fake_call[Qi_bond] = ethers.BigNumber.from(0);
+        fake_call[Qi_min_bond] = min_bond;
         fake_call[Qi_history_hash] = "0x0000000000000000000000000000000000000000000000000000000000000000";
         fake_call[Qi_opening_ts] = ethers.BigNumber.from(opening_ts);
 
@@ -713,18 +721,33 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     const signedRC = RCInstance(RC_DEFAULT_ADDRESS, true);
     let tx_response = null;
     if (IS_TOKEN_NATIVE) { 
-        tx_response = await signedRC.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
-            from: ACCOUNT,
-            // gas: 200000,
-            value: reward.add(fee)
-        });
+        if (min_bond.gt(0)) {
+            tx_response = await signedRC.functions.askQuestionWithMinBond(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, min_bond, {
+                from: ACCOUNT,
+                // gas: 200000,
+                value: reward.add(fee)
+            });
+        } else {
+            tx_response = await signedRC.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, {
+                from: ACCOUNT,
+                // gas: 200000,
+                value: reward.add(fee)
+            });
+        }
     } else {
         const cost = reward.add(fee);
         await ensureAmountApproved(RCInstance(RC_DEFAULT_ADDRESS).address, ACCOUNT, cost);
-        tx_response = await signedRC.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
-            from: ACCOUNT,
-            // gas: 200000,
-        })
+        if (min_bond.gt(0)) {
+            tx_response = await signedRC.functions.askQuestionWithMinBondERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, min_bond, cost, {
+                from: ACCOUNT,
+                // gas: 200000,
+            })
+        } else {
+            tx_response = await signedRC.functions.askQuestionERC20(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, cost, {
+                from: ACCOUNT,
+                // gas: 200000,
+            })
+        }
     }
     handleAskQuestionTX(tx_response);
 
@@ -964,6 +987,24 @@ function validate(win) {
         reward.parent().parent().removeClass('is-error');
     }
 
+    if (win.hasClass('version-supports-min-bond')) {
+        let min_bond_inp = win.find('.question-min-bond');
+        let is_bond_err = false;
+        try {
+            // Parse the number and make sure it works
+            humanToDecimalizedBigNumber(min_bond_inp.val());
+        } catch (e) {
+            console.log('min bond parse err', e);
+            is_bond_err = true;
+        }
+        if (is_bond_err) {
+            min_bond_inp.parent().parent().addClass('is-error');
+            valid = false;
+        } else {
+            min_bond_inp.parent().parent().removeClass('is-error');
+        }
+    }
+
     let options_num = 0;
     const question_type = win.find('.question-type');
     const answer_options = $('.answer-option').toArray();
@@ -990,6 +1031,7 @@ function validate(win) {
         }
     }
 
+console.log('valid is ', valid);
     return valid;
 }
 
@@ -1399,6 +1441,11 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                 question.best_answer = data[Qi_best_answer];
                 question.bond = data[Qi_bond];
                 question.history_hash = data[Qi_history_hash];
+                if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[question.contract.toLowerCase()], 'min-bond')) {
+                    question.min_bond = data[Qi_min_bond];
+                } else {
+                    question.min_bond = ethers.BigNumber.from(0);
+                }
                 //console.log('set question', question_id, question);
             } else {
                 //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
@@ -2389,7 +2436,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
 
     let bond = ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']).div(2);
-    if (question_detail.bounty && question_detail.bounty.gt(0)) {
+    if (question_detail.min_bond && question_detail.min_bond.gt(0)) {
+        bond = question_detail.min_bond.div(2);
+    } else if (question_detail.bounty && question_detail.bounty.gt(0)) {
         bond = question_detail.bounty.div(2);
     }
 
@@ -2521,6 +2570,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     let timeout = question_detail.timeout;
     let balloon = rcqa.find('.question-setting-info').find('.balloon')
     balloon.find('.setting-info-bounty').text(decimalizedBigNumberToHuman(question_detail.bounty));
+    balloon.find('.setting-info-min-bond').text(decimalizedBigNumberToHuman(question_detail.min_bond));
     balloon.find('.setting-info-bond').text(decimalizedBigNumberToHuman(question_detail.bond));
     balloon.find('.setting-info-timeout').text(rc_question.secondsTodHms(question_detail.timeout));
     balloon.find('.setting-info-content-hash').text(question_detail.content_hash);
@@ -3534,6 +3584,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
 
         let min_amount = current_question.bond.mul(2)
         if (bond.lt(min_amount)) {
+console.log('val fail', min_amount, current_question);
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
             is_err = true;
@@ -3827,7 +3878,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         const contract_question_id = ctrl.closest('.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
         const [contract, question_id] = parseContractQuestionID(contract_question_id);
         const current_idx = QUESTION_DETAIL_CACHE[contract_question_id]['history'].length - 1;
-        let current_bond = ethers.BigNumber.from(0);
+        let current_bond = ethers.BigNumber.from(QUESTION_DETAIL_CACHE[contract_question_id].min_bond.div(2));
         if (current_idx >= 0) {
             current_bond = QUESTION_DETAIL_CACHE[contract_question_id]['history'][current_idx].args.bond;
         }
@@ -4839,6 +4890,7 @@ window.addEventListener('load', async function() {
             const cfg = all_rc_configs[cfg_addr]; 
             START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
             RC_INSTANCE_VERSIONS[cfg.address.toLowerCase()] = cfg.version_number;
+            
         }
 
         // If not found, load the default
@@ -4935,7 +4987,12 @@ window.addEventListener('load', async function() {
             CURRENT_BLOCK_NUMBER = block.number;
         }
 
+        if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()], 'min-bond')) {
+            $('.rcbrowser--postaquestion').addClass('version-supports-min-bond');
+        } 
+
         const limit_to_contract = show_all ? null : RC_DEFAULT_ADDRESS;
+
         pageInit(limit_to_contract);
 
         if (args['question']) {
