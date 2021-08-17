@@ -8,7 +8,7 @@ function realityETHInstance(config) {
     const contract_version = config.contract_version
     //const abi = JSON.parse(fs.readFileSync('./abi/solc-0.4.25/'+contract_version+'.abi'));
     //const abi = require('./abi/solc-0.4.25/'+contract_version+'.abi');
-    const abi = require('./abi/solc-0.4.25/RealityETH-all.abi.json');
+    const abi = require('./abi/solc-0.8.6/RealityETH-all.abi.json');
     //const bytecode = fs.readFileSync('./bytecode/'+contract_version+'.bin', 'utf8').replace(/\n/, '');
 //    const bytecode = require('./bytecode/'+contract_version+'.bin');
     return {
