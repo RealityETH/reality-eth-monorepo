@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  color: #565656;
+  background-color: #f0f4f8;
+}
+
+* {
+  font-family: "Roboto", sans-serif;
+  box-sizing: border-box;
+}
+
+.align-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.app-container {
+  width: 100%;
+  margin: 0 auto;
+  min-width: 900px;
+  max-width: 1100px;
+
+  min-height: 1000px;
+}

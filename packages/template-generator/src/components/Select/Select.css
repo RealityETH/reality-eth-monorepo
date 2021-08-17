@@ -1,0 +1,37 @@
+.custom-select-container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  color: #001428;
+  padding: 12px;
+}
+
+.custom-select-label {
+  font-size: 13px;
+  flex-wrap: nowrap;
+}
+
+.custom-select {
+  -webkit-appearance: none;
+  appearance: none;
+
+  background-color: transparent;
+  outline: none;
+  border: 0;
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.custom-select-selected {
+  color: #001428;
+}

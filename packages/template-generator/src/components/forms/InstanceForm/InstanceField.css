@@ -1,0 +1,20 @@
+.instance-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.link-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.custom-instance-button {
+  text-align: right;
+  justify-self: end;
+  margin-top: 8px;
+}
