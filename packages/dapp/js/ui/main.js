@@ -3433,6 +3433,15 @@ function formattedAnswerFromForm(parent_div, question_json) {
         return new_answer;
     }
 
+    // Selects will just have "invalid" as an option in the pull-down.
+    // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
+    const has_answered_too_soon_select = (answer_element.attr('data-too-soon-selected') == '1');
+    if (has_answered_too_soon_select) {
+        new_answer = rc_question.getAnsweredTooSoonValue(question_json);
+        console.log('answered too soon selected, so submitting the answered too soon value ', new_answer);
+        return new_answer;
+    }
+
     if (question_json['type'] == 'multiple-select') {
         let answer_input = [];
         parent_div.find('.input-container--checkbox input[type=checkbox]').each(function() {
@@ -3509,6 +3518,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
         const maxNum = ethers.BigNumber.from('0x'+rc_question.maxNumber(question_json).integerValue().toString(16));
         new_answer = formattedAnswerFromForm(parent_div, question_json);
         const invalid_value = rc_question.getInvalidValue(question_json);
+        const answered_too_soon_value = rc_question.getAnsweredTooSoonValue(question_json);
 
         let ans;
         let err = false;
@@ -3519,7 +3529,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                 } catch(e) {
                     err = true;
                 }
-                if (err || !(ans.eq(ethers.BigNumber.from(0)) || ans.eq(ethers.BigNumber.from(1)) || ans.eq(ethers.BigNumber.from(invalid_value)))) {
+                if (err || !(ans.eq(ethers.BigNumber.from(0)) || ans.eq(ethers.BigNumber.from(1)) || ans.eq(ethers.BigNumber.from(invalid_value)) || ans.eq(ethers.BigNumber.from(answered_too_soon_value)))) {
                     parent_div.find('div.select-container.select-container--answer').addClass('is-error');
                     is_err = true;
                 }
@@ -3531,7 +3541,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                     err = true;
                 }
                 if (!err) {
-                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
+                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && !ans.eq(ethers.BigNumber.from(answered_too_soon_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
                         err = true;
                     } else if (ans.lt(ethers.BigNumber.from(0))) {
                         err = true;
@@ -3549,7 +3559,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                     err = true;
                 }
                 if (!err) {
-                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
+                    if (!ans.eq(ethers.BigNumber.from(invalid_value)) && !ans.eq(ethers.BigNumber.from(answered_too_soon_value)) && (ans.lt(minNum) || ans.gt(maxNum))) {
                         err = true;
                     }
                 }
@@ -3917,17 +3927,24 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
 
 $(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
     evt.stopPropagation();
-    const inp = $(this).closest('.input-container').addClass('invalid-selected').removeClass('is-error').find('input');
+    const cont = $(this).closest('.input-container');
+    const inp = cont.find('input');
+    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+        inp.attr('data-old-placeholder', inp.attr('placeholder'));
+    }
+    cont.addClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error');
     inp.val('');
     inp.attr('readonly', true);
-    inp.attr('data-old-placeholder', inp.attr('placeholder'));
     inp.attr('placeholder', 'Invalid');
+    inp.removeAttr('data-too-soon-selected');
     inp.attr('data-invalid-selected', '1'); // will be read in processing
 });
 
 $(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
     evt.stopPropagation();
-    const inp = $(this).closest('.input-container').removeClass('invalid-selected').removeClass('is-error').find('input');
+    const cont = $(this).closest('.input-container');
+    const inp = cont.find('input');
+    cont.removeClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error')
     inp.attr('readonly', false);
     let placeholder = inp.attr('data-old-placeholder');
     if (typeof placeholder === typeof undefined || placeholder === false) {
@@ -3936,6 +3953,35 @@ $(document).on('click', '.invalid-switch-container a.valid-text-link', function(
     inp.attr('placeholder', placeholder);
     inp.removeAttr('data-old-placeholder');
     inp.removeAttr('data-invalid-selected'); // will be read in processing
+});
+
+$(document).on('click', '.too-soon-switch-container a.too-soon-text-link', function(evt) {
+    evt.stopPropagation();
+    const cont = $(this).closest('.input-container');
+    const inp = cont.find('input');
+    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+        inp.attr('data-old-placeholder', inp.attr('placeholder'));
+    }
+    cont.addClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error')
+    inp.val('');
+    inp.attr('readonly', true);
+    inp.attr('placeholder', 'Answered too soon');
+    inp.attr('data-too-soon-selected', '1'); // will be read in processing
+    inp.removeAttr('data-invalid-selected');
+});
+
+$(document).on('click', '.too-soon-switch-container a.not-too-soon-text-link', function(evt) {
+    evt.stopPropagation();
+    const cont = $(this).closest('.input-container');
+    const inp = cont.removeClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error').find('input');
+    inp.attr('readonly', false);
+    let placeholder = inp.attr('data-old-placeholder');
+    if (typeof placeholder === typeof undefined || placeholder === false) {
+        placeholder = '';
+    }
+    inp.attr('placeholder', placeholder);
+    inp.removeAttr('data-old-placeholder');
+    inp.removeAttr('data-too-soon-selected'); // will be read in processing
 });
 
 $(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function(e) {

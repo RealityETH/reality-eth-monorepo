@@ -1845,8 +1845,17 @@ div.unconfirmed-question-header span.pending-question-txid {
 .invalid-selected span.input-header{
     visibility: hidden;
 }
-
 .multiple-select .invalid-selected .input-entry {
+    opacity:0.2;
+}
+
+.too-soon-selected .rcbrowser-textarea{
+    background-color: $rcBrowserDarkBg;
+}
+.too-soon-selected span.input-header{
+    visibility: hidden;
+}
+.multiple-select .too-soon-selected .input-entry {
     opacity:0.2;
 }
 
@@ -2048,6 +2057,17 @@ div.invalid-switch-container { margin-top:2px; margin-right:2px; text-align:righ
 .input-container .invalid-text-link { display:block; }
 .input-container.invalid-selected .valid-text-link { display:block; }
 .input-container.invalid-selected .invalid-text-link { display:none; }
+
+
+div.too-soon-switch-container { margin-top:2px; margin-right:2px; text-align:right; padding-bottom: 10px;}
+
+.input-container a.not-too-soon-text-link { font-size:12px; }
+.input-container a.too-soon-text-link { font-size:12px; }
+
+.input-container .not-too-soon-text-link { display:none; }
+.input-container .too-soon-text-link { display:block; }
+.input-container.too-soon-selected .not-too-soon-text-link { display:block; }
+.input-container.too-soon-selected .too-soon-text-link { display:none; }
 
 .quick-help {
     position: absolute;
@@ -2581,6 +2601,7 @@ div.notifications-template-container {display:none}
 
 option.exceptional-option {font-style: italic}
 option.invalid-select {font-style: italic}
+option.too-soon-select {font-style: italic}
 
 div.questions__item__footer span.question-bounty-container { /* float:right  */ 
     margin-left: 20px;}

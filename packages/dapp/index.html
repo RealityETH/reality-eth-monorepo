@@ -710,6 +710,7 @@
 
                 <label class="input-entry template-item"><input id="" type="checkbox" class="rcbrowser-input--checkbox form-item form-item-value" value=""><span>template</span></label>
                 <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question not answered too soon</a></div>
 
                 <div class="error-container">Please select options.</div>
             </div>
@@ -743,6 +744,7 @@
                 <select name="input-answer" class="rcbrowser-select select-answer form-item form-item-value">
                     <option value="default">Select the Answer</option>
                     <option class="invalid-select" value="0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff">Invalid</option>
+                    <option class="too-soon-select" value="0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe">Answered Too Soon</option>
                 </select>
                 <div class="error-container">Please select the answer.</div>
             </div>
@@ -778,6 +780,7 @@
                 </div>
                 <div class="error-container">Please enter number.</div>
                 <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question answerable</a></div>
             </div>
 
             <div class="input-container input-container--bond">
@@ -811,6 +814,7 @@
                 </div>
                 <div class="error-container">Please enter number.</div>
                 <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question answerable</a></div>
             </div>
 
             <div class="input-container input-container--bond">
@@ -844,6 +848,7 @@
                     <option value="1">Yes</option>
                     <option value="0">No</option>
                     <option class="invalid-select" value="0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff">Invalid</option>
+                    <option class="too-soon-select" value="0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe">Answered too soon</option>
                 </select>
                 <div class="error-container">Please select the answer.</div>
             </div>
@@ -867,7 +872,8 @@
     </div>
     <div class="answer-form-container broken-question template-item" style="display:none">
         <div class="answer-form-header">
-            <span class="answer-prompt-text no-answer-only">You can mark this question invalid.</span>
+            <span class="answer-prompt-text no-answer-only has-invalid-only">You can mark this question invalid.</span>
+            <span class="answer-prompt-text no-answer-only has-too-soon-only">You can mark this question "answered too soon".</span>
             <span class="answer-prompt-text has-answer-only">You can increase the bond on this invalid question.</span>
         </div>
 
@@ -883,7 +889,8 @@
             </div>
 
             <div class="submit-container">
-                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Mark Invalid">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button has-invalid-only" value="Mark Invalid">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button has-too-soon-only" value="Mark Too Soon">
                 <input type="hidden" name="input-answer" data-invalid-selected="1" class="rcbrowser-input form-item form-item-value">
             </div>
 
@@ -936,6 +943,7 @@
                 <div class="error-container">Please select a date.</div>
 
                     <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                    <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question answerable</a></div>
             </div>
 
             <div class="input-container input-container--bond">

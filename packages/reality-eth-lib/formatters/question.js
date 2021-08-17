@@ -221,6 +221,12 @@ exports.getInvalidValue = function(question_json) {
     return '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 }
 
+// A value used to denote that the question is invalid or can't be answered
+exports.getAnsweredTooSoonValue = function(question_json) {
+    // equivalent to -2 in twos complement
+    return '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+}
+
 exports.getLanguage = function(question_json) {
     if ( typeof question_json['lang'] == 'undefined' || question_json['lang'] == '') {
         return 'en_US';
@@ -235,6 +241,10 @@ exports.getAnswerString = function(question_json, answer) {
 
     if (answer == this.getInvalidValue(question_json)) {
         return 'Invalid';
+    }
+
+    if (answer == this.getAnsweredTooSoonValue(question_json)) {
+        return 'Answered too soon';
     }
 
     var label = '';
