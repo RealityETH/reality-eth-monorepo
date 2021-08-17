@@ -193,6 +193,17 @@ function defaultTokenForChain(chain_id) {
     return ret;
 }
 
+function versionHasFeature(vernum, feature_name) {
+    if (feature_name == 'min-bond' || feature_name == 'reopen-question') {
+        const min_maj = 3;
+        const bits = vernum+"".split('.');    
+        const maj = parseInt(bits[0]);
+        return (maj >= min_maj);
+    } else {
+        throw new Error('Feature not known: '+feature_name);
+    }
+}
+
 module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHConfigs = realityETHConfigs;
 module.exports.realityETHInstance = realityETHInstance;
@@ -204,3 +215,4 @@ module.exports.chainData = chainData;
 module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;
 module.exports.defaultTokenForChain = defaultTokenForChain;
+module.exports.versionHasFeature = versionHasFeature;
