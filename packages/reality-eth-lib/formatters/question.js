@@ -234,6 +234,15 @@ exports.getLanguage = function(question_json) {
     return question_json['lang'];
 }
 
+exports.hasInvalidOption = function(question_json, contract_version) {
+    return !('has_invalid' in question_json && !question_json['has_invalid']);
+}
+
+exports.hasAnsweredTooSoonOption = function(question_json, contract_version) {
+    const bits = contract_version.split('.');
+    return (parseInt(bits[0]) >= 3);
+}
+
 exports.getAnswerString = function(question_json, answer) {
     if (answer === null) {
         return 'null';

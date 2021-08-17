@@ -1413,6 +1413,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                 question.block_mined = data.blockNumber;
                 question.opening_ts = ethers.BigNumber.from(data.args['opening_ts']);
                 question.contract = data.address;
+                question.contract_version = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
                 //question.bounty = data.args['bounty'];
             }
             break;
@@ -1421,6 +1422,8 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
             if (data && (freshness >= question.freshness.question_json)) {
                 question.freshness.question_json = freshness;
                 question.question_json = data;
+                question.has_invalid_option = rc_question.hasInvalidOption(data, question.contract_version);
+                question.has_answered_too_soon_option = rc_question.hasAnsweredTooSoonOption(data, question.contract_version);
             }
             break;
 
@@ -3590,6 +3593,17 @@ $(document).on('click', '.post-answer-button', async function(e) {
                     dt_container.addClass('is-error');
                     is_err = true;
                 }
+        }
+
+        // UI shouldn't let you do this
+        if (new_answer == invalid_value && !rc_question.hasInvalidOption(question_json, current_question.contract_version)) {
+            console.log('invalid not supported');
+            is_err = true;
+        }
+
+        if (new_answer == answered_too_soon_value && !rc_question.hasAnsweredTooSoonOption(question_json, current_question.contract_version)) {
+            console.log('answered too soon not supported');
+            is_err = true;
         }
 
         let min_amount = current_question.bond.mul(2)
