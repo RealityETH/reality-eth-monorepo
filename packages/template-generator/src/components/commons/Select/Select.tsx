@@ -19,6 +19,7 @@ export function Select<T>({
   options,
   onChange,
   className,
+  disabled,
   ...props
 }: SelectProps<T>) {
   const [index, setIndex] = useState(() =>
@@ -47,7 +48,11 @@ export function Select<T>({
   return (
     <div
       {...props}
-      className={classNames("custom-select-container", className)}
+      className={classNames(
+        "custom-select-container",
+        { "select-disabled": disabled },
+        className
+      )}
     >
       <span
         className={classNames("custom-select-label", {
@@ -57,6 +62,7 @@ export function Select<T>({
         {label}: {value ? getLabel(index) : null}
       </span>
       <select
+        disabled={disabled}
         className="custom-select"
         value={index}
         onChange={(e) => handleSelect(e.target.value)}

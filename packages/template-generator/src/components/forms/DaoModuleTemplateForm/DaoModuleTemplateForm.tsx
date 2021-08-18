@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Input } from "../../Input/Input";
+import { Input } from "../../commons/Input/Input";
 import { TemplateFormProps } from "../TemplateForm/TemplateForm";
 
 function getTitleForDaoModuleTemplate(ens: string) {
@@ -14,7 +14,10 @@ function getTitleForDaoModuleTemplate(ens: string) {
   );
 }
 
-export const DaoModuleTemplateForm = ({ onChange }: TemplateFormProps) => {
+export const DaoModuleTemplateForm = ({
+  onChange,
+  disabled,
+}: TemplateFormProps) => {
   const [ENS, setENS] = useState("");
 
   const handleENSChange = (value: string) => {
@@ -28,6 +31,7 @@ export const DaoModuleTemplateForm = ({ onChange }: TemplateFormProps) => {
 
   return (
     <Input
+      disabled={disabled}
       value={ENS}
       className="input-space"
       placeholder="ENS Name"

@@ -7,8 +7,9 @@ import { DaoModuleTemplateForm } from "../DaoModuleTemplateForm/DaoModuleTemplat
 import { CustomTemplateForm } from "../CustomTemplateForm/CustomTemplateForm";
 
 export interface TemplateFormProps {
+  disabled?: boolean;
   type: TemplateType;
-  onChange(form: TemplateData): void;
+  onChange(form: Omit<TemplateData, "lang">): void;
 }
 
 export function TemplateForm(props: TemplateFormProps) {

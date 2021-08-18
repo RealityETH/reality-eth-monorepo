@@ -1,4 +1,4 @@
-.custom-input {
+.custom-textarea {
   background: #ffffff;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
   border: 0;
@@ -9,6 +9,10 @@
   outline: none;
 }
 
-.custom-input::placeholder {
+.custom-textarea::placeholder {
   color: #939596;
+}
+
+.custom-textarea:disabled {
+  background: #F4F4F4;
 }

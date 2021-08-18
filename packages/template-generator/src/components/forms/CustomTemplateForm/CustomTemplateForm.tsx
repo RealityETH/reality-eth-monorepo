@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Option, Select } from "../../Select/Select";
-import { Textarea } from "../../Textarea/Textarea";
+import { Option, Select } from "../../commons/Select/Select";
+import { Textarea } from "../../commons/Textarea/Textarea";
 import { Type } from "../../TemplateBuilder/TemplateBuilder";
 import { TemplateFormProps } from "../TemplateForm/TemplateForm";
 
@@ -18,7 +18,10 @@ const categoryOptions: Option<string>[] = categories.map((category) => ({
   value: category,
 }));
 
-export const CustomTemplateForm = ({ onChange }: TemplateFormProps) => {
+export const CustomTemplateForm = ({
+  onChange,
+  disabled,
+}: TemplateFormProps) => {
   const [type, setType] = useState<Type>("bool");
   const [category, setCategory] = useState(categories[0]);
   const [title, setTitle] = useState("");
@@ -41,6 +44,7 @@ export const CustomTemplateForm = ({ onChange }: TemplateFormProps) => {
   return (
     <>
       <Select
+        disabled={disabled}
         label="Category"
         value={category}
         onChange={handleCategoryChange}
@@ -48,6 +52,7 @@ export const CustomTemplateForm = ({ onChange }: TemplateFormProps) => {
         className="input-space"
       />
       <Select
+        disabled={disabled}
         label="Type"
         value={type}
         onChange={handleTypeChange}
@@ -56,6 +61,7 @@ export const CustomTemplateForm = ({ onChange }: TemplateFormProps) => {
       />
 
       <Textarea
+        disabled={disabled}
         value={title}
         rows={5}
         className="input-space"

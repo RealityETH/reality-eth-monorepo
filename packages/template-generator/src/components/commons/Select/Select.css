@@ -35,3 +35,7 @@
 .custom-select-selected {
   color: #001428;
 }
+
+.select-disabled {
+  background: #f4f4f4;
+}
