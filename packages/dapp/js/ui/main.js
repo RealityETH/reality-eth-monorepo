@@ -883,11 +883,33 @@ function isFinalized(question) {
     return res;
 }
 
-function canBeReopened(question) {
+// Return true if the question looks like it could be reopened.
+// Doesn't check whether it already has been.
+function isReopenCandidate(question) {
     if (!isFinalized(question)) {
         return false;
     }
-    return (question.best_answer == rc_question.getAnsweredTooSoonValue());
+    if (question.best_answer != rc_question.getAnsweredTooSoonValue()) {
+        return false;
+    }
+    if (!rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[question.contract.toLowerCase()], 'reopen-question')) {
+        return false;
+    }
+    return true;
+}
+
+// Assumes we already filled the data
+function isReopenable(question) {
+    // TODO: Check if it can be re-reopened
+    if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        console.log('already reopened');
+        return false;
+    }
+    if (question.is_reopener) {
+        console.log('already reopening something else');
+        return false;
+    }
+    return isReopenCandidate(question);
 }
 
 $(document).on('click', '.answer-claim-button', function() {
@@ -1360,6 +1382,7 @@ async function _ensureAnswerRevealsFetched(contract, question_id, freshness, sta
     return question;
 }
 
+
 function filledQuestionDetail(contract, question_id, data_type, freshness, data) {
 
     if (!question_id) {
@@ -1494,6 +1517,20 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
             question['history_unconfirmed'].push(data);
             break;
 
+        case 'reopener_question':
+            const reopened_by = data[0];
+            const also_too_soon = data[1];
+            const is_reopener = data[2];
+            // Ignore this if it was also answered too soon
+            // TODO: We should probably store the reopened_by somehow
+            if (also_too_soon !== 1) {
+                question.reopened_by = reopened_by;
+            } else {
+                question.reopened_by = null;
+            }
+            question.is_reopener = is_reopener;
+            break;
+
     }
 
     QUESTION_DETAIL_CACHE[contract_question_id] = question;
@@ -1563,7 +1600,39 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
         if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
             throw new Error("question not found in call, maybe try again later", question_id);
         }
-        const q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
+        let q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
+
+        if (isReopenCandidate(q)) {
+            console.log('getting reopener question for', q.question_id);
+            const reopens_q_result = await RCInstance(q.contract).functions.reopened_questions(question_id);
+            const reopens_q = reopens_q_result[0];
+            let also_too_soon = null;
+            let is_reopener = false;
+            if (reopens_q != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                // See if the replacement was also settled too soon
+                // This may revert, catch the error if it does
+                // 1 for too soon, -1 for not settled yet, 0 for settled but not too soon
+                try {
+                    const too_soon_result = await RCInstance(q.contract).functions.isSettledTooSoon(reopens_q);
+                    also_too_soon = too_soon_result[0] ? 1 : 0;
+                } catch (e) {
+                    also_too_soon = -1;
+                    console.log('no final answer in isSettledTooSoon', reopens_q);
+                }
+            } else {
+                // Not yet reopened but this may be reopening some other question, in which case it can't be reopened yet
+                const is_reopener_result = await RCInstance(q.contract).functions.reopener_questions(question_id);
+                is_reopener = is_reopener_result[0];
+            }
+
+            q = await filledQuestionDetail(contract, question_id, 'reopener_question', called_block, [reopens_q, also_too_soon, is_reopener]);
+            console.log('got reopener question', q.reopened_by);
+            //todo: get the status of the other question
+            //if (ethers.BigNumber.from(q.reopened_by).gt(0)) {
+            //   q = await filledQuestionDetail(contract, question_id, 'reopener_question_status', called_block, result);
+            //}
+        }
+
         return q;
         /*
         rc.questions.call(question_id).then(function(result) {
@@ -2458,9 +2527,18 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         bond = question_detail.bounty.div(2);
     }
 
-    if (canBeReopened(question_detail)) {
-        const rof = $('#reopen-form-container-template').clone();    
+    if (isReopenable(question_detail)) {
+        rcqa.addClass('reopenable').removeClass('reopened');
         console.log('add reopen section');
+    } else {
+        rcqa.removeClass('reopenable');
+        if (question_detail.reopened_by) {
+console.log('makde cqid for', question_detail.contract, question_detail.reopened_by);
+            rcqa.attr('data-reopened-by-question-id', cqToID(question_detail.contract, question_detail.reopened_by));
+            rcqa.addClass('reopened');
+        } else {
+            rcqa.removeClass('reopened');
+        }
     }
 
     if (isAnswerActivityStarted(question_detail)) {
@@ -3744,6 +3822,145 @@ console.log('val fail', min_amount, current_question);
         console.log(e);
     });
     */
+});
+
+$(document).on('click', '.reopen-question-submit', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const parent_div = $(this).parents('div.rcbrowser--qa-detail');
+
+    const contract_question_id = parent_div.attr('data-contract-question-id');
+    const [contract, question_id] = parseContractQuestionID(contract_question_id);
+
+    // reopenQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id)
+
+    await getAccount()
+    // TODO: Recheck in case it's already opened
+
+    const old_question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1);
+
+    const handleReopenQuestionTX = async function(tx_response, old_question) {
+        parent_div.addClass('reopening');
+        await tx_response.wait();
+        parent_div.removeClass('reopening');
+
+        // Force a refresh
+        openQuestionWindow(contractQuestionID(old_question));
+    };
+
+
+    /*
+    const handleReopenQuestionTX = function(tx_response, old_question) {
+        //console.log('sent tx with id', txid);
+
+        const txid = tx_response.hash;
+        const contract = old_question.contract;
+
+        // Make a fake log entry
+        const fake_log = {
+            'entry': 'LogNewQuestion',
+            'blockNumber': 0, // unconfirmed
+            'args': {
+                'question_id': question_id,
+                'user': ACCOUNT,
+                'arbitrator': old_question.arbitrator,
+                'timeout': ethers.BigNumber.from(old_question.timeout),
+                'content_hash': old_question.content_hash,
+                'template_id': old_question.template_id,
+                'question': old_question.question_text,
+                'created': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
+                'opening_ts': old_question.opening_ts
+            },
+            'address': contract 
+        }
+        const fake_call = [];
+        fake_call[Qi_finalization_ts] = ethers.BigNumber.from(0);
+        fake_call[Qi_is_pending_arbitration] = false;
+        fake_call[Qi_arbitrator] = old_question.arbitrator;
+        fake_call[Qi_timeout] = ethers.BigNumber.from(old_question.timeout);
+        fake_call[Qi_content_hash] = old_question.content_hash;
+        fake_call[Qi_bounty] = ethers.BigNumber.from(0);;
+        fake_call[Qi_best_answer] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+        fake_call[Qi_bond] = ethers.BigNumber.from(0);
+        fake_call[Qi_min_bond] = old_question.min_bond;
+        fake_call[Qi_history_hash] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+        fake_call[Qi_opening_ts] = ethers.BigNumber.from(old_question.opening_ts);
+
+        let q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
+        q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
+        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][old_question.template_id], old_question.question_text));
+
+        // Turn the post question window into a question detail window
+        let rcqa = $('.rcbrowser--qa-detail.template-item').clone();
+        win.html(rcqa.html());
+        win = populateQuestionWindow(win, q, false);
+
+        // TODO: Once we have code to know which network we're on, link to a block explorer
+        win.find('.pending-question-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
+        win.find('.pending-question-txid a').text(txid.substr(0, 12) + "...");
+        win.addClass('unconfirmed-transaction').addClass('has-warnings');
+        win.attr('data-pending-txid', txid);
+
+        const contract_question_id = contractQuestionID(q);
+
+        win.find('.rcbrowser__close-button').on('click', function() {
+            let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
+            let left = parseInt(parent_div.css('left').replace('px', ''));
+            let top = parseInt(parent_div.css('top').replace('px', ''));
+            let data_x = (parseInt(parent_div.attr('data-x')) || 0);
+            let data_y = (parseInt(parent_div.attr('data-y')) || 0);
+            left += data_x;
+            top += data_y;
+            WINDOW_POSITION[contract_question_id] = {};
+            WINDOW_POSITION[contract_question_id]['x'] = left;
+            WINDOW_POSITION[contract_question_id]['y'] = top;
+            win.remove();
+            document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+        });
+
+        set_hash_param({'question': contractQuestionID(q)});
+
+        const window_id = 'qadetail-' + contractQuestionID(q);
+        win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
+        win.attr('id', window_id);
+        win.attr('data-contract-question-id', contractQuestionID(q));
+        Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
+        // TODO: Add handling for tx_response.wait() 
+        // See https://docs.ethers.io/v5/api/providers/types/#providers-TransactionResponse
+
+    }
+    */
+
+    // TODO: Check if the arbitrator has a fee
+    const fee = ethers.BigNumber.from(0);
+
+    // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
+    // Hash that we don't get a zero which clashes with the normal askQuestion
+    const nonce = ethers.utils.keccak256(old_question.reopened_by)
+
+    // TODO: The same question may be asked multiple times by the same account, so set the nonce as something other than zero
+    // You only ever want to 
+
+    const signedRC = RCInstance(contract, true);
+    //console.log(old_question.template_id, old_question.question_text, old_question.arbitrator, old_question.timeout, old_question.opening_ts, 0, old_question.min_bond);
+    const tx_response = await signedRC.functions.reopenQuestion(old_question.template_id, old_question.question_text, old_question.arbitrator, old_question.timeout, old_question.opening_ts, nonce, old_question.min_bond, old_question.question_id, {
+        from: ACCOUNT,
+        // gas: 200000,
+    //    value: fee
+    });
+
+    handleReopenQuestionTX(tx_response, old_question);
+    console.log('todo: reopen', old_question);
+
+});
+
+$(document).on('click', '.reopened-question-link', function(e) {
+    e.stopPropagation();
+    const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopened-by-question-id');
+    console.log('open window for', cqid);
+    openQuestionWindow(cqid);
 });
 
 function clearForm(parent_div, question_json) {

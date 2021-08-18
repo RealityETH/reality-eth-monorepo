@@ -2214,6 +2214,31 @@ label > span {
     display: block;
 }
 
+.rcbrowser--qa-detail .reopened-container {
+    text-align: center;
+    display:none;
+}
+
+.rcbrowser--qa-detail.reopened .reopened-container {
+    display: block;
+}
+
+.reopening-display {
+    display:none;
+}
+
+.reopening .reopening-display {
+    display: block;
+}
+
+.reopening .reopen-display {
+    display:none;
+}
+
+a.reopened-question-link {
+    color: $blue;
+}
+
 .rcbrowser--qa-detail .rcbrowser-submit {
     width: 350px;
     display: inline-block;
