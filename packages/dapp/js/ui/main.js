@@ -874,7 +874,6 @@ function isCommitExpired(question, posted_ts) {
     return new Date().getTime() > (( posted_ts + commit_secs ) * 1000);
 }
 
-
 function isFinalized(question) {
     if (isArbitrationPending(question)) {
         return false;
@@ -882,6 +881,13 @@ function isFinalized(question) {
     const fin = question.finalization_ts.toNumber()
     const res = ((fin > 1) && (fin * 1000 < new Date().getTime()));
     return res;
+}
+
+function canBeReopened(question) {
+    if (!isFinalized(question)) {
+        return false;
+    }
+    return (question.best_answer == rc_question.getAnsweredTooSoonValue());
 }
 
 $(document).on('click', '.answer-claim-button', function() {
@@ -2450,6 +2456,11 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         bond = question_detail.min_bond.div(2);
     } else if (question_detail.bounty && question_detail.bounty.gt(0)) {
         bond = question_detail.bounty.div(2);
+    }
+
+    if (canBeReopened(question_detail)) {
+        const rof = $('#reopen-form-container-template').clone();    
+        console.log('add reopen section');
     }
 
     if (isAnswerActivityStarted(question_detail)) {
