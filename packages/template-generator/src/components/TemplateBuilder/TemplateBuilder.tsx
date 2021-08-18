@@ -31,7 +31,9 @@ export interface TemplateData {
 
 export const TemplateBuilder = () => {
   const [create, setCreate] = useState(false);
-  const [instance, setInstance] = useState<string>();
+  const [instance, setInstance] = useState<string>(
+    "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288"
+  );
   const [language, setLanguage] = useState<Language>("en");
   const [templateId, setTemplateId] = useState<number>();
   const [templateData, setTemplateData] = useState<TemplateData>();
@@ -44,7 +46,10 @@ export const TemplateBuilder = () => {
     setCreate(false);
     setTemplateData(undefined);
   };
-  const handleCreation = (templateId: number) => setTemplateId(templateId);
+  const handleCreation = (templateId: number) => {
+    setTemplateType("custom");
+    setTemplateId(templateId);
+  };
   const handleSubmit = () => {
     if (!instance || !isAddress(instance) || !templateData) {
       return;
@@ -52,17 +57,15 @@ export const TemplateBuilder = () => {
     setCreate(true);
   };
 
-  if (instance && templateData && !templateId) {
-    if (create) {
-      return (
-        <TemplateBuilderCreate
-          instance={instance}
-          template={templateData}
-          onClose={handleClose}
-          onCreate={handleCreation}
-        />
-      );
-    }
+  if (instance && templateData && create && !templateId) {
+    return (
+      <TemplateBuilderCreate
+        instance={instance}
+        template={templateData}
+        onClose={handleClose}
+        onCreate={handleCreation}
+      />
+    );
   }
 
   const disabled = templateId !== undefined;
@@ -95,6 +98,7 @@ export const TemplateBuilder = () => {
         <TemplateForm
           disabled={disabled}
           type={templateType}
+          value={templateData}
           onChange={handleFormData}
         />
 
@@ -104,9 +108,11 @@ export const TemplateBuilder = () => {
           </TextBlock>
         ) : null}
 
-        <Button onClick={handleSubmit} className="input-space">
-          Create Template
-        </Button>
+        {disabled ? null : (
+          <Button onClick={handleSubmit} className="input-space">
+            Create Template
+          </Button>
+        )}
       </div>
     </Box>
   );

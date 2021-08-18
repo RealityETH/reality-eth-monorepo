@@ -3,7 +3,7 @@ import { useProvider } from "./useProvider";
 
 export function useChainId() {
   const provider = useProvider();
-  const [chainId, setChainId] = useState(1);
+  const [chainId, setChainId] = useState(provider.network?.chainId || 1);
 
   useEffect(() => {
     provider.on("network", (network) => {

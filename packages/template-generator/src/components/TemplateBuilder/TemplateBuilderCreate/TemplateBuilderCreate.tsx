@@ -25,13 +25,9 @@ async function createTemplate(
   const request = await contract.functions.createTemplate(template);
   const receipt = await request.wait();
 
-  console.log("receipt", receipt);
-  console.log("events", receipt.events);
-
-  const newTemplateEvent = receipt.events.find((event: any) => {
-    console.log("event", event);
-    return event.event === "LogNewTemplate";
-  });
+  const newTemplateEvent = receipt.events.find(
+    (event: any) => event.event === "LogNewTemplate"
+  );
 
   if (!newTemplateEvent) {
     throw new Error("Transaction did not fired the `LogNewTemplate` event.");
@@ -61,16 +57,10 @@ export function TemplateBuilderCreate({
         loading.current = true;
         createTemplate(signer, instance, template)
           .then((templateId) => onCreate(templateId.toNumber()))
-          .catch((err) => {
-            console.log("err", err);
-            handleError();
-          })
-          .finally(() => (loading.current = false));
+          .catch((err) => handleError());
       }
     } else {
-      connect()
-        .catch(() => handleError())
-        .finally(() => (loading.current = false));
+      connect().catch(() => handleError());
     }
   }, [
     connect,

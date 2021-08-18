@@ -27,10 +27,12 @@ export function Select<T>({
   );
 
   useEffect(() => {
-    if (!value && value) {
+    const _index = options.findIndex((option) => option.value === value);
+    if (index !== _index && value) {
+      setIndex(_index);
       onChange(value);
     }
-  }, [onChange, value]);
+  }, [index, onChange, options, value]);
 
   const handleSelect = (index: string) => {
     const i = parseInt(index);
@@ -41,7 +43,7 @@ export function Select<T>({
 
   const getLabel = (index: number) => {
     const option = options[index];
-    if (!option) return "";
+    if (!option) return value;
     return option.label;
   };
 

@@ -21,10 +21,11 @@ const categoryOptions: Option<string>[] = categories.map((category) => ({
 export const CustomTemplateForm = ({
   onChange,
   disabled,
+  value,
 }: TemplateFormProps) => {
-  const [type, setType] = useState<Type>("bool");
-  const [category, setCategory] = useState(categories[0]);
-  const [title, setTitle] = useState("");
+  const [type, setType] = useState<Type>(value?.type || "bool");
+  const [category, setCategory] = useState(value?.category || categories[0]);
+  const [title, setTitle] = useState(value?.title || "");
 
   const handleCategoryChange = (category: string) => {
     setCategory(category);

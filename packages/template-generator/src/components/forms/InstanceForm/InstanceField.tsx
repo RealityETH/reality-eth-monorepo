@@ -54,9 +54,10 @@ export function InstanceField({
 
   useEffect(() => {
     if (options.length) {
-      handleChange(options[0].value);
+      const exists = options.some((option) => option.value === instance);
+      if (!exists) setInstance(options[0].value);
     }
-  }, [handleChange, options]);
+  }, [instance, options]);
 
   useEffect(() => {
     if (!value && instance) {
@@ -68,6 +69,7 @@ export function InstanceField({
     setCustom(custom);
     if (!custom) {
       setInstance(options[0].value);
+      onChange(options[0].value);
     }
   };
 

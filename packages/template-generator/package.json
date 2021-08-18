@@ -7,10 +7,12 @@
     "@reality.eth/reality-eth-lib": "^2.1.1",
     "classnames": "^2.3.1",
     "ethers": "^5.4.4",
+    "lodash.memoize": "^4.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
   },
   "devDependencies": {
+    "@types/lodash.memoize": "^4.1.6",
     "@types/node": "^12.0.0",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
