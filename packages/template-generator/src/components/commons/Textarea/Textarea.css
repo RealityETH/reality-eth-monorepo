@@ -1,0 +1,18 @@
+.custom-textarea {
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  border: 0;
+  border-radius: 4px;
+  color: #001428;
+  padding: 12px;
+  width: 100%;
+  outline: none;
+}
+
+.custom-textarea::placeholder {
+  color: #939596;
+}
+
+.custom-textarea:disabled {
+  background: #F4F4F4;
+}
