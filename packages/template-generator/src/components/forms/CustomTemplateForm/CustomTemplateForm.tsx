@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Option, Select } from "../../commons/Select/Select";
 import { Textarea } from "../../commons/Textarea/Textarea";
-import { Type } from "../../TemplateBuilder/TemplateBuilder";
+import { TemplateData, Type } from "../../TemplateBuilder/TemplateBuilder";
 import { TemplateFormProps } from "../TemplateForm/TemplateForm";
+import { Input } from "../../commons/Input/Input";
 
 const typeOptions: Option<Type>[] = [
   { value: "bool", label: "Bool" },
@@ -12,44 +13,79 @@ const typeOptions: Option<Type>[] = [
   { value: "multiple-select", label: "Multiple Select" },
 ];
 
-const categories = ["Sports"];
-const categoryOptions: Option<string>[] = categories.map((category) => ({
-  label: category,
-  value: category,
-}));
+type PartialTemplateData = Omit<TemplateData, "lang">;
+
+function getTypes(type: string) {
+  return {
+    isSelect: type === "single-select" || type === "multiple-select",
+    isInt: type === "uint",
+  };
+}
 
 export const CustomTemplateForm = ({
   onChange,
   disabled,
-  value,
+  template,
 }: TemplateFormProps) => {
-  const [type, setType] = useState<Type>(value?.type || "bool");
-  const [category, setCategory] = useState(value?.category || categories[0]);
-  const [title, setTitle] = useState(value?.title || "");
+  const [type, setType] = useState<Type>(template?.type || "bool");
+  const [category, setCategory] = useState(template?.category || "");
+  const [title, setTitle] = useState(template?.title || "");
+  const [outcomes, setOutcomes] = useState<string[]>(template?.outcomes || []);
+  const [decimals, setDecimals] = useState<number>(template?.decimals || 18);
+
+  const handleChange = (field: keyof PartialTemplateData, value: any) => {
+    const _type = field === "type" ? value : type;
+    const { isInt, isSelect } = getTypes(_type);
+
+    const data: PartialTemplateData = {
+      ...template,
+      type,
+      category,
+      title,
+      outcomes: isSelect ? outcomes : undefined,
+      decimals: isInt ? decimals : undefined,
+      [field]: value,
+    };
+    onChange(data);
+  };
 
   const handleCategoryChange = (category: string) => {
     setCategory(category);
-    onChange({ type, category, title });
+    handleChange("category", category);
   };
 
   const handleTypeChange = (type: Type) => {
     setType(type);
-    onChange({ type, category, title });
+    handleChange("type", type);
   };
 
   const handleTitleChange = (title: string) => {
     setTitle(title);
-    onChange({ type, category, title });
+    handleChange("title", title);
   };
+
+  const handleDecimalsChange = (value: string) => {
+    const decimals = parseInt(value);
+    if (isNaN(decimals)) return;
+    setDecimals(decimals);
+    handleChange("decimals", decimals);
+  };
+
+  const handleOutcomesChange = (value: string) => {
+    const outcomes = value.trim() ? value.split(",").map((v) => v.trim()) : [];
+    setOutcomes(outcomes);
+    handleChange("outcomes", outcomes);
+  };
+
+  const { isInt, isSelect } = getTypes(type);
 
   return (
     <>
-      <Select
+      <Input
         disabled={disabled}
         label="Category"
         value={category}
-        onChange={handleCategoryChange}
-        options={categoryOptions}
+        onChange={(evt) => handleCategoryChange(evt.currentTarget.value)}
         className="input-space"
       />
       <Select
@@ -60,6 +96,25 @@ export const CustomTemplateForm = ({
         options={typeOptions}
         className="input-space"
       />
+
+      {isInt ? (
+        <Input
+          disabled={disabled}
+          label="Decimals"
+          value={decimals}
+          onChange={(evt) => handleDecimalsChange(evt.currentTarget.value)}
+          className="input-space"
+        />
+      ) : null}
+      {isSelect ? (
+        <Input
+          disabled={disabled}
+          label="Outcomes"
+          value={outcomes.join(", ")}
+          onChange={(evt) => handleOutcomesChange(evt.currentTarget.value)}
+          className="input-space"
+        />
+      ) : null}
 
       <Textarea
         disabled={disabled}

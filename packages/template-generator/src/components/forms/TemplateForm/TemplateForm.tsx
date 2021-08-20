@@ -9,7 +9,7 @@ import { CustomTemplateForm } from "../CustomTemplateForm/CustomTemplateForm";
 export interface TemplateFormProps {
   disabled?: boolean;
   type: TemplateType;
-  value?: TemplateData;
+  template?: TemplateData;
   onChange(form: Omit<TemplateData, "lang">): void;
 }
 

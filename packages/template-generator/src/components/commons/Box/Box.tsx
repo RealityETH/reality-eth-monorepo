@@ -1,7 +1,7 @@
 import React from "react";
 import "./Box.css";
 
-interface BoxProps {
+export interface BoxProps {
   title?: string;
 }
 

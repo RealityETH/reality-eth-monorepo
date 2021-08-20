@@ -1,11 +1,3 @@
-.loader-container {
-  display: inline-flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 300px;
-}
-
 .center-container {
   width: 300px;
   margin: 40px auto;

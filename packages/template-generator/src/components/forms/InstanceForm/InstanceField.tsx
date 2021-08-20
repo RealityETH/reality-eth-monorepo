@@ -78,6 +78,7 @@ export function InstanceField({
       <div className="instance-field">
         <Input
           disabled={disabled}
+          label="Reality Instance"
           value={value}
           placeholder="Reality.eth Instance Address (0x123...)"
           onChange={(event) => handleChange(event.currentTarget.value)}

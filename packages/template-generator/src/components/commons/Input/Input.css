@@ -7,12 +7,39 @@
   padding: 12px;
   width: 100%;
   outline: none;
+
+  font-size: 13px;
+
+  display: flex;
+  flex-direction: row;
+}
+
+.custom-input span {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  outline: none;
+  margin: 0 4px 0 0;
+  flex: 0 1;
+  white-space: nowrap;
+}
+
+.custom-input input {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  outline: none;
+  flex-grow: 1;
 }
 
 .custom-input::placeholder {
   color: #939596;
 }
 
-.custom-input:disabled {
-  background: #F4F4F4;
+.custom-input-disabled, .custom-input-disabled input:disabled {
+  background: #f4f4f4;
+  color: #001428;
 }
