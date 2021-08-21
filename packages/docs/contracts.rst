@@ -182,7 +182,7 @@ The ``askQuestion`` call returns a ``bytes32`` ID. This ID is made by hashing th
 
 .. note:: The Etherscan "write contract" feature has been known to mangle the delimiter character.
 
-As of version 3, you can also specify a mimimum bond below which the initial answer will not be accepted. For this, use the ``askQuestionWithMinBond()`` or ``askQuestionWithMinBondERC20()`` method.
+As of version 3, you can also specify a minimum bond below which the initial answer will not be accepted. For this, use the ``askQuestionWithMinBond()`` or ``askQuestionWithMinBondERC20()`` method.
 
 
 
@@ -220,7 +220,7 @@ Accepting an answer only if something has happened (version 3 onwards)
 
 To simplify the process of accepting only questions with an answer, from version 3 you can substitute ``forResult()`` with ``forResultOnceSettled()``. This screens the result for an answer representing "not yet settled", represented as ``bytes32(-2)``. Rather than returning this answer, it will revert as it would if the question question had not yet been answered. The contract allows any user to reopen a question in this state, creating a new question, repeatedly if necessary. Once a replacement question has been settled, its result is returned using the ID of the original question. A calling contract can ignore the details of this process and know only that it needs to call ``forResultOnceSettled()``.
 
-If using this feature it is also advisable to set a mimimum bond.
+If using this feature it is also advisable to set a minimum bond.
 
 
 .. _creating-templates:
