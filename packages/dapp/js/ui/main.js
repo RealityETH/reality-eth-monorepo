@@ -1603,30 +1603,34 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
         let q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
 
         if (isReopenCandidate(q)) {
-            console.log('getting reopener question for', q.question_id);
-            const reopens_q_result = await RCInstance(q.contract).functions.reopened_questions(question_id);
-            const reopens_q = reopens_q_result[0];
+            // console.log('getting reopener question for', q.question_id, q.contract);
+            const reopener_q_result = await RCInstance(q.contract).functions.reopened_questions(question_id);
+            const reopener_q = reopener_q_result[0];
             let also_too_soon = null;
             let is_reopener = false;
-            if (reopens_q != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+            if (reopener_q != '0x0000000000000000000000000000000000000000000000000000000000000000') {
                 // See if the replacement was also settled too soon
                 // This may revert, catch the error if it does
                 // 1 for too soon, -1 for not settled yet, 0 for settled but not too soon
-                try {
-                    const too_soon_result = await RCInstance(q.contract).functions.isSettledTooSoon(reopens_q);
-                    also_too_soon = too_soon_result[0] ? 1 : 0;
-                } catch (e) {
-                    also_too_soon = -1;
-                    console.log('no final answer in isSettledTooSoon', reopens_q);
+                const replacement_data = await RCInstance(q.contract).functions.questions(reopener_q);
+                // Just populate enough for isFinalized
+                // TODO: Maybe better to just do this the normal way...
+                const rq = {
+                    'is_pending_arbitration': replacement_data[Qi_is_pending_arbitration],
+                    'finalization_ts':  ethers.BigNumber.from(replacement_data[Qi_finalization_ts])
                 }
+                const is_replacement_finalized = isFinalized(rq);
+                if (is_replacement_finalized) {
+                    also_too_soon = true;
+                } 
             } else {
                 // Not yet reopened but this may be reopening some other question, in which case it can't be reopened yet
                 const is_reopener_result = await RCInstance(q.contract).functions.reopener_questions(question_id);
                 is_reopener = is_reopener_result[0];
             }
 
-            q = await filledQuestionDetail(contract, question_id, 'reopener_question', called_block, [reopens_q, also_too_soon, is_reopener]);
-            console.log('got reopener question', q.reopened_by);
+            q = await filledQuestionDetail(contract, question_id, 'reopener_question', called_block, [reopener_q, also_too_soon, is_reopener]);
+            // console.log('got reopener question', q.reopened_by);
             //todo: get the status of the other question
             //if (ethers.BigNumber.from(q.reopened_by).gt(0)) {
             //   q = await filledQuestionDetail(contract, question_id, 'reopener_question_status', called_block, result);
@@ -3845,6 +3849,9 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
         await tx_response.wait();
         parent_div.removeClass('reopening');
 
+        // Give the node time to catch up after we get the event
+        await delay(6000);
+
         // Force a refresh
         openQuestionWindow(contractQuestionID(old_question));
     };
@@ -5253,7 +5260,8 @@ window.addEventListener('load', async function() {
         RC_DEFAULT_ADDRESS = rc_json.address;
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr];
-            RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, rc_json.abi, provider);
+            const inst = rc_contracts.realityETHInstance(cfg);
+            RC_INSTANCES[cfg_addr.toLowerCase()] = new ethers.Contract(cfg_addr, inst.abi, provider);
             if (show_all || cfg_addr == RC_DEFAULT_ADDRESS) {
                 RC_DISPLAYED_CONTRACTS.push(cfg_addr);
             }
