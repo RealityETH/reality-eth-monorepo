@@ -5,17 +5,15 @@ const chain_info = require('./generated/chains.json');
 const template_config = require('./config/templates.json');
 
 function realityETHInstance(config) {
-    const vernum = config.version_number;
-    const bits = vernum.split('.');
-    const majver = parseInt(bits[0]);
-    //const abi = JSON.parse(fs.readFileSync('./abi/solc-0.4.25/'+contract_version+'.abi'));
-    const abi_v2 = require('./abi/solc-0.4.25/RealityETH-all.abi.json');
-    const abi_v3 = require('./abi/solc-0.8.6/RealityETH-all.abi.json');
-console.log('majver', majver);
-    //const bytecode = fs.readFileSync('./bytecode/'+contract_version+'.bin', 'utf8').replace(/\n/, '');
-//    const bytecode = require('./bytecode/'+contract_version+'.bin');
+    const abis = {
+        'RealityETH-2.0': require('./abi/solc-0.8.6/RealityETH-2.0.abi.json'), 
+        'RealityETH-2.1': require('./abi/solc-0.8.6/RealityETH-2.1.abi.json'),
+        'RealityETH-3.0': require('./abi/solc-0.8.6/RealityETH-3.0.abi.json'),
+        'RealityETH_ERC20-2.0': require('./abi/solc-0.8.6/RealityETH_ERC20-2.0.abi.json'),
+        'RealityETH_ERC20-3.0': require('./abi/solc-0.8.6/RealityETH_ERC20-3.0.abi.json')
+    }
     return {
-        "abi": (majver >= 3) ? abi_v3 : abi_v2,
+        "abi": abis[config.contract_version],
         "contractName": config.contract_name,
         //"bytecode": bytecode,
         "address": config.address,
