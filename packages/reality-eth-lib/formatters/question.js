@@ -94,7 +94,7 @@ exports.answerToBytes32 = function(answer, qjson) {
     if (qtype == 'multiple-select') {
         answer = this.arrayToBitmaskBigNumber(answer);
     }
-    var decimals = parseInt(qjson['decimals']);
+    var decimals = (qtype == 'uint') ? parseInt(qjson['decimals']) : 0;
     if (!decimals) {
         decimals = 0;
     }
