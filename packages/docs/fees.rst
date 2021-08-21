@@ -83,7 +83,7 @@ Paid by the user requesting arbitration. Usually this will be an answerer whoses
 Claim fee
 ---------------
 
-As of version 2.1, when you claim a bond other than the final bond, 2.5% is burned (left in contract balance).
+From version 2.1 onwards, when you claim a bond other than the final bond, 2.5% is burned (left in contract balance).
 
 
 

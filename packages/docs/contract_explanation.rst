@@ -1,7 +1,7 @@
 Contract Internals
 ==================
 
-This document is intended to help you read and understand the RealityETH.sol and RealityETH_ERC20 contracts, in particular their internal data structures. See the previous documents for a higher-level description of what the contracts do.
+This document is intended to help you read and understand the ``RealityETH.sol`` and ``RealityETH_ERC20`` contracts, in particular their internal data structures. See the previous documents for a higher-level description of what the contracts do.
 
 Questions
 ---------
@@ -15,10 +15,12 @@ The resulting document (template + parameters) identifies a particular question 
 
 A question with a particular Content Hash may be asked on multiple occasions, some of which may have different arbitrator and timeout settings.
 
+The content hash and the other settings are hashed to make the Question ID.
+
 Versions 2 and 2.1: 
 ``Content Hash`` + ``Arbitrator`` + ``Timeout`` + ``Creator`` + ``Nonce`` -> ``Question ID``
 
-Version3: 
+Version 3: 
 ``Content Hash`` + ``Arbitrator`` + ``Timeout`` + ``Min Bond`` + ``Creator`` + ``Contract address`` ``Nonce`` -> ``Question ID``
 
 
@@ -27,7 +29,7 @@ Answer history entries
 
 Each time an answer is submitted, it creates a history item. The contract later needs to be able to access the entire history to correctly assign bonds at the end of the process.
 
-The question struct always stores the most recent answer and bond. However, to avoid the need to expand storage for each storage item, we store a only a hash representing the history, and require users to supply the history when they claim bonds.
+The question struct always stores the most recent answer and bond. However, to avoid the need to expand storage for answer, we store a only a single hash representing the entire history, and require users to supply the history when they claim bonds.
 
 ``Empty  Bytes32`` + ``Answer`` + ``Bond`` + ``Answerer`` + ``False`` -> ``History Hash 1``
 
