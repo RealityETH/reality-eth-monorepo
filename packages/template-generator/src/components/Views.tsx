@@ -7,6 +7,7 @@ export function Views() {
   return (
     <Switch>
       <Route path="/template/:chainId/:token/:id" component={TemplateDetails} />
+      <Route path="/type/:type" component={TemplateBuilder} />
       <Route path="/" component={TemplateBuilder} />
     </Switch>
   );

@@ -7,8 +7,10 @@ import {
   TemplateBuilderFormFields,
 } from "./TemplateBuilderForm/TemplateBuilderForm";
 import { validateTemplateData } from "../../helpers/validation";
+import { useParams } from "react-router-dom";
 
 export type TemplateType = "custom" | "daoModule";
+export const TEMPLATE_TYPES: TemplateType[] = ["custom", "daoModule"];
 
 export type Type = keyof typeof base_ids;
 
@@ -22,13 +24,22 @@ export interface TemplateData {
   outcomes?: string[];
 }
 
+function isTemplateType(type: string): type is TemplateType {
+  return TEMPLATE_TYPES.includes(type as TemplateType);
+}
+
 export const TemplateBuilder = () => {
+  const { type: selectedType } = useParams<{ type: string }>();
+
   const [create, setCreate] = useState(false);
   const [instance, setInstance] = useState<string>();
   const [language, setLanguage] = useState<Language>("en");
   const [templateId, setTemplateId] = useState<number>();
   const [templateData, setTemplateData] = useState<TemplateData>();
-  const [templateType, setTemplateType] = useState<TemplateType>("custom");
+  const [templateType, setTemplateType] = useState<TemplateType>(() => {
+    if (selectedType && isTemplateType(selectedType)) return selectedType;
+    return "custom";
+  });
 
   const handleFormData = (data?: Omit<TemplateData, "lang">) => {
     if (!data) {
