@@ -15,11 +15,20 @@ const typeOptions: Option<Type>[] = [
 
 type PartialTemplateData = Omit<TemplateData, "lang">;
 
-function getTypes(type: string) {
+export function getTypes(type: string) {
   return {
     isSelect: type === "single-select" || type === "multiple-select",
     isInt: type === "uint",
   };
+}
+
+function parseOutcomes(value: string): string[] {
+  return value.trim()
+    ? value
+        .split(",")
+        .map((v) => v.trim())
+        .filter((v) => v)
+    : [];
 }
 
 export const CustomTemplateForm = ({
@@ -30,7 +39,9 @@ export const CustomTemplateForm = ({
   const [type, setType] = useState<Type>(template?.type || "bool");
   const [category, setCategory] = useState(template?.category || "");
   const [title, setTitle] = useState(template?.title || "");
-  const [outcomes, setOutcomes] = useState<string[]>(template?.outcomes || []);
+  const [outcomes, setOutcomes] = useState<string>(
+    template?.outcomes?.join(",") || ""
+  );
   const [decimals, setDecimals] = useState<number>(template?.decimals || 18);
 
   const handleChange = (field: keyof PartialTemplateData, value: any) => {
@@ -42,7 +53,7 @@ export const CustomTemplateForm = ({
       type,
       category,
       title,
-      outcomes: isSelect ? outcomes : undefined,
+      outcomes: isSelect ? parseOutcomes(outcomes) : undefined,
       decimals: isInt ? decimals : undefined,
       [field]: value,
     };
@@ -72,9 +83,9 @@ export const CustomTemplateForm = ({
   };
 
   const handleOutcomesChange = (value: string) => {
-    const outcomes = value.trim() ? value.split(",").map((v) => v.trim()) : [];
-    setOutcomes(outcomes);
-    handleChange("outcomes", outcomes);
+    setOutcomes(value);
+    const _outcomes = parseOutcomes(value);
+    handleChange("outcomes", _outcomes);
   };
 
   const { isInt, isSelect } = getTypes(type);
@@ -110,7 +121,7 @@ export const CustomTemplateForm = ({
         <Input
           disabled={disabled}
           label="Outcomes"
-          value={outcomes.join(", ")}
+          value={outcomes}
           onChange={(evt) => handleOutcomesChange(evt.currentTarget.value)}
           className="input-space"
         />

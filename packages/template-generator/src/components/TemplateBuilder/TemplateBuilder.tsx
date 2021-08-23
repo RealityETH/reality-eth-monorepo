@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Language } from "../commons/LanguageField/LanguageField";
 import { base_ids } from "@reality.eth/contracts/config/templates.json";
-import { isAddress } from "ethers/lib/utils";
 import { TemplateBuilderCreate } from "./TemplateBuilderCreate/TemplateBuilderCreate";
 import {
   TemplateBuilderForm,
   TemplateBuilderFormFields,
 } from "./TemplateBuilderForm/TemplateBuilderForm";
+import { validateTemplateData } from "../../helpers/validation";
 
 export type TemplateType = "custom" | "daoModule";
 
@@ -30,7 +30,11 @@ export const TemplateBuilder = () => {
   const [templateData, setTemplateData] = useState<TemplateData>();
   const [templateType, setTemplateType] = useState<TemplateType>("custom");
 
-  const handleFormData = (data: Omit<TemplateData, "lang">) => {
+  const handleFormData = (data?: Omit<TemplateData, "lang">) => {
+    if (!data) {
+      setTemplateData(undefined);
+      return;
+    }
     setTemplateData({ lang: language, ...data });
   };
   const handleClose = () => {
@@ -42,7 +46,7 @@ export const TemplateBuilder = () => {
     setTemplateId(templateId);
   };
   const handleSubmit = () => {
-    if (!instance || !isAddress(instance) || !templateData) {
+    if (!validateTemplateData(instance, templateData)) {
       return;
     }
     setCreate(true);
@@ -67,9 +71,6 @@ export const TemplateBuilder = () => {
         break;
       case "template":
         handleFormData(value);
-        break;
-      default:
-        console.error("unexpected field");
         break;
     }
   };

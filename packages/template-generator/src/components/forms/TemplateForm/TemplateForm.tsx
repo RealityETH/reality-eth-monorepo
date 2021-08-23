@@ -10,7 +10,7 @@ export interface TemplateFormProps {
   disabled?: boolean;
   type: TemplateType;
   template?: TemplateData;
-  onChange(form: Omit<TemplateData, "lang">): void;
+  onChange(form?: Omit<TemplateData, "lang">): void;
 }
 
 export function TemplateForm(props: TemplateFormProps) {

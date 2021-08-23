@@ -39,7 +39,23 @@
   color: #939596;
 }
 
-.custom-input-disabled, .custom-input-disabled input:disabled {
+.custom-input-disabled,
+.custom-input-disabled input:disabled {
   background: #f4f4f4;
   color: #001428;
+}
+
+.input-error {
+  border: 1px solid rgba(200, 0, 0, 0.7);
+  box-shadow: 0 0 4px rgba(100, 0, 0, 0.5);
+}
+
+.custom-input-error-text {
+  font-size: 12px;
+  color: red;
+  margin-top: 8px;
+}
+
+.custom-input-error-text:before {
+  content: "* "
 }

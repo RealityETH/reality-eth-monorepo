@@ -57,7 +57,6 @@ export function TemplateDetails() {
             '"outcomes": [%s]',
             '"outcomes": ["%s"]'
           ); // Special Case for Default Cases
-          console.log({ events, question_text });
           const template = JSON.parse(question_text) as TemplateData;
           setTemplate(template);
         })

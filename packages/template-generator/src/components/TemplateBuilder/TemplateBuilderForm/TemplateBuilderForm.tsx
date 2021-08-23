@@ -11,6 +11,7 @@ import {
 import { TemplateForm } from "../../forms/TemplateForm/TemplateForm";
 import { TextBlock } from "../../commons/TextBlock/TextBlock";
 import { TemplateData, TemplateType } from "../TemplateBuilder";
+import { validateTemplateData } from "../../../helpers/validation";
 
 export type TemplateBuilderFormFields =
   | "instance"
@@ -45,6 +46,7 @@ export const TemplateBuilderForm = ({
 }: TemplateBuilderFormProps) => {
   const disabled = id !== undefined;
   const title = disabled ? `Template: ${id}` : "Template Builder";
+  const isValid = validateTemplateData(instance, template);
 
   const handleChange = useCallback(
     (field: TemplateBuilderFormFields) => (value: any) => {
@@ -84,14 +86,18 @@ export const TemplateBuilderForm = ({
           onChange={handleChange("template")}
         />
 
-        {template ? (
+        {template && isValid ? (
           <TextBlock className="input-space">
             {JSON.stringify(template, undefined, 4)}
           </TextBlock>
         ) : null}
 
         {disabled ? null : (
-          <Button onClick={onSubmit} className="input-space">
+          <Button
+            disabled={!isValid}
+            onClick={onSubmit}
+            className="input-space"
+          >
             Create Template
           </Button>
         )}
