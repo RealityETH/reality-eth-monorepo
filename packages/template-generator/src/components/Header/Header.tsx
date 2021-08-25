@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 
 export const Header = () => {
   const chainId = useChainId();
-  const label = getNetworkLabel(chainId);
+  const label = chainId ? getNetworkLabel(chainId) : "";
 
   return (
     <div>
