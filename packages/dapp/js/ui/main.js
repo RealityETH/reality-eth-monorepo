@@ -1443,6 +1443,9 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                 question.opening_ts = ethers.BigNumber.from(data.args['opening_ts']);
                 question.contract = data.address;
                 question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
+                if ('reopener_of_question_id' in data.args) {
+                    question.reopener_of_question_id = data.args['reopener_of_question_id'];
+                }
                 //question.bounty = data.args['bounty'];
             }
             break;
@@ -1486,8 +1489,14 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
 
         case 'answers':
             if (data && (freshness >= question.freshness.answers)) {
-                question.freshness.answers = freshness;
-                question['history'] = data;
+                // If the history shrank, ignore the new data unless it's much newer than the old data
+                // This works around an issue where stuff disappears due to a laggy node
+                if (data.length < question['history'].length && (CURRENT_BLOCK_NUMBER - freshness < 100)) { 
+                    console.log('ignoring data that got shorter', data, question['history']);
+                } else {
+                    question.freshness.answers = freshness;
+                    question['history'] = data;
+                }
             }
             if (data.length && question['history_unconfirmed'].length) {
                 for (let j = 0; j < question['history_unconfirmed'].length; j++) {
@@ -1495,7 +1504,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
                     for (let i = 0; i < question['history'].length; i++) {
                         // If there's something unconfirmed with an equal or lower bond, remove it
                         if (data[i].args.bond.gte(ubond)) {
-                            //console.log('removing unconfirmed entry due to equal or higher bond from confirmed');
+                            // console.log('removing unconfirmed entry due to equal or higher bond from confirmed');
                             question['history_unconfirmed'].splice(j, 1);
                         }
                     }
@@ -1523,11 +1532,16 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
             const is_reopener = data[2];
             // Ignore this if it was also answered too soon
             // TODO: We should probably store the reopened_by somehow
-            if (also_too_soon !== 1) {
-                question.reopened_by = reopened_by;
-            } else {
-                question.reopened_by = null;
-            }
+            question.reopened_by = null;
+            question.last_reopened_by = '0x0000000000000000000000000000000000000000000000000000000000000000';
+            if (reopened_by && reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                // last_reopened_by always holds whatever the contract thinks it was opened by
+                // reopened_by only holds it if it's still active
+                question.last_reopened_by = reopened_by;
+                if (!also_too_soon) {
+                    question.reopened_by = reopened_by;
+                }
+            } 
             question.is_reopener = is_reopener;
             break;
 
@@ -1576,6 +1590,7 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
     } else {
         // console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
         const question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
+        //const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
         const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
         if (question_arr.length == 0) {
             throw new Error("Question log not found, maybe try again later");
@@ -1583,7 +1598,35 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
         if (question_arr.invalid_data) { 
             throw new Error("Invalid data");
         }
-        const question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
+        const blocknum = question_arr[0].blockNumber;
+
+        let question = null;
+        const arr = question_arr[0];
+        // See if this question already reopens something else
+        if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[contract.toLowerCase()], 'reopen-question')) {
+            // The call will tell us if it reopens something
+            const ro_result = await RCInstance(contract).functions.reopener_questions(question_id);
+            const is_reopener = ro_result[0];
+            // We need to query the log to find out what it reopens.
+            // The event should be in the same block (and transaction) as the question creation.
+            let qarr = {};
+            qarr.address = question_arr[0].address;
+            qarr.blockNumber = question_arr[0].blockNumber;
+            qarr.args = Object.assign({}, question_arr[0].args);
+            if (is_reopener) {
+                const reopen_filter = RCInstance(contract).filters.LogReopenQuestion(question_id);
+                const reopen_arr = await RCInstance(contract).queryFilter(reopen_filter, blocknum, blocknum);
+                const reopened_question_id = reopen_arr[0].args.reopened_question_id;
+                // This isn't in the original log so just tack it on as if it is
+
+                qarr.args.reopener_of_question_id = reopened_question_id;
+                console.log('will fill', reopened_question_id);
+            }            
+            question = filledQuestionDetail(contract, question_id, 'question_log', called_block, qarr);
+        } else {
+            question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
+        }
+
         return question;
     }
 }
@@ -1609,9 +1652,6 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
             let also_too_soon = null;
             let is_reopener = false;
             if (reopener_q != '0x0000000000000000000000000000000000000000000000000000000000000000') {
-                // See if the replacement was also settled too soon
-                // This may revert, catch the error if it does
-                // 1 for too soon, -1 for not settled yet, 0 for settled but not too soon
                 const replacement_data = await RCInstance(q.contract).functions.questions(reopener_q);
                 // Just populate enough for isFinalized
                 // TODO: Maybe better to just do this the normal way...
@@ -1630,11 +1670,6 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
             }
 
             q = await filledQuestionDetail(contract, question_id, 'reopener_question', called_block, [reopener_q, also_too_soon, is_reopener]);
-            // console.log('got reopener question', q.reopened_by);
-            //todo: get the status of the other question
-            //if (ethers.BigNumber.from(q.reopened_by).gt(0)) {
-            //   q = await filledQuestionDetail(contract, question_id, 'reopener_question_status', called_block, result);
-            //}
         }
 
         return q;
@@ -2543,6 +2578,11 @@ console.log('makde cqid for', question_detail.contract, question_detail.reopened
         } else {
             rcqa.removeClass('reopened');
         }
+    }
+
+    if (question_detail.reopener_of_question_id) {
+        rcqa.addClass('reopener');
+        rcqa.attr('data-reopener-of-question-id', cqToID(question_detail.contract, question_detail.reopener_of_question_id));
     }
 
     if (isAnswerActivityStarted(question_detail)) {
@@ -3945,7 +3985,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
-    const nonce = ethers.utils.keccak256(old_question.reopened_by)
+    const nonce = ethers.utils.keccak256(old_question.last_reopened_by ? old_question.last_reopened_by : "0x0000000000000000000000000000000000000000000000000000000000000000")
 
     // TODO: The same question may be asked multiple times by the same account, so set the nonce as something other than zero
     // You only ever want to 
@@ -3966,6 +4006,13 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 $(document).on('click', '.reopened-question-link', function(e) {
     e.stopPropagation();
     const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopened-by-question-id');
+    console.log('open window for', cqid);
+    openQuestionWindow(cqid);
+});
+
+$(document).on('click', '.reopener-question-link', function(e) {
+    e.stopPropagation();
+    const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopener-of-question-id');
     console.log('open window for', cqid);
     openQuestionWindow(cqid);
 });
