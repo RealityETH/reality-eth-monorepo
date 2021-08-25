@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Input } from "../../commons/Input/Input";
 import { TemplateFormProps } from "../TemplateForm/TemplateForm";
+import { validateName } from "@ensdomains/ui/src/utils/index";
 
 function getTitleForDaoModuleTemplate(ens: string) {
   return (
@@ -14,18 +15,38 @@ function getTitleForDaoModuleTemplate(ens: string) {
   );
 }
 
+function validate(value: string) {
+  try {
+    return validateName(value).length;
+  } catch (err) {
+    return false;
+  }
+}
+
 export const DaoModuleTemplateForm = ({
   onChange,
   disabled,
 }: TemplateFormProps) => {
-  const [ENS, setENS] = useState("");
+  const [ENS, setENS] = useState<string>("");
+  const [error, setError] = useState(false);
 
   const handleENSChange = (value: string) => {
     setENS(value);
+    if (!value) {
+      onChange(undefined);
+      setError(false);
+      return;
+    }
+    if (!validate(value)) {
+      onChange(undefined);
+      setError(true);
+      return;
+    }
+    setError(false);
     onChange({
       type: "bool",
       category: "DAO proposal",
-      title: getTitleForDaoModuleTemplate(value),
+      title: getTitleForDaoModuleTemplate(value.trim()),
     });
   };
 
@@ -33,7 +54,8 @@ export const DaoModuleTemplateForm = ({
     <Input
       disabled={disabled}
       value={ENS}
-      className="input-space"
+      error={error ? "Invalid ENS" : ""}
+      className={"input-space"}
       placeholder="ENS Name"
       onChange={(event) => handleENSChange(event.currentTarget.value)}
     />

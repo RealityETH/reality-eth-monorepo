@@ -12,6 +12,7 @@ It comprises the following packages, under packages/:
   * cli-tools: Javascript tools, mainly used for arbitration
   * python-services: Python code used for back-end services, specifically the twitter bot @RealityEthBot
   * graph: Subgraph definitions for https://thegraph.com/
+  * template-generator: A GUI tool to create custom question templates.
 
 See the README of each respective package for details.
 

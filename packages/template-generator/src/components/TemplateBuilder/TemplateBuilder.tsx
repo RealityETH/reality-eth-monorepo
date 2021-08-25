@@ -1,24 +1,16 @@
 import React, { useState } from "react";
-import { Box } from "../commons/Box/Box";
-import "./TemplateBuilder.css";
-import { Option, Select } from "../commons/Select/Select";
-import { InstanceField } from "../forms/InstanceForm/InstanceField";
-import { Button } from "../commons/Button/Button";
-import {
-  Language,
-  LanguageField,
-} from "../commons/LanguageField/LanguageField";
+import { Language } from "../commons/LanguageField/LanguageField";
 import { base_ids } from "@reality.eth/contracts/config/templates.json";
-import { TemplateForm } from "../forms/TemplateForm/TemplateForm";
-import { TextBlock } from "../commons/TextBlock/TextBlock";
-import { isAddress } from "ethers/lib/utils";
 import { TemplateBuilderCreate } from "./TemplateBuilderCreate/TemplateBuilderCreate";
+import {
+  TemplateBuilderForm,
+  TemplateBuilderFormFields,
+} from "./TemplateBuilderForm/TemplateBuilderForm";
+import { validateTemplateData } from "../../helpers/validation";
+import { useParams } from "react-router-dom";
 
 export type TemplateType = "custom" | "daoModule";
-const templateTypeOptions: Option<TemplateType>[] = [
-  { label: "Custom", value: "custom" },
-  { label: "DAO Module", value: "daoModule" },
-];
+export const TEMPLATE_TYPES: TemplateType[] = ["custom", "daoModule"];
 
 export type Type = keyof typeof base_ids;
 
@@ -27,19 +19,33 @@ export interface TemplateData {
   title: string;
   category: string;
   lang: Language;
+
+  decimals?: number;
+  outcomes?: string[];
+}
+
+function isTemplateType(type: string): type is TemplateType {
+  return TEMPLATE_TYPES.includes(type as TemplateType);
 }
 
 export const TemplateBuilder = () => {
+  const { type: selectedType } = useParams<{ type: string }>();
+
   const [create, setCreate] = useState(false);
-  const [instance, setInstance] = useState<string>(
-    "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288"
-  );
+  const [instance, setInstance] = useState<string>();
   const [language, setLanguage] = useState<Language>("en");
   const [templateId, setTemplateId] = useState<number>();
   const [templateData, setTemplateData] = useState<TemplateData>();
-  const [templateType, setTemplateType] = useState<TemplateType>("custom");
+  const [templateType, setTemplateType] = useState<TemplateType>(() => {
+    if (selectedType && isTemplateType(selectedType)) return selectedType;
+    return "custom";
+  });
 
-  const handleFormData = (data: Omit<TemplateData, "lang">) => {
+  const handleFormData = (data?: Omit<TemplateData, "lang">) => {
+    if (!data) {
+      setTemplateData(undefined);
+      return;
+    }
     setTemplateData({ lang: language, ...data });
   };
   const handleClose = () => {
@@ -51,10 +57,33 @@ export const TemplateBuilder = () => {
     setTemplateId(templateId);
   };
   const handleSubmit = () => {
-    if (!instance || !isAddress(instance) || !templateData) {
+    if (!validateTemplateData(instance, templateData)) {
       return;
     }
     setCreate(true);
+  };
+
+  const handleChange = (field: TemplateBuilderFormFields, value: any) => {
+    switch (field) {
+      case "instance":
+        setInstance(value);
+        break;
+      case "type":
+        setTemplateType(value);
+        setTemplateData(undefined);
+        break;
+      case "language":
+        setLanguage(value);
+        if (templateData) {
+          const template = { ...templateData };
+          template.lang = value; // Avoid changing fields order.
+          setTemplateData(template);
+        }
+        break;
+      case "template":
+        handleFormData(value);
+        break;
+    }
   };
 
   if (instance && templateData && create && !templateId) {
@@ -68,52 +97,15 @@ export const TemplateBuilder = () => {
     );
   }
 
-  const disabled = templateId !== undefined;
-  const title = disabled ? `Template: ${templateId}` : "Template Builder";
-
   return (
-    <Box title={title}>
-      <div className="template-builder-content">
-        <InstanceField
-          disabled={disabled}
-          value={instance}
-          onChange={(address) => setInstance(address)}
-        />
-        <Select
-          disabled={disabled}
-          label="Template Type"
-          value={templateType}
-          onChange={(type) => setTemplateType(type)}
-          options={templateTypeOptions}
-          className="input-space"
-        />
-
-        <LanguageField
-          disabled={disabled}
-          value={language}
-          onChange={setLanguage}
-          className="input-space"
-        />
-
-        <TemplateForm
-          disabled={disabled}
-          type={templateType}
-          value={templateData}
-          onChange={handleFormData}
-        />
-
-        {templateData ? (
-          <TextBlock className="input-space">
-            {JSON.stringify({ ...templateData }, undefined, 4)}
-          </TextBlock>
-        ) : null}
-
-        {disabled ? null : (
-          <Button onClick={handleSubmit} className="input-space">
-            Create Template
-          </Button>
-        )}
-      </div>
-    </Box>
+    <TemplateBuilderForm
+      id={templateId}
+      lang={language}
+      type={templateType}
+      instance={instance}
+      template={templateData}
+      onSubmit={handleSubmit}
+      onChange={handleChange}
+    />
   );
 };

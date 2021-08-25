@@ -6,6 +6,11 @@
   width: 300px;
 }
 
+.loader-container span {
+  margin-top: 8px;
+  text-align: center;
+}
+
 .center-container {
   width: 300px;
   margin: 40px auto;

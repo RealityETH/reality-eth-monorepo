@@ -5,6 +5,9 @@ const REALITY_ETH_ABI_CONTRACT = [
   "function createTemplate(string content) returns (uint256)",
 ];
 
-export function getRealityETHContract(address: string, signer: ethers.Signer) {
+export function getRealityETHContract(
+  address: string,
+  signer: ethers.Signer | ethers.providers.Provider
+) {
   return new ethers.Contract(address, REALITY_ETH_ABI_CONTRACT, signer);
 }

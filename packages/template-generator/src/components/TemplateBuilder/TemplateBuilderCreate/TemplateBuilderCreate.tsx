@@ -4,8 +4,8 @@ import { useSigner } from "../../../hooks/useSigner";
 import { getRealityETHContract } from "../../../helpers/reality-eth-contract";
 import { BigNumber, ethers } from "ethers";
 import { Box } from "../../commons/Box/Box";
-import { Spinner } from "../../commons/Spinner/Spinner";
 import { TemplateData } from "../TemplateBuilder";
+import { Loader } from "../../Loader/Loader";
 
 interface TemplateBuilderCreateProps {
   instance: string;
@@ -22,7 +22,9 @@ async function createTemplate(
 ) {
   const contract = getRealityETHContract(realityETHInstance, signer);
 
-  const request = await contract.functions.createTemplate(template);
+  const request = await contract.functions.createTemplate(
+    JSON.stringify(template)
+  );
   const receipt = await request.wait();
 
   const newTemplateEvent = receipt.events.find(
@@ -52,15 +54,16 @@ export function TemplateBuilderCreate({
   }, [onClose]);
 
   useEffect(() => {
-    if (signer && connected) {
-      if (!loading.current) {
-        loading.current = true;
-        createTemplate(signer, instance, template)
-          .then((templateId) => onCreate(templateId.toNumber()))
-          .catch((err) => handleError());
-      }
-    } else {
+    if (!signer || !connected) {
       connect().catch(() => handleError());
+      return;
+    }
+
+    if (!loading.current) {
+      loading.current = true;
+      createTemplate(signer, instance, template)
+        .then((templateId) => onCreate(templateId.toNumber()))
+        .catch(() => handleError());
     }
   }, [
     connect,
@@ -73,18 +76,15 @@ export function TemplateBuilderCreate({
     template,
   ]);
 
-  const loader = (
-    <div className="loader-container">
-      <Spinner />
-      <span>Creating Template...</span>
-    </div>
-  );
-  const errorText = <h3 style={{ textAlign: "center" }}>Transaction Failed</h3>;
-  const content = error ? errorText : loader;
+  if (error) {
+    return (
+      <Box title="Creating Template...">
+        <div className="center-container">
+          <h3 style={{ textAlign: "center" }}>Transaction Failed</h3>
+        </div>
+      </Box>
+    );
+  }
 
-  return (
-    <Box title="Creating Template...">
-      <div className="center-container">{content}</div>
-    </Box>
-  );
+  return <Loader title="Creating Template..." text="Creating Template..." />;
 }
