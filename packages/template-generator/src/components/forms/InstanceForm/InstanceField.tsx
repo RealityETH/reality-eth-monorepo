@@ -32,7 +32,7 @@ export function InstanceField({
   const chainId = useChainId();
 
   const options = useMemo(() => {
-    const instances = getRealityETHInstances(chainId);
+    const instances = getRealityETHInstances(chainId || 1);
     return instances.map((instance) => ({
       label: `${instance.token} - ${shortAddress(instance.address)}`,
       value: instance.address,
