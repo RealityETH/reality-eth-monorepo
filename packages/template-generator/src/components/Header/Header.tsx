@@ -13,7 +13,9 @@ export const Header = () => {
     <div>
       <header className="header-container">
         <div className="header-logo-container">
-          <img src={Logo} alt="Logo" className="header-logo" />
+          <a href="/">
+            <img src={Logo} alt="Logo" className="header-logo" />
+          </a>
           <span className="network-text">{label}</span>
         </div>
       </header>
