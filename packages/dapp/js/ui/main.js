@@ -32,14 +32,11 @@ let TOKEN_JSON = {};
 let IS_TOKEN_NATIVE = false;
 let IS_WEB3_FALLBACK = false;
 
-// For now we have a json file hard-coding the TOS of known arbitrators.
-// See https://github.com/realitio/realitio-dapp/issues/136 for the proper way to do it.
-const ARB_TOS = require('./arbitrator_tos.json');
-
 let ARBITRATOR_LIST_BY_CONTRACT = {};
 let ARBITRATOR_VERIFIED_BY_CONTRACT = {};
 let ARBITRATOR_FAILED_BY_CONTRACT = {};
 let FOREIGN_PROXY_DATA = {};
+let ARBITRATOR_METADATA = require('./arbitrator_metadata_legacy.json'); // Old contracts don't have this so hard-code it
 
 const TEMPLATE_CONFIG = rc_contracts.templateConfig();
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
@@ -168,6 +165,20 @@ const MONTH_LIST = [
     'Nov',
     'Dec'
 ];
+
+function formatPossibleIPFSLink(u) {
+    if (!u) {
+        return '';
+    }
+console.log('consider ink', u);
+    if (u.toLowerCase().substr(0, 7) == 'ipfs://') {
+console.log('replaceint', u)
+        u = u.replace('ipfs://', 'https://ipfs.io/ipfs/');
+    } else {
+console.log('not ipfs', u)
+}
+    return u;
+}
 
 function markArbitratorFailed(contract, addr, contract_question_id) {
     ARBITRATOR_FAILED_BY_CONTRACT[contract.toLowerCase()][addr.toLowerCase()] = true;
@@ -309,18 +320,33 @@ $(document).on('change', 'input.arbitrator-other', function() {
     const sel_cont = $(this).closest('.select-container');
     if (/^(0x)?[0-9a-f]{1,40}$/i.test(arb_text)) {
         const ar = ARBITRATOR_INSTANCE.attach(arb_text);
-        ar.functions.realitio().then(function(rcaddr_arr) {
+        ar.functions.realitio().then(async function(rcaddr_arr) {
             const rcaddr = rcaddr_arr[0];
             if (rcaddr != RCInstance(RC_DEFAULT_ADDRESS).address) {
                 console.log('reality check mismatch', rcaddr, RCInstance(RC_DEFAULT_ADDRESS).address);
                 return;
             }
+
+            const metadata = await loadArbitratorMetaData(arb_text);
+            const tos = ('tos' in metadata) ? metadata['tos'] : null;
+            const tos_section = sel_cont.closest('.select-container').find('div.arbitrator-tos');
+            if (tos) {
+console.log('got tos, showing', tos);
+                tos_section.find('.arbitrator-tos-link').attr('href', formatPossibleIPFSLink(tos));
+                tos_section.show(); 
+            } else {
+console.log('no tos, hiding', tos);
+                tos_section.find('.arbitrator-tos-link').attr('href', '');
+                tos_section.hide(); 
+            }
+
             RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(arb_text).then(function(fee_arr) {
                 const fee = fee_arr[0];
-                populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), fee);
+                populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), fee, null, tos);
             }).catch(function() {
-                populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), ethers.BigNumber.from(0));
+                populateArbitratorOptionLabel(sel_cont.find('option.arbitrator-other-select'), ethers.BigNumber.from(0), null, tos);
             });
+
         }).catch(function(err) {
             markArbitratorFailed(RC_DEFAULT_ADDRESS, arb_text);
         });
@@ -1526,6 +1552,7 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
             throw new Error("question not found in call, maybe try again later", question_id);
         }
         const q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
+        await loadArbitratorMetaData(q.arbitrator); // We keep a separate cache from this, it should usually already be in there
         return q;
         /*
         rc.questions.call(question_id).then(function(result) {
@@ -2364,18 +2391,41 @@ function category_text(question_json, target_el) {
     return cat_txt;
 }
 
+// Returns arbitration metadata from the cache
+// Assumes it's already been loaded
+function arbitrationMetaDataFromCache(arb_addr) {
+    if (arb_addr.toLowerCase() in ARBITRATOR_METADATA) {
+        //console.log('found metadata for', arb_addr);
+        return ARBITRATOR_METADATA[arb_addr.toLowerCase()];
+    }
+    if (arb_addr.toLowerCase() == '0x0000000000000000000000000000000000000000') {
+        return {};
+    }
+    //console.log('no metadata for', arb_addr, ARBITRATOR_METADATA);
+    return null;
+}
+
 async function loadArbitratorMetaData(arb_addr) {
-    console.log('getting metadata for arbitrator', arb_addr);
-    const arb = ARBITRATOR_INSTANCE.attach(arb_addr);
-    const md_arr = await arb.functions.metadata();
-    const md = md_arr[0];
-    console.log('md response', md_arr);
+    const cached_md = arbitrationMetaDataFromCache(arb_addr);
+    if (cached_md) {
+        return cached_md;
+    }
+    //console.log('fetching metadata for arbitrator', arb_addr);
     let metadata_json = {};
     try {
-        metadata_json = JSON.parse(md);
+        const arb = ARBITRATOR_INSTANCE.attach(arb_addr);
+        const md_arr = await arb.functions.metadata();
+        const md = md_arr[0];
+        try {
+            metadata_json = JSON.parse(md);
+        } catch (e) {
+            console.log('metadata_json could not be parsed', md);
+        }
     } catch (e) {
-        console.log('metadata_json could not be parsed', md);
+        console.log('Got an error trying to fetch arbitrator metadata, this is normal with some arbitrators', arb_addr);
     }
+    ARBITRATOR_METADATA[arb_addr.toLowerCase()] = metadata_json;
+    // console.log('loaded metadata', arb_addr, metadata_json);
     return metadata_json;
 }
 
@@ -2404,6 +2454,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     if (question_detail.block_mined > 0) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
+    }
+
+    const metadata = arbitrationMetaDataFromCache(question_detail.arbitrator);
+    if (metadata && 'tos' in metadata && metadata['tos']) {
+        rcqa.find('.arbitrator-tos-link').attr('href', formatPossibleIPFSLink(metadata['tos'])).removeClass('unpopulated');
+    } else {
+        rcqa.find('.arbitrator-tos-link').attr('href', '').addClass('unpopulated');
     }
 
     let bond = ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']).div(2);
@@ -4447,7 +4504,7 @@ function populateArbitratorOptionLabel(op, fee, txt, tos) {
     op.text(txt);
     op.attr('data-question-fee', fee.toHexString());
     if (tos) {
-        op.attr('data-tos-url', tos);
+        op.attr('data-tos-url', formatPossibleIPFSLink(tos));
     }
 }
 
@@ -4485,14 +4542,12 @@ function populateArbitratorSelect(arb_contract, network_arbs) {
                 return is_arb_valid;
             }).then(function(is_arb_valid) {
                 if (is_arb_valid) {
-                    RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(na_addr).then(function(fee_call_response) {
+                    RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(na_addr).then(async function(fee_call_response) {
                         const fee = fee_call_response[0];
+                        const metadata = await loadArbitratorMetaData(na_addr);
+                        const tos = ('tos' in metadata) ? metadata['tos'] : null;
                         const arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                         arb_item.val(na_addr);
-                        let tos = null;
-                        if (ARB_TOS[na_addr]) {
-                            tos = ARB_TOS[na_addr];
-                        }
                         populateArbitratorOptionLabel(arb_item, fee, na_title, tos);
                         if (is_first) {
                             arb_item.attr('selected', true);
