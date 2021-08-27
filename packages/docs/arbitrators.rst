@@ -69,8 +69,9 @@ Getting information about the arbitrator
 ----------------------------------------
 
 * ``function realitio()`` should provide the address of the Reality.eth contract to which the arbitrator responds.
-* ``function metadata()`` should provide a string of json-encoded metadata. The following properties are scheduled for implementation in the Reality.eth dapp:
+* ``function metadata()`` should provide a string of json-encoded metadata. It may contain the following properties
 
-  * ``tos``: A URI representing the location of a terms-of-service document for the arbitrator.
-  * ``template_hashes``: An array of hashes of templates supported by the arbitrator. If you have a numerical ID for a template registered with Reality.eth, you can look up this hash by calling the Reality.eth ``template_hashes()`` function.
+  * ``tos``: A URI representing the location of a terms-of-service document for the arbitrator. Should be a URI, either a standard https:// URL or ipfs://
+  * ``foreignProxy: true``: This signals that the contract requires users to request arbitration on another chain, as with the Kleros cross-chain proxy. The contract will call additional methods against the contract to get the details of the foreign proxy.
+  * ``template_hashes``: [Not yet implemented] An array of hashes of templates supported by the arbitrator, if you want to limit usage of the arbitrator to specified templates. If you have a numerical ID for a template registered with Reality.eth, you can look up this hash by calling the Reality.eth ``template_hashes()`` function.
 
