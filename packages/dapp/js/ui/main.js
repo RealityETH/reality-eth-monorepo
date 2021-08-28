@@ -1804,7 +1804,7 @@ function populateSection(section_name, question, before_item) {
 
     if (ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase()] && ARBITRATOR_FAILED_BY_CONTRACT[question.contract.toLowerCase()][question.arbitrator.toLowerCase()]) {
         entry.addClass('failed-arbitrator');
-    }
+    } 
 
     entry.attr('id', question_item_id).removeClass('template-item');
     entry.css('display', 'none');
@@ -2698,11 +2698,11 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                     window.open(proxy_url);
                 });
                 btn.removeClass('unpopulated').attr('data-foreign-proxy', foreign_proxy).attr('data-foreign-chain-id', foreign_chain_id);
+            } else {
+                // If it doesn't implement foreign proxy either, it's a contract or address without the proper interface.
+                // console.log('arbitrator failed with error', err);
+                markArbitratorFailed(question_detail.contract, question_detail.arbitrator, contractQuestionID(question_detail));
             }
-        }).catch(function(err) {
-            // If it doesn't implement foreign proxy either, it's a contract without the proper interface.
-            console.log('arbitrator failed with error', err);
-            markArbitratorFailed(question_detail.contract, question_detail.arbitrator, contractQuestionID(question_detail));
         });
     }
 
