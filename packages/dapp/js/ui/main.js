@@ -1685,12 +1685,15 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
                 // TODO: Maybe better to just do this the normal way...
                 const rq = {
                     'is_pending_arbitration': replacement_data[Qi_is_pending_arbitration],
-                    'finalization_ts':  ethers.BigNumber.from(replacement_data[Qi_finalization_ts])
+                    'finalization_ts':  ethers.BigNumber.from(replacement_data[Qi_finalization_ts]),
+                    'best_answer': replacement_data[Qi_best_answer]
                 }
                 const is_replacement_finalized = isFinalized(rq);
                 if (is_replacement_finalized) {
-                    if (replacement_data[Qi_best_answer].best_answer == rc_question.getAnsweredTooSoonValue()) {
+                    if (rq.best_answer == rc_question.getAnsweredTooSoonValue()) {
                         also_too_soon = true;
+                    } else {
+                        //console.log('best answer is not answeredTooSoonVal', rq);
                     }
                 } 
             } else {
@@ -4502,7 +4505,9 @@ async function handleEvent(error, result) {
 
                 result = await waitForBlock(result);
                 //console.log('got LogNewAnswer, block ', result.blockNumber);
+console.log('runnign ensureQuestionDetailFetched with result for answers', result);
                 const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]})
+console.log('result wasy ', question);
                 updateQuestionWindowIfOpen(question);
                 //console.log('should be getting latest', question, result.blockNumber);
                 scheduleFinalizationDisplayUpdate(contract, question);
