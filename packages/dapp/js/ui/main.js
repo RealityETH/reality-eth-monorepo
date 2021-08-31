@@ -901,12 +901,14 @@ function isReopenCandidate(question) {
 // Assumes we already filled the data
 function isReopenable(question) {
     // TODO: Check if it can be re-reopened
+    // console.log('reopened_by is ', question.reopened_by);
+    // console.log('last_reopened_by is ', question.last_reopened_by);
     if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
-        console.log('already reopened');
+        // console.log('already reopened');
         return false;
     }
     if (question.is_reopener) {
-        console.log('already reopening something else');
+        // console.log('already reopening something else');
         return false;
     }
     return isReopenCandidate(question);
@@ -1620,7 +1622,7 @@ async function _ensureQuestionLogFetched(contract, question_id, freshness, found
                 // This isn't in the original log so just tack it on as if it is
 
                 qarr.args.reopener_of_question_id = reopened_question_id;
-                console.log('will fill', reopened_question_id);
+                // console.log('will fill', reopened_question_id);
             }            
             question = filledQuestionDetail(contract, question_id, 'question_log', called_block, qarr);
         } else {
@@ -1661,7 +1663,9 @@ async function _ensureQuestionDataFetched(contract, question_id, freshness, foun
                 }
                 const is_replacement_finalized = isFinalized(rq);
                 if (is_replacement_finalized) {
-                    also_too_soon = true;
+                    if (replacement_data[Qi_best_answer].best_answer == rc_question.getAnsweredTooSoonValue()) {
+                        also_too_soon = true;
+                    }
                 } 
             } else {
                 // Not yet reopened but this may be reopening some other question, in which case it can't be reopened yet
@@ -2471,6 +2475,7 @@ function displayQuestionDetail(question_detail) {
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
     }
 
+    // console.log('set_hash_param', contractQuestionID(question_detail));
     set_hash_param({'question': contractQuestionID(question_detail)});
 
 }
@@ -2572,7 +2577,6 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('reopenable');
         if (question_detail.reopened_by) {
-console.log('makde cqid for', question_detail.contract, question_detail.reopened_by);
             rcqa.attr('data-reopened-by-question-id', cqToID(question_detail.contract, question_detail.reopened_by));
             rcqa.addClass('reopened');
         } else {
@@ -3893,6 +3897,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
         await delay(6000);
 
         // Force a refresh
+        const question = await ensureQuestionDetailFetched(old_question.contract, old_question.question_id);
         openQuestionWindow(contractQuestionID(old_question));
     };
 
@@ -3985,7 +3990,9 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
-    const nonce = ethers.utils.keccak256(old_question.last_reopened_by ? old_question.last_reopened_by : "0x0000000000000000000000000000000000000000000000000000000000000000")
+    const nonce_food = old_question.question_id + old_question.last_reopened_by ? old_question.last_reopened_by : "0x0000000000000000000000000000000000000000000000000000000000000000";
+    const nonce = ethers.utils.keccak256('0x' + nonce_food.replace('0x', ''));
+    // const nonce = ethers.utils.keccak256(ethers.BigNumber.from(parseInt(Date.now())).toHexString());
 
     // TODO: The same question may be asked multiple times by the same account, so set the nonce as something other than zero
     // You only ever want to 
@@ -4004,6 +4011,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 });
 
 $(document).on('click', '.reopened-question-link', function(e) {
+    e.preventDefault();
     e.stopPropagation();
     const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopened-by-question-id');
     console.log('open window for', cqid);
@@ -4011,6 +4019,7 @@ $(document).on('click', '.reopened-question-link', function(e) {
 });
 
 $(document).on('click', '.reopener-question-link', function(e) {
+    e.preventDefault();
     e.stopPropagation();
     const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopener-of-question-id');
     console.log('open window for', cqid);
