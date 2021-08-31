@@ -1,0 +1,53 @@
+{
+  "name": "template-generator",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "./",
+  "dependencies": {
+    "@ensdomains/ui": "^3.2.0",
+    "@reality.eth/contracts": "^2.3.1",
+    "@reality.eth/reality-eth-lib": "^2.1.1",
+    "classnames": "^2.3.1",
+    "ethers": "^5.4.4",
+    "lodash.memoize": "^4.1.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-router-dom": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/lodash.memoize": "^4.1.6",
+    "@types/node": "^12.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "@types/react-router-dom": "^5.1.8",
+    "prettier": "^2.3.2",
+    "react-scripts": "4.0.3",
+    "typescript": "^4.1.2"
+  },
+  "optionalDependencies": {
+    "fsevents": "^2.3.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

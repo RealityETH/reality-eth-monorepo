@@ -1,0 +1,37 @@
+.header-logo {
+  width: 317px;
+  margin-left: -100px;
+}
+
+.header-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.header-logo-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.network-text {
+  margin-top: -12px;
+  padding-left: 71px;
+  font-size: 12px;
+  color: #939596;
+}
+
+.divider {
+  background-position: center right;
+  background-color: #27b4ee;
+  background-repeat: no-repeat;
+  background-size: contain;
+  height: 3px;
+  width: 100%;
+  margin-top: 22px;
+  margin-bottom: 48px;
+}
+
+.grow {
+  flex-grow: 1;
+}

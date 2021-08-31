@@ -1,0 +1,13 @@
+.text-block {
+  font-size: 12px;
+  font-family: Roboto Mono;
+  line-height: 16px;
+
+  color: #000000;
+  background: #ebebeb;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 12px 8px 12px 12px;
+  white-space: pre-wrap;
+  font-weight: 400;
+}

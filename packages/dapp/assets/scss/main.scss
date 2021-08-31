@@ -1507,9 +1507,24 @@ span.rcbrowser__close-button {
     display: block;
     float: right;
     margin: 0;
+    margin-left:12px;
 }
 
 .arbitration-button.unpopulated {
+    visibility: hidden;
+}
+
+.apply-for-arbitration-container .arbitrator-tos-link {
+    font-size: 12px;
+    color: $rcBrowserSubText;
+    text-decoration: none;
+    display: block;
+    float: right;
+    margin: 0;
+    font-style: italic;
+}
+
+.apply-for-arbitration-container .arbitrator-tos-link.unpopulated {
     visibility: hidden;
 }
 

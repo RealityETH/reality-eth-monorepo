@@ -1,0 +1,21 @@
+.box {
+  background-color: white;
+  box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.2);
+}
+
+.box-title-container {
+  padding: 10px;
+  background-color: #56bbe8;
+}
+
+.box-title {
+  color: white;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.box-content {
+  padding: 24px;
+}

@@ -1,0 +1,17 @@
+.custom-btn {
+  padding: 12px;
+  background: #56bbe8;
+  box-shadow: 2px 2px 5px rgba(23, 43, 99, 0.25);
+  border-radius: 8px;
+  margin-top: 24px;
+  width: 100%;
+  outline: none;
+  border: 0;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.custom-btn:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+}
