@@ -2571,12 +2571,14 @@ async function loadArbitratorMetaData(arb_addr) {
         const md_arr = await arb.functions.metadata();
         const md = md_arr[0];
         try {
-            metadata_json = JSON.parse(md);
+            if (md != '' && md != ' ') {
+                metadata_json = JSON.parse(md);
+            }
         } catch (e) {
-            console.log('metadata_json could not be parsed', md);
+            console.log('arbitrator', arb_addr, 'returned some metadata but it could not be parsed:', md);
         }
     } catch (e) {
-        console.log('Got an error trying to fetch arbitrator metadata, this is normal with some arbitrators', arb_addr);
+        console.log('Got an error trying to fetch arbitrator metadata, this is expected with some arbitrators', arb_addr);
     }
     ARBITRATOR_METADATA[arb_addr.toLowerCase()] = metadata_json;
     // console.log('loaded metadata', arb_addr, metadata_json);
@@ -4734,7 +4736,9 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         }
         */
 
-    console.log('fetch range', contract, start_block, end_block, fetch_i);
+    if (fetch_i % 100 == 0) {
+        console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
+    }
     fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
 }
 
