@@ -79,3 +79,7 @@ Getting information about the arbitrator
   * ``foreignProxy: true``: This signals that the contract requires users to request arbitration on another chain, as with the Kleros cross-chain proxy. The contract will call additional methods against the contract to get the details of the foreign proxy.
   * ``template_hashes``: [Not yet implemented] An array of hashes of templates supported by the arbitrator, if you want to limit usage of the arbitrator to specified templates. If you have a numerical ID for a template registered with Reality.eth, you can look up this hash by calling the Reality.eth ``template_hashes()`` function.
 
+See an `Arbitrator contract example`_ to show you how to set the metadata.
+
+.. _`Arbitrator contract example`: https://rinkeby.etherscan.io/address/0xF8175715a762514351dfe1aaaB83aF5F9DBcB5F5#readContract
+
