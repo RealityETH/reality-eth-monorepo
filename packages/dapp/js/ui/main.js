@@ -4070,7 +4070,6 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     });
 
     handleReopenQuestionTX(tx_response, old_question);
-    console.log('todo: reopen', old_question);
 
 });
 
