@@ -2910,7 +2910,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     // If the user has edited the field, never repopulate it underneath them
     const bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
     if (!bond_field.hasClass('edited')) {
-        console.log('min bond /2', bond.toString());
+        // console.log('min bond /2', bond.toString());
         bond_field.val(decimalizedBigNumberToHuman(bond.mul(2)));
     }
 
