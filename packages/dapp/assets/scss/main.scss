@@ -2126,6 +2126,10 @@ div.too-soon-switch-container { margin-top:2px; margin-right:2px; text-align:rig
     animation-name: bounce;
 }
 
+#post-a-question-window {
+    min-height:660px;
+}
+
 #post-a-question-window .cols-2:nth-child(1) .quick-help-body {
     left: -375px;
 }
