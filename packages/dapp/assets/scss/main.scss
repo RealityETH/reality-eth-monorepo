@@ -3186,3 +3186,10 @@ div.contract-claim-section-template {
 .version-supports-min-bond .version-supports-min-bond-only {
     display:block;
 }
+
+.arbitrator-tos {
+    display:none;
+}
+.has-arbitrator-tos div.arbitrator-tos {
+    display:block;
+}

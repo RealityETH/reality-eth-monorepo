@@ -313,6 +313,19 @@ function RCInstance(ctr, signed) {
     return ret;
 }
 
+function populateTOSSection(container, tos) {
+
+    const tos_section = container.find('div.arbitrator-tos');
+    if (tos) {
+        tos_section.find('.arbitrator-tos-link').attr('href', formatPossibleIPFSLink(tos));
+        container.addClass('has-arbitrator-tos');
+    } else {
+        tos_section.find('.arbitrator-tos-link').attr('href', '');
+        container.removeClass('has-arbitrator-tos');
+    }
+
+}
+
 $(document).on('change', 'input.arbitrator-other', function() {
     const arb_text = $(this).val();
     const sel_cont = $(this).closest('.select-container');
@@ -327,16 +340,8 @@ $(document).on('change', 'input.arbitrator-other', function() {
 
             const metadata = await loadArbitratorMetaData(arb_text);
             const tos = ('tos' in metadata) ? metadata['tos'] : null;
-            const tos_section = sel_cont.closest('.select-container').find('div.arbitrator-tos');
-            if (tos) {
-console.log('got tos, showing', tos);
-                tos_section.find('.arbitrator-tos-link').attr('href', formatPossibleIPFSLink(tos));
-                tos_section.show(); 
-            } else {
-console.log('no tos, hiding', tos);
-                tos_section.find('.arbitrator-tos-link').attr('href', '');
-                tos_section.hide(); 
-            }
+
+            populateTOSSection(sel_cont, tos);
 
             RCInstance(RC_DEFAULT_ADDRESS).functions.arbitrator_question_fees(arb_text).then(function(fee_arr) {
                 const fee = fee_arr[0];
@@ -365,14 +370,8 @@ $(document).on('change', 'select.arbitrator', function() {
     const op = $(this).find('option:selected');
     const tos_url = op.attr('data-tos-url');
     console.log('tos_url', tos_url, 'op', op);
-    const tos_section = $(this).closest('.select-container').find('div.arbitrator-tos');
-    if (tos_url) {
-        tos_section.find('.arbitrator-tos-link').attr('href', tos_url);
-        tos_section.show(); 
-    } else {
-        tos_section.find('.arbitrator-tos-link').attr('href', '');
-        tos_section.hide(); 
-    }
+
+    populateTOSSection($(this).closest('.select-container'), tos_url);
 });
 
 $(document).on('click', '.rcbrowser', function() {
@@ -2624,9 +2623,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     const metadata = arbitrationMetaDataFromCache(question_detail.arbitrator);
     if (metadata && 'tos' in metadata && metadata['tos']) {
-        rcqa.find('.arbitrator-tos-link').attr('href', formatPossibleIPFSLink(metadata['tos'])).removeClass('unpopulated');
+        populateTOSSection(rcqa, metadata['tos']);
     } else {
-        rcqa.find('.arbitrator-tos-link').attr('href', '').addClass('unpopulated');
+        populateTOSSection(rcqa, null);
     }
 
     let bond = ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']).div(2);
