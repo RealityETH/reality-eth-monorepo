@@ -880,6 +880,9 @@ function hasUnrevealedCommits(question) {
 // ...or if there's an uncommitted answer that hasn't timed out yet
 // TODO: Check for timeouts
 function isAnsweredOrAnswerActive(question) {
+    if (isAnswered(question)) {
+        return true;
+    }
     const history_hash = ethers.BigNumber.from(question.history_hash);
     return (history_hash.gt(0));
 }
@@ -2911,7 +2914,6 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         bond_field.val(decimalizedBigNumberToHuman(bond.mul(2)));
     }
 
-    //console.log('call updateQuestionState');
     rcqa = updateQuestionState(question_detail, rcqa);
 
     if (isFinalized(question_detail)) {
