@@ -35,7 +35,7 @@ async function migrateFunds(provider, f, t) {
     const nonce = await provider.getTransactionCount(f.signingKey.address, 'latest')
     const gas_limit = 21000;
 
-    console.log(f)
+    // console.log(f)
 
     const txdata = {
       to: t.signingKey.address,
