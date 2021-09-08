@@ -1089,7 +1089,7 @@ function validate(win) {
         }
     }
 
-console.log('valid is ', valid);
+    //console.log('valid is ', valid);
     return valid;
 }
 
@@ -5481,9 +5481,9 @@ $('#contract-selection').change(function(e) {
         return;
     }
     if (ctr == '') {
-        window.location.hash = '#!/';
+        set_hash_param({'contract': null});
     } else {
-        window.location.hash = '#!/contract/'+ctr;
+        set_hash_param({'contract': ctr});
     }
     location.reload();
 });
