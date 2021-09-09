@@ -3,17 +3,17 @@ const ethers = require('ethers');
 
 const from = process.argv[2]
 if (!from) {
-    throw new Error("Usage: node create_wallet.js <from> <to> <rpc>");
+    throw new Error("Usage: node migrate_wallet.js <from> <to> <rpc>");
 }
 
 const to = process.argv[3]
 if (!to) {
-    throw new Error("Usage: node create_wallet.js <from> <to> <rpc>");
+    throw new Error("Usage: node migrate_wallet.js <from> <to> <rpc>");
 }
 
 const rpc = process.argv[4];
 if (!rpc) {
-    throw new Error("Usage: node create_wallet.js <from> <to> <rpc>");
+    throw new Error("Usage: node migrate_wallet.js <from> <to> <rpc>");
 }
 
 // For infura we just pass the network name eg kovan
