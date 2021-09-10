@@ -290,6 +290,16 @@
             }
         }
     },
+    "43114": {
+        "AVAX": {
+            "RealityETH-3.0": {
+                "address": "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502",
+                "block": 4090592,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "421611": {
         "ARETH": {
             "Arbitrator": {
