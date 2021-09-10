@@ -13,7 +13,7 @@ if (fs.existsSync(out)) {
     console.log("Wallet already exists at " + out + ", delete it if you want to create a new one");
 } else { 
     w = ethers.Wallet.createRandom();
-    fs.writeFileSync(out, w.signingKey.keyPair.privateKey);
+    fs.writeFileSync(out, w._signingKey().privateKey);
 }
 
-console.log(w.signingKey.address);
+console.log(w.address);
