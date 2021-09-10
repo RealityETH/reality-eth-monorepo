@@ -11,6 +11,12 @@
                     "0xd47f72a2d1d0E91b0Ec5e5f5d02B2dc26d00A14D": "Kleros",
                     "0x4072cadf953ad0a1bbacbbb50ac513411ae620db": "Gnosis Corona Information Arbitrator"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c",
+                "block": 13194676,
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "FOX": {
@@ -119,6 +125,12 @@
                 "arbitrators": {
                     "0xD31566493ac99fCa63BF17E62724b41010b4AFB6": "Ubiq Core Dev Team"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0x23C7eE4F42e473AEf51C3f59D7D58E33a63Ab348",
+                "block": 1670257,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -133,6 +145,12 @@
                     "0xB4683794998215B59a429e86c3A33F796F9aeb0f": "Reality.eth Team (dev)",
                     "0xDEd12537dA82C1019b3CA1714A5d58B7c5c19A04": "Kleros"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xcB71745d032E16ec838430731282ff6c10D29Dea",
+                "block": 27103177,
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "POLK": {
@@ -149,6 +167,13 @@
                 "arbitrators": {
                     "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8": "Test POLK arbitrator (reality.eth)"
                 }
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0xe9CF05F9F664b88160D5658619c028D1EEb00fc7",
+                "block": 27103188,
+                "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -167,6 +192,12 @@
                 "arbitrators": {
                     "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (for testing only)"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xa925646Cae3721731F9a8C886E5D1A7B123151B9",
+                "block": 10751380,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -189,6 +220,12 @@
                 "arbitrators": {
                     "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xC3324405793B9F1C29e97b29cB084C9541aD4d9B",
+                "block": 22647153,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -204,6 +241,12 @@
                     "0x7202deD6f13525A8298Ea53fBFD4395fDCc8d5f1": "Reality.eth team - testing only",
                     "0x34a8B97bd8Ac4AfBe91C71E961C3f9c1F064717F": "DXdao - Test"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
+                "block": 17997262,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -221,6 +264,12 @@
                 "arbitrators": {
                     "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (testing only)"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0x60573B8DcE539aE5bF9aD7932310668997ef0428",
+                "block": 18901674,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -255,6 +304,12 @@
                 "arbitrators": {
                     "0x0442820A55bA71b8e67e035CD10eAec3fFAa66b1": "Reality.eth Team"
                 }
+            },
+            "RealityETH-3.0": {
+                "address": "0xd3312B4e9225626F8e9a483e2A87bB3966a89f3a",
+                "block": 4012956,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     }
