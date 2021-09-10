@@ -31,6 +31,7 @@ const chains = {
     'sokol': 77,
     'xdai': 100,
     'polygon': 137,
+    'ava': 43114,
     'arbitrum': 42161,
     'arbitrum-rinkeby': 421611
 }
@@ -39,6 +40,7 @@ const non_infura_chains = {
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'ava': 'https://api.avax.network/ext/bc/C/rpc',
     'arbitrum': 'https://arb1.arbitrum.io/rpc',
     'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc',
     'ubiq': 'https://rpc.octano.dev'
@@ -156,7 +158,7 @@ function deployRealityETH() {
     const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
     // console.log(signer);
 
-    txt = txt + ' (from address ' + signer.signingKey.address + ')';
+    txt = txt + ' (from address ' + signer.address + ')';
     console.log(txt);
 
     confac.deploy(defaultConfigs).then(function(result) {
