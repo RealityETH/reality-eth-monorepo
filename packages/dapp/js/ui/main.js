@@ -4507,9 +4507,9 @@ async function handleEvent(error, result) {
 
                 result = await waitForBlock(result);
                 //console.log('got LogNewAnswer, block ', result.blockNumber);
-console.log('runnign ensureQuestionDetailFetched with result for answers', result);
+                //console.log('runnign ensureQuestionDetailFetched with result for answers', result);
                 const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]})
-console.log('result wasy ', question);
+                //console.log('result wasy ', question);
                 updateQuestionWindowIfOpen(question);
                 //console.log('should be getting latest', question, result.blockNumber);
                 scheduleFinalizationDisplayUpdate(contract, question);
