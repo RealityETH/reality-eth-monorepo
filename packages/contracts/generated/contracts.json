@@ -37,6 +37,13 @@
                 "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
                 "notes": null,
                 "arbitrators": {}
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9",
+                "block": 13201169,
+                "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "TRST": {
@@ -108,6 +115,13 @@
                 "arbitrators": {
                     "0x1184313B3690A4B4cF2436924C2d09dAC730628A": "Realitio Team (rinkeby main)"
                 }
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0xC1f0c8dcc637B935FE61800a554fd68C057bcc6C",
+                "block": 9271323,
+                "token_address": "0x21036C54e16521B8809553956123E44054120226",
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
