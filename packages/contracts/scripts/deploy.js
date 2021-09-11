@@ -4,10 +4,16 @@ const project_base = './../';
 const build_dir = './../truffle/build/contracts/';
 const rc = require('../index.js');
 
+const deployed_at = null;
+// const deployed_at = '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9'; //mainnet gno
+// const deployed_at = '0xc79e58D0a23ea0eDBDD2dBc96d16e65f696BfFc8'; // rinkeby test
+
 var undef;
 
 const defaultConfigs = {
-    //gasPrice: 8000000000,
+//    maxFeePerGas:         61000000000,
+//    maxPriorityFeePerGas:  1000000000,
+    //gasPrice: 70000000000
     //; gasLimit: 6000000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
 }
@@ -147,7 +153,26 @@ function realityETHName() {
     return tmpl;
 }
 
-function deployRealityETH() {
+async function waitForGas(provider) {
+    if (!defaultConfigs.maxFeePerGas) {
+        return true;
+    }
+    // console.log('in waitForGas');
+    const sleep = (milliseconds) => {
+      return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+
+    const f = await provider.getFeeData()
+    // console.log('fee', f)
+    if (f.gasPrice.gt(ethers.BigNumber.from(defaultConfigs.maxFeePerGas))) {
+        console.log('Gas is too expensive, got', f.gasPrice.toString(), 'but you will only pay ', defaultConfigs.maxFeePerGas, ', retrying...')
+        await sleep(2000);
+        await waitForGas(provider);
+    } 
+    return true;
+}
+
+async function deployRealityETH() {
     var tmpl = realityETHName();
     var txt = 'deploying reality.eth';
     txt = txt + ' [template '+tmpl+']';
@@ -161,30 +186,55 @@ function deployRealityETH() {
     txt = txt + ' (from address ' + signer.address + ')';
     console.log(txt);
 
-    confac.deploy(defaultConfigs).then(function(result) {
-        const txid = result.deployTransaction.hash;
-        const address = result.address;
-        console.log('storing address', address);
-        console.log('deploying at address with tx ', txid);
-        result.deployed().then(function(depres) {
-            // console.log('depres', depres);
-            const settings = {
-                "address": address,
-                "block": depres.provider._lastBlockNumber,
-                "token_address": token_address,
-                "notes": null,
-                "arbitrators": {}
-            }
+    await waitForGas(provider);
 
-            //console.log('result was', result);
-            store_deployed_contract(tmpl, chain_id, token_name, settings); 
-            if (isERC20()) {
-                result.setToken(token_address);
-            }
+    if (deployed_at) {
+
+        console.log('using preconfigured address', deployed_at);
+        const inst = new ethers.Contract(deployed_at, t.abi, provider);
+        conninst = inst.connect(signer);
+        // console.log('depres', depres);
+        const settings = {
+            "address": deployed_at,
+            "block": 0, // fill this in by hand from the earlier tx
+            "token_address": token_address,
+            "notes": null,
+            "arbitrators": {}
+        }
+
+        //console.log('result was', result);
+        store_deployed_contract(tmpl, chain_id, token_name, settings); 
+        if (isERC20()) {
+            console.log('Setting token')
+            conninst.setToken(token_address);
+        }
+
+    } else {
+        confac.deploy(defaultConfigs).then(function(result) {
+            const txid = result.deployTransaction.hash;
+            const address = result.address;
+            console.log('storing address', address);
+            console.log('deploying at address with tx ', txid);
+            result.deployed().then(function(depres) {
+                // console.log('depres', depres);
+                const settings = {
+                    "address": address,
+                    "block": depres.provider._lastBlockNumber,
+                    "token_address": token_address,
+                    "notes": null,
+                    "arbitrators": {}
+                }
+
+                //console.log('result was', result);
+                store_deployed_contract(tmpl, chain_id, token_name, settings); 
+                if (isERC20()) {
+                    console.log('Setting token')
+                    result.setToken(token_address);
+                }
+            });
 
         });
-
-    });
+    }
 }
 
 function deployArbitrator() {
