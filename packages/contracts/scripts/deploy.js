@@ -16,6 +16,7 @@ const defaultConfigs = {
     //gasPrice: 70000000000
     //; gasLimit: 6000000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
+    // gasLimit: 155734867 // arbitrum
 }
 const task = process.argv[2]
 const version = process.argv[3]
