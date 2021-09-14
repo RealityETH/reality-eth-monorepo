@@ -59,6 +59,8 @@ rsync -avz --delete $SRC_DIR/packages/template-generator/build/ $BUILD_DIR/app/t
 
 pushd $BUILD_DIR
 
+echo $CURR_COMMIT > $BUILD_DIR/commit.txt
+
 IPFS_HASH=`ipfs add -r --ignore=.git . | tail -n1 | awk '{print $2}'`
 
 echo $IPFS_HASH > "$BUILD_DIR/ipfs.txt"
