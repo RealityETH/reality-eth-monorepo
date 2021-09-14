@@ -6,7 +6,6 @@ import Ps from 'perfect-scrollbar';
 (function() {
 
 const ethers = require("ethers");
-const semver = require("semver");
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
