@@ -1,5 +1,5 @@
 {
-    "decimals": 1000000,
+    "decimals": 6,
     "small_number": 100000000,
     "erc20_chains": {
         "1": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
