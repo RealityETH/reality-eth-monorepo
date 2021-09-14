@@ -298,6 +298,12 @@ exports.getAnswerString = function(question_json, answer) {
             let month = dateObj.getMonth() + 1;
             let date = dateObj.getDate();
             label = year + '/' + month + '/' + date;
+
+            function pad2(n) { return ("0" + n).slice(-2); }
+            time_label = pad2(dateObj.getHours()) + ':' + pad2(dateObj.getMinutes()) + ':' + pad2(dateObj.getSeconds());
+            if (time_label != '00:00:00') {
+                label = label + ' ' + time_label;
+            }
             break;
     }
 

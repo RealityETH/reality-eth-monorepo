@@ -119,7 +119,9 @@ describe('Answer strings', function() {
   it('Handles datetimes as expected', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('datetime'), '');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('1970/1/1');
-    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('2018/5/30'); // TODO: Change this to include time if it's not 00:00
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018/5/30');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE981')).to.equal('2018/5/30 00:00:01');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('2018/5/30 01:48:39'); // TODO: Change this to include time if it's not 00:00
   });
   it('Handles single selects as expected', function() {
     var outcomes = ['thing1', 'thing2', 'thing3'];
