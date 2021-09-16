@@ -3,7 +3,7 @@
   "version": "2.1.1",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
-    "test": "mocha ./test"
+    "test": "env TZ='Asia/Kabul' mocha ./test"
   },
   "keywords": [
     "Ethereum",
