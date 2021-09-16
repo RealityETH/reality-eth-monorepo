@@ -196,7 +196,7 @@
             "symbol": "ETH",
             "decimals": 18
         },
-        "network_name": "arbitrum_tbd",
+        "network_name": "arbitrum-one",
         "rpcUrls": [
             "https://arb1.arbitrum.io/rpc",
             "wss://arb1.arbitrum.io/ws"
@@ -214,7 +214,7 @@
             "symbol": "ARETH",
             "decimals": 18
         },
-        "network_name": "arbitrum_testnet_tbd",
+        "network_name": "arbitrum-rinkeby",
         "rpcUrls": [
             "https://rinkeby.arbitrum.io/rpc",
             "wss://rinkeby.arbitrum.io/ws"

@@ -44,9 +44,9 @@
         "network_name": "matic"
     },
     "42161": {
-        "network_name": "arbitrum_tbd"
+        "network_name": "arbitrum-one"
     },
     "421611": {
-        "network_name": "arbitrum_testnet_tbd"
+        "network_name": "arbitrum-rinkeby"
     }
 }
