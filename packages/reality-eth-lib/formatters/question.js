@@ -294,10 +294,16 @@ exports.getAnswerString = function(question_json, answer) {
         case 'datetime':
             let ts = parseInt(this.bytes32ToString(answer, question_json));
             let dateObj = new Date(ts * 1000);
-            let year = dateObj.getFullYear();
-            let month = dateObj.getMonth() + 1;
-            let date = dateObj.getDate();
+            let year = dateObj.getUTCFullYear();
+            let month = dateObj.getUTCMonth() + 1;
+            let date = dateObj.getUTCDate();
             label = year + '/' + month + '/' + date;
+
+            function pad2(n) { return ("0" + n).slice(-2); }
+            time_label = pad2(dateObj.getUTCHours()) + ':' + pad2(dateObj.getUTCMinutes()) + ':' + pad2(dateObj.getUTCSeconds());
+            if (time_label != '00:00:00') {
+                label = label + ' ' + time_label;
+            }
             break;
     }
 
