@@ -43,6 +43,11 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "network_name": "matic"
     },
+    "43114": {
+        "explorerURL": "https://cchain.explorer.avax.network/",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
+        "network_name": "avalanche"
+    },
     "42161": {
         "network_name": "arbitrum-one"
     },

@@ -206,6 +206,24 @@
             "https://explorer.arbitrum.io"
         ]
     },
+    "43114": {
+        "chainId": "0xa86a",
+        "chainName": "Avalanche Mainnet",
+        "nativeCurrency": {
+            "name": "Avalanche",
+            "symbol": "AVAX",
+            "decimals": 18
+        },
+        "network_name": "avalanche",
+        "rpcUrls": [
+            "https://api.avax.network/ext/bc/C/rpc"
+        ],
+        "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
+        "blockExplorerUrls": [
+            "https://cchain.explorer.avax.network/"
+        ]
+    },
     "421611": {
         "chainId": "0x66eeb",
         "chainName": "Arbitrum Testnet Rinkeby",
