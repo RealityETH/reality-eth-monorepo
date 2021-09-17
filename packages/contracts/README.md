@@ -6,9 +6,10 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 ### Quick example:
 
     const realityeth_contracts = require('@reality.eth/contracts')
+    const chain_id = 4; // eg rinkeby
     const provider = ...;
-
-    const config = realityeth_contracts.realityETHConfig(chain_id, 'ETH', version)
+    
+    const config = realityeth_contracts.realityETHConfig(chain_id, 'ETH', '3.0')
     const contract = realityeth_contracts.realityETHInstance(config);
     const ethers_instance = new ethers.Contract(contract.address, contract.abi, provider);
 
