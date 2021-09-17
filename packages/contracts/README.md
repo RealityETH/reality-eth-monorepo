@@ -1,6 +1,24 @@
 # @reality.eth/contracts
 Contracts for Reality.eth, including source code, ABI and addresses of contracts on mainnet and test networks.
 
+## Using the contracts
+
+### Quick example:
+
+    const realityeth_contracts = require('@reality.eth/contracts')
+    const provider = ...;
+
+    const config = realityeth_contracts.realityETHConfig(chain_id, 'ETH', version)
+    const contract = realityeth_contracts.realityETHInstance(config);
+    const ethers_instance = new ethers.Contract(contract.address, contract.abi, provider);
+
+This module also contains support for checking which tokens are available on the given chain, checking which features it has etc.
+
+See [example.js](example.js) for more examples.
+
+
+## File layout
+
 *networks/* contains a directory hierarchy with a file for the deployed version of each live contract on the specified network for the specified token. Each file also lists any whitelisted arbitrators. It may also contain additional post-deployment files for arbitrators we deployed.
 
 *tokens/* contains a file describing each supported token.
