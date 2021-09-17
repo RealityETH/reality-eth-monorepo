@@ -39,6 +39,7 @@ The above are combined into JSON files under *generated/* using `npm run-script 
 
 `$ ./compile.py RealityETH-3.0
 
+Bytecode and ABIs will be stored under *bytecode/* and *abi/* respectively.
 
 ## Tests
 
@@ -66,7 +67,7 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 `$ node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
-This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `realitio-dapp` ui.
+This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
 
 If the token or network was not previously supported, you will need to add its configuration files and run `npm run-script generate`.
 
