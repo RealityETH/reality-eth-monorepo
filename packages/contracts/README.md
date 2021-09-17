@@ -19,18 +19,18 @@ See [example.js](example.js) for more examples.
 
 ## File layout
 
-*networks/* contains a directory hierarchy with a file for the deployed version of each live contract on the specified network for the specified token. Each file also lists any whitelisted arbitrators. It may also contain additional post-deployment files for arbitrators we deployed.
-
 *tokens/* contains a file describing each supported token.
 
 *chains/* contains the full raw data from https://chainid.network/chains.json, and a file listing chains we specifically support, and adding useful configuration information not supplied by chainid.network.
 
-The above are combined into JSON files under generated/ using `npm run-script generate`.
+*chains/deployments/* contains a directory hierarchy with a file for the deployed version of each live contract on the specified network for the specified token. Each file also lists any whitelisted arbitrators. It may also contain additional post-deployment files for arbitrators we deployed.
+
+The above are combined into JSON files under *generated/* using `npm run-script generate`.
 
 
 *development/contracts/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
 
-*config/templates* contains information about templates deployed by the constructor to save fetching them from the event logs.
+*config/templates.json* contains information about templates deployed by the constructor to save fetching them from the event logs.
 
 ## Compilation
 
