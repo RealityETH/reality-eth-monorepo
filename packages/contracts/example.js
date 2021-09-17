@@ -56,6 +56,8 @@ const contract = realityeth_contracts.realityETHInstance(config);
 const ethers_instance = new ethers.Contract(contract.address, contract.abi, provider);
 // console.log('ethers', ethers_instance);
 
+
+// Now we can query the contract. Here's the ID of a question that's already on mainnet:
 const question_id = '0xa8fc96981fe9010d7ab5649af6a454202c7053b370f9ab84023277b5bfaf268e'
 
 console.log('Querying the default RPC node', chain_info.hostedRPC);
