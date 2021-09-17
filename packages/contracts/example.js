@@ -4,6 +4,7 @@ const realityeth_contracts = require('./index.js'); // Outside this module you w
 // In this example we'll use ethersjs to interact with the contract
 const ethers = require('ethers');
 
+
 // The chain ID is either specified by the user or detected from metamask etc.
 const chain_id = 1;
 console.log('Using chain ID', chain_id)
@@ -13,6 +14,7 @@ console.log('Using chain ID', chain_id)
 const chain_info = realityeth_contracts.chainData(chain_id);
 // With ethers.js we might use that to set up a provider like this:
 const provider = new ethers.providers.JsonRpcProvider(chain_info.hostedRPC);
+
 
 // The tokens are specified under tokens/
 // If you don't know which token to use you can list the tokens on the current chain to let the user choose
@@ -43,11 +45,10 @@ const has_reopen_question = realityeth_contracts.versionHasFeature(version, 'reo
 console.log('Version support for reopening questions?', has_reopen_question);
 
 
-
-
 // You can get an instance of the contract with
 const contract = realityeth_contracts.realityETHInstance(config);
 // console.log('Contract is', contract);
+
 
 // For ethers.js we can then instantiate a contract like this:
 const ethers_instance = new ethers.Contract(contract.address, contract.abi, provider);
@@ -55,6 +56,7 @@ const ethers_instance = new ethers.Contract(contract.address, contract.abi, prov
 
 const question_id = '0xa8fc96981fe9010d7ab5649af6a454202c7053b370f9ab84023277b5bfaf268e'
 
+console.log('Querying the default RPC node', chain_info.hostedRPC);
 ethers_instance.resultFor(question_id).then(function(result) {
     console.log('The result for question', question_id, 'is', result);
 });
