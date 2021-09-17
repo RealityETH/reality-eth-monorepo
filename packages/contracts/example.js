@@ -5,13 +5,15 @@ const realityeth_contracts = require('./index.js'); // Outside this module you w
 const ethers = require('ethers');
 
 
-// The chain ID is either specified by the user or detected from metamask etc.
+// The chain ID is usually either specified by the user or detected from metamask etc.
 const chain_id = 1;
 console.log('Using chain ID', chain_id)
 
 // We provide some basic information about chains we support.
-// This will include an RPC node and a Graph endpoing.
+// This will include an RPC node and a Graph endpoint.
 const chain_info = realityeth_contracts.chainData(chain_id);
+console.log('Loaded chain info', chain_info);
+
 // With ethers.js we might use that to set up a provider like this:
 const provider = new ethers.providers.JsonRpcProvider(chain_info.hostedRPC);
 
