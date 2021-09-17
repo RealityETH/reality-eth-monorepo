@@ -10,7 +10,7 @@ const chain_id = 1;
 console.log('Using chain ID', chain_id)
 
 // We provide some basic information about chains we support.
-// This will include an RPC node and a Graph endpoint.
+// This will include an RPC node and a Graph endpoint where available.
 const chain_info = realityeth_contracts.chainData(chain_id);
 console.log('Loaded chain info', chain_info);
 
