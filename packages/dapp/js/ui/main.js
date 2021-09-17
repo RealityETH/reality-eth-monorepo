@@ -2582,6 +2582,19 @@ async function loadArbitratorMetaData(arb_addr) {
     return metadata_json;
 }
 
+function isTitleLong(title) {
+    if (title.length > 300) {
+        return true;
+    }
+    const words = title.split(' ');
+    for (let i=0; i<words.length; i++) {
+        if (words[i].length > 50) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     // console.log('populateQuestionWindow with detail ', question_detail, is_refresh);
@@ -2607,6 +2620,12 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     const date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
+
+    if (isTitleLong(question_json['title'])) {
+        rcqa.addClass('long-title')
+    } else {
+        rcqa.removeClass('long-title')
+    }
     rcqa.find('.question-title').text(question_json['title']).expander({
         slicePoint: 200
     });

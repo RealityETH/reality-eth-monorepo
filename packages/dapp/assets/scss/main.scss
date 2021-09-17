@@ -825,6 +825,12 @@ a.questions__item__title {
     font-weight: normal;
     color: $gray;
 }
+
+.long-title .rcbrowser-main-header-title.question-title {
+    line-height: 1.4;
+    font-size: 1.3em;
+}
+
 .rcbrowser-main-header-title.question-title {
     margin: 10px 0px 0px 0px;
 }
