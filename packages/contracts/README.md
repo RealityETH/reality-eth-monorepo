@@ -53,9 +53,11 @@ You can then test the version in question with, eg
 
 `$ REALITYETH=RealityETH-3.0 python test.py`
 
+These tests test the bytecode not the source code, so you need to compile before testing source code changes.
+
 ## Deployment
 
-You will need the private key of an account with funds to deploy on the relevant network. It should be in hex, beginning "0x", in a file called `mainnet.sec` or `rinkeby.sec` or the equivalent for the network you will deploy to.
+You will need the private key of an account with funds to deploy on the relevant network. It should be in hex, beginning "0x", in a file called `mainnet.sec` or `rinkeby.sec` or the equivalent for the network you will deploy to. A different key should be used for each network to avoid clashing contract addresses.
 
 `$ mkdir packages/contracts/secrets`
 
