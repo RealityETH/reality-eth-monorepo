@@ -2,5 +2,6 @@
     "artifact": null,
     "commit": "https://github.com/RealityETH/monorepo/commit/c6aa3d7d81912c330f11ebd6e349f2836e2b491e",
     "solc": "Version: 0.8.6+commit.11564f7e",
+    "optimize-runs": 200,
     "audit": "RealityETH-3.0.txt"
 }

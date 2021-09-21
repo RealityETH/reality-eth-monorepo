@@ -2,5 +2,6 @@
     "artifact": "truffle/build/contracts/Realitio.json",
     "commit": "https://github.com/RealityETH/monorepo/commit/2ca642aab0188bee2891a64dea0a537ebc66406b",
     "solc": "v0.4.25+commit.59dbf8f1",
+    "optimize-runs": 200,
     "audit": null,
 }
