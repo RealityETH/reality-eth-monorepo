@@ -67,7 +67,7 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 `$ cd packages/contracts/scripts`
 
-`$ node deploy.js <Realitio|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
+`$ node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
 
