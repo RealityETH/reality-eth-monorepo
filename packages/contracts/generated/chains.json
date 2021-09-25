@@ -12,7 +12,7 @@
             "https://api.mycryptoapi.com/eth",
             "https://cloudflare-eth.com"
         ],
-        "hostedRPC": "https://mainnet.socialminds.jp",
+        "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
         "blockExplorerUrls": [
             "https://etherscan.io"
@@ -44,7 +44,7 @@
         },
         "network_name": "rinkeby",
         "rpcUrls": [],
-        "hostedRPC": "https://rinkeby.socialminds.jp",
+        "hostedRPC": "https://eth-rinkeby.alchemyapi.io/v2/m2Op-gK2G1RiwtWHr6QB_JH9-ry0A6do",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
         "blockExplorerUrls": [
             "https://rinkeby.etherscan.io"

@@ -1,6 +1,6 @@
 {
     "1": {
-        "hostedRPC": "https://mainnet.socialminds.jp",
+        "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "explorerURL": "https://etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth"
     },
@@ -10,7 +10,7 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten"
     },
     "4": {
-        "hostedRPC": "https://rinkeby.socialminds.jp",
+        "hostedRPC": "https://eth-rinkeby.alchemyapi.io/v2/m2Op-gK2G1RiwtWHr6QB_JH9-ry0A6do",
         "explorerURL": "https://rinkeby.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby"
     },
