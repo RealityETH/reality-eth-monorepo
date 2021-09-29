@@ -3633,6 +3633,9 @@ function isAnswerInputLookingValid(parent_div, question_json) {
     if (parent_div.find('.invalid-selected').size() > 0) {
         return true;
     }
+    if (parent_div.find('.too-soon-selected').size() > 0) {
+        return true;
+    }
 
     const answer_element = parent_div.find('[name="input-answer"]');
     if (question_json['type'] == 'uint') {
