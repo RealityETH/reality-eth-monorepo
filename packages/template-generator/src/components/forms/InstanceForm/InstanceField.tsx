@@ -5,6 +5,8 @@ import { Input } from "../../commons/Input/Input";
 import { chainTokenList, realityETHConfig } from "@reality.eth/contracts";
 import { useChainId } from "../../../hooks/useChainId";
 import { getRealityETHVersion } from "../../../helpers/reality-eth-contract";
+import { ReactComponent as CopyIcon } from "../../../assets/icons/copy.svg";
+import { copyTextToClipboard } from "../../../helpers/text";
 
 interface InstanceFieldProps {
   disabled?: boolean;
@@ -23,10 +25,6 @@ function getRealityETHInstances(chain_id: number) {
     .filter((token) => token.address);
 }
 
-function shortAddress(address: string) {
-  return address.substr(0, 8) + "..." + address.substr(-3);
-}
-
 export function InstanceField({
   onChange,
   value,
@@ -35,9 +33,8 @@ export function InstanceField({
   const chainId = useChainId();
 
   const options = useMemo(() => {
-    const instances = getRealityETHInstances(chainId || 1);
-    return instances.map((instance) => ({
-      label: `${instance.token} - ${shortAddress(instance.address)}`,
+    return getRealityETHInstances(chainId || 1).map((instance) => ({
+      label: `${instance.token} - ${instance.address}`,
       value: instance.address,
     }));
   }, [chainId]);
@@ -45,7 +42,7 @@ export function InstanceField({
   const [instance, setInstance] = useState(
     () => value || (options[0] && options[0].value)
   );
-  const [custom, setCustom] = useState(false);
+  const [custom, setCustom] = useState(!options.length);
 
   const handleChange = useCallback(
     (_value: string) => {
@@ -74,6 +71,10 @@ export function InstanceField({
       setInstance(options[0].value);
       onChange(options[0].value);
     }
+  };
+
+  const handleCopyInstance = () => {
+    copyTextToClipboard(instance);
   };
 
   if (custom) {
@@ -107,7 +108,9 @@ export function InstanceField({
         onChange={(instance) => handleChange(instance)}
         options={options}
       />
-      {disabled ? null : (
+      {disabled ? (
+        <CopyIcon className="copy-btn" onClick={handleCopyInstance} />
+      ) : (
         <button
           onClick={() => handleCustomChange(true)}
           className="link-button custom-instance-button"
