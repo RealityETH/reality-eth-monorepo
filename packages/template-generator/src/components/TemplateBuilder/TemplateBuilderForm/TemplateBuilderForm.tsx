@@ -21,7 +21,7 @@ export type TemplateBuilderFormFields =
 
 const templateTypeOptions: Option<TemplateType>[] = [
   { label: "Custom", value: "custom" },
-  { label: "DAO Module", value: "daoModule" },
+  { label: "Zodiac Reality Module", value: "reality" },
 ];
 
 interface TemplateBuilderFormProps {
