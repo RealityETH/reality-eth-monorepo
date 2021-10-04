@@ -4,6 +4,7 @@ import "./InstanceField.css";
 import { Input } from "../../commons/Input/Input";
 import { chainTokenList, realityETHConfig } from "@reality.eth/contracts";
 import { useChainId } from "../../../hooks/useChainId";
+import { getRealityETHVersion } from "../../../helpers/reality-eth-contract";
 
 interface InstanceFieldProps {
   disabled?: boolean;
@@ -14,10 +15,12 @@ interface InstanceFieldProps {
 function getRealityETHInstances(chain_id: number) {
   const tokensDetails = chainTokenList(chain_id);
   const tokens = Object.keys(tokensDetails);
-  return tokens.map((token) => ({
-    ...realityETHConfig(chain_id, token),
-    token,
-  }));
+  return tokens
+    .map((token) => ({
+      ...realityETHConfig(chain_id, token, getRealityETHVersion()),
+      token,
+    }))
+    .filter((token) => token.address);
 }
 
 function shortAddress(address: string) {

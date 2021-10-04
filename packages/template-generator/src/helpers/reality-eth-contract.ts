@@ -11,3 +11,7 @@ export function getRealityETHContract(
 ) {
   return new ethers.Contract(address, REALITY_ETH_ABI_CONTRACT, signer);
 }
+
+export function getRealityETHVersion() {
+  return "3.0";
+}
