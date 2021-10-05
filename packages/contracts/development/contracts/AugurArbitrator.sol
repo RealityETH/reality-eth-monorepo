@@ -27,7 +27,7 @@ interface IUniverse {
 
 contract Arbitrator is BalanceHolder {
 
-    IRealityETH public realitio;
+    IRealityETH public realityeth;
     uint256 public template_id;
     uint256 dispute_fee;
 
@@ -42,7 +42,7 @@ contract Arbitrator is BalanceHolder {
         uint256 remaining
     );
 
-    struct RealitioQuestion {
+    struct RealityETHQuestion {
         uint256 bounty;
         address disputer;
     }
@@ -52,10 +52,10 @@ contract Arbitrator is BalanceHolder {
         address owner; // The address that created the market and should be paid if it resolves the question
     }
 
-    mapping(bytes32 => RealitioQuestion) realitio_questions;
+    mapping(bytes32 => RealityETHQuestion) realityeth_questions;
     mapping(address => AugurMarket) augur_markets;
 
-    function initialize(IRealityETH _realitio, uint256 _template_id, uint256 _dispute_fee, IUniverse _genesis_universe, ICash _market_token) 
+    function initialize(IRealityETH _realityeth, uint256 _template_id, uint256 _dispute_fee, IUniverse _genesis_universe, ICash _market_token) 
     external {
 
         require(dispute_fee == 0); // uninitialized
@@ -63,7 +63,7 @@ contract Arbitrator is BalanceHolder {
         dispute_fee = _dispute_fee;
 
         template_id = _template_id;
-        realitio = _realitio;
+        realityeth = _realityeth;
         winning_universes[address(_genesis_universe)] = true;
         latest_universe = _genesis_universe;
         market_token = _market_token;
@@ -85,10 +85,10 @@ contract Arbitrator is BalanceHolder {
     /// @dev If people want to create multiple markets for the same question, they can, and the first to resolve can get paid
     /// @dev Their account will need to have been funded with some REP for the no-show bond.
     /// @param question_id The question in question
-    /// @param question The question content // TODO Check if realitio format and the Augur format, see if we need to convert anything
+    /// @param question The question content // TODO Check if realityeth format and the Augur format, see if we need to convert anything
     /// @param timeout The timeout between rounds, set when the question was created
     /// @param opening_ts The opening timestamp for the question, set when the question was created
-    /// @param asker The address that created the question, ie the msg.sender of the original realitio.askQuestion call
+    /// @param asker The address that created the question, ie the msg.sender of the original realityeth.askQuestion call
     /// @param nonce The nonce for the question, set when the question was created
     /// @param designated_reporter The Augur designated reporter. We let the market creator choose this, if it's bad the Augur dispute resolution should sort it out
     function createMarket(
@@ -99,7 +99,7 @@ contract Arbitrator is BalanceHolder {
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         require(question_id == keccak256(abi.encodePacked(content_hash, this, timeout, asker, nonce)));
 
-        require(realitio_questions[question_id].bounty > 0);
+        require(realityeth_questions[question_id].bounty > 0);
 
         // Create a market that's already finished
         IMarket market = latest_universe.createYesNoMarket( block.timestamp, 0, market_token, designated_reporter, 0x0, question, "");
@@ -109,9 +109,9 @@ contract Arbitrator is BalanceHolder {
     }
 
     /// @notice Return data needed to verify the last history item
-    /// @dev Filters the question struct from Realitio to stuff we need
+    /// @dev Filters the question struct from RealityETH to stuff we need
     /// @dev Broken out into its own function to avoid stack depth limitations
-    /// @param question_id The realitio question
+    /// @param question_id The realityeth question
     function _historyVerificationData(bytes32 question_id)
     internal view returns (bool, bytes32) {
         (
@@ -125,16 +125,16 @@ contract Arbitrator is BalanceHolder {
             ,
             bytes32 history_hash,
             
-        ) = realitio.questions(question_id);
+        ) = realityeth.questions(question_id);
         return (is_pending_arbitration, history_hash);
 
     }
 
     /// @notice Given the last history entry, get whether they had a valid answer if so what it was
-    /// @dev These just need to be fetched from Realitio, but they can't be fetched directly because we don't store them to save gas
+    /// @dev These just need to be fetched from RealityETH, but they can't be fetched directly because we don't store them to save gas
     /// @dev To get the final answer, we need to reconstruct the final answer using the history hash
-    /// @dev TODO: This should probably be in a library offered by Realitio
-    /// @param question_id The ID of the realitio question
+    /// @dev TODO: This should probably be in a library offered by RealityETH
+    /// @param question_id The ID of the realityeth question
     /// @param last_history_hash The history hash when you gave your answer 
     /// @param last_answer_or_commitment_id The last answer given, or its commitment ID if it was a commitment 
     /// @param last_bond The bond paid in the last answer given
@@ -154,7 +154,7 @@ contract Arbitrator is BalanceHolder {
         bool is_answered = true;
 
         if (is_commitment) {
-            (uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer) = realitio.commitments(last_answer_or_commitment_id);
+            (uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer) = realityeth.commitments(last_answer_or_commitment_id);
 
             if (is_revealed) {
                 last_answer = revealed_answer;
@@ -171,10 +171,10 @@ contract Arbitrator is BalanceHolder {
 
     }
 
-    /// @notice Report the answer from a finalized Augur market to a Realitio contract with a question awaiting arbitration
+    /// @notice Report the answer from a finalized Augur market to a RealityETH contract with a question awaiting arbitration
     /// @dev Pays the arbitration bounty to whoever created the Augur market. Probably the same person will call this function, but they don't have to.
     /// @dev We need to know who gave the final answer and what it was, as they need to be supplied as the arbitration winner if the last answer is right
-    /// @dev These just need to be fetched from Realitio, but they can't be fetched directly because to save gas, Realitio doesn't store them 
+    /// @dev These just need to be fetched from RealityETH, but they can't be fetched directly because to save gas, RealityETH doesn't store them 
     /// @dev To get the final answer, we need to reconstruct the final answer using the history hash
     /// @param market The address of the Augur market which you intend to use to settle this question
     /// @param last_history_hash The history hash when you gave your answer 
@@ -189,7 +189,7 @@ contract Arbitrator is BalanceHolder {
         require(question_id != bytes32(0));
 
         // There must be an open bounty
-        require(realitio_questions[question_id].bounty > 0);
+        require(realityeth_questions[question_id].bounty > 0);
 
         require(market.isFinalized());
 
@@ -213,13 +213,13 @@ contract Arbitrator is BalanceHolder {
             }
         }
 
-        realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, realitio_questions[question_id].disputer, last_history_hash, last_answer_or_commitment_id, last_answerer);
+        realityeth.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, realityeth_questions[question_id].disputer, last_history_hash, last_answer_or_commitment_id, last_answerer);
 
         address owner = augur_markets[address(market)].owner;
-        balanceOf[owner] += realitio_questions[question_id].bounty;
+        balanceOf[owner] += realityeth_questions[question_id].bounty;
 
         delete augur_markets[address(market)];
-        delete realitio_questions[question_id];
+        delete realityeth_questions[question_id];
 
     }
 
@@ -243,10 +243,10 @@ contract Arbitrator is BalanceHolder {
         require(arbitration_fee > 0);
         require(msg.value >= arbitration_fee);
 
-        realitio.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
+        realityeth.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
 
-        realitio_questions[question_id].bounty = msg.value;
-        realitio_questions[question_id].disputer = msg.sender;
+        realityeth_questions[question_id].bounty = msg.value;
+        realityeth_questions[question_id].disputer = msg.sender;
 
         emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
 
