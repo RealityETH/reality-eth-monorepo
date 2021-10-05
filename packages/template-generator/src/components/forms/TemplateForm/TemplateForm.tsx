@@ -14,7 +14,7 @@ export interface TemplateFormProps {
 }
 
 export function TemplateForm(props: TemplateFormProps) {
-  if (props.type === "daoModule") return <DaoModuleTemplateForm {...props} />;
+  if (props.type === "reality") return <DaoModuleTemplateForm {...props} />;
 
   return <CustomTemplateForm {...props} />;
 }

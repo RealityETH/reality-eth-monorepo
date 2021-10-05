@@ -9,8 +9,8 @@ import {
 import { validateTemplateData } from "../../helpers/validation";
 import { useParams } from "react-router-dom";
 
-export type TemplateType = "custom" | "daoModule";
-export const TEMPLATE_TYPES: TemplateType[] = ["custom", "daoModule"];
+export type TemplateType = "custom" | "reality";
+export const TEMPLATE_TYPES: TemplateType[] = ["custom", "reality"];
 
 export type Type = keyof typeof base_ids;
 

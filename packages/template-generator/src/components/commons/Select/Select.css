@@ -8,12 +8,14 @@
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   color: #001428;
-  padding: 12px;
+  padding: 12px 0 12px 12px;
 }
 
 .custom-select-label {
   font-size: 13px;
   flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .custom-select {

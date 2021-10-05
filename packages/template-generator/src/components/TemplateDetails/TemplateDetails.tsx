@@ -4,7 +4,10 @@ import { realityETHConfig } from "@reality.eth/contracts";
 import { Loader } from "../Loader/Loader";
 import { useChainId } from "../../hooks/useChainId";
 import { getNetworkLabel } from "../../helpers/network";
-import { getRealityETHContract } from "../../helpers/reality-eth-contract";
+import {
+  getRealityETHContract,
+  getRealityETHVersion,
+} from "../../helpers/reality-eth-contract";
 import { useProvider } from "../../hooks/useProvider";
 import { BigNumber } from "ethers";
 import { TemplateData } from "../TemplateBuilder/TemplateBuilder";
@@ -29,7 +32,7 @@ export function TemplateDetails() {
 
   const realityInstance = useMemo(() => {
     try {
-      return realityETHConfig(chainId, token);
+      return realityETHConfig(chainId, token, getRealityETHVersion());
     } catch (err) {
       return undefined;
     }

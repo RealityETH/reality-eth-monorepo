@@ -1,6 +1,13 @@
 .instance-field {
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.instance-field .copy-btn {
+  position: absolute;
+  top: 8px;
+  right: -40px;
 }
 
 .link-button {
