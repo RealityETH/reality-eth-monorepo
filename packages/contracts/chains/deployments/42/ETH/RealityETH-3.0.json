@@ -2,5 +2,7 @@
     "address": "0xcB71745d032E16ec838430731282ff6c10D29Dea",
     "block": 27103177,
     "notes": null,
-    "arbitrators": {}
+    "arbitrators": {
+        "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros"
+    }
 }
