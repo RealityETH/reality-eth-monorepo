@@ -7,7 +7,7 @@ exports.defaultTemplateIDForType = function(template_type) {
 }
 
 exports.defaultTemplateForType = function(template_type) {
-  return TEMPLATE_CONFIG.content[this.defaultTemplateIDForType(template_type)];
+  return TEMPLATE_CONFIG.content[module.exports.defaultTemplateIDForType(template_type)];
 }
 
 exports.preloadedTemplateContents = function() {

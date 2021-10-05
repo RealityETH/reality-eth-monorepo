@@ -37,7 +37,7 @@ exports.questionID = function(template_id, question, arbitrator, timeout, openin
         }
     } 
 
-    var content_hash = this.contentHash(template_id, opening_ts, question);
+    var content_hash = module.exports.contentHash(template_id, opening_ts, question);
 
     let qid;
     if (vernum < 3) {
@@ -63,7 +63,7 @@ exports.minNumber = function(qjson) {
     if (!is_signed) {
         return new BigNumber(0);
     }
-    return this.maxNumber(qjson).neg();
+    return module.exports.maxNumber(qjson).neg();
 }
 
 exports.maxNumber = function(qjson) {
@@ -92,7 +92,7 @@ exports.arrayToBitmaskBigNumber = function(selections) {
 exports.answerToBytes32 = function(answer, qjson) {
     var qtype = qjson['type'];
     if (qtype == 'multiple-select') {
-        answer = this.arrayToBitmaskBigNumber(answer);
+        answer = module.exports.arrayToBitmaskBigNumber(answer);
     }
     var decimals = (qtype == 'uint') ? parseInt(qjson['decimals']) : 0;
     if (!decimals) {
@@ -109,9 +109,9 @@ exports.answerToBytes32 = function(answer, qjson) {
     } else if (qtype == 'uint') {
         bn = new BN(answer, 16);
     } else {
-        return this.padToBytes32(new BigNumber(answer).toString(16));
+        return module.exports.padToBytes32(new BigNumber(answer).toString(16));
     }
-    return this.padToBytes32(bn.toString(16));
+    return module.exports.padToBytes32(bn.toString(16));
 }
 
 exports.bytes32ToString = function(bytes32str, qjson) {
@@ -190,17 +190,17 @@ exports.parseQuestionJSON = function(data) {
 }
 
 exports.populatedJSONForTemplate = function(template, question) {
-    var qbits = question.split(this.delimiter());
+    var qbits = question.split(module.exports.delimiter());
     //console.log('pp', template);
     //console.log('qbits', qbits);
     var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
-    return this.parseQuestionJSON(interpolated);
+    return module.exports.parseQuestionJSON(interpolated);
 }
 
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     var qtext = JSON.stringify(txt).replace(/^"|"$/g, '');
-    var delim = this.delimiter();
+    var delim = module.exports.delimiter();
     //console.log('using template_id', template_id);
     if (qtype == 'single-select' || qtype == 'multiple-select') {
         var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
@@ -248,21 +248,21 @@ exports.getAnswerString = function(question_json, answer) {
         return 'null';
     }
 
-    if (answer == this.getInvalidValue(question_json)) {
+    if (answer == module.exports.getInvalidValue(question_json)) {
         return 'Invalid';
     }
 
-    if (answer == this.getAnsweredTooSoonValue(question_json)) {
+    if (answer == module.exports.getAnsweredTooSoonValue(question_json)) {
         return 'Answered too soon';
     }
 
     var label = '';
     switch (question_json['type']) {
         case 'uint':
-            label = this.bytes32ToString(answer, question_json);
+            label = module.exports.bytes32ToString(answer, question_json);
             break;
         case 'int':
-            label = this.bytes32ToString(answer, question_json);
+            label = module.exports.bytes32ToString(answer, question_json);
             break;
         case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
@@ -292,7 +292,7 @@ exports.getAnswerString = function(question_json, answer) {
             }
             break;
         case 'datetime':
-            let ts = parseInt(this.bytes32ToString(answer, question_json));
+            let ts = parseInt(module.exports.bytes32ToString(answer, question_json));
             let dateObj = new Date(ts * 1000);
             let year = dateObj.getUTCFullYear();
             let month = dateObj.getUTCMonth() + 1;
