@@ -1,31 +1,33 @@
-pragma solidity ^0.4.18;
+// SPDX-License-Identifier: GPL-3.0-only
+
+pragma solidity ^0.8.6;
 
 import './BalanceHolder.sol';
 
-contract IRealitio {
+interface IRealityETH {
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external;
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) external; 
-    function questions(bytes32 question_id) view public returns (bytes32, address, uint32, uint32, uint32, bool, uint256, bytes32, bytes32, uint256) ;
-    function commitments(bytes32 commitment_id) view public returns (uint32, bool, bytes32);
+    function questions(bytes32 question_id) view external returns (bytes32, address, uint32, uint32, uint32, bool, uint256, bytes32, bytes32, uint256);
+    function commitments(bytes32 commitment_id) view external returns (uint32, bool, bytes32);
 }
 
-contract ICash{}
+interface ICash{}
 
-contract IMarket {
-    function getWinningPayoutNumerator(uint256 _outcome) public view returns (uint256);
-    function isFinalized() public view returns (bool);
-    function isInvalid() public view returns (bool);
+interface IMarket {
+    function getWinningPayoutNumerator(uint256 _outcome) external view returns (uint256);
+    function isFinalized() external view returns (bool);
+    function isInvalid() external view returns (bool);
 }
 
-contract IUniverse {
-    function getWinningChildUniverse() public view returns (IUniverse);
-    function createYesNoMarket(uint256 _endTime, uint256 _feePerEthInWei, ICash _denominationToken, address _designatedReporterAddress, bytes32 _topic, string _description, string _extraInfo) public 
+interface IUniverse {
+    function getWinningChildUniverse() external view returns (IUniverse);
+    function createYesNoMarket(uint256 _endTime, uint256 _feePerEthInWei, ICash _denominationToken, address _designatedReporterAddress, bytes32 _topic, string memory _description, string memory _extraInfo) external
     payable returns (IMarket _newMarket); 
 }
 
 contract Arbitrator is BalanceHolder {
 
-    IRealitio public realitio;
+    IRealityETH public realitio;
     uint256 public template_id;
     uint256 dispute_fee;
 
@@ -53,7 +55,7 @@ contract Arbitrator is BalanceHolder {
     mapping(bytes32 => RealitioQuestion) realitio_questions;
     mapping(address => AugurMarket) augur_markets;
 
-    function initialize(IRealitio _realitio, uint256 _template_id, uint256 _dispute_fee, IUniverse _genesis_universe, ICash _market_token) 
+    function initialize(IRealityETH _realitio, uint256 _template_id, uint256 _dispute_fee, IUniverse _genesis_universe, ICash _market_token) 
     external {
 
         require(dispute_fee == 0); // uninitialized
@@ -62,7 +64,7 @@ contract Arbitrator is BalanceHolder {
 
         template_id = _template_id;
         realitio = _realitio;
-        winning_universes[_genesis_universe] = true;
+        winning_universes[address(_genesis_universe)] = true;
         latest_universe = _genesis_universe;
         market_token = _market_token;
 
@@ -90,7 +92,7 @@ contract Arbitrator is BalanceHolder {
     /// @param nonce The nonce for the question, set when the question was created
     /// @param designated_reporter The Augur designated reporter. We let the market creator choose this, if it's bad the Augur dispute resolution should sort it out
     function createMarket(
-        bytes32 question_id, string question, uint32 timeout, uint32 opening_ts, address asker, uint256 nonce,
+        bytes32 question_id, string memory question, uint32 timeout, uint32 opening_ts, address asker, uint256 nonce,
         address designated_reporter
     ) external {
         // Make sure the parameters provided match the question in question
@@ -100,10 +102,10 @@ contract Arbitrator is BalanceHolder {
         require(realitio_questions[question_id].bounty > 0);
 
         // Create a market that's already finished
-        IMarket market = latest_universe.createYesNoMarket( now, 0, market_token, designated_reporter, 0x0, question, "");
+        IMarket market = latest_universe.createYesNoMarket( block.timestamp, 0, market_token, designated_reporter, 0x0, question, "");
         
-        augur_markets[market].question_id = question_id;
-        augur_markets[market].owner = msg.sender;
+        augur_markets[address(market)].question_id = question_id;
+        augur_markets[address(market)].owner = msg.sender;
     }
 
     /// @notice Return data needed to verify the last history item
@@ -158,7 +160,7 @@ contract Arbitrator is BalanceHolder {
                 last_answer = revealed_answer;
             } else {
                 // Shouldn't normally happen, but if the last answerer might still reveal, bail out and wait for them.
-                require(reveal_ts < uint32(now));
+                require(reveal_ts < uint32(block.timestamp));
                 is_answered = false;
             }
         } else {
@@ -185,7 +187,7 @@ contract Arbitrator is BalanceHolder {
         bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, uint256 last_bond, address last_answerer, bool is_commitment
     ) public {
 
-        bytes32 question_id = augur_markets[market].question_id;
+        bytes32 question_id = augur_markets[address(market)].question_id;
         require(question_id != bytes32(0));
 
         // There must be an open bounty
@@ -228,19 +230,18 @@ contract Arbitrator is BalanceHolder {
 
         realitio.submitAnswerByArbitrator(question_id, answer, winner);
 
-        address owner = augur_markets[market].owner;
+        address owner = augur_markets[address(market)].owner;
         balanceOf[owner] += realitio_questions[question_id].bounty;
 
-        delete augur_markets[market];
+        delete augur_markets[address(market)];
         delete realitio_questions[question_id];
 
     }
 
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
-    /// @param question_id The question in question
     /// @dev Uses a general default, but can be over-ridden on a question-by-question basis.
-    function getDisputeFee(bytes32 question_id) 
-    public constant returns (uint256) {
+    function getDisputeFee(bytes32) 
+    public view returns (uint256) {
         return dispute_fee;
     }
 
@@ -264,6 +265,7 @@ contract Arbitrator is BalanceHolder {
 
         emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
 
+        return true;
     }
 
 }
