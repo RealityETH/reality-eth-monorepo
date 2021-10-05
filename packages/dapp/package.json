@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/dapp",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Reality.eth dapp",
   "main": "",
   "scripts": {
@@ -29,8 +29,8 @@
   "author": "Edmund Edgar",
   "license": "GPL3",
   "dependencies": {
-    "@reality.eth/contracts": "^3.0.0",
-    "@reality.eth/reality-eth-lib": "^3.0.0",
+    "@reality.eth/contracts": "^3.0.1",
+    "@reality.eth/reality-eth-lib": "^3.0.1",
     "autoprefixer": "^6.7.0",
     "axios": "^0.21.1",
     "babel-cli": "^6.22.2",
