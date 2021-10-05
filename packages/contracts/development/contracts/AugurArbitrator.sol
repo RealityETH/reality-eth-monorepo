@@ -6,9 +6,9 @@ import './BalanceHolder.sol';
 
 interface IRealityETH {
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external;
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) external; 
     function questions(bytes32 question_id) view external returns (bytes32, address, uint32, uint32, uint32, bool, uint256, bytes32, bytes32, uint256);
     function commitments(bytes32 commitment_id) view external returns (uint32, bool, bytes32);
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) external;
 }
 
 interface ICash{}
@@ -179,12 +179,10 @@ contract Arbitrator is BalanceHolder {
     /// @param market The address of the Augur market which you intend to use to settle this question
     /// @param last_history_hash The history hash when you gave your answer 
     /// @param last_answer_or_commitment_id The last answer given, or its commitment ID if it was a commitment 
-    /// @param last_bond The bond paid in the last answer given
     /// @param last_answerer The account that submitted the last answer (or its commitment)
-    /// @param is_commitment Whether the last answer was submitted with commit->reveal
     function reportAnswer(
         IMarket market, 
-        bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, uint256 last_bond, address last_answerer, bool is_commitment
+        bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer
     ) public {
 
         bytes32 question_id = augur_markets[address(market)].question_id;
@@ -192,10 +190,6 @@ contract Arbitrator is BalanceHolder {
 
         // There must be an open bounty
         require(realitio_questions[question_id].bounty > 0);
-
-        bool is_answered; // the answer was provided, not just left as an unrevealed commit
-        bytes32 last_answer;
-        (is_answered, last_answer) = _verifiedAnswerData(question_id, last_history_hash, last_answer_or_commitment_id, last_bond, last_answerer, is_commitment);  
 
         require(market.isFinalized());
 
@@ -219,16 +213,7 @@ contract Arbitrator is BalanceHolder {
             }
         }
 
-        address winner;
-        if (is_answered && last_answer == answer) {
-            winner = last_answerer;
-        } else {
-            // If the final answer is wrong, we assign the person who paid for arbitration.
-            // See https://realitio.github.io/docs/html/arbitrators.html for why.
-            winner = realitio_questions[question_id].disputer;
-        }
-
-        realitio.submitAnswerByArbitrator(question_id, answer, winner);
+        realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, realitio_questions[question_id].disputer, last_history_hash, last_answer_or_commitment_id, last_answerer);
 
         address owner = augur_markets[address(market)].owner;
         balanceOf[owner] += realitio_questions[question_id].bounty;
