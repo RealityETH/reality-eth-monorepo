@@ -86,6 +86,12 @@ input, button, textarea, select {
     }
 }
 
+div.top-content-controls select {
+    appearance: menulist-button;
+    -webkit-appearance: menulist-button;
+    -moz-appearance: menulist-button;
+}
+
 .hidden {
     display: none;
 }
