@@ -1,7 +1,7 @@
 {
   "name": "@reality.eth/template-generator",
   "version": "0.3.0",
-  "private": true,
+  "private": false,
   "homepage": "./",
   "dependencies": {
     "@ensdomains/ui": "^3.2.0",
