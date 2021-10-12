@@ -695,7 +695,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
 
         let q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
         q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
-        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
+        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true));
 
         // Turn the post question window into a question detail window
         let rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -1725,7 +1725,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
     } else {
         // console.log('_ensureQuestionTemplateFetched fetch fresh', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
         if (CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id]) {
-            const question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext));
+            const question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true));
             return (question);
         } else {
             // The category text should be in the log, but the contract has the block number
@@ -1740,7 +1740,7 @@ async function _ensureQuestionTemplateFetched(contract, question_id, template_id
                 //console.log(CONTRACT_TEMPLATE_CONTENT);
                 let populatedq = null;
                 try {
-                    populatedq = rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext)
+                    populatedq = rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true)
                 } catch (e) {
                     console.log('error populating template', CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, e);
                 }
