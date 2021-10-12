@@ -6,8 +6,8 @@ var undef;
 
 const defaultConfigs = {
     //maxFeePerGas:         81000000000,
-    maxFeePerGas:         1000000008,
-    maxPriorityFeePerGas:  1000000000,
+    //maxFeePerGas:         1000000008,
+    //maxPriorityFeePerGas:  1000000000,
     //gasPrice: 70000000000,
     //gasLimit: 1000000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
@@ -20,11 +20,16 @@ const token_name = process.argv[5]
 
 const template_id = ethers.BigNumber.from(parseInt(process.argv[6]));
 
+// For askQuestion
 const delim = '\u241f';
-const qtext = 'reality' + delim + 'QmVSKvdV5TUBQkrqstNZtUAyTepAMbDqvhh4zP3SJKRXAs';
+//const qtext = 'reality' + delim + 'QmVSKvdV5TUBQkrqstNZtUAyTepAMbDqvhh4zP3SJKRXAs';
+const qtext = 'things';
 const timeout_val = ethers.BigNumber.from(86401);
 const opening_ts = ethers.BigNumber.from(0);
 const arbitrator = '0xf72cfd1b34a91a64f9a98537fe63fbab7530adca';
+
+// for createTemplate
+const tmpl = '{"title":"Is %s good?", "type": "datetime", "precision":"X", "lang": "en_US", "category": "test"}';
 
 if (!task || !version || !chain_id || !token_name) {
     usage_error("missing parameters");
@@ -52,7 +57,7 @@ const signed_ctn = ctn.connect(signer);
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node example_contract_call.js <askQuestion> <version> <chain_id> <token_name> <template_id>"
+    msg += "Usage: node call.js [<askQuestion>|createTemplate] <version> <chain_id> <token_name> <template_id>"
     throw msg;
 }
 
@@ -62,8 +67,13 @@ async function doCall() {
     await waitForGas(provider);
     const conf = defaultConfigs;
     conf['value'] = ethers.BigNumber.from(0);
-    const tx_response = await signed_ctn.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, conf);
-    console.log(tx_response);
+    if (task == 'askQuestion') {
+        const tx_response = await signed_ctn.functions.askQuestion(template_id, qtext, arbitrator, timeout_val, opening_ts, 0, conf);
+        console.log(tx_response);
+    } else if (task == 'createTemplate') {
+        const tx_response = await signed_ctn.functions.createTemplate(tmpl);
+        console.log(tx_response);
+    }
 }
 
 async function waitForGas(provider) {
