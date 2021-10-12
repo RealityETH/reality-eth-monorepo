@@ -164,7 +164,7 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01-01'); 
     q['precision'] = 'm';
     expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01'); 
-    q['precision'] = 'y';
+    q['precision'] = 'Y';
     expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021'); 
 
     // 1609426800 2021 5FEE6600

@@ -187,7 +187,7 @@ exports.parseQuestionJSON = function(data) {
         throw Error("Too many outcomes");
     }
     if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) {
-        if (!(['y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
+        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
             question_json['errors'] = {'invalid_precision': true};
         }
     }
@@ -299,7 +299,7 @@ exports.getAnswerString = function(question_json, answer) {
             break;
         case 'datetime':
             let precision = 'd';
-            if ('precision' in question_json && ['y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])) {
+            if ('precision' in question_json && ['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])) {
                 precision = question_json['precision'];
             }
             let ts = parseInt(module.exports.bytes32ToString(answer, question_json));
@@ -314,7 +314,7 @@ exports.getAnswerString = function(question_json, answer) {
 
             // We need whatever the precision states, plus anything above
             const needy = true;
-            const needm = (precision != 'y');
+            const needm = (precision != 'Y');
             const needd = needm && (precision != 'm');
             const needH = needd && (precision != 'd');
             const needi = needH && (precision != 'H');
