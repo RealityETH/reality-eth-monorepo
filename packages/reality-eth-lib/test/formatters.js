@@ -192,7 +192,16 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000002')).to.equal('thing2');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing2');
   });
-
+  it('Sets an error if there are too many outcomes', function() {
+    var outcomes = [];
+    for(var i=0; i<129; i++) {
+        outcomes.push('thing'+i);
+    }
+    var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
+    expect(q.errors.too_many_outcomes).to.equal(true);
+    //expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing2');
+  });
 });
 /*
 describe('Min Number Formatter', function() {
@@ -216,7 +225,7 @@ describe('Broken questions', function() {
     expect(q.type).to.equal('broken-question');
     expect(q.errors.json_parse_failed).to.equal(true);
   });
-  it('', function() {
+  it('Sets the invalid_precision error if the precision is set but to something other than Y m d H i s', function() {
     var broken = '{ "title": "This datetime will not work", "type": "datetime", "precision": "X" }';
     var q = rc_question.populatedJSONForTemplate(broken, '');
     expect(q.errors.invalid_precision).to.equal(true);

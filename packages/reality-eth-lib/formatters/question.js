@@ -184,7 +184,7 @@ exports.parseQuestionJSON = function(data) {
         };
     }
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
-        throw Error("Too many outcomes");
+        question_json['errors'] = {'too_many_outcomes': true}
     }
     if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) {
         if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
