@@ -198,8 +198,13 @@ describe('Answer strings', function() {
         outcomes.push('thing'+i);
     }
     var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
-    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
-    expect(q.errors.too_many_outcomes).to.equal(true);
+    var q1 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
+    expect(q1.errors.too_many_outcomes).to.equal(true);
+    console.log(q1.title);
+    expect(q1.title).to.equal('oink');
+    var q2 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext, true);
+    expect(q2.errors.too_many_outcomes).to.equal(true);
+    expect(q2.title).to.equal('[Too many outcomes] oink');
     //expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000003')).to.equal('thing1 / thing2');
   });
 });
@@ -227,8 +232,12 @@ describe('Broken questions', function() {
   });
   it('Sets the invalid_precision error if the precision is set but to something other than Y m d H i s', function() {
     var broken = '{ "title": "This datetime will not work", "type": "datetime", "precision": "X" }';
-    var q = rc_question.populatedJSONForTemplate(broken, '');
-    expect(q.errors.invalid_precision).to.equal(true);
+    var q1 = rc_question.populatedJSONForTemplate(broken, '');
+    expect(q1.errors.invalid_precision).to.equal(true);
+    expect(q1.title).to.equal('This datetime will not work');
+    var q2 = rc_question.populatedJSONForTemplate(broken, '', true);
+    expect(q2.errors.invalid_precision).to.equal(true);
+    expect(q2.title).to.equal('[Invalid date format] This datetime will not work');
   });
 });
 

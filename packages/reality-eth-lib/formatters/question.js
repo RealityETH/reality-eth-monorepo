@@ -171,7 +171,7 @@ exports.secondsTodHms = function(sec) {
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
-exports.parseQuestionJSON = function(data) {
+exports.parseQuestionJSON = function(data, errors_to_title) {
 
     var question_json;
     try {
@@ -191,17 +191,31 @@ exports.parseQuestionJSON = function(data) {
             question_json['errors'] = {'invalid_precision': true};
         }
     }
+    // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
+    if (errors_to_title) {
+        if ('errors' in question_json) {
+            const prependers = {
+                'invalid_precision': 'Invalid date format',
+                'too_many_outcomes': 'Too many outcomes'
+            }
+            for (var e in question_json['errors']) {
+                if (e in prependers) {
+                    question_json['title'] = '['+prependers[e]+'] ' + question_json['title'];
+                }
+            }
+        }
+    }
     return question_json;
 
 }
 
-exports.populatedJSONForTemplate = function(template, question) {
+exports.populatedJSONForTemplate = function(template, question, errors_to_title) {
     var qbits = question.split(module.exports.delimiter());
     //console.log('pp', template);
     //console.log('qbits', qbits);
     var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
-    return module.exports.parseQuestionJSON(interpolated);
+    return module.exports.parseQuestionJSON(interpolated, errors_to_title);
 }
 
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
