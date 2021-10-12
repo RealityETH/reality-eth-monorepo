@@ -179,11 +179,17 @@ exports.parseQuestionJSON = function(data) {
     } catch(e) {
         question_json = {
             'title': '[Badly formatted question]: ' + data,
-            'type': 'broken-question'
+            'type': 'broken-question',
+            'errors': {"json_parse_failed": true}
         };
     }
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
         throw Error("Too many outcomes");
+    }
+    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) {
+        if (!(['y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
+            question_json['errors'] = {'invalid_precision': true};
+        }
     }
     return question_json;
 
@@ -293,7 +299,7 @@ exports.getAnswerString = function(question_json, answer) {
             break;
         case 'datetime':
             let precision = 'd';
-            if ('precision' in question_json) {
+            if ('precision' in question_json && ['y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])) {
                 precision = question_json['precision'];
             }
             let ts = parseInt(module.exports.bytes32ToString(answer, question_json));

@@ -214,6 +214,12 @@ describe('Broken questions', function() {
     var broken = '{ "title": "You need to quote your "quotation marks" before parsing", "type": "bool" }';
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), broken);
     expect(q.type).to.equal('broken-question');
+    expect(q.errors.json_parse_failed).to.equal(true);
+  });
+  it('', function() {
+    var broken = '{ "title": "This datetime will not work", "type": "datetime", "precision": "X" }';
+    var q = rc_question.populatedJSONForTemplate(broken, '');
+    expect(q.errors.invalid_precision).to.equal(true);
   });
 });
 
