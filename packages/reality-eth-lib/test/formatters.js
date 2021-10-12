@@ -116,13 +116,66 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('-1e-18');
   });
   */
-  it('Handles datetimes as expected', function() {
+  it('Handles datetimes of default precision as expected', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('datetime'), '');
-    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('1970/1/1');
-    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018/5/30');
-    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE981')).to.equal('2018/5/30 00:00:01');
-    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('2018/5/30 01:48:39'); // TODO: Change this to include time if it's not 00:00
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('1970-01-01');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018-05-30');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE981')).to.equal('[Invalid datetime]: 2018-05-30 00:00:01');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('[Invalid datetime]: 2018-05-30 01:48:39');
   });
+  it('Handles datetimes of specified precision as expected', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('datetime'), '');
+    q['precision'] = 'd';
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('1970-01-01');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018-05-30');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE981')).to.equal('[Invalid datetime]: 2018-05-30 00:00:01');
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('[Invalid datetime]: 2018-05-30 01:48:39'); 
+
+    q['precision'] = 'H';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('[Invalid datetime]: 2018-05-30 01:48:39'); 
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018-05-30 00hr');
+
+    q['precision'] = 'i';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('[Invalid datetime]: 2018-05-30 01:48:39'); 
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018-05-30 00:00');
+
+    q['precision'] = 's';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0E02F7')).to.equal('2018-05-30 01:48:39'); 
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005B0DE980')).to.equal('2018-05-30 00:00:00');
+
+    q['precision'] = 'i';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000006163683C')).to.equal('2021-10-10 22:25'); 
+
+    q['precision'] = 'H';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000006163683C')).to.equal('[Invalid datetime]: 2021-10-10 22:25'); 
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000061636260')).to.equal('2021-10-10 22hr'); 
+    // q['precision'] = 'H';
+
+    q['precision'] = 'd';
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000061636260')).to.equal('[Invalid datetime]: 2021-10-10 22hr'); 
+
+    q['precision'] = 's';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01-01 00:00:00'); 
+    q['precision'] = 'i';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01-01 00:00'); 
+    q['precision'] = 'H';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01-01 00hr'); 
+    q['precision'] = 'd';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01-01'); 
+    q['precision'] = 'm';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021-01'); 
+    q['precision'] = 'y';
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000005FEE6600')).to.equal('2021'); 
+
+    // 1609426800 2021 5FEE6600
+
+    //1633904700 6163683C 
+    //1633903200 61636260
+    //1609426800 5FEDE770
+
+
+  });
+
   it('Handles single selects as expected', function() {
     var outcomes = ['thing1', 'thing2', 'thing3'];
     var qtext = rc_question.encodeText('single-select', 'oink', outcomes, 'my-category');

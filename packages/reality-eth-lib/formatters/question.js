@@ -292,18 +292,72 @@ exports.getAnswerString = function(question_json, answer) {
             }
             break;
         case 'datetime':
+            let precision = 'd';
+            if ('precision' in question_json) {
+                precision = question_json['precision'];
+            }
             let ts = parseInt(module.exports.bytes32ToString(answer, question_json));
             let dateObj = new Date(ts * 1000);
-            let year = dateObj.getUTCFullYear();
-            let month = dateObj.getUTCMonth() + 1;
-            let date = dateObj.getUTCDate();
-            label = year + '/' + month + '/' + date;
+
+            const year = dateObj.getUTCFullYear();
+            const month = dateObj.getUTCMonth() + 1;
+            const date = dateObj.getUTCDate();
+            const hour = dateObj.getUTCHours();
+            const min = dateObj.getUTCMinutes();
+            const sec = dateObj.getUTCSeconds();
+
+            // We need whatever the precision states, plus anything above
+            const needy = true;
+            const needm = (precision != 'y');
+            const needd = needm && (precision != 'm');
+            const needH = needd && (precision != 'd');
+            const needi = needH && (precision != 'H');
+            const needs = needi && (precision != 'i');
+
+            // If anything is set then we've got it.
+            // We also consider that anything required by the precision is there, but set to 0
+            const hass = needs || sec > 0;
+            const hasi = needi || hass || min > 0;
+            const hasH = needH || hasi || hour > 0;
+            const hasd = needd || hasH || date > 1;
+            const hasm = needm || hasd || month > 1;
+            const hasy = true;
+
+            // We'll show an invalid warning if we've got a more precise date than the precision demands
+            let invalid = false;
+            if (!needm && hasm) invalid = true;
+            if (!needd && hasd) invalid = true;
+            if (!needH && hasH) invalid = true;
+            if (!needi && hasi) invalid = true;
+            if (!needs && hass) invalid = true;
+
+            if (invalid) {
+                label = '[Invalid datetime]: ';
+            }
 
             function pad2(n) { return ("0" + n).slice(-2); }
-            time_label = pad2(dateObj.getUTCHours()) + ':' + pad2(dateObj.getUTCMinutes()) + ':' + pad2(dateObj.getUTCSeconds());
-            if (time_label != '00:00:00') {
-                label = label + ' ' + time_label;
+    
+            if (hasy) {
+                label += year;
             }
+            if (hasm) {
+                label += '-'+pad2(month);
+            }
+            if (hasd) {
+                label += '-'+pad2(date);
+            }
+            if (hasH) {
+                label += ' '+pad2(hour);
+            } 
+            if (hasi) {
+                label += ':'+pad2(min);
+            } else if (hasH) {
+                // "2021-12-23 11" without the minutes at the end is hard to understand so add "hr"
+                label += 'hr';
+            }
+            if (hass) {
+                label += ':'+pad2(sec);
+            } 
             break;
     }
 
