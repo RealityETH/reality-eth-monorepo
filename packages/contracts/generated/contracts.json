@@ -17,7 +17,7 @@
                 "block": 13194676,
                 "notes": null,
                 "arbitrators": {
-                    "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros Arbitrator (DAO Governance)"
+                    "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)"
                 }
             }
         },
@@ -160,7 +160,7 @@
                 "block": 27103177,
                 "notes": null,
                 "arbitrators": {
-                    "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros Arbitrator (DAO Governance)"
+                    "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros DAO Governance (Technical Court)"
                 }
             }
         },
