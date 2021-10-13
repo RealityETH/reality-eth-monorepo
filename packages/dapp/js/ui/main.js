@@ -2509,9 +2509,13 @@ function displayQuestionDetail(question_detail) {
 
 function setupDatetimeDatePicker(rcqa) {
 
+    const precision = rcqa.attr('data-datetime-precision');
+    const date_format = (precision == 'Y') ? 'yy' : ( (precision == 'm') ? 'yy-mm' : 'yy-mm-dd' )
+
+    // TODO: Set the precision of the date and use it for date and time
     if (rcqa.find('[name="input-answer"]').hasClass('rcbrowser-input--date--answer')) {
         rcqa.find('[name="input-answer"]').datepicker({
-            dateFormat: 'yy-mm-dd',
+            dateFormat: date_format,
             beforeShow: function(input, inst) {
                 if ($(this).closest('.input-container').hasClass('invalid-selected')) {
                     return false;
@@ -2941,6 +2945,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('is-claimable');
     }
 
+    if (question_json.type == 'datetime') {
+        let precision = 'y';
+        if ('precision' in question_json) {
+            precision = question_json['precision']; 
+        }
+        rcqa.attr('data-datetime-precision', precision);
+    }
+    
     setupDatetimeDatePicker(rcqa);
 
     //console.log(claimableItems(question_detail));
