@@ -4416,60 +4416,69 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
 $(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
-    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
-        inp.attr('data-old-placeholder', inp.attr('placeholder'));
-    }
+    cont.find('input').each(function() {
+        const inp = $(this);
+        if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+            inp.attr('data-old-placeholder', inp.attr('placeholder'));
+        }
+        inp.val('');
+        inp.attr('readonly', true);
+        inp.attr('placeholder', 'Invalid');
+        inp.removeAttr('data-too-soon-selected');
+        inp.attr('data-invalid-selected', '1'); // will be read in processing
+    });
     cont.addClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error');
-    inp.val('');
-    inp.attr('readonly', true);
-    inp.attr('placeholder', 'Invalid');
-    inp.removeAttr('data-too-soon-selected');
-    inp.attr('data-invalid-selected', '1'); // will be read in processing
 });
 
 $(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
+    cont.find('input').each(function() {
+        const inp = $(this);
+        inp.attr('readonly', false);
+        let placeholder = inp.attr('data-old-placeholder');
+        if (typeof placeholder === typeof undefined || placeholder === false) {
+            placeholder = '';
+        }
+        inp.attr('placeholder', placeholder);
+        inp.removeAttr('data-old-placeholder');
+        inp.removeAttr('data-invalid-selected'); // will be read in processing
+    });
     cont.removeClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error')
-    inp.attr('readonly', false);
-    let placeholder = inp.attr('data-old-placeholder');
-    if (typeof placeholder === typeof undefined || placeholder === false) {
-        placeholder = '';
-    }
-    inp.attr('placeholder', placeholder);
-    inp.removeAttr('data-old-placeholder');
-    inp.removeAttr('data-invalid-selected'); // will be read in processing
 });
 
 $(document).on('click', '.too-soon-switch-container a.too-soon-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
-    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
-        inp.attr('data-old-placeholder', inp.attr('placeholder'));
-    }
+    cont.find('input').each(function() {
+        const inp = $(this);
+        if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+            inp.attr('data-old-placeholder', inp.attr('placeholder'));
+        }
+        inp.val('');
+        inp.attr('readonly', true);
+        inp.attr('placeholder', 'Answered too soon');
+        inp.attr('data-too-soon-selected', '1'); // will be read in processing
+        inp.removeAttr('data-invalid-selected');
+    });
     cont.addClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error')
-    inp.val('');
-    inp.attr('readonly', true);
-    inp.attr('placeholder', 'Answered too soon');
-    inp.attr('data-too-soon-selected', '1'); // will be read in processing
-    inp.removeAttr('data-invalid-selected');
 });
 
 $(document).on('click', '.too-soon-switch-container a.not-too-soon-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.removeClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error').find('input');
-    inp.attr('readonly', false);
-    let placeholder = inp.attr('data-old-placeholder');
-    if (typeof placeholder === typeof undefined || placeholder === false) {
-        placeholder = '';
-    }
-    inp.attr('placeholder', placeholder);
-    inp.removeAttr('data-old-placeholder');
-    inp.removeAttr('data-too-soon-selected'); // will be read in processing
+    cont.find('input').each(function() {
+        const inp = $(this);
+        inp.attr('readonly', false);
+        let placeholder = inp.attr('data-old-placeholder');
+        if (typeof placeholder === typeof undefined || placeholder === false) {
+            placeholder = '';
+        }
+        inp.attr('placeholder', placeholder);
+        inp.removeAttr('data-old-placeholder');
+        inp.removeAttr('data-too-soon-selected'); // will be read in processing
+    });
+    cont.removeClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error');
 });
 
 $(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function(e) {
