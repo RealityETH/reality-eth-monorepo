@@ -17,6 +17,7 @@
                 "block": 13194676,
                 "notes": null,
                 "arbitrators": {
+                    "0x728cba71a3723caab33ea416cb46e2cc9215a596": "Kleros (General Court)",
                     "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)"
                 }
             }
@@ -160,6 +161,7 @@
                 "block": 27103177,
                 "notes": null,
                 "arbitrators": {
+                    "0x99489d7bb33539f3d1a401741e56e8f02b9ae0cf": "Kleros (General Court)",
                     "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros DAO Governance (Technical Court)"
                 }
             }
