@@ -2,5 +2,7 @@
     "address": "0xDf33060F476F8cff7511F806C72719394da1Ad64",
     "block": 9106451,
     "notes": null,
-    "arbitrators": {}
+    "arbitrators": {
+        "0xe27768bdb76a9b742b7ddcfe1539fadaf3b89bc7": "Kleros (General Court)"
+    }
 }
