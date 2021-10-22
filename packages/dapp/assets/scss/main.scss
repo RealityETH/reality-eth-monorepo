@@ -3160,10 +3160,11 @@ body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {displa
 
 .no-arbitrator-message {
     font-size: 14px;
+    font-style: italic;
     background-color: $ultralight-gray;
-    padding:6px;
-    border: 1px solid $blue;
+    padding:8px;
     text-align:center;
+    margin-bottom:10px;
 }
 
 .failed-arbitrator-only { display:none; }
@@ -3171,9 +3172,11 @@ body.foreign-proxy-transaction-sent .foreign-proxy-transaction-sent-only {displa
 
 .failed-arbitrator-message {
     font-size: 14px;
+    font-style: italic;
+    text-align:center;
     background-color: $ultralight-gray;
-    padding:6px;
-    border: 1px solid $blue;
+    padding:8px;
+    margin-bottom:10px;
 }
 
 span.add-network-button > a {
