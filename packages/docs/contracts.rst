@@ -89,6 +89,8 @@ datetime
 
 A ``datetime`` type represents a question that is answered with a date/time. This will be represented as a date picker in the UI, and expressed as a unix timestamp (seconds since 1970), of ``0xff..ff`` for invalid.
 
+The question may also specify a ``precision`` indicating whether it expects a datetime to the nearest year (``Y``), month (``m``), day (``d``), hour (``H``), minute (``i``) or second (``s``). If no precision is specified, it should be assumed to be ``d``, ie the answer should be a date (in UTC) with no time. An answer with a greater precision than that specified should be considered wrong.
+
 
 How questions are structured
 ----------------------------
