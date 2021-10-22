@@ -167,13 +167,10 @@ function formatPossibleIPFSLink(u) {
     if (!u) {
         return '';
     }
-console.log('consider ink', u);
     if (u.toLowerCase().substr(0, 7) == 'ipfs://') {
-console.log('replaceint', u)
         u = u.replace('ipfs://', 'https://ipfs.io/ipfs/');
     } else {
-console.log('not ipfs', u)
-}
+    }
     return u;
 }
 
