@@ -4946,22 +4946,47 @@ function populateArbitratorOptionLabel(op, fee, txt, tos) {
     }
 }
 
+function appendBeforeOption(sel, weight) {
+    let last_el = null;
+    // Go down the select until we find something with a higher weight than ourselves, then slot in before that
+    // There should always be something there because we have the "other" option at 1000001
+    sel.find('option').each(function(){
+        const el = $(this);
+        if (parseInt(el.attr('data-weight')) > parseInt(weight)) {
+            last_el = el;
+            return false;
+        }
+    });
+    // Always append before the final option if there were no others
+    return last_el;
+}
+
 function populateArbitratorSelect(arb_contract, network_arbs) {
     console.log('got network_arbs', network_arbs);
     $("select[name='arbitrator']").each(function() {
         const as = $(this);
         const a_template = as.find('.arbitrator-template-item');
-        const append_before = a_template.parent().find('.arbitrator-other-select');
+        const a_select = $(this);
+        const other_option = a_template.parent().find('.arbitrator-other-select');
         a_template.remove();
 
-        let is_first = false;
+        // Assign weights governing the order in the select, lowest to be displayed last.
+        // The contract address used for "no arbitrator" should be displayed last (and will be set to 1000000)
+        // The "other" option will be 1000001, already in the HTML
+        let arb_weights = {};
+        let arb_i = 0;
+        for(const na in network_arbs) {
+            arb_weights[na.toLowerCase()] = arb_i;
+            arb_i++;
+        }
 
         $.each(network_arbs, function(na_addr, na_title) {
             if (na_addr.toLowerCase() == RCInstance(RC_DEFAULT_ADDRESS).address.toLowerCase()) {
                 const arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
+                arb_item.attr('data-weight', '1000000');
                 populateArbitratorOptionLabel(arb_item, ethers.BigNumber.from(0), na_title, "");
                 arb_item.val(na_addr);
-                append_before.after(arb_item);
+                other_option.before(arb_item);
                 return true;
             }
             const mya = arb_contract.attach(na_addr);
@@ -4986,11 +5011,15 @@ function populateArbitratorSelect(arb_contract, network_arbs) {
                         const tos = ('tos' in metadata) ? metadata['tos'] : null;
                         const arb_item = a_template.clone().removeClass('arbitrator-template-item').addClass('arbitrator-option');
                         arb_item.val(na_addr);
-                        populateArbitratorOptionLabel(arb_item, fee, na_title, tos);
-                        if (is_first) {
-                            arb_item.attr('selected', true);
-                            is_first = false;
+                        if (na_addr.toLowerCase() in arb_weights) {
+                            arb_item.attr('data-weight', arb_weights[na_addr.toLowerCase()]);
                         }
+                        populateArbitratorOptionLabel(arb_item, fee, na_title, tos);
+                        //if (arb_item.attr('data-weight') == '1') {
+                        //    arb_item.attr('selected', true);
+                        //}
+                        const append_before = appendBeforeOption(a_select, arb_item.attr('data-weight'));
+                        // append before the item with the highest weight greater than this one
                         append_before.before(arb_item);
                     });
                 } else {
