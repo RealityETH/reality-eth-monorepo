@@ -1,0 +1,7 @@
+{
+    "decimals": 18,
+    "small_number": 10000000000000000000,
+    "native_chains": {
+        "777": true
+    }
+}

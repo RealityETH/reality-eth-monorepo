@@ -43,6 +43,10 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "network_name": "matic"
     },
+    "777": {
+        "explorerURL": "https://explore.cheapswap.io/",
+        "network_name": "cheapeth"
+    },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",

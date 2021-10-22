@@ -36,6 +36,7 @@ const chains = {
     'kovan': 42,
     'bsc': 56,
     'sokol': 77,
+    'cheapeth': 777,
     'xdai': 100,
     'polygon': 137,
     'ava': 43114,
@@ -50,7 +51,8 @@ const non_infura_chains = {
     'ava': 'https://api.avax.network/ext/bc/C/rpc',
     'arbitrum': 'https://arb1.arbitrum.io/rpc',
     'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc',
-    'ubiq': 'https://rpc.octano.dev'
+    'ubiq': 'https://rpc.octano.dev',
+    'cheapeth': 'https://node.cheapeth.org/rpc'
 }
 
 function constructContractTemplate(contract_name) {

@@ -288,6 +288,16 @@
             }
         }
     },
+    "777": {
+        "CTH": {
+            "RealityETH-3.0": {
+                "address": "0xF935d11116fA0103Bd340B663879d325673106f0",
+                "block": 13539397,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "42161": {
         "ARETH": {
             "Arbitrator": {

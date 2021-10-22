@@ -188,6 +188,23 @@
             "https://polygonscan.com/"
         ]
     },
+    "777": {
+        "chainId": "0x309",
+        "chainName": "cheapETH",
+        "nativeCurrency": {
+            "name": "cTH",
+            "symbol": "cTH",
+            "decimals": 18
+        },
+        "network_name": "cheapeth",
+        "rpcUrls": [
+            "https://node.cheapeth.org/rpc"
+        ],
+        "hostedRPC": "https://node.cheapeth.org/rpc",
+        "blockExplorerUrls": [
+            "https://explore.cheapswap.io/"
+        ]
+    },
     "42161": {
         "chainId": "0xa4b1",
         "chainName": "Arbitrum One",
