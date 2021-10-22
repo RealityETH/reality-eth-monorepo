@@ -3216,10 +3216,11 @@ div.contract-claim-section-template {
 
 input.datetime-input-time {
     width:48%;
-    visibility:hidden;
+    display:none;
     float:right;
 }
 .has-time-input input.datetime-input-time {
     visibility:visible;
+    display:block;
 }
 

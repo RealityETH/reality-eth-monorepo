@@ -2509,7 +2509,7 @@ function setupDatetimeDatePicker(rcqa) {
 
     let precision = rcqa.attr('data-datetime-precision');
     if (!precision) {
-        precision = 'Y';
+        precision = 'd';
     }
     const date_format = (precision == 'Y') ? 'yy' : ( (precision == 'm') ? 'yy-mm' : 'yy-mm-dd' )
 
@@ -2978,7 +2978,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     }
 
     if (question_json.type == 'datetime') {
-        let precision = 'y';
+        let precision = 'd';
         if ('precision' in question_json) {
             precision = question_json['precision']; 
         }
