@@ -1334,7 +1334,7 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
                                     question_id: question.question_id,
                                 }
                             }
-                            console.log('sending fake entry', fake_entry, question);
+                            // console.log('sending fake entry', fake_entry, question);
                             if (updateClaimableDataForQuestion(question, fake_entry, true)) {
                                 updateClaimableDisplay(contract);
                                 updateUserBalanceDisplay();
