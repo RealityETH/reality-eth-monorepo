@@ -18,21 +18,24 @@ const version = process.argv[3]
 const chain_id = process.argv[4]
 const token_name = process.argv[5]
 
-const template_id = ethers.BigNumber.from(parseInt(process.argv[6]));
-
 // For askQuestion
 const delim = '\u241f';
 //const qtext = 'reality' + delim + 'QmVSKvdV5TUBQkrqstNZtUAyTepAMbDqvhh4zP3SJKRXAs';
-const qtext = 'things';
+const qtext = 'rapture';
 const timeout_val = ethers.BigNumber.from(86401);
 const opening_ts = ethers.BigNumber.from(0);
 const arbitrator = '0xf72cfd1b34a91a64f9a98537fe63fbab7530adca';
 
 // for createTemplate
-const tmpl = '{"title":"Is %s good?", "type": "datetime", "precision":"X", "lang": "en_US", "category": "test"}';
+const tmpl = '{"title":"When will %s happen?", "type": "datetime", "precision":"i", "lang": "en_US", "category": "test"}';
 
 if (!task || !version || !chain_id || !token_name) {
-    usage_error("missing parameters");
+    usage_error("Usage: node call.js <askQuestion|createTemplate> <2.0|2.1|3.0> <chain_id> <token> [<template_id>]");
+}
+
+let template_id;
+if (task != 'createTemplate') {
+    template_id = ethers.BigNumber.from(parseInt(process.argv[6]));
 }
 
 const chain_info = rc_contracts.chainData(chain_id);
@@ -56,8 +59,6 @@ const signer = new ethers.Wallet(priv, provider);
 const signed_ctn = ctn.connect(signer);
 
 function usage_error(msg) {
-    msg = msg + "\n";
-    msg += "Usage: node call.js [<askQuestion>|createTemplate] <version> <chain_id> <token_name> <template_id>"
     throw msg;
 }
 
