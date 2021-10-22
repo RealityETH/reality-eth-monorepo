@@ -3,7 +3,7 @@
 SRC_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && cd .. && pwd)
 REPO_DIR=/tmp/RealityETH-repo
 BUILD_DIR=/tmp/RealityETH-build-ipfs
-REPO=git@github.com:RealityETH/monorepo.git
+REPO=git@github.com:RealityETH/reality-eth-monorepo.git
 ME=`basename "$0"`
 
 CURR_COMMIT=`git log | head -1`
