@@ -2886,9 +2886,20 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 const foreign_chain_id_arr = await fpArb.functions.foreignChainId()
                 const foreign_chain_id = foreign_chain_id_arr[0].toNumber();
                 const btn = rcqa.find('.arbitration-button-foreign-proxy');
-                btn.click(function(evt) {
+                btn.click(async function(evt) {
+                    evt.preventDefault();
                     evt.stopPropagation();
-                    const url_data = question_detail;
+
+                    const question_latest = await ensureQuestionDetailFetched(question_detail.contract, question_detail.question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
+                    if (!question_latest) {
+                        console.log('Error, question detail not found');
+                        return false;
+                    }
+                    if (question_latest.bond.eq(0)) {
+                        $('body').addClass('error-request-arbitration-without-answer-error').addClass('error');
+                        return false;
+                    }
+                    const url_data = question_latest;
                     url_data['network_id'] = foreign_chain_id
                     url_data['foreign_proxy'] = foreign_proxy;
                     //delete url_data['history_unconfirmed'];
@@ -4211,12 +4222,11 @@ $(document).on('click', '.arbitration-button', async function(e) {
 
     const contract_question_id = $(lnk).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-contract-question-id');
     const [contract, question_id] = parseContractQuestionID(contract_question_id);
-    const question_detail = QUESTION_DETAIL_CACHE[contract_question_id];
+    const question_detail = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
     if (!question_detail) {
         console.log('Error, question detail not found');
         return false;
     }
-
 
     const last_seen_bond_hex = $(lnk).attr('data-last-seen-bond'); 
     if (!last_seen_bond_hex) {
@@ -4224,7 +4234,12 @@ $(document).on('click', '.arbitration-button', async function(e) {
         return false;
     }
 
-    if (ethers.BigNumber.from(last_seen_bond_hex).eq(0)) {
+    if (question_detail.bond.gt(ethers.BigNumber.from(last_seen_bond_hex))) {
+        console.log('Answer has changed, please click again');
+        return false;
+    }
+
+    if (question_detail.bond.eq(0)) {
         $('body').addClass('error-request-arbitration-without-answer-error').addClass('error');
         return false;
     }
@@ -4234,6 +4249,7 @@ $(document).on('click', '.arbitration-button', async function(e) {
     arb.functions.getDisputeFee(question_id).then(function(fee_arr) {
         const arbitration_fee = fee_arr[0];
         //console.log('got fee', arbitration_fee.toString());
+        console.log('requestArbitration(',question_id, ethers.BigNumber.from(last_seen_bond_hex), ACCOUNT, arbitration_fee);
 
         const signed_arbitrator = arb.connect(signer);
         signed_arbitrator.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex), {from: ACCOUNT, value: arbitration_fee}).then(function(result) {
