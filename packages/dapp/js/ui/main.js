@@ -4217,9 +4217,15 @@ $(document).on('click', '.arbitration-button', async function(e) {
         return false;
     }
 
+
     const last_seen_bond_hex = $(lnk).attr('data-last-seen-bond'); 
     if (!last_seen_bond_hex) {
         console.log('Error, last seen bond not populated, aborting arbitration request');
+        return false;
+    }
+
+    if (ethers.BigNumber.from(last_seen_bond_hex).eq(0)) {
+        $('body').addClass('error-request-arbitration-without-answer-error').addClass('error');
         return false;
     }
 
@@ -4230,7 +4236,7 @@ $(document).on('click', '.arbitration-button', async function(e) {
         //console.log('got fee', arbitration_fee.toString());
 
         const signed_arbitrator = arb.connect(signer);
-        signed_arbitrator.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from: ACCOUNT, value: arbitration_fee}).then(function(result) {
+        signed_arbitrator.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex), {from: ACCOUNT, value: arbitration_fee}).then(function(result) {
             console.log('arbitration is requested.', result);
         });
     }).catch(function(err) {
@@ -5476,6 +5482,16 @@ $('.continue-read-only-message').click(function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('body').removeClass('error-no-metamask-plugin').removeClass('error');
+});
+
+$('.continue-message').click(function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const clear_cls = $(this).attr('data-clear-error');
+    if (clear_cls) {
+        $('body').removeClass('error-' + clear_cls);
+    }
+    $('body').removeClass('error');
 });
 
 $('#token-selection').change(function(e) { 
