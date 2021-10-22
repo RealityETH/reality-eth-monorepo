@@ -2507,9 +2507,36 @@ function displayQuestionDetail(question_detail) {
 
 function setupDatetimeDatePicker(rcqa) {
 
+    let precision = rcqa.attr('data-datetime-precision');
+    if (!precision) {
+        precision = 'Y';
+    }
+    const date_format = (precision == 'Y') ? 'yy' : ( (precision == 'm') ? 'yy-mm' : 'yy-mm-dd' )
+
+    if (precision == 'H' || precision == 'i' || precision == 's') {
+        rcqa.addClass('has-time-input');
+        const plh = {
+            'H': '00',
+            'i': '00:00',
+            's': '00:00:00'
+        }
+        rcqa.find('input.datetime-input-time').attr('placeholder', plh[precision]).attr('maxlength', plh[precision].length);;
+    }
+
+    const dtplh = {
+        'Y': '2000',
+        'm': '2000-01',
+        'd': '2000-01-01',
+        'H': '2000-01-01',
+        'i': '2000-01-01',
+        's': '2000-01-01'
+    }
+    rcqa.find('input.datetime-input-date').attr('placeholder', dtplh[precision]).attr('maxlength', dtplh[precision].length).attr('data-precision', precision);
+
+    // TODO: Set the precision of the date and use it for date and time
     if (rcqa.find('[name="input-answer"]').hasClass('rcbrowser-input--date--answer')) {
         rcqa.find('[name="input-answer"]').datepicker({
-            dateFormat: 'yy-mm-dd',
+            dateFormat: date_format,
             beforeShow: function(input, inst) {
                 if ($(this).closest('.input-container').hasClass('invalid-selected')) {
                     return false;
@@ -2950,6 +2977,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('is-claimable');
     }
 
+    if (question_json.type == 'datetime') {
+        let precision = 'y';
+        if ('precision' in question_json) {
+            precision = question_json['precision']; 
+        }
+        rcqa.attr('data-datetime-precision', precision);
+    }
+    
     setupDatetimeDatePicker(rcqa);
 
     //console.log(claimableItems(question_detail));
@@ -3651,6 +3686,12 @@ function isAnswerInputLookingValid(parent_div, question_json) {
             console.log('empty bool');
             return false;
         } 
+    } else if (question_json['type'] == 'datetime') {
+        const dt_invalids = areDatetimeElementsInvalid(answer_element);            
+        if (dt_invalids[0] || dt_invalids[1]) {
+            console.log('bad datetime');
+            return false;
+        }
     }
     return true;
 
@@ -3692,14 +3733,63 @@ function formattedAnswerFromForm(parent_div, question_json) {
         if (answer_element.val() == '') {
             return null;
         }
-        let answer_date = new Date(answer_element.val());
-        new_answer = rc_question.answerToBytes32(answer_date.getTime() / 1000, question_json);
+        const ts = datetimeElementToTS(answer_element);
+        new_answer = rc_question.answerToBytes32(ts, question_json);
     } else {
         new_answer = rc_question.answerToBytes32(answer_element.val(), question_json);
     }
     console.log('submitting answer', new_answer);
     return new_answer;
 
+}
+
+function areDatetimeElementsInvalid(answer_element) {
+    const precision = answer_element.attr('data-precision');
+    let ts;
+    let is_date_invalid = false;
+    let is_time_invalid = false;
+    try {
+        const dval = answer_element.val();
+        if (dval == '') {
+            throw new Exception("Date empty");
+        }
+        let answer_date = new Date(dval);
+        ts = answer_date.getTime() / 1000;
+    } catch (e) {
+        is_date_invalid = true; 
+    }
+    if (precision == 'H' || precision == 'i' || precision == 's') {
+        let time_element = answer_element.closest('.input-container').find('input.datetime-input-time');
+        let timets;
+        try {
+            const tval = time_element.val();
+            if (tval == '') {
+                throw new Exception("time empty");
+            }
+            const dtd = new Date('1970-01-02T' + tval + 'Z'); // Use 02 not 01 because I'm not sure what happens if we're ahead of utc
+            timets = (dtd.getTime() / 1000) - 86400;
+        } catch (e) {
+            is_time_invalid = true;
+        }
+        //console.log('made time', timets);
+        // ts = ts + timets;
+    }
+    return [is_date_invalid, is_time_invalid];
+}
+
+function datetimeElementToTS(answer_element) {
+    let answer_date = new Date(answer_element.val());
+    let ts = answer_date.getTime() / 1000;
+    const precision = answer_element.attr('data-precision');
+    if (precision == 'H' || precision == 'i' || precision == 's') {
+        let time_element = answer_element.closest('.input-container').find('input.datetime-input-time');
+        //console.log('time el is ', time_element, 'val is ',time_element.val());
+        const dtd = new Date('1970-01-02T' + time_element.val()+ 'Z'); // Use 02 not 01 because I'm not sure what happens if we're ahead of utc
+        const timets = (dtd.getTime() / 1000) - 86400;
+        //console.log('made time', timets);
+        ts = ts + timets;
+    }
+    return ts; 
 }
 
 // post an answer
@@ -4340,60 +4430,69 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
 $(document).on('click', '.invalid-switch-container a.invalid-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
-    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
-        inp.attr('data-old-placeholder', inp.attr('placeholder'));
-    }
+    cont.find('input').each(function() {
+        const inp = $(this);
+        if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+            inp.attr('data-old-placeholder', inp.attr('placeholder'));
+        }
+        inp.val('');
+        inp.attr('readonly', true);
+        inp.attr('placeholder', 'Invalid');
+        inp.removeAttr('data-too-soon-selected');
+        inp.attr('data-invalid-selected', '1'); // will be read in processing
+    });
     cont.addClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error');
-    inp.val('');
-    inp.attr('readonly', true);
-    inp.attr('placeholder', 'Invalid');
-    inp.removeAttr('data-too-soon-selected');
-    inp.attr('data-invalid-selected', '1'); // will be read in processing
 });
 
 $(document).on('click', '.invalid-switch-container a.valid-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
+    cont.find('input').each(function() {
+        const inp = $(this);
+        inp.attr('readonly', false);
+        let placeholder = inp.attr('data-old-placeholder');
+        if (typeof placeholder === typeof undefined || placeholder === false) {
+            placeholder = '';
+        }
+        inp.attr('placeholder', placeholder);
+        inp.removeAttr('data-old-placeholder');
+        inp.removeAttr('data-invalid-selected'); // will be read in processing
+    });
     cont.removeClass('invalid-selected').removeClass('too-soon-selected').removeClass('is-error')
-    inp.attr('readonly', false);
-    let placeholder = inp.attr('data-old-placeholder');
-    if (typeof placeholder === typeof undefined || placeholder === false) {
-        placeholder = '';
-    }
-    inp.attr('placeholder', placeholder);
-    inp.removeAttr('data-old-placeholder');
-    inp.removeAttr('data-invalid-selected'); // will be read in processing
 });
 
 $(document).on('click', '.too-soon-switch-container a.too-soon-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.find('input');
-    if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
-        inp.attr('data-old-placeholder', inp.attr('placeholder'));
-    }
+    cont.find('input').each(function() {
+        const inp = $(this);
+        if (!cont.hasClass('invalid-selected') && !cont.hasClass('too-soon-selected')) {
+            inp.attr('data-old-placeholder', inp.attr('placeholder'));
+        }
+        inp.val('');
+        inp.attr('readonly', true);
+        inp.attr('placeholder', 'Answered too soon');
+        inp.attr('data-too-soon-selected', '1'); // will be read in processing
+        inp.removeAttr('data-invalid-selected');
+    });
     cont.addClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error')
-    inp.val('');
-    inp.attr('readonly', true);
-    inp.attr('placeholder', 'Answered too soon');
-    inp.attr('data-too-soon-selected', '1'); // will be read in processing
-    inp.removeAttr('data-invalid-selected');
 });
 
 $(document).on('click', '.too-soon-switch-container a.not-too-soon-text-link', function(evt) {
     evt.stopPropagation();
     const cont = $(this).closest('.input-container');
-    const inp = cont.removeClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error').find('input');
-    inp.attr('readonly', false);
-    let placeholder = inp.attr('data-old-placeholder');
-    if (typeof placeholder === typeof undefined || placeholder === false) {
-        placeholder = '';
-    }
-    inp.attr('placeholder', placeholder);
-    inp.removeAttr('data-old-placeholder');
-    inp.removeAttr('data-too-soon-selected'); // will be read in processing
+    cont.find('input').each(function() {
+        const inp = $(this);
+        inp.attr('readonly', false);
+        let placeholder = inp.attr('data-old-placeholder');
+        if (typeof placeholder === typeof undefined || placeholder === false) {
+            placeholder = '';
+        }
+        inp.attr('placeholder', placeholder);
+        inp.removeAttr('data-old-placeholder');
+        inp.removeAttr('data-too-soon-selected'); // will be read in processing
+    });
+    cont.removeClass('too-soon-selected').removeClass('invalid-selected').removeClass('is-error');
 });
 
 $(document).on('change', '#post-question-window .question-type,.step-delay,.arbitrator', function(e) {

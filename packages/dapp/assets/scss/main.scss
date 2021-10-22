@@ -3209,3 +3209,17 @@ div.contract-claim-section-template {
 .has-arbitrator-tos div.arbitrator-tos {
     display:block;
 }
+
+.has-time-input input.datetime-input-date {
+    width:48%;
+}
+
+input.datetime-input-time {
+    width:48%;
+    visibility:hidden;
+    float:right;
+}
+.has-time-input input.datetime-input-time {
+    visibility:visible;
+}
+
