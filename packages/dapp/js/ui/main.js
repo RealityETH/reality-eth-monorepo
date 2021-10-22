@@ -1332,11 +1332,12 @@ function scheduleFinalizationDisplayUpdate(contract, question) {
                                 event: 'LogFinalize',
                                 blockNumber: result.number,
                                 timestamp: question.finalization_ts.toNumber(),
+                                address: question.contract,
                                 args: {
                                     question_id: question.question_id,
                                 }
                             }
-                            //console.log('sending fake entry', fake_entry, question);
+                            console.log('sending fake entry', fake_entry, question);
                             if (updateClaimableDataForQuestion(question, fake_entry, true)) {
                                 updateClaimableDisplay(contract);
                                 updateUserBalanceDisplay();
@@ -3336,14 +3337,8 @@ function renderNotifications(qdata, entry) {
             break;
 
         case 'LogFinalize':
-            //console.log('in LogFinalize', entry);
+            console.log('in LogFinalize', entry, contract);
             notification_id = uiHash('LogFinalize' + entry.args.question_id + entry.args.answer);
-            const finalized_question = RCInstance(contract).LogNewQuestion({
-                question_id: question_id
-            }, {
-                fromBlock: RCStartBlock(contract),
-                toBlock: 'latest'
-            });
             let timestamp = null;
             // Fake timestamp for our fake finalize event
             if (entry.timestamp) {
