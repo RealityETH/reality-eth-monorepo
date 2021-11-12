@@ -83,13 +83,13 @@ async function processChain(chain_id, init) {
         initial_ts = chain_state['ts'];
     }
 
-    await doQuery(graph_url, chain_id, contract_tokens, initial_ts);
+    await doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts);
 
     fs.unlinkSync(lock_file_name);
 
 }
 
-async function doQuery(graph_url, chain_id, contract_tokens, initial_ts) {
+async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts) {
 
     /*
     const sleep = (milliseconds) => {
@@ -209,8 +209,6 @@ function tweetQuestion(title, url) {
     if (title.length > MAX_TWEET) {
         title = title.slice(0, MAX_TWEET) + '...';
     }
-    console.log('tweet: ', title, url);
-    return;
     const T = new twit(TWITTER_CONFIG);
 
     const tweet = {
@@ -221,7 +219,7 @@ function tweetQuestion(title, url) {
         if (err){
             console.log("Something went wrong!", err);
         } else{
-            console.log("Voila It worked!");
+            // console.log("Voila It worked!");
         }
     }
 
