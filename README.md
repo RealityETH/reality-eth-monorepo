@@ -10,7 +10,6 @@ It comprises the following packages, under packages/:
   * docs: The system documentation as deployed at reality.eth/docs
   * website: The project website as seen at reality.eth/
   * cli-tools: Javascript tools, mainly used for arbitration
-  * python-services: Python code used for back-end services, specifically the twitter bot @RealityEthBot
   * graph: Subgraph definitions for https://thegraph.com/
   * template-generator: A GUI tool to create custom question templates.
   * twitter-bot: A script to tweet out new questions and answers.
