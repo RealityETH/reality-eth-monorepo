@@ -25,9 +25,18 @@ for(let ci=0; ci<chain_ids.length;ci++) {
     }
 }
 
-function processChain(chain_id) {
+async function processChain(chain_id) {
 
-    // console.log(process.argv);
+    const lock_file_name = './state/'+chain_id+'.pid';
+    if (fs.existsSync(lock_file_name)) {
+        console.log("Skipping chain with process already running", chain_id);
+        return;
+    }
+    fs.writeFileSync(lock_file_name, 
+        process.pid,
+        { encoding: "utf8", }
+    );
+
     // console.log('chain_id', chain_id);
 
     if (!chain_id) {
@@ -68,11 +77,20 @@ function processChain(chain_id) {
         initial_ts = chain_state['ts'];
     }
 
-    doQuery(graph_url, chain_id, contract_tokens, initial_ts);
+    await doQuery(graph_url, chain_id, contract_tokens, initial_ts);
+
+    fs.unlinkSync(lock_file_name);
 
 }
 
 async function doQuery(graph_url, chain_id, contract_tokens, initial_ts) {
+
+    /*
+    const sleep = (milliseconds) => {
+      return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+    await sleep(10000);
+    */
 
     const template_res = await axios.post(graph_url, {
       query: `
