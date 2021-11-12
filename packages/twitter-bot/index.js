@@ -14,22 +14,23 @@ const SLEEP_SECS = 10; // How long to pause between runs
 const TWITTER_CONFIG = require('./secrets/config.json');
 
 const chain_ids = process.argv[2].split(',');
+const init = (process.argv.length > 3 && process.argv[3] == 'init');
 
 for(let ci=0; ci<chain_ids.length;ci++) {
     const chain_id = parseInt(chain_ids[ci]);
     if (chain_id) {
         // console.log('processing chain', chain_id)
-        processChain(chain_id);
+        processChain(chain_id, init);
     } else {
         console.log('Could not parse chain ID, skipping:', chain_id);
     }
 }
 
-async function processChain(chain_id) {
+async function processChain(chain_id, init) {
 
     const lock_file_name = './state/'+chain_id+'.pid';
     if (fs.existsSync(lock_file_name)) {
-        console.log("Skipping chain with process already running", chain_id);
+        console.log("Skipping chain with process already running, delete pid file to force", chain_id);
         return;
     }
     fs.writeFileSync(lock_file_name, 
@@ -65,6 +66,11 @@ async function processChain(chain_id) {
 
     const state_file_name = './state/'+chain_id+'.json';
     if (!fs.existsSync(state_file_name)) {
+        if (!init) {
+            console.log('No state file for chain,', chain_id, 'run with init to create it');
+            fs.unlinkSync(lock_file_name);
+            return;
+        }
         // No state file so initialize starting now
         const tsnow = parseInt(new Date().getTime()/1000);
         updateStateFile(chain_id, tsnow, 0);
