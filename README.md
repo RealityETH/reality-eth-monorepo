@@ -13,6 +13,7 @@ It comprises the following packages, under packages/:
   * python-services: Python code used for back-end services, specifically the twitter bot @RealityEthBot
   * graph: Subgraph definitions for https://thegraph.com/
   * template-generator: A GUI tool to create custom question templates.
+  * twitter-bot: A script to tweet out new questions and answers.
 
 See the README of each respective package for details.
 
