@@ -9,51 +9,68 @@ const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js
 const PER_QUERY = 1;
 const MAX_TWEET = 100;
 
+const SLEEP_SECS = 10; // How long to pause between runs
+
 const TWITTER_CONFIG = require('./secrets/config.json');
 
-// console.log(process.argv);
-const chain_id = parseInt(process.argv[2]);
-// console.log('chain_id', chain_id);
+const chain_ids = process.argv[2].split(',');
 
-if (!chain_id) {
-    throw new Error("Missing or unsupported chain ID");
-}
-
-const tokens = rc_contracts.chainTokenList(chain_id);
-const chain_data = rc_contracts.chainData(chain_id);
-
-let contract_tokens = {};
-
-for(const t in tokens) {
-    const configs = rc_contracts.realityETHConfigs(chain_id, t); 
-    // console.log(configs);
-    for (const c in configs) {
-        contract_tokens[c.toLowerCase()] = t;
+for(let ci=0; ci<chain_ids.length;ci++) {
+    const chain_id = parseInt(chain_ids[ci]);
+    if (chain_id) {
+        // console.log('processing chain', chain_id)
+        processChain(chain_id);
+    } else {
+        console.log('Could not parse chain ID, skipping:', chain_id);
     }
 }
 
-if (!'graphURL' in chain_data) {
-    throw new Error("No graph URL found for chain", chain_id);
+function processChain(chain_id) {
+
+    // console.log(process.argv);
+    // console.log('chain_id', chain_id);
+
+    if (!chain_id) {
+        throw new Error("Missing or unsupported chain ID");
+    }
+
+    const tokens = rc_contracts.chainTokenList(chain_id);
+    const chain_data = rc_contracts.chainData(chain_id);
+
+    let contract_tokens = {};
+
+    for(const t in tokens) {
+        const configs = rc_contracts.realityETHConfigs(chain_id, t); 
+        // console.log(configs);
+        for (const c in configs) {
+            contract_tokens[c.toLowerCase()] = t;
+        }
+    }
+
+    if (!'graphURL' in chain_data) {
+        throw new Error("No graph URL found for chain", chain_id);
+    }
+    const graph_url = chain_data['graphURL'];
+
+    // console.log(graph_url);
+
+    const state_file_name = './state/'+chain_id+'.json';
+    if (!fs.existsSync(state_file_name)) {
+        // No state file so initialize starting now
+        const tsnow = parseInt(new Date().getTime()/1000);
+        updateStateFile(chain_id, tsnow, 0);
+    }
+
+    const chain_state = require(state_file_name);
+    // console.log(chain_state);
+    let initial_ts = 0;
+    if ('ts' in chain_state) {
+        initial_ts = chain_state['ts'];
+    }
+
+    doQuery(graph_url, chain_id, contract_tokens, initial_ts);
+
 }
-const graph_url = chain_data['graphURL'];
-
-// console.log(graph_url);
-
-const state_file_name = './state/'+chain_id+'.json';
-if (!fs.existsSync(state_file_name)) {
-    // No state file so initialize starting now
-    const tsnow = parseInt(new Date().getTime()/1000);
-    updateStateFile(chain_id, tsnow, 0);
-}
-
-const chain_state = require(state_file_name);
-// console.log(chain_state);
-let initial_ts = 0;
-if ('ts' in chain_state) {
-    initial_ts = chain_state['ts'];
-}
-
-doQuery(graph_url, chain_id, contract_tokens, initial_ts);
 
 async function doQuery(graph_url, chain_id, contract_tokens, initial_ts) {
 
