@@ -17,7 +17,7 @@
     "deploy:rinkeby": "yarn prepare:rinkeby && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-rinkeby",
     "deploy:sokol": "yarn prepare:sokol && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-sokol",
     "deploy:xdai": "yarn prepare:xdai && graph deploy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-xdai",
-    "deploy:all": "yarn deploy:ava && yarn deploy:bsc && yarn deploy:kovan && yarn deploy::mainnet && yarn deploy:mainnet && yarn deploy:polygon && yarn deploy:rinkeby && yarn deploy:sokol && yarn deploy:xdai",
+    "deploy:all": "yarn deploy:arbitrum && yarn deploy:ava && yarn deploy:bsc && yarn deploy:kovan && yarn deploy:mainnet && yarn deploy:mainnet && yarn deploy:polygon && yarn deploy:rinkeby && yarn deploy:sokol && yarn deploy:xdai",
     "prepare:arbitrum": "yarn clean && node render-templates.js 42161 && graph codegen",
     "prepare:ava": "yarn clean && node render-templates.js 43114 && graph codegen",
     "prepare:bsc": "yarn clean && node render-templates.js 56 && graph codegen",
