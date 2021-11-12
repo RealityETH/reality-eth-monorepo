@@ -145,6 +145,11 @@ export function handleNewAnswer(event: LogNewAnswer): void {
 
   if (!isCommitment) {
     saveAnswer(contractQuestionId, event.params.answer, event.params.bond, event.params.ts);
+    if (event.params.bond > question.lastBond) {
+      question.currentAnswer = event.params.answer;
+      question.currentAnswerBond = event.params.bond;
+      question.currentAnswerTimestamp = event.params.ts;
+    }
   }
   // response.bondAggregate = response.bondAggregate.plus(bond);
 
@@ -228,7 +233,6 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
 }
 
 function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
-
   let question = Question.load(contractQuestionId);
 
   let answerId = contractQuestionId + '-' + answer.toHexString();
@@ -251,14 +255,5 @@ function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts:
   }
 
   let answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
-
-  if (bond > question.lastBond) {
-    question.currentAnswer = answer;
-    question.currentAnswerBond = bond;
-    question.currentAnswerTimestamp = ts;
-    question.answerFinalizedTimestamp = answerFinalizedTimestamp;
-  }
-
-  question.save();
 }
 
