@@ -6,7 +6,7 @@ const rc_contracts = require('@reality.eth/contracts');
 const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js');
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
-const PER_QUERY = 1;
+const PER_QUERY = 100;
 const MAX_TWEET = 100;
 
 const SLEEP_SECS = 10; // How long to pause between runs
