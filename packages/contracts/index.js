@@ -158,6 +158,10 @@ function chainData(chain_id) {
     return chain_info[""+chain_id];
 }
 
+function isChainSupported(chain_id) {
+    return (""+chain_id in chain_info);
+}
+
 function walletAddParameters(chain_id) {
     var params = ['chainId', 'chainName', 'nativeCurrency', 'rpcUrls', 'blockExplorerUrls']
     var ret = {};
@@ -217,3 +221,4 @@ module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
+module.exports.isChainSupported = isChainSupported;

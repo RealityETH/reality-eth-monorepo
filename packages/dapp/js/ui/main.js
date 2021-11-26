@@ -5370,7 +5370,7 @@ function displayWrongChain(specified, detected) {
         specified_network_txt = '[unknown network]';
     }
     if (detected_network_txt == '') {
-        detected_network_txt = '[unknown network]';
+        detected_network_txt = 'another network';
     }
     console.log(specified_network_txt, detected_network_txt);
 
@@ -5462,8 +5462,23 @@ window.addEventListener('load', async function() {
             $("#filter-list").find("[data-category='all']").addClass("selected")
         }
 
+        if (args['network'] && (parseInt(args['network']) != parseInt(cid))) {
+            if (!rc_contracts.isChainSupported(parseInt(args['network']))) {
+                $('body').addClass('error-invalid-network').addClass('error');
+                return;
+            } else {
+                displayWrongChain(parseInt(args['network']), parseInt(cid));
+            }
+            return;
+        }
+
+        if (!rc_contracts.isChainSupported(cid)) {
+            $('body').addClass('error-invalid-network').addClass('error');
+            return;
+        }
+
         if (!TOKEN_TICKER) {
-            TOKEN_TICKER = rc_contracts.defaultTokenForChain(cid); // TODO: Rename to defaultTokenForChain
+            TOKEN_TICKER = rc_contracts.defaultTokenForChain(cid);
             console.log('picked token', TOKEN_TICKER);
         }
 
@@ -5488,7 +5503,6 @@ window.addEventListener('load', async function() {
             const cfg = all_rc_configs[cfg_addr]; 
             START_BLOCKS[cfg.address.toLowerCase()] = cfg.block;
             RC_INSTANCE_VERSIONS[cfg.address.toLowerCase()] = cfg.version_number;
-            
         }
 
         // If not found, load the default
@@ -5528,11 +5542,6 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             $('body').addClass('error-invalid-network').addClass('error');
             return;
         } 
-
-        if (args['network'] && (parseInt(args['network']) != parseInt(cid))) {
-            displayWrongChain(parseInt(args['network']), parseInt(cid));
-            return;
-        }
 
         if (!$('body').hasClass('foreign-proxy')) {
             $('select#token-selection').removeClass('uninitialized');
