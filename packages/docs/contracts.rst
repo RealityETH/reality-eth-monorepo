@@ -23,7 +23,7 @@ You can fetch the final answer for a question by calling
    bytes32 response = resultFor(bytes32 question_id);
 
 
-This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. You often want to cast the resulting ``bytes32`` to a ``uint256`` when you process it. By convention all supported types use ``0xff...ff`` (aka ``bytes32(-1)``) to mean "invalid".
+This will return ``bytes32`` data, or throw an error (``revert``) if the question does not exist or has not been finalized. You often want to cast the resulting ``bytes32`` to a ``uint256`` when you process it. By convention all supported types use ``0xff...ff`` (aka ``bytes32(type(uint256).max)``) to mean "invalid".
 
 
 Interpreting the result of a question
