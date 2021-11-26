@@ -14,6 +14,7 @@ const defaultConfigs = {
 //    maxFeePerGas:         61000000000,
 //    maxPriorityFeePerGas:  1000000000,
     //gasPrice: 70000000000
+    // gasPrice: 10000, // optimism
     //; gasLimit: 6000000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
     // gasLimit: 155734867 // arbitrum
@@ -33,6 +34,7 @@ const chains = {
     'rinkeby': 4,
     'goerli': 5,
     'ubiq': 8,
+    'optimism': 10,
     'kovan': 42,
     'bsc': 56,
     'sokol': 77,
@@ -41,7 +43,8 @@ const chains = {
     'polygon': 137,
     'ava': 43114,
     'arbitrum': 42161,
-    'arbitrum-rinkeby': 421611
+    'arbitrum-rinkeby': 421611,
+    'kovan-optimistic': 69
 }
 const non_infura_chains = {
     'xdai': 'https://xdai.poanetwork.dev',
@@ -52,7 +55,9 @@ const non_infura_chains = {
     'arbitrum': 'https://arb1.arbitrum.io/rpc',
     'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc',
     'ubiq': 'https://rpc.octano.dev',
-    'cheapeth': 'https://node.cheapeth.org/rpc'
+    'cheapeth': 'https://node.cheapeth.org/rpc',
+    'kovan-optimistic': 'https://kovan.optimism.io',
+    'optimism': 'https://mainnet.optimism.io'
 }
 
 function constructContractTemplate(contract_name) {

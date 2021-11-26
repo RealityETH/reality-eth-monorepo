@@ -68,6 +68,23 @@
             "https://ubqblockexplorer.com/"
         ]
     },
+    "10": {
+        "chainId": "0xa",
+        "chainName": "Optimistic Ethereum",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "OETH",
+            "decimals": 18
+        },
+        "network_name": "mainnet",
+        "rpcUrls": [
+            "https://mainnet.optimism.io/"
+        ],
+        "hostedRPC": "https://mainnet.optimism.io",
+        "blockExplorerUrls": [
+            "https://optimistic.etherscan.io"
+        ]
+    },
     "42": {
         "chainId": "0x2a",
         "chainName": "Ethereum Testnet Kovan",
@@ -117,6 +134,23 @@
         "blockExplorerUrls": [
             "https://bscscan.com",
             "https://www.bscscan.com"
+        ]
+    },
+    "69": {
+        "chainId": "0x45",
+        "chainName": "Optimistic Ethereum Testnet Kovan",
+        "nativeCurrency": {
+            "name": "Kovan Ether",
+            "symbol": "KOR",
+            "decimals": 18
+        },
+        "network_name": "kovan",
+        "rpcUrls": [
+            "https://kovan.optimism.io/"
+        ],
+        "hostedRPC": "https://kovan.optimism.io",
+        "blockExplorerUrls": [
+            "https://kovan-optimistic.etherscan.io"
         ]
     },
     "77": {

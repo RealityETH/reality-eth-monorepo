@@ -18,6 +18,10 @@
         "hostedRPC": "https://rpc.octano.dev",
         "explorerURL": "https://ubqblockexplorer.com/"
     },
+    "10": {
+        "hostedRPC": "https://mainnet.optimism.io",
+        "explorerURL": "https://optimistic.etherscan.io"
+    },
     "42": {
         "explorerURL": "https://kovan.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-kovan"
@@ -26,6 +30,10 @@
         "explorerURL": "https://www.bscscan.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "network_name": "bsc"
+    },
+    "69": {
+        "hostedRPC": "https://kovan.optimism.io",
+        "explorerURL": "https://kovan-optimistic.etherscan.io"
     },
     "77": {
         "explorerURL": "https://blockscout.com/poa/sokol",
