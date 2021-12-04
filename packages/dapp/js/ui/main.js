@@ -5331,11 +5331,16 @@ console.log('in foreignProxyInitChain');
     const arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI, provider);
 
     try {
-        const existing_arr = await arb.functions.arbitrationIDToDisputeExists(question_id);
+        const existing_arr = await arb.functions.arbitrationIDToDisputeExists(ethers.BigNumber.from(question_id));
+        console.log('got ', existing_arr, question_id);
         dispute_exists = existing_arr[0];
     } catch (e) {
-        const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
-        dispute_exists = existing_arr[0];
+        try {
+            const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
+            dispute_exists = existing_arr[0];
+        } catch(err) {
+            console.log('Tried to check existence of question ID but calls to both old and new versions failed.');
+        }
     }
 
     console.log('existing dispute_exists?', dispute_exists);
