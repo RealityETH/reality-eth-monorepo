@@ -5311,7 +5311,8 @@ function displayForeignProxy(datastr) {
     console.log('displayForeignProxy', qdata);
 }
 
-function foreignProxyInitChain(cid) {
+async function foreignProxyInitChain(cid) {
+console.log('in foreignProxyInitChain');
     if (!$('body').hasClass('foreign-proxy')) {
         return;
     }
@@ -5325,41 +5326,47 @@ function foreignProxyInitChain(cid) {
 
     console.log('foreign proxy arbitrator is', arb_addr, 'bond', FOREIGN_PROXY_DATA.bond, 'qid', question_id);
 
+    let dispute_exists = false;
     // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
     const arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI, provider);
-    arb.functions.questionIDToDisputeExists(question_id).then(function(existing) {
-        const dispute_exists = existing[0];
-        console.log('existing dispute_exists', dispute_exists);
-        if (dispute_exists) {
-            $('body').addClass('foreign-proxy-transaction-complete').removeClass('foreign-proxy-ready').removeClass('foreign-proxy-transaction-sent');
-        } else {
-            arb.functions.getDisputeFee(question_id).then(function(fee_arr) {
-                const fee = fee_arr[0];
-                $('.proxy-arbitration-fee').text(humanReadableWei(fee));
-                $('.proxy-request-arbitration-button').attr('data-question-fee', fee.toHexString());
-                $('.proxy-contested-answer').text(rc_question.getAnswerString(FOREIGN_PROXY_DATA.question_json, FOREIGN_PROXY_DATA.best_answer));
-               
-                $('.proxy-request-arbitration-button').click(function() {
-                    console.log('fee si', fee.toHexString());
-                    // Normally would be, but Kleros didn't like the max_previous method
-                    //  arb.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from:ACCOUNT, value: arbitration_fee})
-                    console.log('sending arbitration requiest');
-                    const SignedArbitrator = arb.connect(signer);
-                    SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.best_answer, {from:ACCOUNT, value: fee}).then(function(result_tx) {
-                        $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
-                    });
+
+    try {
+        const existing_arr = await arb.functions.arbitrationIDToDisputeExists(question_id);
+        dispute_exists = existing_arr[0];
+    } catch (e) {
+        const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
+        dispute_exists = existing_arr[0];
+    }
+
+    console.log('existing dispute_exists?', dispute_exists);
+    if (dispute_exists) {
+        $('body').addClass('foreign-proxy-transaction-complete').removeClass('foreign-proxy-ready').removeClass('foreign-proxy-transaction-sent');
+        return;
+    } else {
+        try {
+            const fee_arr = await arb.functions.getDisputeFee(question_id);
+            const fee = fee_arr[0];
+            $('.proxy-arbitration-fee').text(humanReadableWei(fee));
+            $('.proxy-request-arbitration-button').attr('data-question-fee', fee.toHexString());
+            $('.proxy-contested-answer').text(rc_question.getAnswerString(FOREIGN_PROXY_DATA.question_json, FOREIGN_PROXY_DATA.best_answer));
+           
+            $('.proxy-request-arbitration-button').click(function() {
+                console.log('fee si', fee.toHexString());
+                // Normally would be, but Kleros didn't like the max_previous method
+                //  arb.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from:ACCOUNT, value: arbitration_fee})
+                console.log('sending arbitration requiest');
+                const SignedArbitrator = arb.connect(signer);
+                SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.best_answer, {from:ACCOUNT, value: fee}).then(function(result_tx) {
+                    $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
                 });
-
-                $('body').addClass('foreign-proxy-ready');
-
-            }).catch(function(err) {
-                console.log('at err', err);
             });
+
+            $('body').addClass('foreign-proxy-ready');
+        } catch (err) {
+            console.log('Arbitrator failed with error', err);
+            markArbitratorFailed(RC_DEFAULT_ADDRESS, arb_addr);
         }
-    }).catch(function(err) {
-        console.log('Arbitrator failed with error', err);
-        markArbitratorFailed(RC_DEFAULT_ADDRESS, arb_addr);
-    });
+    }
 }
 
 function displayWrongChain(specified, detected) {
