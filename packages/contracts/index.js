@@ -8,6 +8,7 @@ function realityETHInstance(config) {
     const abis = {
         'RealityETH-2.0': require('./abi/solc-0.8.6/RealityETH-2.0.abi.json'), 
         'RealityETH-2.1': require('./abi/solc-0.8.6/RealityETH-2.1.abi.json'),
+        'RealityETH-2.1-rc1': require('./abi/solc-0.8.6/RealityETH-2.1.abi.json'),
         'RealityETH-3.0': require('./abi/solc-0.8.6/RealityETH-3.0.abi.json'),
         'RealityETH_ERC20-2.0': require('./abi/solc-0.8.6/RealityETH_ERC20-2.0.abi.json'),
         'RealityETH_ERC20-3.0': require('./abi/solc-0.8.6/RealityETH_ERC20-3.0.abi.json')
