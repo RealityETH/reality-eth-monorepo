@@ -519,6 +519,5 @@
       ],
       "stateMutability": "view",
       "type": "function"
-    },
-    {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"arbitrationIDToDisputeExists","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}
+    }
   ]

@@ -40,8 +40,9 @@ let ARBITRATOR_METADATA = require('./arbitrator_metadata_legacy.json'); // Old c
 const TEMPLATE_CONFIG = rc_contracts.templateConfig();
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
-// Special ABI for Kleros
-const PROXIED_ARBITRATOR_ABI = require('../../abi/ProxiedArbitrator.json');
+// Special ABIs for Kleros
+const PROXIED_ARBITRATOR_ABI_OLD = require('../../abi/kleros/ProxiedArbitratorOld.json');
+const PROXIED_ARBITRATOR_ABI_NEW = require('../../abi/kleros/ProxiedArbitratorNew.json');
 
 let SUBMITTED_QUESTION_ID_BY_TIMESTAMP = {};
 let USER_CLAIMABLE_BY_CONTRACT = {};
@@ -5327,19 +5328,44 @@ console.log('in foreignProxyInitChain');
     console.log('foreign proxy arbitrator is', arb_addr, 'bond', FOREIGN_PROXY_DATA.bond, 'qid', question_id);
 
     let dispute_exists = false;
-    // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
-    const arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI, provider);
+    let old_version = false;
 
+    // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
+    let arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI_NEW, provider);
+
+    console.log('Checking for an existing dispute');
     try {
+        console.log('Trying new contract API');
         const existing_arr = await arb.functions.arbitrationIDToDisputeExists(ethers.BigNumber.from(question_id));
-        console.log('got ', existing_arr, question_id);
+        // console.log('got ', existing_arr, question_id);
         dispute_exists = existing_arr[0];
+
+        // See if it was requested by the current user but hasn't been handled yet
+        if (!dispute_exists) {
+            const arb_req_filter = arb.filters.ArbitrationRequested(question_id);
+            const arb_requests = await arb.queryFilter(arb_req_filter);
+
+            if (arb_requests.length > 0) {
+                for(const arb_req in arb_requests) {
+                    const req_addr = arb_requests[arb_req].args._requester;
+                    const existing_2 = await arb.functions.arbitrationRequests(ethers.BigNumber.from(question_id), req_addr);
+                    if (existing_2.status && existing_2.status > 0 && existing_2.status < 4) { // Created and not failed
+                        dispute_exists = true;
+                        break;
+                    }
+                }        
+            }
+
+        }
     } catch (e) {
+        console.log('Error trying new contract API, trying old API');
+        arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI_OLD, provider);
+        old_version = true;
         try {
             const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
             dispute_exists = existing_arr[0];
         } catch(err) {
-            console.log('Tried to check existence of question ID but calls to both old and new versions failed.');
+            console.log('Tried to check existence of question ID but calls to both old and new versions failed.', e, err);
         }
     }
 
@@ -5359,11 +5385,19 @@ console.log('in foreignProxyInitChain');
                 console.log('fee si', fee.toHexString());
                 // Normally would be, but Kleros didn't like the max_previous method
                 //  arb.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from:ACCOUNT, value: arbitration_fee})
-                console.log('sending arbitration requiest');
                 const SignedArbitrator = arb.connect(signer);
-                SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.best_answer, {from:ACCOUNT, value: fee}).then(function(result_tx) {
-                    $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
-                });
+                if (old_version) {
+                    console.log('Sending arbitration request using old API');
+                    // console.log('using best answer', FOREIGN_PROXY_DATA.best_answer);
+                    SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.best_answer, {from:ACCOUNT, value: fee}).then(function(result_tx) {
+                        $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
+                    });
+                } else {
+                    console.log('Sending arbitration request using new API');
+                    SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.bond, {from:ACCOUNT, value: fee}).then(function(result_tx) {
+                        $('body').addClass('foreign-proxy-transaction-sent').removeClass('foreign-proxy-ready');
+                    });
+                }
             });
 
             $('body').addClass('foreign-proxy-ready');
