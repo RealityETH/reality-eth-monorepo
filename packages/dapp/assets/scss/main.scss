@@ -3214,6 +3214,10 @@ div.contract-claim-section-template {
     display:block;
 }
 
+.unconfirmed-answer-item .timeago-container {
+    visibility:hidden;
+}
+
 .has-time-input input.datetime-input-date {
     width:48%;
 }
@@ -3227,4 +3231,5 @@ input.datetime-input-time {
     visibility:visible;
     display:block;
 }
+
 
