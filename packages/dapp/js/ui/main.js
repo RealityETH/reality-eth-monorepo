@@ -148,9 +148,9 @@ function nonceFromSeed(paramstr) {
 
 }
 
-async function loadPendingTransactions() {
+async function loadPendingTransactions(chain_id) {
 
-    let txliststr = window.localStorage.getItem('txes');
+    let txliststr = window.localStorage.getItem('tx-'+chain_id);
     //txliststr = '0x815a2c9da2280065fe317a913e0a6141c5a5e3342ec92e1e1c7115f3dd4d1ed6';
     if (!txliststr) {
         return;
@@ -260,7 +260,7 @@ function mergeConfirmedTXes(question) {
                 const idx = history_bond_to_idx[b];
                 if ((question['history'][idx].blockNumber + 100) < CURRENT_BLOCK_NUMBER) {
                     console.log('purging confirmed bond at level', b);
-                    clearPendingTXID(pending_entries_by_bond[b].txid);
+                    clearPendingTXID(pending_entries_by_bond[b].txid, CHAIN_ID);
                 } else {
 console.log('not purging confirmed bond, block is ', question['history'][idx].blockNumber,' vs ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
 }
@@ -277,13 +277,13 @@ console.log('not purging confirmed bond, block is ', question['history'][idx].bl
     return question;
 }
 
-function storePendingTXID(txid) {
+function storePendingTXID(txid, chain_id) {
     const MAX_PENDING_STORE = 100;
     const ITEM_LENGTH = 66; // "0x" plus 32 hex characters
     if (txid.length != ITEM_LENGTH) {
         throw new Error("Unexpected txid length: "+txid);
     }
-    let current = window.localStorage.getItem('txes');
+    let current = window.localStorage.getItem('tx-'+chain_id);
     if (current) {
         if (current.includes(txid)) {
             return true;
@@ -295,18 +295,18 @@ function storePendingTXID(txid) {
     } else {
         current = '';
     }
-    window.localStorage.setItem('txes', current + txid);
+    window.localStorage.setItem('tx-'+chain_id, current + txid);
     return true;
 }
 
-function clearPendingTXID(txid) {
-    console.log('clearPendingTXID', txid);
+function clearPendingTXID(txid, chain_id) {
+    console.log('clearPendingTXID', txid, chain_id);
     const ITEM_LENGTH = 66; // "0x" plus 32 hex characters
     if (txid.length != ITEM_LENGTH) {
         throw new Error("Unexpected txid length: "+txid);
     }
-    let current = window.localStorage.getItem('txes');
-    window.localStorage.setItem('txes', current.replace(txid, ''));
+    let current = window.localStorage.getItem('tx-'+chain_id);
+    window.localStorage.setItem('tx-'+chain_id, current.replace(txid, ''));
 }
 
 
@@ -3998,7 +3998,7 @@ console.log('val fail', min_amount, current_question);
 
         const handleAnswerSubmit = function(tx_response) {
             const txid = tx_response.hash;
-            storePendingTXID(txid);
+            storePendingTXID(txid, CHAIN_ID);
             const contract = tx_response.to;
             clearForm(parent_div, question_json);
             const fake_history = {
@@ -5608,7 +5608,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         // NB If this fails we'll try again when we need to do something using the account
         getAccount(true);
 
-        loadPendingTransactions();
+        loadPendingTransactions(cid);
         
         for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
             const rcaddr = RC_DISPLAYED_CONTRACTS[i];
