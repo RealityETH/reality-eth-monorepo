@@ -5339,33 +5339,27 @@ console.log('in foreignProxyInitChain');
         const existing_arr = await arb.functions.arbitrationIDToDisputeExists(ethers.BigNumber.from(question_id));
         // console.log('got ', existing_arr, question_id);
         dispute_exists = existing_arr[0];
-
-        // See if it was requested by the current user but hasn't been handled yet
-        if (!dispute_exists) {
-            const arb_req_filter = arb.filters.ArbitrationRequested(question_id);
-            const arb_requests = await arb.queryFilter(arb_req_filter);
-
-            if (arb_requests.length > 0) {
-                for(const arb_req in arb_requests) {
-                    const req_addr = arb_requests[arb_req].args._requester;
-                    const existing_2 = await arb.functions.arbitrationRequests(ethers.BigNumber.from(question_id), req_addr);
-                    if (existing_2.status && existing_2.status > 0 && existing_2.status < 4) { // Created and not failed
-                        dispute_exists = true;
-                        break;
-                    }
-                }        
-            }
-
-        }
     } catch (e) {
         console.log('Error trying new contract API, trying old API');
         arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI_OLD, provider);
         old_version = true;
-        try {
-            const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
-            dispute_exists = existing_arr[0];
-        } catch(err) {
-            console.log('Tried to check existence of question ID but calls to both old and new versions failed.', e, err);
+        const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
+        dispute_exists = existing_arr[0];
+    }
+
+    // See if it was requested but hasn't been handled yet
+    if (!dispute_exists) {
+        const arb_req_filter = arb.filters.ArbitrationRequested(question_id);
+        const arb_requests = await arb.queryFilter(arb_req_filter);
+        if (arb_requests.length > 0) {
+            for(const arb_req in arb_requests) {
+                const req_addr = arb_requests[arb_req].args._requester;
+                const existing_2 = await arb.functions.arbitrationRequests(ethers.BigNumber.from(question_id), req_addr);
+                if (existing_2.status && existing_2.status > 0 && existing_2.status < 4) { // Created and not failed
+                    dispute_exists = true;
+                    break;
+                }
+            }        
         }
     }
 
@@ -5386,7 +5380,7 @@ console.log('in foreignProxyInitChain');
                 // Normally would be, but Kleros didn't like the max_previous method
                 //  arb.requestArbitration(question_id, ethers.BigNumber.from(last_seen_bond_hex, 16), {from:ACCOUNT, value: arbitration_fee})
                 const SignedArbitrator = arb.connect(signer);
-                if (old_version) {
+                if (false && old_version) {
                     console.log('Sending arbitration request using old API');
                     // console.log('using best answer', FOREIGN_PROXY_DATA.best_answer);
                     SignedArbitrator.functions.requestArbitration(question_id, FOREIGN_PROXY_DATA.best_answer, {from:ACCOUNT, value: fee}).then(function(result_tx) {
