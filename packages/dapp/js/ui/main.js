@@ -366,7 +366,7 @@ $(document).on('change', 'select.arbitrator', function() {
     }
     const op = $(this).find('option:selected');
     const tos_url = op.attr('data-tos-url');
-    console.log('tos_url', tos_url, 'op', op);
+    // console.log('tos_url', tos_url, 'op', op);
 
     populateTOSSection($(this).closest('.select-container'), tos_url);
 });
