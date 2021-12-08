@@ -233,9 +233,7 @@
                 "block": 17307142,
                 "token_address": null,
                 "notes": "Same as 2.1 except missing an empty address check",
-                "arbitrators": {
-                    "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
-                }
+                "arbitrators": {}
             },
             "RealityETH-2.1": {
                 "address": "0x90a617ed516ab7fAaBA56CcEDA0C5D952f294d03",
