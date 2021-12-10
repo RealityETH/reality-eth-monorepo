@@ -180,7 +180,7 @@ function fillPendingUserTX(tx) {
 	return;
     }
     const inf = inst.interface;
-    console.log('inst is ', inst);
+    // console.log('inst is ', inst);
     const dec = inf.parseTransaction(tx);
     if (!dec) { 
 	console.log('could not parse tx', txid);
@@ -259,7 +259,7 @@ function mergeConfirmedTXes(question) {
                 // If we have a reasonably deep number of confirmations, boot our pending TX which will clearly never be mined
                 // TODO: We might want to keep this somewhere and display that it failed instead of just pretending your failed tx never happened
                 const idx = history_bond_to_idx[b];
-                const purge_block_count = 10;
+                const purge_block_count = 20;
                 if ((question['history'][idx].blockNumber + purge_block_count) < CURRENT_BLOCK_NUMBER) {
                     console.log('purging confirmed bond at level', b);
                     clearPendingTXID(pending_entries_by_bond[b].txid, CHAIN_ID);
@@ -280,7 +280,7 @@ function mergeConfirmedTXes(question) {
 }
 
 function storePendingTXID(txid, chain_id) {
-    const MAX_PENDING_STORE = 100;
+    const MAX_PENDING_STORE = 20;
     const ITEM_LENGTH = 66; // "0x" plus 32 hex characters
     if (txid.length != ITEM_LENGTH) {
         throw new Error("Unexpected txid length: "+txid);
