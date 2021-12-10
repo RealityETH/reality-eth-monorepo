@@ -167,7 +167,7 @@ async function loadPendingTransactions(chain_id) {
         const tx = await provider.getTransaction(txid);
         fillPendingUserTX(tx);
     }
-    console.log('PENDING_USER_TXES_BY_CQID', PENDING_USER_TXES_BY_CQID);
+    // console.log('PENDING_USER_TXES_BY_CQID', PENDING_USER_TXES_BY_CQID);
     
 }
 
@@ -259,12 +259,13 @@ function mergeConfirmedTXes(question) {
                 // If we have a reasonably deep number of confirmations, boot our pending TX which will clearly never be mined
                 // TODO: We might want to keep this somewhere and display that it failed instead of just pretending your failed tx never happened
                 const idx = history_bond_to_idx[b];
-                if ((question['history'][idx].blockNumber + 100) < CURRENT_BLOCK_NUMBER) {
+                const purge_block_count = 10;
+                if ((question['history'][idx].blockNumber + purge_block_count) < CURRENT_BLOCK_NUMBER) {
                     console.log('purging confirmed bond at level', b);
                     clearPendingTXID(pending_entries_by_bond[b].txid, CHAIN_ID);
                 } else {
-console.log('not purging confirmed bond, block is ', question['history'][idx].blockNumber,' vs ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
-}
+                    console.log('pending tx confirmed but not purging yet in case of reorg, will purge at ', question['history'][idx].blockNumber + purge_block_count,', only at ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
+                }
                 continue;
             }
             if (b in history_unconfirmed_bond_to_idx) {
