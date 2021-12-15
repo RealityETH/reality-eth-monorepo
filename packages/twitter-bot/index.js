@@ -7,7 +7,7 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
 const PER_QUERY = 100;
-const MAX_TWEET = 100;
+const MAX_TWEET = 180;
 
 const SLEEP_SECS = 10; // How long to pause between runs
 
@@ -172,19 +172,20 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
 
         let current_answer = null;
         let seen_ts = q.createdTimestamp;
-        let bond = null;
+        let bond_txt = '';
+        let bounty_txt = '';
+        let current_answer_txt = '';
         const decimals = tokens[token].decimals;
         if (q.currentAnswerTimestamp && parseInt(q.currentAnswerTimestamp) > 0) {
             // console.log('q.currentAnswerTimestamp', q.currentAnswerTimestamp, 'gt', initial_ts);
-            current_answer = rc_question.getAnswerString(question_json, q.currentAnswer);
-            title = title + ' ' + current_answer;
+            current_answer_txt = rc_question.getAnswerString(question_json, q.currentAnswer);
             seen_ts = q.currentAnswerTimestamp;
             // console.log('bond', q.currentAnswerBond);
             bond = ethers.utils.formatUnits(q.currentAnswerBond, decimals).replace(/\.0+$/,'') + ' ' + token;
-            title = title + ' ('+bond+')'
+            bond_txt = '('+bond+')';
         } else if (q.bounty > 0) {
             const bounty = ethers.utils.formatUnits(q.bounty, decimals).replace(/\.0+$/,'') + ' ' + token;
-            title = title + ' (pays '+bounty+')'
+            bounty_txt = '(pays '+bounty+')'
         }
 
         //console.log(url);
@@ -200,19 +201,57 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
             console.log('skipping question with errors', question_json['errors'])
             continue;
         }
-        await tweetQuestion(title, url);
+        await tweetQuestion(title, bond_txt, bounty_txt, current_answer_txt, url);
         updateStateFile(chain_id, seen_ts, i);
     }
 }
 
-function tweetQuestion(title, url) {
+function tweetQuestion(title, bond_txt, bounty_txt, answer_txt, url) {
 
-    if (title.length > MAX_TWEET) {
-        title = title.slice(0, MAX_TWEET) + '...';
+    // See if we can do the whole thing without trimming
+    let str = title;
+    if (bounty_txt != '') {
+        str = str + ' ' + bounty_txt;
+    }
+    if (answer_txt != '') {
+        str = str + ' ' + answer_txt;
+    }
+    if (bond_txt != '') {
+        str = str + ' ' + bond_txt;
+    }
+
+    if (str.length > MAX_TWEET) {
+
+        str = '';
+
+        // Try to keep the answer, but truncate it if we need to
+        if (answer_txt.length > 20) {
+            answer_txt = answer_txt.slice(0, 20) + '...';
+        }
+
+        let end_part = answer_txt;
+        
+        if (bond_txt != '') {
+            end_part = end_part + ' ' + bond_txt;
+        }
+        
+        if (bounty_txt != '') {
+            end_part = bounty_txt + ' ' + end_part;
+        }
+
+        // Now trim the title to whatever we have left
+        const chars_remain = MAX_TWEET - end_part.length;
+        if (title.length > chars_remain) {
+            title = title.slice(0, chars_remain) + '...';
+        }
+
+        if (end_part != '') {
+            str = title + ' ' + end_part;
+        }
     }
 
     const tweet = {
-        status: title + ' ' + url
+        status: str + ' ' + url
     };
 
     if (NOOP) {
