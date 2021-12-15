@@ -15,6 +15,7 @@ const TWITTER_CONFIG = require('./secrets/config.json');
 
 const chain_ids = process.argv[2].split(',');
 const init = (process.argv.length > 3 && process.argv[3] == 'init');
+const NOOP = ('noop' in TWITTER_CONFIG && TWITTER_CONFIG['noop']);
 
 for(let ci=0; ci<chain_ids.length;ci++) {
     const chain_id = parseInt(chain_ids[ci]);
@@ -209,11 +210,17 @@ function tweetQuestion(title, url) {
     if (title.length > MAX_TWEET) {
         title = title.slice(0, MAX_TWEET) + '...';
     }
-    const T = new twit(TWITTER_CONFIG);
 
     const tweet = {
         status: title + ' ' + url
     };
+
+    if (NOOP) {
+        console.log(tweet);
+        return;
+    }
+
+    const T = new twit(TWITTER_CONFIG);
 
     const tweeted = function(err, data, response) {
         if (err){
