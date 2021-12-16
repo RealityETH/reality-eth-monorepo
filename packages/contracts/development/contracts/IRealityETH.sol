@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.10;
 
 interface IRealityETH {
   function claimWinnings ( bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers ) external;

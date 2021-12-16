@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.10;
 
 import './BalanceHolderERC20.sol';
 
