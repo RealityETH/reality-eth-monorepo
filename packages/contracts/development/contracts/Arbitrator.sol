@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.6;
 
-import './IRealitio.sol';
+import './IRealityETH.sol';
 import './IERC20.sol';
 import './Owned.sol';
 
 contract Arbitrator is Owned {
 
-    IRealitio public realitio;
+    IRealityETH public realitio;
 
     mapping(bytes32 => uint256) public arbitration_bounties;
 
@@ -49,7 +49,7 @@ contract Arbitrator is Owned {
 
     /// @notice Returns the Realitio contract address - deprecated in favour of realitio()
     function realitycheck() 
-    external view returns(IRealitio) {
+    external view returns(IRealityETH) {
         return realitio;
     }
 
@@ -58,7 +58,7 @@ contract Arbitrator is Owned {
     function setRealitio(address addr) 
         onlyOwner 
     public {
-        realitio = IRealitio(addr);
+        realitio = IRealityETH(addr);
         emit LogSetRealitio(addr);
     }
 

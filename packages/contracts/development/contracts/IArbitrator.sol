@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.6;
 
-import './IRealitio.sol';
+import './IRealityETH.sol';
 import './IERC20.sol';
 import './IOwned.sol';
 
@@ -10,8 +10,8 @@ interface IArbitrator {
   function metadata (  ) external view returns ( string memory );
   function owner (  ) external view returns ( address );
   function arbitration_bounties ( bytes32 ) external view returns ( uint256 );
-  function realitio (  ) external view returns ( IRealitio );
-  function realitycheck (  ) external view returns ( IRealitio );
+  function realitio (  ) external view returns ( IRealityETH );
+  function realitycheck (  ) external view returns ( IRealityETH );
   function setRealitio ( address addr ) external;
   function setDisputeFee ( uint256 fee ) external;
   function setCustomDisputeFee ( bytes32 question_id, uint256 fee ) external;

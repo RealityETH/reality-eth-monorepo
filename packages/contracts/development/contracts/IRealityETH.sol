@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.6;
 
-interface IRealitio {
+interface IRealityETH {
   function claimWinnings ( bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers ) external;
   function getFinalAnswerIfMatches ( bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond ) external view returns ( bytes32 );
   function getBounty ( bytes32 question_id ) external view returns ( uint256 );
