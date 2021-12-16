@@ -8,7 +8,6 @@ import './IOwned.sol';
 
 interface IArbitrator {
   function metadata (  ) external view returns ( string memory );
-  function owner (  ) external view returns ( address );
   function arbitration_bounties ( bytes32 ) external view returns ( uint256 );
   function realitio (  ) external view returns ( IRealityETH );
   function realitycheck (  ) external view returns ( IRealityETH );
@@ -23,6 +22,4 @@ interface IArbitrator {
   function withdrawERC20 ( IERC20 _token, address addr ) external;
   function callWithdraw (  ) external;
   function setMetaData ( string memory _metadata ) external;
-  function foreignProxy() external returns (address);
-  function foreignChainId() external returns (uint256);
 }
