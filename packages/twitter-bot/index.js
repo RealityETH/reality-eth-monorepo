@@ -245,7 +245,9 @@ function tweetQuestion(title, bond_txt, bounty_txt, answer_txt, url) {
             title = title.slice(0, chars_remain) + '...';
         }
 
-        if (end_part != '') {
+        if (end_part == '') {
+            str = title;
+        } else {
             str = title + ' ' + end_part;
         }
     }
