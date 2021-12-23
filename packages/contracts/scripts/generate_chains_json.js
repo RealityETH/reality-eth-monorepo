@@ -42,6 +42,9 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
             if (thisr.indexOf('INFURA_API_KEY') !== -1) {
                 continue;
             }
+            if (thisr.indexOf('ALCHEMY_API_KEY') !== -1) {
+                continue;
+            }
             rpc.push(thisr);
         }
     }
