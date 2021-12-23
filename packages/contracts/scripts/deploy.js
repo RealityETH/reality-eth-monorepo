@@ -14,8 +14,8 @@ const defaultConfigs = {
 //    maxFeePerGas:         61000000000,
 //    maxPriorityFeePerGas:  1000000000,
     //gasPrice: 70000000000
-    // gasPrice: 10000, // optimism
-    //; gasLimit: 6000000,
+    // gasPrice: 10000, // optimism 1000000,
+    //; gasLimit: 6000000, // optimism 4500000
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
     // gasLimit: 155734867 // arbitrum
 }
