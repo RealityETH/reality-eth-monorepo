@@ -44,7 +44,8 @@ const chains = {
     'ava': 43114,
     'arbitrum': 42161,
     'arbitrum-rinkeby': 421611,
-    'kovan-optimistic': 69
+    'kovan-optimistic': 69,
+    'kintsugi': 1337702,
 }
 const non_infura_chains = {
     'xdai': 'https://xdai.poanetwork.dev',
@@ -57,7 +58,8 @@ const non_infura_chains = {
     'ubiq': 'https://rpc.octano.dev',
     'cheapeth': 'https://node.cheapeth.org/rpc',
     'kovan-optimistic': 'https://kovan.optimism.io',
-    'optimism': 'https://mainnet.optimism.io'
+    'optimism': 'https://mainnet.optimism.io',
+    'kintsugi': 'https://rpc.kintsugi.themerge.dev',
 }
 
 function constructContractTemplate(contract_name) {

@@ -65,5 +65,8 @@
     },
     "421611": {
         "network_name": "arbitrum-rinkeby"
+    },
+    "1337702": {
+        "network_name": "kintsugi"
     }
 }

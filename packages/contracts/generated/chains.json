@@ -296,5 +296,22 @@
         "blockExplorerUrls": [
             "https://rinkeby-explorer.arbitrum.io"
         ]
+    },
+    "1337702": {
+        "chainId": "0x146966",
+        "chainName": "Kintsugi merge testnet",
+        "nativeCurrency": {
+            "name": "kintsugi Ethere",
+            "symbol": "kiETH",
+            "decimals": 18
+        },
+        "network_name": "kintsugi",
+        "rpcUrls": [
+            "https://rpc.kintsugi.themerge.dev"
+        ],
+        "hostedRPC": "https://rpc.kintsugi.themerge.dev",
+        "blockExplorerUrls": [
+            "https://explorer.kintsugi.themerge.dev/"
+        ]
     }
 }

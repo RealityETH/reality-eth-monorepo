@@ -361,5 +361,15 @@
                 "arbitrators": {}
             }
         }
+    },
+    "1337702": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x45fF90518c92C0AcF5C58784435852B5F0CBD4Be",
+                "block": 47012,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
     }
 }
