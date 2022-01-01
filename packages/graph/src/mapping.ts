@@ -24,7 +24,10 @@ import {
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
-  let tmpl = new Template(event.params.template_id.toHexString());
+  let contractTemplateId = event.address.toHexString() + '-' + event.params.template_id.toHexString();
+  let tmpl = new Template(contractTemplateId);
+  tmpl.templateId = event.params.template_id;
+  tmpl.contract = event.address;
   tmpl.user = event.params.user;
   tmpl.question_text = event.params.question_text;
   tmpl.save()
@@ -36,10 +39,9 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   let question = new Question(contractQuestionId);
   question.questionId = event.params.question_id;  
 
-  let templateId = event.params.template_id
-  let templateIdI32 = templateId.toI32();
+  let contractTemplateId = event.address.toHexString() + '-' + event.params.template_id.toHexString();
 
-  let tmpl = Template.load(templateId.toHexString());
+  let tmpl = Template.load(contractTemplateId);
   let question_text = tmpl.question_text;
 
   let data = event.params.question;
@@ -47,7 +49,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
 
   let json_str = sprintf(question_text, fields)  
 
-  question.templateId = templateId;
+  question.templateId = event.params.template_id
 
   let tryData = json.try_fromBytes(ByteArray.fromUTF8(json_str) as Bytes)
   if (tryData.isOk) {
