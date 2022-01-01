@@ -30,6 +30,7 @@ export function handleNewTemplate(event: LogNewTemplate): void {
   tmpl.contract = event.address;
   tmpl.user = event.params.user;
   tmpl.question_text = event.params.question_text;
+  tmpl.createdBlock = event.block.number;
   tmpl.save()
 }
 

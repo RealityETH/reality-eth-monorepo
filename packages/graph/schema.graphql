@@ -97,4 +97,5 @@ type Template @entity {
   contract: Bytes!
   user: Bytes!
   question_text: String 
+  createdBlock: BigInt!
 }
