@@ -1,10 +1,10 @@
-## Reality.eth monorepo
+## reality.eth monorepo
 
 This repo replaces the old separate repos that were previously at realitio.github.com.
 
 It comprises the following packages, under packages/:
 
-  * contracts: Reality.eth contracts source code, also details of supported networks and tokens and the relevant contract addresses.
+  * contracts: reality.eth contracts source code, also details of supported networks and tokens and the relevant contract addresses.
   * reality-eth-lib: Useful functions for creating and interpreting questions and templates used by the reality.eth system.
   * dapp: The UI front-end as deployed at reality.eth/dapp
   * docs: The system documentation as deployed at reality.eth/docs
