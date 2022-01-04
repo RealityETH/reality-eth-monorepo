@@ -29,7 +29,8 @@
     "56": {
         "explorerURL": "https://www.bscscan.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
-        "network_name": "bsc"
+        "network_name": "bsc",
+        "max_logs": 5000
     },
     "69": {
         "hostedRPC": "https://kovan.optimism.io",

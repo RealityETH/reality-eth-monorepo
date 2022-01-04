@@ -34,7 +34,7 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
     chainparams['chainName'] = chain_info.name;
     chainparams['nativeCurrency'] = chain_info.nativeCurrency;
     chainparams['network_name'] = chain_info.network;
-
+    
     let rpc = [];
     if (chain_info.rpc) {
         for (var r in chain_info.rpc) {
@@ -63,6 +63,10 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
 
     if (our_data['graphURL']) {
         chainparams['graphURL'] = our_data['graphURL'];
+    }
+
+    if (our_data['max_logs']) {
+        chainparams['max_logs'] = our_data['max_logs'];
     }
 
     // Sometimes this is "mainnet" and we have to override it, there's "shortname" but that doesn't seem quite right either

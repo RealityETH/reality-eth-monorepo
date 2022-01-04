@@ -132,6 +132,7 @@
         ],
         "hostedRPC": "https://bsc-dataseed1.binance.org",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
+        "max_logs": 5000,
         "blockExplorerUrls": [
             "https://bscscan.com",
             "https://www.bscscan.com"

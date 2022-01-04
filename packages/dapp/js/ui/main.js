@@ -58,6 +58,7 @@ let IS_INITIAL_LOAD_DONE = false;
 let USE_COMMIT_REVEAL = false;
 
 let HOSTED_RPC_NODE = null;
+let MAX_LOGS = null;
 
 let START_BLOCKS = {};
 
@@ -5125,6 +5126,30 @@ function scheduleFallbackTimer() {
 
 async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
+    if (MAX_LOGS) {
+console.log('MAX_LOGS', MAX_LOGS);
+        if (!end_block) {
+            end_block = CURRENT_BLOCK_NUMBER;
+        }
+        if (!start_block) {
+            start_block = START_BLOCKS[rcinst.address.toLowerCase()];
+        }
+        if (end_block - start_block > MAX_LOGS) {
+            let range_end = end_block;
+            let range_start = end_block - MAX_LOGS;
+            while(range_start >= start_block) {
+                if (range_start < start_block) {
+                    range_start = start_block;
+                }
+                range_end = range_start - 1;
+                range_start = range_end - MAX_LOGS;
+console.log('fetch range', range_start, range_end);
+                await handleUserFilterItem(rcinst, filter, range_start, range_end);
+            }
+        }
+    }
+
+
     const results = await rcinst.queryFilter(filter, start_block, end_block);
     for (let i = 0; i < results.length; i++) {
         //console.log('handlePotentialUserAction', i, results[i]);
@@ -5150,7 +5175,7 @@ async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
 
 function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
 // TODO: If question id, make sure we have the right contract, etc
-    // console.log('fetching user events for contract', contract, acc, start_block, end_block);
+    console.log('fetching user events for contract', contract, acc, start_block, end_block);
     const rcinst = RCInstance(contract);
 
     handleUserFilterItem(rcinst, rcinst.filters.LogNewAnswer(null, question_id, null, acc));
@@ -5751,6 +5776,10 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         CHAIN_INFO = rc_contracts.chainData(cid);
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         BLOCK_EXPLORER = CHAIN_INFO['blockExplorerUrls'][0];
+        if (CHAIN_INFO['max_logs']) {
+            MAX_LOGS = parseInt(CHAIN_INFO['max_logs']);
+        }
+        console.log('CHAIN_INFO', CHAIN_INFO);
 
         if (!initChain(cid)) {
             $('body').addClass('error-invalid-network').addClass('error');
