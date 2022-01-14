@@ -820,7 +820,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         return;
     }
 
-    const handleAskQuestionTX = function(tx_response) {
+    const handleAskQuestionTX = async function(tx_response) {
         //console.log('sent tx with id', txid);
 
         const txid = tx_response.hash;
@@ -896,8 +896,11 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         win.attr('data-contract-question-id', contractQuestionID(q));
         Ps.initialize(win.find('.rcbrowser-inner').get(0));
 
-        // TODO: Add handling for tx_response.wait() 
-        // See https://docs.ethers.io/v5/api/providers/types/#providers-TransactionResponse
+        // Once confirmed, slot into the front page
+        await tx_response.wait();
+        await delay(3000);
+
+        handleQuestionLog(fake_log);
 
     }
 
@@ -2084,6 +2087,7 @@ function getERC20TokenInstance() {
 function populateSection(section_name, question, before_item) {
 
     const question_id = question.question_id;
+console.log('populateSection', question_id);
     const idx = DISPLAY_ENTRIES[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
     if (idx > DISPLAY_ENTRIES[section_name].max_show) {
@@ -2091,7 +2095,7 @@ function populateSection(section_name, question, before_item) {
         return;
     }
 
-    const question_item_id = section_name + '-question-' + question_id;
+    const question_item_id = section_name + '-question-' + contractQuestionID(question);
     const before_item_id = section_name + '-question-' + before_item
 
     const target_question_id = 'qadetail-' + contractQuestionID(question);
