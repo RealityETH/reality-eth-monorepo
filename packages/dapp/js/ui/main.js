@@ -2087,7 +2087,6 @@ function getERC20TokenInstance() {
 function populateSection(section_name, question, before_item) {
 
     const question_id = question.question_id;
-console.log('populateSection', question_id);
     const idx = DISPLAY_ENTRIES[section_name].ids.indexOf(question_id);
     //console.log('idx is ',idx);
     if (idx > DISPLAY_ENTRIES[section_name].max_show) {
