@@ -52,7 +52,7 @@
     },
     "8": {
         "chainId": "0x8",
-        "chainName": "Ubiq Network Mainnet",
+        "chainName": "Ubiq",
         "nativeCurrency": {
             "name": "Ubiq Ether",
             "symbol": "UBQ",
@@ -65,6 +65,7 @@
         ],
         "hostedRPC": "https://rpc.octano.dev",
         "blockExplorerUrls": [
+            "https://ubiqscan.io",
             "https://ubqblockexplorer.com/"
         ]
     },
@@ -158,7 +159,7 @@
         "chainName": "POA Network Sokol",
         "nativeCurrency": {
             "name": "POA Sokol Ether",
-            "symbol": "POA",
+            "symbol": "SPOA",
             "decimals": 18
         },
         "network_name": "poa-sokol",
@@ -197,28 +198,30 @@
         ],
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-xdai",
         "blockExplorerUrls": [
+            "https://blockscout.com/poa/xdai",
             "https://blockscout.com/poa/xdai/"
         ]
     },
     "137": {
         "chainId": "0x89",
-        "chainName": "Matic(Polygon) Mainnet",
+        "chainName": "Polygon Mainnet",
         "nativeCurrency": {
-            "name": "Matic",
+            "name": "MATIC",
             "symbol": "MATIC",
             "decimals": 18
         },
         "network_name": "matic",
         "rpcUrls": [
+            "https://polygon-rpc.com/",
             "https://rpc-mainnet.matic.network",
-            "wss://ws-mainnet.matic.network",
+            "https://matic-mainnet.chainstacklabs.com",
+            "https://rpc-mainnet.maticvigil.com",
             "https://rpc-mainnet.matic.quiknode.pro",
-            "https://matic-mainnet.chainstacklabs.com"
+            "https://matic-mainnet-full-rpc.bwarelabs.com"
         ],
-        "hostedRPC": "https://rpc-mainnet.matic.network",
+        "hostedRPC": "https://polygon-rpc.com/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "blockExplorerUrls": [
-            "https://polygonscan.com",
             "https://polygonscan.com/"
         ]
     },
@@ -272,6 +275,7 @@
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
         "blockExplorerUrls": [
+            "https://snowtrace.io/",
             "https://cchain.explorer.avax.network/"
         ]
     },
@@ -291,6 +295,23 @@
         "hostedRPC": "https://rinkeby.arbitrum.io/rpc",
         "blockExplorerUrls": [
             "https://rinkeby-explorer.arbitrum.io"
+        ]
+    },
+    "1337702": {
+        "chainId": "0x146966",
+        "chainName": "Kintsugi merge testnet",
+        "nativeCurrency": {
+            "name": "kintsugi Ethere",
+            "symbol": "kiETH",
+            "decimals": 18
+        },
+        "network_name": "kintsugi",
+        "rpcUrls": [
+            "https://rpc.kintsugi.themerge.dev"
+        ],
+        "hostedRPC": "https://rpc.kintsugi.themerge.dev",
+        "blockExplorerUrls": [
+            "https://explorer.kintsugi.themerge.dev/"
         ]
     }
 }

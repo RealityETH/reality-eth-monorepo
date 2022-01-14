@@ -93,6 +93,9 @@ type Category @entity {
 
 type Template @entity {
   id: ID!
+  templateId: BigInt!
+  contract: Bytes!
   user: Bytes!
   question_text: String 
+  createdBlock: BigInt!
 }
