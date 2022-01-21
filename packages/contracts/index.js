@@ -51,7 +51,7 @@ function erc20Instance(config) {
 function chainTokenList(chain_id) {
     let ret = {};
     for (t in token_info) {
-        if (all_config[""+chain_id][t]) {
+        if (all_config[""+chain_id] && all_config[""+chain_id][t]) {
             ret[t] = token_info[t];
             ret[t].is_native = (token_info[t].native_chains && token_info[t].native_chains[""+chain_id]);
         }
