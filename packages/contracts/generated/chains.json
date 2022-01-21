@@ -82,6 +82,7 @@
             "https://mainnet.optimism.io/"
         ],
         "hostedRPC": "https://mainnet.optimism.io",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
         "blockExplorerUrls": [
             "https://optimistic.etherscan.io"
         ]
