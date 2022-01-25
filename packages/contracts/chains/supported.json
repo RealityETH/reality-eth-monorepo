@@ -21,7 +21,8 @@
     "10": {
         "hostedRPC": "https://mainnet.optimism.io",
         "explorerURL": "https://optimistic.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism"
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
+        "max_logs": 10000
     },
     "42": {
         "explorerURL": "https://kovan.etherscan.io",
@@ -35,7 +36,8 @@
     },
     "69": {
         "hostedRPC": "https://kovan.optimism.io",
-        "explorerURL": "https://kovan-optimistic.etherscan.io"
+        "explorerURL": "https://kovan-optimistic.etherscan.io",
+        "max_logs": 10000
     },
     "77": {
         "explorerURL": "https://blockscout.com/poa/sokol",

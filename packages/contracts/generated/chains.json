@@ -83,6 +83,7 @@
         ],
         "hostedRPC": "https://mainnet.optimism.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
+        "max_logs": 10000,
         "blockExplorerUrls": [
             "https://optimistic.etherscan.io"
         ]
@@ -152,6 +153,7 @@
             "https://kovan.optimism.io/"
         ],
         "hostedRPC": "https://kovan.optimism.io",
+        "max_logs": 10000,
         "blockExplorerUrls": [
             "https://kovan-optimistic.etherscan.io"
         ]
