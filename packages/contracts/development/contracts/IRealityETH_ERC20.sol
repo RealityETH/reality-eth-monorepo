@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.10;
 
-interface IRealityETH_ERC20 is IBalanceHolderERC20 {
+import './IBalanceHolder_ERC20.sol';
+
+interface IRealityETH_ERC20 is IBalanceHolder_ERC20 {
      event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
      event LogCancelArbitration (bytes32 indexed question_id);
      event LogClaim (bytes32 indexed question_id, address indexed user, uint256 amount);
@@ -60,7 +62,6 @@ interface IRealityETH_ERC20 is IBalanceHolderERC20 {
      function resultForOnceSettled (bytes32 question_id) external view returns (bytes32);
      function template_hashes (uint256) external view returns (bytes32);
      function templates (uint256) external view returns (uint256);
-     function token () external view returns (address);
 }
 
 

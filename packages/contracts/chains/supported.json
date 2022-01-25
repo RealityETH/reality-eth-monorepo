@@ -20,7 +20,8 @@
     },
     "10": {
         "hostedRPC": "https://mainnet.optimism.io",
-        "explorerURL": "https://optimistic.etherscan.io"
+        "explorerURL": "https://optimistic.etherscan.io",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism"
     },
     "42": {
         "explorerURL": "https://kovan.etherscan.io",
