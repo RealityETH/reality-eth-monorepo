@@ -114,6 +114,14 @@ type Claim @entity {
   createdBlock: BigInt!
 }
 
+type Fund @entity {
+  id: ID!
+  question: Question!
+  user: Bytes!
+  amount: BigInt!
+  createdBlock: BigInt!
+}
+
 type Withdrawal @entity {
   id: ID!
   user: Bytes!

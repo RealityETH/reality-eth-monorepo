@@ -13,6 +13,7 @@ import {
     Template,
     Claim,
     Withdrawal,
+    Fund
 } from '../generated/schema'
 
 import {
@@ -241,6 +242,14 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
   }
   question.bounty = event.params.bounty;
   question.save()
+
+  let fundId = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  let fund = new Fund(fundId);
+  fund.question = contractQuestionId;
+  fund.user = event.params.user;
+  fund.amount = event.params.bounty_added;
+  fund.createdBlock = event.block.number;
+  fund.save()
 }
 
 export function handleLogClaim(event: LogClaim): void {
