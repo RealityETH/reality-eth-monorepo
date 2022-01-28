@@ -99,3 +99,18 @@ type Template @entity {
   question_text: String 
   createdBlock: BigInt!
 }
+
+type Claim @entity {
+  id: ID!
+  question: Question!
+  user: Bytes!
+  amount: BigInt!
+  createdBlock: BigInt!
+}
+
+type Withdrawal @entity {
+  id: ID!
+  user: Bytes!
+  amount: BigInt!
+  createdBlock: BigInt!
+}

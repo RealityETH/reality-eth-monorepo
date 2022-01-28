@@ -29,4 +29,8 @@
           handler: handleFinalize
         - event: LogFundAnswerBounty(indexed bytes32,uint256,uint256,indexed address)
           handler: handleFundAnswerBounty
+        - event: LogClaim(indexed bytes32,indexed address,uint256)
+          handler: handleLogClaim
+        - event: LogWithdraw(indexed address,uint256)
+          handler: handleLogWithdraw
       file: ./src/mapping.ts

@@ -11,6 +11,8 @@ import {
     Answer,
     Category,
     Template,
+    Claim,
+    Withdrawal,
 } from '../generated/schema'
 
 import {
@@ -20,7 +22,9 @@ import {
   LogNotifyOfArbitrationRequest,
   LogFinalize,
   LogAnswerReveal,
-  LogFundAnswerBounty
+  LogFundAnswerBounty,
+  LogClaim,
+  LogWithdraw
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
@@ -233,6 +237,29 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
   }
   question.bounty = event.params.bounty;
   question.save()
+}
+
+export function handleLogClaim(event: LogClaim): void {
+   let claimId = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+   let claim = new Claim(claimId)
+
+   let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+   // let question = Question.load(contractQuestionId);
+
+   claim.question = contractQuestionId;
+   claim.user = event.params.user;
+   claim.amount = event.params.amount;
+   claim.createdBlock = event.block.number;
+   claim.save();
+}
+
+export function handleLogWithdraw(event: LogWithdraw): void {
+   let withdrawalId = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+   let withdrawal = new Withdrawal(withdrawalId);
+   withdrawal.user = event.params.user;
+   withdrawal.amount = event.params.amount;
+   withdrawal.createdBlock = event.block.number;
+   withdrawal.save();
 }
 
 function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
