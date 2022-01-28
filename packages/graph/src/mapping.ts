@@ -137,6 +137,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   let responseId = contractQuestionId + '-' + event.params.bond.toHexString();
   let response = new Response(responseId);
   response.question = contractQuestionId;
+  response.createdBlock = event.block.number;
   if (isCommitment) {
     response.commitmentId = event.params.answer;
     response.isUnrevealed = true;
@@ -148,10 +149,11 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   response.answerer = event.params.user;
   response.timestamp = event.params.ts;
   response.isCommitment = isCommitment;
+  response.historyHash = event.params.history_hash;
   response.save();
 
   if (!isCommitment) {
-    saveAnswer(contractQuestionId, event.params.answer, event.params.bond, event.params.ts);
+    saveAnswer(contractQuestionId, event.params.answer, event.params.bond, event.params.ts, event.block.number);
     if (event.params.bond > question.lastBond) {
       question.currentAnswer = event.params.answer;
       question.currentAnswerBond = event.params.bond;
@@ -168,6 +170,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   question.answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
   question.currentScheduledFinalizationTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
 
+  question.historyHash = event.params.history_hash;
   question.lastBond = event.params.bond;
   question.cumulativeBonds = question.cumulativeBonds.plus(event.params.bond);
 
@@ -186,6 +189,7 @@ export function handleAnswerReveal(event: LogAnswerReveal): void {
   }
   response.answer = event.params.answer;
   response.isUnrevealed = false;
+  response.revealedBlock = event.block.number;
   // TODO: Handle question updates etc
   response.save()
 
@@ -262,7 +266,7 @@ export function handleLogWithdraw(event: LogWithdraw): void {
    withdrawal.save();
 }
 
-function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt): void {
+function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt, createdBlock: BigInt): void {
   let question = Question.load(contractQuestionId);
 
   let answerId = contractQuestionId + '-' + answer.toHexString();
@@ -274,6 +278,7 @@ function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts:
     answerEntity.bondAggregate = bond;
     answerEntity.lastBond = bond;
     answerEntity.timestamp = ts;
+    answerEntity.createdBlock = createdBlock;
     answerEntity.save();
   } else {
     answerEntity.bondAggregate = answerEntity.bondAggregate.plus(bond);

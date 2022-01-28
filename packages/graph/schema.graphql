@@ -41,6 +41,8 @@ type Question @entity {
   currentAnswerBond: BigInt!
   currentAnswerTimestamp: BigInt
 
+  historyHash: Bytes
+
   lastBond: BigInt!
   cumulativeBonds: BigInt!
 
@@ -72,8 +74,10 @@ type Response @entity {
   commitmentId: Bytes
   bond: BigInt!
   answerer: Bytes!
+  historyHash: Bytes!
   question: Question!
   createdBlock: BigInt!
+  revealedBlock: BigInt
 }
 
 type Answer @entity {
@@ -116,3 +120,4 @@ type Withdrawal @entity {
   amount: BigInt!
   createdBlock: BigInt!
 }
+
