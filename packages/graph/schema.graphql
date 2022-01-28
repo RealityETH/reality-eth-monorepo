@@ -129,3 +129,16 @@ type Withdrawal @entity {
   createdBlock: BigInt!
 }
 
+type UserAction @entity {
+  id: ID!
+  actionType: String!
+  user: Bytes!
+  question: Question
+  response: Response
+  claim: Claim
+  withdrawal: Withdrawal
+  fund: Fund
+  template: Template
+  createdBlock: BigInt!
+  createdTimestamp: BigInt!
+}

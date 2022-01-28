@@ -13,7 +13,8 @@ import {
     Template,
     Claim,
     Withdrawal,
-    Fund
+    Fund,
+    UserAction,
 } from '../generated/schema'
 
 import {
@@ -37,6 +38,14 @@ export function handleNewTemplate(event: LogNewTemplate): void {
   tmpl.question_text = event.params.question_text;
   tmpl.createdBlock = event.block.number;
   tmpl.save()
+
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'CreateTemplate';
+  ua.user = event.params.user;
+  ua.template = contractTemplateId;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.save();
 }
 
 export function handleNewQuestion(event: LogNewQuestion): void {
@@ -121,6 +130,15 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.bounty = event.transaction.value;
 
   question.save();
+
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'AskQuestion';
+  ua.user = event.params.user;
+  ua.question = contractQuestionId;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.save();
+
 }
 
 export function handleNewAnswer(event: LogNewAnswer): void {
@@ -177,6 +195,15 @@ export function handleNewAnswer(event: LogNewAnswer): void {
 
   question.save();
 
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'AnswerQuestion';
+  ua.user = event.params.user;
+  ua.question = contractQuestionId;
+  ua.response = responseId;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.save();
+
 }
 
 export function handleAnswerReveal(event: LogAnswerReveal): void {
@@ -193,6 +220,15 @@ export function handleAnswerReveal(event: LogAnswerReveal): void {
   response.revealedBlock = event.block.number;
   // TODO: Handle question updates etc
   response.save()
+
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'RevealAnswer';
+  ua.user = event.params.user;
+  ua.question = contractQuestionId;
+  ua.response = responseId;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.save();
 
     //saveAnswer(question, questionId, event.params.answer, event.params.bond, event.params.ts);
 
@@ -215,6 +251,14 @@ export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): 
 
   question.save();
 
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'RequestArbitration';
+  ua.user = event.params.user;
+  ua.question = contractQuestionId;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.save();
+
 }
 
 export function handleFinalize(event: LogFinalize): void {
@@ -230,6 +274,7 @@ export function handleFinalize(event: LogFinalize): void {
   question.currentAnswer = event.params.answer;
 
   question.save();
+
 
 }
 
@@ -264,6 +309,8 @@ export function handleLogClaim(event: LogClaim): void {
    claim.amount = event.params.amount;
    claim.createdBlock = event.block.number;
    claim.save();
+
+
 }
 
 export function handleLogWithdraw(event: LogWithdraw): void {
