@@ -73,6 +73,7 @@ type Response @entity {
   bond: BigInt!
   answerer: Bytes!
   question: Question!
+  createdBlock: BigInt!
 }
 
 type Answer @entity {
@@ -82,6 +83,7 @@ type Answer @entity {
   lastBond: BigInt!
   bondAggregate: BigInt!
   question: Question!
+  createdBlock: BigInt!
 }
 
 type Category @entity {
