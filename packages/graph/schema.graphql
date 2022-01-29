@@ -22,7 +22,8 @@ type Question @entity {
   createdBlock: BigInt!
   createdTimestamp: BigInt!
 
-  templateId: BigInt!
+  template: Template
+
   data: String!
   json_str: String
 

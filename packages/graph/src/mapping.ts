@@ -55,16 +55,15 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.questionId = event.params.question_id;  
 
   let contractTemplateId = event.address.toHexString() + '-' + event.params.template_id.toHexString();
-
   let tmpl = Template.load(contractTemplateId);
+  question.template = contractTemplateId;
+
   let question_text = tmpl.question_text;
 
   let data = event.params.question;
   let fields = data.split('\u241f');
 
   let json_str = sprintf(question_text, fields)  
-
-  question.templateId = event.params.template_id
 
   let tryData = json.try_fromBytes(ByteArray.fromUTF8(json_str) as Bytes)
   if (tryData.isOk) {
