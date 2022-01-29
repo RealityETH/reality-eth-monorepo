@@ -113,6 +113,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.createdBlock = event.block.number;
   question.createdTimestamp = event.params.created;
 
+  question.user = event.params.user;
   question.arbitrator = event.params.arbitrator;
   question.openingTimestamp = event.params.opening_ts;
   question.timeout = event.params.timeout;
