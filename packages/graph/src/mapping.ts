@@ -166,7 +166,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
     response.isUnrevealed = false;
   }
   response.bond = event.params.bond;
-  response.answerer = event.params.user;
+  response.user = event.params.user;
   response.timestamp = event.params.ts;
   response.isCommitment = isCommitment;
   response.historyHash = event.params.history_hash;

@@ -75,7 +75,7 @@ type Response @entity {
   isCommitment: Boolean!
   commitmentId: Bytes
   bond: BigInt!
-  answerer: Bytes!
+  user: Bytes!
   historyHash: Bytes!
   question: Question!
   createdBlock: BigInt!
