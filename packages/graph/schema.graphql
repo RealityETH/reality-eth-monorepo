@@ -43,6 +43,7 @@ type Question @entity {
   currentAnswerBond: BigInt!
   currentAnswerTimestamp: BigInt
 
+  contentHash: Bytes
   historyHash: Bytes
 
   lastBond: BigInt!

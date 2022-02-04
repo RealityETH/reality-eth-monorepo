@@ -107,6 +107,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.contract = contract;
 
   question.data = data
+  question.contentHash = event.params.content_hash;
 
   question.qJsonStr = qJsonStr
 
