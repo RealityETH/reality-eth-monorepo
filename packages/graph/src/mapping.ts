@@ -35,7 +35,7 @@ export function handleNewTemplate(event: LogNewTemplate): void {
   tmpl.templateId = event.params.template_id;
   tmpl.contract = event.address;
   tmpl.user = event.params.user;
-  tmpl.question_text = event.params.question_text;
+  tmpl.questionText = event.params.question_text;
   tmpl.createdBlock = event.block.number;
   tmpl.save()
 
@@ -58,35 +58,35 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   let tmpl = Template.load(contractTemplateId);
   question.template = contractTemplateId;
 
-  let question_text = tmpl.question_text;
+  let questionText = tmpl.questionText;
 
   let data = event.params.question;
   let fields = data.split('\u241f');
 
-  let json_str = sprintf(question_text, fields)  
+  let qJsonStr = sprintf(questionText, fields)  
 
-  let tryData = json.try_fromBytes(ByteArray.fromUTF8(json_str) as Bytes)
+  let tryData = json.try_fromBytes(ByteArray.fromUTF8(qJsonStr) as Bytes)
   if (tryData.isOk) {
     let json_dict = tryData.value.toObject()
 
-    let q_title = json_dict.get('title')
-    if (q_title != null && q_title.kind === JSONValueKind.STRING) {
-      question.q_title = q_title.toString()
+    let qTitle = json_dict.get('title')
+    if (qTitle != null && qTitle.kind === JSONValueKind.STRING) {
+      question.qTitle = qTitle.toString()
     }
 
-    let q_category = json_dict.get('category')
-    if (q_category != null && q_category.kind == JSONValueKind.STRING) {
-        question.q_category = q_category.toString();
+    let qCategory = json_dict.get('category')
+    if (qCategory != null && qCategory.kind == JSONValueKind.STRING) {
+        question.qCategory = qCategory.toString();
     }
 
-    let q_lang = json_dict.get('lang')
-    if (q_lang != null && q_lang.kind == JSONValueKind.STRING) {
-        question.q_lang = q_lang.toString();
+    let qLang = json_dict.get('lang')
+    if (qLang != null && qLang.kind == JSONValueKind.STRING) {
+        question.qLang = qLang.toString();
     }
 
-    let q_type = json_dict.get('type')
-    if (q_type != null && q_type.kind == JSONValueKind.STRING) {
-        question.q_type = q_type.toString();
+    let qType = json_dict.get('type')
+    if (qType != null && qType.kind == JSONValueKind.STRING) {
+        question.qType = qType.toString();
     }
 
     let q_outcomes_val = json_dict.get('outcomes')
@@ -107,7 +107,8 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.contract = contract;
 
   question.data = data
-  question.json_str = json_str
+
+  question.qJsonStr = qJsonStr
 
   question.createdBlock = event.block.number;
   question.createdTimestamp = event.params.created;
