@@ -18,6 +18,7 @@ import {
 } from '../generated/schema'
 
 import {
+  RealityETH,
   LogNewTemplate,
   LogNewQuestion,
   LogNewAnswer,
@@ -304,15 +305,17 @@ export function handleLogClaim(event: LogClaim): void {
    let claim = new Claim(claimId)
 
    let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
-   // let question = Question.load(contractQuestionId);
-
    claim.question = contractQuestionId;
    claim.user = event.params.user;
    claim.amount = event.params.amount;
    claim.createdBlock = event.block.number;
    claim.save();
 
+   let question = Question.load(contractQuestionId);
+   let contract = RealityETH.bind(event.address)
+   question.historyHash = contract.getHistoryHash(event.params.question_id);
 
+   question.save();
 }
 
 export function handleLogWithdraw(event: LogWithdraw): void {
