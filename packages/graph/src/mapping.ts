@@ -349,7 +349,5 @@ function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts:
     }
     answerEntity.save();
   }
-
-  let answerFinalizedTimestamp = question.arbitrationOccurred ? ts : ts.plus(question.timeout);
 }
 
