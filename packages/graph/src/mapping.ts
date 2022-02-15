@@ -198,6 +198,9 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   question.lastBond = event.params.bond;
   question.cumulativeBonds = question.cumulativeBonds.plus(event.params.bond);
 
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
+
   question.save();
 
   let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
