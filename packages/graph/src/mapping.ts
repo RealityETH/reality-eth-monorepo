@@ -114,6 +114,8 @@ export function handleNewQuestion(event: LogNewQuestion): void {
 
   question.createdBlock = event.block.number;
   question.createdTimestamp = event.params.created;
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
 
   question.user = event.params.user;
   question.arbitrator = event.params.arbitrator;
@@ -221,8 +223,23 @@ export function handleAnswerReveal(event: LogAnswerReveal): void {
   response.answer = event.params.answer;
   response.isUnrevealed = false;
   response.revealedBlock = event.block.number;
-  // TODO: Handle question updates etc
   response.save()
+
+  let question = Question.load(contractQuestionId);
+  if (question == null) {
+    log.info('cannot find question {} to answer', [contractQuestionId]);
+    return;
+  }
+  saveAnswer(contractQuestionId, event.params.answer, event.params.bond, response.timestamp, event.block.number);
+
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
+
+  // Update the question to the current answer, unless someone has posted a higher bond since you made the commitment
+  if (event.params.bond == question.lastBond) {
+    question.currentAnswer = event.params.answer;
+  }
+  question.save()
 
   let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
   ua.actionType = 'RevealAnswer';
@@ -252,6 +269,8 @@ export function handleArbitrationRequest(event: LogNotifyOfArbitrationRequest): 
 
   question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
 
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
   question.save();
 
   let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
@@ -276,8 +295,9 @@ export function handleFinalize(event: LogFinalize): void {
   question.arbitrationOccurred = true;
   question.currentAnswer = event.params.answer;
 
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
   question.save();
-
 
 }
 
@@ -289,6 +309,8 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
     return;
   }
   question.bounty = event.params.bounty;
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
   question.save()
 
   let fundId = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
@@ -315,6 +337,8 @@ export function handleLogClaim(event: LogClaim): void {
    let contract = RealityETH.bind(event.address)
    question.historyHash = contract.getHistoryHash(event.params.question_id);
 
+   question.updatedBlock = event.block.number;
+   question.updatedTimestamp = event.block.timestamp;
    question.save();
 }
 

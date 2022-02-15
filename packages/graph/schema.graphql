@@ -21,6 +21,8 @@ type Question @entity {
 
   createdBlock: BigInt!
   createdTimestamp: BigInt!
+  updatedBlock: BigInt!
+  updatedTimestamp: BigInt!
 
   template: Template
 
