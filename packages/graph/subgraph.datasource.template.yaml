@@ -13,7 +13,7 @@
         - Question
       abis:
         - name: RealityETH
-          file: ./node_modules/@reality.eth/contracts/abi/solc-0.4.25/RealityETH-all.abi.json
+          file: ./node_modules/@reality.eth/contracts/abi/solc-0.8.6/RealityETH-all.abi.json
       eventHandlers:
         - event: LogNewTemplate(indexed uint256,indexed address,string)
           handler: handleNewTemplate
@@ -33,4 +33,6 @@
           handler: handleLogClaim
         - event: LogWithdraw(indexed address,uint256)
           handler: handleLogWithdraw
+        - event: LogMinimumBond(indexed bytes32,uint256)
+          handler: handleLogMinimumBond
       file: ./src/mapping.ts

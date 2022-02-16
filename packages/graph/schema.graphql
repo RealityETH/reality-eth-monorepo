@@ -48,6 +48,7 @@ type Question @entity {
   contentHash: Bytes
   historyHash: Bytes
 
+  minBond: BigInt!
   lastBond: BigInt!
   cumulativeBonds: BigInt!
 

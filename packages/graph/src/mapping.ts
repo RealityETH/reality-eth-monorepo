@@ -27,7 +27,8 @@ import {
   LogAnswerReveal,
   LogFundAnswerBounty,
   LogClaim,
-  LogWithdraw
+  LogWithdraw,
+  LogMinimumBond
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
@@ -128,6 +129,8 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   question.currentAnswerBond = new BigInt(0);
   question.lastBond = new BigInt(0);
   question.cumulativeBonds = new BigInt(0);
+
+  question.minBond = new BigInt(0);
 
   question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
 
@@ -352,6 +355,15 @@ export function handleLogWithdraw(event: LogWithdraw): void {
    withdrawal.amount = event.params.amount;
    withdrawal.createdBlock = event.block.number;
    withdrawal.save();
+}
+
+// This is done on question creation.
+// To preserve the old event signatures it adds a new event
+export function handleLogMinimumBond(event: LogMinimumBond): void {
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let question = Question.load(contractQuestionId);
+  question.minBond = event.params.min_bond;
+  question.save()
 }
 
 function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt, createdBlock: BigInt): void {
