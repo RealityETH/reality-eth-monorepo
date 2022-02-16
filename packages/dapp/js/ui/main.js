@@ -895,6 +895,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
             historyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
             contentHash: rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
             lastBond: 0,
+            minBond: min_bond,
             cumulativeBonds: 0,
             arbitrationRequestedTimestamp: 0,
             arbitrationRequestedBy: null,
@@ -1040,7 +1041,7 @@ function historyItemForCurrentAnswer(question) {
     if (question['history'].length) {
         for (let i=question['history'].length-1; i >= 0; i--) {
             const item = question['history'][i];
-console.log('considering item', item,' for question', question);
+            // console.log('considering item', item,' for question', question);
             if (!item.is_commitment || item.revealed_block) {
                 return item;
             }
@@ -1705,11 +1706,10 @@ function filledQuestion(item, fetched_ms) {
 
     question = mergeConfirmedTXes(question);
     question = clearClobberedUnconfirmed(question);
-// console.log('filledQuestion made', question, item);
-    // TODO: Add history_unconfirmed from our unconfirmed list and make sure it's sorted correctly
+    // console.log('filledQuestion made', question, item);
 
     // TODO: Make sure the graph knows whether a question still has funds and query that here
-    if (isFinalized(question)) {
+    if (ACCOUNT && isFinalized(question)) {
         updateClaimableDataForQuestion(question); 
     }
 
@@ -2677,7 +2677,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             //console.log('updateing aunswer');
             const current_answer = historyItemForCurrentAnswer(question_detail);
             if (current_answer) {
-console.log('current_answer is ', current_answer);
+                //console.log('current_answer is ', current_answer);
                 current_container.attr('id', 'answer-' + current_answer.answer);
 
                 timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
@@ -3006,7 +3006,7 @@ function possibleClaimableItems(question_detail) {
 
     let final_answer = question_detail.best_answer;
     if (final_answer == null) {
-console.log('skipping item with no final answer due to commit-reveal stuff');
+        console.log('skipping item with no final answer due to commit-reveal stuff');
         return {
             total: ethers.BigNumber.from(0)
         };
@@ -3263,6 +3263,8 @@ function renderNotificationsGraph(entry, fetched_ms) {
         return;
     }
 
+    updateClaimableDataForQuestion(question);
+
     const contract = question.contract;
     const question_id = question.question_id;
     //console.log('renderNotification', action, entry, qdata);
@@ -3434,7 +3436,7 @@ function renderQAItemAnswer(contract, question_id, answer_history, question_json
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0; i--) {
-                if (answer_history[i].user == ACCOUNT) {
+                if (answer_history[i].user.toLowerCase() == ACCOUNT.toLowerCase()) {
                     user_answer = answer_history[i].answer;
                     break;
                 }
@@ -3953,17 +3955,14 @@ console.log('val fail', min_amount, current_question);
                 'txid': txid
             };
 
-	    console.log('skip fillPendingUserTX', tx_response);
-	    //fillPendingUserTX(tx_response);
+	    //console.log('skip fillPendingUserTX', tx_response);
+	    fillPendingUserTX(tx_response);
 	    console.log('made PENDING_USER_TXES_BY_CQID', PENDING_USER_TXES_BY_CQID);
 
             const fake_ua = filledAnswer(fake_entry, 0);
-console.log('made fake_ua', fake_ua);
             const cqid = contractQuestionID(current_question);
 
-console.log('berfore', QUESTION_DETAIL_CACHE[cqid]);
             QUESTION_DETAIL_CACHE[cqid]['history_unconfirmed'].push(fake_ua);
-console.log('after', QUESTION_DETAIL_CACHE[cqid]);
 
             updateQuestionWindowIfOpen(QUESTION_DETAIL_CACHE[cqid]);
         };
@@ -4050,7 +4049,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     await getAccount()
     // TODO: Recheck in case it's already opened
 
-    const old_question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1);
+    const old_question = await ensureQuestionDetailFetched(contract, question_id, 0);
 
     const handleReopenQuestionTX = async function(tx_response, old_question) {
         parent_div.addClass('reopening');
@@ -4741,9 +4740,6 @@ function questionFetchFields() {
 async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, offset, max_store) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
-// TODO: MOve this out having fixed the race condition with is_yours claimable checks
-    await getAccount();
-
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
     const ranking_where = {
@@ -4786,7 +4782,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, of
 
      // console.log('sending graph query', ranking, query);
     const res = await axios.post(network_graph_url, {query: query});
-     console.log('graph res', ranking, res.data);
+    // console.log('graph res', ranking, res.data);
     for (const q of res.data.data.questions) {
         handleQuestion(q, fetched_ms)
         // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
@@ -4825,14 +4821,14 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
 
      //console.log('sending single graph query', query);
     const res = await axios.post(network_graph_url, {query: query});
-     console.log('graph res ensureQuestionDetailFetched', res.data, query);
+    // console.log('graph res ensureQuestionDetailFetched', res.data, query);
     for (const q of res.data.data.questions) {
         //console.log('got q data q');
         let question = filledQuestion(q, fetched_ms);
 
         // TODO: Should we run handleQuestion too?
         // handleQuestion(q)
-        console.log('filled individual qestion', question);
+        // console.log('filled individual qestion', question);
         // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
         // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         return question;
