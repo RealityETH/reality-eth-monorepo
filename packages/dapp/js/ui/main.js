@@ -106,26 +106,32 @@ let ARBITRATOR_INSTANCE = null;
 
 let ACCOUNT = null;
 
+const MAX_STORE = 10;
+
 let DISPLAY_ENTRIES = {
     'questions-active': {
         'ids': [],
         'vals': [],
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-resolved': {
         'ids': [],
         'vals': [],
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-closing-soon': {
         'ids': [],
         'vals': [],
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-upcoming': {
         'ids': [],
         'vals': [],
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     }
 }
 
@@ -1684,13 +1690,7 @@ function filledQuestion(item, fetched_ms) {
         question.history_hash = "0x0000000000000000000000000000000000000000000000000000000000000000";
     }
 
-    if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[question.contract.toLowerCase()], 'min-bond') && question.min_bond) {
-console.log('TODO: Add minBond to graph and set');
-        // question.min_bond = ethers.BigNumber.from(item.minBond); // GRAPH_TODO - add minBond
-    } else {
-        question.min_bond = ethers.BigNumber.from(0);
-    }
-
+    question.min_bond = ethers.BigNumber.from(item.minBond);
     question.history = [];
     for(let respi in item.responses) {
         question.history.push(filledAnswer(item.responses[respi], fetched_ms));
@@ -4637,12 +4637,18 @@ TODO restore
     });
 */
 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration'); 
+    fetchQuestionListsFromGraph(0);
+};
 
+function fetchQuestionListsFromGraph(offset) {
+// TODO: Work out what to do about ranking - can we make this one query? If not how do we handle the paging?
+// Option: We do the sorting ourselves from the top candidates, so just fetch the full number of both?
+// 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved', offset, DISPLAY_ENTRIES['questions-resolved']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
 };
 
 function reflectDisplayEntryChanges() {
@@ -4695,6 +4701,7 @@ function questionFetchFields() {
         currentAnswerTimestamp,
         contentHash,
         historyHash,
+        minBond,
         lastBond,
         cumulativeBonds,
         arbitrationRequestedTimestamp,
@@ -4725,7 +4732,7 @@ function questionFetchFields() {
     return txt;
 }
 
-async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, offset, max_store) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
 // TODO: MOve this out having fixed the race condition with is_yours claimable checks
@@ -4762,7 +4769,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
 
     const query = `
       {
-        questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
+        questions(first: ${max_store}, skip: ${offset}, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
             ${question_fetch_fields}
         }
       }  
