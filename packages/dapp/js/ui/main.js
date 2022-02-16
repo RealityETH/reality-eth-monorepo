@@ -1318,6 +1318,8 @@ $('div.loadmore-button').on('click', async function(e) {
 
     DISPLAY_ENTRIES[sec]['max_show'] = new_max;
 
+    const old_max_store = DISPLAY_ENTRIES[sec]['max_store'];
+
     // TODO: We may need to refetch to populate this store
     DISPLAY_ENTRIES[sec]['max_store'] = DISPLAY_ENTRIES[sec]['max_store'] + 3;
 
@@ -1328,11 +1330,15 @@ $('div.loadmore-button').on('click', async function(e) {
         if (i > 0) {
             previd = DISPLAY_ENTRIES[sec]['ids'][i + 1];
         }
-        //console.log('populatewith', previd, nextid, QUESTION_DETAIL_CACHE);
-        // TODO: Handle multiple contracts
-        let question = await ensureQuestionDetailFetched(next_ctr, next_question_id);
+
+        // Mostly these will come direct from the cache
+        let question = await ensureQuestionDetailFetched(next_ctr, next_question_id, (60*60*1000));
         populateSection(sec, question, previd);
     }
+
+    // Increase storage for next time
+    // TODO: Only fetch the relevant section
+    fetchQuestionListsFromGraph(old_max_store);
 
 });
 
