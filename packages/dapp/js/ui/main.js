@@ -27,7 +27,7 @@ const rc_contracts = require('@reality.eth/contracts');
 const DEFAULT_MAX_CACHE_MS = 10000; 
 
 // When we get stuff that was recently fetched, fetch from the last fetch we did, but make it a bit earlier in case there was a reorg
-const REORG_ALLOWANCE_SECS = 60 
+const REORG_ALLOWANCE_SECS = 180 
 const POLLING_INTERVAL = 10 
 
 let TOKEN_INFO = {};
@@ -60,6 +60,7 @@ let CATEGORY = null;
 let CONTRACT_TEMPLATE_CONTENT = {}; TEMPLATE_CONFIG.content;
 
 let LAST_POLLED_BLOCK = null;
+let LAST_POLLED_USER_TS = null;
 let IS_INITIAL_LOAD_DONE = false;
 
 let USE_COMMIT_REVEAL = false;
@@ -3053,7 +3054,7 @@ function possibleClaimableItems(question_detail) {
             }
         }
         if (is_first && is_yours) {
-            console.log('adding your bounty');
+            // console.log('adding your bounty');
             //console.log(ttl.toString(), 'add', question_detail.bounty.toString());
             ttl = ttl.add(question_detail.bounty);
         }
@@ -4841,6 +4842,8 @@ async function fetchChangedQuestionsSince(last_ts) {
     const displayed_contracts = RC_DISPLAYED_CONTRACTS
     const contract_str = JSON.stringify(displayed_contracts);
 
+    const query_since_ts = last_ts - REORG_ALLOWANCE_SECS;
+
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
@@ -4850,7 +4853,7 @@ async function fetchChangedQuestionsSince(last_ts) {
     const question_fetch_fields = questionFetchFields();
     const query = `
       {
-        questions(first: 100, where: {updatedTimestamp_gt: ${last_ts}, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
+        questions(first: 100, where: {updatedTimestamp_gt: ${query_since_ts}, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
             ${question_fetch_fields}
         }
       }  
@@ -4930,6 +4933,8 @@ async function runPollingLoop(displayed_contracts, last_fetch_ts) {
     fetchChangedQuestionsSince(last_fetch_ts);
     fetchFinalizedQuestionsSince(last_fetch_ts);
 
+    fetchUserEventsAndHandleGraph();
+
     await delay(POLLING_INTERVAL*1000);
 
     runPollingLoop(displayed_contracts, fetch_started_ts);
@@ -4984,11 +4989,20 @@ function scheduleFallbackTimer() {
     }, 20000);
 }
 
-async function fetchUserEventsAndHandleGraph(acc, contract, question_id, start_block, end_block) {
+async function fetchUserEventsAndHandleGraph() {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
+
+    const acc = ACCOUNT;
+    if (!acc) {
+        console.log('No account found, not fetching user events');
+        return;
+    }
 
     const ts_now = parseInt(new Date()/1000); // TODO: Handle skipping stuff we already have
     //const contract_str = JSON.stringify(displayed_contracts);
+
+    const fetch_start_ts = LAST_POLLED_USER_TS ? LAST_POLLED_USER_TS - REORG_ALLOWANCE_SECS : 0;
+console.log('fetch user events from', fetch_start_ts);
 
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
@@ -5019,7 +5033,7 @@ createdTimestamp: BigInt!
 
     const query = `
       {
-        userActions(first: 1000, where: {user: "${acc}" }, orderBy: createdBlock, orderDirection: desc) {
+        userActions(first: 1000, where: {user: "${acc}", createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
             id,
             actionType,
             user,
@@ -5050,7 +5064,6 @@ createdTimestamp: BigInt!
     // console.log('graph res', res.data);
     let user_question_blocks = [];
 
-
     let active_contracts = {};
     for(let ci = 0; ci<RC_DISPLAYED_CONTRACTS.length; ci++) {
         const ct = RC_DISPLAYED_CONTRACTS[ci];
@@ -5058,6 +5071,11 @@ createdTimestamp: BigInt!
     }
 
     const fetched_ms = Date.now();
+
+    if (typeof res.data.data === 'undefined') {
+        console.log('Fetching user events from graph failed', res, query);
+        return false;
+    }
 
     for (const a of res.data.data.userActions) {
          // console.log('got useraction', a);
@@ -5098,7 +5116,7 @@ createdTimestamp: BigInt!
     // NB We don't need AskQuestion as it must have happened prior to the user's involvement
     const query2 = `
       {
-        userActions(first: 1000, where: {user_not: "${acc}", actionType_not: "AskQuestion", question_in: [${question_id_in_str}] }, orderBy: createdBlock, orderDirection: desc) {
+        userActions(first: 1000, where: {user_not: "${acc}", actionType_not: "AskQuestion", question_in: [${question_id_in_str}], createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
             id,
             actionType,
             user,
@@ -5142,6 +5160,8 @@ createdTimestamp: BigInt!
     for (const ctr in RC_DISPLAYED_CONTRACTS) {
         updateClaimableDisplay(RC_DISPLAYED_CONTRACTS[ctr]);
     }
+
+    LAST_POLLED_USER_TS = ts_now;
 
 }
 
@@ -5528,10 +5548,7 @@ function getAccount(fail_soft) {
 
 function accountInit(account) {
 
-    for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
-        const ctr = RC_DISPLAYED_CONTRACTS[i];
-        fetchUserEventsAndHandleGraph(account, ctr, null, RCStartBlock(ctr), 'latest');
-    }
+    fetchUserEventsAndHandleGraph();
 
     updateUserBalanceDisplay();
 
