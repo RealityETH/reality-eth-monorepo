@@ -3033,7 +3033,7 @@ function possibleClaimableItems(question_detail) {
         const bond = question_detail['history'][i].bond;
         const history_hash = question_detail['history'][i].history_hash;
 
-        const is_answerer_you = (answerer.toLowerCase() == ACCOUNT.toLowerCase());
+        const is_answerer_you = (ACCOUNT && (answerer.toLowerCase() == ACCOUNT.toLowerCase()));
         if (is_yours) {
             // Somebody takes over your answer
             if (!is_answerer_you && final_answer == answer) {
