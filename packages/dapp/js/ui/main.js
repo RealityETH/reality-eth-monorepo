@@ -1602,9 +1602,11 @@ function filledAnswer(item, fetched_ms) {
     if (item.isCommitment) {
         ans.commitment_id = item.commitmentId;
         ans.is_commitment = true;
+        ans.revealed_block = item.revealedBlock
     } else {
         ans.is_commitment = false;
         ans.commitment_id = null;
+        ans.revealed_block = null;
     }
     ans.answer = item.answer;
     // ans.isUnrevealed = = item.isUnrevealed; // TODO: use this later
@@ -1612,7 +1614,7 @@ function filledAnswer(item, fetched_ms) {
     ans.history_hash = item.historyHash;
 
     ans.user = item.user; 
-    ans.ts = item.timestamp;
+    ans.ts = ethers.BigNumber.from(item.timestamp);
 
     // txid isn't filled from the graph, only from our unconfirmed transactions
     ans.txid = item.txid;
@@ -1646,7 +1648,7 @@ function filledQuestion(item, fetched_ms) {
 
     question.arbitrator = item.arbitrator;
     question.question_id = item.questionId;
-    question.creation_ts = item.createdTimestamp;
+    question.creation_ts = ethers.BigNumber.from(item.createdTimestamp);
     question.question_creator = item.user;
     question.question_created_block = item.createdBlock;
     question.content_hash = item.contentHash;
@@ -1688,7 +1690,7 @@ function filledQuestion(item, fetched_ms) {
     }
 
     question.is_pending_arbitration = item.isPendingArbitration;
-    question.timeout = item.timeout;
+    question.timeout = ethers.BigNumber.from(item.timeout);
     question.bounty = ethers.BigNumber.from(item.bounty);
     question.best_answer = item.currentAnswer;
     question.bond = ethers.BigNumber.from(item.lastBond);
@@ -1893,7 +1895,7 @@ function populateSectionEntry(entry, question) {
 
     const question_id = question.question_id;
     const question_json = question.question_json;
-    const posted_ts = question.creation_ts;
+    const posted_ts = ethers.BigNumber.from(question.creation_ts);
     const arbitrator = question.arbitrator;
     const timeout = question.timeout;
     const bounty = decimalizedBigNumberToHuman(question.bounty);
