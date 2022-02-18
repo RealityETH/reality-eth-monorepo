@@ -260,7 +260,7 @@ function mergeConfirmedTXes(question) {
 // If we have anything in the user pending pool that isn't in the unconfirmed list, add it to the unconfirmed pool
     let pending_entries_by_bond = PENDING_USER_TXES_BY_CQID[contractQuestionID(question)];
     if (pending_entries_by_bond) {
-        console.log('got relevant pending_entries_by_bond', contractQuestionID(question), pending_entries_by_bond);
+        // console.log('got relevant pending_entries_by_bond', contractQuestionID(question), pending_entries_by_bond);
         for (let b in pending_entries_by_bond) {
             // If there's a confirmed history entry at that level, boot it
             if (b in history_bond_to_idx) {
@@ -269,15 +269,15 @@ function mergeConfirmedTXes(question) {
                 const idx = history_bond_to_idx[b];
                 const purge_block_count = 20;
                 if (true || (question['history'][idx].blockNumber + purge_block_count) < CURRENT_BLOCK_NUMBER) {
-                    console.log('purging confirmed bond at level (ignoring purge block count for now)', b);
+                    // console.log('purging confirmed bond at level (ignoring purge block count for now)', b);
                     clearPendingTXID(pending_entries_by_bond[b].txid, CHAIN_ID);
                 } else {
-                    console.log('pending tx confirmed but not purging yet in case of reorg, will purge at ', question['history'][idx].blockNumber + purge_block_count,', only at ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
+                    // console.log('pending tx confirmed but not purging yet in case of reorg, will purge at ', question['history'][idx].blockNumber + purge_block_count,', only at ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
                 }
                 continue;
             }
             if (b in history_unconfirmed_bond_to_idx) {
-                console.log('unconfirmed list already has pending tx', b);
+                // console.log('unconfirmed list already has pending tx', b);
                 continue;
             }
             question['history_unconfirmed'].push(pending_entries_by_bond[b]);
@@ -3805,7 +3805,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
 
     const block_before_send = CURRENT_BLOCK_NUMBER;
 
-console.log('refetching');
+    // console.log('refetching');
     const question = ensureQuestionDetailFetched(contract, question_id, 0)
     .catch(function() {
         // If the question is unconfirmed, go with what we have
@@ -3813,7 +3813,7 @@ console.log('refetching');
         return ensureQuestionDetailFetched(contract, question_id, 0)
     })
     .then(function(current_question) {
-console.log('refetching done');
+        // console.log('refetching done');
         //console.log('got current_question', current_question);
 
         let current_answer;
@@ -3904,7 +3904,7 @@ console.log('refetching done');
                 }
                 break;
             case 'datetime': 
-console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toString());
+                // console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toString());
                 if (new_answer === null) {
                     const dt_container = parent_div.find('div.input-container.input-container--answer');
                     dt_container.addClass('is-error');
@@ -3925,7 +3925,7 @@ console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toStri
 
         let min_amount = current_question.bond.mul(2)
         if (bond.lt(min_amount)) {
-console.log('val fail', min_amount, current_question);
+            // console.log('val fail', min_amount, current_question);
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
             is_err = true;
