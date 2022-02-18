@@ -326,6 +326,14 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
   fund.amount = event.params.bounty_added;
   fund.createdBlock = event.block.number;
   fund.save()
+
+  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+  ua.actionType = 'FundAnswerBounty';
+  ua.user = event.params.user;
+  ua.createdBlock = event.block.number;
+  ua.createdTimestamp = event.block.timestamp;
+  ua.fund = fundId;
+  ua.save();
 }
 
 export function handleLogClaim(event: LogClaim): void {
