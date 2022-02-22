@@ -2047,6 +2047,7 @@ async function handleQuestion(item, fetched_ms) {
         return;
     }
     updateQuestionWindowIfOpen(question);
+
 //console.log('filledQuestion', question);
     //console.log('after filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
 
@@ -2071,6 +2072,7 @@ async function handleQuestion(item, fetched_ms) {
     const opening_ts = question.opening_ts;
 
     if (is_finalized) {
+
         const insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
         if (insert_before !== -1) {
             // TODO: If we include this we have to handle the history too
@@ -3219,7 +3221,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
         item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
     }
     item_to_insert.find('.notification-text').text(ntext).expander();
-    item_to_insert.attr('data-block-number', block_number);
+    item_to_insert.attr('data-timestamp', timestamp);
     item_to_insert.removeClass('template-item').addClass('populated-item');
     item_to_insert.addClass('account-specific');
 
@@ -3233,7 +3235,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
     existing_notification_items.each(function() {
         const exi = $(this);
         //console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
-        if (ethers.BigNumber.from(exi.attr('data-block-number')).lte(ethers.BigNumber.from(block_number))) {
+        if (ethers.BigNumber.from(exi.attr('data-timestamp')).lte(ethers.BigNumber.from(timestamp))) {
             exi.before(item_to_insert);
             inserted = true;
             return false;
@@ -3254,17 +3256,57 @@ function uiHash(str) {
     return ethers.utils.solidityKeccak256(["string"], [str]);
 }
 
-function renderNotificationsGraph(entry, fetched_ms) {
+function userInvolvement(question) {
+console.log('TODO: go through this question and find out what the user did');
+    if (!ACCOUNT) {
+        return false;
+    }
+    const acc = ACCOUNT.toLowerCase();
+    if (question.user.toLowerCase() == acc) {
+        //return true;
+    }
+    for(let i = 0; i< question.history.length; i++) {
+       console.log('hh', question.history[i]); 
+    }
+    return false;
 
-    // Should be there except CreateTemplate 
-    if (entry.actionType == 'CreateTemplate') {
-        ntext = 'You created a template - ' + entry.template.templateId + ': ' + entry.template.questionText;
-        insertNotificationItem('CreateTemplate', 'user-action-CreateTemplate-'+entry.id, ntext, entry['createdBlock'], entry.address, null, true, entry['createdTimestamp']);
+}
+
+// Finalization doesn't create an event (unless triggered by arbitration).
+// So add the notification if required based on the (filled) question.
+function insertFinalizationNotification(question, q_involvement) {
+    // console.log('insert Finalization notification for', question, q_involvement);
+
+    const q_title = question.question_json['title'];
+    if (!q_title) {
+        console.log('Skipping notification for question with no title', question);
         return;
     }
 
-    if (entry.actionType == 'FundAnswerBounty') {
-        console.log('skipping rendering FundAnswerBounty entry, until the new graph version loads');
+    let ntext = '';
+    if (q_involvement['asked']) {
+        ntext = 'A question you asked was finalized - ' + q_title;
+    } else if (q_involvement['answered']) {
+        ntext = 'A question you answered was finalized - ' + q_title;
+    } else if (q_involvement['funded']) {
+        ntext = 'A question you funded was finalized - ' + q_title;
+    } else if (q_involvement['arbitration']) {
+        ntext = 'A question you requested arbitration for was finalized - ' + q_title;
+    } else {
+        ntext = 'A question you were somehow involved in was finalized - ' + q_title;
+    }
+
+    // TODO: see if createdBlock is what we want  - if we don't have the block for finalization then see if we can avoid using blocks completely for ordering notifications
+    insertNotificationItem('FinalizeQuestion', 'user-action-finalize-'+contractQuestionID(question), ntext, question.question_created_block, question.contract, question.question_id, true, question.finalization_ts);
+}
+
+
+function renderNotificationsGraph(entry, fetched_ms) {
+
+    // This is the only case that doesn't involve a question
+    if (entry.actionType == 'CreateTemplate') {
+        ntext = 'You created a template - ' + entry.template.templateId + ': ' + entry.template.questionText;
+        insertNotificationItem('CreateTemplate', 'user-action-CreateTemplate-'+entry.id, ntext, entry['createdBlock'], entry.address, null, true, entry['createdTimestamp']);
         return;
     }
 
@@ -3293,16 +3335,21 @@ function renderNotificationsGraph(entry, fetched_ms) {
     // console.log('evt', evt);
 
     if (!question_json) {
-        console.log('missing question_json for question', question);
+        console.log('missing question_json for question, skipping notification', question);
+        return;
     } else if (!question_json['title']) {
-        console.log('missing title for question', question, question_json);
+        console.log('missing title for question, skipping notification', question, question_json);
+        return;
     }
+
+    let q_involvement = {};
 
     switch (evt) {
         case 'AskQuestion':
             ntext = 'You asked a question - "' + question_json['title'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
             renderUserQandA(question, entry); 
+            q_involvement['asked'] = true;
             break;
 
         case 'AnswerQuestion':
@@ -3318,6 +3365,7 @@ function renderNotificationsGraph(entry, fetched_ms) {
                 }
                 insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
                 renderUserQandA(question, entry); 
+                q_involvement['answered'] = true;
             } else {
                 // We should have all the answers in the question object
                 // NB We may have two notifications for this if somebody answers your question, overwriting your answer
@@ -3347,63 +3395,30 @@ function renderNotificationsGraph(entry, fetched_ms) {
             break;
 
         case 'FundAnswerBounty':
-            if (entry.user == ACCOUNT) {
+            if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
+                q_involvement['funded'] = true;
             } else {
-                if (entry.account == ACCOUNT) {
-                    ntext = 'You added a reward to the question - "' + question_json['title'] + '"';
-                } else {
-                    ntext = 'Someone added a reward to the question - "' + question_json['title'] + '"';
-                }
+                ntext = 'Someone added a reward to the question - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
             }
             break;
 
         case 'RequestArbitration':
-            if (entry.user == ACCOUNT) {
+            if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
+                q_involvement['arbitration'] = true;
             } else {
                 ntext = 'Someone requested arbitration - "' + question_json['title'] + '"';
-                /*
-                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    const history_idx = qdata['history'].length - 2;
-                    if (result2[0].args.user == ACCOUNT) {
-                        ntext = 'Someone requested arbitration to your question';
-                    } else {
-                        if ((history_idx >= 0) && (qdata['history'][history_idx].args.user == ACCOUNT)) {
-                            ntext = 'Someone requested arbitration to the question you answered';
-                            is_positive = false;
-                        } else {
-                            ntext = 'Someone requested arbitration to the question';
-                        }
-                    }
-                });
-                */
             }
             break;
+    }
 
-        case 'LogFinalize':
-            console.log('in LogFinalize', entry, contract);
-            let timestamp = null;
-            // Fake timestamp for our fake finalize event
-            if (entry.timestamp) {
-                timestamp = entry.timestamp;
-            }
-            RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                if (result2[0].user == ACCOUNT) {
-                    ntext = 'Your question is finalized';
-                } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].user == ACCOUNT) {
-                    ntext = 'The question you answered is finalized';
-                } else {
-                    ntext = 'A question was finalized';
-                }
-                if (typeof ntext !== 'undefined') {
-                    ntext += ' - "' + question_json['title'] + '"';
-                    insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, timestamp);
-                }
-            });
+    // There isn't an event for this (except in case of arbitration), so just add a notification if we were involved in the question
+    if (isFinalized(question)) {
+        insertFinalizationNotification(question, q_involvement);
     }
 
 }
