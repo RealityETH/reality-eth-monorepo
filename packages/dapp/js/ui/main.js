@@ -3215,7 +3215,9 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
     const item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
     item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
-    item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
+    if (question_id) {
+        item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
+    }
     item_to_insert.find('.notification-text').text(ntext).expander();
     item_to_insert.attr('data-block-number', block_number);
     item_to_insert.removeClass('template-item').addClass('populated-item');
@@ -3256,7 +3258,13 @@ function renderNotificationsGraph(entry, fetched_ms) {
 
     // Should be there except CreateTemplate 
     if (entry.actionType == 'CreateTemplate') {
-        console.log('skipping rendering CreateTemplate entry');
+        ntext = 'You created a template - ' + entry.template.templateId + ': ' + entry.template.questionText;
+        insertNotificationItem('CreateTemplate', 'user-action-CreateTemplate-'+entry.id, ntext, entry['createdBlock'], entry.address, null, true, entry['createdTimestamp']);
+        return;
+    }
+
+    if (entry.actionType == 'FundAnswerBounty') {
+        console.log('skipping rendering FundAnswerBounty entry, until the new graph version loads');
         return;
     }
 
@@ -4242,7 +4250,13 @@ $(document).on('click', '.notifications-item', function(e) {
     //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();
-    openQuestionWindow($(this).attr('data-contract-question-id'));
+    const cqid = $(this).attr('data-contract-question-id');
+    // Template creation notifications don't have this
+    // TODO: Ideally we'd give you more detail about the template or something.
+    if (!cqid) {
+        return;
+    }
+    openQuestionWindow(cqid);
 });
 
 $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async function(e) {
@@ -4740,6 +4754,38 @@ function questionFetchFields() {
     return txt;
 }
 
+function userActionFields() {
+    const question_fetch_fields = questionFetchFields();
+    const txt = `
+        id,
+        actionType,
+        user,
+        question {
+           ${question_fetch_fields}, 
+        },
+        template {
+            templateId,
+            questionText,
+        },
+        createdBlock,
+        createdTimestamp,
+        response {
+          id,
+          timestamp,
+          answer,
+          isUnrevealed,
+          isCommitment,
+          commitmentId,
+          bond,
+          user,
+          historyHash,
+          createdBlock,
+          revealedBlock
+      }
+    `;
+    return txt;
+}
+
 async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, offset, max_store) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
@@ -5029,34 +5075,14 @@ createdTimestamp: BigInt!
 */
 
     //  GRAPH_TODO Add contract field to UserAction
-    const question_fetch_fields = questionFetchFields();
+    const user_action_fields = userActionFields();
     const displayed_contracts = RC_DISPLAYED_CONTRACTS
     const contract_str = JSON.stringify(displayed_contracts);
 
     const query = `
       {
         userActions(first: 1000, where: {user: "${acc}", createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
-            id,
-            actionType,
-            user,
-            question {
-               ${question_fetch_fields}, 
-            }
-            createdBlock
-            createdTimestamp,
-            response {
-              id,
-              timestamp,
-              answer,
-              isUnrevealed,
-              isCommitment,
-              commitmentId,
-              bond,
-              user,
-              historyHash,
-              createdBlock,
-              revealedBlock
-            }
+            ${user_action_fields}
         }
       }
       `;
@@ -5119,27 +5145,7 @@ createdTimestamp: BigInt!
     const query2 = `
       {
         userActions(first: 1000, where: {user_not: "${acc}", actionType_not: "AskQuestion", question_in: [${question_id_in_str}], createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
-            id,
-            actionType,
-            user,
-            question {
-               ${question_fetch_fields}, 
-            }
-            createdBlock
-            createdTimestamp,
-            response {
-              id,
-              timestamp,
-              answer,
-              isUnrevealed,
-              isCommitment,
-              commitmentId,
-              bond,
-              user,
-              historyHash,
-              createdBlock,
-              revealedBlock
-            }
+           ${user_action_fields}
         }
       }
       `;
@@ -5180,34 +5186,14 @@ async function changedQuestionsByUserEventStartingAt(displayed_contracts, start_
     // console.log('graph url is ', network_graph_url);
 
     //  GRAPH_TODO Add contract field to UserAction
-    const question_fetch_fields = questionFetchFields();
+    const user_action_fields = userActionFields();
     const contract_str = JSON.stringify(displayed_contracts);
 console.log('made contract_str', contract_str);
 
     const query = `
       {
         userActions(first: 1000, where: {createdTimestamp_gt: "${start_ts}" }, orderBy: createdBlock, orderDirection: desc) {
-            id,
-            actionType,
-            user,
-            question {
-               ${question_fetch_fields}, 
-            }
-            createdBlock
-            createdTimestamp,
-            response {
-              id,
-              timestamp,
-              answer,
-              isUnrevealed,
-              isCommitment,
-              commitmentId,
-              bond,
-              user,
-              historyHash,
-              createdBlock,
-              revealedBlock
-            }
+           ${user_action_fields}
         }
       }
       `;
