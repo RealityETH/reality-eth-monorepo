@@ -333,6 +333,7 @@ export function handleFundAnswerBounty(event: LogFundAnswerBounty): void {
   ua.createdBlock = event.block.number;
   ua.createdTimestamp = event.block.timestamp;
   ua.fund = fundId;
+  ua.question = contractQuestionId;
   ua.save();
 }
 
