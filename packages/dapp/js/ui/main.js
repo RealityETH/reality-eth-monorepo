@@ -1667,8 +1667,11 @@ function filledQuestion(item, fetched_ms) {
 
     question.contract = item.contract;
     question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
-    if (item.reopener_of_question_id) {
-        question.reopener_of_question_id = item.reopener_of_question_id; // GRAPH_TODO
+    if (item.reopens) {
+        question.reopener_of_question_id = item.reopens.id; // GRAPH_TODO
+    }
+    if (item.reopenedBy) {
+        question.reopened_by = item.reopenedBy.id;
     }
     //question.bounty = data.args['bounty'];
 
@@ -2654,7 +2657,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('reopenable');
         if (question_detail.reopened_by) {
-            rcqa.attr('data-reopened-by-question-id', cqToID(question_detail.contract, question_detail.reopened_by));
+            rcqa.attr('data-reopened-by-question-id', question_detail.reopened_by);
             rcqa.addClass('reopened');
         } else {
             rcqa.removeClass('reopened');
@@ -2663,7 +2666,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     if (question_detail.reopener_of_question_id) {
         rcqa.addClass('reopener');
-        rcqa.attr('data-reopener-of-question-id', cqToID(question_detail.contract, question_detail.reopener_of_question_id));
+        rcqa.attr('data-reopener-of-question-id', question_detail.reopener_of_question_id);
     }
 
     if (isAnswerActivityStarted(question_detail)) {
@@ -4179,7 +4182,11 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
-    const nonce_food = old_question.question_id + old_question.last_reopened_by ? old_question.last_reopened_by : "0x0000000000000000000000000000000000000000000000000000000000000000";
+    let nonce_food = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    if (old_question.reopened_by) {
+        const [rocon, ro_question_id] = parseContractQuestionID(old_question.reopened_by);
+        nonce_food = ro_question_id;
+    }
     const nonce = ethers.utils.keccak256('0x' + nonce_food.replace('0x', ''));
     // const nonce = ethers.utils.keccak256(ethers.BigNumber.from(parseInt(Date.now())).toHexString());
 
@@ -4751,6 +4758,12 @@ function questionFetchFields() {
             id, 
             templateId, 
             questionText
+        },
+        reopenedBy {
+          id
+        },
+        reopens {
+          id
         },
         responses {
           id,
