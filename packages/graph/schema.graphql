@@ -59,6 +59,8 @@ type Question @entity {
   answerFinalizedTimestamp: BigInt
 
   currentScheduledFinalizationTimestamp: BigInt!
+  reopens: Question
+  reopenedBy: Question
 
   outcomes: [Outcome!] @derivedFrom(field: "question")
   answers: [Answer!] @derivedFrom(field: "question")

@@ -35,4 +35,6 @@
           handler: handleLogWithdraw
         - event: LogMinimumBond(indexed bytes32,uint256)
           handler: handleLogMinimumBond
+        - event: LogReopenQuestion(indexed bytes32,indexed bytes32)
+          handler: handleLogReopenQuestion
       file: ./src/mapping.ts

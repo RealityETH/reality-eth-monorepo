@@ -28,7 +28,8 @@ import {
   LogFundAnswerBounty,
   LogClaim,
   LogWithdraw,
-  LogMinimumBond
+  LogMinimumBond,
+  LogReopenQuestion
 } from '../generated/RealityETH/RealityETH'
 
 export function handleNewTemplate(event: LogNewTemplate): void {
@@ -372,7 +373,23 @@ export function handleLogMinimumBond(event: LogMinimumBond): void {
   let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
   let question = Question.load(contractQuestionId);
   question.minBond = event.params.min_bond;
-  question.save()
+  question.save();
+}
+
+export function handleLogReopenQuestion(event: LogReopenQuestion): void {
+  // We'll save this in both directions for easy querying
+  let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
+  let reopenedContractQuestionId = event.address.toHexString() + '-' + event.params.reopened_question_id.toHexString();
+  let question = Question.load(contractQuestionId);
+  let reopenedQuestion = Question.load(reopenedContractQuestionId);
+  question.reopens = reopenedContractQuestionId;
+  question.updatedBlock = event.block.number;
+  question.updatedTimestamp = event.block.timestamp;
+  question.save();
+  reopenedQuestion.reopenedBy = contractQuestionId;
+  reopenedQuestion.updatedBlock = event.block.number;
+  reopenedQuestion.updatedTimestamp = event.block.timestamp;
+  reopenedQuestion.save();
 }
 
 function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt, createdBlock: BigInt): void {
