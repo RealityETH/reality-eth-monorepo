@@ -1668,7 +1668,7 @@ function filledQuestion(item, fetched_ms) {
     question.contract = item.contract;
     question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
     if (item.reopens) {
-        question.reopener_of_question_id = item.reopens.id; // GRAPH_TODO
+        question.reopener_of_question_id = item.reopens.id;
     }
     if (item.reopenedBy) {
         question.reopened_by = item.reopenedBy.id;
