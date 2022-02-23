@@ -295,7 +295,7 @@ function clearClobberedUnconfirmed(question) {
     }
     const highest_bond = question.bond;
 
-    console.log('highest_bond is ', highest_bond);
+    // console.log('highest_bond is ', highest_bond);
 
     // unconf = unconf.sort((a, b) => (a.bond.gt(b.bond)) ? 1 : -1);
 
@@ -1516,80 +1516,6 @@ function mergePossibleClaimable(posses, pending) {
     return combined;
 }
 
-function scheduleFinalizationDisplayUpdate(contract, question) {
-
-    //console.log('in scheduleFinalizationDisplayUpdate', question);
-    // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
-    if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
-        const question_id = question.question_id;
-        const contract_question_id = contractQuestionID(question);
-        let is_done = false;
-        if (QUESTION_EVENT_TIMES[contract_question_id]) {
-            if (QUESTION_EVENT_TIMES[contract_question_id].finalization_ts == question.finalization_ts) {
-                //console.log('leaving existing timeout for question', question_id)
-                is_done = true;
-            } else {
-                clearTimeout(QUESTION_EVENT_TIMES[contract_question_id].timeout_id);
-                //console.log('clearing timeout for question', question_id)
-            }
-        }
-        if (!is_done) {
-            //console.log('scheduling');
-            // Run 1 second after the finalization timestamp
-            const update_time = (1000 + (question.finalization_ts.toNumber() * 1000) - new Date().getTime());
-            //console.log('update_time is ', update_time);
-            const timeout_id = setTimeout(function() {
-                // TODO: Call again here in case it changed and we missed it
-                clearTimeout(QUESTION_EVENT_TIMES[contract_question_id].timeout_id);
-                delete QUESTION_EVENT_TIMES[contract_question_id];
-
-                ensureQuestionDetailFetched(question.contract, question_id, 500).then(function(question) {
-
-                    if (isFinalized(question)) {
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, 'finalization_ts', question.finalization_ts);
-
-                        // The notification code sorts by block number
-                        // So get the current block
-                        // But also add the timestamp for display
-                        provider.getBlock('latest', function(err, result) {
-                            // There no blockchain event for this, but otherwise it looks to the UI like a normal event
-                            // Make a pretend log to feed to the notifications handling function.
-                            BLOCK_TIMESTAMP_CACHE[result.number] = result.timestamp
-                            const fake_entry = {
-                                event: 'LogFinalize',
-                                blockNumber: result.number,
-                                timestamp: question.finalization_ts.toNumber(),
-                                address: question.contract,
-                                args: {
-                                    question_id: question.question_id,
-                                }
-                            }
-                            // console.log('sending fake entry', fake_entry, question);
-                            if (updateClaimableDataForQuestion(question)) {
-                                updateClaimableDisplay(contract);
-                                updateUserBalanceDisplay();
-                            }
-
-console.log('TODO: render notification for finalizing entry');
-                            // renderNotifications(question, fake_entry);
-                        });
-                    }
-
-                });
-
-            }, update_time);
-            QUESTION_EVENT_TIMES[contract_question_id] = {
-                'finalization_ts': question.finalization_ts,
-                'timeout_id': timeout_id
-            };
-        }
-    } else {
-        //console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
-    }
-
-}
-
 function isAnythingUnrevealed(question) {
     console.log('isAnythingUnrevealed pretending everything is revealed');
     return false;
@@ -2121,96 +2047,9 @@ async function handleQuestion(item, fetched_ms) {
             }
         }
 
-        scheduleFinalizationDisplayUpdate(contract, question);
-        //console.log(DISPLAY_ENTRIES);
     }
 
 }
-
-/*
-async function handleQuestionLog(item) {
-    const question_id = item.args.question_id;
-    const contract = item.address;
-    //console.log('in handleQuestionLog', question_id);
-    const created = item.args.created
-
-    // Populate with the data we got
-    //console.log('before filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
-    let question = filledQuestionDetail(contract, question_id, 'question_log', item.blockNumber, item);
-    //console.log('after filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
-
-    // Then fetch anything else we need to display
-    question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1)
-
-    // console.log('updateQuestionWindowIfOpen after ensureQuestionDetailFetched for', contract, question_id, 'returned', question, 'block num is', item.blockNumber );
-    updateQuestionWindowIfOpen(question);
-
-    if (CATEGORY && question.question_json.category != CATEGORY) {
-        //console.log('mismatch for cat', category, question.question_json.category);
-        return;
-    } else {
-        //console.log('category match', category, question.question_json.category);
-    }
-
-    const is_finalized = isFinalized(question);
-
-    // Pending arbitration doesn't exactly fit but it fits better than the other categories
-    const is_before_opening = isQuestionBeforeOpeningDate(question) || isArbitrationPending(question);
-    const bounty = question.bounty;
-    const opening_ts = question.opening_ts;
-
-    if (is_finalized) {
-        const insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
-        if (insert_before !== -1) {
-            // TODO: If we include this we have to handle the history too
-            populateSection('questions-resolved', question, insert_before);
-            $('#questions-resolved').find('.scanning-questions-category').css('display', 'none');
-            if (DISPLAY_ENTRIES['questions-resolved']['ids'].length > 3 && $('#questions-resolved').find('.loadmore-button').css('display') == 'none') {
-                $('#questions-resolved').find('.loadmore-button').css('display', 'block');
-            }
-        }
-
-    } else if (is_before_opening) {
-
-        const insert_before = update_ranking_data('questions-upcoming', contractQuestionID(question), opening_ts, 'asc');
-        if (insert_before !== -1) {
-            populateSection('questions-upcoming', question, insert_before);
-            $('#questions-upcoming').find('.scanning-questions-category').css('display', 'none');
-            if (DISPLAY_ENTRIES['questions-upcoming']['ids'].length > 3 && $('#questions-upcoming').find('.loadmore-button').css('display') == 'none') {
-                $('#questions-upcoming').find('.loadmore-button').css('display', 'block');
-            }
-        }
-
-    } else {
-
-        if (!question.is_pending_arbitration) {
-            const insert_before = update_ranking_data('questions-active', contractQuestionID(question), calculateActiveRank(created, question.bounty, question.bond), 'desc');
-            if (insert_before !== -1) {
-                populateSection('questions-active', question, insert_before);
-                $('#questions-active').find('.scanning-questions-category').css('display', 'none');
-                if (DISPLAY_ENTRIES['questions-active']['ids'].length > 3 && $('#questions-active').find('.loadmore-button').css('display') == 'none') {
-                    $('#questions-active').find('.loadmore-button').css('display', 'block');
-                }
-            }
-        }
-
-        if (isAnswered(question)) {
-            const insert_before = update_ranking_data('questions-closing-soon', contractQuestionID(question), question.finalization_ts, 'asc');
-            if (insert_before !== -1) {
-                populateSection('questions-closing-soon', question, insert_before);
-                $('#questions-closing-soon').find('.scanning-questions-category').css('display', 'none');
-                if (DISPLAY_ENTRIES['questions-closing-soon']['ids'].length > 3 && $('#questions-closing-soon').find('.loadmore-button').css('display') == 'none') {
-                    $('#questions-closing-soon').find('.loadmore-button').css('display', 'block');
-                }
-            }
-        }
-
-        scheduleFinalizationDisplayUpdate(contract, question);
-        //console.log(DISPLAY_ENTRIES);
-    }
-
-}
-*/
 
 // Inserts into the right place in the stored rankings.
 // If it comes after another stored item, return the ID of that item.
@@ -5044,27 +4883,6 @@ async function runPollingLoop(displayed_contracts, last_fetch_ts) {
 // To mitigate the damage, run a refresh of the currently-open window etc
 
 
-// ISSUE: This sometimes blows away an unconfirmed answer
-// Options
- //- make sure we preserve the unconfirmed history when refetching
- //- accept that the history has vanished from the fetch, but never erase from the window unless confirmed 
-function scheduleFallbackTimer() {
-     window.setInterval( function() {
-        //console.log('checking for open windows');
-        $('div.rcbrowser--qa-detail.is-open').each(async function() {
-             const contract_question_id = $(this).attr('data-contract-question-id');
-             const [contract, question_id] = parseContractQuestionID(contract_question_id);
-             console.log('updating window on timer for question', question_id);
-             if (question_id) {
-                const question = await ensureQuestionDetailFetched(contract, question_id);
-                updateQuestionWindowIfOpen(question);
-                scheduleFinalizationDisplayUpdate(contract, question);
-                updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-             }
-        });
-    }, 20000);
-}
-
 async function fetchUserEventsAndHandleGraph() {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
@@ -5471,23 +5289,6 @@ function populateArbitratorSelect(arb_contract, network_arbs) {
                 markArbitratorFailed(RC_DEFAULT_ADDRESS, na_addr);
             });
         });
-    });
-}
-
-function waitForBlock(result) {
-    return new Promise(function(resolve, reject) {
-        (function attempt(triesLeft, result) {
-            if (CURRENT_BLOCK_NUMBER >= result.blockNumber) {
-                // console.log('at ',CURRENT_BLOCK_NUMBER);
-                return resolve(result);
-            } else if (!triesLeft) {
-                // console.log('out of tries',CURRENT_BLOCK_NUMBER);
-                return reject('gave up waiting for the network to catch up');
-            } else {
-                console.log('node is lagging, waiting for it to catch up', CURRENT_BLOCK_NUMBER, result.blockNumber);
-                setTimeout(attempt.bind(null, triesLeft-1, result), 1000);
-            }
-        })(360, result); // number of retries if first time fails
     });
 }
 
