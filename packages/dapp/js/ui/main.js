@@ -383,28 +383,27 @@ function setRcBrowserPosition(rcbrowser) {
 
 }
 
+function initScrollBars() {
+    const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
 
-    function initScrollBars() {
-        const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
-
-        for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-            // Initialize anything that isn't part of a template item.
-            // If it's a template item it should be initialized after it's cloned.
-            if (!$(rcbrowsers[i]).closest('.template-item').length) {
-                Ps.initialize(rcbrowsers[i]);
-            }
+    for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
+        // Initialize anything that isn't part of a template item.
+        // If it's a template item it should be initialized after it's cloned.
+        if (!$(rcbrowsers[i]).closest('.template-item').length) {
+            Ps.initialize(rcbrowsers[i]);
         }
-
-        function changeSize() {
-            // TODO: Does this need to be added to items that are initialized later?
-            for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-                Ps.update(rcbrowsers[i]);
-            }
-        }
-        window.addEventListener('resize', changeSize);
     }
 
-    initScrollBars();
+    function changeSize() {
+        // TODO: Does this need to be added to items that are initialized later?
+        for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
+            Ps.update(rcbrowsers[i]);
+        }
+    }
+    window.addEventListener('resize', changeSize);
+}
+
+initScrollBars();
 
 
 // draggable
