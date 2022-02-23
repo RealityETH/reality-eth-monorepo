@@ -416,27 +416,27 @@ function setRcBrowserPosition(rcbrowser) {
 
 }
 
-    function initScrollBars() {
-        const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
+function initScrollBars() {
+    const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
 
-        for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-            // Initialize anything that isn't part of a template item.
-            // If it's a template item it should be initialized after it's cloned.
-            if (!$(rcbrowsers[i]).closest('.template-item').length) {
-                Ps.initialize(rcbrowsers[i]);
-            }
+    for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
+        // Initialize anything that isn't part of a template item.
+        // If it's a template item it should be initialized after it's cloned.
+        if (!$(rcbrowsers[i]).closest('.template-item').length) {
+            Ps.initialize(rcbrowsers[i]);
         }
-
-        function changeSize() {
-            // TODO: Does this need to be added to items that are initialized later?
-            for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
-                Ps.update(rcbrowsers[i]);
-            }
-        }
-        window.addEventListener('resize', changeSize);
     }
 
-    initScrollBars();
+    function changeSize() {
+        // TODO: Does this need to be added to items that are initialized later?
+        for (let i = 0, len = rcbrowsers.length; i < len; i += 1) {
+            Ps.update(rcbrowsers[i]);
+        }
+    }
+    window.addEventListener('resize', changeSize);
+}
+
+initScrollBars();
 
 
 // draggable
@@ -1285,8 +1285,6 @@ function validate(win) {
     return valid;
 }
 
-/*-------------------------------------------------------------------------------------*/
-// make questions list
 
 $('div.loadmore-button').on('click', async function(e) {
     const sec = $(this).attr('data-questions');
@@ -1322,94 +1320,6 @@ $('div.loadmore-button').on('click', async function(e) {
     fetchQuestionListsFromGraph(old_max_store);
 
 });
-
-// This gets called when we discover an event that may be related to the user.
-// We may or may not have already seen this event.
-// We may or may not have known that the event was related to the user already.
-// We may or may not have fetched information about the question.
-/*
-async function handlePotentialUserAction(entry, is_watch) {
-    //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
-
-    if (entry.invalid_data) { 
-        console.log('skipping invalid log entry');
-        return;
-    }
-
-    if (!ACCOUNT) {
-        return;
-    }
-
-    if ((entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
-        return;
-    }
-
-    if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
-        console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber, entry);
-        return;
-    }
-
-    const contract = entry.address;
-
-    // This is the same for all events
-    const question_id = entry.args['question_id'];
-    const contract_question_id = cqToID(contract, question_id);
-    // console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
-
-    // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
-    // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
-    // TODO: The filter could be tigher on the case where we already knew we had it, but we didn't know how soon the user was interested in it
-    if ((!Q_MIN_ACTIVITY_BLOCKS[contract_question_id]) || (entry.blockNumber < Q_MIN_ACTIVITY_BLOCKS[contract_question_id])) {
-        // Event doesn't, in itself, have anything to show we are interested in it
-        // NB we may be interested in it later if some other event shows that we should be interested in this question.
-        if (!isForCurrentUser(entry)) {
-            // console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
-            return;
-        }
-
-        //console.log('blockNumber was ', entry.blockNumber);
-        Q_MIN_ACTIVITY_BLOCKS[contract_question_id] = entry.blockNumber;
-
-        fetchUserEventsAndHandleGraph(null, entry.address, question_id, RCStartBlock(contract), 'latest');
-
-        updateUserBalanceDisplay();
-
-    }
-
-    let lastViewedBlockNumber = 0;
-    if (getViewedBlockNumber(CHAIN_ID)) {
-        lastViewedBlockNumber = parseInt(getViewedBlockNumber(CHAIN_ID));
-    }
-    if (entry.blockNumber > lastViewedBlockNumber) {
-        $('body').addClass('pushing');
-    }
-
-    let is_population_done = false;
-
-    // User action
-    //console.log('got event as user action', entry);
-    if ((entry['event'] == 'LogNewAnswer') && (SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id] > 0)) {
-        delete SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id];
-        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, entry.blockNumber, entry.blockNumber);
-        displayQuestionDetail(question);
-        renderUserAction(question, entry, is_watch);
-    } else {
-        // console.log('fetch for notifications: ', question_id, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
-        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
-        if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
-            // console.log('got event, checking effect on claims', entry, question, is_watch, contract);
-            if (updateClaimableDataForQuestion(question)) {
-                updateClaimableDisplay(contract);
-                updateUserBalanceDisplay();
-            }
-        }
-        //console.log('rendering entry', entry);
-        renderUserAction(question, entry, is_watch);
-        //console.log('got error fetching: ', question_id, e);
-    }
-
-}
-*/
 
 function updateClaimableDataForQuestion(question) {
     const contract = question.contract;
@@ -1630,12 +1540,9 @@ function filledQuestion(item, fetched_ms) {
 
 }
 
-
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-
 
 async function ensureAmountApproved(spender, account, amount) {
     console.log('checking if we need extra approval for amount', amount.toHexString());
@@ -1664,7 +1571,6 @@ async function ensureAmountApproved(spender, account, amount) {
     }
 }
 
-// TODO: Fire this on a timer, and also on the withdrawal event
 async function updateUserBalanceDisplay() {
     if (!ACCOUNT) {
         return;
@@ -2229,11 +2135,6 @@ async function openQuestionWindow(contract_question_id) {
     console.log('Refetching with minimal caching to be sure');
     question = await ensureQuestionDetailFetched(contract_addr, question_id, 1000);
     updateQuestionWindowIfOpen(question);
-    /*
-    .catch(function(e){
-        console.log(e);
-    });
-    */
 }
 
 function updateQuestionWindowIfOpen(question) {
@@ -2794,9 +2695,6 @@ function totalClaimable(question_detail) {
     return poss['total'];
 }
 
-/*
-If you get anything from the list, return the whole thing
-*/
 function possibleClaimableItems(question_detail) {
 
     let ttl = ethers.BigNumber.from(0);
@@ -2967,33 +2865,6 @@ function populateWithBlockTimeForBlockNumber(item, num, cbk) {
 
 }
 
-/*
-// At this point the data we need should already be stored in QUESTION_DETAIL_CACHE
-function renderUserAction(question, entry, is_watch) {
-
-    // Keep track of the last block number whose result we could see by clicking on the user link
-    if (entry.blockNumber > LAST_DISPLAYED_BLOCK_NUMBER) {
-        LAST_DISPLAYED_BLOCK_NUMBER = entry.blockNumber;
-    }
-
-    // This will include events that we didn't specifically trigger, but we are intereseted in
-    renderNotifications(question, entry);
-
-    // Only show here if we asked the question (questions section) or gave the answer (answers section)
-    if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
-        if (isForCurrentUser(entry)) {
-            renderUserQandA(question, entry);
-            if (is_watch) {
-                if (entry.blockNumber > parseInt(getViewedBlockNumber(CHAIN_ID))) {
-                    $('.tooltip').addClass('is-visible');
-                }
-            }
-        }
-    }
-
-}
-*/
-
 function answersByMaxBond(answer_logs) {
     let ans = {};
     for (let i = 0; i < answer_logs.length; i++) {
@@ -3078,7 +2949,7 @@ function uiHash(str) {
 }
 
 function userInvolvement(question) {
-console.log('TODO: go through this question and find out what the user did');
+    console.log('TODO: go through this question and find out what the user did');
     if (!ACCOUNT) {
         return false;
     }
