@@ -416,27 +416,6 @@ function setRcBrowserPosition(rcbrowser) {
 
 }
 
-
-/*
-const mybns = [
-ethers.BigNumber.from('0x09184e72a000'),
-ethers.BigNumber.from('0x2e90edd000'),
-ethers.BigNumber.from('0x174876e800'),
-ethers.BigNumber.from('0xe8d4a51000'),
-//ethers.BigNumber.from('0x09184e72a000'),
-ethers.BigNumber.from('0x12309ce54000')
-];
-console.log('mybns', mybns)
-let ttl = ethers.BigNumber.from(0);
-for(var i=0; i<mybns.length; i++) {
-    ttl = ttl.add(mybns[i]); 
-}
-console.log('mybns ttl', ttl.toNumber());
-//const all = mybns[0].add(mybns[1]).add(mybns[2]).add(mybns[3]).add(mybns[4]).add(mybns[5]).add(mybns[6]);
-//console.log('ttl was '+all.toNumber());
-*/
-
-
     function initScrollBars() {
         const rcbrowsers = document.querySelectorAll('.rcbrowser-inner');
 
