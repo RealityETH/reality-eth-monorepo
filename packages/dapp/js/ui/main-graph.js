@@ -16,7 +16,7 @@ const $ = require('jquery-browserify');
 require('jquery-expander')($);
 require('jquery-datepicker');
 
-$('body').addClass('via-node');
+$('body').addClass('via-graph');
 
 let provider;
 let signer;
@@ -24,6 +24,13 @@ let signer;
 const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js');
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 const rc_contracts = require('@reality.eth/contracts');
+
+// Never try to refetch data if we have some less than this many milliseconds old
+const DEFAULT_MAX_CACHE_MS = 10000; 
+
+// When we get stuff that was recently fetched, fetch from the last fetch we did, but make it a bit earlier in case there was a reorg
+const REORG_ALLOWANCE_SECS = 180 
+const POLLING_INTERVAL = 10 
 
 let TOKEN_INFO = {};
 let CHAIN_INFO = {};
@@ -55,6 +62,7 @@ let CATEGORY = null;
 let CONTRACT_TEMPLATE_CONTENT = {}; TEMPLATE_CONFIG.content;
 
 let LAST_POLLED_BLOCK = null;
+let LAST_POLLED_USER_TS = null;
 let IS_INITIAL_LOAD_DONE = false;
 
 let USE_COMMIT_REVEAL = false;
@@ -101,30 +109,32 @@ let ARBITRATOR_INSTANCE = null;
 
 let ACCOUNT = null;
 
+const MAX_STORE = 10;
+
 let DISPLAY_ENTRIES = {
     'questions-active': {
         'ids': [],
         'vals': [],
-        'max_store': 50,
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-resolved': {
         'ids': [],
         'vals': [],
-        'max_store': 50,
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-closing-soon': {
         'ids': [],
         'vals': [],
-        'max_store': 50,
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     },
     'questions-upcoming': {
         'ids': [],
         'vals': [],
-        'max_store': 50,
-        'max_show': 6
+        'max_show': 6,
+        'max_store': MAX_STORE
     }
 }
 
@@ -194,18 +204,16 @@ function fillPendingUserTX(tx) {
 
     // ERC20 will have the bond in the args, native will have it in the value
     // TODO: native may be wrong if the arbitrator has a question fee
-    const bond = ('bond' in dec.args) ? dec.args.bond : dec.value;
+    const bond = ('bond' in dec) ? dec.bond : dec.value;
 
     const fake_history = {
-	'args': {
-	    'answer': dec.args.answer,
-	    'question_id': dec.args.question_id,
-	    'history_hash': null, // TODO Do we need this?
-	    'user': ACCOUNT,
-	    'bond': bond,
-	    'ts': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)), // todo
-	    'is_commitment': false // TODO
-	},
+        'answer': dec.args.answer,
+        'question_id': dec.args.question_id,
+        'history_hash': null, // TODO Do we need this?
+        'user': ACCOUNT,
+        'bond': bond,
+        'ts': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)), // todo
+        'is_commitment': false, // TODO
 	'event': 'LogNewAnswer',
 	'blockNumber': tx.blockNumber,
 	'txid': txid
@@ -233,20 +241,20 @@ function mergeConfirmedTXes(question) {
     let history_unconfirmed_bond_to_idx = {};
     if (question['history'] && question['history'].length > 0) {
         for(let hi=0; hi<question['history'].length; hi++) {
-            if (!question['history'][hi].args) {
+            if (!question['history'][hi]) {
                 console.log('no args in history item',question['history'][hi]);
                 continue;
             }
-            history_bond_to_idx[question['history'][hi].args.bond.toHexString()] = hi;
+            history_bond_to_idx[question['history'][hi].bond.toHexString()] = hi;
         }
     }
     if (question['history_unconfirmed'] && question['history_unconfirmed'].length > 0) {
         for(let ui=0; ui<question['history_unconfirmed'].length; ui++) {
-            if (!question['history_unconfirmed'][ui].args) {
+            if (!question['history_unconfirmed'][ui]) {
                 console.log('no args in history_unconfirmed item',question['history_unconfirmed'][ui]);
                 continue;
             }
-            history_unconfirmed_bond_to_idx[question['history_unconfirmed'][ui].args.bond.toHexString()] = ui;
+            history_unconfirmed_bond_to_idx[question['history_unconfirmed'][ui].bond.toHexString()] = ui;
         }
     }
 
@@ -262,22 +270,47 @@ function mergeConfirmedTXes(question) {
                 // TODO: We might want to keep this somewhere and display that it failed instead of just pretending your failed tx never happened
                 const idx = history_bond_to_idx[b];
                 const purge_block_count = 20;
-                if ((question['history'][idx].blockNumber + purge_block_count) < CURRENT_BLOCK_NUMBER) {
-                    console.log('purging confirmed bond at level', b);
+                if (true || (question['history'][idx].blockNumber + purge_block_count) < CURRENT_BLOCK_NUMBER) {
+                    // console.log('purging confirmed bond at level (ignoring purge block count for now)', b);
                     clearPendingTXID(pending_entries_by_bond[b].txid, CHAIN_ID);
                 } else {
-                    console.log('pending tx confirmed but not purging yet in case of reorg, will purge at ', question['history'][idx].blockNumber + purge_block_count,', only at ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
+                    // console.log('pending tx confirmed but not purging yet in case of reorg, will purge at ', question['history'][idx].blockNumber + purge_block_count,', only at ',CURRENT_BLOCK_NUMBER, question['history'][idx]);
                 }
                 continue;
             }
             if (b in history_unconfirmed_bond_to_idx) {
-                console.log('unconfirmed list already has pending tx', b);
+                // console.log('unconfirmed list already has pending tx', b);
                 continue;
             }
             question['history_unconfirmed'].push(pending_entries_by_bond[b]);
             console.log('added entry for bond', b);
         }
     }
+    return question;
+}
+
+function clearClobberedUnconfirmed(question) {
+    const unconf = question['history_unconfirmed'];
+    const conf = question['history'];
+    if (!unconf || unconf.length == 0) {
+        return question;
+    }
+    const highest_bond = question.bond;
+
+    // console.log('highest_bond is ', highest_bond);
+
+    // unconf = unconf.sort((a, b) => (a.bond.gt(b.bond)) ? 1 : -1);
+
+    let unconf2 = [];
+    for(const bidx in unconf) {
+        const b = unconf[bidx];
+        if (b.bond.lte(highest_bond)) {
+            break;
+        }
+        unconf2.push(b);
+    }
+
+    question['history_unconfirmed'] = unconf2;
     return question;
 }
 
@@ -827,39 +860,38 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         const txid = tx_response.hash;
         const contract = RC_DEFAULT_ADDRESS;
 
-        // Make a fake log entry
-        const fake_log = {
-            'entry': 'LogNewQuestion',
-            'blockNumber': 0, // unconfirmed
-            'args': {
-                'question_id': question_id,
-                'user': ACCOUNT,
-                'arbitrator': arbitrator,
-                'timeout': ethers.BigNumber.from(timeout_val),
-                'content_hash': rc_question.contentHash(template_id, opening_ts, qtext),
-                'template_id': ethers.BigNumber.from(template_id),
-                'question': qtext,
-                'created': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
-                'opening_ts': ethers.BigNumber.from(parseInt(opening_ts))
-            },
-            'address': contract 
+        const fake_question = {
+            id: contract + '-' + question_id,
+            questionId: question_id,
+            contract: contract,
+            createdBlock: 0,
+            createdTimestamp: ""+parseInt(new Date().getTime()/1000), // Make this look like graph does
+            data: qtext,
+            arbitrator: arbitrator,
+            openingTimestamp: ethers.BigNumber.from(parseInt(opening_ts)),
+            timeout: ethers.BigNumber.from(timeout_val),
+            bounty: reward,
+            currentAnswer: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            currentAnswerBond: null,
+            currentAnswerTimestamp: null,
+            historyHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+            contentHash: rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
+            lastBond: 0,
+            minBond: min_bond,
+            cumulativeBonds: 0,
+            arbitrationRequestedTimestamp: 0,
+            arbitrationRequestedBy: null,
+            isPendingArbitration: false,
+            arbitrationOccurred: false,
+            answerFinalizedTimestamp: null,
+            currentScheduledFinalizationTimestamp: null,
+            template: {
+                templateId: template_id, 
+                questionText: CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] // TODO: Make sure this is fetched - should be if we're only using existing questions or our listed templates
+            }
         }
-        const fake_call = [];
-        fake_call[Qi_finalization_ts] = ethers.BigNumber.from(0);
-        fake_call[Qi_is_pending_arbitration] = false;
-        fake_call[Qi_arbitrator] = arbitrator;
-        fake_call[Qi_timeout] = ethers.BigNumber.from(timeout_val);
-        fake_call[Qi_content_hash] = rc_question.contentHash(template_id, parseInt(opening_ts), qtext),
-        fake_call[Qi_bounty] = reward;
-        fake_call[Qi_best_answer] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-        fake_call[Qi_bond] = ethers.BigNumber.from(0);
-        fake_call[Qi_min_bond] = min_bond;
-        fake_call[Qi_history_hash] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-        fake_call[Qi_opening_ts] = ethers.BigNumber.from(opening_ts);
 
-        let q = filledQuestionDetail(contract, question_id, 'question_log', 0, fake_log);
-        q = filledQuestionDetail(contract, question_id, 'question_call', 0, fake_call);
-        q = filledQuestionDetail(contract, question_id, 'question_json', 0, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true));
+        let q = filledQuestion(fake_question)
 
         // Turn the post question window into a question detail window
         let rcqa = $('.rcbrowser--qa-detail.template-item').clone();
@@ -901,7 +933,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         await tx_response.wait();
         await delay(3000);
 
-        handleQuestionLog(fake_log);
+        handleQuestion(fake_question);
 
     }
 
@@ -990,7 +1022,8 @@ function isAnswerActivityStarted(question) {
 function historyItemForCurrentAnswer(question) {
     if (question['history'].length) {
         for (let i=question['history'].length-1; i >= 0; i--) {
-            const item = question['history'][i].args;
+            const item = question['history'][i];
+            // console.log('considering item', item,' for question', question);
             if (!item.is_commitment || item.revealed_block) {
                 return item;
             }
@@ -1009,7 +1042,7 @@ function isTopAnswerRevealable(question) {
         return false;
     }
     const idx = question['history'].length - 1;
-    const item = question['history'][idx].args;
+    const item = question['history'][idx];
     if (!item.is_commitment) {
         return false;
     }
@@ -1028,7 +1061,7 @@ function hasUnrevealedCommits(question) {
     }
     if (question['history'].length) {
         for (let i=0; i<question['history'].length; i++) {
-            const item = question['history'][i].args;
+            const item = question['history'][i];
             if (item.is_commitment && !item.revealed_block) {
                 return true;
             }
@@ -1104,7 +1137,7 @@ function isReopenable(question) {
     return isReopenCandidate(question);
 }
 
-$(document).on('click', '.answer-claim-button', function() {
+$(document).on('click', '.answer-claim-button', async function() {
 
     const contract = $(this).closest('.contract-claim-section').attr('data-contract');
 
@@ -1178,9 +1211,8 @@ $(document).on('click', '.answer-claim-button', function() {
         if (ctr != contract) {
             throw new Error("Contract ID mismatch", ctr, contract);
         }
-        ensureQuestionDetailFetched(contract, question_id).then(function(qdata) {
-            doClaim(contract, is_single_question, qdata);
-        });
+        await ensureQuestionDetailFetched(contract, question_id)
+        doClaim(contract, is_single_question, qdata);
     } else {
         // TODO: Should we be refetching all the questions we plan to claim for?
         doClaim(contract, is_single_question);
@@ -1255,10 +1287,8 @@ function validate(win) {
     return valid;
 }
 
-/*-------------------------------------------------------------------------------------*/
-// make questions list
 
-$('div.loadmore-button').on('click', function(e) {
+$('div.loadmore-button').on('click', async function(e) {
     const sec = $(this).attr('data-questions');
     //console.log('loading more sec', sec);
 
@@ -1268,6 +1298,8 @@ $('div.loadmore-button').on('click', function(e) {
     const num_in_doc = $('#' + sec).find('.questions__item').length;
 
     DISPLAY_ENTRIES[sec]['max_show'] = new_max;
+
+    const old_max_store = DISPLAY_ENTRIES[sec]['max_store'];
 
     // TODO: We may need to refetch to populate this store
     DISPLAY_ENTRIES[sec]['max_store'] = DISPLAY_ENTRIES[sec]['max_store'] + 3;
@@ -1279,102 +1311,19 @@ $('div.loadmore-button').on('click', function(e) {
         if (i > 0) {
             previd = DISPLAY_ENTRIES[sec]['ids'][i + 1];
         }
-        //console.log('populatewith', previd, nextid, QUESTION_DETAIL_CACHE);
-        // TODO: Handle multiple contracts
-        ensureQuestionDetailFetched(next_ctr, next_question_id, 1, 1, 1, -1).then(function(qdata) {
-            populateSection(sec, qdata, previd);
-        });
+
+        // Mostly these will come direct from the cache
+        let question = await ensureQuestionDetailFetched(next_ctr, next_question_id, (60*60*1000));
+        populateSection(sec, question, previd);
     }
+
+    // Increase storage for next time
+    // TODO: Only fetch the relevant section
+    fetchQuestionListsFromGraph(old_max_store);
 
 });
 
-// This gets called when we discover an event that may be related to the user.
-// We may or may not have already seen this event.
-// We may or may not have known that the event was related to the user already.
-// We may or may not have fetched information about the question.
-async function handlePotentialUserAction(entry, is_watch) {
-    //console.log('handlePotentialUserAction for entry', entry.args.user, entry, is_watch);
-
-    if (entry.invalid_data) { 
-        console.log('skipping invalid log entry');
-        return;
-    }
-
-    if (!ACCOUNT) {
-        return;
-    }
-
-    if ((entry['event'] == 'LogNewTemplate') || (entry['event'] == 'LogWithdraw')) {
-        return;
-    }
-
-    if (!entry || !entry.args || !entry.args['question_id'] || !entry.blockNumber) {
-        console.log('expected content not found in entry', !entry, !entry.args, !entry.args['question_id'], !entry.blockNumber, entry);
-        return;
-    }
-
-    const contract = entry.address;
-
-    // This is the same for all events
-    const question_id = entry.args['question_id'];
-    const contract_question_id = cqToID(contract, question_id);
-    // console.log('handlePotentialUserAction made contract_question_id', contract_question_id);
-
-    // If this is the first time we learned that the user is involved with this question, we need to refetch all the other related logs
-    // ...in case we lost one due to a race condition (ie we had already got the event before we discovered we needed it)
-    // TODO: The filter could be tigher on the case where we already knew we had it, but we didn't know how soon the user was interested in it
-    if ((!Q_MIN_ACTIVITY_BLOCKS[contract_question_id]) || (entry.blockNumber < Q_MIN_ACTIVITY_BLOCKS[contract_question_id])) {
-        // Event doesn't, in itself, have anything to show we are interested in it
-        // NB we may be interested in it later if some other event shows that we should be interested in this question.
-        if (!isForCurrentUser(entry)) {
-            // console.log('entry', entry.args['question_id'], 'not interesting to account', entry, account);
-            return;
-        }
-
-        //console.log('blockNumber was ', entry.blockNumber);
-        Q_MIN_ACTIVITY_BLOCKS[contract_question_id] = entry.blockNumber;
-
-        fetchUserEventsAndHandle(null, entry.address, question_id, RCStartBlock(contract), 'latest');
-
-        updateUserBalanceDisplay();
-
-    }
-
-    let lastViewedBlockNumber = 0;
-    if (getViewedBlockNumber(CHAIN_ID)) {
-        lastViewedBlockNumber = parseInt(getViewedBlockNumber(CHAIN_ID));
-    }
-    if (entry.blockNumber > lastViewedBlockNumber) {
-        $('body').addClass('pushing');
-    }
-
-    let is_population_done = false;
-
-    // User action
-    //console.log('got event as user action', entry);
-    if ((entry['event'] == 'LogNewAnswer') && (SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id] > 0)) {
-        delete SUBMITTED_QUESTION_ID_BY_TIMESTAMP[contract_question_id];
-        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, entry.blockNumber, entry.blockNumber);
-        displayQuestionDetail(question);
-        renderUserAction(question, entry, is_watch);
-    } else {
-        // console.log('fetch for notifications: ', question_id, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
-        const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
-        if ((entry['event'] == 'LogNewAnswer') || (entry['event'] == 'LogClaim') || (entry['event'] == 'LogFinalize')) {
-            // console.log('got event, checking effect on claims', entry, question, is_watch, contract);
-            if (updateClaimableDataForQuestion(question, entry, is_watch)) {
-                updateClaimableDisplay(contract);
-                updateUserBalanceDisplay();
-            }
-        }
-        //console.log('rendering entry', entry);
-        renderUserAction(question, entry, is_watch);
-        //console.log('got error fetching: ', question_id, e);
-    }
-
-}
-
-function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
+function updateClaimableDataForQuestion(question) {
     const contract = question.contract;
     const poss = possibleClaimableItems(question);
     //console.log('made poss for question', poss, question.question_id);
@@ -1390,11 +1339,12 @@ function updateClaimableDataForQuestion(question, answer_entry, is_watch) {
 }
 
 async function updateClaimableDisplay(contract) {
+
     if (!USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()]) {
         USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()] = {};
     }
     const unclaimed = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], false);
-    // console.log('updateClaimableDisplay with user_claimable, unclaimed', USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], unclaimed);
+    // console.log('updateClaimableDisplay with user_claimable, unclaimed', contract, USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], unclaimed);
     const claiming = mergePossibleClaimable(USER_CLAIMABLE_BY_CONTRACT[contract.toLowerCase()], true);
     const sec = $('.contract-claim-section').filter('[data-contract=' + contract.toLowerCase() + ']'); 
     if (claiming.total.gt(0)) {
@@ -1411,6 +1361,7 @@ async function updateClaimableDisplay(contract) {
     const balance_arr = await RCInstance(contract).functions.balanceOf(ACCOUNT); 
     const balance = balance_arr[0];
     const ttl = balance.add(unclaimed.total);
+//console.log('claimable ttol is ',ttl, ttl.toNumber());
     if (ttl.gt(0)) {
         sec.find('.answer-claim-button.claim-all').find('.claimable-eth').text(decimalizedBigNumberToHuman(ttl));
         sec.find('.answer-claim-button.claim-all').show();
@@ -1456,573 +1407,139 @@ function mergePossibleClaimable(posses, pending) {
     return combined;
 }
 
-function scheduleFinalizationDisplayUpdate(contract, question) {
-    //console.log('in scheduleFinalizationDisplayUpdate', question);
-    // TODO: The layering of this is a bit weird, maybe it should be somewhere else?
-    if (!isFinalized(question) && isAnswered(question) && !isArbitrationPending(question)) {
-        const question_id = question.question_id;
-        const contract_question_id = contractQuestionID(question);
-        let is_done = false;
-        if (QUESTION_EVENT_TIMES[contract_question_id]) {
-            if (QUESTION_EVENT_TIMES[contract_question_id].finalization_ts == question.finalization_ts) {
-                //console.log('leaving existing timeout for question', question_id)
-                is_done = true;
-            } else {
-                clearTimeout(QUESTION_EVENT_TIMES[contract_question_id].timeout_id);
-                //console.log('clearing timeout for question', question_id)
-            }
-        }
-        if (!is_done) {
-            //console.log('scheduling');
-            // Run 1 second after the finalization timestamp
-            const update_time = (1000 + (question.finalization_ts.toNumber() * 1000) - new Date().getTime());
-            //console.log('update_time is ', update_time);
-            const timeout_id = setTimeout(function() {
-                // TODO: Call again here in case it changed and we missed it
-                clearTimeout(QUESTION_EVENT_TIMES[contract_question_id].timeout_id);
-                delete QUESTION_EVENT_TIMES[contract_question_id];
-
-                ensureQuestionDetailFetched(question.contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER).then(function(question) {
-
-                    if (isFinalized(question)) {
-                        updateQuestionWindowIfOpen(question);
-                        updateRankingSections(question, 'finalization_ts', question.finalization_ts);
-
-                        // The notification code sorts by block number
-                        // So get the current block
-                        // But also add the timestamp for display
-                        provider.getBlock('latest', function(err, result) {
-                            // There no blockchain event for this, but otherwise it looks to the UI like a normal event
-                            // Make a pretend log to feed to the notifications handling function.
-                            BLOCK_TIMESTAMP_CACHE[result.number] = result.timestamp
-                            const fake_entry = {
-                                event: 'LogFinalize',
-                                blockNumber: result.number,
-                                timestamp: question.finalization_ts.toNumber(),
-                                address: question.contract,
-                                args: {
-                                    question_id: question.question_id,
-                                }
-                            }
-                            // console.log('sending fake entry', fake_entry, question);
-                            if (updateClaimableDataForQuestion(question, fake_entry, true)) {
-                                updateClaimableDisplay(contract);
-                                updateUserBalanceDisplay();
-                            }
-
-                            renderNotifications(question, fake_entry);
-                        });
-                    }
-
-                });
-
-            }, update_time);
-            QUESTION_EVENT_TIMES[contract_question_id] = {
-                'finalization_ts': question.finalization_ts,
-                'timeout_id': timeout_id
-            };
-        }
-    } else {
-        //console.log('scheduling not doing: ', isFinalized(question), isAnswered(question));
-    }
-
-}
-
 function isAnythingUnrevealed(question) {
     console.log('isAnythingUnrevealed pretending everything is revealed');
     return false;
 }
 
-async function _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question, found_at_block) {
-    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    let earliest_block = 0;
-    let bond_indexes = {};
-    //console.log('checking his', question['history']);
-    for (let i=0; i<question['history'].length; i++) {
-        if (question['history'][i].args['is_commitment']) {
-            if (!question['history'][i].args['revealed_block']) {
-                const bond_hex = question['history'][i].args['bond'].toHexString(); // TODO-check-0x
-                // console.log('_ensureAnswerRevealsFetched found commitment, block', earliest_block, 'bond', bond_hex);
-                bond_indexes[bond_hex] = i;
-                if (earliest_block == 0 || earliest_block > question['history'][i].blockNumber) {
-                    earliest_block = question['history'][i].blockNumber;
-                }
-            }
-        }
+function filledAnswer(item, fetched_ms) {
+
+    // For now we make this look like what we get from a log event
+    let ans = {};
+    if (item.isCommitment) {
+        ans.commitment_id = item.commitmentId;
+        ans.is_commitment = true;
+        ans.revealed_block = item.revealedBlock
+    } else {
+        ans.is_commitment = false;
+        ans.commitment_id = null;
+        ans.revealed_block = null;
     }
-    // console.log('earliest_block', earliest_block);
-    if (earliest_block > 0) {
-        const reveal_filter = RCInstance(contract).filters.LogAnswerReveal(question_id);
-        const answer_arr = await RCInstance(contract).queryFilter(reveal_filter, start_block, 'latest');
-        // console.log('got reveals', answer_arr);
-        for(let j=0; j<answer_arr.length; j++) {
-            const bond_hex = answer_arr[j].args['bond'].toHexString(); // TODO-check-0x
-            const idx = bond_indexes[bond_hex];
-            // Copy the object as we are not allowed to extend the original one
-            let args = Object.assign({}, question['history'][idx].args);
-            // console.log(question_id, bond.toHexString(), 'update answer, before->after:', question['history'][idx].answer, answer_arr[j].args['answer']);
-            args['revealed_block'] = answer_arr[j].blockNumber;
-            args['answer'] = answer_arr[j].args['answer'];
-            const commitment_id = rc_question.commitmentID(question_id, answer_arr[j].args['answer_hash'], bond_hex);
-            args['commitment_id'] = commitment_id;
-            question['history'][idx].args = args;
-            delete bond_indexes[bond_hex];
-        }
-        QUESTION_DETAIL_CACHE[contractQuestionID(question)] = question; // TODO : use filledQuestionDetail here? 
-        //console.log('populated question, result is', question);
-        //console.log('bond_indexes once done', bond_indexes);
-    } 
-    return question;
+    ans.answer = item.answer;
+    // ans.isUnrevealed = = item.isUnrevealed; // TODO: use this later
+    ans.bond = ethers.BigNumber.from(item.bond);
+    ans.history_hash = item.historyHash;
+
+    ans.user = item.user; 
+    ans.ts = ethers.BigNumber.from(item.timestamp);
+
+    // txid isn't filled from the graph, only from our unconfirmed transactions
+    ans.txid = item.txid;
+
+    ans.fetched_ms = fetched_ms;
+
+    return ans;
+
 }
 
+function ensureTemplateCached(contract, template_id, content) {
+    contract = contract.toLowerCase();
+    template_id = parseInt(template_id);
+    if (!CONTRACT_TEMPLATE_CONTENT[contract]) {
+        CONTRACT_TEMPLATE_CONTENT[contract] = {};
+    }
+    CONTRACT_TEMPLATE_CONTENT[contract][""+template_id] = content;
+}
 
-function filledQuestionDetail(contract, question_id, data_type, freshness, data) {
+function filledQuestion(item, fetched_ms) {
 
-    if (!question_id) {
-        console.log(contract, question_id, data_type, freshness, data);
-        throw Error("filledQuestionDetail called without question_id, wtf")
+    let question = {'history_unconfirmed': []};
+
+    const cqid = cqToID(item.contract, item.questionId);
+    // console.log('filledQuestion', cqid);
+
+    // If we already have a question cached, start with that so we don't clobber its unconfirmed history etc
+    if (QUESTION_DETAIL_CACHE[cqid]) {
+        question = QUESTION_DETAIL_CACHE[cqid];
+    } 
+
+    question.arbitrator = item.arbitrator;
+    question.question_id = item.questionId;
+    question.creation_ts = ethers.BigNumber.from(item.createdTimestamp);
+    question.question_creator = item.user;
+    question.question_created_block = item.createdBlock;
+    question.content_hash = item.contentHash;
+    question.question_text= item.data;
+    question.template_id = item.template.templateId;
+    question.block_mined = item.createdBlock;
+    question.fetched_ms = fetched_ms;
+
+    ensureTemplateCached(item.contract, item.template.templateId, item.template.questionText);
+
+    if (item.openingTimestamp) {
+        question.opening_ts = ethers.BigNumber.from(item.openingTimestamp);
+    } else {
+        question.opening_ts = ethers.BigNumber.from(0);
     }
 
-    // Freshness should look like this:
-    // {question_log: 0, question_call: 12345, answers: -1}
+    question.contract = item.contract;
+    question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
+    if (item.reopens) {
+        question.reopener_of_question_id = item.reopens.id;
+    }
+    if (item.reopenedBy) {
+        question.reopened_by = item.reopenedBy.id;
+    }
+    //question.bounty = data.args['bounty'];
 
-    // Freshness is used to tell us at what block the data was current.
-    // Since events can arrive out of order, we may get data that was older than what we already have, which we should ignore.
-    // When querying data, freshness is used to tell us how new we need the data to be, ie if we already have data for a block, we don't need to fetch it again.
-
-    // A request for freshness of -1 indicates that we don't need to fetch the data for a particular request.
-
-    // Data should look like this:
-    // {question_log: {}, question_call: {}, answers: []} )
-
-    // TODO: Maybe also need detected_last_changes for when we know data will change, but don't want to fetch it unless we need it
-
-    let question = {
-        'freshness': {
-            'question_log': -1,
-            'question_json': -1,
-            'question_call': -1,
-            'answers': -1
-        },
-        'history': [],
-        'history_unconfirmed': []
-    };
-    question.question_id = question_id;
-    question.contract = contract;
-    const contract_question_id = contractQuestionID(question);
-    if (QUESTION_DETAIL_CACHE[contract_question_id]) {
-        question = QUESTION_DETAIL_CACHE[contract_question_id];
+    try {
+        // question.question_json = JSON.parse(item.json_str);
+        question.question_json = rc_question.populatedJSONForTemplate(item.template.questionText, item.data, true);
+        question.has_invalid_option = rc_question.hasInvalidOption(question.question_json, question.version_number);
+        question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(question.question_json, question.version_number);
+    } catch (e) {
+        console.log('error parsing json', e);
+        return null;
+        // question.question_json = null;
+    }
+  
+    if (item.answerFinalizedTimestamp) {
+        question.finalization_ts = ethers.BigNumber.from(item.answerFinalizedTimestamp); // GRAPH_TODO - check this is what we need
+    } else {
+        question.finalization_ts = ethers.BigNumber.from(0);
     }
 
-    switch (data_type) {
+    question.is_pending_arbitration = item.isPendingArbitration;
+    question.timeout = ethers.BigNumber.from(item.timeout);
+    question.bounty = ethers.BigNumber.from(item.bounty);
+    question.best_answer = item.currentAnswer;
+    question.bond = ethers.BigNumber.from(item.lastBond);
+    question.history_hash = item.historyHash;
 
-        case 'question_log':
-            if (data && (freshness >= question.freshness.question_log)) {
-                question.freshness.question_log = freshness;
-                //question.question_id = data.args['question_id'];
-                question.arbitrator = data.args['arbitrator'];
-                question.creation_ts = data.args['created'];
-                question.question_creator = data.args['user'];
-                question.question_created_block = data.blockNumber;
-                question.content_hash = data.args['content_hash'];
-                try {
-                    question.question_text = data.args['question'];
-                } catch (e) {
-                    question.question_text = '[ABI decoding Error]';
-                    console.log(e, data.args);
-                }                
-                question.template_id = data.args['template_id'].toNumber();
-                question.block_mined = data.blockNumber;
-                question.opening_ts = ethers.BigNumber.from(data.args['opening_ts']);
-                question.contract = data.address;
-                question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
-                if ('reopener_of_question_id' in data.args) {
-                    question.reopener_of_question_id = data.args['reopener_of_question_id'];
-                }
-                //question.bounty = data.args['bounty'];
-            }
-            break;
-
-        case 'question_json':
-            if (data && (freshness >= question.freshness.question_json)) {
-                question.freshness.question_json = freshness;
-                question.question_json = data;
-                question.has_invalid_option = rc_question.hasInvalidOption(data, question.version_number);
-                question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(data, question.version_number);
-            }
-            break;
-
-        case 'question_call':
-            //console.log('in case question_call');
-            if (data && (freshness >= question.freshness.question_call)) {
-                //console.log('call data new, not setting', freshness, ' vs ', question.freshness.question_call, question)
-                // Question ID is tacked on after the call.
-                // This never changes, so it doesn't matter whether it's filled by the logs or by the call.
-                question.freshness.question_call = freshness;
-                //question.question_id = question_id;
-                question.finalization_ts = ethers.BigNumber.from(data[Qi_finalization_ts]);
-                question.is_pending_arbitration = data[Qi_is_pending_arbitration];
-                question.arbitrator = data[Qi_arbitrator];
-                question.timeout = ethers.BigNumber.from(data[Qi_timeout]);
-                question.content_hash = data[Qi_content_hash];
-                question.bounty = data[Qi_bounty];
-                question.best_answer = data[Qi_best_answer];
-                question.bond = data[Qi_bond];
-                question.history_hash = data[Qi_history_hash];
-                if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[question.contract.toLowerCase()], 'min-bond')) {
-                    question.min_bond = data[Qi_min_bond];
-                } else {
-                    question.min_bond = ethers.BigNumber.from(0);
-                }
-                //console.log('set question', question_id, question);
-            } else {
-                //console.log('call data too old, not setting', freshness, ' vs ', question.freshness.question_call, question)
-            }
-            break;
-
-        case 'answers':
-            if (data && (freshness >= question.freshness.answers)) {
-                // If the history shrank, ignore the new data unless it's much newer than the old data
-                // This works around an issue where stuff disappears due to a laggy node
-                if (data.length < question['history'].length && (CURRENT_BLOCK_NUMBER - freshness < 100)) { 
-                    console.log('ignoring data that got shorter', data, question['history']);
-                } else {
-                    question.freshness.answers = freshness;
-                    question['history'] = data;
-                }
-            }
-
-            question = mergeConfirmedTXes(question);
-
-            if (data.length && question['history_unconfirmed'].length) {
-                for (let j = 0; j < question['history_unconfirmed'].length; j++) {
-                    let ubond = question['history_unconfirmed'][j].args.bond;
-                    for (let i = 0; i < question['history'].length; i++) {
-                        // If there's something unconfirmed with an equal or lower bond, remove it
-                        if (data[i].args.bond.gte(ubond)) {
-                            console.log('removing unconfirmed entry due to equal or higher bond from confirmed');
-                            question['history_unconfirmed'].splice(j, 1);
-                        }
-                    }
-                }
-            }
-            break;
-
-        case 'answers_unconfirmed':
-            //console.log('adding answers_unconfirmed');
-            // Ignore the age and just see if we have it already
-            for (let i = 0; i < question['history'].length; i++) {
-                //console.log('already have a higher bond, removing');
-                // If there's something confirmed with an equal or higher bond, ignore the unconfirmed one
-                if (question['history'][i].args.bond.gte(data.args.bond)) {
-                    break;
-                }
-            }
-            //console.log('adding data to history_unconfirmed');
-            question['history_unconfirmed'].push(data);
-            break;
-
-        case 'reopener_question':
-            const reopened_by = data[0];
-            const also_too_soon = data[1];
-            const is_reopener = data[2];
-            // Ignore this if it was also answered too soon
-            // TODO: We should probably store the reopened_by somehow
-            question.reopened_by = null;
-            question.last_reopened_by = '0x0000000000000000000000000000000000000000000000000000000000000000';
-            if (reopened_by && reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
-                // last_reopened_by always holds whatever the contract thinks it was opened by
-                // reopened_by only holds it if it's still active
-                question.last_reopened_by = reopened_by;
-                if (!also_too_soon) {
-                    question.reopened_by = reopened_by;
-                }
-            } 
-            question.is_reopener = is_reopener;
-            break;
-
+    if (!question.history_hash) {
+        question.history_hash = "0x0000000000000000000000000000000000000000000000000000000000000000";
     }
 
-    QUESTION_DETAIL_CACHE[contract_question_id] = question;
+    question.min_bond = ethers.BigNumber.from(item.minBond);
+    question.history = [];
+    for(let respi in item.responses) {
+        question.history.push(filledAnswer(item.responses[respi], fetched_ms));
+    }
+    question.history = question.history.sort((a, b) => (a.bond.gt(b.bond)) ? 1 : -1);
 
-    //console.log('was called filledQuestionDetail', question_id, data_type, freshness, data);
-    //console.log('returning question', question);
+    question = mergeConfirmedTXes(question);
+    question = clearClobberedUnconfirmed(question);
+    // console.log('filledQuestion made', question, item);
+
+    // TODO: Make sure the graph knows whether a question still has funds and query that here
+    if (ACCOUNT && isFinalized(question)) {
+        updateClaimableDataForQuestion(question); 
+    }
+
+    QUESTION_DETAIL_CACHE[cqid] = question;
 
     return question;
 
-}
-
-function isDataFreshEnough(contract_question_id, data_type, freshness) {
-    //console.log('looking at isDataFreshEnough for ', question_id, data_type, freshness);
-    // We set -1 when we don't need the data at all
-    if (freshness == -1) {
-        // console.log('-1, not needed');
-        return true;
-    }
-    if (!QUESTION_DETAIL_CACHE[contract_question_id]) {
-        // console.log('question not found, definitely fetch');
-        return false;
-    }
-    if (QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type] >= freshness) {
-        // console.log('is fresh', QUESTION_DETAIL_CACHE[contract_question_id].freshness, freshness)
-        return true;
-    } 
-    // question_json never changes so 1 should be enough
-    if (data_type == 'question_json' && QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type] > 0) {
-        // console.log('questino_json always fresh');
-        return true;
-    }
-    // console.log('is not fresh', QUESTION_DETAIL_CACHE[contract_question_id].freshness[data_type], data_type, freshness)
-    return false;
-}
-
-// No freshness as this only happens once per question
-async function _ensureQuestionLogFetched(contract, question_id, freshness, found_at_block) {
-    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(contract_question_id, 'question_log', freshness)) {
-        // console.log('_ensureQuestionLogFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
-        return QUESTION_DETAIL_CACHE[contract_question_id];
-    } else {
-        // console.log('_ensureQuestionLogFetched fetch fresh ', contract_question_id);
-        const question_filter = RCInstance(contract).filters.LogNewQuestion(question_id);
-        //const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
-        const question_arr = await RCInstance(contract).queryFilter(question_filter, RCStartBlock(contract), 'latest');
-        if (question_arr.length == 0) {
-            throw new Error("Question log not found, maybe try again later");
-        }
-        if (question_arr.invalid_data) { 
-            throw new Error("Invalid data");
-        }
-        const blocknum = question_arr[0].blockNumber;
-
-        let question = null;
-        const arr = question_arr[0];
-        // See if this question already reopens something else
-        if (rc_contracts.versionHasFeature(RC_INSTANCE_VERSIONS[contract.toLowerCase()], 'reopen-question')) {
-            // The call will tell us if it reopens something
-            const ro_result = await RCInstance(contract).functions.reopener_questions(question_id);
-            const is_reopener = ro_result[0];
-            // We need to query the log to find out what it reopens.
-            // The event should be in the same block (and transaction) as the question creation.
-            let qarr = {};
-            qarr.address = question_arr[0].address;
-            qarr.blockNumber = question_arr[0].blockNumber;
-            qarr.args = Object.assign({}, question_arr[0].args);
-            if (is_reopener) {
-                const reopen_filter = RCInstance(contract).filters.LogReopenQuestion(question_id);
-                const reopen_arr = await RCInstance(contract).queryFilter(reopen_filter, blocknum, blocknum);
-                const reopened_question_id = reopen_arr[0].args.reopened_question_id;
-                // This isn't in the original log so just tack it on as if it is
-
-                qarr.args.reopener_of_question_id = reopened_question_id;
-                // console.log('will fill', reopened_question_id);
-            }            
-            question = filledQuestionDetail(contract, question_id, 'question_log', called_block, qarr);
-        } else {
-            question = filledQuestionDetail(contract, question_id, 'question_log', called_block, question_arr[0]);
-        }
-
-        return question;
-    }
-}
-
-async function _ensureQuestionDataFetched(contract, question_id, freshness, found_at_block) {
-    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(contract_question_id, 'question_call', freshness)) {
-        // console.log('_ensureQuestionDataFetched return from cache ', contract_question_id, freshness, QUESTION_DETAIL_CACHE[contract_question_id]);
-        return (QUESTION_DETAIL_CACHE[contract_question_id]);
-    } else {
-        // console.log('_ensureQuestionDataFetched fetch fresh', contract_question_id, freshness, QUESTION_DETAIL_CACHE[contract_question_id]);
-        const result = await RCInstance(contract).functions.questions(question_id);
-        if (ethers.BigNumber.from(result[Qi_content_hash]).eq(0)) {
-            throw new Error("question not found in call, maybe try again later", question_id);
-        }
-        let q = await filledQuestionDetail(contract, question_id, 'question_call', called_block, result);
-
-        if (isReopenCandidate(q)) {
-            // console.log('getting reopener question for', q.question_id, q.contract);
-            const reopener_q_result = await RCInstance(q.contract).functions.reopened_questions(question_id);
-            const reopener_q = reopener_q_result[0];
-            let also_too_soon = null;
-            let is_reopener = false;
-            if (reopener_q != '0x0000000000000000000000000000000000000000000000000000000000000000') {
-                const replacement_data = await RCInstance(q.contract).functions.questions(reopener_q);
-                // Just populate enough for isFinalized
-                // TODO: Maybe better to just do this the normal way...
-                const rq = {
-                    'is_pending_arbitration': replacement_data[Qi_is_pending_arbitration],
-                    'finalization_ts':  ethers.BigNumber.from(replacement_data[Qi_finalization_ts]),
-                    'best_answer': replacement_data[Qi_best_answer]
-                }
-                const is_replacement_finalized = isFinalized(rq);
-                if (is_replacement_finalized) {
-                    if (rq.best_answer == rc_question.getAnsweredTooSoonValue()) {
-                        also_too_soon = true;
-                    } else {
-                        //console.log('best answer is not answeredTooSoonVal', rq);
-                    }
-                } 
-            } else {
-                // Not yet reopened but this may be reopening some other question, in which case it can't be reopened yet
-                const is_reopener_result = await RCInstance(q.contract).functions.reopener_questions(question_id);
-                is_reopener = is_reopener_result[0];
-            }
-
-            q = await filledQuestionDetail(contract, question_id, 'reopener_question', called_block, [reopener_q, also_too_soon, is_reopener]);
-        }
-
-        await loadArbitratorMetaData(q.arbitrator); // We keep a separate cache from this, it should usually already be in there
-        return q;
-        /*
-        rc.questions.call(question_id).then(function(result) {
-            var question = filledQuestionDetail(question_id, 'question_call', called_block, result);
-            resolve(question);
-        }).catch(function(err) {
-            console.log('error in data');
-            reject(err);
-        });
-        */
-    }
-}
-
-async function _ensureQuestionTemplateFetched(contract, question_id, template_id, qtext, freshness) {
-    //console.log('ensureQuestionDetailFetched', template_id, CONTRACT_TEMPLATE_CONTENT[template_id], qtext);
-    const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(contract_question_id, 'question_json', freshness)) {
-        // console.log('_ensureQuestionTemplateFetched return from cache ', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
-        return QUESTION_DETAIL_CACHE[contract_question_id];
-    } else {
-        // console.log('_ensureQuestionTemplateFetched fetch fresh', contract_question_id, QUESTION_DETAIL_CACHE[contract_question_id]);
-        if (CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id]) {
-            const question = filledQuestionDetail(contract, question_id, 'question_json', 1, rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true));
-            return (question);
-        } else {
-            // The category text should be in the log, but the contract has the block number
-            // This allows us to make a more efficient pin-point log call for the template content
-            const template_block_num_bn_arr = await RCInstance(contract).functions.templates(template_id);
-            const template_block_num = template_block_num_bn_arr[0].toNumber();
-            const template_filter = RCInstance(contract).filters.LogNewTemplate(template_id);
-            const cat_logs = await RCInstance(contract).queryFilter(template_filter, template_block_num, template_block_num);
-            if (cat_logs.length == 1) {
-                //console.log('adding template content', cat_arr, 'template_id', template_id);
-                CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = cat_logs[0].args.question_text;
-                //console.log(CONTRACT_TEMPLATE_CONTENT);
-                let populatedq = null;
-                try {
-                    populatedq = rc_question.populatedJSONForTemplate(CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, true)
-                } catch (e) {
-                    console.log('error populating template', CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id], qtext, e);
-                }
-                const question = filledQuestionDetail(contract, question_id, 'question_json', 1, populatedq);
-                return question;
-/*
-                console.log('error fetching template - unexpected cat length');
-                reject(new Error("Category response unexpected length"));
-                catch(function(err) {
-                    console.log('error fetching template');
-                    reject(err);
-                });
-*/
-            }
-        }
-    }
-}
-
-async function _ensureAnswersFetched(contract, question_id, freshness, start_block, injected_data, found_at_block) {
-    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    const contract_question_id = cqToID(contract, question_id);
-    if (isDataFreshEnough(contract_question_id, 'answers', freshness)) {
-        //console.log('_ensureAnswersFetched from cache ', contract_question_id, 'because ', CURRENT_BLOCK_NUMBER, ' vs ', freshness);
-        return (QUESTION_DETAIL_CACHE[contract_question_id]);
-    } 
-    //console.log('_ensureAnswersFetched fresh ', contract_question_id, 'because ', CURRENT_BLOCK_NUMBER, ' vs ', freshness);
-    const answer_filter = RCInstance(contract).filters.LogNewAnswer(null, question_id);
-    const answer_arr = await RCInstance(contract).queryFilter(answer_filter, start_block, 'latest');
-
-                /*
-                if (error) {
-                    console.log('error in get');
-                    reject(error);
-                } 
-                */
-    // In theory this should get us everything but sometimes it seems to lag
-    // If this is triggered by an event, and the get didn't return the event, add it to the list ourselves
-    let done_txhashes = {};
-    if (injected_data && injected_data['answers'] && injected_data['answers'].length) {
-        let inj_ans_arr = injected_data['answers'];
-        for (let i=0; i<inj_ans_arr.length; i++ ) {
-            const inj_ans = inj_ans_arr[i];
-            for (let j=0; j<answer_arr.length; j++ ) {
-                const ans = answer_arr[j];
-                if (ans.args.bond.eq(inj_ans.args.bond)) {
-                    if (ans.transactionHash != inj_ans.transactionHash) {
-                        // Replaced by a new entry, old one got orphaned
-                        answer_arr[j] = inj_ans_arr[i];
-                    }
-                }
-                done_txhashes[answer_arr[j].transactionHash] = true;
-            }
-            if (!done_txhashes[inj_ans.transactionHash]) {
-                answer_arr.push(inj_ans);
-            }
-        }
-    }
-    // console.log('made answer_arr', answer_arr);
-    const question = filledQuestionDetail(contract, question_id, 'answers', called_block, answer_arr);
-    const q = _ensureAnswerRevealsFetched(contract, question_id, freshness, start_block, question);
-    return q;
-}
-
-// question_log is optional, pass it in when we already have it
-async function ensureQuestionDetailFetched(ctr, question_id, ql, qi, qc, al, injected_data, found_at_block) {
-
-    if (!RC_INSTANCES[ctr.toLowerCase()]) {
-        throw new Error("contract "+ctr+" not found in list, not sure how we gott that for question "+question_id);
-    }
-
-    if (ql == undefined) ql = 1;
-    if (qi == undefined) qi = 1;
-    if (qc == undefined) qc = CURRENT_BLOCK_NUMBER;
-    if (al == undefined) al = CURRENT_BLOCK_NUMBER;
-
-    if (!question_id) {
-        throw new Error('no questin_id, wtf');
-    }
-
-    const called_block = found_at_block ? found_at_block : CURRENT_BLOCK_NUMBER;
-    //console.log('ensureQuestionDetailFetched with called_block', called_block);
-    //return new Promise((resolve, reject) => {
-//console.log('need qc, here goes');
-    const qlog = await _ensureQuestionLogFetched(ctr, question_id, ql);
-//console.log('ok, got qc, now try qi');
-    const qdat = await _ensureQuestionDataFetched(ctr, question_id, qc);
-//console.log('got qi, next qt, qi is', qi);
-    const qtempl = await _ensureQuestionTemplateFetched(ctr, question_id, qdat.template_id, qdat.question_text, qdat);
-//console.log('got qt, now q');
-    const qans = await _ensureAnswersFetched(ctr, question_id, al, qdat.question_created_block, injected_data, called_block);
-//console.log('all done, q is', q);
-     //   resolve(q);
-    //});
-    return qans;
-    
-
-
-    /*
-        _ensureQuestionLogFetched(question_id, ql).then(function(q) {
-            return _ensureQuestionDataFetched(question_id, qc);
-        }).then(function(q) {
-            return _ensureQuestionTemplateFetched(question_id, q.template_id, q.question_text, qi);
-        }).then(function(q) {
-            return _ensureAnswersFetched(question_id, al, q.question_created_block, injected_data);
-        }).then(function(q) {
-            resolve(q);
-        }).catch(function(e) {
-            console.log('cauught error', question_id, e);
-            reject(e);
-        });
-    */
 }
 
 function delay(ms) {
@@ -2056,7 +1573,6 @@ async function ensureAmountApproved(spender, account, amount) {
     }
 }
 
-// TODO: Fire this on a timer, and also on the withdrawal event
 async function updateUserBalanceDisplay() {
     if (!ACCOUNT) {
         return;
@@ -2195,7 +1711,7 @@ function populateSectionEntry(entry, question) {
 
     const question_id = question.question_id;
     const question_json = question.question_json;
-    const posted_ts = question.creation_ts;
+    const posted_ts = ethers.BigNumber.from(question.creation_ts);
     const arbitrator = question.arbitrator;
     const timeout = question.timeout;
     const bounty = decimalizedBigNumberToHuman(question.bounty);
@@ -2331,22 +1847,31 @@ function calculateActiveRank(created, bounty, bond) {
 
 }
 
-async function handleQuestionLog(item) {
-    const question_id = item.args.question_id;
-    const contract = item.address;
+async function handleQuestion(item, fetched_ms) {
+
+    const question_id = item.questionId;
+
+    const contract = item.contract;
     //console.log('in handleQuestionLog', question_id);
-    const created = item.args.created
+    const created = item.createdTimestamp;
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
-    let question = filledQuestionDetail(contract, question_id, 'question_log', item.blockNumber, item);
+    let question = filledQuestion(item, fetched_ms);
+    if (!question) {
+        console.log('skipping unparseable question', question.question_id);
+        return;
+    }
+    updateQuestionWindowIfOpen(question);
+
+//console.log('filledQuestion', question);
     //console.log('after filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
 
     // Then fetch anything else we need to display
-    question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1)
+//    question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, item.blockNumber, -1)
 
     // console.log('updateQuestionWindowIfOpen after ensureQuestionDetailFetched for', contract, question_id, 'returned', question, 'block num is', item.blockNumber );
-    updateQuestionWindowIfOpen(question);
+    // updateQuestionWindowIfOpen(question);
 
     if (CATEGORY && question.question_json.category != CATEGORY) {
         //console.log('mismatch for cat', category, question.question_json.category);
@@ -2363,6 +1888,7 @@ async function handleQuestionLog(item) {
     const opening_ts = question.opening_ts;
 
     if (is_finalized) {
+
         const insert_before = update_ranking_data('questions-resolved', contractQuestionID(question), question.finalization_ts, 'desc');
         if (insert_before !== -1) {
             // TODO: If we include this we have to handle the history too
@@ -2408,8 +1934,6 @@ async function handleQuestionLog(item) {
             }
         }
 
-        scheduleFinalizationDisplayUpdate(contract, question);
-        //console.log(DISPLAY_ENTRIES);
     }
 
 }
@@ -2589,6 +2113,11 @@ function contractQuestionID(question) {
     return cqToID(question.contract, question.question_id);
 }
 
+function ctToId(contract, template_id) {
+    const template_id_hex = ethers.BigNumber.from(template_id).toHexString(); // TODO: Check padding etc with bigger numbers
+    return contract.toLowerCase() + template_id_hex;
+}
+
 function cqToID(contract, question_id) {
     return contract.toLowerCase() + '-' + question_id.toLowerCase();
 }
@@ -2599,27 +2128,23 @@ async function openQuestionWindow(contract_question_id) {
 
     // console.log('quick load');
     // To respond quickly, start by fetching with even fairly old data and no logs
-    let question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, 1, -1)
+    let question = await ensureQuestionDetailFetched(contract_addr, question_id, 60*60*24*1000);
+
     displayQuestionDetail(question);
 
-    // console.log('now reload');
     // Get the window open first with whatever data we have
     // Then repopulate with the most recent of everything anything has changed
-    question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
+    console.log('Refetching with minimal caching to be sure');
+    question = await ensureQuestionDetailFetched(contract_addr, question_id, 1000);
     updateQuestionWindowIfOpen(question);
-    /*
-    .catch(function(e){
-        console.log(e);
-    });
-    */
 }
 
 function updateQuestionWindowIfOpen(question) {
 
-    //console.log('updateQuestionWindowIfOpen', question);
     const window_id = 'qadetail-' + contractQuestionID(question);
     let rcqa = $('#' + window_id);
     if (rcqa.length) {
+    console.log('updateQuestionWindowIfOpen', question);
         rcqa = populateQuestionWindow(rcqa, question, true);
     }
 
@@ -2853,7 +2378,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('reopenable');
         if (question_detail.reopened_by) {
-            rcqa.attr('data-reopened-by-question-id', cqToID(question_detail.contract, question_detail.reopened_by));
+            rcqa.attr('data-reopened-by-question-id', question_detail.reopened_by);
             rcqa.addClass('reopened');
         } else {
             rcqa.removeClass('reopened');
@@ -2862,7 +2387,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     if (question_detail.reopener_of_question_id) {
         rcqa.addClass('reopener');
-        rcqa.attr('data-reopener-of-question-id', cqToID(question_detail.contract, question_detail.reopener_of_question_id));
+        rcqa.attr('data-reopener-of-question-id', question_detail.reopener_of_question_id);
     }
 
     if (isAnswerActivityStarted(question_detail)) {
@@ -2881,6 +2406,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             //console.log('updateing aunswer');
             const current_answer = historyItemForCurrentAnswer(question_detail);
             if (current_answer) {
+                //console.log('current_answer is ', current_answer);
                 current_container.attr('id', 'answer-' + current_answer.answer);
 
                 timeago.cancel(current_container.find('.current-answer-item').find('.timeago')); // cancel the old timeago timer if there is one
@@ -2900,7 +2426,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 ans_data.find('.answer-bond-value').text(decimalizedBigNumberToHuman(current_answer.bond));
             }
 
-            const last_ans = question_detail['history'][idx].args;
+            const last_ans = question_detail['history'][idx];
             const unrevealed_answer_container = rcqa.find('.unrevealed-top-answer-container');
             if (last_ans.is_commitment && !last_ans.revealed_block) {
                 unrevealed_answer_container.find('.answer-bond-value').text(decimalizedBigNumberToHuman(last_ans.bond));
@@ -2919,7 +2445,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
             // TODO: Do duplicate checks and ensure order in case stuff comes in weird
             for (let i = 0; i < idx; i++) {
-                const ans = question_detail['history'][i].args;
+                const ans = question_detail['history'][i];
                 const hist_id = 'question-window-history-item-' + uiHash(question_id + ans.answer + ans.bond.toHexString());
                 if (rcqa.find('#' + hist_id).length) {
                     //console.log('already in list, skipping', hist_id, ans);
@@ -3012,9 +2538,9 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     const unconfirmed_container = rcqa.find('.unconfirmed-answer-container');
     if (question_detail['history_unconfirmed'].length) {
 
-        const unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].args;
+        const unconfirmed_answer = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1];
 
-        const txid = question_detail['history_unconfirmed'][question_detail['history_unconfirmed'].length - 1].txid;
+        const txid = unconfirmed_answer.txid;
         unconfirmed_container.find('.pending-answer-txid a').attr('href', BLOCK_EXPLORER + '/tx/' + txid);
         unconfirmed_container.find('.pending-answer-txid a').text(txid.substr(0, 12) + "...");
         unconfirmed_container.attr('data-pending-txid', txid);
@@ -3171,9 +2697,6 @@ function totalClaimable(question_detail) {
     return poss['total'];
 }
 
-/*
-If you get anything from the list, return the whole thing
-*/
 function possibleClaimableItems(question_detail) {
 
     let ttl = ethers.BigNumber.from(0);
@@ -3208,25 +2731,37 @@ function possibleClaimableItems(question_detail) {
     let is_yours = false;
 
     let final_answer = question_detail.best_answer;
+    if (final_answer == null) {
+        console.log('skipping item with no final answer due to commit-reveal stuff');
+        return {
+            total: ethers.BigNumber.from(0)
+        };
+    }
+
+
+
+//console.log('final_answer', question_detail.best_answer, question_detail);
     for (let i = question_detail['history'].length - 1; i >= 0; i--) {
 
         // TODO: Check the history hash, and if we haven't reached it, keep going until we do
         // ...since someone may have claimed partway through
 
+        // console.log('considering claimable from', question_detail['history'][i]);
         let answer = null;
         // Only set on reveal, otherwise the answer field still holds the commitment ID for commitments
-        if (question_detail['history'][i].args.commitment_id) { 
-            answer = question_detail['history'][i].args.commitment_id;
+        if (question_detail['history'][i].commitment_id) { 
+            answer = question_detail['history'][i].commitment_id;
         } else {
-            answer = question_detail['history'][i].args.answer;
+            answer = question_detail['history'][i].answer;
         }
-        const answerer = question_detail['history'][i].args.user;
-        const bond = question_detail['history'][i].args.bond;
-        const history_hash = question_detail['history'][i].args.history_hash;
+        const answerer = question_detail['history'][i].user;
+        const bond = question_detail['history'][i].bond;
+        const history_hash = question_detail['history'][i].history_hash;
 
+        const is_answerer_you = (ACCOUNT && (answerer.toLowerCase() == ACCOUNT.toLowerCase()));
         if (is_yours) {
             // Somebody takes over your answer
-            if (answerer != ACCOUNT && final_answer == answer) {
+            if (!is_answerer_you && final_answer == answer) {
                 is_yours = false;
                 //console.log(ttl.toString(), 'sub', bond.toString());
                 ttl = ttl.sub(bond); // pay them their bond
@@ -3236,14 +2771,15 @@ function possibleClaimableItems(question_detail) {
             }
         } else {
             // You take over someone else's answer
-            if (answerer == ACCOUNT && final_answer == answer) {
+//console.log('compare answers', final_answer, answer);
+            if (is_answerer_you && final_answer == answer) {
                 is_yours = true;
                 //console.log(ttl.toString(), 'add', bond.toString());
                 ttl = ttl.add(bond); // your bond back
             }
         }
         if (is_first && is_yours) {
-            //console.log('adding your bounty');
+            // console.log('adding your bounty');
             //console.log(ttl.toString(), 'add', question_detail.bounty.toString());
             ttl = ttl.add(question_detail.bounty);
         }
@@ -3258,6 +2794,7 @@ function possibleClaimableItems(question_detail) {
 
     // Nothing for you to claim, so return nothing
     if (!ttl.gt(0)) {
+    //console.log('claimable returns nothing');
         return {
             total: ethers.BigNumber.from(0)
         };
@@ -3275,7 +2812,7 @@ function possibleClaimableItems(question_detail) {
 
     // TODO: Someone may have claimed partway, so we should really be checking against the contract state
 
-    return {
+    const ret = {
         'txid': null,
         'total': ttl,
         'question_ids': question_ids,
@@ -3285,6 +2822,10 @@ function possibleClaimableItems(question_detail) {
         'bonds': claimable_bonds,
         'history_hashes': claimable_history_hashes
     }
+
+ //   console.log('claimable returns', ret);
+
+    return ret;
 
 }
 
@@ -3326,38 +2867,13 @@ function populateWithBlockTimeForBlockNumber(item, num, cbk) {
 
 }
 
-// At this point the data we need should already be stored in QUESTION_DETAIL_CACHE
-function renderUserAction(question, entry, is_watch) {
-
-    // Keep track of the last block number whose result we could see by clicking on the user link
-    if (entry.blockNumber > LAST_DISPLAYED_BLOCK_NUMBER) {
-        LAST_DISPLAYED_BLOCK_NUMBER = entry.blockNumber;
-    }
-
-    // This will include events that we didn't specifically trigger, but we are intereseted in
-    renderNotifications(question, entry);
-
-    // Only show here if we asked the question (questions section) or gave the answer (answers section)
-    if (entry['event'] == 'LogNewQuestion' || entry['event'] == 'LogNewAnswer') {
-        if (isForCurrentUser(entry)) {
-            renderUserQandA(question, entry);
-            if (is_watch) {
-                if (entry.blockNumber > parseInt(getViewedBlockNumber(CHAIN_ID))) {
-                    $('.tooltip').addClass('is-visible');
-                }
-            }
-        }
-    }
-
-}
-
 function answersByMaxBond(answer_logs) {
     let ans = {};
     for (let i = 0; i < answer_logs.length; i++) {
         const an = answer_logs[i];
-        const aval = an.args.answer;
-        const bond = an.args.bond;
-        if (ans[aval] && ans[aval].args.bond.gt(bond)) {
+        const aval = an.answer;
+        const bond = an.bond;
+        if (ans[aval] && ans[aval].bond.gt(bond)) {
             continue;
         }
         ans[aval] = an;
@@ -3374,6 +2890,8 @@ function resetAccountUI() {
 }
 
 function insertNotificationItem(evt, notification_id, ntext, block_number, contract, question_id, is_positive, timestamp) {
+
+    // console.log('insertNotificationItem', evt, notification_id, ntext, block_number, contract, question_id, is_positive, timestamp);
 
     if ($('.no-notifications-item').length > 0) {
         $('.no-notifications-item').remove();
@@ -3393,9 +2911,11 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
     const item_to_insert = $('#your-question-answer-window .notifications-template-container .notifications-item.template-item').clone();
     item_to_insert.addClass('notification-event-' + evt);
     item_to_insert.attr('id', notification_id);
-    item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
+    if (question_id) {
+        item_to_insert.attr('data-contract-question-id', cqToID(contract, question_id));
+    }
     item_to_insert.find('.notification-text').text(ntext).expander();
-    item_to_insert.attr('data-block-number', block_number);
+    item_to_insert.attr('data-timestamp', timestamp);
     item_to_insert.removeClass('template-item').addClass('populated-item');
     item_to_insert.addClass('account-specific');
 
@@ -3409,7 +2929,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
     existing_notification_items.each(function() {
         const exi = $(this);
         //console.log('compare', exi.attr('data-block-number'),' with our block number', block_number);
-        if (exi.attr('data-block-number') <= block_number) {
+        if (ethers.BigNumber.from(exi.attr('data-timestamp')).lte(ethers.BigNumber.from(timestamp))) {
             exi.before(item_to_insert);
             inserted = true;
             return false;
@@ -3421,13 +2941,7 @@ function insertNotificationItem(evt, notification_id, ntext, block_number, contr
         notifications.append(item_to_insert);
     }
 
-    // If we faked the event then we already have the timestamp
-    // We still use the latest block number for sorting purposes.
-    if (timestamp) {
-        renderTimeAgo(item_to_insert, timestamp);
-    } else {
-        populateWithBlockTimeForBlockNumber(item_to_insert, block_number, renderTimeAgo);
-    }
+    renderTimeAgo(item_to_insert, timestamp);
 
 }
 
@@ -3436,148 +2950,174 @@ function uiHash(str) {
     return ethers.utils.solidityKeccak256(["string"], [str]);
 }
 
-function renderNotifications(qdata, entry) {
+function userInvolvement(question) {
+    console.log('TODO: go through this question and find out what the user did');
+    if (!ACCOUNT) {
+        return false;
+    }
+    const acc = ACCOUNT.toLowerCase();
+    if (question.user.toLowerCase() == acc) {
+        //return true;
+    }
+    for(let i = 0; i< question.history.length; i++) {
+       console.log('hh', question.history[i]); 
+    }
+    return false;
 
-    const contract = entry.address;
-    const question_id = qdata.question_id;
+}
+
+// Finalization doesn't create an event (unless triggered by arbitration).
+// So add the notification if required based on the (filled) question.
+function insertFinalizationNotification(question, q_involvement) {
+    // console.log('insert Finalization notification for', question, q_involvement);
+
+    const q_title = question.question_json['title'];
+    if (!q_title) {
+        console.log('Skipping notification for question with no title', question);
+        return;
+    }
+
+    let ntext = '';
+    if (q_involvement['asked']) {
+        ntext = 'A question you asked was finalized - ' + q_title;
+    } else if (q_involvement['answered']) {
+        ntext = 'A question you answered was finalized - ' + q_title;
+    } else if (q_involvement['funded']) {
+        ntext = 'A question you funded was finalized - ' + q_title;
+    } else if (q_involvement['arbitration']) {
+        ntext = 'A question you requested arbitration for was finalized - ' + q_title;
+    } else {
+        ntext = 'A question you were somehow involved in was finalized - ' + q_title;
+    }
+
+    // TODO: see if createdBlock is what we want  - if we don't have the block for finalization then see if we can avoid using blocks completely for ordering notifications
+    insertNotificationItem('FinalizeQuestion', 'user-action-finalize-'+contractQuestionID(question), ntext, question.question_created_block, question.contract, question.question_id, true, question.finalization_ts);
+}
+
+
+function renderNotificationsGraph(entry, fetched_ms) {
+
+    // This is the only case that doesn't involve a question
+    if (entry.actionType == 'CreateTemplate') {
+        ntext = 'You created a template - ' + entry.template.templateId + ': ' + entry.template.questionText;
+        insertNotificationItem('CreateTemplate', 'user-action-CreateTemplate-'+entry.id, ntext, entry['createdBlock'], entry.address, null, true, entry['createdTimestamp']);
+        return;
+    }
+
+    let question = filledQuestion(entry.question, fetched_ms);
+    if (!question) {
+        console.log('skipping notification for unparseable question');
+        return;
+    }
+
+    updateClaimableDataForQuestion(question);
+
+    const contract = question.contract;
+    const question_id = question.question_id;
     //console.log('renderNotification', action, entry, qdata);
 
-    const question_json = qdata.question_json;
+    const question_json = question.question_json;
 
     const your_qa_window = $('#your-question-answer-window');
 
     // TODO: Handle whether you asked the question
 
-    const qfilter = RCInstance(contract).filters.LogNewQuestion(question_id);
-
     let ntext = '';
-    const evt = entry['event']
-    let notification_id = null;
+    const evt = entry['actionType']
     let is_positive = true;
+    const notification_id = 'user-action-'+evt+'-'+entry.id;
+    // console.log('evt', evt);
+
+    if (!question_json) {
+        console.log('missing question_json for question, skipping notification', question);
+        return;
+    } else if (!question_json['title']) {
+        console.log('missing title for question, skipping notification', question, question_json);
+        return;
+    }
+
+    let q_involvement = {};
+
     switch (evt) {
-        case 'LogNewQuestion':
-            notification_id = uiHash('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
+        case 'AskQuestion':
             ntext = 'You asked a question - "' + question_json['title'] + '"';
-            insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
+            insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
+            renderUserQandA(question, entry); 
+            q_involvement['asked'] = true;
             break;
 
-        case 'LogNewAnswer':
-            notification_id = uiHash('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
-            if (entry.args.user == ACCOUNT) {
-                if (entry.args.is_commitment) {
+        case 'AnswerQuestion':
+            if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
+                if (entry.isCommitment && !entry.revealedBlock) {
                     ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
                 } else {
-                    ntext = 'You answered a question - "' + question_json['title'] + '"';
+                    if (entry.question.user == ACCOUNT) {
+                        ntext = 'You answered your own question - "' + question_json['title'] + '"';
+                    } else {
+                        ntext = 'You answered a question - "' + question_json['title'] + '"';
+                    }
                 }
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
+                renderUserQandA(question, entry); 
+                q_involvement['answered'] = true;
             } else {
-                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    if (result2[0].args.user == ACCOUNT) {
-                        ntext = 'Someone answered your question';
-                    } else if (qdata['history'][qdata['history'].length - 2].args.user == ACCOUNT) {
-                        is_positive = false;
-                        ntext = 'Your answer was overwritten';
+                // We should have all the answers in the question object
+                // NB We may have two notifications for this if somebody answers your question, overwriting your answer
+                // One of the cases has a tweaked notification ID for this case.
+                if (entry.question.user == ACCOUNT) {
+                    ntext = 'Someone answered your question - "' + question_json['title'] + '"';;
+                    insertNotificationItem(evt, notification_id+'-yourq', ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
+                }
+                // TODO: Handle overwritten or not
+                const responses = entry.responses;
+                // Find out the point at which you start to care about this
+                let is_relevant_from = null;
+                for(const resp in responses) {
+                    if (resp.user == ACCOUNT) {
+                        is_relevant_from = ethers.BigNumber.from(entry.bond);;
+                        break;
                     }
-                    if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
+                }
+                if (is_relevant_from) {
+                    const bond = ethers.BigNumber.from(entry.bond);
+                    if (bond.gt(is_relevant_from)) {
+                        ntext = 'Your answer was overwritten - "' + question_json['title'] + '"';;;
                     }
-                });
+                }
+
             }
             break;
 
-        case 'LogAnswerReveal':
-            notification_id = uiHash('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
-            if (entry.args.user == ACCOUNT) {
-                ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
-            } else {
-                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    if (result2[0].args.user == ACCOUNT) {
-                        ntext = 'Someone revealed their answer to your question';
-                    } else if (qdata['history'][qdata['history'].length - 2].args.user == ACCOUNT) {
-                        is_positive = false;
-                        ntext = 'Your answer was overwritten';
-                    }
-                    if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
-                    }
-                });
-            }
-            break;
-
-        case 'LogFundAnswerBounty':
-            notification_id = uiHash('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
-            if (entry.args.user == ACCOUNT) {
+        case 'FundAnswerBounty':
+            if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
                 ntext = 'You added reward - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
+                q_involvement['funded'] = true;
             } else {
-                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    if (result2[0].args.user == ACCOUNT) {
-                        ntext = 'Someone added reward to your question';
-                    } else {
-                        const prev_hist_idx = qdata['history'].length - 2;
-                        if ((prev_hist_idx >= 0) && (qdata['history'][prev_hist_idx].args.user == ACCOUNT)) {
-                            ntext = 'Someone added reward to the question you answered';
-                        }
-                    }
-                    if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
-                        insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
-                    }
-                });
+                ntext = 'Someone added a reward to the question - "' + question_json['title'] + '"';
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
             }
             break;
 
-        case 'LogNotifyOfArbitrationRequest':
-            notification_id = uiHash('LogNotifyOfArbitrationRequest' + entry.args.question_id);
-            if (entry.args.user == ACCOUNT) {
+        case 'RequestArbitration':
+            if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
                 ntext = 'You requested arbitration - "' + question_json['title'] + '"';
-                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
+                insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
+                q_involvement['arbitration'] = true;
             } else {
-                RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                    const history_idx = qdata['history'].length - 2;
-                    if (result2[0].args.user == ACCOUNT) {
-                        ntext = 'Someone requested arbitration to your question';
-                    } else {
-                        if ((history_idx >= 0) && (qdata['history'][history_idx].args.user == ACCOUNT)) {
-                            ntext = 'Someone requested arbitration to the question you answered';
-                            is_positive = false;
-                        } else {
-                            ntext = 'Someone requested arbitration to the question';
-                        }
-                    }
-                });
+                ntext = 'Someone requested arbitration - "' + question_json['title'] + '"';
             }
             break;
+    }
 
-        case 'LogFinalize':
-            console.log('in LogFinalize', entry, contract);
-            notification_id = uiHash('LogFinalize' + entry.args.question_id + entry.args.answer);
-            let timestamp = null;
-            // Fake timestamp for our fake finalize event
-            if (entry.timestamp) {
-                timestamp = entry.timestamp;
-            }
-            RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
-                if (result2[0].args.user == ACCOUNT) {
-                    ntext = 'Your question is finalized';
-                } else if (qdata['history'] && qdata['history'][qdata['history'].length - 2].args.user == ACCOUNT) {
-                    ntext = 'The question you answered is finalized';
-                } else {
-                    ntext = 'A question was finalized';
-                }
-                if (typeof ntext !== 'undefined') {
-                    ntext += ' - "' + question_json['title'] + '"';
-                    insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true, timestamp);
-                }
-            });
+    // There isn't an event for this (except in case of arbitration), so just add a notification if we were involved in the question
+    if (isFinalized(question)) {
+        insertFinalizationNotification(question, q_involvement);
     }
 
 }
 
-function insertQAItem(contract, question_id, item_to_insert, question_section, block_number) {
+function insertQAItem(contract, question_id, item_to_insert, question_section, block_number, ts) {
 
     const contract_question_id = cqToID(contract, question_id);
     question_section.find('.your-qa__questions__item[data-contract-question-id=' + contract_question_id + ']').remove();
@@ -3616,12 +3156,12 @@ function renderQAItemAnswer(contract, question_id, answer_history, question_json
         if (answer_history.length > 0) {
             let user_answer;
             for (let i = answer_history.length - 1; i >= 0; i--) {
-                if (answer_history[i].args.user == ACCOUNT) {
-                    user_answer = answer_history[i].args.answer;
+                if (answer_history[i].user.toLowerCase() == ACCOUNT.toLowerCase()) {
+                    user_answer = answer_history[i].answer;
                     break;
                 }
             }
-            let latest_answer = answer_history[answer_history.length - 1].args.answer;
+            let latest_answer = answer_history[answer_history.length - 1].answer;
             target.find('.latest-answer-text').text(rc_question.getAnswerString(question_json, latest_answer));
             if (typeof user_answer !== 'undefined') {
                 target.find('.user-answer-text').text(rc_question.getAnswerString(question_json, user_answer));
@@ -3649,18 +3189,17 @@ function renderQAItemAnswer(contract, question_id, answer_history, question_json
 
 }
 
-function renderUserQandA(qdata, entry) {
+function renderUserQandA(question, entry) {
+    const question_id = question.question_id;
+    const answer_history = question['history'];
 
-    const question_id = qdata.question_id;
-    const answer_history = qdata['history'];
-
-    const question_json = qdata.question_json;
-    const contract_question_id = cqToID(entry.address, question_id);
+    const question_json = question.question_json;
+    const contract_question_id = contractQuestionID(question);
 
     let question_section;
-    if (entry['event'] == 'LogNewQuestion') {
+    if (entry['actionType'] == 'AskQuestion') {
         question_section = $('#your-question-answer-window').find('.your-qa__questions .your-qa__questions-inner');
-    } else if (entry['event'] == 'LogNewAnswer') {
+    } else if (entry['actionType'] == 'AnswerQuestion') {
         question_section = $('#your-question-answer-window').find('.your-qa__answers .your-qa__answers-inner');
     }
     if (question_section.find('.no-your-qa__questions__item').length > 0) {
@@ -3670,22 +3209,19 @@ function renderUserQandA(qdata, entry) {
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
     qitem.find('.question-text').text(question_json['title']).expander();
-    qitem.attr('data-block-number', entry.blockNumber);
+    qitem.attr('data-block-number', entry.createdBlock);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');
-    insertQAItem(qdata.contract, question_id, qitem, question_section, entry.blockNumber);
+    insertQAItem(question.contract, question_id, qitem, question_section, question.createdBlock, question.createdTimestamp);
 
-    const is_finalized = isFinalized(qdata);
-    renderQAItemAnswer(qdata.contract, question_id, answer_history, question_json, is_finalized);
+    const is_finalized = isFinalized(question);
+    renderQAItemAnswer(question.contract, question_id, answer_history, question_json, is_finalized);
 
-    const updateBlockTimestamp = function(item, ts) {
-        let date = new Date();
-        date.setTime(ts * 1000);
-        let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
-            ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
-        item.find('.item-date').text(date_str);
-    }
-    populateWithBlockTimeForBlockNumber(qitem, entry.blockNumber, updateBlockTimestamp);
+    let date = new Date();
+    date.setTime(entry.createdTimestamp * 1000);
+    let date_str = MONTH_LIST[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear() +
+        ' ' + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+    qitem.find('.item-date').text(date_str);
 }
 
 function makeSelectAnswerInput(question_json, opening_ts, has_invalid, has_answered_too_soon) {
@@ -3811,12 +3347,12 @@ function isQuestionBeforeOpeningDate(question_detail) {
 // Potentially resurrect it with a more efficient flow
 // Also potentially do it before confirmation (See issue #44)
 function pushWatchedAnswer(answer) {
-    const question_id = answer.args.question_id;
+    const question_id = answer.question_id;
     let already_exists = false;
     const length = QUESTION_DETAIL_CACHE[question_id]['history'].length;
 
     for (let i = 0; i < length; i++) {
-        if (QUESTION_DETAIL_CACHE[question_id]['history'][i].args.answer == answer.args.answer) {
+        if (QUESTION_DETAIL_CACHE[question_id]['history'][i].answer == answer.answer) {
             already_exists = true;
             break;
         }
@@ -3988,13 +3524,15 @@ $(document).on('click', '.post-answer-button', async function(e) {
 
     const block_before_send = CURRENT_BLOCK_NUMBER;
 
-    const question = ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1)
+    // console.log('refetching');
+    const question = ensureQuestionDetailFetched(contract, question_id, 0)
     .catch(function() {
         // If the question is unconfirmed, go with what we have
         console.log('caught failure, trying unconfirmed');
-        return ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1)
+        return ensureQuestionDetailFetched(contract, question_id, 0)
     })
     .then(function(current_question) {
+        // console.log('refetching done');
         //console.log('got current_question', current_question);
 
         let current_answer;
@@ -4085,7 +3623,7 @@ $(document).on('click', '.post-answer-button', async function(e) {
                 }
                 break;
             case 'datetime': 
-console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toString());
+                // console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toString());
                 if (new_answer === null) {
                     const dt_container = parent_div.find('div.input-container.input-container--answer');
                     dt_container.addClass('is-error');
@@ -4106,7 +3644,7 @@ console.log('datetime is ', new_answer, ethers.BigNumber.from(new_answer).toStri
 
         let min_amount = current_question.bond.mul(2)
         if (bond.lt(min_amount)) {
-console.log('val fail', min_amount, current_question);
+            // console.log('val fail', min_amount, current_question);
             parent_div.find('div.input-container.input-container--bond').addClass('is-error');
             parent_div.find('div.input-container.input-container--bond').find('.min-amount').text(decimalizedBigNumberToHuman(min_amount));
             is_err = true;
@@ -4124,36 +3662,29 @@ console.log('val fail', min_amount, current_question);
             storePendingTXID(txid, CHAIN_ID);
             const contract = tx_response.to;
             clearForm(parent_div, question_json);
-            const fake_history = {
-                'args': {
-                    'answer': new_answer,
-                    'question_id': question_id,
-                    'history_hash': null, // TODO Do we need this?
-                    'user': ACCOUNT,
-                    'bond': bond,
-                    'ts': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
-                    'is_commitment': false
-                },
-                'event': 'LogNewAnswer',
+            const fake_entry = {
+                'answer': new_answer,
+                'questionId': question_id,
+                'historyHash': null, // TODO Do we need this?
+                'user': ACCOUNT,
+                'bond': bond,
+                'timestamp': ethers.BigNumber.from(parseInt(new Date().getTime() / 1000)),
+                'isCommitment': false,
+                'userAction': 'AnswerQuestion',
                 'blockNumber': block_before_send,
                 'txid': txid
             };
 
-	    console.log('fillPendingUserTX', tx_response);
+	    //console.log('skip fillPendingUserTX', tx_response);
 	    fillPendingUserTX(tx_response);
 	    console.log('made PENDING_USER_TXES_BY_CQID', PENDING_USER_TXES_BY_CQID);
 
-            const question = filledQuestionDetail(contract, question_id, 'answers_unconfirmed', block_before_send, fake_history);
-            //console.log('after answer made question', question);
+            const fake_ua = filledAnswer(fake_entry, 0);
+            const cqid = contractQuestionID(current_question);
 
-            ensureQuestionDetailFetched(contract, question_id, 1, 1, block_before_send, block_before_send).then(function(question) {
-                updateQuestionWindowIfOpen(question);
-            }).catch(function() {
-                // Question may be unconfirmed, if so go with what we have
-                ensureQuestionDetailFetched(contract, question_id, 0, 0, 0, -1).then(function(question) {
-                    updateQuestionWindowIfOpen(contract, question);
-                });
-            });
+            QUESTION_DETAIL_CACHE[cqid]['history_unconfirmed'].push(fake_ua);
+
+            updateQuestionWindowIfOpen(QUESTION_DETAIL_CACHE[cqid]);
         };
 
         const rc = RCInstance(contract, true);
@@ -4238,7 +3769,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     await getAccount()
     // TODO: Recheck in case it's already opened
 
-    const old_question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, 1, -1);
+    const old_question = await ensureQuestionDetailFetched(contract, question_id, 0);
 
     const handleReopenQuestionTX = async function(tx_response, old_question) {
         parent_div.addClass('reopening');
@@ -4342,7 +3873,11 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
-    const nonce_food = old_question.question_id + old_question.last_reopened_by ? old_question.last_reopened_by : "0x0000000000000000000000000000000000000000000000000000000000000000";
+    let nonce_food = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    if (old_question.reopened_by) {
+        const [rocon, ro_question_id] = parseContractQuestionID(old_question.reopened_by);
+        nonce_food = ro_question_id;
+    }
     const nonce = ethers.utils.keccak256('0x' + nonce_food.replace('0x', ''));
     // const nonce = ethers.utils.keccak256(ethers.BigNumber.from(parseInt(Date.now())).toHexString());
 
@@ -4428,7 +3963,13 @@ $(document).on('click', '.notifications-item', function(e) {
     //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();
-    openQuestionWindow($(this).attr('data-contract-question-id'));
+    const cqid = $(this).attr('data-contract-question-id');
+    // Template creation notifications don't have this
+    // TODO: Ideally we'd give you more detail about the template or something.
+    if (!cqid) {
+        return;
+    }
+    openQuestionWindow(cqid);
 });
 
 $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async function(e) {
@@ -4535,8 +4076,8 @@ function show_bond_payments(ctrl) {
         //console.log('existing_answers', existing_answers);
         let payable = 0;
         if (existing_answers[new_answer]) {
-            payable = existing_answers[new_answer].args.bond;
-            if (existing_answers[new_answer].args.user == ACCOUNT) {
+            payable = existing_answers[new_answer].bond;
+            if (existing_answers[new_answer].user == ACCOUNT) {
                 frm.addClass('has-your-answer').removeClass('has-someone-elses-answer');
                 frm.find('.answer-credit-info .answer-payment-value').text(decimalizedBigNumberToHuman(payable));
             } else {
@@ -4571,7 +4112,7 @@ $(document).on('keyup', '.rcbrowser-input.rcbrowser-input--number', function(e) 
         const current_idx = QUESTION_DETAIL_CACHE[contract_question_id]['history'].length - 1;
         let current_bond = ethers.BigNumber.from(QUESTION_DETAIL_CACHE[contract_question_id].min_bond.div(2));
         if (current_idx >= 0) {
-            current_bond = QUESTION_DETAIL_CACHE[contract_question_id]['history'][current_idx].args.bond;
+            current_bond = QUESTION_DETAIL_CACHE[contract_question_id]['history'][current_idx].bond;
         }
 
         const min_bond = current_bond.mul(2);
@@ -4773,79 +4314,6 @@ function updateRankingSections(question, changed_field, changed_val) {
 
 }
 
-
-async function handleEvent(error, result) {
-
-    if (result.invalid_data) { 
-        console.log('skipping invalid log entry');
-        return;
-    }
-
-    // Check the action to see if it is interesting, if it is then populate notifications etc
-    handlePotentialUserAction(result, true);
-
-    const contract = result.address;
-
-    // Handles front page event changes.
-    // NB We need to reflect other changes too...
-    const evt = result['event'];
-    if (evt == 'LogNewTemplate') {
-        const template_id = result.args.template_id;
-        const question_text = result.args.question_text;
-        CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = question_text;
-        return;
-    } else if (evt == 'LogNewQuestion') {
-        handleQuestionLog(result);
-    } else if (evt == 'LogWithdraw') {
-        updateUserBalanceDisplay();
-    } else {
-        const question_id = result.args.question_id;
-
-        switch (evt) {
-
-            case 'LogNewAnswer':
-                let args = Object.assign({}, result.args);
-                if (args.is_commitment) {
-                    console.log('got commitment', result);
-                    args.commitment_id = args.answer;
-                    // TODO: Get deadline
-                    args.answer = null;
-                    // break;
-                }
-                result.args = args;
-
-                result = await waitForBlock(result);
-                //console.log('got LogNewAnswer, block ', result.blockNumber);
-                //console.log('runnign ensureQuestionDetailFetched with result for answers', result);
-                const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, result.blockNumber, {'answers': [result]})
-                //console.log('result wasy ', question);
-                updateQuestionWindowIfOpen(question);
-                //console.log('should be getting latest', question, result.blockNumber);
-                scheduleFinalizationDisplayUpdate(contract, question);
-                updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-                break;
-
-            case 'LogFundAnswerBounty':
-                ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                    //console.log('updating with question', question);
-                    updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, 'bounty', question.bounty)
-                });
-                break;
-
-            default:
-                ensureQuestionDetailFetched(contract, question_id, 1, 1, result.blockNumber, -1).then(function(question) {
-                    updateQuestionWindowIfOpen(question);
-                    updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-                });
-
-        }
-
-    }
-
-}
-
-
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
@@ -4904,21 +4372,19 @@ TODO restore
     });
 */
 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration'); 
-
-    // Now the rest of the questions
-    LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
-    for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
-        const ctr = RC_DISPLAYED_CONTRACTS[i];
-        fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0);
-    }
-
+    fetchQuestionListsFromGraph(0);
 };
 
+function fetchQuestionListsFromGraph(offset) {
+// TODO: Work out what to do about ranking - can we make this one query? If not how do we handle the paging?
+// Option: We do the sorting ourselves from the top candidates, so just fetch the full number of both?
+// 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved', offset, DISPLAY_ENTRIES['questions-resolved']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
+};
 
 function reflectDisplayEntryChanges() {
     //console.log('checking DISPLAY_ENTRIES', DISPLAY_ENTRIES);
@@ -4945,7 +4411,101 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
+function questionFetchFields() {
+    const txt = `
+        id,
+        questionId,
+        contract,
+        createdBlock,
+        createdTimestamp,
+        updatedBlock,
+        updatedTimestamp,
+        data,
+        qJsonStr,
+        qTitle,
+        qCategory,
+        qLang,
+        qType,
+        arbitrator,
+        user,
+        openingTimestamp,
+        timeout,
+        bounty,
+        currentAnswer,
+        currentAnswerBond,
+        currentAnswerTimestamp,
+        contentHash,
+        historyHash,
+        minBond,
+        lastBond,
+        cumulativeBonds,
+        arbitrationRequestedTimestamp,
+        arbitrationRequestedBy,
+        isPendingArbitration,
+        arbitrationOccurred,
+        answerFinalizedTimestamp,
+        currentScheduledFinalizationTimestamp,
+        template {
+            id, 
+            templateId, 
+            questionText
+        },
+        reopenedBy {
+          id
+        },
+        reopens {
+          id
+        },
+        responses {
+          id,
+          timestamp,
+          answer,
+          isUnrevealed,
+          isCommitment,
+          commitmentId,
+          bond,
+          user,
+          historyHash,
+          createdBlock,
+          revealedBlock
+        }
+    `;
+    return txt;
+}
+
+function userActionFields() {
+    const question_fetch_fields = questionFetchFields();
+    const txt = `
+        id,
+        actionType,
+        user,
+        question {
+           ${question_fetch_fields}, 
+        },
+        template {
+            templateId,
+            questionText,
+        },
+        createdBlock,
+        createdTimestamp,
+        response {
+          id,
+          timestamp,
+          answer,
+          isUnrevealed,
+          isCommitment,
+          commitmentId,
+          bond,
+          user,
+          historyHash,
+          createdBlock,
+          revealedBlock
+      }
+    `;
+    return txt;
+}
+
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, offset, max_store) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
     const ts_now = parseInt(new Date()/1000);
@@ -4975,114 +4535,183 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
         return false;
     }
     // console.log('graph url is ', network_graph_url);
+    const question_fetch_fields = questionFetchFields();
 
     const query = `
       {
-        questions(first: 10, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
-            id,
-            questionId,
-            contract,
-            createdBlock
+        questions(first: ${max_store}, skip: ${offset}, where: ${where}, orderBy: ${orderBy}, orderDirection: desc) {
+            ${question_fetch_fields}
         }
       }  
       `;
 
-    // console.log('sending graph query', ranking, query);
+
+    const fetched_ms = Date.now();
+
+     // console.log('sending graph query', ranking, query);
     const res = await axios.post(network_graph_url, {query: query});
     // console.log('graph res', ranking, res.data);
     for (const q of res.data.data.questions) {
-        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
-        const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
-        for (let i = 0; i < result.length; i++) {
-            handlePotentialUserAction(result[i], false);
-            handleQuestionLog(result[i]);
-        }
+        handleQuestion(q, fetched_ms)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
     }
 }
 
-async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
+async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
+    const cqid = cqToID(ctr, question_id);
 
-    // get how many to fetch off fetch_numbers, until we run off the end then use the last num
-    const fetch_num = (fetch_i < FETCH_NUMBERS.length) ? FETCH_NUMBERS[fetch_i] : FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
+    max_cache_ms = (typeof max_cache_ms === 'undefined') ? DEFAULT_MAX_CACHE_MS : parseInt(max_cache_ms);
 
-    let start_block = end_block - fetch_num;
-    if (start_block < RCStartBlock(contract)) {
-        start_block = RCStartBlock(contract);
-    }
-    if (end_block <= RCStartBlock(contract)) {
-
-        console.log('History read complete back to block', RCStartBlock(contract));
-
-        IS_INITIAL_LOAD_DONE = true;
-        window.setTimeout( reflectDisplayEntryChanges, 10000 );
-        $('body').addClass('initial-loading-done');
-
-        scheduleFallbackTimer();
-        runPollingLoop(RCInstance(contract));
-
-        //$('body').addClass('is-page-loaded');
-
-        return;
-    }
-
-    //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
-
-    const question_posted = RCInstance(contract).filters.LogNewQuestion();
-    const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
-        /* 
-        if (error === null && typeof result !== 'undefined') {
-        */
-    for (let i = 0; i < result.length; i++) {
-        if (result[i].invalid_data) {
-            continue;
+    if (QUESTION_DETAIL_CACHE[cqid]) {
+        // TODO: For closed and resolved questions we can probably be more aggressive, but be careful of what we need in claiming
+        if (QUESTION_DETAIL_CACHE[cqid].fetched_ms > (Date.now() - max_cache_ms)) {
+            return QUESTION_DETAIL_CACHE[cqid];
         }
-        handlePotentialUserAction(result[i], false);
-        handleQuestionLog(result[i]);
     }
-        /*
-        } else {
-            console.log(error);
-        }
-        */
 
-    if (fetch_i % 100 == 0) {
-        console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
     }
-    fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
+    // console.log('graph url is ', network_graph_url);
+    const question_fetch_fields = questionFetchFields();
+
+    const fetched_ms = Date.now();
+    const query = `
+      {
+        questions(where: {id: "${cqid}"}) {
+            ${question_fetch_fields}
+        }
+      }  
+      `;
+
+     //console.log('sending single graph query', query);
+    const res = await axios.post(network_graph_url, {query: query});
+    // console.log('graph res ensureQuestionDetailFetched', res.data, query);
+    for (const q of res.data.data.questions) {
+        //console.log('got q data q');
+        let question = filledQuestion(q, fetched_ms);
+
+        // TODO: Should we run handleQuestion too?
+        // handleQuestion(q)
+        // console.log('filled individual qestion', question);
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+        return question;
+    }
 }
 
-function runPollingLoop(contract_instance) {
+async function fetchChangedQuestionsSince(last_ts) {
 
-    console.log('skipping runPollingLoop, block ', LAST_POLLED_BLOCK);
-return;
-    console.log('runPollingLoop, block ', LAST_POLLED_BLOCK);
-    //console.log('filters', contract_instance.filters);
+    const ts_now = parseInt(new Date()/1000);
+    const displayed_contracts = RC_DISPLAYED_CONTRACTS
+    const contract_str = JSON.stringify(displayed_contracts);
 
-    const filter_all = {
-        address: contract_instance.address,
-        fromBlock: LAST_POLLED_BLOCK - 10,
-        toBlock: "latest"
+    const query_since_ts = last_ts - REORG_ALLOWANCE_SECS;
+
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+    // console.log('graph url is ', network_graph_url);
+    const question_fetch_fields = questionFetchFields();
+    const query = `
+      {
+        questions(first: 100, where: {updatedTimestamp_gt: ${query_since_ts}, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
+            ${question_fetch_fields}
+        }
+      }  
+      `;
+
+    const fetched_ms = Date.now();
+
+     // console.log('sending graph query', ranking, query);
+    const res = await axios.post(network_graph_url, {query: query});
+    //console.log('fetchChangedQuestionsSince result', last_ts, res.data, query);
+    console.log('fetchChangedQuestionsSince result', last_ts, res.data, res.data.data.questions.length, fetched_ms);
+    for (const q of res.data.data.questions) {
+        console.log('handling updated question', q.id);
+        handleQuestion(q, fetched_ms)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
     }
 
+    return true;
+ 
+}
 
+// For normal fetches we check on loading whether finalized
+// However they may finalize by the passage of time after the page is loaded.
+// This doesn't trigger an event unless they're finalized by arbitration.
+async function fetchFinalizedQuestionsSince(last_ts) {
+
+    const ts_now = parseInt(new Date()/1000);
+    const displayed_contracts = RC_DISPLAYED_CONTRACTS
+    const contract_str = JSON.stringify(displayed_contracts);
+
+    // Wait a few minutes after they should have been finalized in case they get answered at the last minute and graph is lagging
+    // We'll also filter for below 2147483647 which is a fake value we put in for unanswered questions so we can query on them
+    const ts_display_after = ts_now - (3*60);
+
+    const ts_last_polled = last_ts; // TODO: check this is right
+
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+    // console.log('graph url is ', network_graph_url);
+    const question_fetch_fields = questionFetchFields();
+    const query = `
+      {
+        questions(first: 100, where: {currentScheduledFinalizationTimestamp_gte: ${ts_last_polled}, currentScheduledFinalizationTimestamp_gte: ${ts_display_after}, currentScheduledFinalizationTimestamp_lt: 2147483647, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
+            ${question_fetch_fields}
+        }
+      }  
+      `;
+
+    const fetched_ms = Date.now();
+
+     // console.log('sending graph query', ranking, query);
+    const res = await axios.post(network_graph_url, {query: query});
+    //console.log('fetchChangedQuestionsSince result', last_ts, res.data, query);
+    console.log('fetchFinalizedSince result', last_ts, res.data, res.data.data.questions.length, fetched_ms);
+    for (const q of res.data.data.questions) {
+        console.log('handling updated question', q.id);
+        handleQuestion(q, fetched_ms)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    }
+
+    return true;
+ 
+}
+
+
+async function runPollingLoop(displayed_contracts, last_fetch_ts) {
+
+    const fetch_started_ts = parseInt(new Date().getTime()/1000);
+
+    // NB The fetch timestamp is when we actually did the fetching per our clock.
+    // The REORG_ALLOWANCE_SECS should be applied by the functions that do the fetching.
+    fetchChangedQuestionsSince(last_fetch_ts);
+    fetchFinalizedQuestionsSince(last_fetch_ts);
+
+    fetchUserEventsAndHandleGraph();
+
+    await delay(POLLING_INTERVAL*1000);
+
+    runPollingLoop(displayed_contracts, fetch_started_ts);
+    
     /*
-    console.log('in runPollingLoop from ', LAST_POLLED_BLOCK);
-    var evts = contract_instance.allEvents({}, {
-        fromBlock: LAST_POLLED_BLOCK - 20, // account for lag
-        toBlock: 'latest'
-    })
+    window.setTimeout(function() {
+        const to = (start_ts-interval);
+        runPollingLoop(displayed_contracts, to)
+    }, (interval*1000));
     */
-
-    // And query:
-    provider.getLogs(filter_all).then((logs) => {
-        console.log('filter_all got evts', logs);
-        LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
-        for (let i = 0; i < logs.length; i++) {
-            handleEvent(null, logs[i]);
-        }
-        window.setTimeout(runPollingLoop, 30000, contract_instance);
-        console.log(logs);
-    });
 
     /*
     evts.get(function(error, result) {
@@ -5106,71 +4735,275 @@ return;
 // To mitigate the damage, run a refresh of the currently-open window etc
 
 
-// ISSUE: This sometimes blows away an unconfirmed answer
-// Options
- //- make sure we preserve the unconfirmed history when refetching
- //- accept that the history has vanished from the fetch, but never erase from the window unless confirmed 
-function scheduleFallbackTimer() {
-     window.setInterval( function() {
-        //console.log('checking for open windows');
-        $('div.rcbrowser--qa-detail.is-open').each(async function() {
-             const contract_question_id = $(this).attr('data-contract-question-id');
-             const [contract, question_id] = parseContractQuestionID(contract_question_id);
-             console.log('updating window on timer for question', question_id);
-             if (question_id) {
-                const question = await ensureQuestionDetailFetched(contract, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
-                updateQuestionWindowIfOpen(question);
-                scheduleFinalizationDisplayUpdate(contract, question);
-                updateRankingSections(question, 'finalization_ts', question.finalization_ts)
-             }
-        });
-    }, 20000);
-}
+async function fetchUserEventsAndHandleGraph() {
+    //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
-async function handleUserFilterItem(rcinst, filter, start_block, end_block) {
-
-    const results = await rcinst.queryFilter(filter, start_block, end_block);
-    for (let i = 0; i < results.length; i++) {
-        //console.log('handlePotentialUserAction', i, results[i]);
-        handlePotentialUserAction(results[i], false);
+    const acc = ACCOUNT;
+    if (!acc) {
+        console.log('No account found, not fetching user events');
+        return;
     }
 
-    /*
-    TODO: Use to have error handling like:
-    bounty_funded.get(function(error, result) {
-        if (error === null && typeof result !== 'undefined') {
-            for (var i = 0; i < result.length; i++) {
-                handlePotentialUserAction(result[i]);
-            }
-        } else {
-            console.log(error);
+    const ts_now = parseInt(new Date()/1000); // TODO: Handle skipping stuff we already have
+    //const contract_str = JSON.stringify(displayed_contracts);
+
+    const fetch_start_ts = LAST_POLLED_USER_TS ? LAST_POLLED_USER_TS - REORG_ALLOWANCE_SECS : 0;
+console.log('fetch user events from', fetch_start_ts);
+
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+    // console.log('graph url is ', network_graph_url);
+
+
+/*
+id: ID!
+actionType: String!
+user: Bytes!
+question: Question
+response: Response
+claim: Claim
+withdrawal: Withdrawal
+fund: Fund
+template: Template
+createdBlock: BigInt!
+createdTimestamp: BigInt!
+*/
+
+    //  GRAPH_TODO Add contract field to UserAction
+    const user_action_fields = userActionFields();
+    const displayed_contracts = RC_DISPLAYED_CONTRACTS
+    const contract_str = JSON.stringify(displayed_contracts);
+
+    const query = `
+      {
+        userActions(first: 1000, where: {user: "${acc}", createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
+            ${user_action_fields}
         }
-    });
-    */
+      }
+      `;
+
+    // console.log('sending usergraph query', query);
+    const res = await axios.post(network_graph_url, {query: query});
+    // console.log('graph res', res.data);
+    let user_question_blocks = [];
+
+    let active_contracts = {};
+    for(let ci = 0; ci<RC_DISPLAYED_CONTRACTS.length; ci++) {
+        const ct = RC_DISPLAYED_CONTRACTS[ci];
+        active_contracts[ct.toLowerCase()] = true;
+    }
+
+    const fetched_ms = Date.now();
+
+    if (typeof res.data.data === 'undefined') {
+        console.log('Fetching user events from graph failed', res, query);
+        return false;
+    }
+
+    for (const a of res.data.data.userActions) {
+         // console.log('got useraction', a);
+
+        // TODO: Move this logic to the query - we may need a graph update to put the contract in UserAction
+        if (a.question) { // Anything except LogNewTemplate
+            const contr = a.question.contract;
+            if (!active_contracts[contr]) {
+                // console.log('skip action', a);
+                continue;
+            }
+        }
+
+        renderNotificationsGraph(a, fetched_ms);
+        const qid = a.questionId;
+        if (!user_question_blocks[qid]) {
+            user_question_blocks[qid] = a.createdTimestamp; // Should be the first time - TODO: Check we're getting these in ascending order
+        }
+        //handleQuestion(q)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    }
 
 
- 
+    // Now fetch events for questions the user interacted with, but not done by the user
+
+    let question_id_in_str = '';
+    let delim = ''; 
+    for(const qid in user_question_blocks) {
+        question_id_in_str = question_id_in_str + delim + '"' + qid + '"';
+        delim = ','; 
+    }
+    if (question_id_in_str == '') {
+        console.log('no questions');
+        return;
+    }
+
+    // NB We don't need AskQuestion as it must have happened prior to the user's involvement
+    const query2 = `
+      {
+        userActions(first: 1000, where: {user_not: "${acc}", actionType_not: "AskQuestion", question_in: [${question_id_in_str}], createdTimestamp_gt: ${fetch_start_ts} }, orderBy: createdBlock, orderDirection: desc) {
+           ${user_action_fields}
+        }
+      }
+      `;
+
+    // console.log('sending other graph query', query2);
+    const res2 = await axios.post(network_graph_url, {query: query2});
+    console.log('graph res', res2.data);
+    for (const a of res2.data.data.userActions) {
+        console.log('got useraction for other', a);
+        renderNotificationsGraph(a);
+        const qid = a.questionId;
+        if (!user_question_blocks[qid]) {
+            user_question_blocks[qid] = a.createdTimestamp; // Should be the first time - TODO: Check we're getting these in ascending order
+        }
+        //handleQuestion(q)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    }
+
+    for (const ctr in RC_DISPLAYED_CONTRACTS) {
+        updateClaimableDisplay(RC_DISPLAYED_CONTRACTS[ctr]);
+    }
+
+    LAST_POLLED_USER_TS = ts_now;
+
 }
 
-function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_block) {
-// TODO: If question id, make sure we have the right contract, etc
-    // console.log('fetching user events for contract', contract, acc, start_block, end_block);
-    const rcinst = RCInstance(contract);
+async function changedQuestionsByUserEventStartingAt(displayed_contracts, start_ts) {
+    //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
-    handleUserFilterItem(rcinst, rcinst.filters.LogNewAnswer(null, question_id, null, acc));
-    handleUserFilterItem(rcinst, rcinst.filters.LogAnswerReveal(question_id, acc));
-    handleUserFilterItem(rcinst, rcinst.filters.LogFundAnswerBounty(question_id, null, null, acc));
-    handleUserFilterItem(rcinst, rcinst.filters.LogNotifyOfArbitrationRequest(question_id, acc));
-    if (question_id) {
-        // No user param
-        handleUserFilterItem(rcinst, rcinst.filters.LogFinalize(question_id));
+    //const contract_str = JSON.stringify(displayed_contracts);
+
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+    // console.log('graph url is ', network_graph_url);
+
+    //  GRAPH_TODO Add contract field to UserAction
+    const user_action_fields = userActionFields();
+    const contract_str = JSON.stringify(displayed_contracts);
+console.log('made contract_str', contract_str);
+
+    const query = `
+      {
+        userActions(first: 1000, where: {createdTimestamp_gt: "${start_ts}" }, orderBy: createdBlock, orderDirection: desc) {
+           ${user_action_fields}
+        }
+      }
+      `;
+
+    // console.log('sending usergraph query', query);
+    const res = await axios.post(network_graph_url, {query: query});
+    // console.log('graph res', res.data);
+    let user_question_blocks = [];
+
+
+    let active_contracts = {};
+    for(let ci = 0; ci<RC_DISPLAYED_CONTRACTS.length; ci++) {
+        const ct = RC_DISPLAYED_CONTRACTS[ci];
+        active_contracts[ct.toLowerCase()] = true;
+    }
+
+    const fetched_ms = Date.now();
+
+    for (const a of res.data.data.userActions) {
+         // console.log('got useraction', a);
+
+        // TODO: Move this logic to the query - we may need a graph update to put the contract in UserAction
+        if (a.question) { // Anything except LogNewTemplate
+            const contr = a.question.contract;
+            if (!active_contracts[contr]) {
+                // console.log('skip action', a);
+                continue;
+            }
+        }
+
+        renderNotificationsGraph(a, fetched_ms);
+        const qid = a.questionId;
+        if (!user_question_blocks[qid]) {
+            user_question_blocks[qid] = a.createdTimestamp; // Should be the first time - TODO: Check we're getting these in ascending order
+        }
+        //handleQuestion(q)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    }
+
+
+/*
+    // Now fetch events for questions the user interacted with, but not done by the user
+
+    let question_id_in_str = '';
+    let delim = ''; 
+    for(const qid in user_question_blocks) {
+        question_id_in_str = question_id_in_str + delim + '"' + qid + '"';
+        delim = ','; 
+    }
+    if (question_id_in_str == '') {
+        console.log('no questions');
+        return;
+    }
+
+    // NB We don't need AskQuestion as it must have happened prior to the user's involvement
+    const query2 = `
+      {
+        userActions(first: 1000, where: {user_not: "${acc}", actionType_not: "AskQuestion", question_in: [${question_id_in_str}] }, orderBy: createdBlock, orderDirection: desc) {
+            id,
+            actionType,
+            user,
+            question {
+               ${question_fetch_fields}, 
+            }
+            createdBlock
+            createdTimestamp,
+            response {
+              id,
+              timestamp,
+              answer,
+              isUnrevealed,
+              isCommitment,
+              commitmentId,
+              bond,
+              user,
+              historyHash,
+              createdBlock,
+              revealedBlock
+            }
+        }
+      }
+      `;
+
+    // console.log('sending other graph query', query2);
+    const res2 = await axios.post(network_graph_url, {query: query2});
+    console.log('graph res', res2.data);
+    for (const a of res2.data.data.userActions) {
+        console.log('got useraction for other', a);
+        renderNotificationsGraph(a);
+        const qid = a.questionId;
+        if (!user_question_blocks[qid]) {
+            user_question_blocks[qid] = a.createdTimestamp; // Should be the first time - TODO: Check we're getting these in ascending order
+        }
+        //handleQuestion(q)
+        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    }
+*/
+
+// TODO: This should probably be happening in a shared event handling function
+    for (const ctr in RC_DISPLAYED_CONTRACTS) {
+        updateClaimableDisplay(RC_DISPLAYED_CONTRACTS[ctr]);
     }
 
 }
+
+
 
 function isForCurrentUser(entry) {
     const actor_arg = 'user';
-    return (entry.args[actor_arg] == ACCOUNT);
+    return (entry[actor_arg] == ACCOUNT);
 }
 
 function parseHash() {
@@ -5311,23 +5144,6 @@ function populateArbitratorSelect(arb_contract, network_arbs) {
     });
 }
 
-function waitForBlock(result) {
-    return new Promise(function(resolve, reject) {
-        (function attempt(triesLeft, result) {
-            if (CURRENT_BLOCK_NUMBER >= result.blockNumber) {
-                // console.log('at ',CURRENT_BLOCK_NUMBER);
-                return resolve(result);
-            } else if (!triesLeft) {
-                // console.log('out of tries',CURRENT_BLOCK_NUMBER);
-                return reject('gave up waiting for the network to catch up');
-            } else {
-                console.log('node is lagging, waiting for it to catch up', CURRENT_BLOCK_NUMBER, result.blockNumber);
-                setTimeout(attempt.bind(null, triesLeft-1, result), 1000);
-            }
-        })(360, result); // number of retries if first time fails
-    });
-}
-
 async function validateArbitratorForContract(contract, arb_addr) {
     if (ARBITRATOR_VERIFIED_BY_CONTRACT[contract.toLowerCase()] && ARBITRATOR_VERIFIED_BY_CONTRACT[contract.toLowerCase()][arb_addr.toLowerCase()]) {
         return true;
@@ -5402,10 +5218,7 @@ function getAccount(fail_soft) {
 
 function accountInit(account) {
 
-    for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
-        const ctr = RC_DISPLAYED_CONTRACTS[i];
-        fetchUserEventsAndHandle(account, ctr, null, RCStartBlock(ctr), 'latest');
-    }
+    fetchUserEventsAndHandleGraph();
 
     updateUserBalanceDisplay();
 
@@ -5821,35 +5634,33 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         const limit_to_contract = show_all ? null : RC_DEFAULT_ADDRESS;
 
+        // Keep a note of when we started fetching stuff so we know when to start fetching stuff that might have changed since from
+        let fetch_start_ts = parseInt(new Date().getTime()/1000);
+
         pageInit(limit_to_contract);
 
+        setupContractClaimSections(RC_DISPLAYED_CONTRACTS);
+
+        //console.log('args', args);
         if (args['question']) {
+            //console.log('loading question');
             try {
                 const [ctr, qid] = parseContractQuestionID(args['question'], RC_DEFAULT_ADDRESS);
                 const question = await ensureQuestionDetailFetched(ctr, qid);
+                //console.log('display question', question);
                 openQuestionWindow(contractQuestionID(question));
             } catch (err) {
                 console.log('could not open question in URL', err);
             }
         }
 
-        setupContractClaimSections(RC_DISPLAYED_CONTRACTS);
 
         // NB If this fails we'll try again when we need to do something using the account
         getAccount(true);
 
         loadPendingTransactions(cid);
         
-        for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
-            const rcaddr = RC_DISPLAYED_CONTRACTS[i];
-            // Listen for all events
-            RCInstance(rcaddr).on("*", function(eventObject) {
-                console.log('got all events for contract ', rcaddr, eventObject);
-                handleEvent(null, eventObject);
-            });
-        }
-
-        //runPollingLoop(RealityCheck);
+        runPollingLoop(RC_DISPLAYED_CONTRACTS, fetch_start_ts);
     });
 });
 

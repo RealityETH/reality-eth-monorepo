@@ -188,7 +188,13 @@ div.network-status-container {
     margin-top: -50px;
     margin-left: 71px;
     height:20px;
+    visibility:hidden;
 }
+div.network-status-container.initialized {
+    visibility:visible;
+}
+
+
 
 span.network-status {
     text-indent: 61px !important;
@@ -200,6 +206,34 @@ span.network-status {
     font-weight: normal;
     color: #939596;
 }   
+
+span.graph-node-switch {
+    text-indent: 61px !important;
+    bottom: 0px;
+    font-size: 12px;
+    text-align: left;
+    width: 100%;
+    font-weight: normal;
+    color: #939596;
+}
+
+.via-node-only { display: none; }
+.via-graph-only { display: none; }
+body.via-node .via-node-only { display: inline; }
+body.via-graph .via-graph-only { display: inline; }
+
+body.via-node graph-node-switch-link {display:inline; }
+body.via-graph graph-node-switch-link {display:inline; }
+
+.graph-node-switch-link {
+    font-style: italic;
+    font-size:10px;
+    cursor: pointer;
+}
+.graph-node-switch-link:hover {
+    font-style: italic;
+    text-decoration: underline;
+}
 
 span.network-status.test-network {
     display: none;

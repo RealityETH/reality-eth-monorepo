@@ -88,7 +88,13 @@
                     <span class="network-status network-id-1337702">Kintsugi Test Network</span>
                     <span class="network-status network-id-123411710">Local Test Network</span>
                     <span class="network-status network-id-unknown">Unknown Test Network</span>
-                </div>
+
+                    <span class="graph-node-switch">
+                        <span class="via-graph-only">via Graph</span>
+                        <span class="via-node-only">via node</span>
+                        <span class="graph-node-switch-link">Change</span>
+                    </span>
+            </div>
 
 
             <div id="site-introduction__buttons">
@@ -1245,7 +1251,15 @@
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
 
-    <script src="assets/js/bundle.js?20211224"></script>
+<script>
+// Load the graph version or the normal version depending on the cookie
+var cookie = document.cookie;
+var script_src = (cookie && cookie.indexOf('graph=1') !== -1) ? 'bundle.graph.js' : 'bundle.js';
+var script = document.createElement("script");
+script.type = "text/javascript";
+script.src = 'assets/js/' + script_src;
+document.body.appendChild(script);
+</script>
 
 </body>
 </html>
