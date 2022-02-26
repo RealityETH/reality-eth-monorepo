@@ -98,6 +98,19 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000')).to.equal('0.1');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
   });
+
+  it('Leaves bytes32 strings unchanged except forced to lower case', function() {
+    // We don't have a built-in type for this yet so just switch out the uint one
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    q['type'] = 'bytes32';
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('0x0000000000000000000000000000000000000000000000001BC16D674EC80000'.toLowerCase());
+    expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('Invalid');
+  });
+
+
 /*
   it('Handles ints as expected using 1 decimal', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('int'), '');
