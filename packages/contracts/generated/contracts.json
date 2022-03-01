@@ -42,8 +42,8 @@
                 "arbitrators": {}
             },
             "RealityETH_ERC20-3.0": {
-                "address": "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9",
-                "block": 13201169,
+                "address": "0x00D9859C4664cFD4d6f30cA7e6ca5578C104C3c8",
+                "block": 14299897,
                 "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
                 "notes": null,
                 "arbitrators": {}
@@ -272,6 +272,15 @@
         }
     },
     "100": {
+        "GNO": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x95b2b2b4b66A5a47Df79bF07BEBe72E9870fceb2",
+                "block": 20882108,
+                "token_address": "0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "XDAI": {
             "RealityETH-2.1": {
                 "address": "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57",
