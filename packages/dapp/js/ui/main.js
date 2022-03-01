@@ -3865,6 +3865,20 @@ function isAnswerInputLookingValid(parent_div, question_json) {
             console.log('bad datetime');
             return false;
         }
+    } else if (question_json['type'] == 'bytes32') {
+        const is_valid = /^0x[0-9a-fA-F]+$/.test(answer_element.val());
+        if (!is_valid) {
+            console.log('bad bytes32');
+            return false;
+        }
+        if (answer_element.val().toLowerCase() == '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff') {
+            console.log('invalid value entered');
+            return false;
+        }
+        if (answer_element.val().toLowerCase() == '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe') {
+            console.log('not-answered value entered');
+            return false;
+        }
     }
     return true;
 
