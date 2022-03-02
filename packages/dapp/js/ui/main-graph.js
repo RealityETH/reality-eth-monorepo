@@ -26,11 +26,22 @@ const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js
 const rc_contracts = require('@reality.eth/contracts');
 
 // Never try to refetch data if we have some less than this many milliseconds old
-const DEFAULT_MAX_CACHE_MS = 10000; 
+let DEFAULT_MAX_CACHE_MS = 1000; 
 
 // When we get stuff that was recently fetched, fetch from the last fetch we did, but make it a bit earlier in case there was a reorg
 const REORG_ALLOWANCE_SECS = 180 
-const POLLING_INTERVAL = 10 
+
+// When the user is doing something we poll fast for changes
+// If they just leave the window open we slow down
+const POLLING_INTERVAL_ACTIVE = 15;
+const POLLING_INTERVAL_IDLE = 300;
+
+// How many seconds things should be idle before we switch to the idle speed
+const SECS_TO_UX_IDLE_STATE = 180;
+
+let POLLING_INTERVAL = POLLING_INTERVAL_ACTIVE;
+
+let LAST_ACTION_TS = 0;
 
 let TOKEN_INFO = {};
 let CHAIN_INFO = {};
@@ -788,6 +799,8 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     e.preventDefault();
     e.stopPropagation();
 
+    updateLastActionTS();
+
     await getAccount();
 
     let win = $('#post-a-question-window');
@@ -1138,6 +1151,8 @@ function isReopenable(question) {
 }
 
 $(document).on('click', '.answer-claim-button', async function() {
+
+    updateLastActionTS();
 
     const contract = $(this).closest('.contract-claim-section').attr('data-contract');
 
@@ -2057,6 +2072,8 @@ $(document).on('click', '.questions__item__title', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    updateLastActionTS();
+
     const contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
 console.log('open window', contract_question_id);
@@ -2069,6 +2086,8 @@ $(document).on('click', '.mini-action-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    updateLastActionTS();
+
     const contract_question_id = $(this).closest('.questions__item').attr('data-contract-question-id');
 
     // Should repopulate and bring to the front if already open
@@ -2080,6 +2099,8 @@ $(document).on('click', '.your-qa__questions__item', function(e) {
     if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
         return true;
     }
+
+    updateLastActionTS();
 
     e.preventDefault();
     e.stopPropagation();
@@ -2613,6 +2634,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 btn.click(async function(evt) {
                     evt.preventDefault();
                     evt.stopPropagation();
+
+                    updateLastActionTS();
 
                     const question_latest = await ensureQuestionDetailFetched(question_detail.contract, question_detail.question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER);
                     if (!question_latest) {
@@ -3364,6 +3387,9 @@ function pushWatchedAnswer(answer) {
 }
 
 $(document).on('click', '.answer-item', function() {
+
+    updateLastActionTS();
+
     //console.log('.answer-item clicked');
     if ($(this).find('.answer-data').hasClass('is-bounce')) {
         $(this).find('.answer-data').removeClass('is-bounce');
@@ -3505,6 +3531,8 @@ function datetimeElementToTS(answer_element) {
 $(document).on('click', '.post-answer-button', async function(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    updateLastActionTS();
 
     const parent_div = $(this).parents('div.rcbrowser--qa-detail');
     await getAccount()
@@ -3759,6 +3787,8 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    updateLastActionTS();
+
     const parent_div = $(this).parents('div.rcbrowser--qa-detail');
 
     const contract_question_id = parent_div.attr('data-contract-question-id');
@@ -3899,6 +3929,9 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
 $(document).on('click', '.reopened-question-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    updateLastActionTS();
+
     const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopened-by-question-id');
     console.log('open window for', cqid);
     openQuestionWindow(cqid);
@@ -3907,6 +3940,9 @@ $(document).on('click', '.reopened-question-link', function(e) {
 $(document).on('click', '.reopener-question-link', function(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    updateLastActionTS();
+
     const cqid = $(this).closest('div.rcbrowser.rcbrowser--qa-detail').attr('data-reopener-of-question-id');
     console.log('open window for', cqid);
     openQuestionWindow(cqid);
@@ -3943,6 +3979,9 @@ function clearForm(parent_div, question_json) {
 
 // open/close/add reward
 $(document).on('click', '.add-reward-button', function(e) {
+
+    updateLastActionTS();
+
     const container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.addClass('is-open');
     container.addClass('is-bounce');
@@ -3950,6 +3989,9 @@ $(document).on('click', '.add-reward-button', function(e) {
 });
 
 $(document).on('click', '.add-reward__close-button', function(e) {
+
+    updateLastActionTS();
+
     const container = $(this).closest('.rcbrowser--qa-detail').find('.add-reward-container');
     container.removeClass('is-open');
     container.removeClass('is-bounce');
@@ -3960,6 +4002,9 @@ $(document).on('click', '.notifications-item', function(e) {
     if ($(e.target).hasClass('more-link') || $(e.target).hasClass('less-link')) {
         return true;
     }
+
+    updateLastActionTS();
+
     //console.log('notifications-item clicked');
     e.preventDefault();
     e.stopPropagation();
@@ -3975,6 +4020,8 @@ $(document).on('click', '.notifications-item', function(e) {
 $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async function(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    updateLastActionTS();
 
     const rcqa = $(this).closest('.rcbrowser--qa-detail');
     const [contract, question_id] = parseContractQuestionID(rcqa.attr('data-contract-question-id'));
@@ -4018,6 +4065,8 @@ $(document).on('click', '.rcbrowser-submit.rcbrowser-submit--add-reward', async 
 $(document).on('click', '.arbitration-button', async function(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    updateLastActionTS();
 
     const lnk = this;
     await getAccount();
@@ -4702,6 +4751,7 @@ async function runPollingLoop(displayed_contracts, last_fetch_ts) {
 
     fetchUserEventsAndHandleGraph();
 
+    updatePollingInterval();
     await delay(POLLING_INTERVAL*1000);
 
     runPollingLoop(displayed_contracts, fetch_started_ts);
@@ -4728,6 +4778,23 @@ async function runPollingLoop(displayed_contracts, last_fetch_ts) {
     });
     */
 
+}
+
+function updateLastActionTS() {
+    LAST_ACTION_TS = parseInt(new Date().getTime()/1000);
+    updatePollingInterval();
+}
+
+function updatePollingInterval() {
+console.log('updatePollingInterval');
+    const tsnow = parseInt(new Date().getTime()/1000);
+    const secs_since_last_action = tsnow - LAST_ACTION_TS 
+    if (secs_since_last_action < SECS_TO_UX_IDLE_STATE) {
+        POLLING_INTERVAL = POLLING_INTERVAL_ACTIVE; 
+    } else {
+        POLLING_INTERVAL = POLLING_INTERVAL_IDLE; 
+    }
+console.log('updatePollingInterval', POLLING_INTERVAL);
 }
 
 
