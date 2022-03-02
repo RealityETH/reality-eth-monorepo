@@ -207,16 +207,6 @@ span.network-status {
     color: #939596;
 }   
 
-span.graph-node-switch {
-    text-indent: 61px !important;
-    bottom: 0px;
-    font-size: 12px;
-    text-align: left;
-    width: 100%;
-    font-weight: normal;
-    color: #939596;
-}
-
 .via-node-only { display: none; }
 .via-graph-only { display: none; }
 body.via-node .via-node-only { display: inline; }
@@ -226,13 +216,17 @@ body.via-node graph-node-switch-link {display:inline; }
 body.via-graph graph-node-switch-link {display:inline; }
 
 .graph-node-switch-link {
-    font-style: italic;
-    font-size:10px;
+    width: 240px;
+    height: 60px;
+    line-height: 60px;
+    margin: 15px 0 0;
+    padding: 9px;
+    border-radius: 3px;
+    font-size: 12px;
+    // background-color: $blue;
+    @include button_blue;
+    text-align: center;
     cursor: pointer;
-}
-.graph-node-switch-link:hover {
-    font-style: italic;
-    text-decoration: underline;
 }
 
 span.network-status.test-network {
@@ -1341,6 +1335,18 @@ footer .cols ul {
     color: $rcBrowserBodyText;
 }
 
+.chain-list-explanation {
+    line-height: 1.7;
+    font-size: 15px;
+    color: $rcBrowserBodyText;
+}
+
+div.graph-node-switch {
+    padding:12px;
+    margin-top:14px;
+    border-radius: 6px;
+    border: 1px solid $gray;
+}
 
 // rcBrowser header
 .rcbrowser-header {

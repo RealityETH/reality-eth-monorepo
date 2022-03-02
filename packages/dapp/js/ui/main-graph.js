@@ -665,6 +665,27 @@ $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
 
+$('#chain-list-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#chain-list-window').css('z-index', ++ZINDEX).addClass('is-open');
+});
+
+$('#chain-list-window .rcbrowser__close-button').on('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    $('#chain-list-window').css('z-index', 0).removeClass('is-open');
+    document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+});
+
+$('.chain-item a').click(function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cid = $(this).closest('.chain-item').attr('data-chain-id')
+    window.location.hash = '!/network/'+cid;
+    window.location.reload(true);
+})
+
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
