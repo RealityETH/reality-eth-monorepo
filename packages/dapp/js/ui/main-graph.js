@@ -5252,6 +5252,9 @@ function initChain(cid) {
     $('.network-status'+net_cls).show();
     $('.network-status-container').addClass('initialized');
 
+    const current_chain_text = $('.network-status'+net_cls).text();
+    $('.current-chain-text').text(current_chain_text);
+
     if (typeof ethereum !== 'undefined') {
         ethereum.on('chainChanged', () => {
           document.location.reload()
