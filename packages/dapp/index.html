@@ -1313,9 +1313,21 @@
     </div><!-- /.rcbrowser--qa-detail -->
 
 <script>
-// Load the graph version or the normal version depending on the cookie
+// If you have a cookie telling us graph=1 or graph=0 use that.
+// We'll use RPC as the default if you have metamask
+// Use Graph as the 
 var cookie = document.cookie;
-var script_src = (cookie && cookie.indexOf('graph=1') !== -1) ? 'bundle.graph.js' : 'bundle.js';
+var script_src;
+var use_graph = false;
+
+// If you have a cookie we'll obey the cookie.
+// If you don't have a cookie, we'll use RPC if you have metamask etc, and graph if you don't.
+if (cookie && cookie.indexOf('graph=') !== -1) {
+    use_graph = (cookie.indexOf('graph=1') !== -1)
+} else {
+    use_graph = !window.ethereum;
+}
+var script_src = use_graph ? 'bundle.graph.js' : 'bundle.js';
 var script = document.createElement("script");
 script.type = "text/javascript";
 script.src = 'assets/js/' + script_src;
