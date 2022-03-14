@@ -1972,6 +1972,8 @@ async function handleQuestion(item, fetched_ms) {
 
     }
 
+    reflectDisplayEntryChanges();
+
 }
 
 // Inserts into the right place in the stored rankings.
@@ -4626,6 +4628,9 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, of
         // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
         // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
     }
+    IS_INITIAL_LOAD_DONE = true;
+    reflectDisplayEntryChanges();
+
 }
 
 async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {

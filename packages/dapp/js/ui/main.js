@@ -2431,6 +2431,7 @@ async function handleQuestionLog(item) {
         }
 
         scheduleFinalizationDisplayUpdate(contract, question);
+        reflectDisplayEntryChanges();
         //console.log(DISPLAY_ENTRIES);
     }
 
