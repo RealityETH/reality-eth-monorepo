@@ -15,9 +15,8 @@ const TWITTER_CONFIG = require('./secrets/config.json');
 
 const chain_ids = process.argv[2].split(',');
 const init = (process.argv.length > 3 && process.argv[3] == 'init');
-const NOOP = ('noop' in TWITTER_CONFIG && TWITTER_CONFIG['noop']);
-
-let ALL_TEMPLATES = {};
+const noop_arg = (process.argv.length > 3 && process.argv[3] == 'noop');
+const NOOP = noop_arg || ('noop' in TWITTER_CONFIG && TWITTER_CONFIG['noop']);
 
 if (NOOP) {
     console.log('Running with noop');
@@ -96,37 +95,6 @@ async function processChain(chain_id, init) {
 
 }
 
-async function templateTextWithCache(graph_url, contract, template_id) {
-    // console.log('look for', contract, template_id);
-    if (!ALL_TEMPLATES[contract] || !ALL_TEMPLATES[contract][''+template_id]) {
-        const template_res = await axios.post(graph_url, {
-          query: `
-          {
-            templates(orderBy: id, orderDirection: asc, where: { contract: "${contract}", templateId: ${template_id} }) {
-                id,
-                contract,
-                templateId,
-                question_text
-            }
-          }
-        `
-        })
-        for(const t of template_res.data.data.templates) {
-            const tid = parseInt(t.templateId);
-            // console.log('populate ', contract, template_id, tid, t);
-            const tcontract = t.contract.toLowerCase();
-            if (!ALL_TEMPLATES[tcontract]) {
-                ALL_TEMPLATES[tcontract] = {};
-            }
-            ALL_TEMPLATES[tcontract][''+tid] = t.question_text;
-        }
-    }
-
-    if (!ALL_TEMPLATES[contract][''+template_id]) {
-        console.log('wtf, template not found after fetch', contract, template_id)
-    }
-    return ALL_TEMPLATES[contract][''+template_id];
-}
 
 async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts) {
 
@@ -137,31 +105,6 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
     await sleep(10000);
     */
 
-    // Start with an initial fill for the most common (lowest-id) templates.
-    // The pager will cut the rest off, and we'll fetch them when we need them.
-    const template_res = await axios.post(graph_url, {
-      query: `
-      {
-        templates(orderBy: templateId, orderDirection: asc) {
-            id,
-            contract,
-            templateId,
-            question_text
-        }
-      }
-    `
-    })
-
-    for(const t of template_res.data.data.templates) {
-        const tid = parseInt(t.templateId);
-        const tcontract = t.contract.toLowerCase();
-        if (!ALL_TEMPLATES[tcontract]) {
-            ALL_TEMPLATES[tcontract] = {};
-        }
-        ALL_TEMPLATES[tcontract][''+tid] = t.question_text;
-    }
-//console.log('ALL_TEMPLATES', ALL_TEMPLATES);
-
     const qres = await axios.post(graph_url, {
       query: `
       {
@@ -169,12 +112,14 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
             id,
             createdTimestamp,
             contract,
-            templateId,
             data,
             bounty,
             currentAnswer,
             currentAnswerTimestamp,
-            currentAnswerBond
+            currentAnswerBond,
+            template {
+                questionText
+            }
         }
       }
     `
@@ -187,12 +132,15 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
             id,
             createdTimestamp,
             contract,
-            templateId,
             data,
             bounty,
             currentAnswer,
             currentAnswerTimestamp,
-            currentAnswerBond
+            currentAnswerBond,
+            template {
+                questionText
+            }
+
         }
       }
     `
@@ -205,12 +153,11 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
     let ts = 0;
     for (const q of questions) {
         i++;
-        //console.log(q)
+        console.log(q)
         const contract = q.contract;
         const id = q.id;
         const data = q.data;
-        const template_id = ''+q.templateId;
-        const template_text = await templateTextWithCache(graph_url, contract.toLowerCase(), template_id);
+        const template_text = q.template.questionText;
         let question_json;
         try {
             question_json = rc_question.populatedJSONForTemplate(template_text, data, true);
@@ -250,7 +197,7 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
             continue;
         }
         if ('errors' in question_json) {
-            console.log('skipping question with errors', question_json['errors'], contract, template_id, template_text)
+            console.log('skipping question with errors', question_json['errors'], contract, template_text)
             continue;
         }
         await tweetQuestion(title, bond_txt, bounty_txt, current_answer_txt, url);
