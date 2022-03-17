@@ -291,7 +291,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder {
         stateAny()
     public returns (uint256) {
         uint256 id = nextTemplateID;
-        templates[id] = block.number;
+        templates[id] = block.timestamp;
         template_hashes[id] = keccak256(abi.encodePacked(content));
         emit LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id + 1;
