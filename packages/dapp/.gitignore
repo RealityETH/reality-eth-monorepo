@@ -19,6 +19,7 @@ config/test/contracts.json
 build
 dist
 /assets/js/bundle.js
+/assets/js/bundle.graph.js
 /assets/css/main.css
 
 # OS generated files
