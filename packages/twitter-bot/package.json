@@ -27,7 +27,7 @@
     "@reality.eth/contracts": "^3.0.2",
     "@reality.eth/reality-eth-lib": "^3.1.0",
     "axios": "^0.24.0",
-    "ethers": "^5.5.1",
+    "ethers": "^5.6.8",
     "twit": "^2.2.11"
   }
 }

@@ -18,12 +18,12 @@
   "dependencies": {
     "@reality.eth/contracts": "^3.0.2",
     "bignumber.js": "^7.2.1",
-    "bn.js": "^4.11.8",
+    "bn.js": "^5.2.1",
     "ethereumjs-abi": "^0.6.5",
     "sprintf-js": "^1.1.1"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
+    "chai": "^4.3.6",
     "chai-bignumber": "^2.0.2",
     "mocha": "^5.2.0",
     "truffle": "^4.0.1"

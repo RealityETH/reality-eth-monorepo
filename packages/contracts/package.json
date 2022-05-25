@@ -32,6 +32,6 @@
   "homepage": "https://reality.eth.link",
   "gitHead": "a695f49c89a3704a081329657e5e40f4a354270e",
   "dependencies": {
-    "ethers": "^5.4.6"
+    "ethers": "^5.6.8"
   }
 }
