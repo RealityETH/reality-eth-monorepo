@@ -9,7 +9,7 @@
     "css:min": "csso assets/css/main.css --output assets/css/main.min.css",
     "build:css": "npm run css:sass && npm run css:prefix",
     "js:min": "uglifyjs assets/js/bundle.js --compress --mangle --comments --output assets/js/bundle.min.js",
-    "build:js": "browserify js/ui/main.js -t babelify -o assets/js/bundle.js",
+    "build:js": "browserify -p esmify js/ui/main.js -t babelify -o assets/js/bundle.js",
     "build": "npm run build:css && npm run build:js",
     "lint:css": "sass-lint -c sass-lint.yml 'assets/scss/**/*.scss' -v -q",
     "lint:js": "eslint js/ui/main.js",
@@ -31,6 +31,9 @@
   "dependencies": {
     "@reality.eth/contracts": "^3.0.2",
     "@reality.eth/reality-eth-lib": "^3.1.0",
+    "@walletconnect/client": "^1.7.1",
+    "@walletconnect/qrcode-modal": "^1.7.1",
+    "@walletconnect/web3-provider": "^1.7.1",
     "autoprefixer": "^6.7.0",
     "axios": "^0.21.1",
     "babel-cli": "^6.22.2",
@@ -54,7 +57,11 @@
     "sass-lint": "^1.10.2",
     "timeago.js": "^3.0.1",
     "uglify-js": "^2.7.5",
-    "watch": "^1.0.1"
+    "watch": "^1.0.1",
+    "web3": "^1.7.0"
   },
-  "gitHead": "a695f49c89a3704a081329657e5e40f4a354270e"
+  "gitHead": "a695f49c89a3704a081329657e5e40f4a354270e",
+  "devDependencies": {
+    "esmify": "^2.1.1"
+  }
 }

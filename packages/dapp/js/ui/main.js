@@ -3,6 +3,9 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
+import { providers } from "ethers"
+import WalletConnectProvider from "@walletconnect/web3-provider"
+
 (function() {
 
 const ethers = require("ethers");
@@ -5631,7 +5634,7 @@ window.addEventListener('load', async function() {
     
     // Get a provider from metamask etc if possible, we'll detect the network ID from it
     // If there isn't one, use the specified network with the hosted RPC node
-    if (window.ethereum) {
+    if (false && window.ethereum) {
         provider = new ethers.providers.Web3Provider(window.ethereum)
     } else  {
         IS_WEB3_FALLBACK = true;
@@ -5647,7 +5650,30 @@ window.addEventListener('load', async function() {
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         cid = want_cid;
 
-        provider = new ethers.providers.JsonRpcProvider(HOSTED_RPC_NODE);
+        const rpc_dict = {
+            want_cid: HOSTED_RPC_NODE
+        };
+
+        const wcprovider = new WalletConnectProvider({
+            rpc: rpc_dict, 
+            qrcodeModalOptions: {
+/*
+                mobileLinks: [
+                    "rainbow",
+                    "metamask",
+                    "argent",
+                    "trust",
+                    "imtoken",
+                    "pillar",
+                ]
+*/
+            }
+        })
+        await wcprovider.enable()
+
+        provider = new providers.Web3Provider(wcprovider)
+
+       // provider = new ethers.providers.JsonRpcProvider(HOSTED_RPC_NODE);
         console.log('no window.ethereum, using node ', HOSTED_RPC_NODE);
     }
 
