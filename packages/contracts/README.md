@@ -28,6 +28,8 @@ See [example.js](example.js) for more examples.
 
 The above are combined into JSON files under *generated/* using `npm run-script generate`.
 
+*If your token was not previously listed, you may first need to add a JSON file for your token under it to tokens/, or add your chain ID and/or token address to one of the existing JSON files, then run `npm run-script generate` before you deploy.
+
 
 *development/contracts/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
 
