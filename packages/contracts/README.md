@@ -28,9 +28,6 @@ See [example.js](example.js) for more examples.
 
 The above are combined into JSON files under *generated/* using `npm run-script generate`.
 
-*If your token was not previously listed, you may first need to add a JSON file for your token under it to tokens/, or add your chain ID and/or token address to one of the existing JSON files, then run `npm run-script generate` before you deploy.
-
-
 *development/contracts/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
 
 *config/templates.json* contains information about templates deployed by the constructor to save fetching them from the event logs.
@@ -65,6 +62,8 @@ You will need the private key of an account with funds to deploy on the relevant
 
 The `.gitignore` file should prevent it from being checked into Git, but be careful not to share it.
 
+If is the first time for the token you intend to use to be deployed on the chain you intend to use, add a JSON file describing your token under *tokens/* then run `npm run-script generate`.
+
 To deploy contracts using the code compiled under contracts/bytecode, use
 
 `$ cd packages/contracts/scripts`
@@ -73,7 +72,7 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
 
-If the token or network was not previously supported, you will need to add its configuration files and run `npm run-script generate`.
+Supported networks are hard-coded in the deploy.js file.
 
 ## Adding your contracts to the dapp
 
