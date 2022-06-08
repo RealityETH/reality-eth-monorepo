@@ -167,7 +167,7 @@ async function doQuery(graph_url, chain_id, contract_tokens, tokens, initial_ts)
         }
         const token = contract_tokens[contract.toLowerCase()];
         let title = question_json['title'];
-        const url = 'https://reality.eth.link/app/#!/network/'+chain_id+'/contract/'+contract+'/token/'+token+'/question/'+id;
+        const url = 'https://reality.eth.limo/app/#!/network/'+chain_id+'/contract/'+contract+'/token/'+token+'/question/'+id;
 
         let current_answer = null;
         let seen_ts = q.createdTimestamp;
