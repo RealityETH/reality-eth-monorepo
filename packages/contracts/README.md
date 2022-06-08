@@ -74,6 +74,8 @@ This will add contract addresses to the existing deployed contract .json definit
 
 Supported networks are hard-coded in the `deploy.js` file. You may also wish to edit it to alter gas limits, etc.
 
+Once the deployment is complete, run `npm run-script generate`.
+
 ## Adding your contracts to the dapp
 
 For a new deployment to show up in the dapp it is necessary to rebuild the dapp with the updated `packages/contracts`. For Graph support to work in the dapp, the Subgraph will also need to be republished, using the code under `packages/graph`.
