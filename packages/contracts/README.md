@@ -72,8 +72,11 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
 
-Supported networks are hard-coded in the deploy.js file.
+Supported networks are hard-coded in the `deploy.js` file. You may also wish to edit it to alter gas limits, etc.
 
 ## Adding your contracts to the dapp
 
-If you have added Reality.eth for a new token, or a new arbitrator, or both, please submit the changes to this repo as a PR.
+For a new deployment to show up in the dapp it is necessary to rebuild the dapp with the updated `packages/contracts`. For Graph support to work in the dapp, the Subgraph will also need to be republished, using the code under `packages/graph`.
+
+If you have added Reality.eth for a new token, or a new arbitrator, or both, please submit the changes to this repo as a PR so that we can update the dapp at reality.eth and the Subgraphs we maintain.
+
