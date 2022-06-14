@@ -62,7 +62,7 @@ You will need the private key of an account with funds to deploy on the relevant
 
 The `.gitignore` file should prevent it from being checked into Git, but be careful not to share it.
 
-If is the first time for the token you intend to use to be deployed on the chain you intend to use, add a JSON file describing your token under *tokens/* then run `npm run-script generate`.
+If it's the first time for the token you intend to use to be deployed on the chain you intend to use, add a JSON file describing your token under *tokens/* then run `npm run-script generate`.
 
 To deploy contracts using the code compiled under contracts/bytecode, use
 
