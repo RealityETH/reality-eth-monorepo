@@ -2,17 +2,20 @@
     "1": {
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "explorerURL": "https://etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth"
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
+        "network_name": "mainnet"
     },
     "3": {
         "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
         "explorerURL": "https://ropsten.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten"
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten",
+        "network_name": "ropsten"
     },
     "4": {
         "hostedRPC": "https://eth-rinkeby.alchemyapi.io/v2/m2Op-gK2G1RiwtWHr6QB_JH9-ry0A6do",
         "explorerURL": "https://rinkeby.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby"
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
+        "network_name": "rinkeby"
     },
     "8": {
         "hostedRPC": "https://rpc.octano.dev",
@@ -34,7 +37,8 @@
     },
     "69": {
         "hostedRPC": "https://kovan.optimism.io",
-        "explorerURL": "https://kovan-optimistic.etherscan.io"
+        "explorerURL": "https://kovan-optimistic.etherscan.io",
+        "network_name": "kovan"
     },
     "77": {
         "explorerURL": "https://blockscout.com/poa/sokol",
