@@ -2997,13 +2997,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     if (isFinalized(question_detail) && question_detail.bounty.add(question_detail.bond).lt(ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']))) {
         balloon_html += 'The reward was very low and no substantial bond was posted.<br /><br />This means there may not have been enough incentive to post accurate information.<br /><br />';
     }
-    let valid_arbirator = isArbitratorValid(question_detail.arbitrator);
+    const valid_arbitrator = isArbitratorValidFast(question_detail.contract, question_detail.arbitrator);
 
     if (ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase()] && ARBITRATOR_FAILED_BY_CONTRACT[question_detail.contract.toLowerCase()][question_detail.arbitrator.toLowerCase()]) {
         rcqa.addClass('failed-arbitrator');
     }
 
-    if (!valid_arbirator) {
+    if (!valid_arbitrator) {
         balloon_html += 'We do not recognize this arbitrator.<br />Do not believe this information unless you trust them.';
     }
     if (balloon_html) {
