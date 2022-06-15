@@ -1318,15 +1318,12 @@
 // Use Graph as the 
 var cookie = document.cookie;
 var script_src;
-var use_graph = false;
+var use_graph = true;
 
-// If you have a cookie we'll obey the cookie.
-// If you don't have a cookie, we'll use RPC if you have metamask etc, and graph if you don't.
+// If you have a cookie we'll obey the cookie. Otherwise use graph.
 if (cookie && cookie.indexOf('graph=') !== -1) {
     use_graph = (cookie.indexOf('graph=1') !== -1)
-} else {
-    use_graph = !window.ethereum;
-}
+} 
 var script_src = use_graph ? 'bundle.graph.js' : 'bundle.js';
 var script = document.createElement("script");
 script.type = "text/javascript";
