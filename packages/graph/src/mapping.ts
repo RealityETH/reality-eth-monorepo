@@ -135,8 +135,12 @@ export function handleNewQuestion(event: LogNewQuestion): void {
 
   question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
 
-  // TODO: This may theoretically be wrong if the arbitrator snaffled part of the transaction value
-  question.bounty = event.transaction.value;
+  // In version 3 and above the bounty should be picked up by the LogFundAnswerBounty event.
+  // In version 2 this isn't fired on question create. 
+  // We could handle this with a call but this would mean we'd need an archive node to index.
+  // Instead, make sure we do a call in the UI for the current bounty when using the v2 contract.
+  // This shouldn't matter much as neither v2 nor the bounty feature is used much.
+  question.bounty = new BigInt(0);
 
   question.save();
 
