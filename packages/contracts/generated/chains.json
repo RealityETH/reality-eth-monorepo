@@ -239,6 +239,7 @@
             "https://zksync2-testnet.zksync.dev"
         ],
         "hostedRPC": "https://zksync2-testnet.zksync.dev",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli",
         "blockExplorerUrls": [
             "https://zksync2-testnet.zkscan.io/",
             "https://zksync2-testnet.zkscan.io"
