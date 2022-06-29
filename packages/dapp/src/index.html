@@ -5,11 +5,10 @@
     <title>reality.eth crowd-sourced smart contract oracle dapp</title>
     <meta name="description" content="Reality.eth: A system for getting the answer to a question on the Ethereum blockchain">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel='shortcut icon' href='assets/image/favicon.ico' type='image/x-icon' />
+    <link rel='shortcut icon' href='image/favicon.ico' type='image/x-icon' />
     <!--
     <link href="assets/fonts/Roboto/css/fonts.css" rel="stylesheet">
     -->
-    <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css" >
 </head>
 <body>
@@ -1311,25 +1310,6 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
-
-<script>
-// If you have a cookie telling us graph=1 or graph=0 use that.
-// We'll use RPC as the default if you have metamask
-// Use Graph as the 
-var cookie = document.cookie;
-var script_src;
-var use_graph = true;
-
-// If you have a cookie we'll obey the cookie. Otherwise use graph.
-if (cookie && cookie.indexOf('graph=') !== -1) {
-    use_graph = (cookie.indexOf('graph=1') !== -1)
-} 
-var script_src = use_graph ? 'bundle.graph.js' : 'bundle.js';
-var script = document.createElement("script");
-script.type = "text/javascript";
-script.src = 'assets/js/' + script_src;
-document.body.appendChild(script);
-</script>
 
 </body>
 </html>
