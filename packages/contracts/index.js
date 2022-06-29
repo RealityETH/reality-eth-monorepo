@@ -1,4 +1,3 @@
-const fs = require('fs');
 const all_config = require('./generated/contracts.json');
 const token_info = require('./generated/tokens.json');
 const chain_info = require('./generated/chains.json');
