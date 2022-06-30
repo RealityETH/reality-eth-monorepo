@@ -31,14 +31,11 @@ module.exports = {
       process: 'process/browser',
       $: 'jquery',
       jQuery: 'jquery',
-      'window.jQuery': 'jquery',
-      '$.jQuery': 'jquery',
     }),
   ],
   resolve: {
     alias: {
-      '~': Path.resolve(__dirname, '../src'),
-      'jquery': Path.join(__dirname, '../node_modules/jquery/src/jquery'),
+      '~': Path.resolve(__dirname, '../src')
     },
   },
   module: {
