@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css" >
 </head>
 <body>
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <div class="moved-to-reality-eth" style="display:none; width:100%; text-align:center; background-color:#56bbe8; color:#ffffff; padding:8px; font-size:140%;"><a style="text-decoration:none" href="https://reality.eth.link">Realitio is now called Reality.eth</a></div>
     <div class="page-bg"></div>
     <div id="primary-container">
@@ -120,18 +119,6 @@
                         <li><a data-menu="questions-upcoming">Upcoming</a></li>
                         <li><a data-menu="questions-resolved">Resolved</a></li>
                     </ul>
-                    <script type="text/javascript">
-                        $(function() {
-                            $(".main-nav a").click(function(e){
-                                $(".main-nav a").removeClass("selected");
-                                $(this).addClass("selected");
-                                $(".questions").hide();
-                                var selector = "#" + $(this).data("menu");
-                                $(selector).show();
-                                //alert($(this).data("menu"));
-                            });
-                        });
-                    </script>
                 </div>
                   <div class="category-list">
                     <ul id="filter-list">
@@ -145,18 +132,6 @@
                         <li><a data-category="weather">Weather</a></li>
                         <li><a data-category="misc">Miscellaneous</a></li>
                     </ul>
-                    <script type="text/javascript">
-                        $(function() {
-                            $("#filter-list a").removeClass("selected");
-                            var category_name = window.location.hash.split("#!/category/")[1];
-                            if(category_name){
-                                var selector = "[data-category=\""+category_name+"\"]";
-                                $(selector).addClass("selected");
-                            } else {
-                                $("[data-category=\"all\"]").addClass("selected");
-                            }
-                        });
-                    </script>
                 </div>
             </div>
             <div id="questions-closing-soon" class="questions hidden">

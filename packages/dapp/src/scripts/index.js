@@ -2,6 +2,7 @@ import '../styles/index.scss';
 
 'use strict';
 
+import common from './common.js';
 import rpc from './rpc.js';
 import graph from './graph.js';
 
@@ -15,3 +16,5 @@ if (cookie && cookie.indexOf('graph=0') !== -1) {
    console.log('using graph');
    graph();
 }
+
+common();
