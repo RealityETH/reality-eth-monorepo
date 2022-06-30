@@ -3,18 +3,19 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
-(function() {
+
+
+export default function() {
 
 const ethers = require("ethers");
 const timeago = require('timeago.js');
 const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 const axios = require('axios');
-const crypto = require('crypto');
+const randomBytes = require('randombytes');
 
-const $ = require('jquery-browserify');
-require('jquery-expander')($);
-require('jquery-datepicker');
+require('jquery-ui/ui/widgets/datepicker.js');
+require('jquery-expander');
 
 $('body').addClass('via-graph');
 
@@ -63,8 +64,9 @@ const TEMPLATE_CONFIG = rc_contracts.templateConfig();
 const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
 
 // Special ABIs for Kleros
-const PROXIED_ARBITRATOR_ABI_OLD = require('../../abi/kleros/ProxiedArbitratorOld.json');
-const PROXIED_ARBITRATOR_ABI_NEW = require('../../abi/kleros/ProxiedArbitratorNew.json');
+const PROXIED_ARBITRATOR_ABI_OLD = require('./abi/kleros/ProxiedArbitratorOld.json');
+const PROXIED_ARBITRATOR_ABI_NEW = require('./abi/kleros/ProxiedArbitratorNew.json');
+
 
 let SUBMITTED_QUESTION_ID_BY_TIMESTAMP = {};
 let USER_CLAIMABLE_BY_CONTRACT = {};
@@ -163,7 +165,7 @@ function nonceFromSeed(paramstr) {
 
     let seed = window.localStorage.getItem('commitment-seed');
     if (seed == null) {
-        seed = crypto.randomBytes(32).toString('hex');
+        seed = randomBytes(32).toString('hex');
         console.log('made seed', seed);
         window.localStorage.setItem('commitment-seed', seed);
     }
@@ -3426,10 +3428,10 @@ $(document).on('click', '.answer-item', function() {
 // Do an initial validity check
 function isAnswerInputLookingValid(parent_div, question_json) {
 
-    if (parent_div.find('.invalid-selected').size() > 0) {
+    if (parent_div.find('.invalid-selected').length > 0) {
         return true;
     }
-    if (parent_div.find('.too-soon-selected').size() > 0) {
+    if (parent_div.find('.too-soon-selected').length > 0) {
         return true;
     }
 
@@ -4466,7 +4468,7 @@ function reflectDisplayEntryChanges() {
     // console.log('no questions cateogry, DISPLAY_ENTRIES for detype', DISPLAY_ENTRIES, detypes);
     for (let i=0; i<detypes.length; i++) {
         const detype = detypes[i];
-        const has_items = ($('#' + detype).find('div.questions-list div.questions__item').size() > 0);
+        const has_items = ($('#' + detype).find('div.questions-list div.questions__item').length > 0);
         if (has_items) {
             $('#' + detype).find('.no-questions-category').css('display', 'none');
             $('#' + detype).find('.scanning-questions-category').css('display', 'none');
@@ -5251,7 +5253,7 @@ function initChain(cid) {
     console.log('Initializing for chain', cid);
     CHAIN_ID = cid;
     const net_cls = '.network-id-' + cid;
-    if ($('.network-status'+net_cls).size() == 0) {
+    if ($('.network-status'+net_cls).length == 0) {
         return false;
     }
     $('.network-status'+net_cls).show();
@@ -5397,7 +5399,7 @@ function displayForeignProxy(datastr) {
     const qjson = qdata.question_json;
     fpsec.find('.foreign-proxy-network-text').text(txt);
     fpsec.find('.question-title').text(qjson['title']);
-    console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').size());
+    console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').length);
     console.log('displayForeignProxy', qdata);
 }
 
@@ -5829,4 +5831,4 @@ $('.graph-node-switch-link').click(function() {
     location.reload();
 });
 
-})();
+};
