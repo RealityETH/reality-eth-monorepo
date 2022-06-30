@@ -12,8 +12,7 @@ const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
 
-// const $ = require('jquery');
-require('jquery-datepicker');
+require('jquery-ui/ui/widgets/datepicker.js');
 require('jquery-expander');
 
 $('body').addClass('via-node');

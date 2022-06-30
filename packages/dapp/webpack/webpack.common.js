@@ -30,12 +30,15 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser',
       $: 'jquery',
-      jQuery: 'jquery'
+      jQuery: 'jquery',
+      'window.jQuery': 'jquery',
+      '$.jQuery': 'jquery',
     }),
   ],
   resolve: {
     alias: {
       '~': Path.resolve(__dirname, '../src'),
+      'jquery': Path.join(__dirname, '../node_modules/jquery/src/jquery'),
     },
   },
   module: {

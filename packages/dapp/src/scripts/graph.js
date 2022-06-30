@@ -3,6 +3,8 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
+
+
 export default function() {
 
 const ethers = require("ethers");
@@ -12,8 +14,8 @@ const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
 
+require('jquery-ui/ui/widgets/datepicker.js');
 require('jquery-expander');
-require('jquery-datepicker');
 
 $('body').addClass('via-graph');
 
