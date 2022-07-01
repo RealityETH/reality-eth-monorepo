@@ -51,7 +51,7 @@ mkdir -p $BUILD_DIR/app/docs
 rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/app/docs/html/
 
 # TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
-rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/app/assets/
+rsync -avz --delete $SRC_DIR/packages/dapp/build/ $BUILD_DIR/app/
 rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/app/js/
 
 # TODO: Build this fresh in REPO_DIR instead of assuming we built it locally

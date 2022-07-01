@@ -33,8 +33,7 @@ git pull
 popd
 
 rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/packages/dapp/assets/ $BUILD_DIR/assets/
-rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/js/
+rsync -avz --delete $SRC_DIR/packages/dapp/build/ $BUILD_DIR/
 rsync -avz --delete $SRC_DIR/packages/template-generator/build/ $BUILD_DIR/template-generator/
 cp $SRC_DIR/packages/dapp/index.html $BUILD_DIR/index.html
 
