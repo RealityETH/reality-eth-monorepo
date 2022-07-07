@@ -1119,7 +1119,8 @@ function isAnsweredOrAnswerActive(question) {
 
 function isAnswered(question) {
     const finalization_ts = question.finalization_ts.toNumber();
-    return (finalization_ts > 1);
+    const is_pending_arbitration = question.is_pending_arbitration;
+    return (finalization_ts > 1 || is_pending_arbitration);
 }
 
 function commitExpiryTS(question, posted_ts) {
