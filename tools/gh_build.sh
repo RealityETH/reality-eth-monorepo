@@ -32,10 +32,11 @@ pushd $BUILD_DIR
 git pull
 popd
 
+rsync -avz --delete --exclude=".git" $SRC_DIR/packages/dapp/build/ $BUILD_DIR/
+mkdir -p $BUILD_DIR/docs/html/
 rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/docs/html/
-rsync -avz --delete $SRC_DIR/packages/dapp/build/ $BUILD_DIR/
 rsync -avz --delete $SRC_DIR/packages/template-generator/build/ $BUILD_DIR/template-generator/
-cp $SRC_DIR/packages/dapp/index.html $BUILD_DIR/index.html
+touch $BUILD_DIR/.nojekyll
 
 pushd $BUILD_DIR
 
