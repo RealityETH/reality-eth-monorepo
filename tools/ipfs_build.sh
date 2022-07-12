@@ -43,16 +43,12 @@ git checkout master
 popd
 
 rsync -avz --delete $REPO_DIR/packages/website/webroot/ $BUILD_DIR/
-rsync -avz --delete $REPO_DIR/packages/dapp/ $BUILD_DIR/app/
+rsync -avz --delete $SRC_DIR/packages/dapp/build/ $BUILD_DIR/app/
 
 
 # TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
 mkdir -p $BUILD_DIR/app/docs
 rsync -avz --delete $SRC_DIR/packages/docs/html/ $BUILD_DIR/app/docs/html/
-
-# TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
-rsync -avz --delete $SRC_DIR/packages/dapp/build/ $BUILD_DIR/app/
-rsync -avz --delete $SRC_DIR/packages/dapp/js/ $BUILD_DIR/app/js/
 
 # TODO: Build this fresh in REPO_DIR instead of assuming we built it locally
 rsync -avz --delete $SRC_DIR/packages/template-generator/build/ $BUILD_DIR/app/template-generator/
@@ -73,6 +69,6 @@ echo "https://ipfs.io/ipfs/${IPFS_HASH}"
 popd
 
 echo "To update ipns, on the box with the ipns key, run:"
-echo 'RE_IPFS=`ssh rc-dev-5.socialminds.jp "cat /tmp/RealityETH-build-ipfs/ipfs.txt"` && echo $RE_IPFS && ipfs name publish --key reality-eth /ipfs/$RE_IPFS'
+echo 'RE_IPFS=`ssh rc-dev-2.socialminds.jp "cat /tmp/RealityETH-build-ipfs/ipfs.txt"` && echo $RE_IPFS && ipfs name publish --key reality-eth /ipfs/$RE_IPFS'
 
 
