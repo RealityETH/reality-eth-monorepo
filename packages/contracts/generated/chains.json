@@ -226,6 +226,25 @@
             "https://polygonscan.com/"
         ]
     },
+    "280": {
+        "chainId": "0x118",
+        "chainName": "ZKSync Goerli Alpha",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "WETH",
+            "decimals": 18
+        },
+        "network_name": "zkSync2-testnet",
+        "rpcUrls": [
+            "https://zksync2-testnet.zksync.dev"
+        ],
+        "hostedRPC": "https://zksync2-testnet.zksync.dev",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli",
+        "blockExplorerUrls": [
+            "https://zksync2-testnet.zkscan.io/",
+            "https://zksync2-testnet.zkscan.io"
+        ]
+    },
     "777": {
         "chainId": "0x309",
         "chainName": "cheapETH",

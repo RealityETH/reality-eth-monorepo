@@ -24,5 +24,30 @@
                 "standard": "EIP3091"
             }
         ]
+     },
+     {
+      "name": "ZKSync Goerli Alpha",
+      "chainId": 280,
+      "shortName": "zksyncgoerli",
+      "chain": "ETH",
+      "network": "mainnet",
+      "networkId": 280,
+      "nativeCurrency": {
+        "name": "Ether",
+        "symbol": "WETH",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://zksync2-testnet.zksync.dev"
+      ],
+      "faucets": [],
+      "infoURL": "https://zksync2-testnet.zkscan.io/",
+      "explorers": [
+            {
+                "name": "ZKSync Goerli Explorer",
+                "url": "https://zksync2-testnet.zkscan.io/",
+                "standard": "EIP3091"
+            }
+        ]
      }
 ]
