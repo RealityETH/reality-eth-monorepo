@@ -60,6 +60,12 @@
         "explorerURL": "https://explore.cheapswap.io/",
         "network_name": "cheapeth"
     },
+    "280": {
+         "hostedRPC": "https://zksync2-testnet.zksync.dev",
+         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli",
+         "explorerURL": "https://zksync2-testnet.zkscan.io",
+         "network_name": "zkSync2-testnet"
+    },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
