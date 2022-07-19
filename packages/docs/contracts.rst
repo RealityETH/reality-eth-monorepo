@@ -247,3 +247,16 @@ This can then by called with a string including only the flight number, the deli
 
 A template can be created by calling ``createTemplate("template")``, where "template" is the JSON template. This returns a numerical ID. If you wish to reference particular template on code running on multiple networks with the same content, you may find it useful to call ``template_hashes(bytes32 template_hash)`` to get the numerical ID.
 
+
+Contract addresses
+------------------
+
+Each supported chain has a reality.eth contract instance per supported token.  Some chains have additional deployments for earlier versions.  
+
+Each has its own configuration file like the following:
+
+  * reality.eth v3 for ETH on mainnet (chain ID 1): https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/chains/deployments/1/ETH/RealityETH-3.0.json
+  * reality.eth v3 for the GNO token on Gnosis chain (chain ID 100): https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/chains/deployments/100/GNO/RealityETH_ERC20-3.0.json
+
+The configuration file may also include a list of known arbitrators that should be displayed in the UI. If you use an arbitrator not included in this list, a warning will be displayed in the dapp.
+
