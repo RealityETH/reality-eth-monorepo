@@ -34,7 +34,7 @@ If you intend to supply the answer yourself, and are hoping it will survive chal
 
 Question Type
 ~~~~~~~~~~~~~
-* Binary (Yes/No): A simple yes or no answer. Note that this has no value for "null" or "undecided". If you want to be able to report these options, you may prefer a multi-choice question.
+* Binary (Yes/No): A simple yes or no answer.
 * Number: A positive (unsigned) number. By default questions allow up to 13 decimals. 
 * Single-choice: One answer can be selected from a list. The answer form will display this as a select box.
 * Multiple-choice: Multiple answers can be selected from a list. The answer form will display this as a group of checkboxes.
@@ -93,6 +93,9 @@ Correcting an answer will entitle you to the bond of the previous user. However,
 
           If the competing answer is also wrong, you may wish to resubmit your answer with an even higher bond.
           
+Questions include an option for "invalid", for if the question cannot be answered. 
+
+As of version 3, questions may also include an option for "answered too soon". You should select this answer if it was too soon to answer the question at the time the first answer was given, for instance because the question was about an event that had not happened yet.
 
 Requesting arbitration
 ----------------------
@@ -107,9 +110,17 @@ Once the arbitration fee has been paid the question will be locked, and the part
 See :doc:`arbitrators` for more details on how the arbitration process works.
 
 
+Reopening questions
+-------------------
+
+A question that resolved as "answered too soon" can be reopened. This creates a new version of the question, and the question reward is transferred to the new question.
+
+
 Withdrawing funds
 -----------------
 
 Once a question has been finalized, anyone who submitted the correct answer will be able to withdraw funds.
 
 Once funds are available, a "Claim" button will show up on the "your" tab that appears when you click the user icon in the top-right corner. Clicking the "Claim" button will send the funds to your account.
+
+
