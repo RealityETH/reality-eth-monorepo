@@ -1,12 +1,12 @@
 {
   "name": "@reality.eth/template-generator",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "private": false,
   "homepage": "./",
   "dependencies": {
     "@ensdomains/ui": "^3.2.0",
-    "@reality.eth/contracts": "^3.0.7",
-    "@reality.eth/reality-eth-lib": "^3.1.5",
+    "@reality.eth/contracts": "^3.0.8",
+    "@reality.eth/reality-eth-lib": "^3.1.6",
     "classnames": "^2.3.1",
     "ethers": "^5.4.4",
     "lodash.memoize": "^4.1.2",
