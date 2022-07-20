@@ -11,9 +11,9 @@ yarn add -D typescript ts-node ethers zksync-web3 hardhat @matterlabs/hardhat-zk
 # create hardhat.config.ts
 
 mkdir contracts
+# Copy source for any contracts we want to compile into contracts from our flat/ directory
+
 mkdir deploy
-# Copy source into contracts from our flat/ directory
-# Replace block.number with block.timestamp, not sure if we'll always need to do this, see https://github.com/RealityETH/reality-eth-monorepo/issues/60
 
 yarn hardhat compile
 
