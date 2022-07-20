@@ -1,3 +1,6 @@
+/*
+Set the token address, it shouldn't be 0x000000000000000000000000000000000000800A
+*/
 
 import { utils, Wallet } from "zksync-web3";
 import * as ethers from "ethers";
