@@ -39,7 +39,7 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   console.log(`${artifact.contractName} was deployed to ${contractAddress}`);
 
   // Edit the greeting of the contract
-  const token = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+  const token = "0x000000000000000000000000000000000000800A"
   const setTokenHandle = await realityContract.setToken(token);
   await setTokenHandle.wait();
 
