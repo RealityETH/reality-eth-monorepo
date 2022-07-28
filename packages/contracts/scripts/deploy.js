@@ -69,7 +69,11 @@ function constructContractTemplate(contract_name) {
     try {
         abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
     } catch(e) {
-        abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.6/'+contract_name+'.abi.json'));
+        try {
+            abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.6/'+contract_name+'.abi.json'));
+        } catch(e) {
+            abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.10/'+contract_name+'.abi.json'));
+        }
     }
     const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
     //console.log('bytecode', bytecode);
@@ -82,7 +86,7 @@ function constructContractTemplate(contract_name) {
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <chain_name> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20|Factory> <version> <chain_name> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
@@ -126,6 +130,8 @@ if (task == 'RealityETH') {
     deployArbitrator();
 } else if (task == 'ERC20') {
     deployERC20();
+} else if (task == 'Factory') {
+    deployFactory();
 }
 
 function ensure_chain_directory_exists(chain, token) {
@@ -144,6 +150,13 @@ function store_deployed_contract(template, chain_id, token_name, out_json) {
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
 }
+
+function store_deployed_factory_contract(template, chain_id, out_json) {
+    const file = project_base + '/chains/deployments/' + chain_id + '/' + template + '.json';
+    fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
+    console.log('wrote file', file);
+}
+
 
 function provider_for_chain() {
     if (non_infura_chains[chain]) {
@@ -332,5 +345,43 @@ function deployERC20() {
         });
         //result.setToken(token_address);
         //result.setToken(result.contractAddress);
+    });
+}
+
+async function deployFactory() {
+    
+    const config = rc.realityETHConfig(chain_id, token_name, version); 
+    const lib = config.address;
+
+    var txt = 'deploying reality.eth factory [library '+lib+']';
+
+    const provider = provider_for_chain();
+    const t = constructContractTemplate('RealityETH_ERC20_Factory');
+    const signer = new ethers.Wallet(priv, provider);
+    const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+    // console.log(signer);
+
+    txt = txt + ' (from address ' + signer.address + ')';
+    console.log(txt);
+
+    await waitForGas(provider);
+
+    confac.deploy(lib, defaultConfigs).then(function(result) {
+        const txid = result.deployTransaction.hash;
+        const address = result.address;
+        console.log('storing address', address);
+        console.log('deploying at address with tx ', txid);
+        result.deployed().then(function(depres) {
+            // console.log('depres', depres);
+            const settings = {
+                "address": address,
+                "block": depres.provider._lastBlockNumber,
+                "library_address": lib,
+            }
+
+            //console.log('result was', result);
+            store_deployed_factory_contract('RealityETH_ERC20_Factory', chain_id, settings); 
+        });
+
     });
 }
