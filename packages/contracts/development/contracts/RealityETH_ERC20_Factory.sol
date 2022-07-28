@@ -8,6 +8,7 @@ import "./IERC20.sol";
 contract RealityETH_ERC20_Factory {
 
   address public libraryAddress;
+  mapping(address => address) public deployments;
 
   event RealityETH_ERC20_deployed (address reality_eth, address token, uint8 decimals, string token_ticker);
 
@@ -30,10 +31,12 @@ contract RealityETH_ERC20_Factory {
   }
 
   function createInstance(address _token) external {
+    require(deployments[_token] == address(0), "There should only be one deployment per version per token");
     uint8 decimals = IERC20(_token).decimals();
     string memory ticker = IERC20(_token).name();
     address clone = _deployProxy(libraryAddress);
     IRealityETH_ERC20(clone).setToken(_token);
+    deployments[_token] = clone;
     emit RealityETH_ERC20_deployed(clone, _token, decimals, ticker);
   }
 
