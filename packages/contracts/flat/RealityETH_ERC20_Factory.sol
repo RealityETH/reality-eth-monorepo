@@ -24,6 +24,8 @@ interface IERC20 {
 
     function name() external returns (string memory); 
 
+    function symbol() external returns (string memory); 
+
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event Approval(address indexed owner, address indexed spender, uint256 value);
@@ -123,7 +125,7 @@ contract RealityETH_ERC20_Factory {
   function createInstance(address _token) external {
     require(deployments[_token] == address(0), "There should only be one deployment per version per token");
     uint8 decimals = IERC20(_token).decimals();
-    string memory ticker = IERC20(_token).name();
+    string memory ticker = IERC20(_token).symbol();
     address clone = _deployProxy(libraryAddress);
     IRealityETH_ERC20(clone).setToken(_token);
     deployments[_token] = clone;
