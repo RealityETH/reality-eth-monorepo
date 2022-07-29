@@ -15,9 +15,9 @@ const defaultConfigs = {
 //    maxPriorityFeePerGas:  1000000000,
     //gasPrice: 70000000000
     // gasPrice: 10000, // optimism 1000000,
-    gasPrice: 5000000000,
+    /// gasPrice: 5000000000,
     // gasLimit: 6000000, // optimism 4500000
-    gasLimit: 4500000,
+    // gasLimit: 4500000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
     // gasLimit: 155734867 // arbitrum
 }
@@ -50,7 +50,7 @@ const chains = {
     'kintsugi': 1337702,
 }
 const non_infura_chains = {
-    'xdai': 'https://xdai.poanetwork.dev',
+    'xdai': 'https://rpc.ankr.com/gnosis',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
@@ -69,7 +69,11 @@ function constructContractTemplate(contract_name) {
     try {
         abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.4.25/'+contract_name+'.abi.json'));
     } catch(e) {
-        abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.6/'+contract_name+'.abi.json'));
+        try {
+            abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.6/'+contract_name+'.abi.json'));
+        } catch(e) {
+            abi = JSON.parse(fs.readFileSync(project_base + '/abi/solc-0.8.10/'+contract_name+'.abi.json'));
+        }
     }
     const bytecode = fs.readFileSync(project_base + '/bytecode/'+contract_name+'.bin', 'utf8').replace(/\n/, ''); 
     //console.log('bytecode', bytecode);
@@ -82,7 +86,7 @@ function constructContractTemplate(contract_name) {
 
 function usage_error(msg) {
     msg = msg + "\n";
-    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20> <version> <chain_name> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
+    msg += "Usage: node deploy.js <RealityETH|Arbitrator|ERC20|Factory> <version> <chain_name> <token_name> [<dispute_fee>] [<arbitrator_owner>]";
     throw msg;
 }
 
@@ -126,6 +130,8 @@ if (task == 'RealityETH') {
     deployArbitrator();
 } else if (task == 'ERC20') {
     deployERC20();
+} else if (task == 'Factory') {
+    deployFactory();
 }
 
 function ensure_chain_directory_exists(chain, token) {
@@ -133,6 +139,13 @@ function ensure_chain_directory_exists(chain, token) {
     if (!fs.existsSync(dir)) {
         console.log('creating directory for token', chain, token, dir);
         fs.mkdirSync(dir, {
+            recursive: true
+        });
+    }
+    const dir2 = project_base + '/chains/factories/' + chain;
+    if (!fs.existsSync(dir2)) {
+        console.log('creating directory for factories', chain, dir);
+        fs.mkdirSync(dir2, {
             recursive: true
         });
     }
@@ -144,6 +157,13 @@ function store_deployed_contract(template, chain_id, token_name, out_json) {
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
 }
+
+function store_deployed_factory_contract(template, chain_id, out_json) {
+    const file = project_base + '/chains/factories/' + chain_id + '/' + template + '.json';
+    fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
+    console.log('wrote file', file);
+}
+
 
 function provider_for_chain() {
     if (non_infura_chains[chain]) {
@@ -332,5 +352,45 @@ function deployERC20() {
         });
         //result.setToken(token_address);
         //result.setToken(result.contractAddress);
+    });
+}
+
+async function deployFactory() {
+    
+    const config = rc.realityETHConfig(chain_id, token_name, version); 
+    const lib = config.address;
+
+    var tmpl = realityETHName();
+
+    var txt = 'deploying reality.eth factory [library '+lib+']';
+
+    const provider = provider_for_chain();
+    const t = constructContractTemplate('RealityETH_ERC20_Factory');
+    const signer = new ethers.Wallet(priv, provider);
+    const confac = new ethers.ContractFactory(t.abi, t.bytecode, signer);
+    // console.log(signer);
+
+    txt = txt + ' (from address ' + signer.address + ')';
+    console.log(txt);
+
+    await waitForGas(provider);
+
+    confac.deploy(lib, defaultConfigs).then(function(result) {
+        const txid = result.deployTransaction.hash;
+        const address = result.address;
+        console.log('storing address', address);
+        console.log('deploying at address with tx ', txid);
+        result.deployed().then(function(depres) {
+            // console.log('depres', depres);
+            const settings = {
+                "address": address,
+                "block": depres.provider._lastBlockNumber,
+                "library_address": lib,
+            }
+
+            //console.log('result was', result);
+            store_deployed_factory_contract(tmpl, chain_id, settings); 
+        });
+
     });
 }
