@@ -128,6 +128,11 @@ contract RealityETH_ERC20_Factory {
     string memory ticker = IERC20(_token).symbol();
     address clone = _deployProxy(libraryAddress);
     IRealityETH_ERC20(clone).setToken(_token);
+    IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
+    IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
+    IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
+    IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
+    IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
     deployments[_token] = clone;
     emit RealityETH_ERC20_deployed(clone, _token, decimals, ticker);
   }
