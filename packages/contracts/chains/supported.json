@@ -17,6 +17,12 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
         "network_name": "rinkeby"
     },
+    "5": {
+        "hostedRPC": "https://eth-goerli.g.alchemy.com/v2/i2jZKhmFBPZYl8YdSHxsZ6viP3PQLwId",
+        "explorerURL": "https://goerli.etherscan.io",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-goerli",
+        "network_name": "goerli"
+    },
     "8": {
         "hostedRPC": "https://rpc.octano.dev",
         "explorerURL": "https://ubqblockexplorer.com/"

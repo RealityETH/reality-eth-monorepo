@@ -50,6 +50,24 @@
             "https://rinkeby.etherscan.io"
         ]
     },
+    "5": {
+        "chainId": "0x5",
+        "chainName": "Görli",
+        "nativeCurrency": {
+            "name": "Görli Ether",
+            "symbol": "GOR",
+            "decimals": 18
+        },
+        "network_name": "goerli",
+        "rpcUrls": [
+            "https://rpc.goerli.mudit.blog/"
+        ],
+        "hostedRPC": "https://eth-goerli.g.alchemy.com/v2/i2jZKhmFBPZYl8YdSHxsZ6viP3PQLwId",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-goerli",
+        "blockExplorerUrls": [
+            "https://goerli.etherscan.io"
+        ]
+    },
     "8": {
         "chainId": "0x8",
         "chainName": "Ubiq",
