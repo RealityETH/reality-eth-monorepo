@@ -1,6 +1,7 @@
 const labels: Record<number, string> = {
   1: "Main Ethereum Network",
   4: "Rinkeby Test Network",
+  5: "Goerli Test Network",
   8: "Ubiq Main Network",
   42: "Kovan Test Network",
   56: "Binance Smart Chain",
