@@ -81,6 +81,13 @@
                 "arbitrators": {
                     "0x8368d613059dcbdBF909081Bb00190a01b0d5F9D": "daoOS DAO team (rinkeby main)"
                 }
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0x5e97Dd72812B59cB3166B0D907a9B360493b9971",
+                "block": 11107270,
+                "token_address": "0x56AE5fd086823d1892BACE27034Eb5531Fcdc3f8",
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "ETH": {
@@ -113,6 +120,16 @@
                 "arbitrators": {
                     "0xe27768bdb76a9b742b7ddcfe1539fadaf3b89bc7": "Kleros (General Court)"
                 }
+            }
+        },
+        "LINK": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x4a38a9EdE2f997E97Cac2D7BF8e002Ec20d2c2Ca",
+                "block": 11107294,
+                "token_address": "0x01be23585060835e02b77ef475b0cc51aa1e0709",
+                "notes": null,
+                "arbitrators": {},
+                "factory_address": "0x9e862794f4f80386185b9d3baa532668e988c530"
             }
         },
         "TRST": {
