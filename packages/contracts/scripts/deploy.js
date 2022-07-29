@@ -15,9 +15,9 @@ const defaultConfigs = {
 //    maxPriorityFeePerGas:  1000000000,
     //gasPrice: 70000000000
     // gasPrice: 10000, // optimism 1000000,
-    gasPrice: 5000000000,
+    /// gasPrice: 5000000000,
     // gasLimit: 6000000, // optimism 4500000
-    gasLimit: 4500000,
+    // gasLimit: 4500000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
     // gasLimit: 155734867 // arbitrum
 }
@@ -50,7 +50,7 @@ const chains = {
     'kintsugi': 1337702,
 }
 const non_infura_chains = {
-    'xdai': 'https://xdai.poanetwork.dev',
+    'xdai': 'https://rpc.ankr.com/gnosis',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
@@ -142,6 +142,13 @@ function ensure_chain_directory_exists(chain, token) {
             recursive: true
         });
     }
+    const dir2 = project_base + '/chains/factories/' + chain;
+    if (!fs.existsSync(dir2)) {
+        console.log('creating directory for factories', chain, dir);
+        fs.mkdirSync(dir2, {
+            recursive: true
+        });
+    }
     return true;
 }
 
@@ -152,7 +159,7 @@ function store_deployed_contract(template, chain_id, token_name, out_json) {
 }
 
 function store_deployed_factory_contract(template, chain_id, out_json) {
-    const file = project_base + '/chains/deployments/' + chain_id + '/' + template + '.json';
+    const file = project_base + '/chains/factories/' + chain_id + '/' + template + '.json';
     fs.writeFileSync(file, JSON.stringify(out_json, null, 4));
     console.log('wrote file', file);
 }
@@ -353,6 +360,8 @@ async function deployFactory() {
     const config = rc.realityETHConfig(chain_id, token_name, version); 
     const lib = config.address;
 
+    var tmpl = realityETHName();
+
     var txt = 'deploying reality.eth factory [library '+lib+']';
 
     const provider = provider_for_chain();
@@ -380,7 +389,7 @@ async function deployFactory() {
             }
 
             //console.log('result was', result);
-            store_deployed_factory_contract('RealityETH_ERC20_Factory', chain_id, settings); 
+            store_deployed_factory_contract(tmpl, chain_id, settings); 
         });
 
     });
