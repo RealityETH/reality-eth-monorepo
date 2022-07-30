@@ -32,6 +32,14 @@ import {
   LogReopenQuestion
 } from '../generated/RealityETH/RealityETH'
 
+import {
+  RealityETH_ERC20_deployed
+} from '../generated/RealityETH_ERC20_Factory/RealityETH_ERC20_Factory'
+
+import {
+  FactoryCreatedRealityETH,
+} from '../generated/templates'
+
 export function handleNewTemplate(event: LogNewTemplate): void {
   let contractTemplateId = event.address.toHexString() + '-' + event.params.template_id.toHexString();
   let tmpl = new Template(contractTemplateId);
@@ -420,3 +428,6 @@ function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts:
   }
 }
 
+export function handleFactoryRealityETHDeploy(event: RealityETH_ERC20_deployed): void {
+    FactoryCreatedRealityETH.create(event.params.reality_eth)
+}

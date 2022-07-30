@@ -1,0 +1,39 @@
+templates:
+  - kind: ethereum/contract
+    name: FactoryCreatedRealityETH
+    network: {{network}}
+    source:
+      abi: FactoryCreatedRealityETH
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Question
+      abis:
+        - name: FactoryCreatedRealityETH
+          file: ./node_modules/@reality.eth/contracts/abi/solc-0.8.6/RealityETH-all.abi.json
+      eventHandlers:
+        - event: LogNewTemplate(indexed uint256,indexed address,string)
+          handler: handleNewTemplate
+        - event: LogNewQuestion(indexed bytes32,indexed address,uint256,string,indexed bytes32,address,uint32,uint32,uint256,uint256)
+          handler: handleNewQuestion
+        - event: LogNewAnswer(bytes32,indexed bytes32,bytes32,indexed address,uint256,uint256,bool)
+          handler: handleNewAnswer
+        - event: LogAnswerReveal(indexed bytes32,indexed address,indexed bytes32,bytes32,uint256,uint256)
+          handler: handleAnswerReveal
+        - event: LogNotifyOfArbitrationRequest(indexed bytes32,indexed address)
+          handler: handleArbitrationRequest
+        - event: LogFinalize(indexed bytes32,indexed bytes32)
+          handler: handleFinalize
+        - event: LogFundAnswerBounty(indexed bytes32,uint256,uint256,indexed address)
+          handler: handleFundAnswerBounty
+        - event: LogClaim(indexed bytes32,indexed address,uint256)
+          handler: handleLogClaim
+        - event: LogWithdraw(indexed address,uint256)
+          handler: handleLogWithdraw
+        - event: LogMinimumBond(indexed bytes32,uint256)
+          handler: handleLogMinimumBond
+        - event: LogReopenQuestion(indexed bytes32,indexed bytes32)
+          handler: handleLogReopenQuestion
+      file: ./src/mapping.ts

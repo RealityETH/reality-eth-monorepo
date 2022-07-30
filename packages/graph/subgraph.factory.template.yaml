@@ -1,0 +1,20 @@
+  - kind: ethereum/contract
+    name: RealityETH_ERC20_Factory
+    network: {{network}}
+    source:
+      startBlock: {{block}}
+      address: '{{address}}'
+      abi: RealityETH_ERC20_Factory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.4
+      language: wasm/assemblyscript
+      entities:
+        - Directory
+      abis:
+        - name: RealityETH_ERC20_Factory
+          file: ./node_modules/@reality.eth/contracts/abi/solc-0.8.10/RealityETH_ERC20_Factory.abi.json
+      eventHandlers:
+        - event: RealityETH_ERC20_deployed(address,address,uint8,string)
+          handler: handleFactoryRealityETHDeploy
+      file: ./src/mapping.ts
