@@ -2,6 +2,7 @@ const all_config = require('./generated/contracts.json');
 const token_info = require('./generated/tokens.json');
 const chain_info = require('./generated/chains.json');
 const template_config = require('./config/templates.json');
+const factory_config = require('./generated/factories.json');
 
 function realityETHInstance(config) {
     const abis = {
@@ -209,6 +210,13 @@ function versionHasFeature(vernum, feature_name) {
     }
 }
 
+function factoryList(chain_id) {
+    if (!factory_config[chain_id]) {
+        return {};
+    }
+    return factory_config[chain_id];
+}
+
 module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHConfigs = realityETHConfigs;
 module.exports.realityETHInstance = realityETHInstance;
@@ -222,3 +230,4 @@ module.exports.templateConfig = templateConfig;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
 module.exports.isChainSupported = isChainSupported;
+module.exports.factoryList = factoryList;
