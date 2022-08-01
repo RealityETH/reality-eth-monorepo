@@ -317,6 +317,26 @@
             "https://cchain.explorer.avax.network/"
         ]
     },
+    "80001": {
+        "chainId": "0x13881",
+        "chainName": "Mumbai",
+        "nativeCurrency": {
+            "name": "MATIC",
+            "symbol": "MATIC",
+            "decimals": 18
+        },
+        "network_name": "mumbai",
+        "rpcUrls": [
+            "https://matic-mumbai.chainstacklabs.com",
+            "https://rpc-mumbai.maticvigil.com",
+            "https://matic-testnet-archive-rpc.bwarelabs.com"
+        ],
+        "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
+        "blockExplorerUrls": [
+            "https://mumbai.polygonscan.com"
+        ]
+    },
     "421611": {
         "chainId": "0x66eeb",
         "chainName": "Arbitrum Rinkeby",

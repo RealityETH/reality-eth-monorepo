@@ -72,6 +72,12 @@
          "explorerURL": "https://zksync2-testnet.zkscan.io",
          "network_name": "zkSync2-testnet"
     },
+    "80001": {
+         "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
+         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
+         "explorerURL": "https://mumbai.polygonscan.com",
+         "network_name": "mumbai"
+    },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",

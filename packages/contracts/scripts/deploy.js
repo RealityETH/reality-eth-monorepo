@@ -11,13 +11,14 @@ const deployed_at = null;
 var undef;
 
 const defaultConfigs = {
-//    maxFeePerGas:         61000000000,
-//    maxPriorityFeePerGas:  1000000000,
+     //maxFeePerGas:         610000000000,
+     //maxPriorityFeePerGas:  10000000000,
     //gasPrice: 70000000000
+    // gasPrice:   10000000000,
     // gasPrice: 10000, // optimism 1000000,
     /// gasPrice: 5000000000,
     // gasLimit: 6000000, // optimism 4500000
-    // gasLimit: 4500000,
+    gasLimit: 4500000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
     // gasLimit: 155734867 // arbitrum
 }
@@ -43,6 +44,7 @@ const chains = {
     'cheapeth': 777,
     'xdai': 100,
     'polygon': 137,
+    'mumbai': 80001,
     'ava': 43114,
     'arbitrum': 42161,
     'arbitrum-rinkeby': 421611,
@@ -62,6 +64,7 @@ const non_infura_chains = {
     'kovan-optimistic': 'https://kovan.optimism.io',
     'optimism': 'https://mainnet.optimism.io',
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
+    'mumbai': 'https://matic-mumbai.chainstacklabs.com',
 }
 
 function constructContractTemplate(contract_name) {
