@@ -8,6 +8,7 @@ const labels: Record<number, string> = {
   77: "Sokal Network",
   100: "XDAI Network",
   137: "Polygon Main Network (Matic)",
+  80001: "Polygon Mumbai Testnet",
   42161: "Arbitrum One Network",
   421611: "Arbitrum Rinkeby Test Network",
   123411710: "Local Test Network",
