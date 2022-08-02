@@ -15,6 +15,7 @@ import {
     Withdrawal,
     Fund,
     UserAction,
+    FactoryDeployment,
 } from '../generated/schema'
 
 import {
@@ -429,5 +430,16 @@ function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts:
 }
 
 export function handleFactoryRealityETHDeploy(event: RealityETH_ERC20_deployed): void {
-    FactoryCreatedRealityETH.create(event.params.reality_eth)
+   FactoryCreatedRealityETH.create(event.params.reality_eth)
+
+   let deploymentId = event.address.toHexString() + event.params.token.toHexString();
+   let facdep = new FactoryDeployment(deploymentId)
+   facdep.token_address = event.params.token;
+   facdep.token_symbol = event.params.token_ticker;
+   facdep.token_decimals = new BigInt(event.params.decimals);
+   facdep.realityETH = event.params.reality_eth;
+   facdep.factory = event.address;
+   facdep.createdBlock = event.block.number;
+   facdep.createdTimestamp = event.block.timestamp;
+   facdep.save();
 }

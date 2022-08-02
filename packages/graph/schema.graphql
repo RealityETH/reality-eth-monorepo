@@ -150,3 +150,14 @@ type UserAction @entity {
   createdBlock: BigInt!
   createdTimestamp: BigInt!
 }
+
+type FactoryDeployment @entity {
+  id: ID!
+  token_address: Bytes!  
+  token_symbol: String!
+  token_decimals: BigInt!
+  factory: Bytes!  
+  realityETH: Bytes!  
+  createdBlock: BigInt!
+  createdTimestamp: BigInt!
+}
