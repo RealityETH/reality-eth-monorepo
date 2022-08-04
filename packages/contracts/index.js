@@ -210,12 +210,86 @@ function versionHasFeature(vernum, feature_name) {
     }
 }
 
+function factoryConfigForAddress(address, chain_id) {
+
+    for(var cid in factory_config) {
+        if (chain_id && cid != chain_id) {
+            continue;
+        }
+        for(var ver in factory_config[cid]) {
+            const config = factory_config[cid][ver];
+            if (address.toLowerCase() == config.address.toLowerCase()) {
+                return config;
+            }
+        }
+    }
+    return null;
+
+}
+
+function configForAddress(address, chain_id) {
+
+    for(var cid in all_config) {
+        if (chain_id && cid != chain_id) {
+            continue;
+        }
+        for(var ticker in all_config[cid]) {
+            for(var ver in all_config[cid][ticker]) {
+                const config = all_config[cid][ticker][ver];
+                if (address.toLowerCase() == config.address.toLowerCase()) {
+                    if (!config.arbitrators) {
+                        config.arbitrators = [];
+                    }
+                    const [contract_name, contract_version] = ver.split('-');
+                    config.version_number = ver;
+                    config.chain_id = cid;
+                    config.contract_name = contract_name;
+                    config.contract_version = contract_version;
+                    return config;
+                }
+            }
+        }
+    }
+    return null;
+
+}
+
 function factoryList(chain_id) {
     if (!factory_config[chain_id]) {
         return {};
     }
     return factory_config[chain_id];
 }
+
+function tokenAndContractConfigFromFactory(factory_data, chain_id) {
+    // Get the library for the factory
+    const factory_config = factoryConfigForAddress(factory_data.factory, chain_id);
+
+    const template = configForAddress(factory_config.library_address, chain_id);
+    if (!template) {
+        return null;
+    }
+
+    template.address = factory_data.realityETH;
+    template.block = factory_data.createdBlock;
+    template.token_address = factory_data.token_address;
+
+    const erc20_chains_val = {};
+    erc20_chains_val[chain_id] = factory_data.token_address;
+
+    return {
+        'token': {
+            'ticker': factory_data.token_symbol,
+            'decimals': factory_data.token_decimals,
+            'is_native': false,
+            'small_number': 1000000000000000000,
+            'erc20_chains': erc20_chains_val
+        },
+        'contract': template
+    }
+        
+}
+
 
 module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHConfigs = realityETHConfigs;
@@ -231,3 +305,5 @@ module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
 module.exports.isChainSupported = isChainSupported;
 module.exports.factoryList = factoryList;
+module.exports.tokenAndContractConfigFromFactory = tokenAndContractConfigFromFactory;
+module.exports.configForAddress = configForAddress;
