@@ -294,7 +294,7 @@ function tokenAndContractConfigFromFactory(factory_data, chain_id) {
     }
 
     template.address = factory_data.realityETH;
-    template.block = factory_data.createdBlock;
+    template.block = parseInt(factory_data.createdBlock);
     template.token_address = factory_data.token_address;
     template.token_ticker = factory_data.token_symbol;
 
