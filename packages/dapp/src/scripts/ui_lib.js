@@ -41,4 +41,54 @@ const importedCustomContracts = function (chain_id) {
     return ret;
 }
 
-export { storeCustomContract, importedCustomContracts }
+const importFactoryConfig = async function(contract_addrs, chain_id, only_one) {
+
+    const contract_str = JSON.stringify(contract_addrs);
+    const where = `{realityETH_in: ${contract_str} }`;
+
+    // console.log('CHAIN_INFO', CHAIN_INFO);
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+
+    const query = `
+      {
+        factoryDeployments(first:10, where: ${where}) {
+            id,
+            token_address,
+            token_symbol,
+            token_decimals,
+            factory,
+            realityETH,
+            createdBlock,
+            createdTimestamp
+        }
+      }  
+      `;
+
+    const res = await axios.post(network_graph_url, {query: query});
+     console.log('custom token graph res', contract_addrs, query, res, res.data);
+    let custom_tokens = {};
+    for (const q of res.data.data.factoryDeployments) {
+
+        if (!q.token_symbol.match(/^[0-9a-z]+$/i)) {
+            console.log('Refusing to display token with non-alphanumeric symbol', q.token_symbol);
+            continue;
+        }
+
+        custom_tokens[q.id] = rc_contracts.tokenAndContractConfigFromFactory(q, chain_id); 
+
+        // Keep the raw factory data too as this is what we save in local storage to avoid needing to do this query in future
+        custom_tokens[q.id].factory_data = [q.realityETH, q.factory, q.createdBlock, q.token_address, q.token_symbol, q.token_decimals]
+
+        if (only_one) {
+            return custom_tokens[q.id];
+        }
+    }
+    return custom_tokens;
+
+}
+
+export { storeCustomContract, importedCustomContracts, importFactoryConfig }

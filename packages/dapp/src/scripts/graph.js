@@ -3,7 +3,7 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
-import { storeCustomContract, importedCustomContracts } from './ui_lib.js';
+import { storeCustomContract, importedCustomContracts, importFactoryConfig } from './ui_lib.js';
 
 export default function() {
 
