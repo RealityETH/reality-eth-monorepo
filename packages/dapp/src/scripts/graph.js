@@ -199,7 +199,13 @@ async function loadPendingTransactions(chain_id) {
 function fillPendingUserTX(tx) {
     
     const txid = tx.hash;
-    const inst = RCInstance(tx.to);
+    let inst;
+    try {
+        inst = RCInstance(tx.to);
+    } catch (e) {
+        console.log('skipping contract for pending tx which we could not find', txid);
+        return false; 
+    }
     if (!inst) {
 	console.log('contract ',tx.to,' for txid not known', txid);
 	return;
