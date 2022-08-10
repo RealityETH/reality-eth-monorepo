@@ -327,6 +327,47 @@ function clearClobberedUnconfirmed(question) {
     return question;
 }
 
+function storeCustomContract(ctr, custom_contract_str, chain_id) {
+    console.log('Trying to store custom deployment', ctr, custom_contract_str);
+    const curr = importedCustomContracts(chain_id);
+    if (curr[ctr.toLowerCase()]) {
+        // already there
+        console.log('contract ', ctr, 'already stored');
+        return true;
+    }
+    let current = window.localStorage.getItem('ctr-'+chain_id);
+    if (!current) {
+        current = '';
+    } else if (current && current != '') {
+        current = current + ','; 
+    }
+    window.localStorage.setItem('ctr-'+chain_id, current + custom_contract_str);
+}
+
+function importedCustomContracts(chain_id) {
+    const current = window.localStorage.getItem('ctr-'+chain_id);
+    let ret = {};
+    if (current) {
+        const items = current.split(',');
+        for(let i=0; i<items.length; i++) {
+            const bits = items[i].split('|');
+            const ctr = bits[0].toLowerCase();
+
+            // was persisted with:
+            // [q.realityETH, q.factory, q.createdBlock, q.token_address, q.token_symbol, q.token_decimals].join('|'~
+            const cfg = {
+                'factory': bits[1],
+                'createdBlock': bits[2],
+                'token_address': bits[3],
+                'token_symbol': bits[4],
+                'token_decimals': bits[5]
+            }
+            ret[ctr] = cfg;
+        }
+    }
+    return ret;
+}
+
 function storePendingTXID(txid, chain_id) {
     const MAX_PENDING_STORE = 20;
     const ITEM_LENGTH = 66; // "0x" plus 32 hex characters
@@ -4461,6 +4502,55 @@ function fetchQuestionListsFromGraph(offset) {
     fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
 };
 
+async function importFactoryConfig(contract_addrs, chain_id, only_one) {
+
+    const contract_str = JSON.stringify(contract_addrs);
+    const where = `{realityETH_in: ${contract_str} }`;
+
+    // console.log('CHAIN_INFO', CHAIN_INFO);
+    const network_graph_url = CHAIN_INFO.graphURL;
+    if (!network_graph_url) {
+        console.log('No graph endpoint found for this network, skipping graph fetch');
+        return false;
+    }
+
+    const query = `
+      {
+        factoryDeployments(first:10, where: ${where}) {
+            id,
+            token_address,
+            token_symbol,
+            token_decimals,
+            factory,
+            realityETH,
+            createdBlock,
+            createdTimestamp
+        }
+      }  
+      `;
+
+    const res = await axios.post(network_graph_url, {query: query});
+     console.log('custom token graph res', contract_addrs, query, res, res.data);
+    let custom_tokens = {};
+    for (const q of res.data.data.factoryDeployments) {
+
+        if (!q.token_symbol.match(/^[0-9a-z]+$/i)) {
+            console.log('Refusing to display token with non-alphanumeric symbol', q.token_symbol);
+            continue;
+        }
+
+        custom_tokens[q.id] = rc_contracts.tokenAndContractConfigFromFactory(q, chain_id); 
+
+        // Keep the raw factory data too as this is what we save in local storage to avoid needing to do this query in future
+        custom_tokens[q.id].factory_data = [q.realityETH, q.factory, q.createdBlock, q.token_address, q.token_symbol, q.token_decimals]
+
+        if (only_one) {
+            return custom_tokens[q.id];
+        }
+    }
+    return custom_tokens;
+}
+
 function reflectDisplayEntryChanges() {
     //console.log('checking DISPLAY_ENTRIES', DISPLAY_ENTRIES);
     //look at current sections and update blockchain scanning message to
@@ -5586,7 +5676,7 @@ window.addEventListener('load', async function() {
         if (old_network_id) {
             window.location.reload();
         }
-        console.log('cid is ', cid);
+        console.log('Chain ID is ', cid);
 
         if (args['category']) {
             $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
@@ -5609,15 +5699,34 @@ window.addEventListener('load', async function() {
             return;
         }
 
+        CHAIN_INFO = rc_contracts.chainData(cid);
+
+        // If we specify a contract but not a token, get the token ticker based on the contract
+
+        const imported_custom_contracts = importedCustomContracts(cid);
+        rc_contracts.populateImports(imported_custom_contracts, cid);
+        // console.log('importedCustomContracts', imported_custom_contracts);
+
+        if (!TOKEN_TICKER && args['contract']) {
+            // If we specified the contract but not the token, look up the token and use that
+            const ctr_config = rc_contracts.configForAddress(args['contract'], cid);
+            if (ctr_config) {
+                TOKEN_TICKER = ctr_config.token_ticker;
+            }
+        }
+
         if (!TOKEN_TICKER) {
             TOKEN_TICKER = rc_contracts.defaultTokenForChain(cid);
             console.log('picked token', TOKEN_TICKER);
         }
 
         const all_rc_configs = rc_contracts.realityETHConfigs(cid, TOKEN_TICKER);
+
         let rc_config = null;
         let show_all = true;
         if (args['contract']) {
+console.log('looking for ', args['contract'], 'in', all_rc_configs);
+            let arg_contract_found = false;
             for(const cfg_addr in all_rc_configs) {
                 // If we got a valid version number for the contract, switch that out for the address and pretend we got that
                 if (args['contract'] == 'v' + all_rc_configs[cfg_addr].version_number) {
@@ -5626,10 +5735,34 @@ window.addEventListener('load', async function() {
                 if (cfg_addr.toLowerCase() == args['contract'].toLowerCase()) {
                     rc_config = all_rc_configs[cfg_addr];
                     show_all = false;
+                    arg_contract_found = true;
                     break;
                 }
             }
+            // If we didn't find the contract in the list, try to import it and show a warning
+            // TODO: We should only need to confirm the token, if we already know about it we should be able to go right ahead without checking
+            if (!arg_contract_found) {
+                const imported_cfg = await importFactoryConfig([args['contract']], cid, true);
+                $('.import-token-address').text(imported_cfg.contract.token_address);
+                $('.import-token-ticker').text(imported_cfg.token.ticker);
+
+                const import_str = imported_cfg.factory_data.join('|');
+                $('body').addClass('contract-not-found').addClass('error');
+                $('body').find('.add-custom-contract-button').attr('data-import-str', import_str);
+
+                $('.add-custom-contract-button').click(function(evt) {
+                    // console.log('custom found');
+                    evt.stopPropagation();
+                    const import_str = $(this).attr('data-import-str');
+                    // console.log('storing import_str from config', imported_cfg);
+                    storeCustomContract(imported_cfg.contract.address, import_str, cid);
+                    location.reload();
+                });
+
+                return;
+            }
         }
+
 
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr]; 
@@ -5639,7 +5772,7 @@ window.addEventListener('load', async function() {
 
         // If not found, load the default
         if (!rc_config) {
-            rc_config = rc_contracts.realityETHConfig(cid, TOKEN_TICKER);
+            rc_config = rc_contracts.realityETHConfig(cid, TOKEN_TICKER, null);
         }
         
         if (!rc_config) {
@@ -5650,6 +5783,8 @@ window.addEventListener('load', async function() {
         initContractSelect(all_rc_configs, rc_config, show_all);
 
         TOKEN_INFO = rc_contracts.chainTokenList(cid);
+
+
 console.log('TOKEN_INFO', TOKEN_INFO);
         console.log('got token info', TOKEN_INFO);
 
@@ -5666,7 +5801,6 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             TOKEN_JSON = rc_contracts.erc20Instance(rc_config);
         }
 
-        CHAIN_INFO = rc_contracts.chainData(cid);
         HOSTED_RPC_NODE = CHAIN_INFO['hostedRPC'];
         BLOCK_EXPLORER = CHAIN_INFO['blockExplorerUrls'][0];
 
