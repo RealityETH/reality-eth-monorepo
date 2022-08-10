@@ -5731,7 +5731,7 @@ console.log('looking for ', args['contract'], 'in', all_rc_configs);
 
         // If not found, load the default
         if (!rc_config) {
-            rc_config = rc_contracts.realityETHConfig(cid, TOKEN_TICKER, null);
+            rc_config = rc_contracts.realityETHConfig(cid, TOKEN_TICKER);
         }
         
         if (!rc_config) {
