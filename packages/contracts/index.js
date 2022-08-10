@@ -1,8 +1,26 @@
-const all_config = require('./generated/contracts.json');
-const token_info = require('./generated/tokens.json');
+let all_config = require('./generated/contracts.json');
+let token_info = require('./generated/tokens.json');
 const chain_info = require('./generated/chains.json');
 const template_config = require('./config/templates.json');
 const factory_config = require('./generated/factories.json');
+
+function populateImports(imported_contracts, chain_id) {
+    for(var ctr in imported_contracts) {
+        let to_imp = imported_contracts[ctr];
+        to_imp.realityETH= ctr; 
+        const imp = tokenAndContractConfigFromFactory(to_imp, chain_id); 
+        const token = imp.token.ticker;
+        if (!all_config[chain_id][token]) {
+            all_config[chain_id][token] = {};
+        }
+        const ver = imp.contract.version_number;
+        all_config[chain_id][token][ver] = imp.contract;
+
+        if (!token_info[token]) {
+            token_info[token] = imp.token;
+        }
+    }
+}
 
 function realityETHInstance(config) {
     const abis = {
@@ -36,7 +54,7 @@ function arbitratorInstance(chain_id) {
 function erc20Instance(config) {
     const abi = require('./abi/solc-0.4.25/ERC20.abi.json');
     if (!config.token_address) {
-        console.log('config', config);
+        // console.log('config', config);
         throw new Error("token address for erc20 instance not found");
         return null;
     }
@@ -166,7 +184,7 @@ function isChainSupported(chain_id) {
 function walletAddParameters(chain_id) {
     var params = ['chainId', 'chainName', 'nativeCurrency', 'rpcUrls', 'blockExplorerUrls']
     var ret = {};
-console.log('looking for config for chain', chain_id);
+    // console.log('looking for config for chain', chain_id);
     var config = chain_info[""+chain_id];
     for (var i=0; i<params.length; i++) {
         var item = params[i];
@@ -227,8 +245,7 @@ function factoryConfigForAddress(address, chain_id) {
 
 }
 
-function configForAddress(address, chain_id) {
-
+function configForAddress(addr, chain_id) {
     for(var cid in all_config) {
         if (chain_id && cid != chain_id) {
             continue;
@@ -236,7 +253,7 @@ function configForAddress(address, chain_id) {
         for(var ticker in all_config[cid]) {
             for(var ver in all_config[cid][ticker]) {
                 const config = all_config[cid][ticker][ver];
-                if (address.toLowerCase() == config.address.toLowerCase()) {
+                if (addr.toLowerCase() == config.address.toLowerCase()) {
                     if (!config.arbitrators) {
                         config.arbitrators = [];
                     }
@@ -265,14 +282,21 @@ function tokenAndContractConfigFromFactory(factory_data, chain_id) {
     // Get the library for the factory
     const factory_config = factoryConfigForAddress(factory_data.factory, chain_id);
 
-    const template = configForAddress(factory_config.library_address, chain_id);
+    const template_orig = configForAddress(factory_config.library_address, chain_id);
+    let template = {};
+    for (let k in template_orig) {
+      template[k] = template_orig[k];
+    }
+
     if (!template) {
+        console.log('no template found for', factory_data, factory_config, chain_id);
         return null;
     }
 
     template.address = factory_data.realityETH;
     template.block = factory_data.createdBlock;
     template.token_address = factory_data.token_address;
+    template.token_ticker = factory_data.token_symbol;
 
     const erc20_chains_val = {};
     erc20_chains_val[chain_id] = factory_data.token_address;
@@ -307,3 +331,4 @@ module.exports.isChainSupported = isChainSupported;
 module.exports.factoryList = factoryList;
 module.exports.tokenAndContractConfigFromFactory = tokenAndContractConfigFromFactory;
 module.exports.configForAddress = configForAddress;
+module.exports.populateImports = populateImports;
