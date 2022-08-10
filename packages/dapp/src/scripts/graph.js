@@ -5686,11 +5686,9 @@ window.addEventListener('load', async function() {
         }
 
         const all_rc_configs = rc_contracts.realityETHConfigs(cid, TOKEN_TICKER);
-
         let rc_config = null;
         let show_all = true;
         if (args['contract']) {
-console.log('looking for ', args['contract'], 'in', all_rc_configs);
             let arg_contract_found = false;
             for(const cfg_addr in all_rc_configs) {
                 // If we got a valid version number for the contract, switch that out for the address and pretend we got that
@@ -5748,7 +5746,6 @@ console.log('looking for ', args['contract'], 'in', all_rc_configs);
         initContractSelect(all_rc_configs, rc_config, show_all);
 
         TOKEN_INFO = rc_contracts.chainTokenList(cid);
-
 
 console.log('TOKEN_INFO', TOKEN_INFO);
         console.log('got token info', TOKEN_INFO);
