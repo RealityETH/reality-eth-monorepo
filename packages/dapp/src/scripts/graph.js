@@ -5710,7 +5710,7 @@ window.addEventListener('load', async function() {
                 $('.import-token-ticker').text(imported_cfg.token.ticker);
 
                 const import_str = imported_cfg.factory_data.join('|');
-                $('body').addClass('contract-not-found').addClass('error');
+                $('body').addClass('error-contract-not-found').addClass('error');
                 $('body').find('.add-custom-contract-button').attr('data-import-str', import_str);
 
                 $('.add-custom-contract-button').click(function(evt) {
