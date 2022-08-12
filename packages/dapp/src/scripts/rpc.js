@@ -5705,6 +5705,13 @@ function displayWrongChain(specified, detected) {
     return;
 }
 
+function setCookie(cname, cvalue, exdays) {
+  const d = new Date();
+  d.setTime(d.getTime() + (exdays*24*60*60*1000));
+  let expires = "expires="+ d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
 window.addEventListener('load', async function() {
 
     let cid;
@@ -6028,13 +6035,6 @@ if (window.location.href.indexOf('realitio') != -1) {
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
 } else if (window.location.href.indexOf('ipfs.io') != -1) {
     $('.logo .logo-link').attr('href', $('.logo .logo-link').attr('data-full-url'));
-}
-
-function setCookie(cname, cvalue, exdays) {
-  const d = new Date();
-  d.setTime(d.getTime() + (exdays*24*60*60*1000));
-  let expires = "expires="+ d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }
 
 $('.graph-node-switch-link').click(function() {
