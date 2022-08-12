@@ -3980,34 +3980,6 @@ $(document).on('click', '.reopener-question-link', function(e) {
     openQuestionWindow(cqid);
 });
 
-function clearForm(parent_div, question_json) {
-    parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
-    parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
-    parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
-    parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
-    parent_div.find('.answer-payment-value').text('');
-    parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
-
-    switch (question_json['type']) {
-        case 'bool':
-            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-            break;
-        case 'uint':
-            parent_div.find('input[name="input-answer"]').val('');
-            break;
-        case 'int':
-            parent_div.find('input[name="input-answer"]').val('');
-            break;
-        case 'single-select':
-            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
-            break;
-        case 'multiple-select':
-            const container = parent_div.find('div.input-container.input-container--checkbox');
-            container.find('input[name="input-answer"]:checked').prop('checked', false);
-            break;
-    }
-}
-
 
 // open/close/add reward
 $(document).on('click', '.add-reward-button', function(e) {
@@ -4143,6 +4115,34 @@ $(document).on('click', '.arbitration-button', async function(e) {
         markArbitratorFailed(contract, question_detail.arbitrator, contract_question_id);
     });
 });
+
+function clearForm(parent_div, question_json) {
+    parent_div.find('div.input-container.input-container--answer').removeClass('is-error');
+    parent_div.find('div.select-container.select-container--answer').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--bond').removeClass('is-error');
+    parent_div.find('div.input-container.input-container--checkbox').removeClass('is-error');
+    parent_div.find('.answer-payment-value').text('');
+    parent_div.removeClass('has-someone-elses-answer').removeClass('has-your-answer');
+
+    switch (question_json['type']) {
+        case 'bool':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'uint':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'int':
+            parent_div.find('input[name="input-answer"]').val('');
+            break;
+        case 'single-select':
+            parent_div.find('select[name="input-answer"]').prop('selectedIndex', 0);
+            break;
+        case 'multiple-select':
+            const container = parent_div.find('div.input-container.input-container--checkbox');
+            container.find('input[name="input-answer"]:checked').prop('checked', false);
+            break;
+    }
+}
 
 function show_bond_payments(ctrl) {
     const frm = ctrl.closest('div.rcbrowser--qa-detail')
