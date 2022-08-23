@@ -3295,19 +3295,17 @@ input.datetime-input-time {
 }
 
 body.via-node.connection-error .connection-error-warning.rpc-error {
-    background-color: $ultralight-gray;
+    background-color: $red;
+    color: $white;
     display:block !important; 
-    border-bottom:1px solid red;
-    border-top:1px solid red;
     text-align: center;
     font-size:140%;
     padding:8px;
 }
 body.via-graph.connection-error .connection-error-warning.graph-error {
-    background-color: $ultralight-gray;
+    background-color: $red;
+    color: $white;
     display:block !important; 
-    border-bottom:1px solid red;
-    border-top:1px solid red;
     text-align: center;
     font-size:140%;
     padding:8px;
