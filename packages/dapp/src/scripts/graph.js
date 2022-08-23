@@ -4497,6 +4497,9 @@ async function importFactoryConfig(contract_addrs, chain_id, only_one) {
     const res = await axios.post(network_graph_url, {query: query});
      console.log('custom token graph res', contract_addrs, query, res, res.data);
     let custom_tokens = {};
+    if (!res.data  || !res.data.data || !res.data.data.factoryDeployments) {
+        return null;
+    }
     for (const q of res.data.data.factoryDeployments) {
 
         if (!q.token_symbol.match(/^[0-9a-z]+$/i)) {
@@ -5706,23 +5709,25 @@ window.addEventListener('load', async function() {
             // TODO: We should only need to confirm the token, if we already know about it we should be able to go right ahead without checking
             if (!arg_contract_found) {
                 const imported_cfg = await importFactoryConfig([args['contract']], cid, true);
-                $('.import-token-address').text(imported_cfg.contract.token_address);
-                $('.import-token-ticker').text(imported_cfg.token.ticker);
+                if (imported_cfg) {
+                    $('.import-token-address').text(imported_cfg.contract.token_address);
+                    $('.import-token-ticker').text(imported_cfg.token.ticker);
 
-                const import_str = imported_cfg.factory_data.join('|');
-                $('body').addClass('error-contract-not-found').addClass('error');
-                $('body').find('.add-custom-contract-button').attr('data-import-str', import_str);
+                    const import_str = imported_cfg.factory_data.join('|');
+                    $('body').addClass('error-contract-not-found').addClass('error');
+                    $('body').find('.add-custom-contract-button').attr('data-import-str', import_str);
 
-                $('.add-custom-contract-button').click(function(evt) {
-                    // console.log('custom found');
-                    evt.stopPropagation();
-                    const import_str = $(this).attr('data-import-str');
-                    // console.log('storing import_str from config', imported_cfg);
-                    storeCustomContract(imported_cfg.contract.address, import_str, cid);
-                    location.reload();
-                });
+                    $('.add-custom-contract-button').click(function(evt) {
+                        // console.log('custom found');
+                        evt.stopPropagation();
+                        const import_str = $(this).attr('data-import-str');
+                        // console.log('storing import_str from config', imported_cfg);
+                        storeCustomContract(imported_cfg.contract.address, import_str, cid);
+                        location.reload();
+                    });
 
-                return;
+                    return;
+                }
             }
         }
 
