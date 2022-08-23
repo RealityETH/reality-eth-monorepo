@@ -673,7 +673,7 @@ $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
     document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
 
-$('#chain-list-button').on('click', function(e) {
+$('.chain-list-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#chain-list-window').css('z-index', ++ZINDEX).addClass('is-open');
@@ -4666,6 +4666,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, of
 
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
+        $('body').addClass('connection-error');
         console.log('No graph endpoint found for this network, skipping graph fetch');
         return false;
     }
@@ -4683,13 +4684,18 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, of
 
     const fetched_ms = Date.now();
 
-     // console.log('sending graph query', ranking, query);
-    const res = await axios.post(network_graph_url, {query: query});
-    // console.log('graph res', ranking, res.data);
-    for (const q of res.data.data.questions) {
-        handleQuestion(q, fetched_ms)
-        // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
-        // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+    try {
+        // console.log('sending graph query', ranking, query);
+        const res = await axios.post(network_graph_url, {query: query});
+        // console.log('graph res', ranking, res.data);
+        for (const q of res.data.data.questions) {
+            handleQuestion(q, fetched_ms)
+            // const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+            // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
+        }
+    } catch(err){
+        $('body').addClass('connection-error');
+        console.log('Graph connection error: ', err.response.data.error)
     }
     IS_INITIAL_LOAD_DONE = true;
     reflectDisplayEntryChanges();

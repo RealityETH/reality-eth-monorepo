@@ -13,6 +13,14 @@
 </head>
 <body>
     <div class="moved-to-reality-eth" style="display:none; width:100%; text-align:center; background-color:#56bbe8; color:#ffffff; padding:8px; font-size:140%;"><a style="text-decoration:none" href="https://reality.eth.link">Realitio is now called Reality.eth</a></div>
+    <div class="connection-error-warning graph-error" style="display:none;">
+        We are having trouble connecting to The Graph node for this network.<br />Please try <a href="#" class="chain-list-link">connecting via RPC</a> or try again later.
+    </div>
+    <div class="connection-error-warning rpc-error" style="display:none;">
+        We are having trouble connecting to your RPC node. <br />It may help to change to a different RPC node or <a href="#" class="chain-list-link">switch loading to Graph</a>.
+    </div>
+
+
     <div class="page-bg"></div>
     <div id="primary-container">
         <div class="error-bar">
@@ -69,7 +77,7 @@
             </select>
             </div>
             -->
-            <a id="chain-list-button" class="upper-button" href="">Chains</a>
+            <a id="chain-list-button" class="chain-list-link upper-button" href="">Chains</a>
             <a id="help-center-button" class="upper-button" href="">How It Works</a>
             <span id="push-icon">notifications_active</span>
             <a id="your-qa-button" class="rcbrowser__open-button upper-button" href="" data-target-id="id2">My Account</a>
