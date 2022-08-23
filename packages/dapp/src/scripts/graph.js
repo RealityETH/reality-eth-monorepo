@@ -1570,7 +1570,9 @@ function filledQuestion(item, fetched_ms) {
     for(let respi in item.responses) {
         question.history.push(filledAnswer(item.responses[respi], fetched_ms));
     }
-    question.history = question.history.sort((a, b) => (a.bond.gt(b.bond)) ? 1 : -1);
+    question.history = question.history.sort((a, b) => 
+        (a.bond.isZero() || ( a.bond.gt(b.bond) && !b.bond.isZero() ) ) 
+        ? 1 : -1);
 
     question = mergeConfirmedTXes(question);
     question = clearClobberedUnconfirmed(question);
