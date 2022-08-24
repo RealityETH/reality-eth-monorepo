@@ -623,7 +623,7 @@ $('#help-center-window .rcbrowser__close-button').on('click', function(e) {
 });
 
 
-$('#chain-list-button').on('click', function(e) {
+$('.chain-list-link').on('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
     $('#chain-list-window').css('z-index', ++ZINDEX).addClass('is-open');
@@ -5106,28 +5106,32 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
 
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
-    const question_posted = RCInstance(contract).filters.LogNewQuestion();
-    const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
-        /* 
-        if (error === null && typeof result !== 'undefined') {
-        */
-    for (let i = 0; i < result.length; i++) {
-        if (result[i].invalid_data) {
-            continue;
+    try {
+        const question_posted = RCInstance(contract).filters.LogNewQuestion();
+        const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
+            /* 
+            if (error === null && typeof result !== 'undefined') {
+            */
+        for (let i = 0; i < result.length; i++) {
+            if (result[i].invalid_data) {
+                continue;
+            }
+            handlePotentialUserAction(result[i], false);
+            handleQuestionLog(result[i]);
         }
-        handlePotentialUserAction(result[i], false);
-        handleQuestionLog(result[i]);
-    }
-        /*
-        } else {
-            console.log(error);
-        }
-        */
+            /*
+            } else {
+                console.log(error);
+            }
+            */
 
-    if (fetch_i % 100 == 0) {
-        console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
+        if (fetch_i % 100 == 0) {
+            console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
+        }
+        fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
+    } catch (e) {
+        $('body').addClass('connection-error');
     }
-    fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
 }
 
 function runPollingLoop(contract_instance) {

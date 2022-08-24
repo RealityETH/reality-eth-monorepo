@@ -3293,3 +3293,20 @@ input.datetime-input-time {
 .current-chain-display {
     font-size: 18px;
 }
+
+body.via-node.connection-error .connection-error-warning.rpc-error {
+    background-color: $red;
+    color: $white;
+    display:block !important; 
+    text-align: center;
+    font-size:140%;
+    padding:8px;
+}
+body.via-graph.connection-error .connection-error-warning.graph-error {
+    background-color: $red;
+    color: $white;
+    display:block !important; 
+    text-align: center;
+    font-size:140%;
+    padding:8px;
+}
