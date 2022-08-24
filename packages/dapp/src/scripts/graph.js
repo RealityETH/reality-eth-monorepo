@@ -4497,9 +4497,9 @@ async function importFactoryConfig(contract_addrs, chain_id, only_one) {
       `;
 
     const res = await axios.post(network_graph_url, {query: query});
-     console.log('custom token graph res', contract_addrs, query, res, res.data);
+    console.log('custom token graph result', contract_addrs, query, res, res.data);
     let custom_tokens = {};
-    if (!res.data  || !res.data.data || !res.data.data.factoryDeployments) {
+    if (!res.data  || !res.data.data || !res.data.data.factoryDeployments || !res.data.data.factoryDeployments.length) {
         return null;
     }
     for (const q of res.data.data.factoryDeployments) {
