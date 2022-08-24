@@ -436,7 +436,7 @@ export function handleFactoryRealityETHDeploy(event: RealityETH_ERC20_deployed):
    let facdep = new FactoryDeployment(deploymentId)
    facdep.token_address = event.params.token;
    facdep.token_symbol = event.params.token_ticker;
-   facdep.token_decimals = new BigInt(event.params.decimals);
+   facdep.token_decimals = BigInt.fromI32(event.params.decimals);
    facdep.realityETH = event.params.reality_eth;
    facdep.factory = event.address;
    facdep.createdBlock = event.block.number;

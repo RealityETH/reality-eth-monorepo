@@ -3,7 +3,7 @@ templates:
     name: FactoryCreatedRealityETH
     network: {{network}}
     source:
-      abi: FactoryCreatedRealityETH
+      abi: RealityETH
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -11,7 +11,7 @@ templates:
       entities:
         - Question
       abis:
-        - name: FactoryCreatedRealityETH
+        - name: RealityETH
           file: ./node_modules/@reality.eth/contracts/abi/solc-0.8.6/RealityETH-all.abi.json
       eventHandlers:
         - event: LogNewTemplate(indexed uint256,indexed address,string)
