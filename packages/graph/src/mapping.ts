@@ -107,7 +107,11 @@ export function handleNewQuestion(event: LogNewQuestion): void {
       for(let i = 0; i < q_outcomes.length; i++) {
           let outcomeID = contractQuestionId + '-' + i.toString();
           let outcome = new Outcome(outcomeID);
-          outcome.answer = q_outcomes[i].toString()
+          if (q_outcomes[i].kind === JSONValueKind.STRING) {
+              outcome.answer = q_outcomes[i].toString()
+          } else {
+              outcome.answer = "[FORMATTING ERROR]";
+          }
           outcome.question = contractQuestionId;
           outcome.save()
         }
