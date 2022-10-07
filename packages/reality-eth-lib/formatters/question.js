@@ -173,6 +173,10 @@ exports.secondsTodHms = function(sec) {
 
 exports.parseQuestionJSON = function(data, errors_to_title) {
 
+    // Strip unicode null-terminated-string control characters if there are any.
+    // These seem to be stripped already if we got data via The Graph, and only passed to us on RPC.
+    data = data.replace(/\u0000/g, "");
+
     var question_json;
     try {
         question_json = JSON.parse(data);
