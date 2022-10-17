@@ -4874,7 +4874,7 @@ async function handleEvent(error, result) {
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
-function pageInit(only_contract) {
+function pageInit(only_contract, search_filters) {
 
     if ($('body').hasClass('foreign-proxy')) {
         return;
@@ -4929,17 +4929,17 @@ TODO restore
     });
 */
 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', search_filters); 
 
     // Now the rest of the questions
     LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
     for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
-        fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0);
+        fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0, search_filters);
     }
 
 };
@@ -5024,17 +5024,25 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, search_filters) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
+
+    let extra_filter_str = '';
+    if ('creator' in search_filters) {
+        const creator = search_filters['creator'];
+        extra_filter_str = `user: "${creator}", `;
+        const extra_filters = 'creator' in search_filters ? search_filters['creator'] : '';
+    }
+
     const ranking_where = {
-        'questions-active-answered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
-        'questions-awaiting-arbitration': `{contract_in: ${contract_str}, isPendingArbitration: true}`,
+        'questions-active-answered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{${extra_filter_str} contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-awaiting-arbitration': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: true}`,
     }
 
     const ranking_order = {
@@ -5047,7 +5055,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
 
     const where = ranking_where[ranking];
     const orderBy = ranking_order[ranking];
-
+console.log('where', where);
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
@@ -5070,7 +5078,8 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     const res = await axios.post(network_graph_url, {query: query});
     // console.log('graph res', ranking, res.data);
     for (const q of res.data.data.questions) {
-        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        const fil_creator = 'creator' in search_filters ? search_filters['creator'] : null;
+        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId, fil_creator);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (let i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i], false);
@@ -5079,7 +5088,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     }
 }
 
-async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
+async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i, search_filters) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
     const fetch_num = (fetch_i < FETCH_NUMBERS.length) ? FETCH_NUMBERS[fetch_i] : FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
@@ -5107,7 +5116,8 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
     try {
-        const question_posted = RCInstance(contract).filters.LogNewQuestion();
+        const fil_creator = 'creator' in search_filters ? search_filters['creator'] : null;
+        const question_posted = RCInstance(contract).filters.LogNewQuestion(null, fil_creator);
         const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
             /* 
             if (error === null && typeof result !== 'undefined') {
@@ -5128,7 +5138,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         if (fetch_i % 100 == 0) {
             console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
         }
-        fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
+        fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1, search_filters);
     } catch (e) {
         $('body').addClass('connection-error');
     }
@@ -5852,6 +5862,10 @@ window.addEventListener('load', async function() {
 
         }
 
+        const search_filters = {};
+        if ('creator' in args) {
+            search_filters['creator'] = args['creator'];
+        }
 
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr]; 
@@ -5955,7 +5969,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         const limit_to_contract = show_all ? null : RC_DEFAULT_ADDRESS;
 
-        pageInit(limit_to_contract);
+        pageInit(limit_to_contract, search_filters);
 
         if (args['question']) {
             try {
