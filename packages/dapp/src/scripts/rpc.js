@@ -5051,7 +5051,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, se
     }
     if (search_filters && search_filters['template_id'] !== null) {
         const fil_template_id = search_filters['template_id'];
-        extra_filter_str += `template_: {templateId: ${fil_template_id}}, `;
+        extra_filter_str += `template_: {templateId: "${fil_template_id}"}, `;
     }
 
     const ranking_where = {
