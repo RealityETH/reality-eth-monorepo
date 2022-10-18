@@ -2354,11 +2354,21 @@ function calculateActiveRank(created, bounty, bond) {
 
 }
 
-async function handleQuestionLog(item) {
+async function handleQuestionLog(item, search_filters) {
     const question_id = item.args.question_id;
     const contract = item.address;
     //console.log('in handleQuestionLog', question_id);
     const created = item.args.created
+
+    if (search_filters['template_id'] && item.args.template_id.toNumber() != search_filters['template_id']) { 
+        return;
+    }
+    if (search_filters['arbitrator'] && item.args.arbitrator.toLowerCase() != search_filters['arbitrator'].toLowerCase()) { 
+        return;
+    }
+    if (search_filters['creator'] && item.args.user.toLowerCase() != search_filters['creator'].toLowerCase()) { 
+        return;
+    }
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
@@ -4799,7 +4809,7 @@ function updateRankingSections(question, changed_field, changed_val) {
 }
 
 
-async function handleEvent(error, result) {
+async function handleEvent(error, result, search_filters) {
 
     if (result.invalid_data) { 
         console.log('skipping invalid log entry');
@@ -4820,7 +4830,7 @@ async function handleEvent(error, result) {
         CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = question_text;
         return;
     } else if (evt == 'LogNewQuestion') {
-        handleQuestionLog(result);
+        handleQuestionLog(result, search_filters);
     } else if (evt == 'LogWithdraw') {
         updateUserBalanceDisplay();
     } else {
@@ -5031,10 +5041,17 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, se
     const contract_str = JSON.stringify(displayed_contracts);
 
     let extra_filter_str = '';
-    if ('creator' in search_filters) {
-        const creator = search_filters['creator'];
-        extra_filter_str = `user: "${creator}", `;
-        const extra_filters = 'creator' in search_filters ? search_filters['creator'] : '';
+    if (search_filters && search_filters['creator']) {
+        const fil_creator = search_filters['creator'];
+        extra_filter_str += `user: "${fil_creator}", `;
+    }
+    if (search_filters && search_filters['arbitrator']) {
+        const fil_arbitrator = search_filters['arbitrator'];
+        extra_filter_str += `arbitrator: "${fil_arbitrator}", `;
+    }
+    if (search_filters && search_filters['template_id'] !== null) {
+        const fil_template_id = search_filters['template_id'];
+        extra_filter_str += `template_: {templateId: ${fil_template_id}}, `;
     }
 
     const ranking_where = {
@@ -5055,7 +5072,6 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, se
 
     const where = ranking_where[ranking];
     const orderBy = ranking_order[ranking];
-console.log('where', where);
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
@@ -5077,13 +5093,18 @@ console.log('where', where);
     // console.log('sending graph query', ranking, query);
     const res = await axios.post(network_graph_url, {query: query});
     // console.log('graph res', ranking, res.data);
+
+    if (!res || !res.data || !res.data.data || !res.data.data.questions) {
+        console.log('Warning: Expected data not found in graph query response, doing our best by querying the node', query, res);
+        return;
+    }
+
     for (const q of res.data.data.questions) {
-        const fil_creator = 'creator' in search_filters ? search_filters['creator'] : null;
-        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId, fil_creator);
+        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId, search_filters['creator']);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (let i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i], false);
-            handleQuestionLog(result[i]);
+            handleQuestionLog(result[i], search_filters);
         }
     }
 }
@@ -5116,7 +5137,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i, se
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
     try {
-        const fil_creator = 'creator' in search_filters ? search_filters['creator'] : null;
+        const fil_creator = search_filters ? search_filters['creator'] : null;
         const question_posted = RCInstance(contract).filters.LogNewQuestion(null, fil_creator);
         const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
             /* 
@@ -5127,7 +5148,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i, se
                 continue;
             }
             handlePotentialUserAction(result[i], false);
-            handleQuestionLog(result[i]);
+            handleQuestionLog(result[i], search_filters);
         }
             /*
             } else {
@@ -5171,7 +5192,7 @@ return;
         console.log('filter_all got evts', logs);
         LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
         for (let i = 0; i < logs.length; i++) {
-            handleEvent(null, logs[i]);
+            handleEvent(null, logs[i], search_filters);
         }
         window.setTimeout(runPollingLoop, 30000, contract_instance);
         console.log(logs);
@@ -5862,9 +5883,19 @@ window.addEventListener('load', async function() {
 
         }
 
-        const search_filters = {};
+        const search_filters = {
+            'creator': null,
+            'arbitrator': null,
+            'template_id': null
+        };
         if ('creator' in args) {
-            search_filters['creator'] = args['creator'];
+            search_filters['creator'] = args['creator'].toLowerCase();
+        }
+        if ('arbitrator' in args) {
+            search_filters['arbitrator'] = args['arbitrator'].toLowerCase();
+        }
+        if ('template' in args) {
+            search_filters['template_id'] = parseInt(args['template']);
         }
 
         for(const cfg_addr in all_rc_configs) {
@@ -5993,7 +6024,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             // Listen for all events
             RCInstance(rcaddr).on("*", function(eventObject) {
                 console.log('got all events for contract ', rcaddr, eventObject);
-                handleEvent(null, eventObject);
+                handleEvent(null, eventObject, search_filters);
             });
         }
 
