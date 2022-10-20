@@ -5432,9 +5432,9 @@ function initContractSelect(available_configs, selected_config, show_all) {
     }
 
     sel.attr('data-old-val', sel.val());
-    if (only_have_default) {
-        sel.find('.all-contracts').remove();
-    }
+    //if (only_have_default) {
+    //    sel.find('.all-contracts').remove();
+    //}
     sel.removeClass('uninitialized');
 }
 
@@ -5822,7 +5822,8 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         const search_filters = {
             'creator': null,
             'arbitrator': null,
-            'template_id': null
+            'template_id': null,
+            'contract': null
         };
         if ('creator' in args) {
             search_filters['creator'] = args['creator'].toLowerCase();
@@ -5832,6 +5833,10 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         }
         if ('template' in args) {
             search_filters['template_id'] = parseInt(args['template']);
+        }
+        // TODO: Remove duplication
+        if ('contract' in args) {
+            search_filters['contract'] = args['contract'];
         }
         SEARCH_FILTERS = search_filters;  // Global version used by More link etc.
         renderCurrentSearchFilters(search_filters, $('body'));
@@ -5940,6 +5945,7 @@ $('#token-selection').change(function(e) {
     location.reload();
 });
 
+/*
 $('#contract-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
@@ -5955,6 +5961,7 @@ $('#contract-selection').change(function(e) {
     }
     location.reload();
 });
+*/
 
 // When on the legacy site, show the moved warning, use the full link url
 if (window.location.href.indexOf('realitio') != -1) {
@@ -5981,6 +5988,7 @@ $('.graph-node-switch-link').click(function() {
 });
 
 function renderCurrentSearchFilters(search_filters, jqbody) {
+console.log('renderCurrentSearchFilters', search_filters);
     let is_filtered = false;
     if (search_filters.creator) {
         jqbody.addClass('has-filter-creator');
@@ -6000,6 +6008,13 @@ function renderCurrentSearchFilters(search_filters, jqbody) {
         jqbody.find('input.filter-input-template-id').val(search_filters.template_id);
         is_filtered = true;
     }
+    if (search_filters.contract !== null) {
+        jqbody.addClass('has-filter-contract');
+        jqbody.find('.filter-contract-text').text(search_filters.contract);
+        // jqbody.find('input.filter-input-contract').val(search_filters.contract); // done elsewhere 
+        is_filtered = true;
+    }
+
     if (is_filtered) {
         jqbody.addClass('has-search-filters');
     }
@@ -6019,10 +6034,12 @@ function renderCurrentSearchFilters(search_filters, jqbody) {
             'arbitrator': null,
             'creator': null,
             'template': null,
+            'contract': null,
         };
         const tidval = jqbody.find('.filter-input-template-id').val();
         const arbval = jqbody.find('.filter-input-arbitrator').val();
         const creval = jqbody.find('.filter-input-creator').val();
+        const conval = jqbody.find('.filter-input-contract').val();
         if (/\d/.test(tidval)) {
             params['template'] = parseInt(tidval);
         }
@@ -6031,6 +6048,9 @@ function renderCurrentSearchFilters(search_filters, jqbody) {
         }
         if (creval != '') {
             params['creator'] = creval;
+        }
+        if (conval != '') {
+            params['contract'] = conval;
         }
         set_hash_param(params);
         location.reload();

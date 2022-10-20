@@ -99,6 +99,12 @@ div.top-content-controls select {
     -moz-appearance: menulist-button;
 }
 
+.filter-edit-container select {
+    appearance: menulist-button;
+    -webkit-appearance: menulist-button;
+    -moz-appearance: menulist-button;
+}
+
 .hidden {
     display: none;
 }
@@ -147,6 +153,7 @@ a.upper-button:hover {
     font-weight: normal;
     display: inline-block;
     color: #939596;
+    float:right;
 }
 
 #token-selection.uninitialized {
@@ -157,7 +164,6 @@ a.upper-button:hover {
     font-weight: normal;
     display: inline-block;
     color: #939596;
-    float:right;
 }
 
 #contract-selection.uninitialized {
@@ -3245,6 +3251,9 @@ div.top-content-controls {
 div.top-content-controls select {
     padding:6px;
 }
+.filter-edit-container select {
+    padding:6px;
+}
 
 div.contract-claim-section-template {
     display:none;
@@ -3328,10 +3337,10 @@ input.filter-input {
 }
 
 label.filter-label {
-    display:inline; 
+    display:table-cell; 
     font-size:14px;
     color: $gray;
-    background-color: $ultralight-gray;
+    width:100px;
 }
 
 /*
@@ -3353,7 +3362,9 @@ div.filter-display{
 
 div.filter-edit-container {
     display:none;
-    margin-top:9px;
+    padding:9px;
+    background-color: $white;
+    margin-bottom:24px;
 }
 
 div.filter-edit-container input.filter-input{
@@ -3363,10 +3374,13 @@ body.filter-edit-on div.filter-edit-container {
     display:block;
 }
 
+body.filter-edit-on div.filter-display-container {
+    display:none;
+}
+
 a.filter-edit-toggle{
     font-size:14px;
     color: $gray;
-    margin-left:9px;
     font-style:italic;
     text-decoration:underline;
 }
@@ -3374,23 +3388,20 @@ a.filter-icon:hover {
     text-decoration:none;
 }
 div.filter-display-container {
-    height:20px;
     width:100%;
 }
 
-div.filter-display-container > span{
-    font-size:14px;
+div.filter-display-container > div{
     color: $gray;
-    margin-left:9px;
-    line-height:20px;
     vertical-align:middle;
 }
+
+
 
 .filter-apply-button {
     width: 240px;
     height: 30px;
     line-height: 30px;
-    margin: 9px;
     font-weight: 500;
     text-align: center;
     color: $white;
@@ -3402,14 +3413,20 @@ div.filter-display-container > span{
     background: -webkit-linear-gradient(top, #27b4ee 0%,#0aaaec 100%); /* Chrome10-25,Safari5.1-6 */
     background: linear-gradient(to bottom, #27b4ee 0%,#0aaaec 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#27b4ee', endColorstr='#0aaaec',GradientType=0 ); /* IE6-9 */
+    margin:9px;
 }
 
+.has-search-filters-only { display:none }
+body.has-search-filters .has-search-filters-only { display:block}
+
 .has-filter-arbitrator-only { display: none}
-body.has-filter-arbitrator .has-filter-arbitrator-only { display: inline}
+body.has-filter-arbitrator .has-filter-arbitrator-only { display: block}
 .has-filter-creator-only { display: none}
-body.has-filter-creator .has-filter-creator-only { display: inline}
+body.has-filter-creator .has-filter-creator-only { display: block}
 .has-filter-template-id-only { display: none}
-body.has-filter-template-id .has-filter-template-id-only { display: inline}
+body.has-filter-template-id .has-filter-template-id-only { display: block}
+.has-filter-contract-only { display: none}
+body.has-filter-contract .has-filter-contract-only { display: block}
 
 span.filter-icon {
     width: 20px;

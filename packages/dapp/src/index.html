@@ -117,11 +117,10 @@
         </header>
 
             <div class="top-content-controls">
-                <select id="token-selection" name="token-selection" class="uninitialized">
-                </select>
 
-                <select id="contract-selection" name="contract-selection" class="uninitialized">
-                    <option class="all-contracts" value="">All contracts</option>
+                <a class="filter-edit-toggle"><span class="filter-icon"></span></a>
+
+                <select id="token-selection" name="token-selection" class="uninitialized">
                 </select>
 
                 <!--
@@ -131,20 +130,30 @@
                 -->
             </div>
 
-            <div class="filter-display-container">
-                <a class="filter-edit-toggle"><span class="filter-icon"></span></a>
-                <span class="filter-arbitrator has-filter-arbitrator-only">Arbitrator: <span class="filter-text filter-arbitrator-text"></span></span>
-                <span class="filter-creator has-filter-creator-only">Created by: <span class="filter-text filter-creator-text"></span></span>
-                <span class="filter-template-id has-filter-template-id-only">Template ID: <span class="filter-text filter-template-id-text"></span></span>
+            <div class="filter-display-container has-search-filters-only">
+                <div class="filter-arbitrator has-filter-arbitrator-only">Arbitrator: <span class="filter-text filter-arbitrator-text"></span></div>
+                <div class="filter-creator has-filter-creator-only">Created by: <span class="filter-text filter-creator-text"></span></div>
+                <div class="filter-template-id has-filter-template-id-only">Template ID: <span class="filter-text filter-template-id-text"></span></div>
+                <div class="filter-contract has-filter-contract-only">Contract: <span class="filter-text filter-contract-text"></span></div>
             </div>
 
             <div class="filter-edit-container">
-                <span class="filter-item filter-creator"><label class="filter-label" for="filter-creator">Asked by: </label><input name="filter-input-creator" class="filter-input-creator filter-input" type="text" size="42"></span>
+                <span class="filter-item filter-creator"><label class="filter-label" for="filter-creator">Created by: </label><input name="filter-input-creator" class="filter-input-creator filter-input" type="text" size="42"></span>
                 <br />
                 <span class="filter-item filter-arbitrator"><label class="filter-label" for="filter-arbitrator">Arbitrator: </label><input name="filter-input-arbitrator" class="filter-input-arbitrator filter-input" type="text" size="42"></span>
                 <br />
                 <span class="filter-item filter-template-id"><label class="filter-label" for="filter-template-id">Template: </label><input name="filter-input-template-id" class="filter-input-template-id filter-input" type="text" size="4"></span>
                 <br />
+        
+                <span class="filter-item filter-contract">
+                    <label class="filter-label" for="filter-contract">Contract: </label>
+                    <select id="contract-selection" name="contract-selection" class="uninitialized filter-input-contract">
+                        <option class="all-contracts" value="">All contracts</option>
+                    </select>
+                </span>
+
+                <br />
+
                 <input class="filter-apply-button" type="button" value="Filter" />
             </div>
 
