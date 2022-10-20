@@ -5834,6 +5834,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             search_filters['template_id'] = parseInt(args['template']);
         }
         SEARCH_FILTERS = search_filters;  // Global version used by More link etc.
+        renderCurrentSearchFilters(search_filters, $('body'));
 
         RC_DEFAULT_ADDRESS = rc_json.address;
         for(const cfg_addr in all_rc_configs) {
@@ -5978,5 +5979,62 @@ $('.graph-node-switch-link').click(function() {
     }
     location.reload();
 });
+
+function renderCurrentSearchFilters(search_filters, jqbody) {
+    let is_filtered = false;
+    if (search_filters.creator) {
+        jqbody.addClass('has-filter-creator');
+        jqbody.find('.filter-creator-text').text(search_filters.creator);
+        jqbody.find('input.filter-input-creator').val(search_filters.creator);
+        is_filtered = true;
+    }
+    if (search_filters.arbitrator) {
+        jqbody.addClass('has-filter-arbitrator');
+        jqbody.find('.filter-arbitrator-text').text(search_filters.arbitrator);
+        jqbody.find('input.filter-input-arbitrator').val(search_filters.arbitrator);
+        is_filtered = true;
+    }
+    if (search_filters.template_id !== null) {
+        jqbody.addClass('has-filter-template-id');
+        jqbody.find('.filter-template-id-text').text(search_filters.template_id);
+        jqbody.find('input.filter-input-template-id').val(search_filters.template_id);
+        is_filtered = true;
+    }
+    if (is_filtered) {
+        jqbody.addClass('has-search-filters');
+    }
+    jqbody.find('a.filter-edit-toggle').click(function(evt) {
+        evt.preventDefault();
+        evt.stopPropagation(); 
+        if (jqbody.hasClass('filter-edit-on')) {
+            jqbody.removeClass('filter-edit-on');
+        } else {
+            jqbody.addClass('filter-edit-on');
+        }
+    });
+    jqbody.find('input.filter-apply-button').click(function(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        let params = {
+            'arbitrator': null,
+            'creator': null,
+            'template': null,
+        };
+        const tidval = jqbody.find('.filter-input-template-id').val();
+        const arbval = jqbody.find('.filter-input-arbitrator').val();
+        const creval = jqbody.find('.filter-input-creator').val();
+        if (/\d/.test(tidval)) {
+            params['template'] = parseInt(tidval);
+        }
+        if (arbval != '') {
+            params['arbitrator'] = arbval;
+        }
+        if (creval != '') {
+            params['creator'] = creval;
+        }
+        set_hash_param(params);
+        location.reload();
+    });
+}
 
 };

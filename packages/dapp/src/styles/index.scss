@@ -3310,3 +3310,114 @@ body.via-graph.connection-error .connection-error-warning.graph-error {
     font-size:140%;
     padding:8px;
 }
+
+input.filter-input {
+    font-size:14px;
+    margin: 2px;
+    margin-right: 8px;
+    padding: 2px;
+    appearance: textfield;
+    border: 1px solid $gray;
+    border-radius: 4px;
+    outline: none;
+    background: auto;
+    font-family: inherit;
+    &::-webkit-search-decoration {
+        display: none;
+    }
+}
+
+label.filter-label {
+    display:inline; 
+    font-size:14px;
+    color: $gray;
+    background-color: $ultralight-gray;
+}
+
+/*
+div.filter-container {
+    text-align:center;
+}
+
+div.filter-container span.filter-item.filter-creator{
+    float:left;
+}
+div.filter-container span.filter-item.filter-arbitrator{
+    float:right;
+}
+*/
+
+div.filter-display{
+    text-align:left;
+}
+
+div.filter-edit-container {
+    display:none;
+    margin-top:9px;
+}
+
+div.filter-edit-container input.filter-input{
+}
+
+body.filter-edit-on div.filter-edit-container {
+    display:block;
+}
+
+a.filter-edit-toggle{
+    font-size:14px;
+    color: $gray;
+    margin-left:9px;
+    font-style:italic;
+    text-decoration:underline;
+}
+a.filter-icon:hover {
+    text-decoration:none;
+}
+div.filter-display-container {
+    height:20px;
+    width:100%;
+}
+
+div.filter-display-container > span{
+    font-size:14px;
+    color: $gray;
+    margin-left:9px;
+    line-height:20px;
+    vertical-align:middle;
+}
+
+.filter-apply-button {
+    width: 240px;
+    height: 30px;
+    line-height: 30px;
+    margin: 9px;
+    font-weight: 500;
+    text-align: center;
+    color: $white;
+    box-shadow: 0 0 8px rgba(0,0,0,.2);
+    border-radius: 6px;
+    cursor: pointer;
+    background: #27b4ee; /* Old browsers */
+    background: -moz-linear-gradient(top, #27b4ee 0%, #0aaaec 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top, #27b4ee 0%,#0aaaec 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom, #27b4ee 0%,#0aaaec 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#27b4ee', endColorstr='#0aaaec',GradientType=0 ); /* IE6-9 */
+}
+
+.has-filter-arbitrator-only { display: none}
+body.has-filter-arbitrator .has-filter-arbitrator-only { display: inline}
+.has-filter-creator-only { display: none}
+body.has-filter-creator .has-filter-creator-only { display: inline}
+.has-filter-template-id-only { display: none}
+body.has-filter-template-id .has-filter-template-id-only { display: inline}
+
+span.filter-icon {
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-image: url(../image/icon-filter.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    display:inline-block;
+    opacity:50%;
+}
