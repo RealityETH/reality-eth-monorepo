@@ -4,7 +4,7 @@ import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters } from './ui_lib.js';
-import { parseHash, set_hash_param } from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
 
 export default function() {
 
@@ -597,6 +597,7 @@ $(document).on('click', '.rcbrowser', function() {
     $('.ui-datepicker').css('z-index', ZINDEX + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', ZINDEX);
+    updateHashQuestionID($('body'));
 });
 
 // see all notifications
@@ -963,15 +964,17 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
             WINDOW_POSITION[contract_question_id]['y'] = top;
             win.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
-        set_hash_param({'question': contractQuestionID(q)});
 
         const window_id = 'qadetail-' + contractQuestionID(q);
         win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
         win.attr('id', window_id);
         win.attr('data-contract-question-id', contractQuestionID(q));
         Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
+        updateHashQuestionID($('body'));
 
         // Once confirmed, slot into the front page
         await tx_response.wait();
@@ -2238,6 +2241,7 @@ function displayQuestionDetail(question_detail) {
             };
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         rcqa.removeClass('template-item');
@@ -2253,10 +2257,11 @@ function displayQuestionDetail(question_detail) {
         rcqa.css('max-height', "80%");
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+        updateHashQuestionID($('body'));
     }
 
     // console.log('set_hash_param', contractQuestionID(question_detail));
-    set_hash_param({'question': contractQuestionID(question_detail)});
+    updateHashQuestionID($('body'));
 
 }
 
@@ -5785,25 +5790,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             $('#filterby').text(cat_txt);
         }
 
-        const search_filters = {
-            'creator': null,
-            'arbitrator': null,
-            'template_id': null,
-            'contract': null
-        };
-        if ('creator' in args) {
-            search_filters['creator'] = args['creator'].toLowerCase();
-        }
-        if ('arbitrator' in args) {
-            search_filters['arbitrator'] = args['arbitrator'].toLowerCase();
-        }
-        if ('template' in args) {
-            search_filters['template_id'] = parseInt(args['template']);
-        }
-        // TODO: Remove duplication
-        if ('contract' in args) {
-            search_filters['contract'] = args['contract'];
-        }
+        const search_filters = loadSearchFilters(args);
         SEARCH_FILTERS = search_filters;  // Global version used by More link etc.
         renderCurrentSearchFilters(search_filters, $('body'));
 

@@ -4,7 +4,7 @@ import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
-import { parseHash, set_hash_param } from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
 
 export default function() {
 
@@ -545,6 +545,7 @@ $(document).on('click', '.rcbrowser', function() {
     $('.ui-datepicker').css('z-index', ZINDEX + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', ZINDEX);
+    updateHashQuestionID($('body'));
 });
 
 // see all notifications
@@ -663,6 +664,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
     question_window.find('.rcbrowser__close-button').click(function() {
         question_window.remove();
         document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+        updateHashQuestionID($('body'));
     });
 
     getAccount().then(function() {
@@ -773,6 +775,7 @@ $(document).on('click', '#post-a-question-window .close-question-window', functi
     e.stopPropagation();
     $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
+    updateHashQuestionID($('body'));
 });
 
 $(document).on('click', '#post-a-question-window .post-question-submit', async function(e) {
@@ -911,6 +914,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
             WINDOW_POSITION[contract_question_id]['y'] = top;
             win.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         set_hash_param({'question': contractQuestionID(q)});
@@ -2691,6 +2695,7 @@ function displayQuestionDetail(question_detail) {
             };
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         rcqa.removeClass('template-item');
@@ -5849,23 +5854,7 @@ window.addEventListener('load', async function() {
 
         }
 
-        const search_filters = {
-            'creator': null,
-            'arbitrator': null,
-            'template_id': null
-        };
-        if ('creator' in args) {
-            search_filters['creator'] = args['creator'].toLowerCase();
-        }
-        if ('arbitrator' in args) {
-            search_filters['arbitrator'] = args['arbitrator'].toLowerCase();
-        }
-        if ('template' in args) {
-            search_filters['template_id'] = parseInt(args['template']);
-        }
-        if ('contract' in args) {
-            search_filters['contract'] = args['contract'];
-        }
+        const search_filters = loadSearchFilters(args);
         renderCurrentSearchFilters(search_filters, $('body'));
 
         for(const cfg_addr in all_rc_configs) {

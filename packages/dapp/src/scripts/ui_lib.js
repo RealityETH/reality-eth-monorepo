@@ -145,10 +145,56 @@ function set_hash_param(args) {
     document.location.hash = h;
 }
 
+function updateHashQuestionID(jqbody) {
+    // Find the front-most question window and set the query param to that.
+    // If there are none, unset the URL parameter
+    let topz = null;
+    let topcqid = null;
+    jqbody.find('div.rcbrowser--qa-detail').each(function() {
+        const z = parseInt($(this).css("z-index"));
+        const cqid = $(this).attr('data-contract-question-id');
+        if (z == 0) {
+            return;
+        } 
+        if (!cqid) {
+            return;
+        }
+        if (topz === null || z > topz) {
+            topz = z;
+            topcqid = cqid;
+        }
+    }); 
+    set_hash_param({'question': topcqid});
+}
+
+function loadSearchFilters(args) {
+        const search_filters = {
+            'creator': null,
+            'arbitrator': null,
+            'template_id': null,
+            'contract': null
+        };
+        if ('creator' in args) {
+            search_filters['creator'] = args['creator'].toLowerCase();
+        }
+        if ('arbitrator' in args) {
+            search_filters['arbitrator'] = args['arbitrator'].toLowerCase();
+        }
+        if ('template' in args) {
+            search_filters['template_id'] = parseInt(args['template']);
+        }
+        if ('contract' in args) {
+            search_filters['contract'] = args['contract'];
+        }
+        return search_filters;
+}
+
 export { 
     storeCustomContract, 
     importedCustomContracts, 
     renderCurrentSearchFilters,
     set_hash_param,
-    parseHash
+    parseHash,
+    updateHashQuestionID,
+    loadSearchFilters
 }
