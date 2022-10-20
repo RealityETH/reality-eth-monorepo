@@ -3,7 +3,8 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
-import { storeCustomContract, importedCustomContracts } from './ui_lib.js';
+import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
+import { parseHash, set_hash_param } from './ui_lib.js';
 
 export default function() {
 
@@ -5287,41 +5288,6 @@ function isForCurrentUser(entry) {
     return (entry.args[actor_arg] == ACCOUNT);
 }
 
-function parseHash() {
-    // Alternate args should be names and values
-    if (location.hash.substring(0, 3) != '#!/') {
-        return {};
-    }
-    const arg_arr = location.hash.substring(3).split('/');
-    const args = {};
-    for (let i = 0; i < arg_arr.length + 1; i = i + 2) {
-        const n = arg_arr[i];
-        const v = arg_arr[i + 1];
-        if (n && v) {
-            args[n] = v;
-        }
-    }
-    return args;
-}
-
-function set_hash_param(args) {
-    let current_args = parseHash();
-    let h = '!';
-    for (const a in args) {
-        if (args.hasOwnProperty(a)) {
-            current_args[a] = args[a];
-        }
-    }
-    for (const ca in current_args) {
-        if (current_args.hasOwnProperty(ca)) {
-            if (current_args[ca] != null) {
-                h = h + '/' + ca + '/' + current_args[ca];
-            }
-        }
-    }
-    document.location.hash = h;
-}
-
 function populateArbitratorOptionLabel(op, fee, txt, tos) {
     if (txt) {
         op.attr('data-text-main', txt);
@@ -5552,9 +5518,9 @@ function initContractSelect(available_configs, selected_config, show_all) {
     }
 
     sel.attr('data-old-val', sel.val());
-    if (only_have_default) {
-        sel.find('.all-contracts').remove();
-    }
+    //if (only_have_default) {
+    //    sel.find('.all-contracts').remove();
+    //}
     sel.removeClass('uninitialized');
 }
 
@@ -5897,6 +5863,10 @@ window.addEventListener('load', async function() {
         if ('template' in args) {
             search_filters['template_id'] = parseInt(args['template']);
         }
+        if ('contract' in args) {
+            search_filters['contract'] = args['contract'];
+        }
+        renderCurrentSearchFilters(search_filters, $('body'));
 
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr]; 
@@ -6060,6 +6030,7 @@ $('#token-selection').change(function(e) {
     location.reload();
 });
 
+/*
 $('#contract-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
@@ -6075,6 +6046,7 @@ $('#contract-selection').change(function(e) {
     }
     location.reload();
 });
+*/
 
 // When on the legacy site, show the moved warning, use the full link url
 if (window.location.href.indexOf('realitio') != -1) {
