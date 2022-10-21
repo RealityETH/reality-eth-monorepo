@@ -3,7 +3,8 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
-import { storeCustomContract, importedCustomContracts } from './ui_lib.js';
+import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters } from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
 
 export default function() {
 
@@ -48,6 +49,7 @@ let TOKEN_INFO = {};
 let CHAIN_INFO = {};
 
 let TOKEN_JSON = {};
+let SEARCH_FILTERS = {}; // In the graph version these are stored globally for use with the more button
 
 let IS_TOKEN_NATIVE = false;
 let IS_WEB3_FALLBACK = false;
@@ -595,6 +597,7 @@ $(document).on('click', '.rcbrowser', function() {
     $('.ui-datepicker').css('z-index', ZINDEX + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', ZINDEX);
+    updateHashQuestionID($('body'));
 });
 
 // see all notifications
@@ -961,15 +964,17 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
             WINDOW_POSITION[contract_question_id]['y'] = top;
             win.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
-        set_hash_param({'question': contractQuestionID(q)});
 
         const window_id = 'qadetail-' + contractQuestionID(q);
         win.removeClass('rcbrowser--postaquestion').addClass('rcbrowser--qa-detail');
         win.attr('id', window_id);
         win.attr('data-contract-question-id', contractQuestionID(q));
         Ps.initialize(win.find('.rcbrowser-inner').get(0));
+
+        updateHashQuestionID($('body'));
 
         // Once confirmed, slot into the front page
         await tx_response.wait();
@@ -1364,7 +1369,7 @@ $('div.loadmore-button').on('click', async function(e) {
 
     // Increase storage for next time
     // TODO: Only fetch the relevant section
-    fetchQuestionListsFromGraph(old_max_store);
+    fetchQuestionListsFromGraph(old_max_store, SEARCH_FILTERS);
 
 });
 
@@ -2236,6 +2241,7 @@ function displayQuestionDetail(question_detail) {
             };
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         rcqa.removeClass('template-item');
@@ -2251,10 +2257,11 @@ function displayQuestionDetail(question_detail) {
         rcqa.css('max-height', "80%");
         setRcBrowserPosition(rcqa);
         Ps.initialize(rcqa.find('.rcbrowser-inner').get(0));
+        updateHashQuestionID($('body'));
     }
 
     // console.log('set_hash_param', contractQuestionID(question_detail));
-    set_hash_param({'question': contractQuestionID(question_detail)});
+    updateHashQuestionID($('body'));
 
 }
 
@@ -4455,18 +4462,18 @@ TODO restore
     });
 */
 
-    fetchQuestionListsFromGraph(0);
+    fetchQuestionListsFromGraph(0, SEARCH_FILTERS);
 };
 
-function fetchQuestionListsFromGraph(offset) {
+function fetchQuestionListsFromGraph(offset, search_filters) {
 // TODO: Work out what to do about ranking - can we make this one query? If not how do we handle the paging?
 // Option: We do the sorting ourselves from the top candidates, so just fetch the full number of both?
 // 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved', offset, DISPLAY_ENTRIES['questions-resolved']['max_store']); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, search_filters, 'questions-active-answered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, search_filters, 'questions-active-unanswered', offset, DISPLAY_ENTRIES['questions-active']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, search_filters, 'questions-upcoming', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, search_filters, 'questions-resolved', offset, DISPLAY_ENTRIES['questions-resolved']['max_store']); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, search_filters, 'questions-awaiting-arbitration', offset, DISPLAY_ENTRIES['questions-upcoming']['max_store']); 
 };
 
 async function importFactoryConfig(contract_addrs, chain_id, only_one) {
@@ -4640,17 +4647,35 @@ function userActionFields() {
     return txt;
 }
 
-async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, offset, max_store) {
+function searchFilterWhereString(search_filters) {
+    let extra_filter_str = '';
+    if (search_filters && search_filters['creator']) {
+        const fil_creator = search_filters['creator'];
+        extra_filter_str += `user: "${fil_creator}", `;
+    }
+    if (search_filters && search_filters['arbitrator']) {
+        const fil_arbitrator = search_filters['arbitrator'];
+        extra_filter_str += `arbitrator: "${fil_arbitrator}", `;
+    }
+    if (search_filters && search_filters['template_id'] !== null) {
+        const fil_template_id = search_filters['template_id'];
+        extra_filter_str += `template_: {templateId: "${fil_template_id}"}, `;
+    }
+    return extra_filter_str;
+}
+
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, search_filters, ranking, offset, max_store) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
+    const extra_filter_str = searchFilterWhereString(search_filters);
 
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
     const ranking_where = {
-        'questions-active-answered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
-        'questions-awaiting-arbitration': `{contract_in: ${contract_str}, isPendingArbitration: true}`,
+        'questions-active-answered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{${extra_filter_str} contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-awaiting-arbitration': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: true}`,
     }
 
     const ranking_order = {
@@ -4685,7 +4710,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, of
     const fetched_ms = Date.now();
 
     try {
-        // console.log('sending graph query', ranking, query);
+         console.log('sending graph query', ranking, query);
         const res = await axios.post(network_graph_url, {query: query});
         // console.log('graph res', ranking, res.data);
         for (const q of res.data.data.questions) {
@@ -4747,11 +4772,12 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
     }
 }
 
-async function fetchChangedQuestionsSince(last_ts) {
+async function fetchChangedQuestionsSince(last_ts, search_filters) {
 
     const ts_now = parseInt(new Date()/1000);
     const displayed_contracts = RC_DISPLAYED_CONTRACTS
     const contract_str = JSON.stringify(displayed_contracts);
+    const extra_filter_str = searchFilterWhereString(search_filters);
 
     const query_since_ts = last_ts - REORG_ALLOWANCE_SECS;
 
@@ -4764,7 +4790,7 @@ async function fetchChangedQuestionsSince(last_ts) {
     const question_fetch_fields = questionFetchFields();
     const query = `
       {
-        questions(first: 100, where: {updatedTimestamp_gt: ${query_since_ts}, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
+        questions(first: 100, where: {${extra_filter_str} updatedTimestamp_gt: ${query_since_ts}, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
             ${question_fetch_fields}
         }
       }  
@@ -4790,11 +4816,13 @@ async function fetchChangedQuestionsSince(last_ts) {
 // For normal fetches we check on loading whether finalized
 // However they may finalize by the passage of time after the page is loaded.
 // This doesn't trigger an event unless they're finalized by arbitration.
-async function fetchFinalizedQuestionsSince(last_ts) {
+async function fetchFinalizedQuestionsSince(last_ts, search_filters) {
 
     const ts_now = parseInt(new Date()/1000);
     const displayed_contracts = RC_DISPLAYED_CONTRACTS
     const contract_str = JSON.stringify(displayed_contracts);
+
+    const extra_filter_str = searchFilterWhereString(search_filters);
 
     // Wait a few minutes after they should have been finalized in case they get answered at the last minute and graph is lagging
     // We'll also filter for below 2147483647 which is a fake value we put in for unanswered questions so we can query on them
@@ -4811,7 +4839,7 @@ async function fetchFinalizedQuestionsSince(last_ts) {
     const question_fetch_fields = questionFetchFields();
     const query = `
       {
-        questions(first: 100, where: {currentScheduledFinalizationTimestamp_gte: ${ts_last_polled}, currentScheduledFinalizationTimestamp_gte: ${ts_display_after}, currentScheduledFinalizationTimestamp_lt: 2147483647, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
+        questions(first: 100, where: {${extra_filter_str} currentScheduledFinalizationTimestamp_gte: ${ts_last_polled}, currentScheduledFinalizationTimestamp_gte: ${ts_display_after}, currentScheduledFinalizationTimestamp_lt: 2147483647, contract_in: ${contract_str}}, orderBy: updatedTimestamp, orderDirection: desc) {
             ${question_fetch_fields}
         }
       }  
@@ -4835,21 +4863,21 @@ async function fetchFinalizedQuestionsSince(last_ts) {
 }
 
 
-async function runPollingLoop(displayed_contracts, last_fetch_ts) {
+async function runPollingLoop(displayed_contracts, last_fetch_ts, search_filters) {
 
     const fetch_started_ts = parseInt(new Date().getTime()/1000);
 
     // NB The fetch timestamp is when we actually did the fetching per our clock.
     // The REORG_ALLOWANCE_SECS should be applied by the functions that do the fetching.
-    fetchChangedQuestionsSince(last_fetch_ts);
-    fetchFinalizedQuestionsSince(last_fetch_ts);
+    fetchChangedQuestionsSince(last_fetch_ts, search_filters);
+    fetchFinalizedQuestionsSince(last_fetch_ts, search_filters);
 
     fetchUserEventsAndHandleGraph();
 
     updatePollingInterval();
     await delay(POLLING_INTERVAL*1000);
 
-    runPollingLoop(displayed_contracts, fetch_started_ts);
+    runPollingLoop(displayed_contracts, fetch_started_ts, search_filters);
     
     /*
     window.setTimeout(function() {
@@ -5168,41 +5196,6 @@ function isForCurrentUser(entry) {
     return (entry[actor_arg] == ACCOUNT);
 }
 
-function parseHash() {
-    // Alternate args should be names and values
-    if (location.hash.substring(0, 3) != '#!/') {
-        return {};
-    }
-    const arg_arr = location.hash.substring(3).split('/');
-    const args = {};
-    for (let i = 0; i < arg_arr.length + 1; i = i + 2) {
-        const n = arg_arr[i];
-        const v = arg_arr[i + 1];
-        if (n && v) {
-            args[n] = v;
-        }
-    }
-    return args;
-}
-
-function set_hash_param(args) {
-    let current_args = parseHash();
-    let h = '!';
-    for (const a in args) {
-        if (args.hasOwnProperty(a)) {
-            current_args[a] = args[a];
-        }
-    }
-    for (const ca in current_args) {
-        if (current_args.hasOwnProperty(ca)) {
-            if (current_args[ca] != null) {
-                h = h + '/' + ca + '/' + current_args[ca];
-            }
-        }
-    }
-    document.location.hash = h;
-}
-
 function populateArbitratorOptionLabel(op, fee, txt, tos) {
     if (txt) {
         op.attr('data-text-main', txt);
@@ -5410,9 +5403,9 @@ function initContractSelect(available_configs, selected_config, show_all) {
     }
 
     sel.attr('data-old-val', sel.val());
-    if (only_have_default) {
-        sel.find('.all-contracts').remove();
-    }
+    //if (only_have_default) {
+    //    sel.find('.all-contracts').remove();
+    //}
     sel.removeClass('uninitialized');
 }
 
@@ -5797,6 +5790,10 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             $('#filterby').text(cat_txt);
         }
 
+        const search_filters = loadSearchFilters(args);
+        SEARCH_FILTERS = search_filters;  // Global version used by More link etc.
+        renderCurrentSearchFilters(search_filters, $('body'));
+
         RC_DEFAULT_ADDRESS = rc_json.address;
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr];
@@ -5869,7 +5866,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         loadPendingTransactions(cid);
         
-        runPollingLoop(RC_DISPLAYED_CONTRACTS, fetch_start_ts);
+        runPollingLoop(RC_DISPLAYED_CONTRACTS, fetch_start_ts, search_filters);
     });
 });
 
@@ -5901,6 +5898,7 @@ $('#token-selection').change(function(e) {
     location.reload();
 });
 
+/*
 $('#contract-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
@@ -5916,6 +5914,7 @@ $('#contract-selection').change(function(e) {
     }
     location.reload();
 });
+*/
 
 // When on the legacy site, show the moved warning, use the full link url
 if (window.location.href.indexOf('realitio') != -1) {
@@ -5940,5 +5939,6 @@ $('.graph-node-switch-link').click(function() {
     }
     location.reload();
 });
+
 
 };

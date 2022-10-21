@@ -3,7 +3,8 @@
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
-import { storeCustomContract, importedCustomContracts } from './ui_lib.js';
+import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
 
 export default function() {
 
@@ -544,6 +545,7 @@ $(document).on('click', '.rcbrowser', function() {
     $('.ui-datepicker').css('z-index', ZINDEX + 1);
     $(this).find('.question-setting-warning').find('.balloon').css('z-index', ++ZINDEX);
     $(this).find('.question-setting-info').find('.balloon').css('z-index', ZINDEX);
+    updateHashQuestionID($('body'));
 });
 
 // see all notifications
@@ -662,6 +664,7 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
     question_window.find('.rcbrowser__close-button').click(function() {
         question_window.remove();
         document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+        updateHashQuestionID($('body'));
     });
 
     getAccount().then(function() {
@@ -772,6 +775,7 @@ $(document).on('click', '#post-a-question-window .close-question-window', functi
     e.stopPropagation();
     $('#post-a-question-window').css('z-index', 0);
     $('#post-a-question-window').removeClass('is-open');
+    updateHashQuestionID($('body'));
 });
 
 $(document).on('click', '#post-a-question-window .post-question-submit', async function(e) {
@@ -910,6 +914,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
             WINDOW_POSITION[contract_question_id]['y'] = top;
             win.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         set_hash_param({'question': contractQuestionID(q)});
@@ -2354,11 +2359,21 @@ function calculateActiveRank(created, bounty, bond) {
 
 }
 
-async function handleQuestionLog(item) {
+async function handleQuestionLog(item, search_filters) {
     const question_id = item.args.question_id;
     const contract = item.address;
     //console.log('in handleQuestionLog', question_id);
     const created = item.args.created
+
+    if (search_filters['template_id'] && item.args.template_id.toNumber() != search_filters['template_id']) { 
+        return;
+    }
+    if (search_filters['arbitrator'] && item.args.arbitrator.toLowerCase() != search_filters['arbitrator'].toLowerCase()) { 
+        return;
+    }
+    if (search_filters['creator'] && item.args.user.toLowerCase() != search_filters['creator'].toLowerCase()) { 
+        return;
+    }
 
     // Populate with the data we got
     //console.log('before filling in handleQuestionLog', QUESTION_DETAIL_CACHE[question_id]);
@@ -2680,6 +2695,7 @@ function displayQuestionDetail(question_detail) {
             };
             rcqa.remove();
             document.documentElement.style.cursor = ""; // Work around Interact draggable bug
+            updateHashQuestionID($('body'));
         });
 
         rcqa.removeClass('template-item');
@@ -4799,7 +4815,7 @@ function updateRankingSections(question, changed_field, changed_val) {
 }
 
 
-async function handleEvent(error, result) {
+async function handleEvent(error, result, search_filters) {
 
     if (result.invalid_data) { 
         console.log('skipping invalid log entry');
@@ -4820,7 +4836,7 @@ async function handleEvent(error, result) {
         CONTRACT_TEMPLATE_CONTENT[contract.toLowerCase()][template_id] = question_text;
         return;
     } else if (evt == 'LogNewQuestion') {
-        handleQuestionLog(result);
+        handleQuestionLog(result, search_filters);
     } else if (evt == 'LogWithdraw') {
         updateUserBalanceDisplay();
     } else {
@@ -4874,7 +4890,7 @@ async function handleEvent(error, result) {
 /*-------------------------------------------------------------------------------------*/
 // initial process
 
-function pageInit(only_contract) {
+function pageInit(only_contract, search_filters) {
 
     if ($('body').hasClass('foreign-proxy')) {
         return;
@@ -4929,17 +4945,17 @@ TODO restore
     });
 */
 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved'); 
-    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration'); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-answered', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-active-unanswered', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-upcoming', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-resolved', search_filters); 
+    fetchAndDisplayQuestionFromGraph(RC_DISPLAYED_CONTRACTS, 'questions-awaiting-arbitration', search_filters); 
 
     // Now the rest of the questions
     LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
     for(let i=0; i<RC_DISPLAYED_CONTRACTS.length; i++) {
         const ctr = RC_DISPLAYED_CONTRACTS[i];
-        fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0);
+        fetchAndDisplayQuestionsFromLogs(ctr, CURRENT_BLOCK_NUMBER, 0, search_filters);
     }
 
 };
@@ -5024,17 +5040,32 @@ function reflectDisplayEntryChanges() {
     } 
 }
 
-async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
+async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking, search_filters) {
     //console.log('fetchAndDisplayQuestionFromGraph', displayed_contracts, ranking);
 
     const ts_now = parseInt(new Date()/1000);
     const contract_str = JSON.stringify(displayed_contracts);
+
+    let extra_filter_str = '';
+    if (search_filters && search_filters['creator']) {
+        const fil_creator = search_filters['creator'];
+        extra_filter_str += `user: "${fil_creator}", `;
+    }
+    if (search_filters && search_filters['arbitrator']) {
+        const fil_arbitrator = search_filters['arbitrator'];
+        extra_filter_str += `arbitrator: "${fil_arbitrator}", `;
+    }
+    if (search_filters && search_filters['template_id'] !== null) {
+        const fil_template_id = search_filters['template_id'];
+        extra_filter_str += `template_: {templateId: "${fil_template_id}"}, `;
+    }
+
     const ranking_where = {
-        'questions-active-answered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
-        'questions-active-unanswered': `{contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
-        'questions-upcoming': `{contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
-        'questions-resolved': `{contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
-        'questions-awaiting-arbitration': `{contract_in: ${contract_str}, isPendingArbitration: true}`,
+        'questions-active-answered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp_gt: ${ts_now}, openingTimestamp_lte: ${ts_now}}`,
+        'questions-active-unanswered': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, answerFinalizedTimestamp: null, openingTimestamp_lte: ${ts_now}}`,
+        'questions-upcoming': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: false, openingTimestamp_gt: ${ts_now}}`,
+        'questions-resolved': `{${extra_filter_str} contract_in: ${contract_str}, answerFinalizedTimestamp_lt: ${ts_now}}`,
+        'questions-awaiting-arbitration': `{${extra_filter_str} contract_in: ${contract_str}, isPendingArbitration: true}`,
     }
 
     const ranking_order = {
@@ -5047,7 +5078,6 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
 
     const where = ranking_where[ranking];
     const orderBy = ranking_order[ranking];
-
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
         console.log('No graph endpoint found for this network, skipping graph fetch');
@@ -5069,17 +5099,23 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, ranking) {
     // console.log('sending graph query', ranking, query);
     const res = await axios.post(network_graph_url, {query: query});
     // console.log('graph res', ranking, res.data);
+
+    if (!res || !res.data || !res.data.data || !res.data.data.questions) {
+        console.log('Warning: Expected data not found in graph query response, doing our best by querying the node', query, res);
+        return;
+    }
+
     for (const q of res.data.data.questions) {
-        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId);
+        const question_posted = RCInstance(q.contract).filters.LogNewQuestion(q.questionId, search_filters['creator']);
         const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         for (let i = 0; i < result.length; i++) {
             handlePotentialUserAction(result[i], false);
-            handleQuestionLog(result[i]);
+            handleQuestionLog(result[i], search_filters);
         }
     }
 }
 
-async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
+async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i, search_filters) {
 
     // get how many to fetch off fetch_numbers, until we run off the end then use the last num
     const fetch_num = (fetch_i < FETCH_NUMBERS.length) ? FETCH_NUMBERS[fetch_i] : FETCH_NUMBERS[FETCH_NUMBERS.length - 1];
@@ -5107,7 +5143,8 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
     //console.log('fetchAndDisplayQuestionsFromLogs', start_block, end_block, fetch_i);
 
     try {
-        const question_posted = RCInstance(contract).filters.LogNewQuestion();
+        const fil_creator = search_filters ? search_filters['creator'] : null;
+        const question_posted = RCInstance(contract).filters.LogNewQuestion(null, fil_creator);
         const result = await RCInstance(contract).queryFilter(question_posted, start_block, end_block);
             /* 
             if (error === null && typeof result !== 'undefined') {
@@ -5117,7 +5154,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
                 continue;
             }
             handlePotentialUserAction(result[i], false);
-            handleQuestionLog(result[i]);
+            handleQuestionLog(result[i], search_filters);
         }
             /*
             } else {
@@ -5128,7 +5165,7 @@ async function fetchAndDisplayQuestionsFromLogs(contract, end_block, fetch_i) {
         if (fetch_i % 100 == 0) {
             console.log('fetch range (output will skip the next 99 fetches)', contract, start_block, end_block, fetch_i);
         }
-        fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1);
+        fetchAndDisplayQuestionsFromLogs(contract, start_block - 1, fetch_i + 1, search_filters);
     } catch (e) {
         $('body').addClass('connection-error');
     }
@@ -5161,7 +5198,7 @@ return;
         console.log('filter_all got evts', logs);
         LAST_POLLED_BLOCK = CURRENT_BLOCK_NUMBER;
         for (let i = 0; i < logs.length; i++) {
-            handleEvent(null, logs[i]);
+            handleEvent(null, logs[i], search_filters);
         }
         window.setTimeout(runPollingLoop, 30000, contract_instance);
         console.log(logs);
@@ -5254,41 +5291,6 @@ function fetchUserEventsAndHandle(acc, contract, question_id, start_block, end_b
 function isForCurrentUser(entry) {
     const actor_arg = 'user';
     return (entry.args[actor_arg] == ACCOUNT);
-}
-
-function parseHash() {
-    // Alternate args should be names and values
-    if (location.hash.substring(0, 3) != '#!/') {
-        return {};
-    }
-    const arg_arr = location.hash.substring(3).split('/');
-    const args = {};
-    for (let i = 0; i < arg_arr.length + 1; i = i + 2) {
-        const n = arg_arr[i];
-        const v = arg_arr[i + 1];
-        if (n && v) {
-            args[n] = v;
-        }
-    }
-    return args;
-}
-
-function set_hash_param(args) {
-    let current_args = parseHash();
-    let h = '!';
-    for (const a in args) {
-        if (args.hasOwnProperty(a)) {
-            current_args[a] = args[a];
-        }
-    }
-    for (const ca in current_args) {
-        if (current_args.hasOwnProperty(ca)) {
-            if (current_args[ca] != null) {
-                h = h + '/' + ca + '/' + current_args[ca];
-            }
-        }
-    }
-    document.location.hash = h;
 }
 
 function populateArbitratorOptionLabel(op, fee, txt, tos) {
@@ -5521,9 +5523,9 @@ function initContractSelect(available_configs, selected_config, show_all) {
     }
 
     sel.attr('data-old-val', sel.val());
-    if (only_have_default) {
-        sel.find('.all-contracts').remove();
-    }
+    //if (only_have_default) {
+    //    sel.find('.all-contracts').remove();
+    //}
     sel.removeClass('uninitialized');
 }
 
@@ -5852,6 +5854,8 @@ window.addEventListener('load', async function() {
 
         }
 
+        const search_filters = loadSearchFilters(args);
+        renderCurrentSearchFilters(search_filters, $('body'));
 
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr]; 
@@ -5955,7 +5959,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         const limit_to_contract = show_all ? null : RC_DEFAULT_ADDRESS;
 
-        pageInit(limit_to_contract);
+        pageInit(limit_to_contract, search_filters);
 
         if (args['question']) {
             try {
@@ -5979,7 +5983,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             // Listen for all events
             RCInstance(rcaddr).on("*", function(eventObject) {
                 console.log('got all events for contract ', rcaddr, eventObject);
-                handleEvent(null, eventObject);
+                handleEvent(null, eventObject, search_filters);
             });
         }
 
@@ -6015,6 +6019,7 @@ $('#token-selection').change(function(e) {
     location.reload();
 });
 
+/*
 $('#contract-selection').change(function(e) { 
     e.preventDefault();
     e.stopPropagation();
@@ -6030,6 +6035,7 @@ $('#contract-selection').change(function(e) {
     }
     location.reload();
 });
+*/
 
 // When on the legacy site, show the moved warning, use the full link url
 if (window.location.href.indexOf('realitio') != -1) {

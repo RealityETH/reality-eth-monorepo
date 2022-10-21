@@ -48,5 +48,20 @@ https://reality.eth.link/app/index.html#!/question/0x3d00d77ee771405628a4ba49131
 
 This will display your question using the contract to which it was posted, even if you do not otherwise specify the contract that should be displayed by the UI.
 
+Specifying the question creator
+-------------------------------
+
+You can filter to the creator of a question by supplying the ``creator`` parameter and its address. This is often useful when your questions are created by a contract.
+
+Specifying the question creator
+-------------------------------
+
+You can filter to a particular arbitrator by supplying the ``arbitrator`` parameter and its address.
+
+Specifying the question template
+--------------------------------
+
+You can filter to a particular question template by supplying the ``template`` parameter and the numerical ID of the template. You should also specify the ``contract`` parameter above, as a different contract may use the same numerical ID for a different template.
+
 .. note:: Prior to August, 2021, question IDs did not include the contract address. These are still supported, but if the `contract` parameter is not supplied, the dapp may not be able to tell which contract the question lives on.
 
