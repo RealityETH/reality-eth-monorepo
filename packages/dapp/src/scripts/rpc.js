@@ -3741,7 +3741,8 @@ function renderUserQandA(qdata, entry) {
         else
             qitem.find('.question-text').html(question_json['title-html']).expander();
     else
-        qitem.find('.question-text').text(question_json['title']).expander();    qitem.attr('data-block-number', entry.blockNumber);
+        qitem.find('.question-text').text(question_json['title']).expander();
+    qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');
     insertQAItem(qdata.contract, question_id, qitem, question_section, entry.blockNumber);
