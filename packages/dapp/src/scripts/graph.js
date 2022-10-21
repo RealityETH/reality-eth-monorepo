@@ -14,6 +14,9 @@ const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
+// question formats which require safe html display
+//const htmlRenderFormats = ['text/markdown', 'text/markdown-gfm'];
+const htmlRenderFormats = ['text/markdown'];
 
 require('jquery-ui/ui/widgets/datepicker.js');
 require('jquery-expander');
@@ -1782,10 +1785,22 @@ function populateSectionEntry(entry, question) {
     entry.attr('data-contract-question-id', contractQuestionID(question));
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
-    entry.find('.question-title').text(question_json['title']).expander({
-        expandText: '',
-        slicePoint: 140
-    });
+    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+            entry.find('.question-title').text(question_json['title']).expander({
+                expandText: '',
+                slicePoint: 140
+            });
+        else
+            entry.find('.question-title').html(question_json['title-html']).expander({
+                expandText: '',
+                slicePoint: 140
+            });
+    else
+        entry.find('.question-title').text(question_json['title']).expander({
+            expandText: '',
+            slicePoint: 140
+        });
     entry.find('.question-bounty').text(bounty);
 
     entry.find('.bond-value').text(decimalizedBigNumberToHuman(bond));
@@ -2411,9 +2426,19 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('long-title')
     }
-    rcqa.find('.question-title').text(question_json['title']).expander({
-        slicePoint: 200
-    });
+    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+            rcqa.find('.question-title').text(question_json['title']).expander({
+                slicePoint: 200
+            });
+        else
+            rcqa.find('.question-title').html(question_json['title-html']).expander({
+                slicePoint: 200
+            });
+    else
+        rcqa.find('.question-title').text(question_json['title']).expander({
+            slicePoint: 200
+        });
     rcqa.find('.reward-value').text(decimalizedBigNumberToHuman(question_detail.bounty));
 
     if (question_detail.block_mined > 0) {
@@ -3272,7 +3297,13 @@ function renderUserQandA(question, entry) {
 
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
-    qitem.find('.question-text').text(question_json['title']).expander();
+    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+            qitem.find('.question-text').text(question_json['title']).expander();
+        else
+            qitem.find('.question-text').html(question_json['title-html']).expander();
+    else
+        qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.createdBlock);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');

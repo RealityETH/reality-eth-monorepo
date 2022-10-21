@@ -241,6 +241,21 @@ describe('Broken questions', function() {
   });
 });
 
+describe('Unsafe markdown questions', function() {
+  it('Sets an error if a question includes unsafe html', function() {
+    const qUnsafeMarkdown = "{\"title\": \"# Title <p>abc<iframe\/\/src=jAva&Tab;script:alert(3)>def<\/p>\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
+    expect(q.errors.unsafe_html).to.equal(true);
+  });
+  it('Sets an error if a question includes unsafe html', function() {
+    const qUnsafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
+    console.log(q);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+  });
+});
+
 describe('Commitment ID tests', function() {
   // Using rinkeby question:
   // 0xa09ce5e7943f281a782a0dc021c4029f9088bec4-0x0ade9a55d4dfca644062792d8e66cec9fbd5579761d760a6e0ae9856e81086a4

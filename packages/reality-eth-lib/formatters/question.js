@@ -5,6 +5,15 @@ const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
 const vsprintf = require("sprintf-js").vsprintf
 const QUESTION_MAX_OUTCOMES = 128;
+const marked = require('marked');
+const DOMPurify = require('isomorphic-dompurify');
+// whitelist of acceptable markdown html tags
+// markdown is converted to html, xss vulnerability
+// to prevent malicious (changing reality front-end renders) questions, only the following limited html tag set is supported
+DOMPurify.setConfig({
+    ALLOWED_TAGS: ['b', 'q', 'em', 'a', 'hr', 'br', 'ol', 'ul', 'code','h1','h2','h3','h4','h5','h6','li','p','strong','blockquote'],
+    USE_PROFILES: {html: true}
+});
 
 exports.delimiter = function() {
     return '\u241f'; // Thought about '\u0000' but it seems to break something;
@@ -176,33 +185,71 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
     // Strip unicode null-terminated-string control characters if there are any.
     // These seem to be stripped already if we got data via The Graph, and only passed to us on RPC.
     data = data.replace(/\u0000/g, "");
-
+    
     var question_json;
     try {
         question_json = JSON.parse(data);
-    } catch(e) {
-        question_json = {
-            'title': '[Badly formatted question]: ' + data,
-            'type': 'broken-question',
-            'errors': {"json_parse_failed": true}
-        };
-    }
-    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
-        question_json['errors'] = {'too_many_outcomes': true}
-    }
-    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) {
-        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
-            question_json['errors'] = {'invalid_precision': true};
+        switch(question_json['format']){
+            case 'text/markdown':{
+                const unsafeMarkdownHTML = marked.parse(question_json['title'], {headerIds: false});
+                const safeMarkdownHTML = DOMPurify.sanitize(unsafeMarkdownHTML);
+                if (unsafeMarkdownHTML !== safeMarkdownHTML)
+                    question_json['errors'] = {'unsafe_html': true};
+                else
+                    question_json['title-html'] = safeMarkdownHTML;
+                break;
+            }
+            /*
+            case 'text/markdown-gfm':{
+                const unsafeMarkdownHTML = marked.parse(question_json['title'], {gfm: true});
+                const safeMarkdownHTML = DOMPurify.sanitize(unsafeMarkdownHTML); 
+                if (unsafeMarkdownHTML !== safeMarkdownHTML)
+                    question_json['errors'] = {'unsafe_html': true};            
+                else 
+                    question_json['title-html'] = safeMarkdownHTML;
+                break;
+            }
+            */
+            case 'text/plain': {
+                break;
+            }
+            case undefined:{
+                question_json['format'] = 'text/plain';
+                break;
+            }
+            default:{
+                question_json['errors'] = {'invalid_format': true};            
+                break;
+            }
         }
+        } catch(e) {
+            question_json = {
+                'title': '[Badly formatted question]: ' + data,
+                'type': 'broken-question',
+                'errors': {"json_parse_failed": true}
+            };
     }
+    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
+        if(question_json['errors'])
+            question_json['errors']['too_many_outcomes'] = true
+        else
+            question_json['errors'] = {'too_many_outcomes': true};
+    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) 
+        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])))
+            if(question_json['errors'])
+                question_json['errors']['invalid_precision'] = true
+            else
+                question_json['errors'] = {'invalid_precision': true};
     // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
     if (errors_to_title) {
         if ('errors' in question_json) {
             const prependers = {
                 'invalid_precision': 'Invalid date format',
-                'too_many_outcomes': 'Too many outcomes'
+                'too_many_outcomes': 'Too many outcomes',
+                'invalid_format': 'Invalid format',
+                'unsafe_html': 'Invalid question'
             }
-            for (var e in question_json['errors']) {
+            for (const e in question_json['errors']) {
                 if (e in prependers) {
                     question_json['title'] = '['+prependers[e]+'] ' + question_json['title'];
                 }

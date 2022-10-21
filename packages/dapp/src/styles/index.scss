@@ -1292,7 +1292,17 @@ footer .cols ul {
 
 .rcbrowser a {
     text-decoration: none;
+    color: black;
 }
+
+/* markdown-gfm supports tables
+.rcbrowser table, th, td {
+    border: 1px solid;
+    border-collapse: collapse;
+    width: 100%;
+    text-align: center;
+  }
+*/
 
 .rcbrowser a:hover {
     color: $rcBrowserBodyText;
