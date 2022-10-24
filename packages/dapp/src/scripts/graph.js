@@ -14,9 +14,10 @@ const timeAgo = new timeago();
 const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
-// question formats which require safe html display
-//const htmlRenderFormats = ['text/markdown', 'text/markdown-gfm'];
-const htmlRenderFormats = ['text/markdown'];
+
+const formats_markdown = ['text/markdown', 'text/markdown-gfm'];
+// auto display images toggle
+const displayImages = false;
 
 require('jquery-ui/ui/widgets/datepicker.js');
 require('jquery-expander');
@@ -1781,21 +1782,24 @@ function populateSectionEntry(entry, question) {
             options = options + i + ':' + question_json['outcomes'][i] + ', ';
         }
     }
-
+    
     entry.attr('data-contract-question-id', contractQuestionID(question));
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
-    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(formats_markdown.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             entry.find('.question-title').text(question_json['title']).expander({
                 expandText: '',
                 slicePoint: 140
             });
         else
-            entry.find('.question-title').html(question_json['title-html']).expander({
+            displayImages? entry.find('.question-title').html(question_json['title-markdown-html']).expander({
                 expandText: '',
                 slicePoint: 140
-            });
+            }): entry.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
+                    expandText: '',
+                    slicePoint: 140
+                });
     else
         entry.find('.question-title').text(question_json['title']).expander({
             expandText: '',
@@ -2426,13 +2430,15 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('long-title')
     }
-    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(formats_markdown.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             rcqa.find('.question-title').text(question_json['title']).expander({
                 slicePoint: 200
             });
-        else
-            rcqa.find('.question-title').html(question_json['title-html']).expander({
+        else            
+            displayImages? rcqa.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
+                slicePoint: 200
+            }) : rcqa.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
                 slicePoint: 200
             });
     else
@@ -3297,11 +3303,11 @@ function renderUserQandA(question, entry) {
 
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
-    if(htmlRenderFormats.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(formats_markdown.indexOf(question_json['format']) > -1)
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             qitem.find('.question-text').text(question_json['title']).expander();
         else
-            qitem.find('.question-text').html(question_json['title-html']).expander();
+            displayImages? qitem.find('.question-text').html(question_json['title-markdown-html']).expander() : qitem.find('.question-text').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander();
     else
         qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.createdBlock);

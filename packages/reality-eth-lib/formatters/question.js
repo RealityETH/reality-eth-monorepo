@@ -7,13 +7,6 @@ const vsprintf = require("sprintf-js").vsprintf
 const QUESTION_MAX_OUTCOMES = 128;
 const marked = require('marked');
 const DOMPurify = require('isomorphic-dompurify');
-// whitelist of acceptable markdown html tags
-// markdown is converted to html, xss vulnerability
-// to prevent malicious (changing reality front-end renders) questions, only the following limited html tag set is supported
-DOMPurify.setConfig({
-    ALLOWED_TAGS: ['b', 'q', 'em', 'a', 'hr', 'br', 'ol', 'ul', 'code','h1','h2','h3','h4','h5','h6','li','p','strong','blockquote'],
-    USE_PROFILES: {html: true}
-});
 
 exports.delimiter = function() {
     return '\u241f'; // Thought about '\u0000' but it seems to break something;
@@ -189,27 +182,41 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
     var question_json;
     try {
         question_json = JSON.parse(data);
+        } catch(e) {
+            question_json = {
+                'title': '[Badly formatted question]: ' + data,
+                'type': 'broken-question',
+                'errors': {"json_parse_failed": true}
+            };
+    }
+
+    try{
+
         switch(question_json['format']){
             case 'text/markdown':{
-                const unsafeMarkdownHTML = marked.parse(question_json['title'], {headerIds: false});
-                const safeMarkdownHTML = DOMPurify.sanitize(unsafeMarkdownHTML);
-                if (unsafeMarkdownHTML !== safeMarkdownHTML)
-                    question_json['errors'] = {'unsafe_html': true};
+                const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
+                console.log('SAFEMARKDOWN')
+                console.log(safeMarkdown);
+                if (safeMarkdown !== question_json['title'])
+                    if(question_json['errors'])
+                        question_json['errors']['unsafe_markdown'] = true;
+                    else
+                        question_json['errors'] = {'unsafe_markdown': true};
                 else
-                    question_json['title-html'] = safeMarkdownHTML;
+                    question_json['title-markdown-html'] = marked.parse(safeMarkdown);
                 break;
             }
-            /*
             case 'text/markdown-gfm':{
-                const unsafeMarkdownHTML = marked.parse(question_json['title'], {gfm: true});
-                const safeMarkdownHTML = DOMPurify.sanitize(unsafeMarkdownHTML); 
-                if (unsafeMarkdownHTML !== safeMarkdownHTML)
-                    question_json['errors'] = {'unsafe_html': true};            
-                else 
-                    question_json['title-html'] = safeMarkdownHTML;
+                const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
+                if (safeMarkdown !== question_json['title'])
+                    if(question_json['errors'])
+                        question_json['errors']['unsafe_markdown'] = true;
+                    else
+                        question_json['errors'] = {'unsafe_markdown': true};
+                else
+                    question_json['title-markdown-html'] = marked.parse(safeMarkdown);
                 break;
             }
-            */
             case 'text/plain': {
                 break;
             }
@@ -222,13 +229,12 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
                 break;
             }
         }
-        } catch(e) {
-            question_json = {
-                'title': '[Badly formatted question]: ' + data,
-                'type': 'broken-question',
-                'errors': {"json_parse_failed": true}
-            };
+    } catch(e){
+        console.log(e);
+        if(question_json && question_json['errors'])
+            question_json['errors']['markdown_parse_failed'] = true
     }
+
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
         if(question_json['errors'])
             question_json['errors']['too_many_outcomes'] = true
@@ -247,7 +253,8 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
                 'invalid_precision': 'Invalid date format',
                 'too_many_outcomes': 'Too many outcomes',
                 'invalid_format': 'Invalid format',
-                'unsafe_html': 'Invalid question'
+                'unsafe_markdown': 'Unsafe markdown',
+                'markdown_parse_failed': 'Bad markdown parse'
             }
             for (const e in question_json['errors']) {
                 if (e in prependers) {
