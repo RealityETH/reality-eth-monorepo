@@ -195,8 +195,6 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
         switch(question_json['format']){
             case 'text/markdown':{
                 const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
-                console.log('SAFEMARKDOWN')
-                console.log(safeMarkdown);
                 if (safeMarkdown !== question_json['title'])
                     if(question_json['errors'])
                         question_json['errors']['unsafe_markdown'] = true;
