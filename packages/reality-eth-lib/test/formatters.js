@@ -200,7 +200,6 @@ describe('Answer strings', function() {
     var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
     var q1 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
     expect(q1.errors.too_many_outcomes).to.equal(true);
-    console.log(q1.title);
     expect(q1.title).to.equal('oink');
     var q2 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext, true);
     expect(q2.errors.too_many_outcomes).to.equal(true);
@@ -247,10 +246,9 @@ describe('Unsafe markdown questions', function() {
     const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
     expect(q.errors.unsafe_markdown).to.equal(true);
   });
-  it('Sets an error if a question includes unsafe html', function() {
+  it('Sets an error if a question includes unsafe markdown', function() {
     const qUnsafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
     const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
-    console.log(q);
     expect(q.errors).to.equal(undefined);
     expect(q.format).to.equal('text/markdown');
   });
