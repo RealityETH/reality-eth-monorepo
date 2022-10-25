@@ -241,12 +241,12 @@ describe('Broken questions', function() {
 });
 
 describe('Unsafe markdown questions', function() {
-  it('Sets an error if a question includes unsafe markdown', function() {
+  it('Sets an error if a question includes unsafe html in markdown', function() {
     const qUnsafeMarkdown = "{\"title\": \"# Title <p>abc<iframe\/\/src=jAva&Tab;script:alert(3)>def<\/p>\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
     const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
     expect(q.errors.unsafe_markdown).to.equal(true);
   });
-  it('Sets an error if a question includes unsafe markdown', function() {
+  it('Sets no error if a question includes valid markdown without html', function() {
     const qUnsafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
     const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
     expect(q.errors).to.equal(undefined);
