@@ -191,20 +191,8 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
     }
 
     try{
-
         switch(question_json['format']){
             case 'text/markdown':{
-                const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
-                if (safeMarkdown !== question_json['title'])
-                    if(question_json['errors'])
-                        question_json['errors']['unsafe_markdown'] = true;
-                    else
-                        question_json['errors'] = {'unsafe_markdown': true};
-                else
-                    question_json['title-markdown-html'] = marked.parse(safeMarkdown);
-                break;
-            }
-            case 'text/markdown-gfm':{
                 const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
                 if (safeMarkdown !== question_json['title'])
                     if(question_json['errors'])

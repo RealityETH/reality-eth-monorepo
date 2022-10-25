@@ -15,7 +15,6 @@ const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
 
-const formats_markdown = ['text/markdown', 'text/markdown-gfm'];
 // auto display images toggle
 const displayImages = false;
 
@@ -2246,8 +2245,8 @@ function populateSectionEntry(entry, question) {
     entry.attr('data-contract-question-id', contractQuestionID(question));
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
-    if(formats_markdown.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(question_json['format'] === 'text/markdown')
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             entry.find('.question-title').text(question_json['title']).expander({
                 expandText: '',
                 slicePoint: 140
@@ -2883,8 +2882,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
     } else {
         rcqa.removeClass('long-title')
     }
-    if(formats_markdown.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(question_json['format'] === 'text/markdown')
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             rcqa.find('.question-title').text(question_json['title']).expander({
                 slicePoint: 200
             });
@@ -3741,8 +3740,8 @@ function renderUserQandA(qdata, entry) {
 
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
-    if(formats_markdown.indexOf(question_json['format']) > -1)
-        if(question_json['errors'] && question_json['errors']['unsafe_html'])
+    if(question_json['format'] === 'text/markdown')
+        if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             qitem.find('.question-text').text(question_json['title']).expander();
         else
             displayImages? qitem.find('.question-text').html(question_json['title-markdown-html']).expander() : qitem.find('.question-text').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander();
