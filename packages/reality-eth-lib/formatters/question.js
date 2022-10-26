@@ -190,6 +190,32 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             };
     }
 
+    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
+        if(question_json['errors'])
+            question_json['errors']['too_many_outcomes'] = true
+        else
+            question_json['errors'] = {'too_many_outcomes': true};
+    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) 
+        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])))
+            if(question_json['errors'])
+                question_json['errors']['invalid_precision'] = true
+            else
+                question_json['errors'] = {'invalid_precision': true};
+    // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
+    if (errors_to_title) {
+        if ('errors' in question_json) {
+            const prependers = {
+                'invalid_precision': 'Invalid date format',
+                'too_many_outcomes': 'Too many outcomes'
+            }
+            for (const e in question_json['errors']) {
+                if (e in prependers) {
+                    question_json['title'] = '['+prependers[e]+'] ' + question_json['title'];
+                }
+            }
+        }
+    }
+
     try{
         switch(question_json['format']){
             case 'text/markdown':{
@@ -221,23 +247,10 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             question_json['errors']['markdown_parse_failed'] = true
     }
 
-    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
-        if(question_json['errors'])
-            question_json['errors']['too_many_outcomes'] = true
-        else
-            question_json['errors'] = {'too_many_outcomes': true};
-    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) 
-        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])))
-            if(question_json['errors'])
-                question_json['errors']['invalid_precision'] = true
-            else
-                question_json['errors'] = {'invalid_precision': true};
     // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
     if (errors_to_title) {
         if ('errors' in question_json) {
             const prependers = {
-                'invalid_precision': 'Invalid date format',
-                'too_many_outcomes': 'Too many outcomes',
                 'invalid_format': 'Invalid format',
                 'unsafe_markdown': 'Unsafe markdown',
                 'markdown_parse_failed': 'Bad markdown parse'
@@ -249,6 +262,7 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             }
         }
     }
+
     return question_json;
 
 }
