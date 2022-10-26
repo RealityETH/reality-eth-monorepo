@@ -182,12 +182,12 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
     var question_json;
     try {
         question_json = JSON.parse(data);
-        } catch(e) {
-            question_json = {
-                'title': '[Badly formatted question]: ' + data,
-                'type': 'broken-question',
-                'errors': {"json_parse_failed": true}
-            };
+    } catch(e) {
+        question_json = {
+            'title': '[Badly formatted question]: ' + data,
+            'type': 'broken-question',
+            'errors': {"json_parse_failed": true}
+        };
     }
 
     if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
@@ -242,7 +242,6 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             }
         }
     } catch(e){
-        console.log(e);
         if(question_json && question_json['errors'])
             question_json['errors']['markdown_parse_failed'] = true
     }
