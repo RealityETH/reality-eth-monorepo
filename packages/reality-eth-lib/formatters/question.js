@@ -226,7 +226,7 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
                     else
                         question_json['errors'] = {'unsafe_markdown': true};
                 else
-                    question_json['title-markdown-html'] = marked.parse(safeMarkdown);
+                    question_json['title-markdown-html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
                 break;
             }
             case 'text/plain': {

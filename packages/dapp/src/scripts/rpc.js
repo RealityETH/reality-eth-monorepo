@@ -15,9 +15,6 @@ const jazzicon = require('jazzicon');
 const axios = require('axios');
 const randomBytes = require('randombytes');
 
-// auto display images toggle
-const displayImages = false;
-
 require('jquery-ui/ui/widgets/datepicker.js');
 require('jquery-expander');
 
@@ -2252,13 +2249,10 @@ function populateSectionEntry(entry, question) {
                 slicePoint: 140
             });
         else
-            displayImages? entry.find('.question-title').html(question_json['title-markdown-html']).expander({
+            entry.find('.question-title').html(question_json['title-markdown-html']).expander({
                 expandText: '',
                 slicePoint: 140
-            }): entry.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
-                    expandText: '',
-                    slicePoint: 140
-                });
+            })
     else
         entry.find('.question-title').text(question_json['title']).expander({
             expandText: '',
@@ -2888,9 +2882,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 slicePoint: 200
             });
         else
-            displayImages? rcqa.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
-                slicePoint: 200
-            }) : rcqa.find('.question-title').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander({
+            rcqa.find('.question-title').html(question_json['title-markdown-html']).expander({
                 slicePoint: 200
             });
     else
@@ -3744,7 +3736,7 @@ function renderUserQandA(qdata, entry) {
         if(question_json['errors'] && question_json['errors']['unsafe_markdown'])
             qitem.find('.question-text').text(question_json['title']).expander();
         else
-            displayImages? qitem.find('.question-text').html(question_json['title-markdown-html']).expander() : qitem.find('.question-text').html(question_json['title-markdown-html'].replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>')).expander();
+            qitem.find('.question-text').html(question_json['title-markdown-html']).expander();
     else
         qitem.find('.question-text').text(question_json['title']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
