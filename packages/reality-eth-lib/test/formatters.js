@@ -200,7 +200,6 @@ describe('Answer strings', function() {
     var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
     var q1 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext);
     expect(q1.errors.too_many_outcomes).to.equal(true);
-    console.log(q1.title);
     expect(q1.title).to.equal('oink');
     var q2 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('multiple-select'), qtext, true);
     expect(q2.errors.too_many_outcomes).to.equal(true);
@@ -238,6 +237,20 @@ describe('Broken questions', function() {
     var q2 = rc_question.populatedJSONForTemplate(broken, '', true);
     expect(q2.errors.invalid_precision).to.equal(true);
     expect(q2.title).to.equal('[Invalid date format] This datetime will not work');
+  });
+});
+
+describe('Unsafe markdown questions', function() {
+  it('Sets an error if a question includes unsafe html in markdown', function() {
+    const qUnsafeMarkdown = "{\"title\": \"# Title <p>abc<iframe\/\/src=jAva&Tab;script:alert(3)>def<\/p>\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
+    expect(q.errors.unsafe_markdown).to.equal(true);
+  });
+  it('Sets no error if a question includes valid markdown without html', function() {
+    const qUnsafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
   });
 });
 
