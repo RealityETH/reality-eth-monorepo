@@ -3434,3 +3434,10 @@ span.filter-icon {
     display:inline-block;
     opacity:50%;
 }
+
+.network-switch-error-only {display: none};
+.network-switch-error .network-switch-error-only {display: block};
+
+.network-switch-error-text {
+    font-style: italic;
+}

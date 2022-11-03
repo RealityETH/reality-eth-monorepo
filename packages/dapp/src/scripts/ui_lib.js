@@ -226,6 +226,7 @@ function displayWrongChain(specified, detected, rcc, jq) {
                     location.reload();	
                 }).catch((error) => {
                     console.log('error trying to switch/add network', error)
+                    $('body').addClass('network-switch-error');
                 });
             });
             return false;
