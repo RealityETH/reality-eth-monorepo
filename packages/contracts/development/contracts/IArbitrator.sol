@@ -8,7 +8,6 @@ import './IOwned.sol';
 
 interface IArbitrator {
   function metadata (  ) external view returns ( string memory );
-  function arbitration_bounties ( bytes32 ) external view returns ( uint256 );
   function realitio (  ) external view returns ( IRealityETH );
   function realitycheck (  ) external view returns ( IRealityETH );
   function setRealitio ( address addr ) external;

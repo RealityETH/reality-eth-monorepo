@@ -11,8 +11,6 @@ contract Arbitrator is Owned, IArbitrator {
 
     IRealityETH public realitio;
 
-    mapping(bytes32 => uint256) public arbitration_bounties;
-
     uint256 dispute_fee;
     mapping(bytes32 => uint256) custom_dispute_fees;
 
@@ -110,7 +108,6 @@ contract Arbitrator is Owned, IArbitrator {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
         onlyOwner 
     public {
-        delete arbitration_bounties[question_id];
         realitio.submitAnswerByArbitrator(question_id, answer, answerer);
     }
 
@@ -124,7 +121,6 @@ contract Arbitrator is Owned, IArbitrator {
     function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
         onlyOwner 
     public {
-        delete arbitration_bounties[question_id];
         realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, payee_if_wrong, last_history_hash, last_answer_or_commitment_id, last_answerer);
     }
 
@@ -148,19 +144,10 @@ contract Arbitrator is Owned, IArbitrator {
         uint256 arbitration_fee = getDisputeFee(question_id);
         require(arbitration_fee > 0, "The arbitrator must have set a non-zero fee for the question");
 
-        arbitration_bounties[question_id] += msg.value;
-        uint256 paid = arbitration_bounties[question_id];
-
-        if (paid >= arbitration_fee) {
-            realitio.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
-            emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
-            return true;
-        } else {
-            require(!realitio.isFinalized(question_id), "The question must not have been finalized");
-            emit LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
-            return false;
-        }
-
+        require(msg.value >= arbitration_fee, "Payment too low"); 
+        realitio.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
+        emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
+        return true;
     }
 
     /// @notice Withdraw any accumulated ETH fees to the specified address
