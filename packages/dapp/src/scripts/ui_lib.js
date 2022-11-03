@@ -217,20 +217,16 @@ function displayWrongChain(specified, detected, rcc, jq) {
                 console.log('result was', result);
                 location.reload();	
             }).catch((error) => {
-                if (error.code == 4902) {
-                    console.log('switching networks failed, will try adding the chain');
-                    ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [wallet_info]
-                    }).then((result) => {
-                        console.log('result was', result);
-                        location.reload();	
-                    }).catch((error) => {
-                        console.log('error', error)
-                    });
-                } else {
-                    console.log('switching networks failed with error', error);
-                }
+                console.log('switching networks failed, will try adding the chain');
+                ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [wallet_info]
+                }).then((result) => {
+                    console.log('result was', result);
+                    location.reload();	
+                }).catch((error) => {
+                    console.log('error trying to switch/add network', error)
+                });
             });
             return false;
         });
