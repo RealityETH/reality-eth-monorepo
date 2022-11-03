@@ -1399,8 +1399,31 @@ div.graph-node-switch {
     top: 17px;
 }
 
-.rcbrowser-control > span {
-    display: none;
+.rcbrowser-control > span:first-child {
+    display: block;
+}
+
+.rcbrowser-header div.rcbrowser__close-button {
+    height: 42px;
+    width: 42px;
+    cursor: pointer;
+}
+
+div.rcbrowser__close-button.close-question-window {
+    @include button_white;
+    display: inline-block;
+    margin: 0;
+}
+
+div.rcbrowser__close-icon {
+    margin: 0;
+    background-image: url(../image/icon-close.svg);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 8px 8px;
+    display: inline-block;
+    width:8px;
+    height:8px;
     float: left;
     width: 20px;
     height: 20px;
@@ -1408,23 +1431,6 @@ div.graph-node-switch {
     background-color: $white;
     color: $blue;
     margin-right: 5px;
-}
-.rcbrowser-control > span:first-child {
-    display: block;
-}
-
-div.rcbrowser__close-button {
-    @include button_white;
-    display: inline-block;
-    margin: 0;
-}
-
-span.rcbrowser__close-button {
-    background-image: url(../image/icon-close.svg);
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 8px 8px;
-    cursor: pointer;
 }
 
 .rcbrowser__buttons {
