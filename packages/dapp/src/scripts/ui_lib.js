@@ -189,6 +189,61 @@ function loadSearchFilters(args) {
         return search_filters;
 }
 
+function displayWrongChain(specified, detected, rcc, jq) {
+    console.log('displayWrongChain', specified, detected);
+    let specified_network_txt = $('.network-status.network-id-'+specified).text();
+    let detected_network_txt = $('.network-status.network-id-'+detected).text();
+    if (specified_network_txt == '') {
+        specified_network_txt = '[unknown network]';
+    }
+    if (detected_network_txt == '') {
+        detected_network_txt = 'another network';
+    }
+    console.log(specified_network_txt, detected_network_txt);
+
+    const wallet_info = rcc.walletAddParameters(specified);
+    if (wallet_info) {
+        const lnk = $('<a>');
+        lnk.text($('.add-network-button').text());
+        lnk.bind('click', function(evt) {
+            console.log('add net');
+            evt.stopPropagation();
+            console.log('getting', specified);
+
+            ethereum.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: wallet_info.chainId}]
+            }).then((result) => {
+                console.log('result was', result);
+                location.reload();	
+            }).catch((error) => {
+                if (error.code == 4902) {
+                    console.log('switching networks failed, will try adding the chain');
+                    ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [wallet_info]
+                    }).then((result) => {
+                        console.log('result was', result);
+                        location.reload();	
+                    }).catch((error) => {
+                        console.log('error', error)
+                    });
+                } else {
+                    console.log('switching networks failed with error', error);
+                }
+            });
+            return false;
+        });
+        $('.add-network-button').empty().append(lnk);
+    }
+
+    $('.network-specified-text').text(specified_network_txt);
+    $('.network-detected-text').text(detected_network_txt);
+    $('body').addClass('error-not-specified-network').addClass('error');
+
+    return;
+}
+
 export { 
     storeCustomContract, 
     importedCustomContracts, 
@@ -196,5 +251,6 @@ export {
     set_hash_param,
     parseHash,
     updateHashQuestionID,
-    loadSearchFilters
+    loadSearchFilters,
+    displayWrongChain
 }

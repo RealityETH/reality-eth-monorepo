@@ -5,6 +5,7 @@ import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters } from './ui_lib.js';
 import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
+import { displayWrongChain } from './ui_lib.js';
 
 export default function() {
 
@@ -5581,47 +5582,6 @@ console.log('in foreignProxyInitChain');
     }
 }
 
-function displayWrongChain(specified, detected) {
-    console.log('displayWrongChain', specified, detected);
-    let specified_network_txt = $('.network-status.network-id-'+specified).text();
-    let detected_network_txt = $('.network-status.network-id-'+detected).text();
-    if (specified_network_txt == '') {
-        specified_network_txt = '[unknown network]';
-    }
-    if (detected_network_txt == '') {
-        detected_network_txt = 'another network';
-    }
-    console.log(specified_network_txt, detected_network_txt);
-
-    const wallet_info = rc_contracts.walletAddParameters(specified);
-    if (wallet_info) {
-        const lnk = $('<a>');
-        lnk.text($('.add-network-button').text());
-        lnk.bind('click', function(evt) {
-            console.log('add net');
-            evt.stopPropagation();
-            console.log('getting', specified);
-            ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [wallet_info]
-            }).then((result) => {
-                console.log('result was', result);
-                location.reload();	
-            }).catch((error) => {
-                console.log('error', error)
-            });
-            return false;
-        });
-        $('.add-network-button').empty().append(lnk);
-    }
-
-    $('.network-specified-text').text(specified_network_txt);
-    $('.network-detected-text').text(detected_network_txt);
-    $('body').addClass('error-not-specified-network').addClass('error');
-
-    return;
-}
-
 window.addEventListener('load', async function() {
 
     let cid;
@@ -5686,7 +5646,7 @@ window.addEventListener('load', async function() {
                 $('body').addClass('error-invalid-network').addClass('error');
                 return;
             } else {
-                displayWrongChain(parseInt(args['network']), parseInt(cid));
+                displayWrongChain(parseInt(args['network']), parseInt(cid), rc_contracts, $);
             }
             return;
         }
