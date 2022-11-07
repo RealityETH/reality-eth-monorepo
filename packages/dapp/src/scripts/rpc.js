@@ -2243,24 +2243,10 @@ function populateSectionEntry(entry, question) {
     entry.attr('data-contract-question-id', contractQuestionID(question));
     //entry.find('.questions__item__title').attr('data-target-id', target_question_id);
 
-    if (question_json['format'] === 'text/markdown') {
-        if (question_json['errors'] && question_json['errors']['unsafe_markdown']) {
-            entry.find('.question-title').text(question_json['title']).expander({
-                expandText: '',
-                slicePoint: 140
-            });
-        } else {
-            entry.find('.question-title').html(question_json['title_html']).expander({
-                expandText: '',
-                slicePoint: 140
-            });
-        }
-    } else {
-        entry.find('.question-title').text(question_json['title']).expander({
-            expandText: '',
-            slicePoint: 140
-        });
-    }
+    entry.find('.question-title').text(question_json['title_text']).expander({
+        expandText: '',
+        slicePoint: 140
+    });
     entry.find('.question-bounty').text(bounty);
 
     entry.find('.bond-value').text(decimalizedBigNumberToHuman(bond));
