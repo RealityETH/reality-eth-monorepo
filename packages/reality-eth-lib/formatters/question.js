@@ -220,13 +220,15 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
         switch(question_json['format']){
             case 'text/markdown':{
                 const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
-                if (safeMarkdown !== question_json['title'])
-                    if(question_json['errors'])
+                if (safeMarkdown !== question_json['title']) {
+                    if(question_json['errors']) {
                         question_json['errors']['unsafe_markdown'] = true;
-                    else
+                    } else {
                         question_json['errors'] = {'unsafe_markdown': true};
-                else
+                    }
+                } else {
                     question_json['title-markdown-html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
+                }
                 break;
             }
             case 'text/plain': {
