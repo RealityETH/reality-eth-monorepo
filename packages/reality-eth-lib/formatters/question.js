@@ -191,17 +191,16 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
         };
     }
 
-    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES)
-        if(question_json['errors'])
-            question_json['errors']['too_many_outcomes'] = true
-        else
-            question_json['errors'] = {'too_many_outcomes': true};
-    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) 
-        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision'])))
-            if(question_json['errors'])
-                question_json['errors']['invalid_precision'] = true
-            else
-                question_json['errors'] = {'invalid_precision': true};
+    if (question_json['outcomes'] && question_json['outcomes'].length > QUESTION_MAX_OUTCOMES) {
+        if (!question_json['errors']) question_json['errors'] = {};
+        question_json['errors']['too_many_outcomes'] = true;
+    }
+    if ('type' in question_json && question_json['type'] == 'datetime' && 'precision' in question_json) {
+        if (!(['Y', 'm', 'd', 'H', 'i', 's'].includes(question_json['precision']))) {
+            if (!question_json['errors']) question_json['errors'] = {};
+            question_json['errors']['invalid_precision'] = true;
+        }
+    }
     // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
     if (errors_to_title) {
         if ('errors' in question_json) {
@@ -217,41 +216,31 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
         }
     }
 
-    try{
-        switch(question_json['format']){
-            case 'text/markdown':{
-                const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
-                if (safeMarkdown !== question_json['title']) {
-                    if(question_json['errors']) {
-                        question_json['errors']['unsafe_markdown'] = true;
-                    } else {
-                        question_json['errors'] = {'unsafe_markdown': true};
-                    }
-                } else {
-                    question_json['title_html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
-                    question_json['title_text'] = convert(question_json['title_html'], {
-                        selectors: [{selector: 'h1', options: { uppercase: false }}]
-                    });
-                }
-                break;
+    if (!question_json['format']) {
+        question_json['format'] = 'text/plain';
+    }
+
+    if (question_json['format'] == 'text/plain') {
+        question_json['title_text'] = question_json['title'];
+    } else if (question_json['format'] == 'text/markdown') {
+        try{
+            const safeMarkdown = DOMPurify.sanitize(question_json['title'], { USE_PROFILES: {html: false}});
+            if (safeMarkdown !== question_json['title']) {
+                if (!question_json['errors']) question_json['errors'] = {};
+                question_json['errors']['unsafe_markdown'] = true;
+            } else {
+                question_json['title_html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
+                question_json['title_text'] = convert(question_json['title_html'], {
+                    selectors: [{selector: 'h1', options: { uppercase: false }}]
+                });
             }
-            case 'text/plain': {
-                question_json['title_text'] = question_json['title'];
-                break;
-            }
-            case undefined:{
-                question_json['format'] = 'text/plain';
-                question_json['title_text'] = question_json['title'];
-                break;
-            }
-            default:{
-                question_json['errors'] = {'invalid_format': true};            
-                break;
-            }
-        }
-    } catch(e){
-        if(question_json && question_json['errors'])
+        } catch(e){
+            if (!question_json['errors']) question_json['errors'] = {};
             question_json['errors']['markdown_parse_failed'] = true
+        }
+    } else {
+        if (!question_json['errors']) question_json['errors'] = {};
+        question_json['errors']['invalid_format'] = true;
     }
 
     // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
