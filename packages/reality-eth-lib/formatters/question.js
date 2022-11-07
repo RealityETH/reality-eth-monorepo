@@ -7,6 +7,7 @@ const vsprintf = require("sprintf-js").vsprintf
 const QUESTION_MAX_OUTCOMES = 128;
 const marked = require('marked');
 const DOMPurify = require('isomorphic-dompurify');
+const { convert} = require('html-to-text');
 
 exports.delimiter = function() {
     return '\u241f'; // Thought about '\u0000' but it seems to break something;
@@ -228,14 +229,17 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
                     }
                 } else {
                     question_json['title-markdown-html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
+                    question_json['title_text'] = convert(question_json['title-markdown-html'], {'uppercase': false});
                 }
                 break;
             }
             case 'text/plain': {
+                question_json['title_text'] = question_json['title'];
                 break;
             }
             case undefined:{
                 question_json['format'] = 'text/plain';
+                question_json['title_text'] = question_json['title'];
                 break;
             }
             default:{

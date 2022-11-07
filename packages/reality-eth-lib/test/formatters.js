@@ -240,6 +240,17 @@ describe('Broken questions', function() {
   });
 });
 
+describe('Markdown questions', function() {
+  it('Sets title, title_html and title_text appropriatly', function() {
+    const qMarkdown = "{\"title\": \"# my title oh yes\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qMarkdown, true);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+console.log(q);
+    expect(q.title_text).to.equal('my title oh yes');
+  });
+});
+
 describe('Unsafe markdown questions', function() {
   it('Sets an error if a question includes unsafe html in markdown', function() {
     const qUnsafeMarkdown = "{\"title\": \"# Title <p>abc<iframe\/\/src=jAva&Tab;script:alert(3)>def<\/p>\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
