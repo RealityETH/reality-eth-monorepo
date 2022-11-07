@@ -8,6 +8,7 @@ const QUESTION_MAX_OUTCOMES = 128;
 const marked = require('marked');
 const DOMPurify = require('isomorphic-dompurify');
 const { convert} = require('html-to-text');
+marked.setOptions({headerIds: false});
 
 exports.delimiter = function() {
     return '\u241f'; // Thought about '\u0000' but it seems to break something;
