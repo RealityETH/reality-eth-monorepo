@@ -1790,7 +1790,7 @@ function populateSectionEntry(entry, question) {
                 slicePoint: 140
             });
         } else {
-            entry.find('.question-title').html(question_json['title-markdown-html']).expander({
+            entry.find('.question-title').html(question_json['title_html']).expander({
                 expandText: '',
                 slicePoint: 140
             })
@@ -2432,7 +2432,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 slicePoint: 200
             });
         } else {
-            rcqa.find('.question-title').html(question_json['title-markdown-html']).expander({
+            rcqa.find('.question-title').html(question_json['title_html']).expander({
                 slicePoint: 200
             });
         }
@@ -3303,7 +3303,7 @@ function renderUserQandA(question, entry) {
         if (question_json['errors'] && question_json['errors']['unsafe_markdown']) {
             qitem.find('.question-text').text(question_json['title']).expander();
         } else {
-            qitem.find('.question-text').html(question_json['title-markdown-html']).expander();
+            qitem.find('.question-text').html(question_json['title_html']).expander();
         }
     } else {
         qitem.find('.question-text').text(question_json['title']).expander();
