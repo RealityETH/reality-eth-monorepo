@@ -290,8 +290,6 @@ describe('Markdown questions', function() {
   it('Set title_text appropriatly for code blocks', function() {
     const qMarkdown = "{\"title\": \"`Inline code` with backticks\\n\\n```# code block\\nprint '3 backticks or'\\nprint 'indent 4 spaces'```\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
     const q = rc_question.parseQuestionJSON(qMarkdown, true);
-    console.log(q.title_html);
-    console.log(q.title_text);
     expect(q.errors).to.equal(undefined);
     expect(q.format).to.equal('text/markdown');
     expect(q.title_text).to.equal(`Inline code with backticks\n\n# code block print '3 backticks or' print 'indent 4 spaces'`);
