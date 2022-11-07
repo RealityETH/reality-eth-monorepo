@@ -250,6 +250,39 @@ describe('Markdown questions', function() {
     expect(q.title).to.equal('# my title oh yes');
     expect(q.title_html).to.equal('<h1 id="my-title-oh-yes">my title oh yes</h1>'+"\n");
   });
+  it('Set title_text appropriatly for italic and bold headings', function() {
+    const qMarkdown = "{\"title\": \"# _Italic Heading 1_\\n## __Bold Heading 2__\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qMarkdown, true);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+    expect(q.title_text).to.equal('Italic Heading 1\n\n\nBold Heading 2');
+    expect(q.title).to.equal('# _Italic Heading 1_\n## __Bold Heading 2__');
+  });
+  it('Set title_text appropriatly for italic and bold quotes', function() {
+    const qMarkdown = "{\"title\": \">_Italic_ __Bold__\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qMarkdown, true);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+    expect(q.title_text).to.equal('> Italic Bold');
+    expect(q.title).to.equal('>_Italic_ __Bold__');
+  });
+    it('Set title_text appropriatly for lists', function() {
+    const qMarkdown = "{\"title\": \"* __Item One__\\n* __Item Two__\\n* __Item Three__\\n1. Item One\\n2. Item Two\\n3. Item Three\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qMarkdown, true);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+    expect(q.title_text).to.equal(' * Item One\n * Item Two\n * Item Three\n\n 1. Item One\n 2. Item Two\n 3. Item Three');
+    expect(q.title).to.equal('* __Item One__\n* __Item Two__\n* __Item Three__\n1. Item One\n2. Item Two\n3. Item Three');
+  });
+  it('Set title_text appropriatly for code blocks', function() {
+    const qMarkdown = "{\"title\": \"`Inline code` with backticks\\n\\n```# code block\\nprint '3 backticks or'\\nprint 'indent 4 spaces'```\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qMarkdown, true);
+    console.log(q.title_html);
+    console.log(q.title_text);
+    expect(q.errors).to.equal(undefined);
+    expect(q.format).to.equal('text/markdown');
+    expect(q.title_text).to.equal(`Inline code with backticks\n\n# code block print '3 backticks or' print 'indent 4 spaces'`);
+    expect(q.title).to.equal("`Inline code` with backticks\n\n```# code block\nprint '3 backticks or'\nprint 'indent 4 spaces'```");
 });
 
 describe('Unsafe markdown questions', function() {
@@ -259,8 +292,8 @@ describe('Unsafe markdown questions', function() {
     expect(q.errors.unsafe_markdown).to.equal(true);
   });
   it('Sets no error if a question includes valid markdown without html', function() {
-    const qUnsafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
-    const q = rc_question.parseQuestionJSON(qUnsafeMarkdown, true);
+    const qSafeMarkdown = "{\"title\": \"# Title\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";
+    const q = rc_question.parseQuestionJSON(qSafeMarkdown, true);
     expect(q.errors).to.equal(undefined);
     expect(q.format).to.equal('text/markdown');
   });
