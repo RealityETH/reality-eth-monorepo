@@ -246,8 +246,9 @@ describe('Markdown questions', function() {
     const q = rc_question.parseQuestionJSON(qMarkdown, true);
     expect(q.errors).to.equal(undefined);
     expect(q.format).to.equal('text/markdown');
-console.log(q);
     expect(q.title_text).to.equal('my title oh yes');
+    expect(q.title).to.equal('# my title oh yes');
+    expect(q.title_html).to.equal('<h1 id="my-title-oh-yes">my title oh yes</h1>'+"\n");
   });
 });
 
