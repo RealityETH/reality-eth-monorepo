@@ -1,6 +1,14 @@
 Using Reality.eth from a contract
 =====================================
 
+Contract deployments
+--------------------
+
+You can find the reality.eth contract addresses under https://github.com/RealityETH/reality-eth-monorepo/tree/main/packages/contracts/chains/deployments .
+
+For instance, the reality.eth v3 contract for mainnet (chain ID `1`) is shown in the file
+https://github.com/RealityETH/reality-eth-monorepo/blob/main/packages/contracts/chains/deployments/1/ETH/RealityETH-3.0.json
+
 Fetching information
 --------------------
 
