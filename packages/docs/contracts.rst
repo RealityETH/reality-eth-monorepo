@@ -127,6 +127,13 @@ A question with multiple outcomes will need the JSON-encoded outcome list passed
 ``Which party's nominee won the 2016 US presidential election?␟"Democrat","Republican","Libertarian"␟news-politics␟en``
 
 
+Formatting
+^^^^^^^^^^
+
+You can set the `format` field in your template to `text/markdown` to use (restricted) markdown formatting in your `title`. If you do not set the format, it will be assumed to be `text/plain`.
+
+
+
 Asking questions
 ----------------
 
