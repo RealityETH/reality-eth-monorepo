@@ -232,7 +232,11 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             } else {
                 question_json['title_html'] = marked.parse(safeMarkdown).replace(/<img.*src=\"(.*?)\".*alt=\"(.*?)\".*\/?>/, '<a href="$1">$2</a>');
                 question_json['title_text'] = convert(question_json['title_html'], {
-                    selectors: [{selector: 'h1', options: { uppercase: false }}, {selector: 'h2', options: { uppercase: false }}]
+                    selectors: [
+                        {selector: 'h1', options: { uppercase: false }}, 
+                        {selector: 'h2', options: { uppercase: false }},
+                        {selector: 'hr', format: 'skip'}
+                    ]
                 });
             }
         } catch(e){
