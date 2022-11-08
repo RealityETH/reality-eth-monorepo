@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/dapp",
-  "version": "3.0.24",
+  "version": "3.0.25",
   "description": "Reality.eth dapp",
   "main": "",
   "scripts": {
@@ -45,7 +45,7 @@
   "dependencies": {
     "@babel/polyfill": "^7.12.1",
     "@reality.eth/contracts": "^3.0.17",
-    "@reality.eth/reality-eth-lib": "^3.2.0",
+    "@reality.eth/reality-eth-lib": "^3.2.1",
     "assert": "^2.0.0",
     "axios": "^0.27.2",
     "buffer": "^6.0.3",
