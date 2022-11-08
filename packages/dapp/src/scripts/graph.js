@@ -2407,7 +2407,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
 
-    if (isTitleLong(question_json['title'])) {
+    if (isTitleLong(question_json['title_text'])) {
         rcqa.addClass('long-title')
     } else {
         rcqa.removeClass('long-title')
@@ -3048,7 +3048,7 @@ function userInvolvement(question) {
 function insertFinalizationNotification(question, q_involvement) {
     // console.log('insert Finalization notification for', question, q_involvement);
 
-    const q_title = question.question_json['title'];
+    const q_title = question.question_json['title_text'];
     if (!q_title) {
         console.log('Skipping notification for question with no title', question);
         return;
@@ -3108,7 +3108,7 @@ function renderNotificationsGraph(entry, fetched_ms) {
     if (!question_json) {
         console.log('missing question_json for question, skipping notification', question);
         return;
-    } else if (!question_json['title']) {
+    } else if (!question_json['title_text']) {
         console.log('missing title for question, skipping notification', question, question_json);
         return;
     }
@@ -3117,7 +3117,7 @@ function renderNotificationsGraph(entry, fetched_ms) {
 
     switch (evt) {
         case 'AskQuestion':
-            ntext = 'You asked a question - "' + question_json['title'] + '"';
+            ntext = 'You asked a question - "' + question_json['title_text'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
             renderUserQandA(question, entry); 
             q_involvement['asked'] = true;
@@ -3126,12 +3126,12 @@ function renderNotificationsGraph(entry, fetched_ms) {
         case 'AnswerQuestion':
             if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
                 if (entry.isCommitment && !entry.revealedBlock) {
-                    ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
+                    ntext = 'You committed to answering a question - "' + question_json['title_text'] + '"';
                 } else {
                     if (entry.question.user == ACCOUNT) {
-                        ntext = 'You answered your own question - "' + question_json['title'] + '"';
+                        ntext = 'You answered your own question - "' + question_json['title_text'] + '"';
                     } else {
-                        ntext = 'You answered a question - "' + question_json['title'] + '"';
+                        ntext = 'You answered a question - "' + question_json['title_text'] + '"';
                     }
                 }
                 insertNotificationItem(evt, notification_id, ntext, entry.createdBlock, contract, question.question_id, true, entry['createdTimestamp']);
@@ -3142,7 +3142,7 @@ function renderNotificationsGraph(entry, fetched_ms) {
                 // NB We may have two notifications for this if somebody answers your question, overwriting your answer
                 // One of the cases has a tweaked notification ID for this case.
                 if (entry.question.user == ACCOUNT) {
-                    ntext = 'Someone answered your question - "' + question_json['title'] + '"';;
+                    ntext = 'Someone answered your question - "' + question_json['title_text'] + '"';;
                     insertNotificationItem(evt, notification_id+'-yourq', ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
                 }
                 // TODO: Handle overwritten or not
@@ -3158,7 +3158,7 @@ function renderNotificationsGraph(entry, fetched_ms) {
                 if (is_relevant_from) {
                     const bond = ethers.BigNumber.from(entry.bond);
                     if (bond.gt(is_relevant_from)) {
-                        ntext = 'Your answer was overwritten - "' + question_json['title'] + '"';;;
+                        ntext = 'Your answer was overwritten - "' + question_json['title_text'] + '"';;;
                     }
                 }
 
@@ -3167,22 +3167,22 @@ function renderNotificationsGraph(entry, fetched_ms) {
 
         case 'FundAnswerBounty':
             if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
-                ntext = 'You added reward - "' + question_json['title'] + '"';
+                ntext = 'You added reward - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
                 q_involvement['funded'] = true;
             } else {
-                ntext = 'Someone added a reward to the question - "' + question_json['title'] + '"';
+                ntext = 'Someone added a reward to the question - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
             }
             break;
 
         case 'RequestArbitration':
             if (entry.user.toLowerCase() == ACCOUNT.toLowerCase()) {
-                ntext = 'You requested arbitration - "' + question_json['title'] + '"';
+                ntext = 'You requested arbitration - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.question_id, true, entry['createdTimestamp']);
                 q_involvement['arbitration'] = true;
             } else {
-                ntext = 'Someone requested arbitration - "' + question_json['title'] + '"';
+                ntext = 'Someone requested arbitration - "' + question_json['title_text'] + '"';
             }
             break;
     }
@@ -3285,15 +3285,7 @@ function renderUserQandA(question, entry) {
 
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
-    if (question_json['format'] === 'text/markdown') {
-        if (question_json['errors'] && question_json['errors']['unsafe_markdown']) {
-            qitem.find('.question-text').text(question_json['title']).expander();
-        } else {
-            qitem.find('.question-text').html(question_json['title_html']).expander();
-        }
-    } else {
-        qitem.find('.question-text').text(question_json['title']).expander();
-    }
+    qitem.find('.question-text').text(question_json['title_text']).expander();
     qitem.attr('data-block-number', entry.createdBlock);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');

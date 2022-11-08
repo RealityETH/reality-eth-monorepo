@@ -2860,7 +2860,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
 
     rcqa.find('.rcbrowser-main-header-date').text(date_str);
 
-    if (isTitleLong(question_json['title'])) {
+    if (isTitleLong(question_json['title_text'])) {
         rcqa.addClass('long-title')
     } else {
         rcqa.removeClass('long-title')
@@ -3511,7 +3511,7 @@ function renderNotifications(qdata, entry) {
     switch (evt) {
         case 'LogNewQuestion':
             notification_id = uiHash('LogNewQuestion' + entry.args.question_text + entry.args.arbitrator + ethers.BigNumber.from(entry.args.timeout).toHexString());
-            ntext = 'You asked a question - "' + question_json['title'] + '"';
+            ntext = 'You asked a question - "' + question_json['title_text'] + '"';
             insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             break;
 
@@ -3519,9 +3519,9 @@ function renderNotifications(qdata, entry) {
             notification_id = uiHash('LogNewAnswer' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == ACCOUNT) {
                 if (entry.args.is_commitment) {
-                    ntext = 'You committed to answering a question - "' + question_json['title'] + '"';
+                    ntext = 'You committed to answering a question - "' + question_json['title_text'] + '"';
                 } else {
-                    ntext = 'You answered a question - "' + question_json['title'] + '"';
+                    ntext = 'You answered a question - "' + question_json['title_text'] + '"';
                 }
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
@@ -3533,7 +3533,7 @@ function renderNotifications(qdata, entry) {
                         ntext = 'Your answer was overwritten';
                     }
                     if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
+                        ntext += ' - "' + question_json['title_text'] + '"';
                         insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
                     }
                 });
@@ -3543,7 +3543,7 @@ function renderNotifications(qdata, entry) {
         case 'LogAnswerReveal':
             notification_id = uiHash('LogAnswerReveal' + entry.args.question_id + entry.args.user + entry.args.bond.toHexString());
             if (entry.args.user == ACCOUNT) {
-                ntext = 'You revealed an answer to a question - "' + question_json['title'] + '"';
+                ntext = 'You revealed an answer to a question - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
@@ -3554,7 +3554,7 @@ function renderNotifications(qdata, entry) {
                         ntext = 'Your answer was overwritten';
                     }
                     if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
+                        ntext += ' - "' + question_json['title_text'] + '"';
                         insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, is_positive);
                     }
                 });
@@ -3564,7 +3564,7 @@ function renderNotifications(qdata, entry) {
         case 'LogFundAnswerBounty':
             notification_id = uiHash('LogFundAnswerBounty' + entry.args.question_id + entry.args.bounty.toHexString() + entry.args.bounty_added.toHexString() + entry.args.user);
             if (entry.args.user == ACCOUNT) {
-                ntext = 'You added reward - "' + question_json['title'] + '"';
+                ntext = 'You added reward - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
@@ -3577,7 +3577,7 @@ function renderNotifications(qdata, entry) {
                         }
                     }
                     if (typeof ntext !== 'undefined') {
-                        ntext += ' - "' + question_json['title'] + '"';
+                        ntext += ' - "' + question_json['title_text'] + '"';
                         insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
                     }
                 });
@@ -3587,7 +3587,7 @@ function renderNotifications(qdata, entry) {
         case 'LogNotifyOfArbitrationRequest':
             notification_id = uiHash('LogNotifyOfArbitrationRequest' + entry.args.question_id);
             if (entry.args.user == ACCOUNT) {
-                ntext = 'You requested arbitration - "' + question_json['title'] + '"';
+                ntext = 'You requested arbitration - "' + question_json['title_text'] + '"';
                 insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true);
             } else {
                 RCInstance(contract).queryFilter(qfilter, RCStartBlock(contract), 'latest').then(function(result2) {
@@ -3623,7 +3623,7 @@ function renderNotifications(qdata, entry) {
                     ntext = 'A question was finalized';
                 }
                 if (typeof ntext !== 'undefined') {
-                    ntext += ' - "' + question_json['title'] + '"';
+                    ntext += ' - "' + question_json['title_text'] + '"';
                     insertNotificationItem(evt, notification_id, ntext, entry.blockNumber, contract, entry.args.question_id, true, timestamp);
                 }
             });
@@ -3723,15 +3723,7 @@ function renderUserQandA(qdata, entry) {
 
     const qitem = question_section.find('.your-qa__questions__item.template-item').clone();
     qitem.attr('data-contract-question-id', contract_question_id);
-    if (question_json['format'] === 'text/markdown') {
-        if (question_json['errors'] && question_json['errors']['unsafe_markdown']) {
-            qitem.find('.question-text').text(question_json['title']).expander();
-        } else {
-            qitem.find('.question-text').html(question_json['title_html']).expander();
-        }
-    } else {
-        qitem.find('.question-text').text(question_json['title']).expander();
-    }
+    qitem.find('.question-text').text(question_json['title_text']).expander();
     qitem.attr('data-block-number', entry.blockNumber);
     qitem.removeClass('template-item');
     qitem.addClass('account-specific');
@@ -5599,7 +5591,7 @@ function displayForeignProxy(datastr) {
     const fpsec = $('div.foreign-proxy-section');
     const qjson = qdata.question_json;
     fpsec.find('.foreign-proxy-network-text').text(txt);
-    fpsec.find('.question-title').text(qjson['title']);
+    fpsec.find('.question-title').text(qjson['title_text']);
     console.log('ss', $('div.foreign-proxy-section .foreign-proxy-network-text').length);
     console.log('displayForeignProxy', qdata);
 }
