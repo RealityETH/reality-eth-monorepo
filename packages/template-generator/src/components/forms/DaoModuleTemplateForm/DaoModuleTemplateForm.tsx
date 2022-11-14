@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Input } from "../../commons/Input/Input";
 import { TemplateFormProps } from "../TemplateForm/TemplateForm";
-import { validateName } from "@ensdomains/ui/src/utils/index";
+import { validateName } from "@ensdomains/ui";
 
 function getTitleForDaoModuleTemplate(ens: string) {
   return (
