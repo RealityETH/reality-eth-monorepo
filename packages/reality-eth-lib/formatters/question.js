@@ -277,21 +277,54 @@ exports.populatedJSONForTemplate = function(template, question, errors_to_title)
     return module.exports.parseQuestionJSON(interpolated, errors_to_title);
 }
 
+// Encode text, assuming the template has placeholders in the order specified in the params.
+// Additional information about the template can be passed in as template_definitions.
+// If not specified, we'll assume it works like our standard built-in templates.
+exports.encodeCustomText = function(params, template_definitions) {
+
+    const built_in_template_definitions = {
+        'lang': {'default': 'en_US'},
+        'outcomes': {'strip_brackets': true}
+    };
+    if (template_definitions == null) {
+        template_definitions = built_in_template_definitions;
+    }
+
+    var items = [];
+    for (const p in params) {
+        const td = (p in template_definitions) ? template_definitions[p] : {};
+        var val = params[p];
+        if ((val == null) && ('default' in td)) {
+            val = td['default'];
+        }
+        if (typeof val === 'string') {
+            // Stringify puts quotation marks around the string, so strip them
+            val = JSON.stringify(val).replace(/^"|"$/g, '');
+        } else {
+            // An array of values should be stringified as a JSON array.
+            // However template may do "outcomes: [%s]" instead of "outcomes: %s" to save gas.
+            // In that case strip the closing brackets.
+            val = JSON.stringify(val);
+            if (td.strip_brackets) {
+                val = val.replace(/^\[/, '').replace(/\]$/, '');
+            }
+        }
+        items.push(val);
+    }
+    const ret = items.join(module.exports.delimiter());
+    return ret;
+
+}
+
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
-    var qtext = JSON.stringify(txt).replace(/^"|"$/g, '');
-    var delim = module.exports.delimiter();
-    //console.log('using template_id', template_id);
+    var def = {};
+    def['title'] = txt;
     if (qtype == 'single-select' || qtype == 'multiple-select') {
-        var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
-        //console.log('made outcome_str', outcome_str);
-        qtext = qtext + delim + outcome_str;
-        //console.log('made qtext', qtext);
+        def['outcomes'] = outcomes;
     }
-    if (typeof lang == 'undefined' || lang == '') {
-        lang = 'en_US';
-    }
-    qtext = qtext + delim + category + delim + lang;
-    return qtext;
+    def['category'] = category;
+    def['lang'] = lang;
+    return module.exports.encodeCustomText(def);
 }
 
 // A value used to denote that the question is invalid or can't be answered
