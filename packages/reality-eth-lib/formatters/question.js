@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
 const vsprintf = require("sprintf-js").vsprintf
 const QUESTION_MAX_OUTCOMES = 128;
+const TEMPLATE_MAX_PLACEHOLDERS = 128;
 const marked = require('marked');
 const DOMPurify = require('isomorphic-dompurify');
 const { convert} = require('html-to-text');
@@ -282,14 +283,6 @@ exports.populatedJSONForTemplate = function(template, question, errors_to_title)
 // If not specified, we'll assume it works like our standard built-in templates.
 exports.encodeCustomText = function(params, template_definitions) {
 
-    const built_in_template_definitions = {
-        'lang': {'default': 'en_US'},
-        'outcomes': {'strip_brackets': true}
-    };
-    if (template_definitions == null) {
-        template_definitions = built_in_template_definitions;
-    }
-
     var items = [];
     for (const p in params) {
         const td = (p in template_definitions) ? template_definitions[p] : {};
@@ -316,6 +309,67 @@ exports.encodeCustomText = function(params, template_definitions) {
 
 }
 
+exports.guessTemplateConfig = function(template) {
+    // Use the hash of the template as a temporary placeholder
+    // Since you can't hash yourself we can be confident this won't collide.
+    const placeholder = '0x' + ethereumjs_abi.soliditySHA3(['string'], [template]).toString('hex');
+    var pl_arr = new Array(TEMPLATE_MAX_PLACEHOLDERS);
+    pl_arr.fill(placeholder);
+    const interpolated = vsprintf(template, pl_arr);
+    const fake_json = module.exports.parseQuestionJSON(interpolated, false);
+
+    // If there's a section called __META, use that for titling columns etc
+    var meta = '__META' in fake_json ? fake_json['__META'] : {};
+    var labels = 'labels' in meta ? meta['labels'] : {};
+
+    var fields = {};
+    for (const k in fake_json) {
+        if (k == 'title_text' || k == 'title_html' || k == '__META') {
+            // Fields we add automatically
+            continue;
+        }
+
+        var fdef = {};
+        fdef['label'] = (k in labels) ? labels[k] : k;
+        const regexp = new RegExp('('+placeholder+')');
+        const bits = fake_json[k].split(regexp);
+        // console.log(bits);
+        var parts = [];
+        var part_i = 0;
+        for(const b in bits) {
+            if (bits[b] == '') {
+                continue;
+            }
+            if (bits[b] == placeholder) {
+                let part_label = k + '_' + part_i;
+                if (part_label in labels) {
+                    part_label = labels[part_label];
+                }
+                parts.push({'part': 'parameter', 'part_index': part_i, 'label': part_label})
+                part_i++;
+            } else {
+                parts.push({'part': 'text', 'value': bits[b]});
+            }
+        }
+        fdef['parts'] = parts;
+        fields[k] = fdef;
+    }
+
+    var tags = {};
+    if ('tags' in meta) {
+        tags = meta['tags']
+    }
+
+    return {
+        'fields': fields,
+        'tags': tags
+    };
+
+    // For each of the fields that was a placeholder, 
+
+
+}
+
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     var def = {};
     def['title'] = txt;
@@ -324,7 +378,13 @@ exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     }
     def['category'] = category;
     def['lang'] = lang;
-    return module.exports.encodeCustomText(def);
+
+    const built_in_template_definitions = {
+        'lang': {'default': 'en_US'},
+        'outcomes': {'strip_brackets': true}
+    };
+
+    return module.exports.encodeCustomText(def, built_in_template_definitions);
 }
 
 // A value used to denote that the question is invalid or can't be answered
