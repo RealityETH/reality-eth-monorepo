@@ -281,29 +281,22 @@ exports.populatedJSONForTemplate = function(template, question, errors_to_title)
 // Encode text, assuming the template has placeholders in the order specified in the params.
 // Additional information about the template can be passed in as template_definitions.
 // If not specified, we'll assume it works like our standard built-in templates.
-exports.encodeCustomText = function(params, template_definitions) {
+exports.encodeCustomText = function(params) {
 
     var items = [];
     for (const p in params) {
-        const td = (p in template_definitions) ? template_definitions[p] : {};
         var val = params[p];
-        if ((val == null) && ('default' in td)) {
-            val = td['default'];
-        }
         if (typeof val === 'string') {
             // Stringify puts quotation marks around the string, so strip them
             val = JSON.stringify(val).replace(/^"|"$/g, '');
-        } else {
+        } else if (typeof val === 'object') { 
             // An array of values should be stringified as a JSON array.
-            // However template may do "outcomes: [%s]" instead of "outcomes: %s" to save gas.
+            // However template should do "outcomes: [%s]" instead of "outcomes: %s".
             // In that case strip the closing brackets.
-// TODO: If we assume the template must parse as valid json, outcomes: %s was invalid so we don't need to check this
-// NB That assumption also breaks "field": %d
-            val = JSON.stringify(val);
-            if (td.strip_brackets) {
-                val = val.replace(/^\[/, '').replace(/\]$/, '');
-            }
-        }
+            val = JSON.stringify(val).replace(/^\[/, '').replace(/\]$/, '');
+        } else {
+            val = null;
+        } 
         items.push(val);
     }
     const ret = items.join(module.exports.delimiter());
@@ -338,7 +331,6 @@ exports.guessTemplateConfig = function(template) {
     // If there's a section called __META, use that for titling columns etc
     var meta = '__META' in fake_json ? fake_json['__META'] : {};
     var labels = 'labels' in meta ? meta['labels'] : {};
-    var definitions = 'definitions' in meta ? meta['definitions'] : {};
 
     var fields = {};
     for (const k in fake_json) {
@@ -405,12 +397,7 @@ exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     def['category'] = category;
     def['lang'] = lang;
 
-    const built_in_template_definitions = {
-        // 'lang': {'default': 'en_US'},
-        'outcomes': {'strip_brackets': true}
-    };
-
-    return module.exports.encodeCustomText(def, built_in_template_definitions);
+    return module.exports.encodeCustomText(def);
 }
 
 // A value used to denote that the question is invalid or can't be answered
