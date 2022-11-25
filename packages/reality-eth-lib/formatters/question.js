@@ -297,6 +297,8 @@ exports.encodeCustomText = function(params, template_definitions) {
             // An array of values should be stringified as a JSON array.
             // However template may do "outcomes: [%s]" instead of "outcomes: %s" to save gas.
             // In that case strip the closing brackets.
+// TODO: If we assume the template must parse as valid json, outcomes: %s was invalid so we don't need to check this
+// NB That assumption also breaks "field": %d
             val = JSON.stringify(val);
             if (td.strip_brackets) {
                 val = val.replace(/^\[/, '').replace(/\]$/, '');
@@ -313,14 +315,30 @@ exports.guessTemplateConfig = function(template) {
     // Use the hash of the template as a temporary placeholder
     // Since you can't hash yourself we can be confident this won't collide.
     const placeholder = '0x' + ethereumjs_abi.soliditySHA3(['string'], [template]).toString('hex');
+    const arr_placeholder = '0x' + ethereumjs_abi.soliditySHA3(['string'], [template + "_arr"]).toString('hex');
     var pl_arr = new Array(TEMPLATE_MAX_PLACEHOLDERS);
     pl_arr.fill(placeholder);
-    const interpolated = vsprintf(template, pl_arr);
+    var interpolated = vsprintf(template, pl_arr);
+
+    // Quote the placeholders in any arrays that didn't originally have quotes
+    interpolated = interpolated.replaceAll('['+placeholder+']', '"'+arr_placeholder+'"');
+
     const fake_json = module.exports.parseQuestionJSON(interpolated, false);
+
+    /*
+    Meta example:
+    {
+        'labels': {'dog': 'Dogs', 'cat': 'Cats'},
+        'tags': {'2': 'dog'}
+        'defaults': {'lang': 'en_US'}
+    }
+    */
+
 
     // If there's a section called __META, use that for titling columns etc
     var meta = '__META' in fake_json ? fake_json['__META'] : {};
     var labels = 'labels' in meta ? meta['labels'] : {};
+    var definitions = 'definitions' in meta ? meta['definitions'] : {};
 
     var fields = {};
     for (const k in fake_json) {
@@ -329,9 +347,16 @@ exports.guessTemplateConfig = function(template) {
             continue;
         }
 
+        // We assume that every placeholder is either the value for a field, or contained in it.
+        // ie we handle
+        //    "myfield": "%s"
+        //    "myfield": "A %s and another %s."
+        //    "myfield": [%s]
+
         var fdef = {};
         fdef['label'] = (k in labels) ? labels[k] : k;
-        const regexp = new RegExp('('+placeholder+')');
+        const regexp = new RegExp('('+placeholder+'|'+arr_placeholder+')');
+        //const regexp = new RegExp('('+placeholder+')');
         const bits = fake_json[k].split(regexp);
         // console.log(bits);
         var parts = [];
@@ -340,12 +365,16 @@ exports.guessTemplateConfig = function(template) {
             if (bits[b] == '') {
                 continue;
             }
-            if (bits[b] == placeholder) {
+            if (bits[b] == placeholder || bits[b] == arr_placeholder) {
                 let part_label = k + '_' + part_i;
                 if (part_label in labels) {
                     part_label = labels[part_label];
                 }
-                parts.push({'part': 'parameter', 'part_index': part_i, 'label': part_label})
+                if (bits[b] == placeholder) {
+                    parts.push({'part': 'parameter', 'part_index': part_i, 'label': part_label})
+                } else {
+                    parts.push({'part': 'array_parameter', 'part_index': part_i, 'label': part_label})
+                }
                 part_i++;
             } else {
                 parts.push({'part': 'text', 'value': bits[b]});
@@ -365,9 +394,6 @@ exports.guessTemplateConfig = function(template) {
         'tags': tags
     };
 
-    // For each of the fields that was a placeholder, 
-
-
 }
 
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
@@ -380,7 +406,7 @@ exports.encodeText = function(qtype, txt, outcomes, category, lang) {
     def['lang'] = lang;
 
     const built_in_template_definitions = {
-        'lang': {'default': 'en_US'},
+        // 'lang': {'default': 'en_US'},
         'outcomes': {'strip_brackets': true}
     };
 
