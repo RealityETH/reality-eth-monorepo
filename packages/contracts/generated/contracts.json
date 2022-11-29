@@ -297,6 +297,16 @@
             }
         }
     },
+    "97": {
+        "BNB": {
+            "RealityETH-3.0": {
+                "address": "0x16E0a06b00020764F3f50bd2E03D73Da0253A6eA",
+                "block": 25029439,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "100": {
         "GNO": {
             "RealityETH_ERC20-3.0": {

@@ -2,6 +2,7 @@
     "decimals": 18,
     "small_number": 10000000000000000,
     "native_chains": {
-        "56": true            
+        "56": true,
+        "97": true
     }
 }

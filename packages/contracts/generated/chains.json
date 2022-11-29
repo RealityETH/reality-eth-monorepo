@@ -191,6 +191,29 @@
             "https://blockscout.com/poa/sokol"
         ]
     },
+    "97": {
+        "chainId": "0x61",
+        "chainName": "Binance Smart Chain Testnet",
+        "nativeCurrency": {
+            "name": "Binance Chain Native Token",
+            "symbol": "tBNB",
+            "decimals": 18
+        },
+        "network_name": "chapel",
+        "rpcUrls": [
+            "https://data-seed-prebsc-1-s1.binance.org:8545",
+            "https://data-seed-prebsc-2-s1.binance.org:8545",
+            "https://data-seed-prebsc-1-s2.binance.org:8545",
+            "https://data-seed-prebsc-2-s2.binance.org:8545",
+            "https://data-seed-prebsc-1-s3.binance.org:8545",
+            "https://data-seed-prebsc-2-s3.binance.org:8545"
+        ],
+        "hostedRPC": "https://data-seed-prebsc-1-s1.binance.org:8545",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
+        "blockExplorerUrls": [
+            "https://testnet.bscscan.com"
+        ]
+    },
     "100": {
         "chainId": "0x64",
         "chainName": "Gnosis",
