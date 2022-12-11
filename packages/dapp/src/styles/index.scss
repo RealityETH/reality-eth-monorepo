@@ -187,8 +187,9 @@ h1.logo {
     background: url(../image/realitio_header_logo.png) top left no-repeat;
     background-size: contain;
     position: absolute;
-    left: -100px;
-    width: 317px;
+    left: -50px;
+    width: 40%;
+    max-width: 317px;
     height: 105px;
     margin-left: 0;
     margin-top: 0;
@@ -411,7 +412,8 @@ body.pushing .page-qa #push-icon {
 }
 
 #post-a-question-button {
-    width: 240px;
+    width: 40%;
+    max-width: 240px;
     height: 60px;
     line-height: 60px;
     text-align: center;
@@ -521,7 +523,6 @@ body.pushing .page-qa #push-icon {
     margin: 0 auto;
     background-color: transparent;
     max-width: 1100px;
-    min-width: 980px;
 }
 
 // Filter
@@ -595,7 +596,8 @@ body.pushing .page-qa #push-icon {
 #questions-container {
     padding: 40px;
     box-shadow: 1px 1px 10px rgba(0,0,0,.2);
-    margin: 20px auto 80px;
+    margin: 20px auto 20px;
+    align-items: center;
     background-color: #fff;
 }
 
@@ -891,7 +893,8 @@ a.questions__item__title:hover {
     right: 0;
     overflow: hidden;
     float: right;
-    width: 230px;
+    width: 25%;
+    max-width: 230px;
     margin-top: -52px;
     text-align: left;
     height: 68px;
@@ -907,7 +910,8 @@ a.questions__item__title:hover {
     right: 0;
     overflow: hidden;
     float: right;
-    width: 230px;
+    width: 25%;
+    max-width: 230px;
     text-align: left;
     font-family: $font-family-sans;
     color: $light-gray;
@@ -963,14 +967,14 @@ a.questions__item__title:hover {
 
 .questions__item.has-answer a.questions__item__title,
 .questions__item.no-answers a.questions__item__title {
-    margin-right: 260px;
+    margin-right: 25%;
     height:2.4em;
 }
 
 .questions__item__footer {
     font-size: 13px;
     color: $light-gray;
-    margin-right: 270px;
+    margin-right: 100px;
 }
 
 .loadmore-button {
@@ -1166,7 +1170,6 @@ li.site-footer-nav__divider {
 // site footer nav --secondary
 #site-footer-nav--secondary {
     max-width: 1024px;
-    min-width: 980px;
     margin: 0 auto;
     padding: 42px 0;
 }
@@ -1319,17 +1322,17 @@ footer .cols ul {
 
 .rcbrowser--postaquestion,
 .rcbrowser--postaquestion .rcbrowser-header {
-    width: 800px;
+    width: 100%;
 }
 
 .rcbrowser--qa-detail,
 .rcbrowser--qa-detail .rcbrowser-header {
-    width: 800px;
+    width: 75%;
 }
 
 .rcbrowser--your-qa,
 .rcbrowser--your-qa .rcbrowser-header {
-    width: 800px;
+    width: 75%;
 }
 
 .rcbrowser--qa-detail--resolved .current-answer-container {
@@ -1337,7 +1340,7 @@ footer .cols ul {
 }
 
 .rcbrowser--help-center, .rcbrowser--help-center .rcbrowser-header {
-    width: 800px;
+    width: 75%;
 }
 .rcbrowser--help-center {
     height: 100%;
@@ -2359,7 +2362,8 @@ a.reopener-question-link {
 }
 
 .rcbrowser--qa-detail .rcbrowser-submit {
-    width: 350px;
+    width: 50%;
+    max-width: 350px;
     display: inline-block;
 }
 
