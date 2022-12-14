@@ -30,4 +30,6 @@ The following are published to npm. They are versioned individually, and updated
   * @reality.eth/dapp
   * @reality.eth/cli-tools
 
-Some packages reference each other, for example `dapp` needs `contracts` and `reality-eth-lib`. When developing it can be useful to make your local environment refer directly to the working versions of the other packages in the repo. To do this, instead of running the normal `npm install` for each JavaScript package, run `lerna bootstrap --hoist` from the uppermost directory. This will install external dependencies normally, but set up dependencies within this repo as symlinks.
+Some packages reference each other, for example `dapp` needs `contracts` and `reality-eth-lib`. When developing it can be useful to make your local environment refer directly to the working versions of the other packages in the repo. To do this, instead of running the normal `npm install` for each JavaScript package, run `lerna bootstrap` from the uppermost directory. This will install external dependencies normally, but set up dependencies within this repo as symlinks.
+
+NB The dapp lerna setup does not seem to be working correctly. You may need to run `npm install` separately for the dapp.
