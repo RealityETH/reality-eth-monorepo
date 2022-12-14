@@ -5,6 +5,7 @@ const BigNumber = require('bignumber.js');
 const ethereumjs_abi = require('ethereumjs-abi')
 const vsprintf = require("sprintf-js").vsprintf
 const QUESTION_MAX_OUTCOMES = 128;
+const TEMPLATE_MAX_PLACEHOLDERS = 128;
 const marked = require('marked');
 const DOMPurify = require('isomorphic-dompurify');
 const { convert} = require('html-to-text');
@@ -277,21 +278,126 @@ exports.populatedJSONForTemplate = function(template, question, errors_to_title)
     return module.exports.parseQuestionJSON(interpolated, errors_to_title);
 }
 
+// Encode text, assuming the template has placeholders in the order specified in the params.
+// Additional information about the template can be passed in as template_definitions.
+// If not specified, we'll assume it works like our standard built-in templates.
+exports.encodeCustomText = function(params) {
+
+    var items = [];
+    for (const p in params) {
+        var val = params[p];
+        if (typeof val === 'string') {
+            // Stringify puts quotation marks around the string, so strip them
+            val = JSON.stringify(val).replace(/^"|"$/g, '');
+        } else if (typeof val === 'object') { 
+            // An array of values should be stringified as a JSON array.
+            // However template should do "outcomes: [%s]" instead of "outcomes: %s".
+            // In that case strip the closing brackets.
+            val = JSON.stringify(val).replace(/^\[/, '').replace(/\]$/, '');
+        } else {
+            val = null;
+        } 
+        items.push(val);
+    }
+    const ret = items.join(module.exports.delimiter());
+    return ret;
+
+}
+
+exports.guessTemplateConfig = function(template) {
+    // Use the hash of the template as a temporary placeholder
+    // Since you can't hash yourself we can be confident this won't collide.
+    const placeholder = '0x' + ethereumjs_abi.soliditySHA3(['string'], [template]).toString('hex');
+    const arr_placeholder = '0x' + ethereumjs_abi.soliditySHA3(['string'], [template + "_arr"]).toString('hex');
+    var pl_arr = new Array(TEMPLATE_MAX_PLACEHOLDERS);
+    pl_arr.fill(placeholder);
+    var interpolated = vsprintf(template, pl_arr);
+
+    // Quote the placeholders in any arrays that didn't originally have quotes
+    interpolated = interpolated.replaceAll('['+placeholder+']', '"'+arr_placeholder+'"');
+
+    const fake_json = module.exports.parseQuestionJSON(interpolated, false);
+
+    /*
+    Meta example:
+    {
+        'labels': {'dog': 'Dogs', 'cat': 'Cats'},
+        'tags': {'2': 'dog'}
+        'defaults': {'lang': 'en_US'}
+    }
+    */
+
+
+    // If there's a section called __META, use that for titling columns etc
+    var meta = '__META' in fake_json ? fake_json['__META'] : {};
+    var labels = 'labels' in meta ? meta['labels'] : {};
+
+    var fields = {};
+    for (const k in fake_json) {
+        if (k == 'title_text' || k == 'title_html' || k == '__META') {
+            // Fields we add automatically
+            continue;
+        }
+
+        // We assume that every placeholder is either the value for a field, or contained in it.
+        // ie we handle
+        //    "myfield": "%s"
+        //    "myfield": "A %s and another %s."
+        //    "myfield": [%s]
+
+        var fdef = {};
+        fdef['label'] = (k in labels) ? labels[k] : k;
+        const regexp = new RegExp('('+placeholder+'|'+arr_placeholder+')');
+        //const regexp = new RegExp('('+placeholder+')');
+        const bits = fake_json[k].split(regexp);
+        // console.log(bits);
+        var parts = [];
+        var part_i = 0;
+        for(const b in bits) {
+            if (bits[b] == '') {
+                continue;
+            }
+            if (bits[b] == placeholder || bits[b] == arr_placeholder) {
+                let part_label = k + '_' + part_i;
+                if (part_label in labels) {
+                    part_label = labels[part_label];
+                }
+                if (bits[b] == placeholder) {
+                    parts.push({'part': 'parameter', 'part_index': part_i, 'label': part_label})
+                } else {
+                    parts.push({'part': 'array_parameter', 'part_index': part_i, 'label': part_label})
+                }
+                part_i++;
+            } else {
+                parts.push({'part': 'text', 'value': bits[b]});
+            }
+        }
+        fdef['parts'] = parts;
+        fields[k] = fdef;
+    }
+
+    var tags = {};
+    if ('tags' in meta) {
+        tags = meta['tags']
+    }
+
+    return {
+        'fields': fields,
+        'tags': tags
+    };
+
+}
+
 exports.encodeText = function(qtype, txt, outcomes, category, lang) {
-    var qtext = JSON.stringify(txt).replace(/^"|"$/g, '');
-    var delim = module.exports.delimiter();
-    //console.log('using template_id', template_id);
+    var def = {};
+    def['title'] = txt;
     if (qtype == 'single-select' || qtype == 'multiple-select') {
-        var outcome_str = JSON.stringify(outcomes).replace(/^\[/, '').replace(/\]$/, '');
-        //console.log('made outcome_str', outcome_str);
-        qtext = qtext + delim + outcome_str;
-        //console.log('made qtext', qtext);
+        def['outcomes'] = outcomes;
     }
-    if (typeof lang == 'undefined' || lang == '') {
-        lang = 'en_US';
-    }
-    qtext = qtext + delim + category + delim + lang;
-    return qtext;
+    def['category'] = category;
+    def['lang'] = lang;
+
+    return module.exports.encodeCustomText(def);
 }
 
 // A value used to denote that the question is invalid or can't be answered

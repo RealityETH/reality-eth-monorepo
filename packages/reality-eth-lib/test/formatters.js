@@ -385,3 +385,98 @@ describe('Question ID tests', function() {
   });
 
 });
+
+describe('Custom template handling', function() {
+  const example_template = '{"title": "%s", "dogs": "%s", "cats": "%s"}';
+  const example_template_arr = '{"title": "%s", "dogs": "%s", "cats": [%s], "ants": [%s]}';
+  const multi_template = '{"title": "%s", "dogs": "The dogs item contains thing 1 %s and thing 2 %s.", "cats": "%s"}';
+  const example_template_meta = '{"title": "%s", "dogs": "%s", "cats": "%s", "__META": {"tags": {"1": "dogthing1"}, "labels": {"dogs": "Doggies", "cats": "Felines"}}}';
+  const multi_template_meta = '{"title": "%s", "dogs": "The dogs item contains thing 1 %s and thing 2 %s.", "cats": "%s", "__META": {"tags": {"1": "dogthing1"}, "labels": {"dogs": "Doggies", "dogs_0": "First Doggy", "dogs_1": "Second Doggy", "cats": "Felines"}}}';
+  it('Returns a template config for an otherwise unknown template', function() {
+    var q = rc_question.guessTemplateConfig(example_template);
+    const t = q['fields']['title']['label'];
+    expect(t).to.equal('title');
+    const dt = q['fields']['dogs']['label'];
+    expect(dt).to.equal('dogs');
+    const parts = q['fields']['dogs']['parts'];
+    expect(parts.length).to.equal(1);
+    expect(parts[0].part).to.equal('parameter');
+    expect(parts[0].part_index).to.equal(0);
+    expect(parts[0].label).to.equal('dogs_0');
+
+    var qm = rc_question.guessTemplateConfig(example_template_meta);
+    const tm = qm['fields']['title']['label'];
+    expect(tm).to.equal('title');
+    const dtm = qm['fields']['dogs']['label'];
+    expect(dtm).to.equal('Doggies');
+    const partsm = qm['fields']['dogs']['parts'];
+    expect(partsm.length).to.equal(1);
+    expect(partsm[0].part).to.equal('parameter');
+    expect(partsm[0].part_index).to.equal(0);
+    const tag1 = qm['tags']['1'];
+    expect(tag1).to.equal('dogthing1');
+
+    var qa = rc_question.guessTemplateConfig(example_template_arr);
+    const ta = qa['fields']['title']['label'];
+    expect(ta).to.equal('title');
+    const dta = qa['fields']['dogs']['label'];
+    expect(dta).to.equal('dogs');
+    const partsa = qa['fields']['dogs']['parts'];
+    expect(partsa.length).to.equal(1);
+    expect(partsa[0].part).to.equal('parameter');
+    expect(partsa[0].part_index).to.equal(0);
+    expect(partsa[0].label).to.equal('dogs_0');
+
+    const bparts2 = qa['fields']['cats']['parts'];
+    expect(bparts2.length).to.equal(1);
+    expect(bparts2[0].part).to.equal('array_parameter');
+    expect(bparts2[0].part_index).to.equal(0);
+    expect(bparts2[0].label).to.equal('cats_0');
+
+    const bparts3 = qa['fields']['ants']['parts'];
+    expect(bparts3.length).to.equal(1);
+    expect(bparts3[0].part).to.equal('array_parameter');
+    expect(bparts3[0].part_index).to.equal(0);
+    expect(bparts3[0].label).to.equal('ants_0');
+
+  });
+
+  it('Returns a config for placeholders inside strings in json fields', function() {
+    var q = rc_question.guessTemplateConfig(multi_template);
+    const t = q['fields']['title']['label'];
+    expect(t).to.equal('title');
+    const parts = q['fields']['dogs']['parts'];
+    expect(parts.length).to.equal(5);
+    expect(parts[0].part).to.equal('text');
+    expect(parts[0].value).to.equal('The dogs item contains thing 1 ');
+    expect(parts[1].part).to.equal('parameter');
+    expect(parts[1].part_index).to.equal(0);
+    expect(parts[1].label).to.equal("dogs_0");
+    expect(parts[2].part).to.equal('text');
+    expect(parts[2].value).to.equal(' and thing 2 ');
+    expect(parts[3].part).to.equal('parameter');
+    expect(parts[3].part_index).to.equal(1);
+    expect(parts[3].label).to.equal("dogs_1");
+    expect(parts[4].part).to.equal('text');
+    expect(parts[4].value).to.equal('.');
+
+    var qm = rc_question.guessTemplateConfig(multi_template_meta);
+    const tm = q['fields']['title']['label'];
+    expect(tm).to.equal('title');
+    const partsm = qm['fields']['dogs']['parts'];
+    expect(partsm.length).to.equal(5);
+    expect(partsm[0].part).to.equal('text');
+    expect(partsm[0].value).to.equal('The dogs item contains thing 1 ');
+    expect(partsm[1].part).to.equal('parameter');
+    expect(partsm[1].part_index).to.equal(0);
+    expect(partsm[1].label).to.equal("First Doggy");
+    expect(partsm[2].part).to.equal('text');
+    expect(partsm[2].value).to.equal(' and thing 2 ');
+    expect(partsm[3].part).to.equal('parameter');
+    expect(partsm[3].part_index).to.equal(1);
+    expect(partsm[3].label).to.equal("Second Doggy");
+    expect(partsm[4].part).to.equal('text');
+    expect(partsm[4].value).to.equal('.');
+  });
+});
+
