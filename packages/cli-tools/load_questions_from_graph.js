@@ -7,13 +7,12 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 const rc_contracts = require('@reality.eth/contracts');
 
-
-
 let chain_id = parseInt(process.argv[2]);
 let offset = parseInt(process.argv[3]);
 let num_display = parseInt(process.argv[4]);
 let filter_str = process.argv[5];
 let order = process.argv[6];
+let no_ts = true;
 
 offset = offset ? offset : 0;
 num_display = num_display ? num_display : 1000;
@@ -114,7 +113,10 @@ function filledAnswer(item, fetched_ms) {
     // txid isn't filled from the graph, only from our unconfirmed transactions
     ans.txid = item.txid;
 
-    ans.fetched_ms = fetched_ms;
+    if (!no_ts) {
+        ans.fetched_ms = fetched_ms;
+    }
+
 
     return ans;
 
@@ -133,7 +135,10 @@ function filledQuestion(item, fetched_ms) {
     question.question_text= item.data;
     question.template_id = item.template.templateId;
     question.block_mined = item.createdBlock;
-    question.fetched_ms = fetched_ms;
+
+    if (!no_ts) {
+        question.fetched_ms = fetched_ms;
+    }
 
     if (item.openingTimestamp) {
         question.opening_ts = ethers.BigNumber.from(item.openingTimestamp);
