@@ -26,7 +26,7 @@
         ]
      },
      {
-      "name": "ZKSync Goerli Alpha",
+      "name": "ZKSync Goerli",
       "chainId": 280,
       "shortName": "zksyncgoerli",
       "chain": "ETH",
@@ -45,7 +45,7 @@
       "explorers": [
             {
                 "name": "ZKSync Goerli Explorer",
-                "url": "https://zksync2-testnet.zkscan.io/",
+                "url": "https://goerli.explorer.zksync.io/",
                 "standard": "EIP3091"
             }
         ]
