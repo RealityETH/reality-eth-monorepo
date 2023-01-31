@@ -17,4 +17,4 @@
       eventHandlers:
         - event: RealityETH_ERC20_deployed(address,address,uint8,string)
           handler: handleFactoryRealityETHDeploy
-      file: ./src/mapping.ts
+      file: ./src/mapping_factory.ts
