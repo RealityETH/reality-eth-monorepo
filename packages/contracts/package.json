@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/contracts",
-  "version": "3.0.21",
+  "version": "3.0.22",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {
     "generate-chains": "node scripts/generate_chains_json.js",
