@@ -425,10 +425,10 @@
   dependencies:
     assemblyscript "0.19.10"
 
-"@reality.eth/contracts@^3.0.21":
-  version "3.0.21"
-  resolved "https://registry.npmjs.org/@reality.eth/contracts/-/contracts-3.0.21.tgz"
-  integrity sha512-xLJOsXvV7/EXXYPak7aG5pfdSzjne0WcqLgBBf0Z5ovrHEsuvS+KxGkSPDoHf5qsfbG6ycRopGBHZAiF8EBtJw==
+"@reality.eth/contracts@^3.0.22":
+  version "3.0.22"
+  resolved "https://registry.yarnpkg.com/@reality.eth/contracts/-/contracts-3.0.22.tgz#2dbf3424841f41348d452d4ee080b3c536432dbb"
+  integrity sha512-3u+KTPE6U157oOML8H8cdcMasM91lDIzyXyZcmZloo0IWN1I+0ZKAbYIRXG53xZ+Ob4vDh3iYfiMlBUSXIlrJw==
   dependencies:
     ethers "^5.6.8"
 
@@ -2368,9 +2368,9 @@ globals@^9.18.0:
   resolved "https://registry.npmjs.org/globals/-/globals-9.18.0.tgz"
   integrity sha512-S0nG3CLEQiY/ILxqtztTWH/3iRRdyBLw6KMDxnKMchrtbj2OFmehVh0WUCfW3DUrIgx/qFrJPICrq4Z4sTR9UQ==
 
-"gluegun@git+https://github.com/edgeandnode/gluegun.git#v4.3.1-pin-colors-dep":
+"gluegun@https://github.com/edgeandnode/gluegun#v4.3.1-pin-colors-dep":
   version "4.3.1"
-  resolved "git+https://github.com/edgeandnode/gluegun.git#b34b9003d7bf556836da41b57ef36eb21570620a"
+  resolved "https://github.com/edgeandnode/gluegun#b34b9003d7bf556836da41b57ef36eb21570620a"
   dependencies:
     apisauce "^1.0.1"
     app-module-path "^2.2.0"
