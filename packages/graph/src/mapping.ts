@@ -73,7 +73,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
     if (questionText) {
       let qJsonStr = sprintf(questionText, fields)  
 
-      let tryData = json.try_fromBytes(ByteArray.fromUTF8(qJsonStr) as Bytes)
+      let tryData = json.try_fromString(qJsonStr)
       if (tryData.isOk) {
         let json_dict = tryData.value.toObject()
 
