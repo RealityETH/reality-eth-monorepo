@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/graph",
-  "version": "0.4.24",
+  "version": "0.4.25",
   "scripts": {
     "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
     "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
@@ -24,7 +24,6 @@
     "deploy:xdai": "yarn prepare:xdai && graph deploy $GRAPH_AUTH--ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-xdai",
     "deploy:zksync-goerli": "yarn prepare:zksync-goerli && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-zksync-goerli-2",
     "deploy:all": "yarn deploy:arbitrum && yarn deploy:ava && yarn deploy:bsc && yarn deploy:kovan && yarn deploy:mainnet && yarn deploy:mainnet && yarn deploy:optimism && yarn deploy:polygon && yarn deploy:rinkeby && yarn deploy:sokol && yarn deploy:xdai",
-
     "deploy-studio:arbitrum": "yarn prepare:arbitrum && graph deploy $GRAPH_AUTH --studio realityeth/realityeth-arbitrum",
     "deploy-studio:ava": "yarn prepare:ava && graph deploy $GRAPH_AUTH --studio realityeth/realityeth-ava",
     "deploy-studio:bsc": "yarn prepare:bsc && graph deploy $GRAPH_AUTH --studio realityeth/realityeth-bsc",
@@ -40,7 +39,6 @@
     "deploy-studio:xdai": "yarn prepare:xdai && graph deploy $GRAPH_AUTH --studio realityeth/realityeth-xdai",
     "deploy-studio:zksync-goerli": "yarn prepare:zksync-goerli && graph deploy $GRAPH_AUTH realityeth/realityeth-zksync-goerli-2",
     "deploy-studio:all": "yarn deploy-studio:arbitrum && yarn deploy-studio:ava && yarn deploy-studio:bsc && yarn deploy-studio:kovan && yarn deploy-studio:mainnet && yarn deploy-studio:mainnet && yarn deploy-studio:optimism && yarn deploy-studio:polygon && yarn deploy-studio:rinkeby && yarn deploy-studio:sokol && yarn deploy-studio:xdai",
-
     "prepare:arbitrum": "yarn clean && node render-templates.js 42161 && graph codegen",
     "prepare:ava": "yarn clean && node render-templates.js 43114 && graph codegen",
     "prepare:bsc": "yarn clean && node render-templates.js 56 && graph codegen",
@@ -62,7 +60,7 @@
     "prettier-write": "prettier --write '**/*.ts'"
   },
   "dependencies": {
-    "@reality.eth/contracts": "^3.0.22",
+    "@reality.eth/contracts": "^3.0.23",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "mustache": "^4.2.0",
