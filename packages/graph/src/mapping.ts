@@ -39,7 +39,9 @@ export function handleNewTemplate(event: LogNewTemplate): void {
   tmpl.templateId = event.params.template_id;
   tmpl.contract = event.address;
   tmpl.user = event.params.user;
-  tmpl.questionText = event.params.question_text;
+  if (event.params.question_text) {
+    tmpl.questionText = event.params.question_text;
+  }
   tmpl.createdBlock = event.block.number;
   tmpl.save()
 
@@ -62,100 +64,103 @@ export function handleNewQuestion(event: LogNewQuestion): void {
   let tmpl = Template.load(contractTemplateId);
   question.template = contractTemplateId;
 
-  let questionText = tmpl.questionText;
+  if (tmpl) {
+    let questionText = tmpl.questionText;
 
-  let data = event.params.question;
-  let fields = data.split('\u241f');
+    let data = event.params.question;
+    let fields = data.split('\u241f');
 
-  let qJsonStr = sprintf(questionText, fields)  
+    if (questionText) {
+      let qJsonStr = sprintf(questionText, fields)  
 
-  let tryData = json.try_fromBytes(ByteArray.fromUTF8(qJsonStr) as Bytes)
-  if (tryData.isOk) {
-    let json_dict = tryData.value.toObject()
+      let tryData = json.try_fromBytes(ByteArray.fromUTF8(qJsonStr) as Bytes)
+      if (tryData.isOk) {
+        let json_dict = tryData.value.toObject()
 
-    let qTitle = json_dict.get('title')
-    if (qTitle != null && qTitle.kind === JSONValueKind.STRING) {
-      question.qTitle = qTitle.toString()
-    }
-
-    let qCategory = json_dict.get('category')
-    if (qCategory != null && qCategory.kind == JSONValueKind.STRING) {
-        question.qCategory = qCategory.toString();
-    }
-
-    let qLang = json_dict.get('lang')
-    if (qLang != null && qLang.kind == JSONValueKind.STRING) {
-        question.qLang = qLang.toString();
-    }
-
-    let qType = json_dict.get('type')
-    if (qType != null && qType.kind == JSONValueKind.STRING) {
-        question.qType = qType.toString();
-    }
-
-    let q_outcomes_val = json_dict.get('outcomes')
-    if (q_outcomes_val != null && q_outcomes_val.kind === JSONValueKind.ARRAY) {
-      let q_outcomes = q_outcomes_val.toArray()
-      for(let i = 0; i < q_outcomes.length; i++) {
-          let outcomeID = contractQuestionId + '-' + i.toString();
-          let outcome = new Outcome(outcomeID);
-          if (q_outcomes[i].kind === JSONValueKind.STRING) {
-              outcome.answer = q_outcomes[i].toString()
-          } else {
-              outcome.answer = "[FORMATTING ERROR]";
-          }
-          outcome.question = contractQuestionId;
-          outcome.save()
+        let qTitle = json_dict.get('title')
+        if (qTitle != null && qTitle.kind === JSONValueKind.STRING) {
+          question.qTitle = qTitle.toString()
         }
+
+        let qCategory = json_dict.get('category')
+        if (qCategory != null && qCategory.kind == JSONValueKind.STRING) {
+            question.qCategory = qCategory.toString();
+        }
+
+        let qLang = json_dict.get('lang')
+        if (qLang != null && qLang.kind == JSONValueKind.STRING) {
+            question.qLang = qLang.toString();
+        }
+
+        let qType = json_dict.get('type')
+        if (qType != null && qType.kind == JSONValueKind.STRING) {
+            question.qType = qType.toString();
+        }
+
+        let q_outcomes_val = json_dict.get('outcomes')
+        if (q_outcomes_val != null && q_outcomes_val.kind === JSONValueKind.ARRAY) {
+          let q_outcomes = q_outcomes_val.toArray()
+          for(let i = 0; i < q_outcomes.length; i++) {
+              let outcomeID = contractQuestionId + '-' + i.toString();
+              let outcome = new Outcome(outcomeID);
+              if (q_outcomes[i].kind === JSONValueKind.STRING) {
+                  outcome.answer = q_outcomes[i].toString()
+              } else {
+                  outcome.answer = "[FORMATTING ERROR]";
+              }
+              outcome.question = contractQuestionId;
+              outcome.save()
+           }
+        }
+      } else {
+        log.info('Could not parse json for question {}', [contractQuestionId]);
+      }
+      question.contract = contract;
+
+      question.data = data
+      question.contentHash = event.params.content_hash;
+
+      question.qJsonStr = qJsonStr
+
+      question.createdBlock = event.block.number;
+      question.createdTimestamp = event.params.created;
+      question.updatedBlock = event.block.number;
+      question.updatedTimestamp = event.block.timestamp;
+
+      question.user = event.params.user;
+      question.arbitrator = event.params.arbitrator;
+      question.openingTimestamp = event.params.opening_ts;
+      question.timeout = event.params.timeout;
+
+      question.isPendingArbitration = false;
+      question.arbitrationOccurred = false;
+
+      question.currentAnswerBond = new BigInt(0);
+      question.lastBond = new BigInt(0);
+      question.cumulativeBonds = new BigInt(0);
+
+      question.minBond = new BigInt(0);
+
+      question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
+
+      // In version 3 and above the bounty should be picked up by the LogFundAnswerBounty event.
+      // In version 2 this isn't fired on question create. 
+      // We could handle this with a call but this would mean we'd need an archive node to index.
+      // Instead, make sure we do a call in the UI for the current bounty when using the v2 contract.
+      // This shouldn't matter much as neither v2 nor the bounty feature is used much.
+      question.bounty = new BigInt(0);
+
+      question.save();
     }
-  } else {
-    log.info('Could not parse json for question {}', [contractQuestionId]);
+
+    let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
+    ua.actionType = 'AskQuestion';
+    ua.user = event.params.user;
+    ua.question = contractQuestionId;
+    ua.createdBlock = event.block.number;
+    ua.createdTimestamp = event.block.timestamp;
+    ua.save();
   }
-
-  question.contract = contract;
-
-  question.data = data
-  question.contentHash = event.params.content_hash;
-
-  question.qJsonStr = qJsonStr
-
-  question.createdBlock = event.block.number;
-  question.createdTimestamp = event.params.created;
-  question.updatedBlock = event.block.number;
-  question.updatedTimestamp = event.block.timestamp;
-
-  question.user = event.params.user;
-  question.arbitrator = event.params.arbitrator;
-  question.openingTimestamp = event.params.opening_ts;
-  question.timeout = event.params.timeout;
-
-  question.isPendingArbitration = false;
-  question.arbitrationOccurred = false;
-
-  question.currentAnswerBond = new BigInt(0);
-  question.lastBond = new BigInt(0);
-  question.cumulativeBonds = new BigInt(0);
-
-  question.minBond = new BigInt(0);
-
-  question.currentScheduledFinalizationTimestamp = BigInt.fromI32(I32.MAX_VALUE);
-
-  // In version 3 and above the bounty should be picked up by the LogFundAnswerBounty event.
-  // In version 2 this isn't fired on question create. 
-  // We could handle this with a call but this would mean we'd need an archive node to index.
-  // Instead, make sure we do a call in the UI for the current bounty when using the v2 contract.
-  // This shouldn't matter much as neither v2 nor the bounty feature is used much.
-  question.bounty = new BigInt(0);
-
-  question.save();
-
-  let ua = new UserAction(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
-  ua.actionType = 'AskQuestion';
-  ua.user = event.params.user;
-  ua.question = contractQuestionId;
-  ua.createdBlock = event.block.number;
-  ua.createdTimestamp = event.block.timestamp;
-  ua.save();
 
 }
 
@@ -360,11 +365,13 @@ export function handleLogClaim(event: LogClaim): void {
 
    let question = Question.load(contractQuestionId);
    let contract = RealityETH.bind(event.address)
-   question.historyHash = contract.getHistoryHash(event.params.question_id);
+   if (question) {
+     question.historyHash = contract.getHistoryHash(event.params.question_id);
 
-   question.updatedBlock = event.block.number;
-   question.updatedTimestamp = event.block.timestamp;
-   question.save();
+     question.updatedBlock = event.block.number;
+     question.updatedTimestamp = event.block.timestamp;
+     question.save();
+   }
 }
 
 export function handleLogWithdraw(event: LogWithdraw): void {
@@ -381,8 +388,10 @@ export function handleLogWithdraw(event: LogWithdraw): void {
 export function handleLogMinimumBond(event: LogMinimumBond): void {
   let contractQuestionId = event.address.toHexString() + '-' + event.params.question_id.toHexString();
   let question = Question.load(contractQuestionId);
-  question.minBond = event.params.min_bond;
-  question.save();
+  if (question) {
+    question.minBond = event.params.min_bond;
+    question.save();
+  }
 }
 
 export function handleLogReopenQuestion(event: LogReopenQuestion): void {
@@ -391,14 +400,18 @@ export function handleLogReopenQuestion(event: LogReopenQuestion): void {
   let reopenedContractQuestionId = event.address.toHexString() + '-' + event.params.reopened_question_id.toHexString();
   let question = Question.load(contractQuestionId);
   let reopenedQuestion = Question.load(reopenedContractQuestionId);
-  question.reopens = reopenedContractQuestionId;
-  question.updatedBlock = event.block.number;
-  question.updatedTimestamp = event.block.timestamp;
-  question.save();
-  reopenedQuestion.reopenedBy = contractQuestionId;
-  reopenedQuestion.updatedBlock = event.block.number;
-  reopenedQuestion.updatedTimestamp = event.block.timestamp;
-  reopenedQuestion.save();
+  if (question) {
+    question.reopens = reopenedContractQuestionId;
+    question.updatedBlock = event.block.number;
+    question.updatedTimestamp = event.block.timestamp;
+    question.save();
+  }
+  if (reopenedQuestion) {
+    reopenedQuestion.reopenedBy = contractQuestionId;
+    reopenedQuestion.updatedBlock = event.block.number;
+    reopenedQuestion.updatedTimestamp = event.block.timestamp;
+    reopenedQuestion.save();
+  }
 }
 
 function saveAnswer(contractQuestionId: string, answer: Bytes, bond: BigInt, ts: BigInt, createdBlock: BigInt): void {
