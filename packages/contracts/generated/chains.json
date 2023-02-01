@@ -269,7 +269,7 @@
     },
     "280": {
         "chainId": "0x118",
-        "chainName": "ZKSync Goerli Alpha",
+        "chainName": "ZKSync Goerli",
         "nativeCurrency": {
             "name": "Ether",
             "symbol": "WETH",
@@ -280,9 +280,9 @@
             "https://zksync2-testnet.zksync.dev"
         ],
         "hostedRPC": "https://zksync2-testnet.zksync.dev",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
         "blockExplorerUrls": [
-            "https://zksync2-testnet.zkscan.io/",
+            "https://goerli.explorer.zksync.io/",
             "https://zksync2-testnet.zkscan.io"
         ]
     },
