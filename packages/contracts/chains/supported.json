@@ -73,7 +73,7 @@
     },
     "280": {
          "hostedRPC": "https://zksync2-testnet.zksync.dev",
-         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli",
+         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
          "explorerURL": "https://zksync2-testnet.zkscan.io",
          "network_name": "zkSync2-testnet"
     },
