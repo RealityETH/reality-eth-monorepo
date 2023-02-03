@@ -6,7 +6,11 @@ const net_id = process.argv[2];
 //console.log('net_id', net_id);
 
 const net_config = rc_contracts.chainData(net_id);
-const network = net_config.network_name;
+let network = net_config.network_name;
+if (network == 'xdai') {
+    network = 'gnosis';
+}
+
 
 const token_list = rc_contracts.chainTokenList(net_id)
 const factory_list = rc_contracts.factoryList(net_id)
