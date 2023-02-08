@@ -222,7 +222,7 @@
             "symbol": "xDAI",
             "decimals": 18
         },
-        "network_name": "xdai",
+        "network_name": "gnosis",
         "rpcUrls": [
             "https://rpc.gnosischain.com",
             "https://xdai.poanetwork.dev",
@@ -234,13 +234,10 @@
             "ws://xdai.poanetwork.dev:8546"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
-        "iconUrls": [
-            "https://gblobscdn.gitbook.com/spaces%2F-Lpi9AHj62wscNlQjI-l%2Favatar.png"
-        ],
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-xdai",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
         "blockExplorerUrls": [
             "https://blockscout.com/xdai/mainnet",
-            "https://blockscout.com/poa/xdai/"
+            "https://gnosisscan.io"
         ]
     },
     "137": {
