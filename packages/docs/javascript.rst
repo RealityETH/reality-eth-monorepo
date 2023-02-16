@@ -44,7 +44,7 @@ The token may have multiple reality.eth contracts for different versions. You ca
 
 .. code-block:: javascript
 
-   const my_configs = reality_eth_contracts.realityETHConfigs(cid, token_ticker);
+   const my_configs = reality_eth_contracts.realityETHConfigs(chain_id, token_ticker);
 
 If you know which version you want, you can pass this to get a single config, eg 
 
@@ -82,8 +82,8 @@ You can then import libraries for handling questions and templates.
 
 .. code-block:: javascript
 
-   const reality_eth_question = require('@reality.eth').question;
-   const reality_eth_template = require('@reality.eth').template;
+   const reality_eth_question = require('@reality.eth/reality-eth-lib').question;
+   const reality_eth_template = require('@reality.eth/reality-eth-lib').template;
 
 This library will help you handle the encoding and decoding of questions using templates. See :doc:`contracts` to understand how the template system works.
 
