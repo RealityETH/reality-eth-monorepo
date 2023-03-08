@@ -93,6 +93,9 @@
     "421611": {
         "network_name": "arbitrum-rinkeby"
     },
+    "11155111": {
+        "network_name": "sepolia"
+    },
     "1337702": {
         "network_name": "kintsugi"
     }

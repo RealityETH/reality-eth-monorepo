@@ -51,6 +51,7 @@ const chains = {
     'arbitrum-rinkeby': 421611,
     'kovan-optimistic': 69,
     'kintsugi': 1337702,
+    'sepolia': 11155111,
 }
 const non_infura_chains = {
     'xdai': 'https://rpc.ankr.com/gnosis',
@@ -67,6 +68,7 @@ const non_infura_chains = {
     'optimism': 'https://mainnet.optimism.io',
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
+    'sepolia': 'https://rpc.sepolia.org',
 }
 
 function constructContractTemplate(contract_name) {
