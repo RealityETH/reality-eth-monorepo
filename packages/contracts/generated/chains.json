@@ -10,7 +10,8 @@
         "network_name": "mainnet",
         "rpcUrls": [
             "https://api.mycryptoapi.com/eth",
-            "https://cloudflare-eth.com"
+            "https://cloudflare-eth.com",
+            "https://ethereum.publicnode.com"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
@@ -23,7 +24,7 @@
         "chainName": "Ropsten",
         "nativeCurrency": {
             "name": "Ropsten Ether",
-            "symbol": "ROP",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "ropsten",
@@ -39,7 +40,7 @@
         "chainName": "Rinkeby",
         "nativeCurrency": {
             "name": "Rinkeby Ether",
-            "symbol": "RIN",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "rinkeby",
@@ -52,10 +53,10 @@
     },
     "5": {
         "chainId": "0x5",
-        "chainName": "Görli",
+        "chainName": "Goerli",
         "nativeCurrency": {
-            "name": "Görli Ether",
-            "symbol": "GOR",
+            "name": "Goerli Ether",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "goerli",
@@ -108,10 +109,9 @@
         "chainName": "Kovan",
         "nativeCurrency": {
             "name": "Kovan Ether",
-            "symbol": "KOV",
+            "symbol": "ETH",
             "decimals": 18
         },
-        "network_name": "testnet",
         "rpcUrls": [
             "https://kovan.poa.network",
             "http://kovan.poa.network:8545",
@@ -145,6 +145,7 @@
             "https://bsc-dataseed2.ninicoin.io",
             "https://bsc-dataseed3.ninicoin.io",
             "https://bsc-dataseed4.ninicoin.io",
+            "https://bsc.publicnode.com",
             "wss://bsc-ws-node.nariox.org"
         ],
         "hostedRPC": "https://bsc-dataseed1.binance.org",
@@ -159,7 +160,7 @@
         "chainName": "Optimism Kovan",
         "nativeCurrency": {
             "name": "Kovan Ether",
-            "symbol": "KOR",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "kovan",
@@ -225,19 +226,16 @@
         "network_name": "gnosis",
         "rpcUrls": [
             "https://rpc.gnosischain.com",
-            "https://xdai.poanetwork.dev",
-            "https://dai.poa.network",
             "https://rpc.ankr.com/gnosis",
             "https://gnosischain-rpc.gateway.pokt.network",
-            "wss://rpc.gnosischain.com/wss",
-            "wss://xdai.poanetwork.dev/wss",
-            "ws://xdai.poanetwork.dev:8546"
+            "https://gnosis-mainnet.public.blastapi.io",
+            "wss://rpc.gnosischain.com/wss"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
         "blockExplorerUrls": [
-            "https://blockscout.com/xdai/mainnet",
-            "https://gnosisscan.io"
+            "https://gnosisscan.io",
+            "https://blockscout.com/xdai/mainnet"
         ]
     },
     "137": {
@@ -255,7 +253,8 @@
             "https://matic-mainnet.chainstacklabs.com",
             "https://rpc-mainnet.maticvigil.com",
             "https://rpc-mainnet.matic.quiknode.pro",
-            "https://matic-mainnet-full-rpc.bwarelabs.com"
+            "https://matic-mainnet-full-rpc.bwarelabs.com",
+            "https://polygon-bor.publicnode.com"
         ],
         "hostedRPC": "https://polygon-rpc.com/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
@@ -281,6 +280,25 @@
         "blockExplorerUrls": [
             "https://goerli.explorer.zksync.io/",
             "https://zksync2-testnet.zkscan.io"
+        ]
+    },
+    "324": {
+        "chainId": "0x144",
+        "chainName": "zkSync Era Mainnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "era-todo",
+        "rpcUrls": [
+            "https://zksync2-mainnet.zksync.io"
+        ],
+        "hostedRPC": "https://zksync2-mainnet.zksync.io",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-todo",
+        "blockExplorerUrls": [
+            "https://explorer.zksync.io",
+            "https://explorer.zksync.io/"
         ]
     },
     "777": {
@@ -328,7 +346,8 @@
         },
         "network_name": "avalanche",
         "rpcUrls": [
-            "https://api.avax.network/ext/bc/C/rpc"
+            "https://api.avax.network/ext/bc/C/rpc",
+            "https://avalanche-c-chain.publicnode.com"
         ],
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
@@ -362,7 +381,7 @@
         "chainName": "Arbitrum Rinkeby",
         "nativeCurrency": {
             "name": "Arbitrum Rinkeby Ether",
-            "symbol": "ARETH",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "arbitrum-rinkeby",
@@ -397,12 +416,18 @@
         "chainName": "Sepolia",
         "nativeCurrency": {
             "name": "Sepolia Ether",
-            "symbol": "SEP",
+            "symbol": "ETH",
             "decimals": 18
         },
         "network_name": "sepolia",
-        "rpcUrls": [],
+        "rpcUrls": [
+            "https://rpc.sepolia.org",
+            "https://rpc2.sepolia.org",
+            "https://rpc-sepolia.rockx.com"
+        ],
+        "hostedRPC": "https://rpc.sepolia.org",
         "blockExplorerUrls": [
+            "https://sepolia.etherscan.io",
             "https://sepolia.otterscan.io"
         ]
     }
