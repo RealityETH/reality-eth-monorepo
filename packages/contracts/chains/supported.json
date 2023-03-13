@@ -66,6 +66,11 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "network_name": "matic"
     },
+    "324": {
+        "explorerURL": "https://explorer.zksync.io/",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-todo",
+        "network_name": "era-todo"
+    },
     "777": {
         "explorerURL": "https://explore.cheapswap.io/",
         "network_name": "cheapeth"

@@ -385,6 +385,16 @@
             }
         }
     },
+    "324": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xDE385Fe7695836f757E0846B8A9338Ea2fe48E0E",
+                "block": 9140,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "777": {
         "CTH": {
             "RealityETH-3.0": {
