@@ -43,7 +43,7 @@ const chains = {
     'chapel': 97,
     'sokol': 77,
     'cheapeth': 777,
-    'xdai': 100,
+    'gnosis': 100,
     'polygon': 137,
     'mumbai': 80001,
     'ava': 43114,
@@ -54,7 +54,7 @@ const chains = {
     'sepolia': 11155111,
 }
 const non_infura_chains = {
-    'xdai': 'https://rpc.ankr.com/gnosis',
+    'gnosis': 'https://rpc.ankr.com/gnosis',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'chapel': 'https://bsc-testnet.public.blastapi.io',
