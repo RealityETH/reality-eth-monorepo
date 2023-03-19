@@ -5454,8 +5454,10 @@ function initChain(cid) {
     $('.chain-item.network-id-'+cid).addClass('selected-chain');
 
     if (typeof ethereum !== 'undefined') {
-        ethereum.on('chainChanged', () => {
-          document.location.reload()
+        ethereum.on('chainChanged', function(new_chain_id) {
+            if (parseInt(cid) != parseInt(new_chain_id)) {
+                document.location.reload()
+            }
         })
     }
 
