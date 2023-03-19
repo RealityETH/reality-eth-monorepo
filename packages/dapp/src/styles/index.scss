@@ -2894,6 +2894,9 @@ body.error-invalid-network div.error-bar span.error-label.invalid-network{ displ
 span.error-label.invalid-network-for-token{ display:none}
 body.error-invalid-network-for-token div.error-bar span.error-label.invalid-network-for-token{ display:inline !important}
 
+span.error-label.no-detected-network{ display:none}
+body.error-no-detected-network div.error-bar span.error-label.no-detected-network{ display:inline !important}
+
 span.error-label.not-specified-network{ display:none}
 body.error-not-specified-network div.error-bar span.error-label.not-specified-network{ display:inline !important}
 
@@ -3327,6 +3330,15 @@ body.via-graph.connection-error .connection-error-warning.graph-error {
     padding:8px;
 }
 
+body.network-detection-error .network-detection-error-warning {
+    background-color: $red;
+    color: $white;
+    display:block !important; 
+    text-align: center;
+    font-size:140%;
+    padding:8px;
+}
+
 input.filter-input {
     box-shadow: inset 0 0 0 1px $light-gray;
     background-color: $white;
@@ -3440,4 +3452,14 @@ span.filter-icon {
 
 .network-switch-error-text {
     font-style: italic;
+}
+
+.loading-text-connected {
+    display:none;
+}
+.network-connected .loading-text-unconnected {
+    display:none;
+}
+.network-connected .loading-text-connected {
+    display:inline;
 }

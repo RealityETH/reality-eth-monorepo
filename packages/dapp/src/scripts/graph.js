@@ -5614,6 +5614,8 @@ window.addEventListener('load', async function() {
 
         cid = network.chainId;
 
+        $('body').removeClass('network-detection-error').addClass('network-connected');
+
         if (old_network_id) {
             window.location.reload();
         }
@@ -5840,6 +5842,13 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         
         runPollingLoop(RC_DISPLAYED_CONTRACTS, fetch_start_ts, search_filters);
     });
+
+    window.setTimeout(function() {
+        if (!cid) {
+            $('body').addClass('network-detection-error');
+        }
+    }, 20000)
+
 });
 
 $('.continue-read-only-message').click(function(e) {

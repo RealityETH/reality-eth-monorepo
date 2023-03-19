@@ -20,6 +20,11 @@
         We are having trouble connecting to your RPC node for this chain. <br />It may help to change to a different RPC node or <a href="#" class="chain-list-link">switch loading to Graph</a>.
     </div>
 
+    <div class="network-detection-error-warning" style="display:none;">
+        We detected an Ethereum web wallet but we are unable to connect to it.
+        <br />
+        Make sure your wallet is unlocked, and make sure a network is active.
+    </div>
 
     <div class="page-bg"></div>
     <div id="primary-container">
@@ -52,6 +57,7 @@
 
                 
 </span>
+
             <span class="error-label not-specified-network">You followed a link to the <span class="network-specified-text"></span> but you are currently on <span class="network-detected-text"></span>. 
                 <br />
                 <br />
@@ -206,7 +212,7 @@
 
                     <div class="scanning-questions-category">
                         <div class="spinner">
-                          <p>Scanning the blockchain for questions...</p>
+                          <p><span class="loading-text-unconnected">Connecting to the blockchain</span><span class="loading-text-connected">Scanning the blockchain for questions...</span></p>
                           <div class="cube1"></div>
                           <div class="cube2"></div>
                         </div>
@@ -231,7 +237,7 @@
                     </div>
                     <div class="scanning-questions-category">
                         <div class="spinner">
-                          <p>Scanning the blockchain for questions...</p>
+                          <p><span class="loading-text-unconnected">Connecting to the blockchain</span><span class="loading-text-connected">Scanning the blockchain for questions...</span></p>
                           <div class="cube1"></div>
                           <div class="cube2"></div>
                         </div>
@@ -258,7 +264,7 @@
 
                     <div class="scanning-questions-category">
                         <div class="spinner">
-                            <p>Scanning the blockchain for questions...</p>
+                          <p><span class="loading-text-unconnected">Connecting to the blockchain</span><span class="loading-text-connected">Scanning the blockchain for questions...</span></p>
                           <div class="cube1"></div>
                           <div class="cube2"></div>
                         </div>
@@ -284,7 +290,7 @@
 
                     <div class="scanning-questions-category">
                         <div class="spinner">
-                          <p>Scanning the blockchain for questions...</p>
+                          <p><span class="loading-text-unconnected">Connecting to the blockchain</span><span class="loading-text-connected">Scanning the blockchain for questions...</span></p>
                           <div class="cube1"></div>
                           <div class="cube2"></div>
                         </div>
