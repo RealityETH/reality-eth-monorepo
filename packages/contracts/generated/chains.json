@@ -290,12 +290,12 @@
             "symbol": "ETH",
             "decimals": 18
         },
-        "network_name": "era-todo",
+        "network_name": "zksync-era",
         "rpcUrls": [
             "https://zksync2-mainnet.zksync.io"
         ],
         "hostedRPC": "https://zksync2-mainnet.zksync.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-todo",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
         "blockExplorerUrls": [
             "https://explorer.zksync.io",
             "https://explorer.zksync.io/"

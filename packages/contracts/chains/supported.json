@@ -68,8 +68,8 @@
     },
     "324": {
         "explorerURL": "https://explorer.zksync.io/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-todo",
-        "network_name": "era-todo"
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
+        "network_name": "zksync-era"
     },
     "777": {
         "explorerURL": "https://explore.cheapswap.io/",
