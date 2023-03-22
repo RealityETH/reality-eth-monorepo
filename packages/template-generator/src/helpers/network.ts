@@ -6,7 +6,7 @@ const labels: Record<number, string> = {
   42: "Kovan Test Network",
   56: "Binance Smart Chain",
   77: "Sokal Network",
-  100: "XDAI Network",
+  100: "Gnosis Chain",
   137: "Polygon Main Network (Matic)",
   80001: "Polygon Mumbai Testnet",
   42161: "Arbitrum One Network",
