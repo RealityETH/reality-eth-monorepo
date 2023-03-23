@@ -22,4 +22,6 @@ declare module "@reality.eth/contracts" {
       small_number: number;
     }
   >;
+  function getChainLabel(chain_id: number): string;
+
 }

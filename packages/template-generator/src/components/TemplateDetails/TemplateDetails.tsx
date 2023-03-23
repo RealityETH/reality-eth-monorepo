@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useHistory, useParams } from "react-router-dom";
-import { realityETHConfig } from "@reality.eth/contracts";
+import { realityETHConfig, getChainLabel } from "@reality.eth/contracts";
 import { Loader } from "../Loader/Loader";
 import { useChainId } from "../../hooks/useChainId";
-import { getNetworkLabel } from "../../helpers/network";
 import {
   getRealityETHContract,
   getRealityETHVersion,
@@ -76,7 +75,7 @@ export function TemplateDetails() {
   ]);
 
   if (!isCorrectChain) {
-    const networkLabel = getNetworkLabel(chainId).toLowerCase();
+    const networkLabel = getChainLabel(chainId).toLowerCase();
     return (
       <Loader
         text={`Please change your current network to the ${networkLabel}`}
