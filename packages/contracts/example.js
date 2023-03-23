@@ -7,7 +7,7 @@ const ethers = require('ethers');
 
 // The chain ID is usually either specified by the user or detected from metamask etc.
 const chain_id = 1;
-console.log('Using chain ID', chain_id)
+console.log('Using chain', chain_id, realityeth_contracts.getChainLabel(chain_id))
 
 // We provide some basic information about chains we support.
 // This will include an RPC node and a Graph endpoint where available.

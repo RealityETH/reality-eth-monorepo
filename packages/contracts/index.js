@@ -315,6 +315,14 @@ function tokenAndContractConfigFromFactory(factory_data, chain_id) {
 }
 
 
+function getChainLabel(chain_id) {
+    const c = chain_info[chain_id];
+    if (!c) {
+        return null;
+    }
+    return c['chainName'];
+}
+
 module.exports.realityETHConfig = realityETHConfig;
 module.exports.realityETHConfigs = realityETHConfigs;
 module.exports.realityETHInstance = realityETHInstance;
@@ -332,3 +340,4 @@ module.exports.factoryList = factoryList;
 module.exports.tokenAndContractConfigFromFactory = tokenAndContractConfigFromFactory;
 module.exports.configForAddress = configForAddress;
 module.exports.populateImports = populateImports;
+module.exports.getChainLabel = getChainLabel;
