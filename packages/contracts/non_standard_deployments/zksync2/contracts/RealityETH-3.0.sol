@@ -15,13 +15,15 @@ contract BalanceHolder {
     public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
-        payable(msg.sender).transfer(bal);
+        // payable(msg.sender).transfer(bal); This behaves badly in zksync
+        (bool success, ) = payable(msg.sender).call{value: bal}("");
+        require(success, "transfer failed");
         emit LogWithdraw(msg.sender, bal);
     }
 
 }
 
-contract RealityETH_v3_0 is BalanceHolder {
+contract RealityETH_zksync_v3_0 is BalanceHolder {
 
     address constant NULL_ADDRESS = address(0);
 
