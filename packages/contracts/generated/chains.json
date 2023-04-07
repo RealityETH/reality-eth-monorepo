@@ -332,6 +332,7 @@
             "wss://arb1.arbitrum.io/ws"
         ],
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-arbitrum",
         "blockExplorerUrls": [
             "https://explorer.arbitrum.io"
         ]
