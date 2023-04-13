@@ -292,9 +292,9 @@
         },
         "network_name": "zksync-era",
         "rpcUrls": [
-            "https://zksync2-mainnet.zksync.io"
+            "https://mainnet.era.zksync.io"
         ],
-        "hostedRPC": "https://zksync2-mainnet.zksync.io",
+        "hostedRPC": "https://mainnet.era.zksync.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
         "blockExplorerUrls": [
             "https://explorer.zksync.io",
