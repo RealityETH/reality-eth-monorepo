@@ -283,7 +283,7 @@ async function tweetQuestion(title, bond_txt, bounty_txt, answer_txt, category, 
 
     await masto.statuses.create({
         status: tweet,
-        visibility: 'direct',
+        visibility: 'public',
     });
 
 }
