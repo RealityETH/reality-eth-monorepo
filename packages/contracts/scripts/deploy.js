@@ -11,16 +11,20 @@ const deployed_at = null;
 var undef;
 
 const defaultConfigs = {
-     //maxFeePerGas:         610000000000,
-     //maxPriorityFeePerGas:  10000000000,
-    //gasPrice: 70000000000
-    // gasPrice:   10000000000,
+    //maxFeePerGas:         610000000000,
+    //maxPriorityFeePerGas:  10000000000,
+    //gasPrice: 70000000000,
+    //gasPrice:   10000000000,
+    // gasPrice:   100000000,
     // gasPrice: 10000, // optimism 1000000,
     /// gasPrice: 5000000000,
-    // gasLimit: 6000000, // optimism 4500000
+    //gasLimit: 6000000, // optimism 4500000
     gasLimit: 4500000,
     //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
-    // gasLimit: 155734867 // arbitrum
+    //gasLimit: 155734867 // arbitrum
+    //gasLimit: 7000000
+    //gasLimit:   800035294
+    // gasLimit: 4291955938
 }
 const task = process.argv[2]
 const version = process.argv[3]
@@ -45,10 +49,12 @@ const chains = {
     'cheapeth': 777,
     'gnosis': 100,
     'polygon': 137,
+    'hermez': 1101,
     'mumbai': 80001,
     'ava': 43114,
     'arbitrum': 42161,
     'arbitrum-rinkeby': 421611,
+    'arbitrum-goerli': 421613,
     'kovan-optimistic': 69,
     'kintsugi': 1337702,
     'sepolia': 11155111,
@@ -59,9 +65,11 @@ const non_infura_chains = {
     'bsc': 'https://bsc-dataseed.binance.org',
     'chapel': 'https://bsc-testnet.public.blastapi.io',
     'polygon': 'https://rpc-mainnet.maticvigil.com',
+    'hermez': 'https://rpc.ankr.com/polygon_zkevm',
     'ava': 'https://api.avax.network/ext/bc/C/rpc',
     'arbitrum': 'https://arb1.arbitrum.io/rpc',
     'arbitrum-rinkeby': 'https://rinkeby.arbitrum.io/rpc',
+    'arbitrum-goerli': 'https://goerli-rollup.arbitrum.io/rpc',
     'ubiq': 'https://rpc.octano.dev',
     'cheapeth': 'https://node.cheapeth.org/rpc',
     'kovan-optimistic': 'https://kovan.optimism.io',
@@ -202,7 +210,8 @@ async function waitForGas(provider) {
     }
 
     const f = await provider.getFeeData()
-    // console.log('fee', f)
+     console.log('fee', f)
+return;
     if (f.gasPrice.gt(ethers.BigNumber.from(defaultConfigs.maxFeePerGas))) {
         console.log('Gas is too expensive, got', f.gasPrice.toString(), 'but you will only pay ', defaultConfigs.maxFeePerGas, ', retrying...')
         await sleep(2000);
