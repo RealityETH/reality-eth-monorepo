@@ -29,5 +29,6 @@
     "axios": "^0.24.0",
     "ethers": "^5.6.8",
     "masto": "^4.2.7"
-  }
+  },
+  "gitHead": "03e4a48bc6ffcb5d327c5503fa1afb2eba3f97fb"
 }
