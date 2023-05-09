@@ -395,6 +395,23 @@
             "https://rinkeby-explorer.arbitrum.io"
         ]
     },
+    "421613": {
+        "chainId": "0x66eed",
+        "chainName": "Arbitrum Goerli",
+        "nativeCurrency": {
+            "name": "Arbitrum Goerli Ether",
+            "symbol": "AGOR",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-goerli",
+        "rpcUrls": [
+            "https://goerli-rollup.arbitrum.io/rpc/"
+        ],
+        "hostedRPC": "https://goerli-rollup.arbitrum.io/rpc/",
+        "blockExplorerUrls": [
+            "https://goerli-rollup-explorer.arbitrum.io"
+        ]
+    },
     "1337702": {
         "chainId": "0x146966",
         "chainName": "Kintsugi",
