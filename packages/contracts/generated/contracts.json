@@ -446,6 +446,15 @@
                 "notes": null,
                 "arbitrators": {}
             }
+        },
+        "POLK": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x895b09919250f81505c089651d3cb61d284531d3",
+                "block": 35623862,
+                "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
+                "notes": null,
+                "arbitrators": {}
+            }
         }
     },
     "421611": {
