@@ -453,7 +453,9 @@
                 "block": 35623862,
                 "token_address": "0x935f82d011ee37e8870c435417ac58407a9863f7",
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x39cd45615e20847fc50cff6bbcde45198f8f46d9": "Kleros"
+                }
             }
         }
     },
