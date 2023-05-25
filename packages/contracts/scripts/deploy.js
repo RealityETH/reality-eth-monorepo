@@ -5,6 +5,13 @@ const build_dir = './../truffle/build/contracts/';
 const rc = require('../index.js');
 const { join } = require('path');
 
+let secrets_dir = join(__dirname, '../secrets');
+if (process.env.SECRETS) {
+    secrets_dir = process.env.SECRETS;
+}
+console.log('secrets_dir', secrets_dir);
+
+
 const deployed_at = null;
 // const deployed_at = '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9'; //mainnet gno
 // const deployed_at = '0xc79e58D0a23ea0eDBDD2dBc96d16e65f696BfFc8'; // rinkeby test
@@ -138,7 +145,7 @@ if (arbitrator_owner == undef) {
     arbitrator_owner = "0xdd8a989e5e89ad23ed2f91c6f106aea678a1a3d0";
 }
 
-const priv = fs.readFileSync(join(__dirname, '../secrets/' + chain + '.sec'), 'utf8').replace(/\n/, '')
+const priv = fs.readFileSync(secrets_dir + '/' + chain + '.sec', 'utf8').replace(/\n/, '')
 
 ensure_chain_directory_exists(chain_id, token_name);
 
