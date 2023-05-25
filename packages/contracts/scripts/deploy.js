@@ -9,8 +9,6 @@ let secrets_dir = join(__dirname, '../secrets');
 if (process.env.SECRETS) {
     secrets_dir = process.env.SECRETS;
 }
-console.log('secrets_dir', secrets_dir);
-
 
 const deployed_at = null;
 // const deployed_at = '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9'; //mainnet gno
