@@ -3,6 +3,7 @@ const ethers = require('ethers');
 const project_base = './../';
 const build_dir = './../truffle/build/contracts/';
 const rc = require('../index.js');
+const { join } = require('path');
 
 const deployed_at = null;
 // const deployed_at = '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9'; //mainnet gno
@@ -48,6 +49,7 @@ const chains = {
     'sokol': 77,
     'cheapeth': 777,
     'gnosis': 100,
+    'scroll-alpha-testnet': 534353,
     'polygon': 137,
     'hermez': 1101,
     'mumbai': 80001,
@@ -61,6 +63,7 @@ const chains = {
 }
 const non_infura_chains = {
     'gnosis': 'https://rpc.ankr.com/gnosis',
+    'scroll-alpha-testnet': 'https://alpha-rpc.scroll.io/l2',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
     'chapel': 'https://bsc-testnet.public.blastapi.io',
@@ -135,7 +138,7 @@ if (arbitrator_owner == undef) {
     arbitrator_owner = "0xdd8a989e5e89ad23ed2f91c6f106aea678a1a3d0";
 }
 
-const priv = fs.readFileSync('/home/ed/secrets/' + chain + '.sec', 'utf8').replace(/\n/, '')
+const priv = fs.readFileSync(join(__dirname, '../secrets/' + chain + '.sec'), 'utf8').replace(/\n/, '')
 
 ensure_chain_directory_exists(chain_id, token_name);
 
