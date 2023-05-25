@@ -97,6 +97,9 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-arbitrum",
         "network_name": "arbitrum-one"
     },
+    "534353": {
+        "hostedRPC": "https://alpha-rpc.scroll.io/l2"
+    },
     "421611": {
         "network_name": "arbitrum-rinkeby"
     },

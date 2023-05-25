@@ -493,6 +493,14 @@
         }
     },
     "534353": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xF2D17C08B6A3A60b5A32b95bC9621D292831446b",
+                "block": 2416829,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "SETH": {
             "RealityETH-3.0": {
                 "address": "0x4300d4C410f87c7c1824Cbc2eF67431030106604",

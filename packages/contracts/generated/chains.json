@@ -415,6 +415,23 @@
             "https://goerli-rollup-explorer.arbitrum.io"
         ]
     },
+    "534353": {
+        "chainId": "0x82751",
+        "chainName": "Scroll Alpha Testnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://alpha-rpc.scroll.io/l2"
+        ],
+        "hostedRPC": "https://alpha-rpc.scroll.io/l2",
+        "blockExplorerUrls": [
+            "https://blockscout.scroll.io",
+            "https://scrollexplorer.unifra.io"
+        ]
+    },
     "1337702": {
         "chainId": "0x146966",
         "chainName": "Kintsugi",
