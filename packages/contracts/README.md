@@ -38,7 +38,7 @@ Compiled bytecode and ABIs are stored under *bytecode/* and *abi/* respectively.
 
 `$ cd development/contracts/`
 
-`$ ./compile.py RealityETH-3.0
+`$ ./compile.py RealityETH-3.0`
 
 
 ## Tests
