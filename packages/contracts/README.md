@@ -34,11 +34,12 @@ The above are combined into JSON files under *generated/* using `npm run-script 
 
 ## Compilation
 
+Compiled bytecode and ABIs are stored under *bytecode/* and *abi/* respectively. If you need to recompile, do:
+
 `$ cd development/contracts/`
 
 `$ ./compile.py RealityETH-3.0
 
-Bytecode and ABIs will be stored under *bytecode/* and *abi/* respectively.
 
 ## Tests
 
@@ -52,7 +53,7 @@ You can then test the version in question with, eg
 
 `$ REALITYETH=RealityETH-3.0 python test.py`
 
-These tests test the bytecode not the source code, so you need to compile before testing source code changes.
+These tests test the bytecode not the source code, so you need to recompile before testing source code changes.
 
 ## Deployment
 
@@ -62,6 +63,8 @@ You will need the private key of an account with funds to deploy on the relevant
 
 The `.gitignore` file should prevent it from being checked into Git, but be careful not to share it.
 
+If we have not previously deployed on the chain, add its details to `supported.json` then run `npm run-script generate`.
+
 If it's the first time for the token you intend to use to be deployed on the chain you intend to use, add a JSON file describing your token under *tokens/* then run `npm run-script generate`.
 
 To deploy contracts using the code compiled under contracts/bytecode, use
@@ -70,19 +73,18 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 `$ node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
-If you prefer to keep your secret keys somewhere else you can pass it as an environment variable, eg
-
-`$ SECRETS=/home/ed/secrets node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
-
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
+
+If you prefer to keep your secret keys somewhere else you can pass it as an environment variable, eg
+`$ SECRETS=/home/ed/secrets node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
 Supported networks are hard-coded in the `deploy.js` file. You may also wish to edit it to alter gas limits, etc.
 
-Once the deployment is complete, run `npm run-script generate`.
+Once the deployment is complete, run `npm run-script generate`. You should never edit the `generated/` files directly.
 
 ## Adding your contracts to the dapp
 
-For a new deployment to show up in the dapp it is necessary to rebuild the dapp with the updated `packages/contracts`. For Graph support to work in the dapp, the Subgraph will also need to be republished, using the code under `packages/graph`.
+For a new deployment to show up in the dapp it is necessary to rebuild the dapp with the updated `packages/contracts`. For Graph support to work in the dapp, the Subgraph will also need to be republished, using the code under `packages/graph`. If the chain has not been used before, it also needs to be added to `packages/dapp/src/index.html`.
 
 If you have added Reality.eth for a new token, or a new arbitrator, or both, please submit the changes to this repo as a PR so that we can update the dapp at reality.eth and the Subgraphs we maintain.
 
