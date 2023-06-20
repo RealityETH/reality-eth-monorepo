@@ -32,10 +32,6 @@
         "explorerURL": "https://optimistic.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism"
     },
-    "42": {
-        "explorerURL": "https://kovan.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-kovan"
-    },
     "56": {
         "explorerURL": "https://www.bscscan.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",

@@ -1,9 +1,0 @@
-{
-    "address": "0xcB71745d032E16ec838430731282ff6c10D29Dea",
-    "block": 27103177,
-    "notes": null,
-    "arbitrators": {
-        "0x99489d7bb33539f3d1a401741e56e8f02b9ae0cf": "Kleros (General Court)",
-        "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros DAO Governance (Technical Court)"
-    }
-}
