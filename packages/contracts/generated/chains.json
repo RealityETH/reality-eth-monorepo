@@ -203,15 +203,19 @@
         "chainName": "Gnosis",
         "nativeCurrency": {
             "name": "xDAI",
-            "symbol": "xDAI",
+            "symbol": "XDAI",
             "decimals": 18
         },
         "network_name": "gnosis",
         "rpcUrls": [
             "https://rpc.gnosischain.com",
+            "https://rpc.gnosis.gateway.fm",
             "https://rpc.ankr.com/gnosis",
             "https://gnosischain-rpc.gateway.pokt.network",
             "https://gnosis-mainnet.public.blastapi.io",
+            "https://gnosis.api.onfinality.io/public",
+            "https://gnosis.blockpi.network/v1/rpc/public",
+            "https://web3endpoints.com/gnosischain-mainnet",
             "wss://rpc.gnosischain.com/wss"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
@@ -410,7 +414,7 @@
         "hostedRPC": "https://alpha-rpc.scroll.io/l2",
         "blockExplorerUrls": [
             "https://blockscout.scroll.io",
-            "https://scrollexplorer.unifra.io"
+            "https://scrollscan.co"
         ]
     },
     "1337702": {
