@@ -105,25 +105,6 @@
             "https://optimistic.etherscan.io"
         ]
     },
-    "42": {
-        "chainId": "0x2a",
-        "chainName": "Kovan",
-        "nativeCurrency": {
-            "name": "Kovan Ether",
-            "symbol": "ETH",
-            "decimals": 18
-        },
-        "rpcUrls": [
-            "https://kovan.poa.network",
-            "http://kovan.poa.network:8545",
-            "ws://kovan.poa.network:8546"
-        ],
-        "hostedRPC": "https://kovan.poa.network",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-kovan",
-        "blockExplorerUrls": [
-            "https://kovan.etherscan.io"
-        ]
-    },
     "56": {
         "chainId": "0x38",
         "chainName": "Binance Smart Chain Mainnet",

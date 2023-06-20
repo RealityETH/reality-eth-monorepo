@@ -184,52 +184,6 @@
             }
         }
     },
-    "42": {
-        "ETH": {
-            "RealityETH-2.0": {
-                "address": "0x50e35a1ed424ab9c0b8c7095b3d9ec2fb791a168",
-                "block": 0,
-                "token_address": null,
-                "notes": null,
-                "arbitrators": {
-                    "0xB4683794998215B59a429e86c3A33F796F9aeb0f": "Reality.eth Team (dev)",
-                    "0xDEd12537dA82C1019b3CA1714A5d58B7c5c19A04": "Kleros"
-                }
-            },
-            "RealityETH-3.0": {
-                "address": "0xcB71745d032E16ec838430731282ff6c10D29Dea",
-                "block": 27103177,
-                "notes": null,
-                "arbitrators": {
-                    "0x99489d7bb33539f3d1a401741e56e8f02b9ae0cf": "Kleros (General Court)",
-                    "0xb9fdd2904cbcc5543F02DB948B2CE59Ef10A950E": "Kleros DAO Governance (Technical Court)"
-                }
-            }
-        },
-        "POLK": {
-            "Arbitrator": {
-                "address": "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8",
-                "block": 25399305,
-                "reality_eth_address": "0x1346800BC8915536B9eaa388fa9A6B93398E5999"
-            },
-            "RealityETH_ERC20-2.0": {
-                "address": "0x1346800BC8915536B9eaa388fa9A6B93398E5999",
-                "block": 25355307,
-                "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
-                "notes": null,
-                "arbitrators": {
-                    "0x9046D057D7957A2A93d55C711EBC5B62d812a5b8": "Test POLK arbitrator (reality.eth)"
-                }
-            },
-            "RealityETH_ERC20-3.0": {
-                "address": "0xe9CF05F9F664b88160D5658619c028D1EEb00fc7",
-                "block": 27103188,
-                "token_address": "0x222E11E134F9AB3750812b37F0DA51B4467EaA7a",
-                "notes": null,
-                "arbitrators": {}
-            }
-        }
-    },
     "56": {
         "BNB": {
             "Arbitrator": {
