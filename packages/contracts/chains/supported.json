@@ -77,6 +77,11 @@
          "explorerURL": "https://zksync2-testnet.zkscan.io",
          "network_name": "zkSync2-testnet"
     },
+    "1101": {
+         "hostedRPC": "https://zkevm-rpc.com",
+         "explorerURL": "https://zkevm.polygonscan.com/",
+         "network_name": "polygon-zkevm"
+    },
     "80001": {
          "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
          "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
