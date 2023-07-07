@@ -132,6 +132,7 @@ function realityETHConfig(chain_id, token, version) {
     config.chain_id = chain_id;
     config.contract_name = contract_name;
     config.contract_version = contract_version;
+    config.token_ticker = token;
     return config;
 }
 
@@ -262,6 +263,7 @@ function configForAddress(addr, chain_id) {
                     config.chain_id = cid;
                     config.contract_name = contract_name;
                     config.contract_version = contract_version;
+                    config.token_ticker = ticker;
                     return config;
                 }
             }
