@@ -5772,11 +5772,26 @@ window.addEventListener('load', async function() {
         rc_contracts.populateImports(imported_custom_contracts, cid);
         // console.log('importedCustomContracts', imported_custom_contracts);
 
-        if (!TOKEN_TICKER && args['contract']) {
+        if (!TOKEN_TICKER) {
             // If we specified the contract but not the token, look up the token and use that
-            const ctr_config = rc_contracts.configForAddress(args['contract'], cid);
-            if (ctr_config) {
-                TOKEN_TICKER = ctr_config.token_ticker;
+            // The contract may be specified separately, or it may only be in the question ID
+            let contract_for_token_selection = '';
+            if (args['contract']) {
+                contract_for_token_selection = args['contract'];
+            } else if (args['question']) {
+                const qarg_bits = args['question'].split('-');
+                if (qarg_bits.length === 2 && qarg_bits[0]) {
+                    contract_for_token_selection = qarg_bits[0].toLowerCase();
+                }
+            }
+
+            if (contract_for_token_selection != '') {
+                const ctr_config = rc_contracts.configForAddress(contract_for_token_selection, cid);
+                if (ctr_config) {
+                    TOKEN_TICKER = ctr_config.token_ticker;
+                    set_hash_param({'token': TOKEN_TICKER});
+                    console.log('picked token', TOKEN_TICKER);
+                }
             }
         }
 
