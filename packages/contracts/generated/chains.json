@@ -244,7 +244,7 @@
             "https://polygon-bor.publicnode.com"
         ],
         "hostedRPC": "https://polygon-rpc.com/",
-        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/f6970cba825cf1195898e217ea967e3d/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "blockExplorerUrls": [
             "https://polygonscan.com",
             "https://polygonscan.com/"
