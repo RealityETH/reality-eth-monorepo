@@ -63,6 +63,10 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
 
     if (our_data['graphURL']) {
         chainparams['graphURL'] = our_data['graphURL'];
+    } else if (our_data['graphURLStudio']) {
+        chainparams['graphURL'] = our_data['graphURLStudio'];
+    } else if (our_data['graphURLHosted']) {
+        chainparams['graphURL'] = our_data['graphURLHosted'];
     }
 
     // Sometimes this is "mainnet" and we have to override it, there's "shortname" but that doesn't seem quite right either

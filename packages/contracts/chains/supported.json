@@ -59,7 +59,8 @@
     },
     "137": {
         "explorerURL": "https://polygonscan.com/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
+        "graphURLHosted": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
+        "graphURLStudio": "https://gateway-arbitrum.network.thegraph.com/api/f6970cba825cf1195898e217ea967e3d/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "network_name": "matic"
     },
     "324": {
