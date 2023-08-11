@@ -17,7 +17,7 @@
     "deploy:goerli": "yarn prepare:goerli && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-goerli",
     "deploy:mainnet": "yarn prepare:mainnet && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth",
     "deploy:optimism": "yarn prepare:optimism && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-optimism",
-    "deploy:polygon": "yarn prepare:polygon && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-polygon",
+    "deploy:polygon": "yarn prepare:polygon && graph deploy $GRAPH_AUTH --studio realityeth-polygon",
     "deploy:mumbai": "yarn prepare:mumbai && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-mumbai",
     "deploy:rinkeby": "yarn prepare:rinkeby && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-rinkeby",
     "deploy:sokol": "yarn prepare:sokol && graph deploy $GRAPH_AUTH --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ realityeth/realityeth-sokol",
@@ -70,7 +70,7 @@
     "truffle-hdwallet-provider": "^1.0.4"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.38.0",
+    "@graphprotocol/graph-cli": "^0.54.0",
     "@graphprotocol/graph-ts": "^0.27.0"
   },
   "gitHead": "03e4a48bc6ffcb5d327c5503fa1afb2eba3f97fb"
