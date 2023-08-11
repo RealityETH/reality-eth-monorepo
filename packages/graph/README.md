@@ -9,3 +9,8 @@ You may need to pass the GRAPH_AUTH environmental variable with the param
 We suggest keeping this in a file, eg
 GRAPH_AUTH="--access-token `cat ~/secrets/graph_auth`" yarn deploy:zksync-goerli
 
+Update, 2023-08-11:
+Studio now seems to want eg
+GRAPH_AUTH="--deploy-key `cat ~/secrets/graph_studio_auth`" yarn deploy:zksync-goerli
+...where the deploy key is subtly different.
+
