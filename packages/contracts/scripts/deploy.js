@@ -48,6 +48,7 @@ const chains = {
     'goerli': 5,
     'ubiq': 8,
     'optimism': 10,
+    'telosevm': 40,
     'kovan': 42,
     'bsc': 56,
     'chapel': 97,
@@ -85,6 +86,7 @@ const non_infura_chains = {
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
     'sepolia': 'https://rpc.sepolia.org',
+    'telosevm': 'https://mainnet.telos.net/evm',
 }
 
 function constructContractTemplate(contract_name) {

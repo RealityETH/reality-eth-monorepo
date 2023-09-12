@@ -32,6 +32,9 @@
         "explorerURL": "https://optimistic.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism"
     },
+    "40": {
+        "network_name": "TelosEVM"
+    },
     "56": {
         "explorerURL": "https://www.bscscan.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
@@ -63,6 +66,12 @@
         "graphURLStudio": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "network_name": "matic"
     },
+    "280": {
+        "hostedRPC": "https://zksync2-testnet.zksync.dev",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
+        "explorerURL": "https://zksync2-testnet.zkscan.io",
+        "network_name": "zkSync2-testnet"
+    },
     "324": {
         "explorerURL": "https://explorer.zksync.io/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
@@ -72,35 +81,26 @@
         "explorerURL": "https://explore.cheapswap.io/",
         "network_name": "cheapeth"
     },
-    "280": {
-         "hostedRPC": "https://zksync2-testnet.zksync.dev",
-         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
-         "explorerURL": "https://zksync2-testnet.zkscan.io",
-         "network_name": "zkSync2-testnet"
-    },
     "1101": {
-         "hostedRPC": "https://zkevm-rpc.com",
-         "explorerURL": "https://zkevm.polygonscan.com/",
-         "network_name": "polygon-zkevm"
-    },
-    "80001": {
-         "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
-         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
-         "explorerURL": "https://mumbai.polygonscan.com",
-         "network_name": "mumbai"
-    },
-    "43114": {
-        "explorerURL": "https://cchain.explorer.avax.network/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
-        "network_name": "avalanche"
+        "hostedRPC": "https://zkevm-rpc.com",
+        "explorerURL": "https://zkevm.polygonscan.com/",
+        "network_name": "polygon-zkevm"
     },
     "42161": {
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-arbitrum",
         "network_name": "arbitrum-one"
     },
-    "534353": {
-        "hostedRPC": "https://alpha-rpc.scroll.io/l2"
+    "43114": {
+        "explorerURL": "https://cchain.explorer.avax.network/",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
+        "network_name": "avalanche"
+    },
+    "80001": {
+        "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
+        "explorerURL": "https://mumbai.polygonscan.com",
+        "network_name": "mumbai"
     },
     "421611": {
         "network_name": "arbitrum-rinkeby"
@@ -108,10 +108,13 @@
     "421613": {
         "network_name": "arbitrum-goerli"
     },
-    "11155111": {
-        "network_name": "sepolia"
+    "534353": {
+        "hostedRPC": "https://alpha-rpc.scroll.io/l2"
     },
     "1337702": {
         "network_name": "kintsugi"
+    },
+    "11155111": {
+        "network_name": "sepolia"
     }
 }

@@ -105,6 +105,23 @@
             "https://optimistic.etherscan.io"
         ]
     },
+    "40": {
+        "chainId": "0x28",
+        "chainName": "Telos EVM Mainnet",
+        "nativeCurrency": {
+            "name": "Telos",
+            "symbol": "TLOS",
+            "decimals": 18
+        },
+        "network_name": "TelosEVM",
+        "rpcUrls": [
+            "https://mainnet.telos.net/evm"
+        ],
+        "hostedRPC": "https://mainnet.telos.net/evm",
+        "blockExplorerUrls": [
+            "https://teloscan.io"
+        ]
+    },
     "56": {
         "chainId": "0x38",
         "chainName": "Binance Smart Chain Mainnet",

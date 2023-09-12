@@ -184,6 +184,16 @@
             }
         }
     },
+    "40": {
+        "TLOS": {
+            "RealityETH-3.0": {
+                "address": "0xfd6f6A4181B7df7cd539Ac5ea7b6533869AE9BF1",
+                "block": 299104399,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "56": {
         "BNB": {
             "Arbitrator": {
