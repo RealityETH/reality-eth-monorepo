@@ -1548,6 +1548,7 @@ function filledQuestion(item, fetched_ms) {
         question.question_json = rc_question.populatedJSONForTemplate(item.template.questionText, item.data, true);
         question.has_invalid_option = rc_question.hasInvalidOption(question.question_json, question.version_number);
         question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(question.question_json, question.version_number);
+        question.has_initial_question_bounty_bug = (parseInt(question.version_number) < 3);
     } catch (e) {
         console.log('error parsing json', e);
         return null;
@@ -1741,6 +1742,12 @@ function populateSection(section_name, question, before_item) {
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('display', 'block');
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('z-index', 5);
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
+    }
+
+    // Do an update to make sure the bounty is correct.
+    // NB We do this right at the end to make sure we don't hurt performance too badly as most questions won't need this.
+    if (question.has_initial_question_bounty_bug) {
+        updateBountyByRPC(question);
     }
 
 }
@@ -4776,6 +4783,11 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
         //console.log('got q data q');
         let question = filledQuestion(q, fetched_ms);
 
+        // The graph isn't reliable the bounty for version 2.1 and below because we didn't have the log event.
+        // Do an extra RPC fetch.
+        if (question.has_initial_question_bounty_bug) {
+            question = await updateBountyByRPC(question);
+        }
         // TODO: Should we run handleQuestion too?
         // handleQuestion(q)
         // console.log('filled individual qestion', question);
@@ -4783,6 +4795,18 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
         // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         return question;
     }
+}
+
+async function updateBountyByRPC(question) {
+    try {
+        const rpc_result = await RCInstance(question.contract).functions.questions(question.question_id);
+        question.bounty = rpc_result[Qi_bounty];
+        $('#questions-container').find("[data-contract-question-id='" + contractQuestionID(question)+ "']").find('.question-bounty').text(decimalizedBigNumberToHuman(question.bounty));
+    } catch (e) {
+        console.log(e);
+        console.log('fetching the question bounty via RPC failed, initial reward may be missing.');
+    }
+    return question;
 }
 
 async function fetchChangedQuestionsSince(last_ts, search_filters) {
