@@ -87,7 +87,7 @@
         "network_name": "polygon-zkevm"
     },
     "17000": {
-        "hostedRPC": "https://rpc.holesky.ethpandaops.io",
+        "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "explorerURL": "https://holesky.etherscan.io/",
         "network_name": "holesky"
     },
