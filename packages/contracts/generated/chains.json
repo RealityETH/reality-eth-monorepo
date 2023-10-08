@@ -376,7 +376,7 @@
             "https://ethereum-holesky.publicnode.com",
             "wss://ethereum-holesky.publicnode.com"
         ],
-        "hostedRPC": "https://rpc.holesky.ethpandaops.io",
+        "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "blockExplorerUrls": [
             "https://holesky.beaconcha.in",
             "https://holesky.otterscan.io",
