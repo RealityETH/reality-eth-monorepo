@@ -58,6 +58,7 @@ const chains = {
     'scroll-alpha-testnet': 534353,
     'polygon': 137,
     'polygon-zkevm': 1101,
+    'holesky': 17000,
     'mumbai': 80001,
     'ava': 43114,
     'arbitrum': 42161,
@@ -86,6 +87,7 @@ const non_infura_chains = {
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
     'sepolia': 'https://rpc.sepolia.org',
+    'holesky': 'https://ethereum-holesky.publicnode.com	',
     'telosevm': 'https://mainnet.telos.net/evm',
 }
 
