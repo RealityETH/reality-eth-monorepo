@@ -3125,6 +3125,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
             // Non-standard arbitrators should tell us how they're non-standard with their metadata
             // console.log('caught error with getDisputeFee, question was', question_detail, err);
             const metadata = await loadArbitratorMetaData(question_detail.arbitrator);
+console.log('got metadata', metadata);
             if (metadata.foreignProxy) {
                 const fp_abi = [
                   "function foreignProxy() view returns (address)",
@@ -3134,9 +3135,13 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
                 const foreign_proxy_arr = await fpArb.functions.foreignProxy();
                 const foreign_proxy = foreign_proxy_arr[0];
                 console.log('using foreign proxy', foreign_proxy);
-                const foreign_chain_id_arr = await fpArb.functions.foreignChainId()
-                const foreign_chain_id = foreign_chain_id_arr[0].toNumber();
+                console.log('calling foreignChainId', foreign_proxy);
+                const foreign_chain_id = 12354;
+                //const foreign_chain_id_arr = await fpArb.functions.foreignChainId()
+                console.log('foreginchainid ', foreign_chain_id);
+                //const foreign_chain_id = foreign_chain_id_arr[0].toNumber();
                 const btn = rcqa.find('.arbitration-button-foreign-proxy');
+                console.log('got foreign proxy dtails', foreign_chain_id);
                 btn.click(async function(evt) {
                     evt.preventDefault();
                     evt.stopPropagation();
@@ -5619,7 +5624,7 @@ console.log('in foreignProxyInitChain');
     // The Kleros mainnet contract for this has some extra features that we want to display like showing the status of the request
     let arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI_NEW, provider);
 
-    console.log('Checking for an existing dispute');
+    console.log('Checking for an existing dispute', arb_addr);
     try {
         console.log('Trying new contract API');
         const existing_arr = await arb.functions.arbitrationIDToDisputeExists(ethers.BigNumber.from(question_id));
@@ -5629,8 +5634,12 @@ console.log('in foreignProxyInitChain');
         console.log('Error trying new contract API, trying old API');
         arb = new ethers.Contract(arb_addr, PROXIED_ARBITRATOR_ABI_OLD, provider);
         old_version = true;
-        const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
-        dispute_exists = existing_arr[0];
+        try {
+            const existing_arr = await arb.functions.questionIDToDisputeExists(question_id);
+            dispute_exists = existing_arr[0];
+        } catch (e) {
+            console.log('Old API also failed for the arbitrator contract', arb_addr, 'maybe the contract on the other chain is returning the wrong address?');
+        }
     }
 
     // See if it was requested but hasn't been handled yet
@@ -5655,6 +5664,7 @@ console.log('in foreignProxyInitChain');
         return;
     } else {
         try {
+            $('body').addClass('foreign-proxy-ready');
             const fee_arr = await arb.functions.getDisputeFee(question_id);
             const fee = fee_arr[0];
             $('.proxy-arbitration-fee').text(humanReadableWei(fee));
