@@ -516,6 +516,23 @@
             "https://explorer.kintsugi.themerge.dev"
         ]
     },
+    "10101015": {
+        "chainId": "0x9a2117",
+        "chainName": "Backstop Testnet 0",
+        "nativeCurrency": {
+            "name": "Fork",
+            "symbol": "FORK",
+            "decimals": 18
+        },
+        "network_name": "backstop-testnet",
+        "rpcUrls": [
+            "https://rpc.testnet.backstop.technology"
+        ],
+        "hostedRPC": "https://rpc.testnet.backstop.technology",
+        "blockExplorerUrls": [
+            "https://explorer.testnet.backstop.technology"
+        ]
+    },
     "11155111": {
         "chainId": "0xaa36a7",
         "chainName": "Sepolia",

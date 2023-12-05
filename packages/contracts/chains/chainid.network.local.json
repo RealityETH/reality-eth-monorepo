@@ -49,5 +49,30 @@
                 "standard": "EIP3091"
             }
         ]
+     },
+     {
+      "name": "Backstop Testnet 0",
+      "chainId": 10101015,
+      "shortName": "bst0",
+      "chain": "Backstop",
+      "network": "testnet",
+      "networkId": 10101015,
+      "nativeCurrency": {
+        "name": "Fork",
+        "symbol": "FORK",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://rpc.testnet.backstop.technology"
+      ],
+      "faucets": [],
+      "infoURL": "https://backstop.technology",
+      "explorers": [
+            {
+                "name": "Backstop Testnet Explorer",
+                "url": "https://explorer.testnet.backstop.technology",
+                "standard": "EIP3091"
+            }
+        ]
      }
 ]

@@ -119,6 +119,9 @@
     "1337702": {
         "network_name": "kintsugi"
     },
+    "10101015": {
+        "network_name": "backstop-testnet"
+    },
     "11155111": {
         "network_name": "sepolia"
     }

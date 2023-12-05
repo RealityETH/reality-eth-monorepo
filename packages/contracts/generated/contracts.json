@@ -513,6 +513,23 @@
             }
         }
     },
+    "10101015": {
+        "FORK": {
+            "Arbitrator": {
+                "address": "0x2bCBCeEf621995Efd31b8F42Dc075A17fe0FA42d",
+                "block": 1,
+                "reality_eth_address": "0xc1EE3554b7066500dA255ac5a87C64ed2aEB95ea"
+            },
+            "RealityETH-3.0": {
+                "address": "0xc1EE3554b7066500dA255ac5a87C64ed2aEB95ea",
+                "block": 1,
+                "notes": null,
+                "arbitrators": {
+                    "0x2bCBCeEf621995Efd31b8F42Dc075A17fe0FA42d": "Test arbitrator"
+                }
+            }
+        }
+    },
     "11155111": {
         "ETH": {
             "RealityETH-3.0": {
