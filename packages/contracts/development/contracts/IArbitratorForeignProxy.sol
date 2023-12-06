@@ -8,9 +8,9 @@ https://github.com/kleros/cross-chain-realitio-proxy
 
 In this arrangement, the "foreign" side is deployed on the chain where reality.eth is, and the "home" side is deployed on the chain where Kleros is.
 
-If you implement this you should also inherit and implement the functions in IArbitratorCoreRecommended, with the exception of requestArbitration() which is done on the other chain.
+If you implement this you should also inherit and implement the functions in IArbitratorCore, with the exception of requestArbitration() which is done on the other chain.
 
-The metadata() string defined in IArbitratorCoreRecommended should return some JSON to tell the UI that it is dealing with a foreign proxy, like:
+The metadata() string defined in IArbitratorCore should return some JSON to tell the UI that it is dealing with a foreign proxy, like:
 { foreignProxy: true }
 */
 
