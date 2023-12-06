@@ -3463,3 +3463,11 @@ span.filter-icon {
 .network-connected .loading-text-connected {
     display:inline;
 }
+
+.default-hide {
+    display:none;
+}
+
+body.show-hidden .default-hide {
+    display:unset;
+}
