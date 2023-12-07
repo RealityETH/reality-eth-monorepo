@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.10;
+pragma solidity 0.8.10;
 
 /*
 This defines the features needed by a "foreign proxy" for a cross-chain arbitrator as created by Kleros, for example see

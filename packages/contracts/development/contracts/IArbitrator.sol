@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.10;
+pragma solidity 0.8.10;
 
 /*
 This interface describes the Arbitrator contract originally deployed and managed by the reality.eth team. See below for the various parts it comprises.
