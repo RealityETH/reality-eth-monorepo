@@ -5,5 +5,5 @@ pragma solidity ^0.8.10;
 import './IRealityETH.sol';
 
 interface IArbitratorLegacy {
-  function realitycheck (  ) external view returns ( IRealityETH );
+    function realitycheck (  ) external view returns ( IRealityETH );
 }

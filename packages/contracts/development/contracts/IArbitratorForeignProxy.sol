@@ -15,6 +15,6 @@ The metadata() string defined in IArbitratorCore should return some JSON to tell
 */
 
 interface IArbitratorForeignProxy {
-  function foreignProxy() external returns (address);
-  function foreignChainId() external returns (uint256);
+    function foreignProxy() external returns (address);
+    function foreignChainId() external returns (uint256);
 }
