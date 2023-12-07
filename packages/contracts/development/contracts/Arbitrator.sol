@@ -18,31 +18,6 @@ contract Arbitrator is Owned, IArbitrator {
 
     string public metadata;
 
-    event LogRequestArbitration(
-        bytes32 indexed question_id,
-        uint256 fee_paid,
-        address requester,
-        uint256 remaining
-    );
-
-    event LogSetRealitio(
-        address realitio
-    );
-
-    event LogSetQuestionFee(
-        uint256 fee
-    );
-
-
-    event LogSetDisputeFee(
-        uint256 fee
-    );
-
-    event LogSetCustomDisputeFee(
-        bytes32 indexed question_id,
-        uint256 fee
-    );
-
     /// @notice Constructor. Sets the deploying address as owner.
     constructor() {
         owner = msg.sender;
