@@ -29,11 +29,9 @@ Where a consumer contract has their own token, they may choose to provide their 
 Subjectivocracy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We are developing a forkable Layer 2 ledger where issues can be decided by the subjective choice of users.
+We are developing `a forkable Layer 2 ledger`_ where issues can be decided by the subjective choice of users to operate as an arbitration backstop.
 
-.. _`Whitepaper`: https://backstop.technology/
-.. _`current design`: https://github.com/RealityETH/subjectivocracy
-
+.. _`a forkable Layer 2 ledger`: https://backstop.technology/
 
 
 
