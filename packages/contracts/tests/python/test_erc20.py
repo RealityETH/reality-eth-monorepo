@@ -55,7 +55,7 @@ def calculate_answer_hash(answer, nonce):
         raise Exception("hash functions expect bytes for bytes32 parameters")
     if not isinstance(nonce, int):
         raise Exception("hash functions expect int for uint256 parameters")
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'uint256'], [answer, nonce])))
+    return "0x"+encode_hex(bytes(Web3.solidity_keccak(['bytes32', 'uint256'], [answer, nonce])))
 
 def calculate_commitment_id(question_id, answer_hash, bond):
     if question_id[:2] == "0x":
@@ -65,17 +65,17 @@ def calculate_commitment_id(question_id, answer_hash, bond):
     if not isinstance(bond, int):
         raise Exception("hash functions expect int for uint256 parameters")
     #return decode_hex(keccak_256(question_id + answer_hash + decode_hex(hex(bond)[2:].zfill(64))).hexdigest())
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256'], [question_id, answer_hash, bond])))
+    return "0x"+encode_hex(bytes(Web3.solidity_keccak(['bytes32', 'bytes32', 'uint256'], [question_id, answer_hash, bond])))
 
 def calculate_content_hash(template_id, question_str, opening_ts):
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])))
+    return "0x"+encode_hex(bytes(Web3.solidity_keccak(['uint256', 'uint32', 'string'], [template_id, opening_ts, question_str])))
 
 def calculate_question_id(template_id, question_str, arbitrator, timeout, opening_ts, nonce, sender):
     content_hash = calculate_content_hash(template_id, question_str, opening_ts)
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
+    return "0x"+encode_hex(bytes(Web3.solidity_keccak(['bytes32', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce])))
 
 def calculate_history_hash(last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment):
-    return "0x"+encode_hex(bytes(Web3.solidityKeccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
+    return "0x"+encode_hex(bytes(Web3.solidity_keccak(['bytes32', 'bytes32', 'uint256', 'address', 'bool'], [last_history_hash, answer_or_commitment_id, bond, answerer, is_commitment])))
 
 def from_question_for_contract(txt):
     return txt
@@ -90,13 +90,13 @@ def from_answer_for_contract(txt):
 class TestRealitio(TestCase):
 
     def assertZeroStatus(self, txid, msg=None):
-        self.assertEqual(self.web3.eth.getTransactionReceipt(txid)['status'], 0, msg)
+        self.assertEqual(self.web3.eth.get_transaction_receipt(txid)['status'], 0, msg)
 
     # Sometimes we seem to get a zero status receipt with no exception raised
     # Not sure if this is what's supposed to happen, but call this in the with block to make sure we get an exception 
     def raiseOnZeroStatus(self, txid):
-        if self.web3.eth.getTransactionReceipt(txid)['status'] == 0:
-            #print(self.web3.eth.getTransactionReceipt(txid))
+        if self.web3.eth.get_transaction_receipt(txid)['status'] == 0:
+            #print(self.web3.eth.get_transaction_receipt(txid))
             raise TransactionFailed
 
     def _block_timestamp(self):
@@ -190,7 +190,7 @@ class TestRealitio(TestCase):
             f.close()
 
         tx_hash = self.web3.eth.contract(abi=contract_if, bytecode=bcode).constructor().transact(self.deploy_tx)
-        addr = self.web3.eth.getTransactionReceipt(tx_hash).get('contractAddress')
+        addr = self.web3.eth.get_transaction_receipt(tx_hash).get('contractAddress')
         return self.web3.eth.contract(addr, abi=contract_if)
 
     def testS(self):
@@ -203,6 +203,7 @@ class TestRealitio(TestCase):
         prov = EthereumTesterProvider(EthereumTester(PyEVMBackend(genesis_params)))
 
         self.web3 = Web3(prov)
+        self.web3.strict_bytes_type_checking = False
         self.web3.testing.mine()
 
         k0 = self.web3.eth.accounts[0]
@@ -774,7 +775,7 @@ class TestRealitio(TestCase):
 
         self.raiseOnZeroStatus(txid)
 
-        #rcp = self.web3.eth.getTransactionReceipt(txid)
+        #rcp = self.web3.eth.get_transaction_receipt(txid)
         self._advance_clock(33)
         #time.sleep(10)
 
@@ -1257,7 +1258,7 @@ class TestRealitio(TestCase):
             0
             ,1100
         ).transact()
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        rcpt = self.web3.eth.get_transaction_receipt(txid)
         gas_used = rcpt['cumulativeGasUsed']
         self.assertTrue(gas_used < 140000)
     
@@ -1267,7 +1268,7 @@ class TestRealitio(TestCase):
         txid = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12345), 0
         ,1
         ).transact()
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        rcpt = self.web3.eth.get_transaction_receipt(txid)
 
         self.assertTrue(rcpt['cumulativeGasUsed'] < 140000)
 
@@ -1277,7 +1278,7 @@ class TestRealitio(TestCase):
         txid2 = self.rc0.functions.submitAnswerERC20(self.question_id, to_answer_for_contract(12346), 0
         ,2
         ).transact() 
-        rcpt = self.web3.eth.getTransactionReceipt(txid2)
+        rcpt = self.web3.eth.get_transaction_receipt(txid2)
         self.assertTrue(rcpt['cumulativeGasUsed'] < 80000)
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
@@ -1321,7 +1322,7 @@ class TestRealitio(TestCase):
 
         start_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
         txid = self.arb0.functions.callWithdraw().transact(self._txargs(sender=k7))
-        rcpt = self.web3.eth.getTransactionReceipt(txid)
+        rcpt = self.web3.eth.get_transaction_receipt(txid)
         end_arb_bal = self.token0.functions.balanceOf(self.arb0.address).call()
 
         self.assertEqual(end_arb_bal - start_arb_bal, 100 + (321*2))
