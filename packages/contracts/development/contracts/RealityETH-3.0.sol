@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.20;
 
-import './IRealityETH.sol';
+import './IRealityETHv3.sol';
 
 import './BalanceHolder.sol';
 
-contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
+contract RealityETH_v3_0 is BalanceHolder, IRealityETHv3 {
 
     address constant NULL_ADDRESS = address(0);
 
