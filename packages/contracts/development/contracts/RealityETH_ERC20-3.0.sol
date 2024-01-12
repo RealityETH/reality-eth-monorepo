@@ -3,8 +3,9 @@
 pragma solidity ^0.8.20;
 
 import './BalanceHolder_ERC20.sol';
+import './IRealityETH_ERC20.sol';
 
-contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20 {
+contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
     address constant NULL_ADDRESS = address(0);
 
@@ -26,86 +27,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20 {
     // Special value representing a question that was answered too soon.
     // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
     bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
-
-    event LogSetQuestionFee(
-        address arbitrator,
-        uint256 amount
-    );
-
-    event LogNewTemplate(
-        uint256 indexed template_id,
-        address indexed user, 
-        string question_text
-    );
-
-    event LogNewQuestion(
-        bytes32 indexed question_id,
-        address indexed user, 
-        uint256 template_id,
-        string question,
-        bytes32 indexed content_hash,
-        address arbitrator, 
-        uint32 timeout,
-        uint32 opening_ts,
-        uint256 nonce,
-        uint256 created
-    );
-
-    event LogMinimumBond(
-        bytes32 indexed question_id,
-        uint256 min_bond
-    );
-
-    event LogFundAnswerBounty(
-        bytes32 indexed question_id,
-        uint256 bounty_added,
-        uint256 bounty,
-        address indexed user 
-    );
-
-    event LogNewAnswer(
-        bytes32 answer,
-        bytes32 indexed question_id,
-        bytes32 history_hash,
-        address indexed user,
-        uint256 bond,
-        uint256 ts,
-        bool is_commitment
-    );
-
-    event LogAnswerReveal(
-        bytes32 indexed question_id, 
-        address indexed user, 
-        bytes32 indexed answer_hash, 
-        bytes32 answer, 
-        uint256 nonce, 
-        uint256 bond
-    );
-
-    event LogNotifyOfArbitrationRequest(
-        bytes32 indexed question_id,
-        address indexed user 
-    );
-
-    event LogCancelArbitration(
-        bytes32 indexed question_id
-    );
-
-    event LogFinalize(
-        bytes32 indexed question_id,
-        bytes32 indexed answer
-    );
-
-    event LogClaim(
-        bytes32 indexed question_id,
-        address indexed user,
-        uint256 amount
-    );
-
-    event LogReopenQuestion(
-        bytes32 indexed question_id,
-        bytes32 indexed reopened_question_id
-    );
 
     struct Question {
         bytes32 content_hash;
