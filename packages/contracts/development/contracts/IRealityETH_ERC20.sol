@@ -3,6 +3,7 @@
 pragma solidity 0.8.20;
 
 import './IBalanceHolder_ERC20.sol';
+import './IERC20.sol';
 
 interface IRealityETH_ERC20 is IBalanceHolder_ERC20 {
      event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
@@ -31,7 +32,7 @@ interface IRealityETH_ERC20 is IBalanceHolder_ERC20 {
      function notifyOfArbitrationRequest (bytes32 question_id, address requester, uint256 max_previous) external;
      function reopenQuestionERC20 (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id, uint256 tokens) external returns (bytes32);
      function setQuestionFee (uint256 fee) external;
-     function setToken (address _token) external;
+     function setToken (IERC20 _token) external;
      function submitAnswerByArbitrator (bytes32 question_id, bytes32 answer, address answerer) external;
      function submitAnswerCommitmentERC20 (bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens) external;
      function submitAnswerERC20 (bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens) external;
