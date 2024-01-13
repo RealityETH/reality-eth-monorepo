@@ -4,111 +4,9 @@ pragma solidity ^0.8.20;
 
 import './BalanceHolder_ERC20.sol';
 import './IRealityETH_ERC20.sol';
+import './RealityETH_common-3.0.sol';
 
-contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
-
-    address constant NULL_ADDRESS = address(0);
-
-    // History hash when no history is created, or history has been cleared
-    bytes32 constant NULL_HASH = bytes32(0);
-
-    // An unitinalized finalize_ts for a question will indicate an unanswered question.
-    uint32 constant UNANSWERED = 0;
-
-    // An unanswered reveal_ts for a commitment will indicate that it does not exist.
-    uint256 constant COMMITMENT_NON_EXISTENT = 0;
-
-    // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
-    uint32 constant COMMITMENT_TIMEOUT_RATIO = 8;
-
-    // Proportion withheld when you claim an earlier bond.
-    uint256 constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
-
-    // Special value representing a question that was answered too soon.
-    // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
-    bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
-
-    uint256 nextTemplateID = 0;
-    mapping(uint256 => uint256) public templates;
-    mapping(uint256 => bytes32) public template_hashes;
-    mapping(bytes32 => Question) public questions;
-    mapping(bytes32 => Claim) public question_claims;
-    mapping(bytes32 => Commitment) public commitments;
-    mapping(address => uint256) public arbitrator_question_fees; 
-    mapping(bytes32 => bytes32) public reopened_questions;
-    mapping(bytes32 => bool) public reopener_questions;
-
-
-    modifier onlyArbitrator(bytes32 question_id) {
-        require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
-        _;
-    }
-
-    modifier stateAny() {
-        _;
-    }
-
-    modifier stateNotCreated(bytes32 question_id) {
-        require(questions[question_id].timeout == 0, "question must not exist");
-        _;
-    }
-
-    modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].timeout > 0, "question must exist");
-        require(!questions[question_id].is_pending_arbitration, "question must not be pending arbitration");
-        uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization deadline must not have passed");
-        uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
-        _;
-    }
-
-    modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].is_pending_arbitration, "question must be pending arbitration");
-        _;
-    }
-
-    modifier stateOpenOrPendingArbitration(bytes32 question_id) {
-        require(questions[question_id].timeout > 0, "question must exist");
-        uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
-        uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
-        _;
-    }
-
-    modifier stateFinalized(bytes32 question_id) {
-        require(isFinalized(question_id), "question must be finalized");
-        _;
-    }
-
-    modifier bondMustDoubleAndMatchMinimum(bytes32 question_id, uint256 tokens) {
-        require(tokens > 0, "bond must be positive"); 
-        uint256 current_bond = questions[question_id].bond;
-        if (current_bond == 0) {
-            require(tokens >= (questions[question_id].min_bond), "bond must exceed the minimum");
-        } else {
-            require(tokens >= (current_bond * 2), "bond must be double at least previous bond");
-        }
-        _;
-    }
-
-    modifier previousBondMustNotBeatMaxPrevious(bytes32 question_id, uint256 max_previous) {
-        if (max_previous > 0) {
-            require(questions[question_id].bond <= max_previous, "bond must exceed max_previous");
-        }
-        _;
-    }
-
-    /// @notice Constructor, sets up some initial templates
-    /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor() {
-        createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
-    }
+contract RealityETH_ERC20_v3_0 is RealityETH_common_v3_0, BalanceHolder_ERC20 {
 
     /// @notice Set the address of the ERC20 token that will be used for bonds.
     /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
@@ -530,57 +428,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         submitAnswerByArbitrator(question_id, answer, payee);
     }
 
-
-    /// @notice Report whether the answer to the specified question is finalized
-    /// @param question_id The ID of the question
-    /// @return Return true if finalized
-    function isFinalized(bytes32 question_id) 
-    view public returns (bool) {
-        uint32 finalize_ts = questions[question_id].finalize_ts;
-        return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)) );
-    }
-
-    /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
-    /// @param question_id The ID of the question
-    /// @return The answer formatted as a bytes32
-    function getFinalAnswer(bytes32 question_id) 
-        stateFinalized(question_id)
-    external view returns (bytes32) {
-        return questions[question_id].best_answer;
-    }
-
-    /// @notice Return the final answer to the specified question, or revert if there isn't one
-    /// @param question_id The ID of the question
-    /// @return The answer formatted as a bytes32
-    function resultFor(bytes32 question_id) 
-        stateFinalized(question_id)
-    public view returns (bytes32) {
-        return questions[question_id].best_answer;
-    }
-
-    /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
-    /// @param question_id The ID of the question 
-    function isSettledTooSoon(bytes32 question_id)
-    public view returns(bool) {
-        return (resultFor(question_id) == UNRESOLVED_ANSWER);
-    }
-
-    /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
-    /// @param question_id The ID of the question 
-    function resultForOnceSettled(bytes32 question_id)
-    external view returns(bytes32) {
-        bytes32 result = resultFor(question_id);
-        if (result == UNRESOLVED_ANSWER) {
-            // Try the replacement
-            bytes32 replacement_id = reopened_questions[question_id];
-            require(replacement_id != bytes32(0x0), "Question was settled too soon and has not been reopened");
-            // We only try one layer down rather than recursing to keep the gas costs predictable
-            result = resultFor(replacement_id);
-            require(result != UNRESOLVED_ANSWER, "Question replacement was settled too soon and has not been reopened");
-        }
-        return result;
-    }
-
     /// @notice Asks a new question reopening a previously-asked question that was settled too soon
     /// @dev A special version of askQuestion() that replaces a previous question that was settled too soon
     /// @param template_id The ID number of the template the question will use
@@ -639,27 +486,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         emit LogReopenQuestion(question_id, reopens_question_id);
 
         return question_id;
-    }
-
-    /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
-    /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
-    /// @param question_id The ID of the question
-    /// @param content_hash The hash of the question content (template ID + opening time + question parameter string)
-    /// @param arbitrator The arbitrator chosen for the question (regardless of whether they are asked to arbitrate)
-    /// @param min_timeout The timeout set in the initial question settings must be this high or higher
-    /// @param min_bond The bond sent with the final answer must be this high or higher
-    /// @return The answer formatted as a bytes32
-    function getFinalAnswerIfMatches(
-        bytes32 question_id, 
-        bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond
-    ) 
-        stateFinalized(question_id)
-    external view returns (bytes32) {
-        require(content_hash == questions[question_id].content_hash, "content hash must match");
-        require(arbitrator == questions[question_id].arbitrator, "arbitrator must match");
-        require(min_timeout <= questions[question_id].timeout, "timeout must be long enough");
-        require(min_bond <= questions[question_id].bond, "bond must be high enough");
-        return questions[question_id].best_answer;
     }
 
     /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
@@ -860,85 +686,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
             claimWinnings(qid, hh, ad, bo, an);
         }
         withdraw();
-    }
-
-    /// @notice Returns the questions's content hash, identifying the question content
-    /// @param question_id The ID of the question 
-    function getContentHash(bytes32 question_id) 
-    public view returns(bytes32) {
-        return questions[question_id].content_hash;
-    }
-
-    /// @notice Returns the arbitrator address for the question
-    /// @param question_id The ID of the question 
-    function getArbitrator(bytes32 question_id) 
-    public view returns(address) {
-        return questions[question_id].arbitrator;
-    }
-
-    /// @notice Returns the timestamp when the question can first be answered
-    /// @param question_id The ID of the question 
-    function getOpeningTS(bytes32 question_id) 
-    public view returns(uint32) {
-        return questions[question_id].opening_ts;
-    }
-
-    /// @notice Returns the timeout in seconds used after each answer
-    /// @param question_id The ID of the question 
-    function getTimeout(bytes32 question_id) 
-    public view returns(uint32) {
-        return questions[question_id].timeout;
-    }
-
-    /// @notice Returns the timestamp at which the question will be/was finalized
-    /// @param question_id The ID of the question 
-    function getFinalizeTS(bytes32 question_id) 
-    public view returns(uint32) {
-        return questions[question_id].finalize_ts;
-    }
-
-    /// @notice Returns whether the question is pending arbitration
-    /// @param question_id The ID of the question 
-    function isPendingArbitration(bytes32 question_id) 
-    public view returns(bool) {
-        return questions[question_id].is_pending_arbitration;
-    }
-
-    /// @notice Returns the current total unclaimed bounty
-    /// @dev Set back to zero once the bounty has been claimed
-    /// @param question_id The ID of the question 
-    function getBounty(bytes32 question_id) 
-    public view returns(uint256) {
-        return questions[question_id].bounty;
-    }
-
-    /// @notice Returns the current best answer
-    /// @param question_id The ID of the question 
-    function getBestAnswer(bytes32 question_id) 
-    public view returns(bytes32) {
-        return questions[question_id].best_answer;
-    }
-
-    /// @notice Returns the history hash of the question 
-    /// @param question_id The ID of the question 
-    /// @dev Updated on each answer, then rewound as each is claimed
-    function getHistoryHash(bytes32 question_id) 
-    public view returns(bytes32) {
-        return questions[question_id].history_hash;
-    }
-
-    /// @notice Returns the highest bond posted so far for a question
-    /// @param question_id The ID of the question 
-    function getBond(bytes32 question_id) 
-    public view returns(uint256) {
-        return questions[question_id].bond;
-    }
-
-    /// @notice Returns the minimum bond that can answer the question
-    /// @param question_id The ID of the question
-    function getMinBond(bytes32 question_id)
-    public view returns(uint256) {
-        return questions[question_id].min_bond;
     }
 
 }
