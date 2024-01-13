@@ -6,6 +6,36 @@ import './IBalanceHolder_ERC20.sol';
 import './IERC20.sol';
 
 interface IRealityETH_ERC20 is IBalanceHolder_ERC20 {
+
+     struct Question {
+         bytes32 content_hash;
+         address arbitrator;
+         uint32 opening_ts;
+         uint32 timeout;
+         uint32 finalize_ts;
+         bool is_pending_arbitration;
+         uint256 bounty;
+         bytes32 best_answer;
+         bytes32 history_hash;
+         uint256 bond;
+         uint256 min_bond;
+     }
+
+     // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond.
+     struct Commitment {
+         uint32 reveal_ts;
+         bool is_revealed;
+         bytes32 revealed_answer;
+     }
+
+     // Only used when claiming more bonds than fits into a transaction
+     // Stored in a mapping indexed by question_id.
+     struct Claim {
+         address payee;
+         uint256 last_bond;
+         uint256 queued_funds;
+     }
+
      event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
      event LogCancelArbitration (bytes32 indexed question_id);
      event LogClaim (bytes32 indexed question_id, address indexed user, uint256 amount);
