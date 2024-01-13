@@ -9,8 +9,9 @@ DIR=`dirname "$0"`
 COMMIT=`git rev-parse HEAD`
 
 for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol"; do
-    HASH=`solc-0.8.20 --no-cbor-metadata --bin "$DIR/../contracts/$contract" | tail -n1 | sha256sum | head -c64`
-    ORIG_HASH=`solc-0.8.20 --no-cbor-metadata --bin "$DIR/../../flat/$contract" | tail -n1 | sha256sum | head -c64`
+#for contract in "RealityETH-3.0.sol"; do
+    HASH=`solc-0.8.20 --no-cbor-metadata --bin "$DIR/../contracts/$contract" | grep -a1 "$contract:" | tail -n1 | sha256sum | head -c64`
+    ORIG_HASH=`solc-0.8.20 --no-cbor-metadata --bin "$DIR/../../flat/$contract" | grep -a1 "$contract:" | tail -n1 | sha256sum | head -c64`
     if [ "$HASH" != "$ORIG_HASH" ]; then
         echo "Hash mismatch"
         exit 1
