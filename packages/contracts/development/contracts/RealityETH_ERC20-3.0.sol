@@ -28,22 +28,6 @@ contract RealityETH_ERC20_v3_0 is RealityETH_common_v3_0, BalanceHolder_ERC20 {
         emit LogSetQuestionFee(msg.sender, fee);
     }
 
-    /// @notice Create a reusable template, which should be a JSON document.
-    /// Placeholders should use gettext() syntax, eg %s.
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
-    /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content) 
-        stateAny()
-    public returns (uint256) {
-        uint256 id = nextTemplateID;
-        templates[id] = block.number;
-        template_hashes[id] = keccak256(abi.encodePacked(content));
-        emit LogNewTemplate(id, msg.sender, content);
-        nextTemplateID = id + 1;
-        return id;
-    }
-
     /// @notice Create a new reusable template and use it to ask a question
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content

@@ -19,22 +19,6 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
         emit LogSetQuestionFee(msg.sender, fee);
     }
 
-    /// @notice Create a reusable template, which should be a JSON document.
-    /// Placeholders should use gettext() syntax, eg %s.
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
-    /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content) 
-        stateAny()
-    public returns (uint256) {
-        uint256 id = nextTemplateID;
-        templates[id] = block.number;
-        template_hashes[id] = keccak256(abi.encodePacked(content));
-        emit LogNewTemplate(id, msg.sender, content);
-        nextTemplateID = id + 1;
-        return id;
-    }
-
     /// @notice Create a new reusable template and use it to ask a question
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
@@ -74,7 +58,7 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
 
         // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, msg.value);
 
         return question_id;
     }
@@ -101,29 +85,29 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
         // We emit this event here because _askQuestion doesn't need to know the unhashed question.
         // Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond, msg.value);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond) 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens)
         stateNotCreated(question_id)
     internal {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
-        require(timeout > 0, "timeout must be positive"); 
-        require(timeout < 365 days, "timeout must be less than 365 days"); 
+        require(timeout > 0, "timeout must be positive");
+        require(timeout < 365 days, "timeout must be less than 365 days");
 
-        uint256 bounty = msg.value;
+        uint256 bounty = tokens;
 
-        // The arbitrator can set a fee for asking a question. 
+        // The arbitrator can set a fee for asking a question.
         // This is intended as an anti-spam defence.
         // The fee is waived if the arbitrator is asking the question.
         // This allows them to set an impossibly high fee and make users proxy the question through them.
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "ETH provided must cover question fee"); 
+            require(bounty >= question_fee, "Tokens provided must cover question fee");
             bounty = bounty - question_fee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
