@@ -9,16 +9,6 @@ import './RealityETH_common-3.0.sol';
 
 contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
 
-    /// @notice Function for arbitrator to set an optional per-question fee. 
-    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
-    /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) 
-        stateAny() 
-    external {
-        arbitrator_question_fees[msg.sender] = fee;
-        emit LogSetQuestionFee(msg.sender, fee);
-    }
-
     /// @notice Create a new reusable template and use it to ask a question
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
@@ -171,18 +161,6 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
         _updateCurrentAnswer(question_id, answer);
     }
 
-    // @notice Verify and store a commitment, including an appropriate timeout
-    // @param question_id The ID of the question to store
-    // @param commitment The ID of the commitment
-    function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
-    internal
-    {
-        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
-
-        uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(block.timestamp) + commitment_timeout;
-    }
-
     /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
     /// @dev Creates a hash, commitment_id, uniquely identifying this answer, to this question, with this bond.
     /// The commitment_id is stored in the answer history where the answer would normally go.
@@ -234,106 +212,6 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
 
         emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
 
-    }
-
-    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
-    internal 
-    {
-        bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
-
-        // Update the current bond level, if there's a bond (ie anything except arbitration)
-        if (bond > 0) {
-            questions[question_id].bond = bond;
-        }
-        questions[question_id].history_hash = new_history_hash;
-
-        emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
-    }
-
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer)
-    internal {
-        questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
-    }
-
-    // Like _updateCurrentAnswer but without advancing the timeout
-    function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer)
-    internal {
-        questions[question_id].best_answer = answer;
-        questions[question_id].finalize_ts = uint32(block.timestamp);
-    }
-
-    /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
-    /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
-    /// @param question_id The ID of the question
-    /// @param requester The account that requested arbitration
-    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) 
-        onlyArbitrator(question_id)
-        stateOpen(question_id)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external {
-        require(questions[question_id].finalize_ts > UNANSWERED, "Question must already have an answer when arbitration is requested");
-        questions[question_id].is_pending_arbitration = true;
-        emit LogNotifyOfArbitrationRequest(question_id, requester);
-    }
-
-    /// @notice Cancel a previously-requested arbitration and extend the timeout
-    /// @dev Useful when doing arbitration across chains that can't be requested atomically
-    /// @param question_id The ID of the question
-    function cancelArbitration(bytes32 question_id) 
-        onlyArbitrator(question_id)
-        statePendingArbitration(question_id)
-    external {
-        questions[question_id].is_pending_arbitration = false;
-        questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
-        emit LogCancelArbitration(question_id);
-    }
-
-    /// @notice Submit the answer for a question, for use by the arbitrator.
-    /// @dev Doesn't require (or allow) a bond.
-    /// If the current final answer is correct, the account should be whoever submitted it.
-    /// If the current final answer is wrong, the account should be whoever paid for arbitration.
-    /// However, the answerer stipulations are not enforced by the contract.
-    /// @param question_id The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param answerer The account credited with this answer for the purpose of bond claims
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
-        onlyArbitrator(question_id)
-        statePendingArbitration(question_id)
-    public {
-
-        require(answerer != NULL_ADDRESS, "answerer must be provided");
-        emit LogFinalize(question_id, answer);
-
-        questions[question_id].is_pending_arbitration = false;
-        _addAnswerToHistory(question_id, answer, answerer, 0, false);
-        _updateCurrentAnswerByArbitrator(question_id, answer);
-
-    }
-
-    /// @notice Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
-    /// @dev Doesn't require (or allow) a bond.
-    /// @param question_id The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param payee_if_wrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
-    /// @param last_history_hash The history hash before the final one
-    /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
-    /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
-    external {
-        bool is_commitment = _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer_or_commitment_id, questions[question_id].bond, last_answerer);
-
-        address payee;
-        // If the last answer is an unrevealed commit, it's always wrong.
-        // For anything else, the last answer was set as the "best answer" in submitAnswer or submitAnswerReveal.
-        if (is_commitment && !commitments[last_answer_or_commitment_id].is_revealed) {
-            require(commitments[last_answer_or_commitment_id].reveal_ts < uint32(block.timestamp), "You must wait for the reveal deadline before finalizing");
-            payee = payee_if_wrong;
-        } else {
-            payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
-        }
-        submitAnswerByArbitrator(question_id, answer, payee);
     }
 
     /// @notice Asks a new question reopening a previously-asked question that was settled too soon
@@ -479,20 +357,6 @@ contract RealityETH_v3_0 is RealityETH_common_v3_0, BalanceHolder {
     internal {
         balanceOf[payee] = balanceOf[payee] + value;
         emit LogClaim(question_id, payee, value);
-    }
-
-    function _verifyHistoryInputOrRevert(
-        bytes32 last_history_hash,
-        bytes32 history_hash, bytes32 answer, uint256 bond, address addr
-    )
-    internal pure returns (bool) {
-        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, true)) ) {
-            return true;
-        }
-        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
-            return false;
-        } 
-        revert("History input provided did not match the expected hash");
     }
 
     function _processHistoryItem(
