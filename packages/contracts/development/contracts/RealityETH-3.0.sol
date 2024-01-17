@@ -10,7 +10,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     address constant private NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
-    bytes32 constant NULL_HASH = bytes32(0);
+    bytes32 constant private NULL_HASH = bytes32(0);
 
     // An unitinalized finalize_ts for a question will indicate an unanswered question.
     uint32 constant private UNANSWERED = 0;
