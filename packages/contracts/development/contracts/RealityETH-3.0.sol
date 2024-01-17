@@ -99,6 +99,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         _;
     }
 
+    /* solhint-disable quotes */
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() {
@@ -108,6 +109,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
     }
+    /* solhint-enable quotes */
+
 
     /// @notice Function for arbitrator to set an optional per-question fee. 
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
