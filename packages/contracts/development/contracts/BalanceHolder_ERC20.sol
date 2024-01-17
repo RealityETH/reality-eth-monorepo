@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import './IERC20.sol';
-import './IBalanceHolder_ERC20.sol';
+import {IERC20} from "./IERC20.sol";
+import {IBalanceHolder_ERC20} from "./IBalanceHolder_ERC20.sol";
 
 contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
 

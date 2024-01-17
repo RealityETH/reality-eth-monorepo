@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import './IBalanceHolder.sol';
+import {IBalanceHolder} from "./IBalanceHolder.sol";
 
 contract BalanceHolder is IBalanceHolder {
 
