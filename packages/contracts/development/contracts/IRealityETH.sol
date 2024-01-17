@@ -5,7 +5,6 @@ pragma solidity 0.8.20;
 import './IBalanceHolder.sol';
 
 interface IRealityETH is IBalanceHolder {
-     event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
      event LogCancelArbitration (bytes32 indexed question_id);
      event LogClaim (bytes32 indexed question_id, address indexed user, uint256 amount);
      event LogFinalize (bytes32 indexed question_id, bytes32 indexed answer);
@@ -26,17 +25,14 @@ interface IRealityETH is IBalanceHolder {
      function notifyOfArbitrationRequest (bytes32 question_id, address requester, uint256 max_previous) external;
      function setQuestionFee (uint256 fee) external;
      function submitAnswerByArbitrator (bytes32 question_id, bytes32 answer, address answerer) external;
-     function submitAnswerReveal (bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) external;
      function askQuestion (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
      function askQuestionWithMinBond (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) external payable returns (bytes32);
      function createTemplateAndAskQuestion (string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
      function fundAnswerBounty (bytes32 question_id) external payable;
      function reopenQuestion (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) external payable returns (bytes32);
      function submitAnswer (bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
-     function submitAnswerCommitment (bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) external payable;
      function submitAnswerFor (bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer) external payable;
      function arbitrator_question_fees (address) external view returns (uint256);
-     function commitments (bytes32) external view returns (uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer);
      function getArbitrator (bytes32 question_id) external view returns (address);
      function getBestAnswer (bytes32 question_id) external view returns (bytes32);
      function getBond (bytes32 question_id) external view returns (uint256);

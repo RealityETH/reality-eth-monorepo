@@ -15,12 +15,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     // An unitinalized finalize_ts for a question will indicate an unanswered question.
     uint32 constant UNANSWERED = 0;
 
-    // An unanswered reveal_ts for a commitment will indicate that it does not exist.
-    uint256 constant COMMITMENT_NON_EXISTENT = 0;
-
-    // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
-    uint32 constant COMMITMENT_TIMEOUT_RATIO = 8;
-
     // Proportion withheld when you claim an earlier bond.
     uint256 constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
@@ -42,13 +36,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         uint256 min_bond;
     }
 
-    // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
-    struct Commitment {
-        uint32 reveal_ts;
-        bool is_revealed;
-        bytes32 revealed_answer;
-    }
-
     // Only used when claiming more bonds than fits into a transaction
     // Stored in a mapping indexed by question_id.
     struct Claim {
@@ -62,11 +49,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) public question_claims;
-    mapping(bytes32 => Commitment) public commitments;
     mapping(address => uint256) public arbitrator_question_fees; 
     mapping(bytes32 => bytes32) public reopened_questions;
     mapping(bytes32 => bool) public reopener_questions;
-
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
@@ -357,7 +342,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
     /// @notice Submit an answer for a question.
     /// @dev Adds the answer to the history and updates the current "best" answer.
-    /// May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
@@ -368,13 +352,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
         _deductTokensOrRevert(tokens);
-        _addAnswerToHistory(question_id, answer, msg.sender, tokens, false);
+        _addAnswerToHistory(question_id, answer, msg.sender, tokens);
         _updateCurrentAnswer(question_id, answer);
     }
 
     /// @notice Submit an answer for a question, crediting it to the specified account.
     /// @dev Adds the answer to the history and updates the current "best" answer.
-    /// May be subject to front-running attacks; Substitute submitAnswerCommitment()->submitAnswerReveal() to prevent them.
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
@@ -387,83 +370,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     external {
         _deductTokensOrRevert(tokens);
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
-        _addAnswerToHistory(question_id, answer, answerer, tokens, false);
+        _addAnswerToHistory(question_id, answer, answerer, tokens);
         _updateCurrentAnswer(question_id, answer);
     }
 
-    // @notice Verify and store a commitment, including an appropriate timeout
-    // @param question_id The ID of the question to store
-    // @param commitment The ID of the commitment
-    function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
-    internal
-    {
-        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
-
-        uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
-        commitments[commitment_id].reveal_ts = uint32(block.timestamp) + commitment_timeout;
-    }
-
-    /// @notice Submit the hash of an answer, laying your claim to that answer if you reveal it in a subsequent transaction.
-    /// @dev Creates a hash, commitment_id, uniquely identifying this answer, to this question, with this bond.
-    /// The commitment_id is stored in the answer history where the answer would normally go.
-    /// Does not update the current best answer - this is left to the later submitAnswerReveal() transaction.
-    /// @param question_id The ID of the question
-    /// @param answer_hash The hash of your answer, plus a nonce that you will later reveal
-    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
-    /// @param tokens Number of tokens sent
-    /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
-    function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens) 
-        stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id, tokens)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external {
-
-        _deductTokensOrRevert(tokens);
-
-        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, tokens));
-        address answerer = (_answerer == NULL_ADDRESS) ? msg.sender : _answerer;
-
-        _storeCommitment(question_id, commitment_id);
-        _addAnswerToHistory(question_id, commitment_id, answerer, tokens, true);
-
-    }
-
-    /// @notice Submit the answer whose hash you sent in a previous submitAnswerCommitment() transaction
-    /// @dev Checks the parameters supplied recreate an existing commitment, and stores the revealed answer
-    /// Updates the current answer unless someone has since supplied a new answer with a higher bond
-    /// msg.sender is intentionally not restricted to the user who originally sent the commitment; 
-    /// For example, the user may want to provide the answer+nonce to a third-party service and let them send the tx
-    /// NB If we are pending arbitration, it will be up to the arbitrator to wait and see any outstanding reveal is sent
-    /// @param question_id The ID of the question
-    /// @param answer The answer, encoded as bytes32
-    /// @param nonce The nonce that, combined with the answer, recreates the answer_hash you gave in submitAnswerCommitment()
-    /// @param bond The bond that you paid in your submitAnswerCommitment() transaction
-    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
-        stateOpenOrPendingArbitration(question_id)
-    external {
-
-        bytes32 answer_hash = keccak256(abi.encodePacked(answer, nonce));
-        bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
-
-        require(!commitments[commitment_id].is_revealed, "commitment must not have been revealed yet");
-        require(commitments[commitment_id].reveal_ts > uint32(block.timestamp), "reveal deadline must not have passed");
-
-        commitments[commitment_id].revealed_answer = answer;
-        commitments[commitment_id].is_revealed = true;
-
-        if (bond == questions[question_id].bond) {
-            _updateCurrentAnswer(question_id, answer);
-        }
-
-        emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
-
-    }
-
-    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
+    function _addAnswerToHistory(bytes32 question_id, bytes32 answer, address answerer, uint256 bond) 
     internal 
     {
-        bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
+        bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer, bond, answerer, false));
 
         // Update the current bond level, if there's a bond (ie anything except arbitration)
         if (bond > 0) {
@@ -471,7 +385,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         }
         questions[question_id].history_hash = new_history_hash;
 
-        emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
+        emit LogNewAnswer(answer, question_id, new_history_hash, answerer, bond, block.timestamp, false);
     }
 
     function _updateCurrentAnswer(bytes32 question_id, bytes32 answer)
@@ -531,7 +445,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         emit LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
-        _addAnswerToHistory(question_id, answer, answerer, 0, false);
+        _addAnswerToHistory(question_id, answer, answerer, 0);
         _updateCurrentAnswerByArbitrator(question_id, answer);
     }
 
@@ -541,24 +455,16 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param answer The answer, encoded into bytes32
     /// @param payee_if_wrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
     /// @param last_history_hash The history hash before the final one
-    /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
+    /// @param last_answer The last answer given
     /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer, address last_answerer) 
     external {
-        bool is_commitment = _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer_or_commitment_id, questions[question_id].bond, last_answerer);
+        _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer, questions[question_id].bond, last_answerer);
 
         address payee;
-        // If the last answer is an unrevealed commit, it's always wrong.
-        // For anything else, the last answer was set as the "best answer" in submitAnswer or submitAnswerReveal.
-        if (is_commitment && !commitments[last_answer_or_commitment_id].is_revealed) {
-            require(commitments[last_answer_or_commitment_id].reveal_ts < uint32(block.timestamp), "You must wait for the reveal deadline before finalizing");
-            payee = payee_if_wrong;
-        } else {
-            payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
-        }
+        payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
         submitAnswerByArbitrator(question_id, answer, payee);
     }
-
 
     /// @notice Report whether the answer to the specified question is finalized
     /// @param question_id The ID of the question
@@ -702,9 +608,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
     /// @param question_id The ID of the question
     /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
-    /// @param addrs Last-to-first, the address of each answerer or commitment sender
-    /// @param bonds Last-to-first, the bond supplied with each answer or commitment
-    /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
+    /// @param addrs Last-to-first, the address of each answerer
+    /// @param bonds Last-to-first, the bond supplied with each answer
+    /// @param answers Last-to-first, each answer supplied
     function claimWinnings(
         bytes32 question_id, 
         bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
@@ -728,13 +634,13 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         uint256 i;
         for (i = 0; i < history_hashes.length; i++) {
         
-            // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
-            bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
+            // Check input against the history hash
+            _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
             
             queued_funds = queued_funds + last_bond; 
             (queued_funds, payee) = _processHistoryItem(
                 question_id, best_answer, queued_funds, payee, 
-                addrs[i], bonds[i], answers[i], is_commitment);
+                addrs[i], bonds[i], answers[i]);
  
             // Line the bond up for next time, when it will be added to somebody's queued_funds
             last_bond = bonds[i];
@@ -796,23 +702,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     function _processHistoryItem(
         bytes32 question_id, bytes32 best_answer, 
         uint256 queued_funds, address payee, 
-        address addr, uint256 bond, bytes32 answer, bool is_commitment
+        address addr, uint256 bond, bytes32 answer
     )
     internal returns (uint256, address) {
-
-        // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
-        // We look at the referenced commitment ID and switch in the actual answer.
-        if (is_commitment) {
-            bytes32 commitment_id = answer;
-            // If it's a commit but it hasn't been revealed, it will always be considered wrong.
-            if (!commitments[commitment_id].is_revealed) {
-                delete commitments[commitment_id];
-                return (queued_funds, payee);
-            } else {
-                answer = commitments[commitment_id].revealed_answer;
-                delete commitments[commitment_id];
-            }
-        }
 
         if (answer == best_answer) {
 
@@ -859,9 +751,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param question_ids The IDs of the questions you want to claim for
     /// @param lengths The number of history entries you will supply for each question ID
     /// @param hist_hashes In a single list for all supplied questions, the hash of each history entry.
-    /// @param addrs In a single list for all supplied questions, the address of each answerer or commitment sender
-    /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
-    /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID 
+    /// @param addrs In a single list for all supplied questions, the address of each answerer
+    /// @param bonds In a single list for all supplied questions, the bond supplied with each answer
+    /// @param answers In a single list for all supplied questions, each answer supplied
     function claimMultipleAndWithdrawBalance(
         bytes32[] memory question_ids, uint256[] memory lengths, 
         bytes32[] memory hist_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
