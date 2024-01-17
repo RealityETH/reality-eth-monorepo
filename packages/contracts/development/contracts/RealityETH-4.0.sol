@@ -5,7 +5,7 @@ pragma solidity ^0.8.20;
 import './IRealityETH.sol';
 import './BalanceHolder.sol';
 
-contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
+contract RealityETH_v4_0 is BalanceHolder, IRealityETH {
 
     address constant NULL_ADDRESS = address(0);
 

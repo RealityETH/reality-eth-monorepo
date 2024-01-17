@@ -208,7 +208,7 @@ class TestRealitio(TestCase):
             bcode = f.read().strip("\n")
             f.close()
 
-        for solcv in ['solc-0.4.25', 'solc-0.8.6']:
+        for solcv in ['solc-0.4.25', 'solc-0.8.6', 'solc-0.8.20']:
             abi_file = '../../abi/'+solcv+'/' + con_name + '.abi.json'
             if os.path.exists(abi_file):
                 with open(abi_file) as f:
