@@ -100,6 +100,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         _;
     }
 
+    /* solhint-disable quotes */
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() {
@@ -109,6 +110,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
     }
+    /* solhint-enable quotes */
 
     /// @notice Set the address of the ERC20 token that will be used for bonds.
     /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
