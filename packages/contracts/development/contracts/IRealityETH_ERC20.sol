@@ -19,6 +19,35 @@ interface IRealityETH_ERC20 is IBalanceHolder_ERC20 {
      event LogReopenQuestion (bytes32 indexed question_id, bytes32 indexed reopened_question_id);
      event LogSetQuestionFee (address arbitrator, uint256 amount);
 
+     struct Question {
+         bytes32 content_hash;
+         address arbitrator;
+         uint32 opening_ts;
+         uint32 timeout;
+         uint32 finalize_ts;
+         bool is_pending_arbitration;
+         uint256 bounty;
+         bytes32 best_answer;
+         bytes32 history_hash;
+         uint256 bond;
+         uint256 min_bond;
+     }
+
+     // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond.
+     struct Commitment {
+         uint32 reveal_ts;
+         bool is_revealed;
+         bytes32 revealed_answer;
+     }
+
+     // Only used when claiming more bonds than fits into a transaction
+     // Stored in a mapping indexed by question_id.
+     struct Claim {
+         address payee;
+         uint256 last_bond;
+         uint256 queued_funds;
+     }
+
      function askQuestion (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external returns (bytes32);
      function askQuestionERC20 (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 tokens) external returns (bytes32);
      function askQuestionWithMinBondERC20 (uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens) external returns (bytes32);

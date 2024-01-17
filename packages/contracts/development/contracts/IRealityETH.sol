@@ -18,6 +18,35 @@ interface IRealityETH is IBalanceHolder {
      event LogReopenQuestion (bytes32 indexed question_id, bytes32 indexed reopened_question_id);
      event LogSetQuestionFee (address arbitrator, uint256 amount);
 
+     struct Question {
+         bytes32 content_hash;
+         address arbitrator;
+         uint32 opening_ts;
+         uint32 timeout;
+         uint32 finalize_ts;
+         bool is_pending_arbitration;
+         uint256 bounty;
+         bytes32 best_answer;
+         bytes32 history_hash;
+         uint256 bond;
+         uint256 min_bond;
+     }
+
+     // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond.
+     struct Commitment {
+         uint32 reveal_ts;
+         bool is_revealed;
+         bytes32 revealed_answer;
+     }
+
+     // Only used when claiming more bonds than fits into a transaction
+     // Stored in a mapping indexed by question_id.
+     struct Claim {
+         address payee;
+         uint256 last_bond;
+         uint256 queued_funds;
+     }
+
      function assignWinnerAndSubmitAnswerByArbitrator (bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) external;
      function cancelArbitration (bytes32 question_id) external;
      function claimMultipleAndWithdrawBalance (bytes32[] calldata question_ids, uint256[] calldata lengths, bytes32[] calldata hist_hashes, address[] calldata addrs, uint256[] calldata bonds, bytes32[] calldata answers) external;
