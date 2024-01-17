@@ -2,7 +2,8 @@
 
 pragma solidity 0.8.20;
 
-interface IBalanceHolder {
-//  function withdraw (  ) external;
-//  function balanceOf ( address ) external view returns ( uint256 );
+import './IBalanceHolder_common.sol';
+import './IBalanceHolder_withdraw.sol';
+
+interface IBalanceHolder is IBalanceHolder_common, IBalanceHolder_withdraw {
 }

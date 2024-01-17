@@ -3,8 +3,9 @@
 pragma solidity ^0.8.20;
 
 import './IRealityETH_common.sol';
+import './BalanceHolder_common.sol';
 
-abstract contract RealityETH_common_v3_0 is IRealityETH_common {
+abstract contract RealityETH_common_v3_0 is IRealityETH_common, BalanceHolder_common {
 
     address constant NULL_ADDRESS = address(0);
 
@@ -287,6 +288,45 @@ abstract contract RealityETH_common_v3_0 is IRealityETH_common {
         emit LogSetQuestionFee(msg.sender, fee);
     }
 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens)
+        stateNotCreated(question_id)
+    internal {
+
+        // A timeout of 0 makes no sense, and we will use this to check existence
+        require(timeout > 0, "timeout must be positive");
+        require(timeout < 365 days, "timeout must be less than 365 days");
+
+        uint256 bounty = tokens;
+
+        // The arbitrator can set a fee for asking a question.
+        // This is intended as an anti-spam defence.
+        // The fee is waived if the arbitrator is asking the question.
+        // This allows them to set an impossibly high fee and make users proxy the question through them.
+        // This would allow more sophisticated pricing, question whitelisting etc.
+        if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
+            uint256 question_fee = arbitrator_question_fees[arbitrator];
+            require(bounty >= question_fee, "Tokens provided must cover question fee");
+            bounty = bounty - question_fee;
+            balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
+        }
+
+        questions[question_id].content_hash = content_hash;
+        questions[question_id].arbitrator = arbitrator;
+        questions[question_id].opening_ts = opening_ts;
+        questions[question_id].timeout = timeout;
+
+        if (bounty > 0) {
+            questions[question_id].bounty = bounty;
+            emit LogFundAnswerBounty(question_id, bounty, bounty, msg.sender);
+        }
+
+        if (min_bond > 0) {
+            questions[question_id].min_bond = min_bond;
+            emit LogMinimumBond(question_id, min_bond);
+        }
+
+    }
+
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment
@@ -484,45 +524,6 @@ abstract contract RealityETH_common_v3_0 is IRealityETH_common {
         _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond);
 
         return question_id;
-    }
-
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond) 
-        stateNotCreated(question_id)
-    internal {
-
-        // A timeout of 0 makes no sense, and we will use this to check existence
-        require(timeout > 0, "timeout must be positive"); 
-        require(timeout < 365 days, "timeout must be less than 365 days"); 
-
-        uint256 bounty = msg.value;
-
-        // The arbitrator can set a fee for asking a question. 
-        // This is intended as an anti-spam defence.
-        // The fee is waived if the arbitrator is asking the question.
-        // This allows them to set an impossibly high fee and make users proxy the question through them.
-        // This would allow more sophisticated pricing, question whitelisting etc.
-        if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
-            uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "ETH provided must cover question fee"); 
-            bounty = bounty - question_fee;
-            balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
-        }
-
-        questions[question_id].content_hash = content_hash;
-        questions[question_id].arbitrator = arbitrator;
-        questions[question_id].opening_ts = opening_ts;
-        questions[question_id].timeout = timeout;
-
-        if (bounty > 0) {
-            questions[question_id].bounty = bounty;
-            emit LogFundAnswerBounty(question_id, bounty, bounty, msg.sender);
-        }
-
-        if (min_bond > 0) {
-            questions[question_id].min_bond = min_bond;
-            emit LogMinimumBond(question_id, min_bond);
-        }
-
     }
 
     /// @notice Add funds to the bounty for a question
