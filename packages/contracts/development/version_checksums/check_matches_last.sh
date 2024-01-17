@@ -16,9 +16,6 @@ for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol"; do
         if [ "$NEW_HASH" != "$ORIG_HASH" ]; then
             echo "Hash mismatch"
             exit 1
-        else
-            echo "OK"
-            exit 0
         fi
     else
         echo "logging $contract for the first time"
@@ -26,3 +23,4 @@ for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol"; do
     fi
 done
 
+echo "OK"
