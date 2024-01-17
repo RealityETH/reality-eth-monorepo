@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import './IRealityETH.sol';
-import './BalanceHolder.sol';
+import {IRealityETH} from "./IRealityETH.sol";
+import {BalanceHolder} from "./BalanceHolder.sol";
 
 contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
