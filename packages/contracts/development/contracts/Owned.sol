@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import './IOwned.sol';
+import "./IOwned.sol";
 
 contract Owned is IOwned {
     address public owner;
@@ -11,14 +11,12 @@ contract Owned is IOwned {
         owner = msg.sender;
     }
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         require(msg.sender == owner);
         _;
     }
 
-    function transferOwnership(address newOwner) 
-        onlyOwner 
-    external {
+    function transferOwnership(address newOwner) external onlyOwner {
         owner = newOwner;
     }
 }

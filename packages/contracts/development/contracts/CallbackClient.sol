@@ -1,8 +1,7 @@
 pragma solidity ^0.4.25;
 
 contract CallbackClient {
-
-    mapping(bytes32=>bytes32) public answers;
+    mapping(bytes32 => bytes32) public answers;
 
     event LogCallback(
         bytes32 question_id,
@@ -10,10 +9,11 @@ contract CallbackClient {
         address sender
     );
 
-    function __realitycheck_callback(bytes32 question_id, bytes32 question_answer) 
-    public {
+    function __realitycheck_callback(
+        bytes32 question_id,
+        bytes32 question_answer
+    ) public {
         answers[question_id] = question_answer;
         emit LogCallback(question_id, question_answer, msg.sender);
     }
-
 }

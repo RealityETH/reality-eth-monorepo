@@ -6,8 +6,8 @@ pragma solidity ^0.4.25;
  */
 library SafeMath {
     /**
-    * @dev Multiplies two numbers, reverts on overflow.
-    */
+     * @dev Multiplies two numbers, reverts on overflow.
+     */
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
         // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
         // benefit is lost if 'b' is also tested.
@@ -23,8 +23,8 @@ library SafeMath {
     }
 
     /**
-    * @dev Integer division of two numbers truncating the quotient, reverts on division by zero.
-    */
+     * @dev Integer division of two numbers truncating the quotient, reverts on division by zero.
+     */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
         // Solidity only automatically asserts when dividing by 0
         require(b > 0);
@@ -35,8 +35,8 @@ library SafeMath {
     }
 
     /**
-    * @dev Subtracts two numbers, reverts on overflow (i.e. if subtrahend is greater than minuend).
-    */
+     * @dev Subtracts two numbers, reverts on overflow (i.e. if subtrahend is greater than minuend).
+     */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b <= a);
         uint256 c = a - b;
@@ -45,8 +45,8 @@ library SafeMath {
     }
 
     /**
-    * @dev Adds two numbers, reverts on overflow.
-    */
+     * @dev Adds two numbers, reverts on overflow.
+     */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a);
@@ -55,9 +55,9 @@ library SafeMath {
     }
 
     /**
-    * @dev Divides two numbers and returns the remainder (unsigned integer modulo),
-    * reverts when dividing by zero.
-    */
+     * @dev Divides two numbers and returns the remainder (unsigned integer modulo),
+     * reverts when dividing by zero.
+     */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b != 0);
         return a % b;
@@ -73,17 +73,28 @@ interface IERC20 {
 
     function balanceOf(address who) external view returns (uint256);
 
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
 
     function transfer(address to, uint256 value) external returns (bool);
 
     function approve(address spender, uint256 value) external returns (bool);
 
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
 
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
 }
 
 /**
@@ -96,29 +107,28 @@ interface IERC20 {
 contract ERC20 is IERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
+    mapping(address => uint256) private _balances;
 
-    mapping (address => mapping (address => uint256)) private _allowed;
+    mapping(address => mapping(address => uint256)) private _allowed;
 
     uint256 private _totalSupply;
 
-    function mint(address to, uint256 val) 
-    public {
+    function mint(address to, uint256 val) public {
         _mint(to, val);
     }
 
     /**
-    * @dev Total number of tokens in existence
-    */
+     * @dev Total number of tokens in existence
+     */
     function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
     /**
-    * @dev Gets the balance of the specified address.
-    * @param owner The address to query the balance of.
-    * @return An uint256 representing the amount owned by the passed address.
-    */
+     * @dev Gets the balance of the specified address.
+     * @param owner The address to query the balance of.
+     * @return An uint256 representing the amount owned by the passed address.
+     */
     function balanceOf(address owner) public view returns (uint256) {
         return _balances[owner];
     }
@@ -129,15 +139,18 @@ contract ERC20 is IERC20 {
      * @param spender address The address which will spend the funds.
      * @return A uint256 specifying the amount of tokens still available for the spender.
      */
-    function allowance(address owner, address spender) public view returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view returns (uint256) {
         return _allowed[owner][spender];
     }
 
     /**
-    * @dev Transfer token for a specified address
-    * @param to The address to transfer to.
-    * @param value The amount to be transferred.
-    */
+     * @dev Transfer token for a specified address
+     * @param to The address to transfer to.
+     * @param value The amount to be transferred.
+     */
     function transfer(address to, uint256 value) public returns (bool) {
         _transfer(msg.sender, to, value);
         return true;
@@ -166,7 +179,11 @@ contract ERC20 is IERC20 {
      * @param to address The address which you want to transfer to
      * @param value uint256 the amount of tokens to be transferred
      */
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) public returns (bool) {
         _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
         _transfer(from, to, value);
         return true;
@@ -181,10 +198,15 @@ contract ERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param addedValue The amount of tokens to increase the allowance by.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) public returns (bool) {
         require(spender != address(0));
 
-        _allowed[msg.sender][spender] = _allowed[msg.sender][spender].add(addedValue);
+        _allowed[msg.sender][spender] = _allowed[msg.sender][spender].add(
+            addedValue
+        );
         emit Approval(msg.sender, spender, _allowed[msg.sender][spender]);
         return true;
     }
@@ -198,20 +220,25 @@ contract ERC20 is IERC20 {
      * @param spender The address which will spend the funds.
      * @param subtractedValue The amount of tokens to decrease the allowance by.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) public returns (bool) {
         require(spender != address(0));
 
-        _allowed[msg.sender][spender] = _allowed[msg.sender][spender].sub(subtractedValue);
+        _allowed[msg.sender][spender] = _allowed[msg.sender][spender].sub(
+            subtractedValue
+        );
         emit Approval(msg.sender, spender, _allowed[msg.sender][spender]);
         return true;
     }
 
     /**
-    * @dev Transfer token for a specified addresses
-    * @param from The address to transfer from.
-    * @param to The address to transfer to.
-    * @param value The amount to be transferred.
-    */
+     * @dev Transfer token for a specified addresses
+     * @param from The address to transfer from.
+     * @param to The address to transfer to.
+     * @param value The amount to be transferred.
+     */
     function _transfer(address from, address to, uint256 value) internal {
         require(to != address(0));
 
@@ -259,7 +286,9 @@ contract ERC20 is IERC20 {
     function _burnFrom(address account, uint256 value) internal {
         // Should https://github.com/OpenZeppelin/zeppelin-solidity/issues/707 be accepted,
         // this function needs to emit an event with the updated approval.
-        _allowed[account][msg.sender] = _allowed[account][msg.sender].sub(value);
+        _allowed[account][msg.sender] = _allowed[account][msg.sender].sub(
+            value
+        );
         _burn(account, value);
     }
 }

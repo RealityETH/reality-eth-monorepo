@@ -5,20 +5,14 @@ pragma solidity ^0.8.20;
 import {IBalanceHolder} from "./IBalanceHolder.sol";
 
 contract BalanceHolder is IBalanceHolder {
-
     mapping(address => uint256) public balanceOf;
 
-    event LogWithdraw(
-        address indexed user,
-        uint256 amount
-    );
+    event LogWithdraw(address indexed user, uint256 amount);
 
-    function withdraw() 
-    public {
+    function withdraw() public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
         payable(msg.sender).transfer(bal);
         emit LogWithdraw(msg.sender, bal);
     }
-
 }
