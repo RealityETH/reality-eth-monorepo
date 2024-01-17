@@ -205,7 +205,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
         // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, 0, msg.value);
 
         return question_id;
     }
@@ -232,12 +232,12 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         // We emit this event here because _askQuestion doesn't need to know the unhashed question.
         // Other events are emitted by _askQuestion.
         emit LogNewQuestion(question_id, msg.sender, template_id, question, content_hash, arbitrator, timeout, opening_ts, nonce, block.timestamp);
-        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond);
+        _askQuestion(question_id, content_hash, arbitrator, timeout, opening_ts, min_bond, msg.value);
 
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond) 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens) 
         stateNotCreated(question_id)
     internal {
 
@@ -245,7 +245,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         require(timeout > 0, "timeout must be positive"); 
         require(timeout < 365 days, "timeout must be less than 365 days"); 
 
-        uint256 bounty = msg.value;
+        uint256 bounty = tokens;
 
         // The arbitrator can set a fee for asking a question. 
         // This is intended as an anti-spam defence.
@@ -254,7 +254,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "ETH provided must cover question fee"); 
+            require(bounty >= question_fee, "Tokens provided must cover question fee"); 
             bounty = bounty - question_fee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
