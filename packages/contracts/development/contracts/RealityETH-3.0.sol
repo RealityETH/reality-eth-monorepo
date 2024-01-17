@@ -7,28 +7,28 @@ import './BalanceHolder.sol';
 
 contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
-    address constant NULL_ADDRESS = address(0);
+    address constant private NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
     bytes32 constant NULL_HASH = bytes32(0);
 
     // An unitinalized finalize_ts for a question will indicate an unanswered question.
-    uint32 constant UNANSWERED = 0;
+    uint32 constant private UNANSWERED = 0;
 
     // An unanswered reveal_ts for a commitment will indicate that it does not exist.
-    uint256 constant COMMITMENT_NON_EXISTENT = 0;
+    uint256 constant private COMMITMENT_NON_EXISTENT = 0;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
-    uint32 constant COMMITMENT_TIMEOUT_RATIO = 8;
+    uint32 constant private COMMITMENT_TIMEOUT_RATIO = 8;
 
     // Proportion withheld when you claim an earlier bond.
-    uint256 constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
+    uint256 constant private BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
     // Special value representing a question that was answered too soon.
     // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
-    bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
+    bytes32 constant private UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
-    uint256 nextTemplateID = 0;
+    uint256 private nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
     mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
@@ -37,7 +37,6 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     mapping(address => uint256) public arbitrator_question_fees; 
     mapping(bytes32 => bytes32) public reopened_questions;
     mapping(bytes32 => bool) public reopener_questions;
-
 
     modifier onlyArbitrator(bytes32 question_id) {
         require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
