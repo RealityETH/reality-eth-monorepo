@@ -13,6 +13,9 @@ if len(sys.argv) < 2:
 VERSION=sys.argv[1]
 CONTRACT_NAME = None
 
+# If you passed in .sol, strip it
+VERSION = VERSION.replace(".sol", "")
+
 if len(sys.argv) >= 3:
     SOURCE_FILE = sys.argv[2]
 else:
