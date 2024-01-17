@@ -112,13 +112,13 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         _;
     }
 
-    modifier bondMustDoubleAndMatchMinimum(bytes32 question_id) {
-        require(msg.value > 0, "bond must be positive"); 
+    modifier bondMustDoubleAndMatchMinimum(bytes32 question_id, uint256 tokens) {
+        require(tokens > 0, "bond must be positive"); 
         uint256 current_bond = questions[question_id].bond;
         if (current_bond == 0) {
-            require(msg.value >= (questions[question_id].min_bond), "bond must exceed the minimum");
+            require(tokens >= (questions[question_id].min_bond), "bond must exceed the minimum");
         } else {
-            require(msg.value >= (current_bond * 2), "bond must be double at least previous bond");
+            require(tokens >= (current_bond * 2), "bond must be double at least previous bond");
         }
         _;
     }
@@ -294,7 +294,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value, false);
@@ -310,7 +310,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param answerer The account to which the answer should be credited
     function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer)
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
         require(answerer != NULL_ADDRESS, "answerer must be non-zero");
@@ -341,7 +341,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
     function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) 
         stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id)
+        bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external payable {
 
