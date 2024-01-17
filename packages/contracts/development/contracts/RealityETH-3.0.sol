@@ -29,35 +29,6 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
     bytes32 constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
-    struct Question {
-        bytes32 content_hash;
-        address arbitrator;
-        uint32 opening_ts;
-        uint32 timeout;
-        uint32 finalize_ts;
-        bool is_pending_arbitration;
-        uint256 bounty;
-        bytes32 best_answer;
-        bytes32 history_hash;
-        uint256 bond;
-        uint256 min_bond;
-    }
-
-    // Stored in a mapping indexed by commitment_id, a hash of commitment hash, question, bond. 
-    struct Commitment {
-        uint32 reveal_ts;
-        bool is_revealed;
-        bytes32 revealed_answer;
-    }
-
-    // Only used when claiming more bonds than fits into a transaction
-    // Stored in a mapping indexed by question_id.
-    struct Claim {
-        address payee;
-        uint256 last_bond;
-        uint256 queued_funds;
-    }
-
     uint256 nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
     mapping(uint256 => bytes32) public template_hashes;
