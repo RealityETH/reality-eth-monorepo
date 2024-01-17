@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-import './IBalanceHolder.sol';
+import {IBalanceHolder} from "./IBalanceHolder.sol";
 
 interface IRealityETH is IBalanceHolder {
      event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
