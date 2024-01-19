@@ -22,4 +22,4 @@ import {IArbitratorCrowdFundable} from "./IArbitratorCrowdFundable.sol";
 import {IArbitratorErrors} from "./IArbitratorErrors.sol";
 
 /* solhint-disable no-empty-blocks */
-interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors{}
+interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors {}
