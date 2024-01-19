@@ -8,27 +8,26 @@ import {BalanceHolder_ERC20} from "./BalanceHolder_ERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
-
-    address constant private NULL_ADDRESS = address(0);
+    address private constant NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
-    bytes32 constant private NULL_HASH = bytes32(0);
+    bytes32 private constant NULL_HASH = bytes32(0);
 
     // An unitinalized finalize_ts for a question will indicate an unanswered question.
-    uint32 constant private UNANSWERED = 0;
+    uint32 private constant UNANSWERED = 0;
 
     // An unanswered reveal_ts for a commitment will indicate that it does not exist.
-    uint256 constant private COMMITMENT_NON_EXISTENT = 0;
+    uint256 private constant COMMITMENT_NON_EXISTENT = 0;
 
     // Commit->reveal timeout is 1/8 of the question timeout (rounded down).
-    uint32 constant private COMMITMENT_TIMEOUT_RATIO = 8;
+    uint32 private constant COMMITMENT_TIMEOUT_RATIO = 8;
 
     // Proportion withheld when you claim an earlier bond.
-    uint256 constant private BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
+    uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
     // Special value representing a question that was answered too soon.
     // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
-    bytes32 constant private UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
+    bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
@@ -116,9 +115,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @notice Set the address of the ERC20 token that will be used for bonds.
     /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
     /// @param _token The ERC20 token that will be used for bonds.
-    function setToken(IERC20 _token)
-    public
-    {
+    function setToken(IERC20 _token) public {
         if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
         token = _token;
     }
@@ -126,10 +123,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @notice Function for arbitrator to set an optional per-question fee.
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee)
-    external
-        stateAny()
-    {
+    function setQuestionFee(uint256 fee) external stateAny {
         arbitrator_question_fees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
     }
@@ -139,10 +133,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content)
-    public
-        stateAny()
-    returns (uint256) {
+    function createTemplate(string memory content) public stateAny returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
         template_hashes[id] = keccak256(abi.encodePacked(content));
@@ -162,11 +153,18 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
         string memory content,
-        string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce
     )
-    public
-        // stateNotCreated is enforced by the internal _askQuestion
-    returns (bytes32) {
+        public
+        returns (
+            // stateNotCreated is enforced by the internal _askQuestion
+            bytes32
+        )
+    {
         uint256 template_id = createTemplate(content);
         return askQuestion(template_id, question, arbitrator, timeout, opening_ts, nonce);
     }
@@ -182,11 +180,20 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce)
-    public
-        // stateNotCreated is enforced by the internal _askQuestion
-    returns (bytes32) {
-
+    function askQuestion(
+        uint256 template_id,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce
+    )
+        public
+        returns (
+            // stateNotCreated is enforced by the internal _askQuestion
+            bytes32
+        )
+    {
         if (templates[template_id] == 0) revert TemplateMustExist();
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
@@ -209,11 +216,21 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param tokens The combined initial question bounty and question fee
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 tokens)
-    public
-        // stateNotCreated is enforced by the internal _askQuestion
-    returns (bytes32) {
-
+    function askQuestionERC20(
+        uint256 template_id,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 tokens
+    )
+        public
+        returns (
+            // stateNotCreated is enforced by the internal _askQuestion
+            bytes32
+        )
+    {
         _deductTokensOrRevert(tokens);
 
         if (templates[template_id] == 0) revert TemplateMustExist();
@@ -239,11 +256,22 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param min_bond The minimum bond that may be used for an answer.
     /// @param tokens Number of tokens sent
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionWithMinBondERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens)
-    public
-        // stateNotCreated is enforced by the internal _askQuestion
-    returns (bytes32) {
-
+    function askQuestionWithMinBondERC20(
+        uint256 template_id,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 min_bond,
+        uint256 tokens
+    )
+        public
+        returns (
+            // stateNotCreated is enforced by the internal _askQuestion
+            bytes32
+        )
+    {
         _deductTokensOrRevert(tokens);
 
         if (templates[template_id] == 0) revert TemplateMustExist();
@@ -259,9 +287,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         return question_id;
     }
 
-    function _deductTokensOrRevert(uint256 tokens)
-    internal {
-
+    function _deductTokensOrRevert(uint256 tokens) internal {
         if (tokens == 0) {
             return;
         }
@@ -281,14 +307,9 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         // Now we need to charge the rest from
         if (!token.transferFrom(msg.sender, address(this), tokens)) revert TransferOfTokensFailedInsufficientApprovedBalance();
         return;
-
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens)
-    internal
-        stateNotCreated(question_id)
-    {
-
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens) internal stateNotCreated(question_id) {
         // A timeout of 0 makes no sense, and we will use this to check existence
         if (timeout == 0) revert TimeoutMustBePositive();
         if (timeout >= 365 days) revert TimeoutMustBeLessThan365Days();
@@ -321,17 +342,13 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
             questions[question_id].min_bond = min_bond;
             emit LogMinimumBond(question_id, min_bond);
         }
-
     }
 
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
     /// @param tokens The number of tokens to fund
-    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens)
-    external
-        stateOpen(question_id)
-    {
+    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external stateOpen(question_id) {
         _deductTokensOrRevert(tokens);
         questions[question_id].bounty = questions[question_id].bounty + tokens;
         emit LogFundAnswerBounty(question_id, tokens, questions[question_id].bounty, msg.sender);
@@ -344,12 +361,12 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param tokens The amount of tokens to submit
-    function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens)
-    external
-        stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id, tokens)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    {
+    function submitAnswerERC20(
+        bytes32 question_id,
+        bytes32 answer,
+        uint256 max_previous,
+        uint256 tokens
+    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         _deductTokensOrRevert(tokens);
         _addAnswerToHistory(question_id, answer, msg.sender, tokens, false);
         _updateCurrentAnswer(question_id, answer);
@@ -363,12 +380,13 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param answerer The account to which the answer should be credited
     /// @param tokens Number of tokens sent
-    function submitAnswerForERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer, uint256 tokens)
-    external
-        stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id, tokens)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    {
+    function submitAnswerForERC20(
+        bytes32 question_id,
+        bytes32 answer,
+        uint256 max_previous,
+        address answerer,
+        uint256 tokens
+    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         _deductTokensOrRevert(tokens);
         if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, tokens, false);
@@ -378,9 +396,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment
-    function _storeCommitment(bytes32 question_id, bytes32 commitment_id)
-    internal
-    {
+    function _storeCommitment(bytes32 question_id, bytes32 commitment_id) internal {
         if (commitments[commitment_id].reveal_ts != COMMITMENT_NON_EXISTENT) revert CommitmentMustNotAlreadyExist();
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
@@ -397,13 +413,13 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
     /// @param tokens Number of tokens sent
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
-    function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens)
-    external
-        stateOpen(question_id)
-        bondMustDoubleAndMatchMinimum(question_id, tokens)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    {
-
+    function submitAnswerCommitmentERC20(
+        bytes32 question_id,
+        bytes32 answer_hash,
+        uint256 max_previous,
+        address _answerer,
+        uint256 tokens
+    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         _deductTokensOrRevert(tokens);
 
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, tokens));
@@ -411,7 +427,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         _storeCommitment(question_id, commitment_id);
         _addAnswerToHistory(question_id, commitment_id, answerer, tokens, true);
-
     }
 
     /// @notice Submit the answer whose hash you sent in a previous submitAnswerCommitment() transaction
@@ -424,11 +439,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param answer The answer, encoded as bytes32
     /// @param nonce The nonce that, combined with the answer, recreates the answer_hash you gave in submitAnswerCommitment()
     /// @param bond The bond that you paid in your submitAnswerCommitment() transaction
-    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond)
-    external
-        stateOpenOrPendingArbitration(question_id)
-    {
-
+    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) external stateOpenOrPendingArbitration(question_id) {
         bytes32 answer_hash = keccak256(abi.encodePacked(answer, nonce));
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
 
@@ -443,12 +454,9 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         }
 
         emit LogAnswerReveal(question_id, msg.sender, answer_hash, answer, nonce, bond);
-
     }
 
-    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment)
-    internal
-    {
+    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) internal {
         bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
 
         // Update the current bond level, if there's a bond (ie anything except arbitration)
@@ -460,15 +468,13 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         emit LogNewAnswer(answer_or_commitment_id, question_id, new_history_hash, answerer, bond, block.timestamp, is_commitment);
     }
 
-    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer)
-    internal {
+    function _updateCurrentAnswer(bytes32 question_id, bytes32 answer) internal {
         questions[question_id].best_answer = answer;
         questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout
-    function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer)
-    internal {
+    function _updateCurrentAnswerByArbitrator(bytes32 question_id, bytes32 answer) internal {
         questions[question_id].best_answer = answer;
         questions[question_id].finalize_ts = uint32(block.timestamp);
     }
@@ -478,12 +484,11 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param question_id The ID of the question
     /// @param requester The account that requested arbitration
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous)
-    external 
-        onlyArbitrator(question_id)
-        stateOpen(question_id)
-        previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    {
+    function notifyOfArbitrationRequest(
+        bytes32 question_id,
+        address requester,
+        uint256 max_previous
+    ) external onlyArbitrator(question_id) stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         if (questions[question_id].finalize_ts <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
@@ -492,11 +497,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @notice Cancel a previously-requested arbitration and extend the timeout
     /// @dev Useful when doing arbitration across chains that can't be requested atomically
     /// @param question_id The ID of the question
-    function cancelArbitration(bytes32 question_id)
-    external
-        onlyArbitrator(question_id)
-        statePendingArbitration(question_id)
-    {
+    function cancelArbitration(bytes32 question_id) external onlyArbitrator(question_id) statePendingArbitration(question_id) {
         questions[question_id].is_pending_arbitration = false;
         questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
         emit LogCancelArbitration(question_id);
@@ -510,12 +511,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param answerer The account credited with this answer for the purpose of bond claims
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer)
-    public
-        onlyArbitrator(question_id)
-        statePendingArbitration(question_id)
-    {
-
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) statePendingArbitration(question_id) {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
         emit LogFinalize(question_id, answer);
 
@@ -532,8 +528,14 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param last_history_hash The history hash before the final one
     /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
     /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer)
-    external {
+    function assignWinnerAndSubmitAnswerByArbitrator(
+        bytes32 question_id,
+        bytes32 answer,
+        address payee_if_wrong,
+        bytes32 last_history_hash,
+        bytes32 last_answer_or_commitment_id,
+        address last_answerer
+    ) external {
         bool is_commitment = _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer_or_commitment_id, questions[question_id].bond, last_answerer);
 
         address payee;
@@ -548,47 +550,37 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         submitAnswerByArbitrator(question_id, answer, payee);
     }
 
-
     /// @notice Report whether the answer to the specified question is finalized
     /// @param question_id The ID of the question
     /// @return Return true if finalized
-    function isFinalized(bytes32 question_id)
-    public view returns (bool) {
+    function isFinalized(bytes32 question_id) public view returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)) );
+        return (!questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)));
     }
 
     /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
-    function getFinalAnswer(bytes32 question_id)
-    external
-        stateFinalized(question_id)
-    view returns (bytes32) {
+    function getFinalAnswer(bytes32 question_id) external view stateFinalized(question_id) returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
     /// @notice Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
-    function resultFor(bytes32 question_id)
-    public
-        stateFinalized(question_id)
-    view returns (bytes32) {
+    function resultFor(bytes32 question_id) public view stateFinalized(question_id) returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
     /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
     /// @param question_id The ID of the question
-    function isSettledTooSoon(bytes32 question_id)
-    public view returns(bool) {
+    function isSettledTooSoon(bytes32 question_id) public view returns (bool) {
         return (resultFor(question_id) == UNRESOLVED_ANSWER);
     }
 
     /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
     /// @param question_id The ID of the question
-    function resultForOnceSettled(bytes32 question_id)
-    external view returns(bytes32) {
+    function resultForOnceSettled(bytes32 question_id) external view returns (bytes32) {
         bytes32 result = resultFor(question_id);
         if (result == UNRESOLVED_ANSWER) {
             // Try the replacement
@@ -613,10 +605,23 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param reopens_question_id The ID of the question this reopens
     /// @param tokens The number of tokens you want to use as an additional question reward for the reopened question.
     /// @return The ID of the newly-created question, created deterministically.
-    function reopenQuestionERC20(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id, uint256 tokens)
-        // stateNotCreated is enforced by the internal _askQuestion
-    public returns (bytes32) {
-
+    function reopenQuestionERC20(
+        uint256 template_id,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 min_bond,
+        bytes32 reopens_question_id,
+        uint256 tokens
+    )
+        public
+        returns (
+            // stateNotCreated is enforced by the internal _askQuestion
+            bytes32
+        )
+    {
         // _deductTokensOrRevert will be called when we call askQuestionWithMinBondERC20
 
         if (!isSettledTooSoon(reopens_question_id)) revert YouCanOnlyReopenQuestionsThatResolvedAsSettledTooSoon();
@@ -627,7 +632,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         if (content_hash != questions[reopens_question_id].content_hash) revert ContentHashMismatch();
         if (arbitrator != questions[reopens_question_id].arbitrator) revert ArbitratorMismatch();
         if (timeout != questions[reopens_question_id].timeout) revert TimeoutMismatch();
-        if (opening_ts != questions[reopens_question_id].opening_ts ) revert Opening_TsMismatch();
+        if (opening_ts != questions[reopens_question_id].opening_ts) revert Opening_TsMismatch();
         if (min_bond != questions[reopens_question_id].min_bond) revert Min_BondMismatch();
 
         // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
@@ -669,13 +674,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param min_timeout The timeout set in the initial question settings must be this high or higher
     /// @param min_bond The bond sent with the final answer must be this high or higher
     /// @return The answer formatted as a bytes32
-    function getFinalAnswerIfMatches(
-        bytes32 question_id,
-        bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond
-    )
-    external
-        stateFinalized(question_id)
-    view returns (bytes32) {
+    function getFinalAnswerIfMatches(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond) external view stateFinalized(question_id) returns (bytes32) {
         if (content_hash != questions[question_id].content_hash) revert ContentHashMustMatch();
         if (arbitrator != questions[question_id].arbitrator) revert ArbitratorMustMatch();
         if (min_timeout > questions[question_id].timeout) revert TimeoutMustBeLongEnough();
@@ -697,14 +696,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param addrs Last-to-first, the address of each answerer or commitment sender
     /// @param bonds Last-to-first, the bond supplied with each answer or commitment
     /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
-    function claimWinnings(
-        bytes32 question_id,
-        bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
-    )
-    public
-        stateFinalized(question_id)
-    {
-
+    function claimWinnings(bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(question_id) {
         if (history_hashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
@@ -720,14 +712,11 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         uint256 i;
         for (i = 0; i < history_hashes.length; i++) {
-
             // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
 
             queued_funds = queued_funds + last_bond;
-            (queued_funds, payee) = _processHistoryItem(
-                question_id, best_answer, queued_funds, payee,
-                addrs[i], bonds[i], answers[i], is_commitment);
+            (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, addrs[i], bonds[i], answers[i], is_commitment);
 
             // Line the bond up for next time, when it will be added to somebody's queued_funds
             last_bond = bonds[i];
@@ -739,7 +728,6 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
             }
 
             last_history_hash = history_hashes[i];
-
         }
 
         if (last_history_hash != NULL_HASH) {
@@ -763,36 +751,33 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         }
 
         questions[question_id].history_hash = last_history_hash;
-
     }
 
-    function _payPayee(bytes32 question_id, address payee, uint256 value)
-    internal {
+    function _payPayee(bytes32 question_id, address payee, uint256 value) internal {
         balanceOf[payee] = balanceOf[payee] + value;
         emit LogClaim(question_id, payee, value);
     }
 
-    function _verifyHistoryInputOrRevert(
-        bytes32 last_history_hash,
-        bytes32 history_hash, bytes32 answer, uint256 bond, address addr
-    )
-    internal pure returns (bool) {
-        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, true)) ) {
+    function _verifyHistoryInputOrRevert(bytes32 last_history_hash, bytes32 history_hash, bytes32 answer, uint256 bond, address addr) internal pure returns (bool) {
+        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, true))) {
             return true;
         }
-        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
+        if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false))) {
             return false;
         }
         revert HistoryInputProvidedDidNotMatchTheExpectedHash();
     }
 
     function _processHistoryItem(
-        bytes32 question_id, bytes32 best_answer,
-        uint256 queued_funds, address payee,
-        address addr, uint256 bond, bytes32 answer, bool is_commitment
-    )
-    internal returns (uint256, address) {
-
+        bytes32 question_id,
+        bytes32 best_answer,
+        uint256 queued_funds,
+        address payee,
+        address addr,
+        uint256 bond,
+        bytes32 answer,
+        bool is_commitment
+    ) internal returns (uint256, address) {
         // For commit-and-reveal, the answer history holds the commitment ID instead of the answer.
         // We look at the referenced commitment ID and switch in the actual answer.
         if (is_commitment) {
@@ -808,9 +793,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         }
 
         if (answer == best_answer) {
-
             if (payee == NULL_ADDRESS) {
-
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
                 payee = addr;
@@ -819,9 +802,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
                     _payPayee(question_id, payee, questions[question_id].bounty);
                     questions[question_id].bounty = 0;
                 }
-
             } else if (addr != payee) {
-
                 // Answerer has changed, ie we found someone lower down who needs to be paid
 
                 // The lower answerer will take over receiving bonds from higher answerer.
@@ -837,13 +818,10 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
                 // Now start queued_funds again for the new (lower-bonded) payee
                 payee = addr;
                 queued_funds = answer_takeover_fee;
-
             }
-
         }
 
         return (queued_funds, payee);
-
     }
 
     /// @notice Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds.
@@ -856,13 +834,16 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
     /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID
     function claimMultipleAndWithdrawBalance(
-        bytes32[] memory question_ids, uint256[] memory lengths,
-        bytes32[] memory hist_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
+        bytes32[] memory question_ids,
+        uint256[] memory lengths,
+        bytes32[] memory hist_hashes,
+        address[] memory addrs,
+        uint256[] memory bonds,
+        bytes32[] memory answers
     )
-    public
-        stateAny() // The finalization checks are done in the claimWinnings function
+        public
+        stateAny // The finalization checks are done in the claimWinnings function
     {
-
         uint256 qi;
         uint256 i;
         for (qi = 0; qi < question_ids.length; qi++) {
@@ -887,81 +868,69 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
     /// @notice Returns the questions's content hash, identifying the question content
     /// @param question_id The ID of the question
-    function getContentHash(bytes32 question_id)
-    public view returns(bytes32) {
+    function getContentHash(bytes32 question_id) public view returns (bytes32) {
         return questions[question_id].content_hash;
     }
 
     /// @notice Returns the arbitrator address for the question
     /// @param question_id The ID of the question
-    function getArbitrator(bytes32 question_id)
-    public view returns(address) {
+    function getArbitrator(bytes32 question_id) public view returns (address) {
         return questions[question_id].arbitrator;
     }
 
     /// @notice Returns the timestamp when the question can first be answered
     /// @param question_id The ID of the question
-    function getOpeningTS(bytes32 question_id)
-    public view returns(uint32) {
+    function getOpeningTS(bytes32 question_id) public view returns (uint32) {
         return questions[question_id].opening_ts;
     }
 
     /// @notice Returns the timeout in seconds used after each answer
     /// @param question_id The ID of the question
-    function getTimeout(bytes32 question_id)
-    public view returns(uint32) {
+    function getTimeout(bytes32 question_id) public view returns (uint32) {
         return questions[question_id].timeout;
     }
 
     /// @notice Returns the timestamp at which the question will be/was finalized
     /// @param question_id The ID of the question
-    function getFinalizeTS(bytes32 question_id)
-    public view returns(uint32) {
+    function getFinalizeTS(bytes32 question_id) public view returns (uint32) {
         return questions[question_id].finalize_ts;
     }
 
     /// @notice Returns whether the question is pending arbitration
     /// @param question_id The ID of the question
-    function isPendingArbitration(bytes32 question_id)
-    public view returns(bool) {
+    function isPendingArbitration(bytes32 question_id) public view returns (bool) {
         return questions[question_id].is_pending_arbitration;
     }
 
     /// @notice Returns the current total unclaimed bounty
     /// @dev Set back to zero once the bounty has been claimed
     /// @param question_id The ID of the question
-    function getBounty(bytes32 question_id)
-    public view returns(uint256) {
+    function getBounty(bytes32 question_id) public view returns (uint256) {
         return questions[question_id].bounty;
     }
 
     /// @notice Returns the current best answer
     /// @param question_id The ID of the question
-    function getBestAnswer(bytes32 question_id)
-    public view returns(bytes32) {
+    function getBestAnswer(bytes32 question_id) public view returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
     /// @notice Returns the history hash of the question
     /// @param question_id The ID of the question
     /// @dev Updated on each answer, then rewound as each is claimed
-    function getHistoryHash(bytes32 question_id)
-    public view returns(bytes32) {
+    function getHistoryHash(bytes32 question_id) public view returns (bytes32) {
         return questions[question_id].history_hash;
     }
 
     /// @notice Returns the highest bond posted so far for a question
     /// @param question_id The ID of the question
-    function getBond(bytes32 question_id)
-    public view returns(uint256) {
+    function getBond(bytes32 question_id) public view returns (uint256) {
         return questions[question_id].bond;
     }
 
     /// @notice Returns the minimum bond that can answer the question
     /// @param question_id The ID of the question
-    function getMinBond(bytes32 question_id)
-    public view returns(uint256) {
+    function getMinBond(bytes32 question_id) public view returns (uint256) {
         return questions[question_id].min_bond;
     }
-
 }

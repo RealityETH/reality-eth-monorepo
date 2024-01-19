@@ -3,7 +3,6 @@
 pragma solidity 0.8.20;
 
 interface IRealityETHErrors {
-
     /// @notice msg.sender must be arbitrator
     error MsgSenderMustBeArbitrator();
     /// @notice question must not exist
@@ -84,5 +83,4 @@ interface IRealityETHErrors {
     error AtLeastOneHistoryHashEntryMustBeProvided();
     /// @notice History input provided did not match the expected hash
     error HistoryInputProvidedDidNotMatchTheExpectedHash();
-
 }
