@@ -16,7 +16,7 @@ contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
         uint256 amount
     );
 
-    function withdraw() 
+    function withdraw()
     public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;

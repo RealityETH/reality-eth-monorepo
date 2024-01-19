@@ -16,9 +16,9 @@ contract RegisteredWalletArbitrator is Arbitrator {
     /// @notice Withdraw any accumulated question fees from the specified address into this contract
     /// @dev Funds can then be liberated from this contract with our withdraw() function
     /// @dev Usually the arbitrator calls this, but if someone else does that's OK too
-    function callWithdraw() 
+    function callWithdraw()
     public {
-        realitio.withdraw(); 
+        realitio.withdraw();
     }
 
     /// @notice Withdraw money from the arbitrator contract to our registered wallet
@@ -39,7 +39,7 @@ contract RegisteredWalletArbitrator is Arbitrator {
     /// @notice Change the address of our registered wallet
     /// @param addr The address of the new wallet
     /// @dev Set to 0x0 to not use the registered wallet
-    function updateRegisteredWallet(address addr) 
+    function updateRegisteredWallet(address addr)
         onlyOwner
     external {
         registered_wallet= addr;

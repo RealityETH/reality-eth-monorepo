@@ -34,7 +34,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) public question_claims;
     mapping(bytes32 => Commitment) public commitments;
-    mapping(address => uint256) public arbitrator_question_fees; 
+    mapping(address => uint256) public arbitrator_question_fees;
     mapping(bytes32 => bytes32) public reopened_questions;
     mapping(bytes32 => bool) public reopener_questions;
 
@@ -58,7 +58,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         uint32 finalize_ts = questions[question_id].finalize_ts;
         require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization deadline must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
+        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed");
         _;
     }
 
@@ -72,7 +72,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         uint32 finalize_ts = questions[question_id].finalize_ts;
         require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed"); 
+        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed");
         _;
     }
 
@@ -82,7 +82,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     }
 
     modifier bondMustDoubleAndMatchMinimum(bytes32 question_id, uint256 tokens) {
-        require(tokens > 0, "bond must be positive"); 
+        require(tokens > 0, "bond must be positive");
         uint256 current_bond = questions[question_id].bond;
         if (current_bond == 0) {
             require(tokens >= (questions[question_id].min_bond), "bond must exceed the minimum");
@@ -112,12 +112,12 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /* solhint-enable quotes */
 
 
-    /// @notice Function for arbitrator to set an optional per-question fee. 
+    /// @notice Function for arbitrator to set an optional per-question fee.
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) 
-    external 
-        stateAny() 
+    function setQuestionFee(uint256 fee)
+    external
+        stateAny()
     {
         arbitrator_question_fees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
@@ -128,8 +128,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content) 
-    public 
+    function createTemplate(string memory content)
+    public
         stateAny()
     returns (uint256) {
         uint256 id = nextTemplateID;
@@ -150,10 +150,10 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplateAndAskQuestion(
-        string memory content, 
-        string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce 
-    ) 
-    public 
+        string memory content,
+        string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce
+    )
+    public
         // stateNotCreated is enforced by the internal _askQuestion
     payable returns (bytes32) {
         uint256 template_id = createTemplate(content);
@@ -169,8 +169,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param opening_ts If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) 
-    public 
+    function askQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce)
+    public
         // stateNotCreated is enforced by the internal _askQuestion
     payable returns (bytes32) {
 
@@ -196,8 +196,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param min_bond The minimum bond that may be used for an answer.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionWithMinBond(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) 
-    public 
+    function askQuestionWithMinBond(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond)
+    public
         // stateNotCreated is enforced by the internal _askQuestion
     payable returns (bytes32) {
 
@@ -214,25 +214,25 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         return question_id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens) 
-    internal 
+    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens)
+    internal
         stateNotCreated(question_id)
     {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
-        require(timeout > 0, "timeout must be positive"); 
-        require(timeout < 365 days, "timeout must be less than 365 days"); 
+        require(timeout > 0, "timeout must be positive");
+        require(timeout < 365 days, "timeout must be less than 365 days");
 
         uint256 bounty = tokens;
 
-        // The arbitrator can set a fee for asking a question. 
+        // The arbitrator can set a fee for asking a question.
         // This is intended as an anti-spam defence.
         // The fee is waived if the arbitrator is asking the question.
         // This allows them to set an impossibly high fee and make users proxy the question through them.
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "Tokens provided must cover question fee"); 
+            require(bounty >= question_fee, "Tokens provided must cover question fee");
             bounty = bounty - question_fee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
@@ -257,8 +257,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
-    function fundAnswerBounty(bytes32 question_id) 
-    external 
+    function fundAnswerBounty(bytes32 question_id)
+    external
         stateOpen(question_id)
     payable {
         questions[question_id].bounty = questions[question_id].bounty + msg.value;
@@ -271,8 +271,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) 
-    external 
+    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous)
+    external
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
@@ -289,7 +289,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param answerer The account to which the answer should be credited
     function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer)
-    external 
+    external
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
@@ -302,7 +302,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     // @notice Verify and store a commitment, including an appropriate timeout
     // @param question_id The ID of the question to store
     // @param commitment The ID of the commitment
-    function _storeCommitment(bytes32 question_id, bytes32 commitment_id) 
+    function _storeCommitment(bytes32 question_id, bytes32 commitment_id)
     internal
     {
         require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
@@ -320,8 +320,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param _answerer If specified, the address to be given as the question answerer. Defaults to the sender.
     /// @dev Specifying the answerer is useful if you want to delegate the commit-and-reveal to a third-party.
-    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) 
-    external 
+    function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer)
+    external
         stateOpen(question_id)
         bondMustDoubleAndMatchMinimum(question_id, msg.value)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
@@ -337,15 +337,15 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice Submit the answer whose hash you sent in a previous submitAnswerCommitment() transaction
     /// @dev Checks the parameters supplied recreate an existing commitment, and stores the revealed answer
     /// Updates the current answer unless someone has since supplied a new answer with a higher bond
-    /// msg.sender is intentionally not restricted to the user who originally sent the commitment; 
+    /// msg.sender is intentionally not restricted to the user who originally sent the commitment;
     /// For example, the user may want to provide the answer+nonce to a third-party service and let them send the tx
     /// NB If we are pending arbitration, it will be up to the arbitrator to wait and see any outstanding reveal is sent
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded as bytes32
     /// @param nonce The nonce that, combined with the answer, recreates the answer_hash you gave in submitAnswerCommitment()
     /// @param bond The bond that you paid in your submitAnswerCommitment() transaction
-    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond) 
-    external 
+    function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond)
+    external
         stateOpenOrPendingArbitration(question_id)
     {
 
@@ -366,8 +366,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
     }
 
-    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment) 
-    internal 
+    function _addAnswerToHistory(bytes32 question_id, bytes32 answer_or_commitment_id, address answerer, uint256 bond, bool is_commitment)
+    internal
     {
         bytes32 new_history_hash = keccak256(abi.encodePacked(questions[question_id].history_hash, answer_or_commitment_id, bond, answerer, is_commitment));
 
@@ -398,7 +398,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param question_id The ID of the question
     /// @param requester The account that requested arbitration
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) 
+    function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous)
         onlyArbitrator(question_id)
         stateOpen(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
@@ -411,8 +411,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice Cancel a previously-requested arbitration and extend the timeout
     /// @dev Useful when doing arbitration across chains that can't be requested atomically
     /// @param question_id The ID of the question
-    function cancelArbitration(bytes32 question_id) 
-    external 
+    function cancelArbitration(bytes32 question_id)
+    external
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
     {
@@ -429,8 +429,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param answerer The account credited with this answer for the purpose of bond claims
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
-    public 
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer)
+    public
         onlyArbitrator(question_id)
         statePendingArbitration(question_id)
     {
@@ -452,7 +452,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param last_history_hash The history hash before the final one
     /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
     /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer)
     external {
         bool is_commitment = _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer_or_commitment_id, questions[question_id].bond, last_answerer);
 
@@ -472,7 +472,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice Report whether the answer to the specified question is finalized
     /// @param question_id The ID of the question
     /// @return Return true if finalized
-    function isFinalized(bytes32 question_id) 
+    function isFinalized(bytes32 question_id)
     public view returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
         return ( !questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)) );
@@ -481,8 +481,8 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
-    function getFinalAnswer(bytes32 question_id) 
-    external 
+    function getFinalAnswer(bytes32 question_id)
+    external
         stateFinalized(question_id)
     view returns (bytes32) {
         return questions[question_id].best_answer;
@@ -491,23 +491,23 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @notice Return the final answer to the specified question, or revert if there isn't one
     /// @param question_id The ID of the question
     /// @return The answer formatted as a bytes32
-    function resultFor(bytes32 question_id) 
-    public 
+    function resultFor(bytes32 question_id)
+    public
         stateFinalized(question_id)
     view returns (bytes32) {
         return questions[question_id].best_answer;
     }
 
     /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
-    /// @param question_id The ID of the question 
+    /// @param question_id The ID of the question
     function isSettledTooSoon(bytes32 question_id)
-    public 
+    public
     view returns(bool) {
         return (resultFor(question_id) == UNRESOLVED_ANSWER);
     }
 
     /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
-    /// @param question_id The ID of the question 
+    /// @param question_id The ID of the question
     function resultForOnceSettled(bytes32 question_id)
     external view returns(bytes32) {
         bytes32 result = resultFor(question_id);
@@ -535,7 +535,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @return The ID of the newly-created question, created deterministically.
     function reopenQuestion(uint256 template_id, string memory question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id)
         // stateNotCreated is enforced by the internal _askQuestion
-    public 
+    public
     payable returns (bytes32) {
 
         require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
@@ -589,10 +589,10 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param min_bond The bond sent with the final answer must be this high or higher
     /// @return The answer formatted as a bytes32
     function getFinalAnswerIfMatches(
-        bytes32 question_id, 
+        bytes32 question_id,
         bytes32 content_hash, address arbitrator, uint32 min_timeout, uint256 min_bond
-    ) 
-    external 
+    )
+    external
         stateFinalized(question_id)
     view returns (bytes32) {
         require(content_hash == questions[question_id].content_hash, "content hash must match");
@@ -617,19 +617,19 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param bonds Last-to-first, the bond supplied with each answer or commitment
     /// @param answers Last-to-first, each answer supplied, or commitment ID if the answer was supplied with commit->reveal
     function claimWinnings(
-        bytes32 question_id, 
+        bytes32 question_id,
         bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
-    ) 
-    public 
+    )
+    public
         stateFinalized(question_id)
     {
 
         require(history_hashes.length > 0, "at least one history hash entry must be provided");
 
         // These are only set if we split our claim over multiple transactions.
-        address payee = question_claims[question_id].payee; 
-        uint256 last_bond = question_claims[question_id].last_bond; 
-        uint256 queued_funds = question_claims[question_id].queued_funds; 
+        address payee = question_claims[question_id].payee;
+        uint256 last_bond = question_claims[question_id].last_bond;
+        uint256 queued_funds = question_claims[question_id].queued_funds;
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
@@ -639,15 +639,15 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
         uint256 i;
         for (i = 0; i < history_hashes.length; i++) {
-        
+      
             // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
-            
-            queued_funds = queued_funds + last_bond; 
+          
+            queued_funds = queued_funds + last_bond;
             (queued_funds, payee) = _processHistoryItem(
-                question_id, best_answer, queued_funds, payee, 
+                question_id, best_answer, queued_funds, payee,
                 addrs[i], bonds[i], answers[i], is_commitment);
- 
+
             // Line the bond up for next time, when it will be added to somebody's queued_funds
             last_bond = bonds[i];
 
@@ -660,7 +660,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
             last_history_hash = history_hashes[i];
 
         }
- 
+
         if (last_history_hash != NULL_HASH) {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
@@ -685,7 +685,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
     }
 
-    function _payPayee(bytes32 question_id, address payee, uint256 value) 
+    function _payPayee(bytes32 question_id, address payee, uint256 value)
     internal {
         balanceOf[payee] = balanceOf[payee] + value;
         emit LogClaim(question_id, payee, value);
@@ -701,13 +701,13 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
         }
         if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
             return false;
-        } 
+        }
         revert("History input provided did not match the expected hash");
     }
 
     function _processHistoryItem(
-        bytes32 question_id, bytes32 best_answer, 
-        uint256 queued_funds, address payee, 
+        bytes32 question_id, bytes32 best_answer,
+        uint256 queued_funds, address payee,
         address addr, uint256 bond, bytes32 answer, bool is_commitment
     )
     internal returns (uint256, address) {
@@ -744,7 +744,7 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
                 // Answerer has changed, ie we found someone lower down who needs to be paid
 
                 // The lower answerer will take over receiving bonds from higher answerer.
-                // They should also be paid the takeover fee, which is set at a rate equivalent to their bond. 
+                // They should also be paid the takeover fee, which is set at a rate equivalent to their bond.
                 // (This is our arbitrary rule, to give consistent right-answerers a defence against high-rollers.)
 
                 // There should be enough for the fee, but if not, take what we have.
@@ -773,15 +773,15 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param hist_hashes In a single list for all supplied questions, the hash of each history entry.
     /// @param addrs In a single list for all supplied questions, the address of each answerer or commitment sender
     /// @param bonds In a single list for all supplied questions, the bond supplied with each answer or commitment
-    /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID 
+    /// @param answers In a single list for all supplied questions, each answer supplied, or commitment ID
     function claimMultipleAndWithdrawBalance(
-        bytes32[] memory question_ids, uint256[] memory lengths, 
+        bytes32[] memory question_ids, uint256[] memory lengths,
         bytes32[] memory hist_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers
-    ) 
-    public 
+    )
+    public
         stateAny() // The finalization checks are done in the claimWinnings function
     {
-        
+      
         uint256 qi;
         uint256 i;
         for (qi = 0; qi < question_ids.length; qi++) {
@@ -805,73 +805,73 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     }
 
     /// @notice Returns the questions's content hash, identifying the question content
-    /// @param question_id The ID of the question 
-    function getContentHash(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getContentHash(bytes32 question_id)
     public view returns(bytes32) {
         return questions[question_id].content_hash;
     }
 
     /// @notice Returns the arbitrator address for the question
-    /// @param question_id The ID of the question 
-    function getArbitrator(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getArbitrator(bytes32 question_id)
     public view returns(address) {
         return questions[question_id].arbitrator;
     }
 
     /// @notice Returns the timestamp when the question can first be answered
-    /// @param question_id The ID of the question 
-    function getOpeningTS(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getOpeningTS(bytes32 question_id)
     public view returns(uint32) {
         return questions[question_id].opening_ts;
     }
 
     /// @notice Returns the timeout in seconds used after each answer
-    /// @param question_id The ID of the question 
-    function getTimeout(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getTimeout(bytes32 question_id)
     public view returns(uint32) {
         return questions[question_id].timeout;
     }
 
     /// @notice Returns the timestamp at which the question will be/was finalized
-    /// @param question_id The ID of the question 
-    function getFinalizeTS(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getFinalizeTS(bytes32 question_id)
     public view returns(uint32) {
         return questions[question_id].finalize_ts;
     }
 
     /// @notice Returns whether the question is pending arbitration
-    /// @param question_id The ID of the question 
-    function isPendingArbitration(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function isPendingArbitration(bytes32 question_id)
     public view returns(bool) {
         return questions[question_id].is_pending_arbitration;
     }
 
     /// @notice Returns the current total unclaimed bounty
     /// @dev Set back to zero once the bounty has been claimed
-    /// @param question_id The ID of the question 
-    function getBounty(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getBounty(bytes32 question_id)
     public view returns(uint256) {
         return questions[question_id].bounty;
     }
 
     /// @notice Returns the current best answer
-    /// @param question_id The ID of the question 
-    function getBestAnswer(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getBestAnswer(bytes32 question_id)
     public view returns(bytes32) {
         return questions[question_id].best_answer;
     }
 
-    /// @notice Returns the history hash of the question 
-    /// @param question_id The ID of the question 
+    /// @notice Returns the history hash of the question
+    /// @param question_id The ID of the question
     /// @dev Updated on each answer, then rewound as each is claimed
-    function getHistoryHash(bytes32 question_id) 
+    function getHistoryHash(bytes32 question_id)
     public view returns(bytes32) {
         return questions[question_id].history_hash;
     }
 
     /// @notice Returns the highest bond posted so far for a question
-    /// @param question_id The ID of the question 
-    function getBond(bytes32 question_id) 
+    /// @param question_id The ID of the question
+    function getBond(bytes32 question_id)
     public view returns(uint256) {
         return questions[question_id].bond;
     }

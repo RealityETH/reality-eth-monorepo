@@ -102,7 +102,7 @@ contract ERC20 is IERC20 {
 
     uint256 private _totalSupply;
 
-    function mint(address to, uint256 val) 
+    function mint(address to, uint256 val)
     public {
         _mint(to, val);
     }
