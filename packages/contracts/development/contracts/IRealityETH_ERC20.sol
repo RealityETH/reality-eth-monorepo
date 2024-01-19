@@ -6,6 +6,9 @@ import {IBalanceHolder_ERC20} from "./IBalanceHolder_ERC20.sol";
 import {IERC20} from "./IERC20.sol";
 import {IRealityETHErrors_ERC20} from "./IRealityETHErrors_ERC20.sol";
 
+/* solhint-disable func-name-mixedcase */
+
+// solhint-disable-next-line contract-name-camelcase
 interface IRealityETH_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20 {
     event LogAnswerReveal(bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
     event LogCancelArbitration(bytes32 indexed question_id);
