@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.20;
 
-import './IRealityETH.sol';
+import "./IRealityETH.sol";
 
 interface IArbitratorLegacy {
-    function realitycheck (  ) external view returns ( IRealityETH );
+    function realitycheck() external view returns (IRealityETH);
 }
