@@ -16,8 +16,8 @@ contract Owned is IOwned {
         _;
     }
 
-    function transferOwnership(address newOwner) 
-        onlyOwner 
+    function transferOwnership(address newOwner)
+        onlyOwner
     external {
         owner = newOwner;
     }
