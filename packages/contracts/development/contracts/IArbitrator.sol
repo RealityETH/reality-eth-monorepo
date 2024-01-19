@@ -7,18 +7,19 @@ This interface describes the Arbitrator contract originally deployed and managed
 For the minimal interface that will be able to interact with the reality.eth UI as an arbitrator, use IArbitratorCore.
 */
 
-import "./IArbitratorCore.sol";
+import {IArbitratorCore} from "./IArbitratorCore.sol";
 
 // This provides management functionality to handle ownership, set fees etc.
-import "./IArbitratorManagement.sol";
+import {IArbitratorManagement} from "./IArbitratorManagement.sol";
 
 // This provides the old function realitycheck(), replaced by realitio().
-import "./IArbitratorLegacy.sol";
+import {IArbitratorLegacy} from "./IArbitratorLegacy.sol";
 
 // This provides a function for querying the status of crowd-funded arbitration.
-import "./IArbitratorCrowdFundable.sol";
+import {IArbitratorCrowdFundable} from "./IArbitratorCrowdFundable.sol";
 
 // Errors (from v4)
-import "./IArbitratorErrors.sol";
+import {IArbitratorErrors} from "./IArbitratorErrors.sol";
 
-interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors {}
+/* solhint-disable no-empty-blocks */
+interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors{}

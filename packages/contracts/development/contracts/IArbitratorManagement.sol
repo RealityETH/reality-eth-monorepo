@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.20;
 
-import "./IERC20.sol";
-import "./IOwned.sol";
+import {IERC20} from "./IERC20.sol";
+import {IOwned} from "./IOwned.sol";
 
 interface IArbitratorManagement {
     event LogSetRealitio(address realitio);

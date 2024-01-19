@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-import "./IRealityETH.sol";
+import {IRealityETH} from "./IRealityETH.sol";
 
 interface IArbitratorCore {
     event LogRequestArbitration(bytes32 indexed question_id, uint256 fee_paid, address requester, uint256 remaining);
