@@ -13,7 +13,7 @@ contract BalanceHolder is IBalanceHolder {
         uint256 amount
     );
 
-    function withdraw() 
+    function withdraw()
     public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;

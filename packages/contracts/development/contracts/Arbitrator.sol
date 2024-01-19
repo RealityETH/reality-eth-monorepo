@@ -24,15 +24,15 @@ contract Arbitrator is Owned, IArbitrator {
     }
 
     /// @notice Returns the Realitio contract address - deprecated in favour of realitio()
-    function realitycheck() 
+    function realitycheck()
     external view returns(IRealityETH) {
         return realitio;
     }
 
     /// @notice Set the Reality Check contract address
     /// @param addr The address of the Reality Check contract
-    function setRealitio(address addr) 
-        onlyOwner 
+    function setRealitio(address addr)
+        onlyOwner
     public {
         realitio = IRealityETH(addr);
         emit LogSetRealitio(addr);
@@ -40,8 +40,8 @@ contract Arbitrator is Owned, IArbitrator {
 
     /// @notice Set the default fee
     /// @param fee The default fee amount
-    function setDisputeFee(uint256 fee) 
-        onlyOwner 
+    function setDisputeFee(uint256 fee)
+        onlyOwner
     public {
         dispute_fee = fee;
         emit LogSetDisputeFee(fee);
@@ -50,8 +50,8 @@ contract Arbitrator is Owned, IArbitrator {
     /// @notice Set a custom fee for this particular question
     /// @param question_id The question in question
     /// @param fee The fee amount
-    function setCustomDisputeFee(bytes32 question_id, uint256 fee) 
-        onlyOwner 
+    function setCustomDisputeFee(bytes32 question_id, uint256 fee)
+        onlyOwner
     public {
         custom_dispute_fees[question_id] = fee;
         emit LogSetCustomDisputeFee(question_id, fee);
@@ -60,7 +60,7 @@ contract Arbitrator is Owned, IArbitrator {
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
     /// @param question_id The question in question
     /// @dev Uses a general default, but can be over-ridden on a question-by-question basis.
-    function getDisputeFee(bytes32 question_id) 
+    function getDisputeFee(bytes32 question_id)
     public view returns (uint256) {
         return (custom_dispute_fees[question_id] > 0) ? custom_dispute_fees[question_id] : dispute_fee;
     }
@@ -71,8 +71,8 @@ contract Arbitrator is Owned, IArbitrator {
     /// You could set an impossibly high fee if you want to prevent us being used as arbitrator unless we submit the question.
     /// (Submitting the question ourselves is not implemented here.)
     /// This fee can be used as a revenue source, an anti-spam measure, or both.
-    function setQuestionFee(uint256 fee) 
-        onlyOwner 
+    function setQuestionFee(uint256 fee)
+        onlyOwner
     public {
         realitio.setQuestionFee(fee);
         emit LogSetQuestionFee(fee);
@@ -82,8 +82,8 @@ contract Arbitrator is Owned, IArbitrator {
     /// @param question_id The question in question
     /// @param answer The answer
     /// @param answerer The answerer. If arbitration changed the answer, it should be the payer. If not, the old answerer.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) 
-        onlyOwner 
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer)
+        onlyOwner
     public {
         delete arbitration_bounties[question_id];
         realitio.submitAnswerByArbitrator(question_id, answer, answerer);
@@ -96,8 +96,8 @@ contract Arbitrator is Owned, IArbitrator {
     /// @param last_history_hash The history hash before the final one
     /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
     /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer) 
-        onlyOwner 
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer_or_commitment_id, address last_answerer)
+        onlyOwner
     public {
         delete arbitration_bounties[question_id];
         realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, payee_if_wrong, last_history_hash, last_answer_or_commitment_id, last_answerer);
@@ -106,8 +106,8 @@ contract Arbitrator is Owned, IArbitrator {
     /// @notice Cancel a previous arbitration request
     /// @dev This is intended for situations where the arbitration is happening non-atomically and the fee or something change.
     /// @param question_id The question in question
-    function cancelArbitration(bytes32 question_id) 
-        onlyOwner 
+    function cancelArbitration(bytes32 question_id)
+        onlyOwner
     public {
         realitio.cancelArbitration(question_id);
     }
@@ -117,7 +117,7 @@ contract Arbitrator is Owned, IArbitrator {
     /// Will trigger an error if the notification fails, eg because the question has already been finalized
     /// @param question_id The question in question
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function requestArbitration(bytes32 question_id, uint256 max_previous) 
+    function requestArbitration(bytes32 question_id, uint256 max_previous)
     external payable returns (bool) {
 
         uint256 arbitration_fee = getDisputeFee(question_id);
@@ -140,38 +140,38 @@ contract Arbitrator is Owned, IArbitrator {
 
     /// @notice Withdraw any accumulated ETH fees to the specified address
     /// @param addr The address to which the balance should be sent
-    function withdraw(address addr) 
-        onlyOwner 
+    function withdraw(address addr)
+        onlyOwner
     public {
-        payable(addr).transfer(address(this).balance); 
+        payable(addr).transfer(address(this).balance);
     }
 
     /// @notice Withdraw any accumulated token fees to the specified address
     /// @param addr The address to which the balance should be sent
     /// @dev Only needed if the Realitio contract used is using an ERC20 token
     /// @dev Also only normally useful if a per-question fee is set, otherwise we only have ETH.
-    function withdrawERC20(IERC20 _token, address addr) 
-        onlyOwner 
+    function withdrawERC20(IERC20 _token, address addr)
+        onlyOwner
     public {
         uint256 bal = _token.balanceOf(address(this));
-        IERC20(_token).transfer(addr, bal); 
+        IERC20(_token).transfer(addr, bal);
     }
 
-    receive() 
+    receive()
     external payable {
     }
 
     /// @notice Withdraw any accumulated question fees from the specified address into this contract
     /// @dev Funds can then be liberated from this contract with our withdraw() function
     /// @dev This works in the same way whether the realitio contract is using ETH or an ERC20 token
-    function callWithdraw() 
-        onlyOwner 
+    function callWithdraw()
+        onlyOwner
     public {
-        realitio.withdraw(); 
+        realitio.withdraw();
     }
 
     /// @notice Set a metadata string, expected to be JSON, containing things like arbitrator TOS address
-    function setMetaData(string memory _metadata) 
+    function setMetaData(string memory _metadata)
         onlyOwner
     external {
         metadata = _metadata;
