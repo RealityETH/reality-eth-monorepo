@@ -7,6 +7,10 @@ import {IERC20} from "./IERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_Factory {
+
+    /// @notice There should only be one deployment per version per token
+    error ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
+
     address public libraryAddress;
     mapping(address => address) public deployments;
 
@@ -32,7 +36,7 @@ contract RealityETH_ERC20_Factory {
     }
 
     function createInstance(address _token) external {
-        require(deployments[_token] == address(0), "There should only be one deployment per version per token");
+        if (deployments[_token] != address(0)) revert ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
         uint8 decimals = IERC20(_token).decimals();
         string memory ticker = IERC20(_token).symbol();
         address clone = _deployProxy(libraryAddress);
