@@ -36,7 +36,7 @@ contract RealityETH_ERC20_Factory {
         uint8 decimals = IERC20(_token).decimals();
         string memory ticker = IERC20(_token).symbol();
         address clone = _deployProxy(libraryAddress);
-        IRealityETH_ERC20(clone).setToken(_token);
+        IRealityETH_ERC20(clone).setToken(IERC20(_token));
         /* solhint-disable quotes */
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
