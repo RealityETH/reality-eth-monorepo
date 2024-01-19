@@ -7,7 +7,6 @@ import {IERC20} from "./IERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_Factory {
-
     /// @notice There should only be one deployment per version per token
     error ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
 
