@@ -41,7 +41,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     mapping(bytes32 => bool) public reopener_questions;
 
     modifier onlyArbitrator(bytes32 question_id) {
-        require(msg.sender == questions[question_id].arbitrator, "msg.sender must be arbitrator");
+        if (msg.sender != questions[question_id].arbitrator) revert MsgSenderMustBeArbitrator();
         _;
     }
 
@@ -50,53 +50,53 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     }
 
     modifier stateNotCreated(bytes32 question_id) {
-        require(questions[question_id].timeout == 0, "question must not exist");
+        if (questions[question_id].timeout != 0) revert QuestionMustNotExist();
         _;
     }
 
     modifier stateOpen(bytes32 question_id) {
-        require(questions[question_id].timeout > 0, "question must exist");
-        require(!questions[question_id].is_pending_arbitration, "question must not be pending arbitration");
+        if (questions[question_id].timeout == 0) revert QuestionMustExist();
+        if (questions[question_id].is_pending_arbitration) revert QuestionMustNotBePendingArbitration();
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization deadline must not have passed");
+        if (finalize_ts != UNANSWERED && finalize_ts <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed");
+        if (opening_ts != 0 && opening_ts > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
 
     modifier statePendingArbitration(bytes32 question_id) {
-        require(questions[question_id].is_pending_arbitration, "question must be pending arbitration");
+        if (!questions[question_id].is_pending_arbitration) revert QuestionMustBePendingArbitration();
         _;
     }
 
     modifier stateOpenOrPendingArbitration(bytes32 question_id) {
-        require(questions[question_id].timeout > 0, "question must exist");
+        if (questions[question_id].timeout == 0) revert QuestionMustExist();
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        require(finalize_ts == UNANSWERED || finalize_ts > uint32(block.timestamp), "finalization dealine must not have passed");
+        if (finalize_ts != UNANSWERED && finalize_ts <= uint32(block.timestamp)) revert FinalizationDealineMustNotHavePassed();
         uint32 opening_ts = questions[question_id].opening_ts;
-        require(opening_ts == 0 || opening_ts <= uint32(block.timestamp), "opening date must have passed");
+        if (opening_ts != 0 && opening_ts > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
 
     modifier stateFinalized(bytes32 question_id) {
-        require(isFinalized(question_id), "question must be finalized");
+        if (!isFinalized(question_id)) revert QuestionMustBeFinalized();
         _;
     }
 
     modifier bondMustDoubleAndMatchMinimum(bytes32 question_id, uint256 tokens) {
-        require(tokens > 0, "bond must be positive");
+        if (tokens == 0) revert BondMustBePositive();
         uint256 current_bond = questions[question_id].bond;
         if (current_bond == 0) {
-            require(tokens >= (questions[question_id].min_bond), "bond must exceed the minimum");
+            if (tokens < (questions[question_id].min_bond)) revert BondMustExceedTheMinimum();
         } else {
-            require(tokens >= (current_bond * 2), "bond must be double at least previous bond");
+            if (tokens < (current_bond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
         }
         _;
     }
 
     modifier previousBondMustNotBeatMaxPrevious(bytes32 question_id, uint256 max_previous) {
         if (max_previous > 0) {
-            require(questions[question_id].bond <= max_previous, "bond must exceed max_previous");
+            if (questions[question_id].bond > max_previous) revert BondMustExceedMax_Previous();
         }
         _;
     }
@@ -119,7 +119,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     function setToken(IERC20 _token)
     public
     {
-        require(token == IERC20(address(0x0)), "Token can only be initialized once");
+        if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
         token = _token;
     }
 
@@ -187,7 +187,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         // stateNotCreated is enforced by the internal _askQuestion
     returns (bytes32) {
 
-        require(templates[template_id] > 0, "template must exist");
+        if (templates[template_id] == 0) revert TemplateMustExist();
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
@@ -216,7 +216,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         _deductTokensOrRevert(tokens);
 
-        require(templates[template_id] > 0, "template must exist");
+        if (templates[template_id] == 0) revert TemplateMustExist();
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
@@ -246,7 +246,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         _deductTokensOrRevert(tokens);
 
-        require(templates[template_id] > 0, "template must exist");
+        if (templates[template_id] == 0) revert TemplateMustExist();
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
         bytes32 question_id = keccak256(abi.encodePacked(content_hash, arbitrator, timeout, min_bond, address(this), msg.sender, nonce));
@@ -279,7 +279,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
             }
         }
         // Now we need to charge the rest from
-        require(token.transferFrom(msg.sender, address(this), tokens), "Transfer of tokens failed, insufficient approved balance?");
+        if (!token.transferFrom(msg.sender, address(this), tokens)) revert TransferOfTokensFailedInsufficientApprovedBalance();
         return;
 
     }
@@ -290,8 +290,8 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     {
 
         // A timeout of 0 makes no sense, and we will use this to check existence
-        require(timeout > 0, "timeout must be positive");
-        require(timeout < 365 days, "timeout must be less than 365 days");
+        if (timeout == 0) revert TimeoutMustBePositive();
+        if (timeout >= 365 days) revert TimeoutMustBeLessThan365Days();
 
         uint256 bounty = tokens;
 
@@ -302,7 +302,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
-            require(bounty >= question_fee, "Tokens provided must cover question fee");
+            if (bounty < question_fee) revert TokensProvidedMustCoverQuestionFee();
             bounty = bounty - question_fee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + question_fee;
         }
@@ -370,7 +370,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     {
         _deductTokensOrRevert(tokens);
-        require(answerer != NULL_ADDRESS, "answerer must be non-zero");
+        if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, tokens, false);
         _updateCurrentAnswer(question_id, answer);
     }
@@ -381,7 +381,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     function _storeCommitment(bytes32 question_id, bytes32 commitment_id)
     internal
     {
-        require(commitments[commitment_id].reveal_ts == COMMITMENT_NON_EXISTENT, "commitment must not already exist");
+        if (commitments[commitment_id].reveal_ts != COMMITMENT_NON_EXISTENT) revert CommitmentMustNotAlreadyExist();
 
         uint32 commitment_timeout = questions[question_id].timeout / COMMITMENT_TIMEOUT_RATIO;
         commitments[commitment_id].reveal_ts = uint32(block.timestamp) + commitment_timeout;
@@ -432,8 +432,8 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         bytes32 answer_hash = keccak256(abi.encodePacked(answer, nonce));
         bytes32 commitment_id = keccak256(abi.encodePacked(question_id, answer_hash, bond));
 
-        require(!commitments[commitment_id].is_revealed, "commitment must not have been revealed yet");
-        require(commitments[commitment_id].reveal_ts > uint32(block.timestamp), "reveal deadline must not have passed");
+        if (commitments[commitment_id].is_revealed) revert CommitmentMustNotHaveBeenRevealedYet();
+        if (commitments[commitment_id].reveal_ts <= uint32(block.timestamp)) revert RevealDeadlineMustNotHavePassed();
 
         commitments[commitment_id].revealed_answer = answer;
         commitments[commitment_id].is_revealed = true;
@@ -483,7 +483,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         stateOpen(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
     external {
-        require(questions[question_id].finalize_ts > UNANSWERED, "Question must already have an answer when arbitration is requested");
+        if (questions[question_id].finalize_ts <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
     }
@@ -515,7 +515,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         statePendingArbitration(question_id)
     {
 
-        require(answerer != NULL_ADDRESS, "answerer must be provided");
+        if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
         emit LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
@@ -539,7 +539,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         // If the last answer is an unrevealed commit, it's always wrong.
         // For anything else, the last answer was set as the "best answer" in submitAnswer or submitAnswerReveal.
         if (is_commitment && !commitments[last_answer_or_commitment_id].is_revealed) {
-            require(commitments[last_answer_or_commitment_id].reveal_ts < uint32(block.timestamp), "You must wait for the reveal deadline before finalizing");
+            if (commitments[last_answer_or_commitment_id].reveal_ts >= uint32(block.timestamp)) revert YouMustWaitForTheRevealDeadlineBeforeFinalizing();
             payee = payee_if_wrong;
         } else {
             payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
@@ -592,10 +592,10 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         if (result == UNRESOLVED_ANSWER) {
             // Try the replacement
             bytes32 replacement_id = reopened_questions[question_id];
-            require(replacement_id != bytes32(0x0), "Question was settled too soon and has not been reopened");
+            if (replacement_id == bytes32(0x0)) revert QuestionWasSettledTooSoonAndHasNotBeenReopened();
             // We only try one layer down rather than recursing to keep the gas costs predictable
             result = resultFor(replacement_id);
-            require(result != UNRESOLVED_ANSWER, "Question replacement was settled too soon and has not been reopened");
+            if (result == UNRESOLVED_ANSWER) revert QuestionReplacementWasSettledTooSoonAndHasNotBeenReopened();
         }
         return result;
     }
@@ -618,20 +618,20 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         // _deductTokensOrRevert will be called when we call askQuestionWithMinBondERC20
 
-        require(isSettledTooSoon(reopens_question_id), "You can only reopen questions that resolved as settled too soon");
+        if (!isSettledTooSoon(reopens_question_id)) revert YouCanOnlyReopenQuestionsThatResolvedAsSettledTooSoon();
 
         bytes32 content_hash = keccak256(abi.encodePacked(template_id, opening_ts, question));
 
         // A reopening must exactly match the original question, except for the nonce and the creator
-        require(content_hash == questions[reopens_question_id].content_hash, "content hash mismatch");
-        require(arbitrator == questions[reopens_question_id].arbitrator, "arbitrator mismatch");
-        require(timeout == questions[reopens_question_id].timeout, "timeout mismatch");
-        require(opening_ts == questions[reopens_question_id].opening_ts , "opening_ts mismatch");
-        require(min_bond == questions[reopens_question_id].min_bond, "min_bond mismatch");
+        if (content_hash != questions[reopens_question_id].content_hash) revert ContentHashMismatch();
+        if (arbitrator != questions[reopens_question_id].arbitrator) revert ArbitratorMismatch();
+        if (timeout != questions[reopens_question_id].timeout) revert TimeoutMismatch();
+        if (opening_ts != questions[reopens_question_id].opening_ts ) revert Opening_TsMismatch();
+        if (min_bond != questions[reopens_question_id].min_bond) revert Min_BondMismatch();
 
         // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
         // This ensures the bounty can be passed on to the next attempt of the original question.
-        require(!reopener_questions[reopens_question_id], "Question is already reopening a previous question");
+        if (reopener_questions[reopens_question_id]) revert QuestionIsAlreadyReopeningAPreviousQuestion();
 
         // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
         bytes32 existing_reopen_question_id = reopened_questions[reopens_question_id];
@@ -640,7 +640,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         bytes32 take_bounty_from_question_id = reopens_question_id;
         // If the question has already been reopened but was again settled too soon, we can transfer its bounty to the next attempt.
         if (existing_reopen_question_id != bytes32(0)) {
-            require(isSettledTooSoon(existing_reopen_question_id), "Question has already been reopened");
+            if (!isSettledTooSoon(existing_reopen_question_id)) revert QuestionHasAlreadyBeenReopened();
             // We'll overwrite the reopening with our new question and move the bounty.
             // Once that's done we'll detach the failed reopener and you'll be able to reopen that too if you really want, but without the bounty.
             reopener_questions[existing_reopen_question_id] = false;
@@ -675,10 +675,10 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     external
         stateFinalized(question_id)
     view returns (bytes32) {
-        require(content_hash == questions[question_id].content_hash, "content hash must match");
-        require(arbitrator == questions[question_id].arbitrator, "arbitrator must match");
-        require(min_timeout <= questions[question_id].timeout, "timeout must be long enough");
-        require(min_bond <= questions[question_id].bond, "bond must be high enough");
+        if (content_hash != questions[question_id].content_hash) revert ContentHashMustMatch();
+        if (arbitrator != questions[question_id].arbitrator) revert ArbitratorMustMatch();
+        if (min_timeout > questions[question_id].timeout) revert TimeoutMustBeLongEnough();
+        if (min_bond > questions[question_id].bond) revert BondMustBeHighEnough();
         return questions[question_id].best_answer;
     }
 
@@ -704,7 +704,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         stateFinalized(question_id)
     {
 
-        require(history_hashes.length > 0, "at least one history hash entry must be provided");
+        if (history_hashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
         address payee = question_claims[question_id].payee;
@@ -719,10 +719,10 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
 
         uint256 i;
         for (i = 0; i < history_hashes.length; i++) {
-      
+
             // Check input against the history hash, and see which of 2 possible values of is_commitment fits.
             bool is_commitment = _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
-          
+
             queued_funds = queued_funds + last_bond;
             (queued_funds, payee) = _processHistoryItem(
                 question_id, best_answer, queued_funds, payee,
@@ -782,7 +782,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
         if (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)) ) {
             return false;
         }
-        revert("History input provided did not match the expected hash");
+        revert HistoryInputProvidedDidNotMatchTheExpectedHash();
     }
 
     function _processHistoryItem(
@@ -861,7 +861,7 @@ contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
     public
         stateAny() // The finalization checks are done in the claimWinnings function
     {
-      
+
         uint256 qi;
         uint256 i;
         for (qi = 0; qi < question_ids.length; qi++) {
