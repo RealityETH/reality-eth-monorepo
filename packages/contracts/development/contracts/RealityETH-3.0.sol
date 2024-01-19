@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
 import {IRealityETH} from "./IRealityETH.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
 
+// solhint-disable-next-line contract-name-camelcase
 contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
 
     address constant private NULL_ADDRESS = address(0);
