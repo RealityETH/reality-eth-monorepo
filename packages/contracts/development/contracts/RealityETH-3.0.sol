@@ -400,10 +400,11 @@ contract RealityETH_v3_0 is BalanceHolder, IRealityETH {
     /// @param requester The account that requested arbitration
     /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous)
+    external
         onlyArbitrator(question_id)
         stateOpen(question_id)
         previousBondMustNotBeatMaxPrevious(question_id, max_previous)
-    external {
+    {
         if (questions[question_id].finalize_ts <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
