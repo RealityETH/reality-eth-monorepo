@@ -18,5 +18,8 @@ import './IArbitratorLegacy.sol';
 // This provides a function for querying the status of crowd-funded arbitration.
 import './IArbitratorCrowdFundable.sol';
 
-interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable {
+// Errors (from v4)
+import './IArbitratorErrors.sol';
+
+interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors {
 }
