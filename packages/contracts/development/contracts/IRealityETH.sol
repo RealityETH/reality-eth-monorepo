@@ -3,8 +3,9 @@
 pragma solidity 0.8.20;
 
 import {IBalanceHolder} from "./IBalanceHolder.sol";
+import {IRealityETHErrors} from "./IRealityETHErrors.sol";
 
-interface IRealityETH is IBalanceHolder {
+interface IRealityETH is IBalanceHolder, IRealityETHErrors {
      event LogAnswerReveal (bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond);
      event LogCancelArbitration (bytes32 indexed question_id);
      event LogClaim (bytes32 indexed question_id, address indexed user, uint256 amount);
