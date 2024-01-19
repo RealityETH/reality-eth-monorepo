@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
 
+// solhint-disable-next-line contract-name-camelcase
 interface IRealityETHErrors_ERC20 is IRealityETHErrors {
     /// @notice Token can only be initialized once
     error TokenCanOnlyBeInitializedOnce();
