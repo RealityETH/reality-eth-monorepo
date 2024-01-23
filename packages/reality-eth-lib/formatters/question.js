@@ -423,9 +423,16 @@ exports.hasInvalidOption = function(question_json, contract_version) {
     return !('has_invalid' in question_json && !question_json['has_invalid']);
 }
 
-exports.hasAnsweredTooSoonOption = function(question_json, contract_version) {
+exports.supportsAnsweredTooSoonOption = function(contract_version) {
     const bits = contract_version.split('.');
     return (parseInt(bits[0]) >= 3);
+}
+
+exports.hasAnsweredTooSoonOption = function(question_json, contract_version) {
+    if ('has_answered_too_soon' in question_json && !question_json['has_answered_too_soon']) {
+        return false;
+    }
+    return module.exports.supportsAnsweredTooSoonOption(contract_version);
 }
 
 exports.getAnswerString = function(question_json, answer) {

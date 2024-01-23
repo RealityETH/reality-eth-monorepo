@@ -222,6 +222,19 @@ describe('Invalid values', function() {
   });
 });
 
+describe('Invalid values', function() {
+  it('Handles bools as expected', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), '');
+    var has_v3 = rc_question.hasAnsweredTooSoonOption(q, '3.0'); 
+    expect(has_v3).to.equal(true);
+    var has_v2 = rc_question.hasAnsweredTooSoonOption(q, '2.1'); 
+    expect(has_v2).to.equal(false);
+    q['has_answered_too_soon'] = false;
+    var has_v3_suppressed = rc_question.hasAnsweredTooSoonOption(q, '3.0'); 
+    expect(has_v3_suppressed).to.equal(false);
+  });
+});
+
 describe('Broken questions', function() {
   it('Returns anything that cannot parse as a type called "broken-question"', function() {
     var broken = '{ "title": "You need to quote your "quotation marks" before parsing", "type": "bool" }';
