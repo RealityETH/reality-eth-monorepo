@@ -24,7 +24,12 @@ for i in $(seq $COUNT); do
     SAME_BYTECODE=`git log HEAD^..HEAD --oneline | grep -c "no bytecode change"`
     COMMIT=`git rev-parse HEAD`
     for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol"; do
-        NEW_HASH=`${SOLC} --no-cbor-metadata --bin "$DIR/../contracts/$contract" | grep -A2 "${contract}:" | tail -n1 | sha256sum | head -c64`
+        BIN_HEX=`${SOLC} --no-cbor-metadata --bin "$DIR/../contracts/$contract" | grep -A2 "${contract}:" | tail -n1`
+        if [ -n "$BIN_HEX" ]; then
+            NEW_HASH=`echo "$BIN_HEX" | sha256sum | head -c64`
+        else
+            NEW_HASH="COMPILE_FAILED"
+        fi
         LOG="COMMIT_LOG_${contract}.log"
         echo "${COMMIT}:${NEW_HASH}:${SAME_BYTECODE}" >> $LOG
     done
