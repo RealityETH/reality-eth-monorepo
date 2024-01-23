@@ -1172,10 +1172,7 @@ function isReopenCandidate(question) {
 
 // Assumes we already filled the data
 function isReopenable(question) {
-    // TODO: Check if it can be re-reopened
-    // console.log('reopened_by is ', question.reopened_by);
-    // console.log('last_reopened_by is ', question.last_reopened_by);
-    if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000' && !question.is_reopened_by_answered_too_soon) {
         // console.log('already reopened');
         return false;
     }
@@ -1537,10 +1534,29 @@ function filledQuestion(item, fetched_ms) {
     question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
     if (item.reopens) {
         question.reopener_of_question_id = item.reopens.id;
+        // We check the reopening in both directions.
+        // If the parent question was reopened then this one was settled as answered-too-soon, it will be reopenable once the parent one is reopened again.
+        if (item.reopens.reopenedBy.id == item.id) {
+            // console.log('set is_reopener');
+            question.is_reopener = true;
+        } else {
+            // console.log('is_reopener mismatch', item);
+        }
     }
     if (item.reopenedBy) {
         question.reopened_by = item.reopenedBy.id;
+        // Set a flag if the reopened question was also set to "answered too soon"
+        // Under these circumstances you can do the reopen again
+        // The query should give us just the fields we need for the finalization check.
+        const reopener = {};
+        reopener.is_pending_arbitration = item.reopenedBy.isPendingArbitration;
+        reopener.finalization_ts = item.reopenedBy.answerFinalizedTimestamp ? ethers.BigNumber.from(item.reopenedBy.answerFinalizedTimestamp) : ethers.BigNumber.from(0);
+        if (item.reopenedBy.currentAnswer == rc_question.getAnsweredTooSoonValue() && isFinalized(reopener)) {
+            // console.log('setting is_reopened_by_answered_too_soon');
+            question.is_reopened_by_answered_too_soon = true;
+        }
     }
+
     //question.bounty = data.args['bounty'];
 
     try {
@@ -3965,6 +3981,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
     let nonce_food = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
     if (old_question.reopened_by) {
         const [rocon, ro_question_id] = parseContractQuestionID(old_question.reopened_by);
         nonce_food = ro_question_id;
@@ -4613,10 +4630,16 @@ function questionFetchFields() {
             questionText
         },
         reopenedBy {
-          id
+          id,
+          currentAnswer,
+          isPendingArbitration,
+          answerFinalizedTimestamp
         },
         reopens {
-          id
+          id,
+          reopenedBy {
+            id
+          }
         },
         responses {
           id,
