@@ -3981,12 +3981,11 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
     // We only want to reopen a question once, plus once for each time it was reopened then settled too soon.
     // Hash that we don't get a zero which clashes with the normal askQuestion
     let nonce_food = "0x0000000000000000000000000000000000000000000000000000000000000000";
-
     if (old_question.reopened_by) {
         const [rocon, ro_question_id] = parseContractQuestionID(old_question.reopened_by);
         nonce_food = ro_question_id;
     }
-    const nonce = ethers.utils.keccak256('0x' + nonce_food.replace('0x', ''));
+    const nonce = ethers.utils.keccak256('0x' + old_question.question_id.replace('0x', '') + nonce_food.replace('0x', ''));
     // const nonce = ethers.utils.keccak256(ethers.BigNumber.from(parseInt(Date.now())).toHexString());
 
     // TODO: The same question may be asked multiple times by the same account, so set the nonce as something other than zero
