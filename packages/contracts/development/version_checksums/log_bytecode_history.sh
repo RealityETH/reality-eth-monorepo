@@ -23,7 +23,10 @@ for i in $(seq $COUNT); do
     git checkout HEAD^
     SAME_BYTECODE=`git log HEAD^..HEAD --oneline | grep -c "no bytecode change"`
     COMMIT=`git rev-parse HEAD`
-    for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol"; do
+    for contract in "RealityETH-3.0.sol" "RealityETH_ERC20-3.0.sol" "RealityETH-4.0.sol" "RealityETH_ERC20-4.0.sol"; do
+        if [ ! -f "$DIR/../contracts/$contract" ]; then
+            continue
+        fi
         BIN_HEX=`${SOLC} --no-cbor-metadata --bin "$DIR/../contracts/$contract" | grep -A2 "${contract}:" | tail -n1`
         if [ -n "$BIN_HEX" ]; then
             NEW_HASH=`echo "$BIN_HEX" | sha256sum | head -c64`
