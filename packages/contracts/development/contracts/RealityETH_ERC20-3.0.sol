@@ -3,11 +3,12 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "./IERC20.sol";
-import {IRealityETH_ERC20} from "./IRealityETH_ERC20.sol";
+import {IRealityETHCore_ERC20} from "./IRealityETHCore_ERC20.sol";
+import {IRealityETHCommitReveal_ERC20} from "./IRealityETHCommitReveal_ERC20.sol";
 import {BalanceHolder_ERC20} from "./BalanceHolder_ERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase
-contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETH_ERC20 {
+contract RealityETH_ERC20_v3_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IRealityETHCommitReveal_ERC20 {
     address private constant NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
