@@ -7,7 +7,7 @@ import {IRealityETHCommitReveal} from "./IRealityETHCommitReveal.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
 
 // solhint-disable-next-line contract-name-camelcase
-contract RealityETH_v3_0 is BalanceHolder, IRealityETHCore, IRealityETHCommitReveal {
+contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore, IRealityETHCommitReveal {
     address private constant NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
