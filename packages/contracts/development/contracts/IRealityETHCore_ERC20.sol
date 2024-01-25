@@ -52,7 +52,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     struct Claim {
         address payee;
         uint256 last_bond;
-        uint256 queued_funds;
+        uint256 queued_funds; // Only used on v3 or lower (related to commit-reveal)
     }
 
     function askQuestion(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external returns (bytes32);

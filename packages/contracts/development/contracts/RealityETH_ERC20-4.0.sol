@@ -623,7 +623,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // These are only set if we split our claim over multiple transactions.
         address payee = question_claims[question_id].payee;
         uint256 last_bond = question_claims[question_id].last_bond;
-        uint256 queued_funds = question_claims[question_id].queued_funds;
+        uint256 queued_funds = 0;
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
@@ -660,7 +660,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
-            question_claims[question_id].queued_funds = queued_funds;
         } else {
             // There is nothing left below us so the payee can keep what remains
             _payPayee(question_id, payee, queued_funds + last_bond);
