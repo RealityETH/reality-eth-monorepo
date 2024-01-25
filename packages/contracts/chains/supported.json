@@ -86,6 +86,11 @@
         "explorerURL": "https://zkevm.polygonscan.com/",
         "network_name": "polygon-zkevm"
     },
+    "17000": {
+        "hostedRPC": "https://ethereum-holesky.publicnode.com",
+        "explorerURL": "https://holesky.etherscan.io/",
+        "network_name": "holesky"
+    },
     "42161": {
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-arbitrum",

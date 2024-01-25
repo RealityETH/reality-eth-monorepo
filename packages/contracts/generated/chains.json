@@ -11,12 +11,17 @@
         "rpcUrls": [
             "https://api.mycryptoapi.com/eth",
             "https://cloudflare-eth.com",
-            "https://ethereum.publicnode.com"
+            "https://ethereum.publicnode.com",
+            "wss://ethereum.publicnode.com",
+            "https://mainnet.gateway.tenderly.co",
+            "wss://mainnet.gateway.tenderly.co",
+            "https://rpc.blocknative.com/boost"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
         "blockExplorerUrls": [
-            "https://etherscan.io"
+            "https://etherscan.io",
+            "https://eth.blockscout.com"
         ]
     },
     "3": {
@@ -62,12 +67,16 @@
         "network_name": "goerli",
         "rpcUrls": [
             "https://rpc.goerli.mudit.blog/",
-            "https://ethereum-goerli.publicnode.com"
+            "https://ethereum-goerli.publicnode.com",
+            "wss://ethereum-goerli.publicnode.com",
+            "https://goerli.gateway.tenderly.co",
+            "wss://goerli.gateway.tenderly.co"
         ],
         "hostedRPC": "https://eth-goerli.g.alchemy.com/v2/i2jZKhmFBPZYl8YdSHxsZ6viP3PQLwId",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-goerli",
         "blockExplorerUrls": [
-            "https://goerli.etherscan.io"
+            "https://goerli.etherscan.io",
+            "https://eth-goerli.blockscout.com"
         ]
     },
     "8": {
@@ -90,19 +99,24 @@
     },
     "10": {
         "chainId": "0xa",
-        "chainName": "Optimism",
+        "chainName": "OP Mainnet",
         "nativeCurrency": {
             "name": "Ether",
             "symbol": "ETH",
             "decimals": 18
         },
         "rpcUrls": [
-            "https://mainnet.optimism.io/"
+            "https://mainnet.optimism.io",
+            "https://optimism.publicnode.com",
+            "wss://optimism.publicnode.com",
+            "https://optimism.gateway.tenderly.co",
+            "wss://optimism.gateway.tenderly.co"
         ],
         "hostedRPC": "https://mainnet.optimism.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
         "blockExplorerUrls": [
-            "https://optimistic.etherscan.io"
+            "https://optimistic.etherscan.io",
+            "https://optimism.blockscout.com"
         ]
     },
     "40": {
@@ -124,18 +138,18 @@
     },
     "56": {
         "chainId": "0x38",
-        "chainName": "Binance Smart Chain Mainnet",
+        "chainName": "BNB Smart Chain Mainnet",
         "nativeCurrency": {
-            "name": "Binance Chain Native Token",
+            "name": "BNB Chain Native Token",
             "symbol": "BNB",
             "decimals": 18
         },
         "network_name": "bsc",
         "rpcUrls": [
-            "https://bsc-dataseed1.binance.org",
-            "https://bsc-dataseed2.binance.org",
-            "https://bsc-dataseed3.binance.org",
-            "https://bsc-dataseed4.binance.org",
+            "https://bsc-dataseed1.bnbchain.org",
+            "https://bsc-dataseed2.bnbchain.org",
+            "https://bsc-dataseed3.bnbchain.org",
+            "https://bsc-dataseed4.bnbchain.org",
             "https://bsc-dataseed1.defibit.io",
             "https://bsc-dataseed2.defibit.io",
             "https://bsc-dataseed3.defibit.io",
@@ -145,9 +159,10 @@
             "https://bsc-dataseed3.ninicoin.io",
             "https://bsc-dataseed4.ninicoin.io",
             "https://bsc.publicnode.com",
+            "wss://bsc.publicnode.com",
             "wss://bsc-ws-node.nariox.org"
         ],
-        "hostedRPC": "https://bsc-dataseed1.binance.org",
+        "hostedRPC": "https://bsc-dataseed1.bnbchain.org",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "blockExplorerUrls": [
             "https://bscscan.com",
@@ -193,23 +208,24 @@
     },
     "97": {
         "chainId": "0x61",
-        "chainName": "Binance Smart Chain Testnet",
+        "chainName": "BNB Smart Chain Testnet",
         "nativeCurrency": {
-            "name": "Binance Chain Native Token",
+            "name": "BNB Chain Native Token",
             "symbol": "tBNB",
             "decimals": 18
         },
         "network_name": "chapel",
         "rpcUrls": [
-            "https://data-seed-prebsc-1-s1.binance.org:8545",
-            "https://data-seed-prebsc-2-s1.binance.org:8545",
-            "https://data-seed-prebsc-1-s2.binance.org:8545",
-            "https://data-seed-prebsc-2-s2.binance.org:8545",
-            "https://data-seed-prebsc-1-s3.binance.org:8545",
-            "https://data-seed-prebsc-2-s3.binance.org:8545",
-            "https://bsc-testnet.publicnode.com"
+            "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
+            "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s2.bnbchain.org:8545",
+            "https://data-seed-prebsc-1-s3.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s3.bnbchain.org:8545",
+            "https://bsc-testnet.publicnode.com",
+            "wss://bsc-testnet.publicnode.com"
         ],
-        "hostedRPC": "https://data-seed-prebsc-1-s1.binance.org:8545",
+        "hostedRPC": "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
         "blockExplorerUrls": [
             "https://testnet.bscscan.com"
@@ -233,13 +249,16 @@
             "https://gnosis.api.onfinality.io/public",
             "https://gnosis.blockpi.network/v1/rpc/public",
             "https://web3endpoints.com/gnosischain-mainnet",
-            "wss://rpc.gnosischain.com/wss"
+            "https://gnosis.oat.farm",
+            "wss://rpc.gnosischain.com/wss",
+            "https://gnosis.publicnode.com",
+            "wss://gnosis.publicnode.com"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
         "blockExplorerUrls": [
             "https://gnosisscan.io",
-            "https://blockscout.com/xdai/mainnet"
+            "https://gnosis.blockscout.com"
         ]
     },
     "137": {
@@ -258,7 +277,10 @@
             "https://rpc-mainnet.maticvigil.com",
             "https://rpc-mainnet.matic.quiknode.pro",
             "https://matic-mainnet-full-rpc.bwarelabs.com",
-            "https://polygon-bor.publicnode.com"
+            "https://polygon-bor.publicnode.com",
+            "wss://polygon-bor.publicnode.com",
+            "https://polygon.gateway.tenderly.co",
+            "wss://polygon.gateway.tenderly.co"
         ],
         "hostedRPC": "https://polygon-rpc.com/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
@@ -340,6 +362,28 @@
             "https://zkevm.polygonscan.com/"
         ]
     },
+    "17000": {
+        "chainId": "0x4268",
+        "chainName": "Holesky",
+        "nativeCurrency": {
+            "name": "Testnet ETH",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "holesky",
+        "rpcUrls": [
+            "https://rpc.holesky.ethpandaops.io",
+            "https://ethereum-holesky.publicnode.com",
+            "wss://ethereum-holesky.publicnode.com"
+        ],
+        "hostedRPC": "https://ethereum-holesky.publicnode.com",
+        "blockExplorerUrls": [
+            "https://holesky.beaconcha.in",
+            "https://holesky.otterscan.io",
+            "https://holesky.etherscan.io",
+            "https://holesky.etherscan.io/"
+        ]
+    },
     "42161": {
         "chainId": "0xa4b1",
         "chainName": "Arbitrum One",
@@ -370,7 +414,8 @@
         "network_name": "avalanche",
         "rpcUrls": [
             "https://api.avax.network/ext/bc/C/rpc",
-            "https://avalanche-c-chain.publicnode.com"
+            "https://avalanche-c-chain.publicnode.com",
+            "wss://avalanche-c-chain.publicnode.com"
         ],
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
@@ -389,10 +434,11 @@
         },
         "network_name": "mumbai",
         "rpcUrls": [
-            "https://matic-mumbai.chainstacklabs.com",
             "https://rpc-mumbai.maticvigil.com",
-            "https://matic-testnet-archive-rpc.bwarelabs.com",
-            "https://polygon-mumbai-bor.publicnode.com"
+            "https://polygon-mumbai-bor.publicnode.com",
+            "wss://polygon-mumbai-bor.publicnode.com",
+            "https://polygon-mumbai.gateway.tenderly.co",
+            "wss://polygon-mumbai.gateway.tenderly.co"
         ],
         "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
@@ -428,11 +474,13 @@
         },
         "network_name": "arbitrum-goerli",
         "rpcUrls": [
-            "https://goerli-rollup.arbitrum.io/rpc/"
+            "https://goerli-rollup.arbitrum.io/rpc",
+            "https://arbitrum-goerli.publicnode.com",
+            "wss://arbitrum-goerli.publicnode.com"
         ],
-        "hostedRPC": "https://goerli-rollup.arbitrum.io/rpc/",
+        "hostedRPC": "https://goerli-rollup.arbitrum.io/rpc",
         "blockExplorerUrls": [
-            "https://goerli-rollup-explorer.arbitrum.io"
+            "https://goerli.arbiscan.io"
         ]
     },
     "534353": {
@@ -448,8 +496,7 @@
         ],
         "hostedRPC": "https://alpha-rpc.scroll.io/l2",
         "blockExplorerUrls": [
-            "https://blockscout.scroll.io",
-            "https://scrollscan.co"
+            "https://alpha-blockscout.scroll.io"
         ]
     },
     "1337702": {
@@ -481,7 +528,12 @@
         "rpcUrls": [
             "https://rpc.sepolia.org",
             "https://rpc2.sepolia.org",
-            "https://rpc-sepolia.rockx.com"
+            "https://rpc-sepolia.rockx.com",
+            "https://rpc.sepolia.ethpandaops.io",
+            "https://sepolia.gateway.tenderly.co",
+            "wss://sepolia.gateway.tenderly.co",
+            "https://ethereum-sepolia.publicnode.com",
+            "wss://ethereum-sepolia.publicnode.com"
         ],
         "hostedRPC": "https://rpc.sepolia.org",
         "blockExplorerUrls": [

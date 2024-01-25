@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity ^0.8.10;
+pragma solidity 0.8.20;
 
-import './IRealityETH.sol';
-import './IERC20.sol';
-import './IOwned.sol';
+/*
+This interface describes the Arbitrator contract originally deployed and managed by the reality.eth team. See below for the various parts it comprises.
+For the minimal interface that will be able to interact with the reality.eth UI as an arbitrator, use IArbitratorCore.
+*/
 
-interface IArbitrator {
-  function metadata (  ) external view returns ( string memory );
-  function arbitration_bounties ( bytes32 ) external view returns ( uint256 );
-  function realitio (  ) external view returns ( IRealityETH );
-  function realitycheck (  ) external view returns ( IRealityETH );
-  function setRealitio ( address addr ) external;
-  function setDisputeFee ( uint256 fee ) external;
-  function setCustomDisputeFee ( bytes32 question_id, uint256 fee ) external;
-  function getDisputeFee ( bytes32 question_id ) external view returns ( uint256 );
-  function setQuestionFee ( uint256 fee ) external;
-  function submitAnswerByArbitrator ( bytes32 question_id, bytes32 answer, address answerer ) external;
-  function requestArbitration ( bytes32 question_id, uint256 max_previous ) external payable returns ( bool );
-  function withdraw ( address addr ) external;
-  function withdrawERC20 ( IERC20 _token, address addr ) external;
-  function callWithdraw (  ) external;
-  function setMetaData ( string memory _metadata ) external;
-}
+import {IArbitratorCore} from "./IArbitratorCore.sol";
+
+// This provides management functionality to handle ownership, set fees etc.
+import {IArbitratorManagement} from "./IArbitratorManagement.sol";
+
+// This provides the old function realitycheck(), replaced by realitio().
+import {IArbitratorLegacy} from "./IArbitratorLegacy.sol";
+
+// This provides a function for querying the status of crowd-funded arbitration.
+import {IArbitratorCrowdFundable} from "./IArbitratorCrowdFundable.sol";
+
+// Errors (from v4)
+import {IArbitratorErrors} from "./IArbitratorErrors.sol";
+
+/* solhint-disable no-empty-blocks */
+interface IArbitrator is IArbitratorCore, IArbitratorLegacy, IArbitratorManagement, IArbitratorCrowdFundable, IArbitratorErrors {}

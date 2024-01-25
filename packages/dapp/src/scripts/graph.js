@@ -1172,10 +1172,7 @@ function isReopenCandidate(question) {
 
 // Assumes we already filled the data
 function isReopenable(question) {
-    // TODO: Check if it can be re-reopened
-    // console.log('reopened_by is ', question.reopened_by);
-    // console.log('last_reopened_by is ', question.last_reopened_by);
-    if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    if (question.reopened_by && question.reopened_by != '0x0000000000000000000000000000000000000000000000000000000000000000' && !question.is_reopened_by_answered_too_soon) {
         // console.log('already reopened');
         return false;
     }
@@ -1537,10 +1534,29 @@ function filledQuestion(item, fetched_ms) {
     question.version_number = RC_INSTANCE_VERSIONS[question.contract.toLowerCase()];
     if (item.reopens) {
         question.reopener_of_question_id = item.reopens.id;
+        // We check the reopening in both directions.
+        // If the parent question was reopened then this one was settled as answered-too-soon, it will be reopenable once the parent one is reopened again.
+        if (item.reopens.reopenedBy.id == item.id) {
+            // console.log('set is_reopener');
+            question.is_reopener = true;
+        } else {
+            // console.log('is_reopener mismatch', item);
+        }
     }
     if (item.reopenedBy) {
         question.reopened_by = item.reopenedBy.id;
+        // Set a flag if the reopened question was also set to "answered too soon"
+        // Under these circumstances you can do the reopen again
+        // The query should give us just the fields we need for the finalization check.
+        const reopener = {};
+        reopener.is_pending_arbitration = item.reopenedBy.isPendingArbitration;
+        reopener.finalization_ts = item.reopenedBy.answerFinalizedTimestamp ? ethers.BigNumber.from(item.reopenedBy.answerFinalizedTimestamp) : ethers.BigNumber.from(0);
+        if (item.reopenedBy.currentAnswer == rc_question.getAnsweredTooSoonValue() && isFinalized(reopener)) {
+            // console.log('setting is_reopened_by_answered_too_soon');
+            question.is_reopened_by_answered_too_soon = true;
+        }
     }
+
     //question.bounty = data.args['bounty'];
 
     try {
@@ -1548,6 +1564,7 @@ function filledQuestion(item, fetched_ms) {
         question.question_json = rc_question.populatedJSONForTemplate(item.template.questionText, item.data, true);
         question.has_invalid_option = rc_question.hasInvalidOption(question.question_json, question.version_number);
         question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(question.question_json, question.version_number);
+        question.has_initial_question_bounty_bug = (parseInt(question.version_number) < 3);
     } catch (e) {
         console.log('error parsing json', e);
         return null;
@@ -1741,6 +1758,12 @@ function populateSection(section_name, question, before_item) {
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('display', 'block');
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').css('z-index', 5);
         $('div[data-contract-question-id=' + contract_question_id + ']').find('.question-setting-warning').find('.balloon').html(balloon_html);
+    }
+
+    // Do an update to make sure the bounty is correct.
+    // NB We do this right at the end to make sure we don't hurt performance too badly as most questions won't need this.
+    if (question.has_initial_question_bounty_bug) {
+        updateBountyByRPC(question);
     }
 
 }
@@ -3962,7 +3985,7 @@ $(document).on('click', '.reopen-question-submit', async function(e) {
         const [rocon, ro_question_id] = parseContractQuestionID(old_question.reopened_by);
         nonce_food = ro_question_id;
     }
-    const nonce = ethers.utils.keccak256('0x' + nonce_food.replace('0x', ''));
+    const nonce = ethers.utils.keccak256('0x' + old_question.question_id.replace('0x', '') + nonce_food.replace('0x', ''));
     // const nonce = ethers.utils.keccak256(ethers.BigNumber.from(parseInt(Date.now())).toHexString());
 
     // TODO: The same question may be asked multiple times by the same account, so set the nonce as something other than zero
@@ -4606,10 +4629,16 @@ function questionFetchFields() {
             questionText
         },
         reopenedBy {
-          id
+          id,
+          currentAnswer,
+          isPendingArbitration,
+          answerFinalizedTimestamp
         },
         reopens {
-          id
+          id,
+          reopenedBy {
+            id
+          }
         },
         responses {
           id,
@@ -4776,6 +4805,11 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
         //console.log('got q data q');
         let question = filledQuestion(q, fetched_ms);
 
+        // The graph isn't reliable the bounty for version 2.1 and below because we didn't have the log event.
+        // Do an extra RPC fetch.
+        if (question.has_initial_question_bounty_bug) {
+            question = await updateBountyByRPC(question);
+        }
         // TODO: Should we run handleQuestion too?
         // handleQuestion(q)
         // console.log('filled individual qestion', question);
@@ -4783,6 +4817,18 @@ async function ensureQuestionDetailFetched(ctr, question_id, max_cache_ms) {
         // const result = await RCInstance(q.contract).queryFilter(question_posted, parseInt(q.createdBlock), parseInt(q.createdBlock));
         return question;
     }
+}
+
+async function updateBountyByRPC(question) {
+    try {
+        const rpc_result = await RCInstance(question.contract).functions.questions(question.question_id);
+        question.bounty = rpc_result[Qi_bounty];
+        $('#questions-container').find("[data-contract-question-id='" + contractQuestionID(question)+ "']").find('.question-bounty').text(decimalizedBigNumberToHuman(question.bounty));
+    } catch (e) {
+        console.log(e);
+        console.log('fetching the question bounty via RPC failed, initial reward may be missing.');
+    }
+    return question;
 }
 
 async function fetchChangedQuestionsSince(last_ts, search_filters) {

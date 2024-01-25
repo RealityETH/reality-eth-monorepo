@@ -16,11 +16,6 @@ Since arbitration is expensive, it will usually only be requested after parties 
 Arbitration Models
 ------------------
 
-Trusted third-parties
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The Reality.eth team have been providing a centralized arbitration service since 2013 beginning with the Reality Keys service. Use of this service is currently discouraged as decentralized alternatives are available.
-
 Kleros
 ^^^^^^
 
@@ -31,15 +26,12 @@ Stakeholder voting
 
 Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote. Alternatively, it is possible to deploy a reality.eth contract using the token in question for bonds, then create questions without a registered arbitrator. That way the side able to martial the greatest amount of the token will prevail.
 
-
 Subjectivocracy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We are developing a system along the lines described in `Get the facts, hard-fork all the things`_. The `current design`_ envisages using a forkable Layer 2 ledger.
+We are developing `a forkable Layer 2 ledger`_ where issues can be decided by the subjective choice of users to operate as an arbitration backstop.
 
-.. _`Get the facts, hard-fork all the things`: https://decentralize.today/get-the-facts-hard-fork-all-the-things-3ea2233da0fd
-.. _`current design`: https://github.com/RealityETH/subjectivocracy
-
+.. _`a forkable Layer 2 ledger`: https://backstop.technology/
 
 
 
