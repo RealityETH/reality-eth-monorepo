@@ -654,12 +654,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
 
-            // If we know who to pay we can go ahead and pay them out, only keeping back last_bond
-            // (We always know who to pay unless all we saw were unrevealed commits)
-            if (payee != NULL_ADDRESS) {
-                _payPayee(question_id, payee, queued_funds);
-                queued_funds = 0;
-            }
+            // Pay out the latest payee, only keeping back last_bond which the next may have a claim on
+            _payPayee(question_id, payee, queued_funds);
+            queued_funds = 0;
 
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
