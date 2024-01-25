@@ -7,5 +7,4 @@ import {IRealityETHCommitReveal_ERC20} from "./IRealityETHCommitReveal_ERC20.sol
 
 /* solhint-disable func-name-mixedcase */
 
-interface IRealityETH_ERC20 is IRealityETHCore_ERC20, IRealityETHCommitReveal_ERC20 {
-}
+interface IRealityETH_ERC20 is IRealityETHCore_ERC20, IRealityETHCommitReveal_ERC20 {}

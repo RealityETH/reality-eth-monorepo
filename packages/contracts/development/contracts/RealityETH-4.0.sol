@@ -375,14 +375,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     /// @param last_history_hash The history hash before the final one
     /// @param last_answer The last answer given
     /// @param last_answerer The address that supplied the last answer
-    function assignWinnerAndSubmitAnswerByArbitrator(
-        bytes32 question_id,
-        bytes32 answer,
-        address payee_if_wrong,
-        bytes32 last_history_hash,
-        bytes32 last_answer,
-        address last_answerer
-    ) external {
+    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer, address last_answerer) external {
         _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer, questions[question_id].bond, last_answerer);
 
         address payee;
@@ -596,15 +589,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         }
     }
 
-    function _processHistoryItem(
-        bytes32 question_id,
-        bytes32 best_answer,
-        uint256 queued_funds,
-        address payee,
-        address addr,
-        uint256 bond,
-        bytes32 answer
-    ) internal returns (uint256, address) {
+    function _processHistoryItem(bytes32 question_id, bytes32 best_answer, uint256 queued_funds, address payee, address addr, uint256 bond, bytes32 answer) internal returns (uint256, address) {
         if (answer == best_answer) {
             if (payee == NULL_ADDRESS) {
                 // The entry is for the first payee we come to, ie the winner.

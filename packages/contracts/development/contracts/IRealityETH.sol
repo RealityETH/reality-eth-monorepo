@@ -7,5 +7,4 @@ import {IRealityETHCommitReveal} from "./IRealityETHCommitReveal.sol";
 
 /* solhint-disable func-name-mixedcase */
 
-interface IRealityETH is IRealityETHCore, IRealityETHCommitReveal {
-}
+interface IRealityETH is IRealityETHCore, IRealityETHCommitReveal {}
