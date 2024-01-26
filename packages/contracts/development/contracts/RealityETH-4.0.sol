@@ -3,10 +3,11 @@
 pragma solidity ^0.8.20;
 
 import {IRealityETHCore} from "./IRealityETHCore.sol";
+import {IRealityETHHistoryVerification} from "./IRealityETHHistoryVerification.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
 
 // solhint-disable-next-line contract-name-camelcase
-contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
+contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore, IRealityETHHistoryVerification {
     address private constant NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
@@ -662,6 +663,40 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             claimWinnings(qid, hh, ad, bo, an);
         }
         withdraw();
+    }
+
+    /// @notice Returns true if the supplied history is valid
+    /// @dev Caller must provide the answer history, in reverse order back to the item they want to check
+    /// @dev Not necessarily the entire history
+    /// @dev Useful for freezing an action once a bond is paid for a particular answer, without waiting for resolution
+    /// @dev Cannot be used after the question is finalized
+    /// @param question_id The ID of the question
+    /// @param history_hashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
+    /// @param addrs Last-to-first, the address of each answerer
+    /// @param bonds Last-to-first, the bond supplied with each answer
+    /// @param answers Last-to-first, each answer supplied
+    function isHistoryOfUnfinalizedQuestionValid(
+        bytes32 question_id,
+        bytes32[] memory history_hashes,
+        address[] memory addrs,
+        uint256[] memory bonds,
+        bytes32[] memory answers
+    ) external view stateOpenOrPendingArbitration(question_id) returns (bool) {
+        bytes32 last_history_hash = questions[question_id].history_hash;
+
+        uint256 hist_len = history_hashes.length;
+        // Check for uneven length entries to make sure we validate all the inputs
+        if (addrs.length != hist_len || bonds.length != hist_len || answers.length != hist_len) {
+            return false;
+        }
+
+        for (uint256 i = 0; i < hist_len; i++) {
+            if (!_isHistoryInputValidForHash(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i])) {
+                return false;
+            }
+            last_history_hash = history_hashes[i];
+        }
+        return true;
     }
 
     /// @notice Returns the questions's content hash, identifying the question content

@@ -45,8 +45,10 @@ else:
 
 if VERNUM >= 4.0:
     IS_COMMIT_REVEAL_SUPPORTED = False
+    IS_PROVE_HISTORY_SUPPORTED = True
 else:
     IS_COMMIT_REVEAL_SUPPORTED = True
+    IS_PROVE_HISTORY_SUPPORTED = False
 
 print("IS_COMMIT_REVEAL_SUPPORTED is "+str(IS_COMMIT_REVEAL_SUPPORTED))
 
@@ -2624,13 +2626,74 @@ class TestRealitio(TestCase):
         
         self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
 
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_is_history_of_unfinalized_question_valid(self):
 
- 
+        if not IS_PROVE_HISTORY_SUPPORTED:
+            print("Skipping test_is_history_of_unfinalized_question_valid, not supported by this version")
+            return
 
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
 
+        if ERC20:
+            self._issueTokens(k3, 100000, 50000)
+            self._issueTokens(k4, 100000, 50000)
 
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 20, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 20, 40, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 40, 80, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004, 80, 160, k3)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003, 160, 320, k4)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 320, 640, k4)
 
+        hashes = st['hash']
+        addrs = st['addr']
+        bonds = st['bond']
+        answers = st['answer']
 
+        self.assertTrue(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes, addrs, bonds, answers).call())
+
+        bad_hashes = hashes.copy()
+        bad_hashes[2] = bad_hashes[1]
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, bad_hashes, addrs, bonds, answers).call())
+
+        bad_addrs = addrs.copy()
+        bad_addrs[2] = k2
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes, bad_addrs, bonds, answers).call())
+
+        bad_bonds = bonds.copy()
+        bad_bonds[1] = 987
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes, addrs, bad_bonds, answers).call())
+
+        bad_answers = answers.copy()
+        bad_answers[1] = to_answer_for_contract(987)
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes, addrs, bonds, bad_answers).call())
+
+        # Supplying just the end of the list (lowest-bond answers) will fail
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[3:], addrs[3:], bonds[3:], answers[3:]).call())
+
+        # Supplying just the start of the list (highest-bond answers) will work
+        self.assertTrue(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:3], bonds[:3], answers[:3]).call())
+
+        # Any unevenness in the length of parameters passed will fail
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:4], addrs[:3], bonds[:3], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:4], bonds[:3], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:3], bonds[:4], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:3], bonds[:3], answers[:4]).call())
+
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:2], addrs[:3], bonds[:3], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:2], bonds[:3], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:3], bonds[:2], answers[:3]).call())
+        self.assertFalse(self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, hashes[:3], addrs[:3], bonds[:3], answers[:2]).call())
+
+        self._advance_clock(33)
+
+        # Once we finalize this will revert
+        with self.assertRaises(TransactionFailed):
+            self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
 
 if __name__ == '__main__':
     main()
