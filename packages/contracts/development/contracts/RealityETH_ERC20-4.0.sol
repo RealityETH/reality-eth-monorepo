@@ -459,8 +459,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer, address last_answerer) external {
         _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer, questions[question_id].bond, last_answerer);
 
-        address payee;
-        payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
+        address payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
         submitAnswerByArbitrator(question_id, answer, payee);
     }
 
