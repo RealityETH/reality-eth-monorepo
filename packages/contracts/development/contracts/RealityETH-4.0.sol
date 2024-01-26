@@ -376,7 +376,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     /// @param last_answer The last answer given
     /// @param last_answerer The address that supplied the last answer
     function assignWinnerAndSubmitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address payee_if_wrong, bytes32 last_history_hash, bytes32 last_answer, address last_answerer) external {
-        _verifyHistoryInputOrRevert(questions[question_id].history_hash, last_history_hash, last_answer, questions[question_id].bond, last_answerer);
+        if (!_isHistoryInputValidForHash(questions[question_id].history_hash, last_history_hash, last_answer, questions[question_id].bond, last_answerer)) {
+            revert HistoryInputProvidedDidNotMatchTheExpectedHash();
+        }
 
         address payee = (questions[question_id].best_answer == answer) ? last_answerer : payee_if_wrong;
         submitAnswerByArbitrator(question_id, answer, payee);
@@ -541,7 +543,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
         uint256 i;
         for (i = 0; i < history_hashes.length; i++) {
-            _verifyHistoryInputOrRevert(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i]);
+            if (!_isHistoryInputValidForHash(last_history_hash, history_hashes[i], answers[i], bonds[i], addrs[i])) {
+                revert HistoryInputProvidedDidNotMatchTheExpectedHash();
+            }
 
             queued_funds = queued_funds + last_bond;
             (queued_funds, payee) = _processHistoryItem(question_id, best_answer, queued_funds, payee, addrs[i], bonds[i], answers[i]);
@@ -581,10 +585,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         emit LogClaim(question_id, payee, value);
     }
 
-    function _verifyHistoryInputOrRevert(bytes32 last_history_hash, bytes32 history_hash, bytes32 answer, uint256 bond, address addr) internal pure {
-        if (last_history_hash != keccak256(abi.encodePacked(history_hash, answer, bond, addr, false))) {
-            revert HistoryInputProvidedDidNotMatchTheExpectedHash();
-        }
+    function _isHistoryInputValidForHash(bytes32 last_history_hash, bytes32 history_hash, bytes32 answer, uint256 bond, address addr) internal pure returns (bool) {
+        return (last_history_hash == keccak256(abi.encodePacked(history_hash, answer, bond, addr, false)));
     }
 
     function _processHistoryItem(bytes32 question_id, bytes32 best_answer, uint256 queued_funds, address payee, address addr, uint256 bond, bytes32 answer) internal returns (uint256, address) {
