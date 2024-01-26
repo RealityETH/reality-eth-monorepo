@@ -661,10 +661,6 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong(self):
 
-        if not IS_COMMIT_REVEAL_SUPPORTED:
-            print("Skipping test_bond_claim_after_reveal_fail, contract does not support commit-reveal")
-            return
-
         if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong, not a feature of this contract")
             return
