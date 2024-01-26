@@ -564,7 +564,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
             // Pay out the latest payee, only keeping back last_bond which the next may have a claim on
             _payPayee(question_id, payee, queued_funds);
-            queued_funds = 0;
 
             question_claims[question_id].payee = payee;
             question_claims[question_id].last_bond = last_bond;
