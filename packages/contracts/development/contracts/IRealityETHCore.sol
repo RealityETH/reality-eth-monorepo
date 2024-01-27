@@ -77,7 +77,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) external;
     function askQuestion(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
     function askQuestionWithMinBond(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) external payable returns (bytes32);
-    function createTemplateAndAskQuestion(string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
     function fundAnswerBounty(bytes32 question_id) external payable;
     function reopenQuestion(
         uint256 template_id,
