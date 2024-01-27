@@ -85,7 +85,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     ) external;
     function claimWinnings(bytes32 question_id, bytes32[] calldata history_hashes, address[] calldata addrs, uint256[] calldata bonds, bytes32[] calldata answers) external;
     function createTemplate(string calldata content) external returns (uint256);
-    function createTemplateAndAskQuestion(string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external returns (bytes32);
     function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external;
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external;
     function setQuestionFee(uint256 fee) external;
