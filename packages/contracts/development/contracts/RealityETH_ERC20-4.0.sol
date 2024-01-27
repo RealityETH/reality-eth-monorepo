@@ -38,6 +38,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         _;
     }
 
+    modifier notFrozen() {
+        _;
+    }
+
     modifier stateAny() {
         _;
     }
@@ -117,7 +121,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @notice Function for arbitrator to set an optional per-question fee.
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) external stateAny {
+    function setQuestionFee(uint256 fee) external notFrozen stateAny {
         arbitrator_question_fees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
     }
@@ -127,7 +131,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content) public stateAny returns (uint256) {
+    function createTemplate(string memory content) public notFrozen stateAny returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
         template_hashes[id] = keccak256(abi.encodePacked(content));
@@ -183,6 +187,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         uint256 nonce
     )
         public
+        notFrozen
         returns (
             // stateNotCreated is enforced by the internal _askQuestion
             bytes32
@@ -220,6 +225,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         uint256 tokens
     )
         public
+        notFrozen
         returns (
             // stateNotCreated is enforced by the internal _askQuestion
             bytes32
@@ -261,6 +267,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         uint256 tokens
     )
         public
+        notFrozen
         returns (
             // stateNotCreated is enforced by the internal _askQuestion
             bytes32
@@ -342,7 +349,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
     /// @param tokens The number of tokens to fund
-    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external stateOpen(question_id) {
+    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external notFrozen stateOpen(question_id) {
         _deductTokensOrRevert(tokens);
         questions[question_id].bounty = questions[question_id].bounty + tokens;
         emit LogFundAnswerBounty(question_id, tokens, questions[question_id].bounty, msg.sender);
@@ -359,7 +366,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         bytes32 answer,
         uint256 max_previous,
         uint256 tokens
-    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external notFrozen stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         _deductTokensOrRevert(tokens);
         _addAnswerToHistory(question_id, answer, msg.sender, tokens);
         _updateCurrentAnswer(question_id, answer);
@@ -378,7 +385,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         uint256 max_previous,
         address answerer,
         uint256 tokens
-    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external notFrozen stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         _deductTokensOrRevert(tokens);
         if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, tokens);
@@ -417,7 +424,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         bytes32 question_id,
         address requester,
         uint256 max_previous
-    ) external onlyArbitrator(question_id) stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external onlyArbitrator(question_id) notFrozen stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
         if (questions[question_id].finalize_ts <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
@@ -426,7 +433,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @notice Cancel a previously-requested arbitration and extend the timeout
     /// @dev Useful when doing arbitration across chains that can't be requested atomically
     /// @param question_id The ID of the question
-    function cancelArbitration(bytes32 question_id) external onlyArbitrator(question_id) statePendingArbitration(question_id) {
+    function cancelArbitration(bytes32 question_id) external onlyArbitrator(question_id) notFrozen statePendingArbitration(question_id) {
         questions[question_id].is_pending_arbitration = false;
         questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
         emit LogCancelArbitration(question_id);
@@ -440,7 +447,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param answerer The account credited with this answer for the purpose of bond claims
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) statePendingArbitration(question_id) {
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) notFrozen statePendingArbitration(question_id) {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
         emit LogFinalize(question_id, answer);
 
@@ -533,6 +540,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         uint256 tokens
     )
         public
+        notFrozen
         returns (
             // stateNotCreated is enforced by the internal _askQuestion
             bytes32
@@ -612,7 +620,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
     /// @param addrs Last-to-first, the address of each answerer
     /// @param bonds Last-to-first, the bond supplied with each answer
     /// @param answers Last-to-first, each answer supplied
-    function claimWinnings(bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(question_id) {
+    function claimWinnings(bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public notFrozen stateFinalized(question_id) {
         if (history_hashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
@@ -725,6 +733,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20, IR
         bytes32[] memory answers
     )
         public
+        notFrozen
         stateAny // The finalization checks are done in the claimWinnings function
     {
         uint256 qi;
