@@ -327,7 +327,7 @@
             "symbol": "ETH",
             "decimals": 18
         },
-        "network_name": "zksync-era-sepolia",
+        "network_name": "zksync-sepolia",
         "rpcUrls": [
             "https://sepolia.era.zksync.dev"
         ],

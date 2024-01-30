@@ -73,7 +73,7 @@
         "network_name": "zkSync2-testnet"
     },
     "300": {
-        "network_name": "zksync-era-sepolia"
+        "network_name": "zksync-sepolia"
     },
     "324": {
         "explorerURL": "https://explorer.zksync.io/",
