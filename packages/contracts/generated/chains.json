@@ -15,13 +15,20 @@
             "wss://ethereum.publicnode.com",
             "https://mainnet.gateway.tenderly.co",
             "wss://mainnet.gateway.tenderly.co",
-            "https://rpc.blocknative.com/boost"
+            "https://rpc.blocknative.com/boost",
+            "https://rpc.flashbots.net",
+            "https://rpc.flashbots.net/fast",
+            "https://rpc.mevblocker.io",
+            "https://rpc.mevblocker.io/fast",
+            "https://rpc.mevblocker.io/noreverts",
+            "https://rpc.mevblocker.io/fullprivacy"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
         "blockExplorerUrls": [
             "https://etherscan.io",
-            "https://eth.blockscout.com"
+            "https://eth.blockscout.com",
+            "https://ethereum.dex.guru"
         ]
     },
     "3": {
@@ -116,7 +123,8 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
         "blockExplorerUrls": [
             "https://optimistic.etherscan.io",
-            "https://optimism.blockscout.com"
+            "https://optimism.blockscout.com",
+            "https://optimism.dex.guru"
         ]
     },
     "40": {
@@ -166,6 +174,7 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
         "blockExplorerUrls": [
             "https://bscscan.com",
+            "https://bnb.dex.guru",
             "https://www.bscscan.com"
         ]
     },
@@ -258,7 +267,8 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
         "blockExplorerUrls": [
             "https://gnosisscan.io",
-            "https://gnosis.blockscout.com"
+            "https://gnosis.blockscout.com",
+            "https://gnosis.dex.guru"
         ]
     },
     "137": {
@@ -286,6 +296,7 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "blockExplorerUrls": [
             "https://polygonscan.com",
+            "https://polygon.dex.guru",
             "https://polygonscan.com/"
         ]
     },
@@ -310,7 +321,7 @@
     },
     "324": {
         "chainId": "0x144",
-        "chainName": "zkSync Era Mainnet",
+        "chainName": "zkSync Mainnet",
         "nativeCurrency": {
             "name": "Ether",
             "symbol": "ETH",
