@@ -72,6 +72,9 @@
         "explorerURL": "https://zksync2-testnet.zkscan.io",
         "network_name": "zkSync2-testnet"
     },
+    "300": {
+        "network_name": "zksync-era-sepolia"
+    },
     "324": {
         "explorerURL": "https://explorer.zksync.io/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",

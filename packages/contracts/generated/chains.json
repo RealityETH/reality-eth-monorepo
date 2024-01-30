@@ -319,6 +319,23 @@
             "https://zksync2-testnet.zkscan.io"
         ]
     },
+    "300": {
+        "chainId": "0x12c",
+        "chainName": "zkSync Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "zksync-era-sepolia",
+        "rpcUrls": [
+            "https://sepolia.era.zksync.dev"
+        ],
+        "hostedRPC": "https://sepolia.era.zksync.dev",
+        "blockExplorerUrls": [
+            "https://sepolia.explorer.zksync.io"
+        ]
+    },
     "324": {
         "chainId": "0x144",
         "chainName": "zkSync Mainnet",

@@ -2,11 +2,12 @@
     "decimals": 18,
     "small_number": 10000000000000000,
     "native_chains": {
-        "1": true,  
+        "1": true,
         "4": true,
         "5": true,
         "42": true,
         "280": true,
+        "300": true,
         "324": true,
         "1101": true,
         "534353": true,
