@@ -43,6 +43,13 @@ if VERNUM >= 2.1:
 else:
     CLAIM_FEE = 0
 
+if VERNUM >= 4.0:
+    IS_COMMIT_REVEAL_SUPPORTED = False
+else:
+    IS_COMMIT_REVEAL_SUPPORTED = True
+
+print("IS_COMMIT_REVEAL_SUPPORTED is "+str(IS_COMMIT_REVEAL_SUPPORTED))
+
 DEPLOY_GAS = 8000000
 
 QINDEX_CONTENT_HASH = 0
@@ -208,7 +215,7 @@ class TestRealitio(TestCase):
             bcode = f.read().strip("\n")
             f.close()
 
-        for solcv in ['solc-0.4.25', 'solc-0.8.6']:
+        for solcv in ['solc-0.4.25', 'solc-0.8.6', 'solc-0.8.20']:
             abi_file = '../../abi/'+solcv+'/' + con_name + '.abi.json'
             if os.path.exists(abi_file):
                 with open(abi_file) as f:
@@ -559,6 +566,10 @@ class TestRealitio(TestCase):
             print("Skipping test_arbitrator_answering_assigning_answerer_right_commit, not a feature of this contract")
             return
 
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_arbitrator_answering_assigning_answerer_right_commit, contract does not support commit-reveal")
+            return
+
         k2 = self.web3.eth.accounts[2]
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
@@ -599,6 +610,10 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_wrong_commit(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_arbitrator_answering_assigning_answerer_wrong_commit, contract does not support commit-reveal")
+            return
 
         if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_wrong_commit, not a feature of this contract")
@@ -690,6 +705,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_assigning_answerer_unrevealed_commit(self):
 
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_arbitrator_answering_assigning_answerer_unrevealed_commit, contract does not support commit-reveal")
+            return
+
         if VERNUM < 2.1:
             print("Skipping test_arbitrator_answering_assigning_answerer_unrevealed_commit, not a feature of this contract")
             return
@@ -766,6 +785,10 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_arbitrator_answering_single_unrevealed_commit(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_arbitrator_answering_single_unrevealed_commit, contract does not support commit-reveal")
+            return
 
         if VERNUM < 3.0:
             print("Skipping test_arbitrator_answering_assigning_answerer_single_unrevealed_commit, not a feature of this contract")
@@ -871,6 +894,9 @@ class TestRealitio(TestCase):
         self.assertFalse(self.rc0.functions.questions(self.question_id).call()[QINDEX_IS_PENDING_ARBITRATION])
 
     def submitAnswerReturnUpdatedState(self, st, qid, ans, max_last, bond, sdr, is_commitment = False, is_arbitrator = False, skip_sender = False, tx_acct = None):
+
+        if is_commitment and not IS_COMMIT_REVEAL_SUPPORTED:
+            raise Exception("Test tried to set is_commitment to true but the contract version does not support commitments")
 
         if tx_acct is None:
             tx_acct = sdr
@@ -1119,6 +1145,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_after_reveal_fail(self):
 
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_bond_claim_after_reveal_fail, contract does not support commit-reveal")
+            return
+
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
@@ -1133,7 +1163,7 @@ class TestRealitio(TestCase):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001,  1,  2, k5, False)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003,  2,  4, k4, False) 
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003,  2,  4, k4, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  4,  8, k6, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004,  8, 16, k5, True)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 16, 32, k4, True)
@@ -1146,6 +1176,42 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_split_over_transactions_payee_later(self):
 
+        k2 = self.web3.eth.accounts[2]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        k5 = self.web3.eth.accounts[5]
+        k6 = self.web3.eth.accounts[6]
+
+        if ERC20:
+            self._issueTokens(k2, 1000000, 1000000)
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+            self._issueTokens(k5, 1000000, 1000000)
+            self._issueTokens(k6, 1000000, 1000000)
+
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, False)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001,  1,  2, k5, False)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003,  2,  4, k4, False)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  4,  8, k6, False)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004,  8, 16, k5, False)
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 16, 32, k2, False)
+
+        self._advance_clock(33)
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'][:2], st['addr'][:2], st['bond'][:2], st['answer'][:2]).transact()
+        self.rc0.functions.claimWinnings(self.question_id, st['hash'][2:], st['addr'][2:], st['bond'][2:], st['answer'][2:]).transact()
+
+        self.assertEqual(self.rc0.functions.balanceOf(k2).call(),32+16-8+1000)
+        self.assertEqual(self.rc0.functions.balanceOf(k6).call(),8+8+4+2-1)
+        self.assertEqual(self.rc0.functions.balanceOf(k3).call(),1+1)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_bond_claim_split_over_transactions_payee_later_unrevealed_commit(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_bond_claim_split_over_transactions_payee_later_unrevealed_commit, contract does not support commit-reveal")
+            return
+
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
         k5 = self.web3.eth.accounts[5]
@@ -1160,7 +1226,7 @@ class TestRealitio(TestCase):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001,  1,  2, k5, False)
-        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003,  2,  4, k4, False) 
+        st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1003,  2,  4, k4, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  4,  8, k6, False)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1004,  8, 16, k5, True)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 16, 32, k4, True)
@@ -1173,11 +1239,20 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_reveal_calculation(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_reveal_calculation, contract does not support commit-reveal")
+            return
+
         h = calculate_answer_hash(to_answer_for_contract(1003), 94989)
         self.assertEqual(h, '0x23e796d2bf4f5f890b1242934a636f4802aadd480b6f83c754d2bd5920f78845')
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_normal(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_commit_normal, contract does not support commit-reveal")
+            return
 
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
@@ -1235,6 +1310,11 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_skip_sender(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_commit_skip_sender, contract does not support commit-reveal")
+            return
+
         st = None
 
         k3 = self.web3.eth.accounts[3]
@@ -1268,6 +1348,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_no_answer_no_commit(self):
 
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_no_answer_no_commit, contract does not support commit-reveal")
+            return
+
         k3 = self.web3.eth.accounts[3]
         if ERC20:
             self._issueTokens(k3, 1000000, 1000000)
@@ -1292,6 +1376,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_expired(self):
 
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_commit_expired, contract does not support commit-reveal")
+            return
+
         k3 = self.web3.eth.accounts[3]
         if ERC20:
             self._issueTokens(k3, 1000000, 1000000)
@@ -1309,6 +1397,10 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_answer_commit_with_arbitration_pending(self):
     
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_answer_commit_with_arbitration_pending, contract does not support commit-reveal")
+            return
+
         k3 = self.web3.eth.accounts[3]
         if ERC20:
             self._issueTokens(k3, 1000, 1000)
@@ -2493,6 +2585,10 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_too_soon_bonds_under_unrevealed_commit(self):
+
+        if not IS_COMMIT_REVEAL_SUPPORTED:
+            print("Skipping test_too_soon_bonds_under_unrevealed_commit, contract does not support commit-reveal")
+            return
 
         if VERNUM < 3.0:
             print("Skipping test_reopen_question, not a feature of this contract")
