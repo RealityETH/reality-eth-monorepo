@@ -28,7 +28,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     );
     event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text);
     event LogNotifyOfArbitrationRequest(bytes32 indexed question_id, address indexed user);
-    event LogReopenQuestion(bytes32 indexed question_id, bytes32 indexed reopened_question_id);
     event LogSetQuestionFee(address arbitrator, uint256 amount);
 
     struct Question {
@@ -79,16 +78,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function askQuestionWithMinBond(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) external payable returns (bytes32);
     function createTemplateAndAskQuestion(string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
     function fundAnswerBounty(bytes32 question_id) external payable;
-    function reopenQuestion(
-        uint256 template_id,
-        string calldata question,
-        address arbitrator,
-        uint32 timeout,
-        uint32 opening_ts,
-        uint256 nonce,
-        uint256 min_bond,
-        bytes32 reopens_question_id
-    ) external payable returns (bytes32);
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
     function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer) external payable;
     function arbitrator_question_fees(address) external view returns (uint256);
@@ -106,7 +95,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function getTimeout(bytes32 question_id) external view returns (uint32);
     function isFinalized(bytes32 question_id) external view returns (bool);
     function isPendingArbitration(bytes32 question_id) external view returns (bool);
-    function isSettledTooSoon(bytes32 question_id) external view returns (bool);
     function question_claims(bytes32) external view returns (address payee, uint256 last_bond, uint256 queued_funds);
     function questions(
         bytes32
@@ -126,10 +114,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
             uint256 bond,
             uint256 min_bond
         );
-    function reopened_questions(bytes32) external view returns (bytes32);
-    function reopener_questions(bytes32) external view returns (bool);
     function resultFor(bytes32 question_id) external view returns (bytes32);
-    function resultForOnceSettled(bytes32 question_id) external view returns (bytes32);
     function template_hashes(uint256) external view returns (bytes32);
     function templates(uint256) external view returns (uint256);
 }

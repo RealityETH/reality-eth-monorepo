@@ -30,7 +30,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     );
     event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text);
     event LogNotifyOfArbitrationRequest(bytes32 indexed question_id, address indexed user);
-    event LogReopenQuestion(bytes32 indexed question_id, bytes32 indexed reopened_question_id);
     event LogSetQuestionFee(address arbitrator, uint256 amount);
 
     struct Question {
@@ -89,17 +88,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function createTemplateAndAskQuestion(string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external returns (bytes32);
     function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external;
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external;
-    function reopenQuestionERC20(
-        uint256 template_id,
-        string calldata question,
-        address arbitrator,
-        uint32 timeout,
-        uint32 opening_ts,
-        uint256 nonce,
-        uint256 min_bond,
-        bytes32 reopens_question_id,
-        uint256 tokens
-    ) external returns (bytes32);
     function setQuestionFee(uint256 fee) external;
     function setToken(IERC20 _token) external;
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) external;
@@ -120,7 +108,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function getTimeout(bytes32 question_id) external view returns (uint32);
     function isFinalized(bytes32 question_id) external view returns (bool);
     function isPendingArbitration(bytes32 question_id) external view returns (bool);
-    function isSettledTooSoon(bytes32 question_id) external view returns (bool);
     function question_claims(bytes32) external view returns (address payee, uint256 last_bond, uint256 queued_funds);
     function questions(
         bytes32
@@ -140,10 +127,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
             uint256 bond,
             uint256 min_bond
         );
-    function reopened_questions(bytes32) external view returns (bytes32);
-    function reopener_questions(bytes32) external view returns (bool);
     function resultFor(bytes32 question_id) external view returns (bytes32);
-    function resultForOnceSettled(bytes32 question_id) external view returns (bytes32);
     function template_hashes(uint256) external view returns (bytes32);
     function templates(uint256) external view returns (uint256);
 }
