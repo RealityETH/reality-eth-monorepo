@@ -5,6 +5,14 @@ pragma solidity ^0.8.20;
 import {IRealityETHReopenable} from "./IRealityETHReopenable.sol";
 import {RealityETH_v4_0} from "./RealityETH-4.0.sol";
 
+/*
+* This version of reality.eth provides the ability to answer a question as "answered too soon", allowing it to be reopened.
+* This is useful when you want to ask a question but you don't know when the answer will be available.
+* You can set the settlement time at the earliest date it may be available, then if someone answers it too soon, it can be answered at such then later reopened.
+* NB In v3 of reality.eth this feature was built in and there was no way to turn it off. 
+* From v4, we ship two versions: RealityETH without it, and RealityETHReopenable with it.
+*/
+
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETHReopenable_v4_0 is IRealityETHReopenable, RealityETH_v4_0 {
     // Special value representing a question that was answered too soon.
