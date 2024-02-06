@@ -43,6 +43,17 @@ if VERNUM >= 2.1:
 else:
     CLAIM_FEE = 0
 
+if VERNUM == 3.0:
+    IS_ANSWERED_TOO_SOON_SUPPORTED = True
+elif VERNUM >= 4.0:
+    if "Reopenable" in REALITYETH_CONTRACT:
+        IS_ANSWERED_TOO_SOON_SUPPORTED = True
+    else:
+        IS_ANSWERED_TOO_SOON_SUPPORTED = False
+else:
+    # TODO: Add special version
+    IS_ANSWERED_TOO_SOON_SUPPORTED = False
+
 if VERNUM >= 4.0:
     IS_COMMIT_REVEAL_SUPPORTED = False
     IS_PROVE_HISTORY_SUPPORTED = True
@@ -51,6 +62,8 @@ else:
     IS_PROVE_HISTORY_SUPPORTED = False
 
 print("IS_COMMIT_REVEAL_SUPPORTED is "+str(IS_COMMIT_REVEAL_SUPPORTED))
+print("IS_ANSWERED_TOO_SOON_SUPPORTED is "+str(IS_ANSWERED_TOO_SOON_SUPPORTED))
+print("CLAIM_FEE is "+str(CLAIM_FEE))
 
 DEPLOY_GAS = 8000000
 
@@ -2408,7 +2421,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_reopen_question(self):
 
-        if VERNUM < 3.0:
+        if not IS_ANSWERED_TOO_SOON_SUPPORTED:
             print("Skipping test_reopen_question, not a feature of this contract")
             return
 
@@ -2554,7 +2567,7 @@ class TestRealitio(TestCase):
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_too_soon_bounty(self):
 
-        if VERNUM < 3.0:
+        if not IS_ANSWERED_TOO_SOON_SUPPORTED:
             print("Skipping test_reopen_question, not a feature of this contract")
             return
 
@@ -2592,8 +2605,8 @@ class TestRealitio(TestCase):
             print("Skipping test_too_soon_bonds_under_unrevealed_commit, contract does not support commit-reveal")
             return
 
-        if VERNUM < 3.0:
-            print("Skipping test_reopen_question, not a feature of this contract")
+        if not IS_ANSWERED_TOO_SOON_SUPPORTED:
+            print("Skipping test_too_soon_bonds_under_unrevealed_commit , not a feature of this contract")
             return
 
         k0 = self.web3.eth.accounts[0]
