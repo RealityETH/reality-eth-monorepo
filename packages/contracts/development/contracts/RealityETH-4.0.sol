@@ -4,10 +4,10 @@ pragma solidity ^0.8.20;
 
 import {IRealityETHCore} from "./IRealityETHCore.sol";
 import {IRealityETHHistoryVerification} from "./IRealityETHHistoryVerification.sol";
-import {BalanceHolder} from "./BalanceHolder.sol";
+import {IBalanceHolder} from "./IBalanceHolder.sol";
 
 // solhint-disable-next-line contract-name-camelcase
-contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore, IRealityETHHistoryVerification {
+contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryVerification {
     address private constant NULL_ADDRESS = address(0);
 
     // History hash when no history is created, or history has been cleared
@@ -25,6 +25,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore, IRealityETHHistoryVe
     mapping(bytes32 => Question) public questions;
     mapping(bytes32 => Claim) public question_claims;
     mapping(address => uint256) public arbitrator_question_fees;
+
+    mapping(address => uint256) public balanceOf;
 
     modifier onlyArbitrator(bytes32 question_id) {
         if (msg.sender != questions[question_id].arbitrator) revert MsgSenderMustBeArbitrator();
@@ -577,6 +579,13 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore, IRealityETHHistoryVe
             last_history_hash = history_hashes[i];
         }
         return true;
+    }
+
+    function withdraw() public {
+        uint256 bal = balanceOf[msg.sender];
+        balanceOf[msg.sender] = 0;
+        payable(msg.sender).transfer(bal);
+        emit LogWithdraw(msg.sender, bal);
     }
 
     /// @notice Returns the questions's content hash, identifying the question content

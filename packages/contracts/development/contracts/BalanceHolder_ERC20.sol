@@ -10,8 +10,6 @@ contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
 
     mapping(address => uint256) public balanceOf;
 
-    event LogWithdraw(address indexed user, uint256 amount);
-
     function withdraw() public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
