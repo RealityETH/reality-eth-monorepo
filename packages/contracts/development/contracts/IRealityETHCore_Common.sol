@@ -2,12 +2,11 @@
 
 pragma solidity 0.8.20;
 
-import {IBalanceHolder} from "./IBalanceHolder.sol";
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
 
 /* solhint-disable func-name-mixedcase */
 
-interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
+interface IRealityETHCore_Common is IRealityETHErrors {
     event LogCancelArbitration(bytes32 indexed question_id);
     event LogClaim(bytes32 indexed question_id, address indexed user, uint256 amount);
     event LogFinalize(bytes32 indexed question_id, bytes32 indexed answer);
@@ -29,6 +28,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text);
     event LogNotifyOfArbitrationRequest(bytes32 indexed question_id, address indexed user);
     event LogSetQuestionFee(address arbitrator, uint256 amount);
+    event LogWithdraw(address indexed user, uint256 amount);
 
     struct Question {
         bytes32 content_hash;
@@ -60,6 +60,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         bytes32 last_answer_or_commitment_id,
         address last_answerer
     ) external;
+    function balanceOf(address) external view returns (uint256);
     function cancelArbitration(bytes32 question_id) external;
     function claimMultipleAndWithdrawBalance(
         bytes32[] calldata question_ids,
@@ -74,11 +75,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function notifyOfArbitrationRequest(bytes32 question_id, address requester, uint256 max_previous) external;
     function setQuestionFee(uint256 fee) external;
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) external;
-    function askQuestion(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) external payable returns (bytes32);
-    function askQuestionWithMinBond(uint256 template_id, string calldata question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) external payable returns (bytes32);
-    function fundAnswerBounty(bytes32 question_id) external payable;
-    function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
-    function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer) external payable;
     function arbitrator_question_fees(address) external view returns (uint256);
     function getArbitrator(bytes32 question_id) external view returns (address);
     function getBestAnswer(bytes32 question_id) external view returns (bytes32);
@@ -116,4 +112,5 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function resultFor(bytes32 question_id) external view returns (bytes32);
     function template_hashes(uint256) external view returns (bytes32);
     function templates(uint256) external view returns (uint256);
+    function withdraw() external;
 }
