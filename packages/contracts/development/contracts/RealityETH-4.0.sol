@@ -8,13 +8,6 @@ import {IBalanceHolder} from "./IBalanceHolder.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryVerification {
-    address private constant NULL_ADDRESS = address(0);
-
-    // History hash when no history is created, or history has been cleared
-    bytes32 private constant NULL_HASH = bytes32(0);
-
-    // An unitinalized finalize_ts for a question will indicate an unanswered question.
-    uint32 private constant UNANSWERED = 0;
 
     // Proportion withheld when you claim an earlier bond.
     uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
@@ -46,7 +39,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
         if (questions[question_id].timeout == 0) revert QuestionMustExist();
         if (questions[question_id].is_pending_arbitration) revert QuestionMustNotBePendingArbitration();
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        if (finalize_ts != UNANSWERED && finalize_ts <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
+        if (finalize_ts != 0 && finalize_ts <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 opening_ts = questions[question_id].opening_ts;
         if (opening_ts != 0 && opening_ts > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
@@ -60,7 +53,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
     modifier stateOpenOrPendingArbitration(bytes32 question_id) {
         if (questions[question_id].timeout == 0) revert QuestionMustExist();
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        if (finalize_ts != UNANSWERED && finalize_ts <= uint32(block.timestamp)) revert FinalizationDealineMustNotHavePassed();
+        if (finalize_ts != 0 && finalize_ts <= uint32(block.timestamp)) revert FinalizationDealineMustNotHavePassed();
         uint32 opening_ts = questions[question_id].opening_ts;
         if (opening_ts != 0 && opening_ts > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
@@ -210,7 +203,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
         // The fee is waived if the arbitrator is asking the question.
         // This allows them to set an impossibly high fee and make users proxy the question through them.
         // This would allow more sophisticated pricing, question whitelisting etc.
-        if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
+        if (arbitrator != address(0) && msg.sender != arbitrator) {
             uint256 question_fee = arbitrator_question_fees[arbitrator];
             if (bounty < question_fee) revert TokensProvidedMustCoverQuestionFee();
             bounty = bounty - question_fee;
@@ -267,7 +260,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
         uint256 max_previous,
         address answerer
     ) external payable stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, msg.value) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
-        if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
+        if (answerer == address(0)) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, msg.value);
         _updateCurrentAnswer(question_id, answer);
     }
@@ -305,7 +298,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
         address requester,
         uint256 max_previous
     ) external onlyArbitrator(question_id) stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
-        if (questions[question_id].finalize_ts <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
+        if (questions[question_id].finalize_ts <= 0) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
     }
@@ -328,7 +321,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
     /// @param answer The answer, encoded into bytes32
     /// @param answerer The account credited with this answer for the purpose of bond claims
     function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) statePendingArbitration(question_id) {
-        if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
+        if (answerer == address(0)) revert AnswererMustBeProvided();
         emit LogFinalize(question_id, answer);
 
         questions[question_id].is_pending_arbitration = false;
@@ -358,7 +351,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
     /// @return Return true if finalized
     function isFinalized(bytes32 question_id) public view returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
-        return (!questions[question_id].is_pending_arbitration && (finalize_ts > UNANSWERED) && (finalize_ts <= uint32(block.timestamp)));
+        return (!questions[question_id].is_pending_arbitration && (finalize_ts > 0) && (finalize_ts <= uint32(block.timestamp)));
     }
 
     /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
@@ -440,7 +433,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
             last_history_hash = history_hashes[i];
         }
 
-        if (last_history_hash != NULL_HASH) {
+        if (last_history_hash != bytes32(0)) {
             // We haven't yet got to the null hash (1st answer), ie the caller didn't supply the full answer chain.
             // Persist the details so we can pick up later where we left off later.
 
@@ -474,7 +467,7 @@ contract RealityETH_v4_0 is IBalanceHolder, IRealityETHCore, IRealityETHHistoryV
 
     function _processHistoryItem(bytes32 question_id, bytes32 best_answer, uint256 queued_funds, address payee, address addr, uint256 bond, bytes32 answer) internal returns (uint256, address) {
         if (answer == best_answer) {
-            if (payee == NULL_ADDRESS) {
+            if (payee == address(0)) {
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
                 payee = addr;
