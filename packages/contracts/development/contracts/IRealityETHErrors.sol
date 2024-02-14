@@ -83,4 +83,8 @@ interface IRealityETHErrors {
     error AtLeastOneHistoryHashEntryMustBeProvided();
     /// @notice History input provided did not match the expected hash
     error HistoryInputProvidedDidNotMatchTheExpectedHash();
+    /// @notice Contract is frozen
+    error ContractIsFrozen();
+    /// @notice Only permitted accounts can ask questions
+    error PermittedQuestionerOnly();
 }

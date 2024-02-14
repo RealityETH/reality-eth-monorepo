@@ -85,7 +85,7 @@ contract RealityETH_v4_0 is RealityETHCore_Common, IRealityETHCore_Native {
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
-    function fundAnswerBounty(bytes32 question_id) external payable stateOpen(question_id) {
+    function fundAnswerBounty(bytes32 question_id) external payable stateOpen(question_id) notFrozen {
         questions[question_id].bounty = questions[question_id].bounty + msg.value;
         emit LogFundAnswerBounty(question_id, msg.value, questions[question_id].bounty, msg.sender);
     }
@@ -99,7 +99,7 @@ contract RealityETH_v4_0 is RealityETHCore_Common, IRealityETHCore_Native {
         bytes32 question_id,
         bytes32 answer,
         uint256 max_previous
-    ) external payable stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, msg.value) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external payable stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, msg.value) previousBondMustNotBeatMaxPrevious(question_id, max_previous) notFrozen {
         _addAnswerToHistory(question_id, answer, msg.sender, msg.value);
         _updateCurrentAnswer(question_id, answer);
     }
@@ -115,13 +115,13 @@ contract RealityETH_v4_0 is RealityETHCore_Common, IRealityETHCore_Native {
         bytes32 answer,
         uint256 max_previous,
         address answerer
-    ) external payable stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, msg.value) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external payable stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, msg.value) previousBondMustNotBeatMaxPrevious(question_id, max_previous) notFrozen {
         if (answerer == address(0)) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, msg.value);
         _updateCurrentAnswer(question_id, answer);
     }
 
-    function withdraw() public override {
+    function withdraw() public override notFrozen {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
         payable(msg.sender).transfer(bal);

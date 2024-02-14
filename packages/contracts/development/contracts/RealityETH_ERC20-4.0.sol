@@ -163,7 +163,7 @@ contract RealityETH_ERC20_v4_0 is RealityETHCore_Common, IRealityETHCore_ERC20 {
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param question_id The ID of the question you wish to fund
     /// @param tokens The number of tokens to fund
-    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external stateOpen(question_id) {
+    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external stateOpen(question_id) notFrozen {
         _deductTokensOrRevert(tokens);
         questions[question_id].bounty = questions[question_id].bounty + tokens;
         emit LogFundAnswerBounty(question_id, tokens, questions[question_id].bounty, msg.sender);
@@ -180,7 +180,7 @@ contract RealityETH_ERC20_v4_0 is RealityETHCore_Common, IRealityETHCore_ERC20 {
         bytes32 answer,
         uint256 max_previous,
         uint256 tokens
-    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) notFrozen {
         _deductTokensOrRevert(tokens);
         _addAnswerToHistory(question_id, answer, msg.sender, tokens);
         _updateCurrentAnswer(question_id, answer);
@@ -199,14 +199,14 @@ contract RealityETH_ERC20_v4_0 is RealityETHCore_Common, IRealityETHCore_ERC20 {
         uint256 max_previous,
         address answerer,
         uint256 tokens
-    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external stateOpen(question_id) bondMustDoubleAndMatchMinimum(question_id, tokens) previousBondMustNotBeatMaxPrevious(question_id, max_previous) notFrozen {
         _deductTokensOrRevert(tokens);
         if (answerer == address(0)) revert AnswererMustBeNonZero();
         _addAnswerToHistory(question_id, answer, answerer, tokens);
         _updateCurrentAnswer(question_id, answer);
     }
 
-    function withdraw() public override {
+    function withdraw() public override notFrozen {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
         require(token.transfer(msg.sender, bal));
