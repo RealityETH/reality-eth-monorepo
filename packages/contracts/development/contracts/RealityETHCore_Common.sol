@@ -28,6 +28,10 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
         _;
     }
 
+    modifier notFrozen() virtual {
+        _;
+    }
+
     modifier stateNotCreated(bytes32 question_id) {
         if (questions[question_id].timeout != 0) revert QuestionMustNotExist();
         _;
@@ -95,7 +99,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @notice Function for arbitrator to set an optional per-question fee.
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) external stateAny {
+    function setQuestionFee(uint256 fee) external stateAny notFrozen {
         arbitrator_question_fees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
     }
@@ -105,7 +109,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string memory content) public stateAny returns (uint256) {
+    function createTemplate(string memory content) public virtual stateAny notFrozen returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
         template_hashes[id] = keccak256(abi.encodePacked(content));
@@ -114,7 +118,15 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
         return id;
     }
 
-    function _askQuestion(bytes32 question_id, bytes32 content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 min_bond, uint256 tokens) internal stateNotCreated(question_id) {
+    function _askQuestion(
+        bytes32 question_id,
+        bytes32 content_hash,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 min_bond,
+        uint256 tokens
+    ) internal virtual stateNotCreated(question_id) notFrozen {
         // A timeout of 0 makes no sense, and we will use this to check existence
         if (timeout == 0) revert TimeoutMustBePositive();
         if (timeout >= 365 days) revert TimeoutMustBeLessThan365Days();
@@ -181,7 +193,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
         bytes32 question_id,
         address requester,
         uint256 max_previous
-    ) external onlyArbitrator(question_id) stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) {
+    ) external onlyArbitrator(question_id) stateOpen(question_id) previousBondMustNotBeatMaxPrevious(question_id, max_previous) notFrozen {
         if (questions[question_id].finalize_ts <= 0) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
         questions[question_id].is_pending_arbitration = true;
         emit LogNotifyOfArbitrationRequest(question_id, requester);
@@ -190,7 +202,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @notice Cancel a previously-requested arbitration and extend the timeout
     /// @dev Useful when doing arbitration across chains that can't be requested atomically
     /// @param question_id The ID of the question
-    function cancelArbitration(bytes32 question_id) external onlyArbitrator(question_id) statePendingArbitration(question_id) {
+    function cancelArbitration(bytes32 question_id) external onlyArbitrator(question_id) statePendingArbitration(question_id) notFrozen {
         questions[question_id].is_pending_arbitration = false;
         questions[question_id].finalize_ts = uint32(block.timestamp) + questions[question_id].timeout;
         emit LogCancelArbitration(question_id);
@@ -204,7 +216,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @param question_id The ID of the question
     /// @param answer The answer, encoded into bytes32
     /// @param answerer The account credited with this answer for the purpose of bond claims
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) statePendingArbitration(question_id) {
+    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyArbitrator(question_id) statePendingArbitration(question_id) notFrozen {
         if (answerer == address(0)) revert AnswererMustBeProvided();
         emit LogFinalize(question_id, answer);
 
@@ -233,7 +245,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @notice Report whether the answer to the specified question is finalized
     /// @param question_id The ID of the question
     /// @return Return true if finalized
-    function isFinalized(bytes32 question_id) public view returns (bool) {
+    function isFinalized(bytes32 question_id) public view virtual returns (bool) {
         uint32 finalize_ts = questions[question_id].finalize_ts;
         return (!questions[question_id].is_pending_arbitration && (finalize_ts > 0) && (finalize_ts <= uint32(block.timestamp)));
     }
@@ -282,7 +294,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     /// @param addrs Last-to-first, the address of each answerer
     /// @param bonds Last-to-first, the bond supplied with each answer
     /// @param answers Last-to-first, each answer supplied
-    function claimWinnings(bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(question_id) {
+    function claimWinnings(bytes32 question_id, bytes32[] memory history_hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(question_id) notFrozen {
         if (history_hashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
@@ -400,7 +412,8 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
         bytes32[] memory answers
     )
         public
-        stateAny // The finalization checks are done in the claimWinnings function
+        stateAny
+        notFrozen // The finalization checks are done in the claimWinnings function
     {
         uint256 qi;
         uint256 i;
