@@ -36,6 +36,11 @@ if "ERC20" in REALITYETH_CONTRACT:
 else:
     ERC20 = False
 
+if "Freezable" in REALITYETH_CONTRACT:
+    IS_FREEZE_SUPPORTED = True
+else:
+    IS_FREEZE_SUPPORTED = False
+
 print("Version is "+str(VERNUM))
 
 if VERNUM >= 2.1:
@@ -2639,7 +2644,7 @@ class TestRealitio(TestCase):
         
         self.assertEqual(self.rc0.functions.balanceOf(k3).call(), claimable)
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_is_history_of_unfinalized_question_valid(self):
 
         if not IS_PROVE_HISTORY_SUPPORTED:
@@ -2707,6 +2712,106 @@ class TestRealitio(TestCase):
         # Once we finalize this will revert
         with self.assertRaises(TransactionFailed):
             self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
+
+    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_frozen(self):
+
+        if not IS_FREEZE_SUPPORTED:
+            print("Skipping test_frozen, not supported by this version")
+            return
+
+        k0 = self.web3.eth.accounts[0]
+        k3 = self.web3.eth.accounts[3]
+        k4 = self.web3.eth.accounts[4]
+        k5 = self.web3.eth.accounts[5]
+
+        if ERC20:
+            self._issueTokens(k0, 1000000, 1000000)
+            self._issueTokens(k3, 1000000, 1000000)
+            self._issueTokens(k4, 1000000, 1000000)
+
+        # We'll set up a question that finalizes before the freeze date to check we can still get its result after the freeze
+        txid = self.rc0.functions.askQuestionERC20(
+            0,
+            "my early question",
+            self.arb0.address,
+            30,
+            0,
+            0
+            ,1100
+        ).transact(self._txargs())
+        early_question_id = calculate_question_id(self.rc0.address, 0, "my early question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 0, 200, k3)
+        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 200, 400, k3)
+
+        self.assertFalse(self.rc0.functions.isFinalized(early_question_id).call())
+        # Can't get result as not finalized
+        with self.assertRaises(TransactionFailed):
+            self.assertEqual(self.rc0.functions.resultFor(early_question_id).call(), to_answer_for_contract(1001))
+
+        self._advance_clock(40)
+        self.assertTrue(self.rc0.functions.isFinalized(early_question_id).call())
+        self.assertEqual(self.rc0.functions.resultFor(early_question_id).call(), to_answer_for_contract(1001))
+
+        txid = self.rc0.functions.askQuestionERC20(
+            0,
+            "my question",
+            self.arb0.address,
+            30,
+            0,
+            0
+            ,1100
+        ).transact(self._txargs())
+        question_id = calculate_question_id(self.rc0.address, 0, "my question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
+
+        # Start with the series we used before and make sure it goes through
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, question_id, 1001, 0, 200, k3)
+        st = self.submitAnswerReturnUpdatedState( st, question_id, 1001, 200, 400, k3)
+
+        freeze_ts = self.rc0.functions.freeze_ts().call()
+        self.assertTrue(freeze_ts == 0, "Freeze timestamp should be zero before freeze")
+        self.rc0.functions.setFreezeTimestamp(self._block_timestamp()).transact(self._txargs())
+        freeze_ts = self.rc0.functions.freeze_ts().call()
+        self.assertTrue(freeze_ts > 0, "Freeze timestamp should be not zero after freeze")
+
+        # You can no longer answer a question
+        with self.assertRaises(TransactionFailed):
+            self.submitAnswerReturnUpdatedState( st, question_id, 1001, 400, 800, k3)
+
+        # You can no longer request arbitration
+        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        txid = self.arb0.functions.requestArbitration(question_id, 0).transact(self._txargs(val=fee))
+        with self.assertRaises(TransactionFailed):
+            self.raiseOnZeroStatus(txid)
+
+        # The question will no longer finalize, even after the time has elapsed
+        self.assertFalse(self.rc0.functions.isFinalized(question_id).call())
+        self._advance_clock(40)
+        self.assertFalse(self.rc0.functions.isFinalized(question_id).call())
+        # Can't get result as not finalized
+        with self.assertRaises(TransactionFailed):
+            self.assertEqual(self.rc0.functions.resultFor(question_id).call(), to_answer_for_contract(1001))
+
+        # The question that was finalized before is still finalized
+        self.assertTrue(self.rc0.functions.isFinalized(early_question_id).call())
+        # You can still get the result
+        self.assertEqual(self.rc0.functions.resultFor(early_question_id).call(), to_answer_for_contract(1001))
+
+        # You can no longer ask a new question
+        with self.assertRaises(TransactionFailed):
+            txid = self.rc0.functions.askQuestionERC20(
+                0,
+                "my question xyz",
+                self.arb0.address,
+                30,
+                0,
+                0
+                ,1100
+            ).transact(self._txargs())
+            self.raiseOnZeroStatus(txid)
+
 
 if __name__ == '__main__':
     main()
