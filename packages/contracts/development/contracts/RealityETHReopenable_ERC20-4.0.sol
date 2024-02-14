@@ -6,12 +6,12 @@ import {IRealityETHReopenable_ERC20} from "./IRealityETHReopenable_ERC20.sol";
 import {RealityETH_ERC20_v4_0} from "./RealityETH_ERC20-4.0.sol";
 
 /*
-* This version of reality.eth provides the ability to answer a question as "answered too soon", allowing it to be reopened.
-* This is useful when you want to ask a question but you don't know when the answer will be available.
-* You can set the settlement time at the earliest date it may be available, then if someone answers it too soon, it can be answered at such then later reopened.
-* NB In v3 of reality.eth this feature was built in and there was no way to turn it off.
-* From v4, we ship two versions: RealityETH_ERC20 without it, and RealityETHReopenable_ERC20 with it.
-*/
+ * This version of reality.eth provides the ability to answer a question as "answered too soon", allowing it to be reopened.
+ * This is useful when you want to ask a question but you don't know when the answer will be available.
+ * You can set the settlement time at the earliest date it may be available, then if someone answers it too soon, it can be answered at such then later reopened.
+ * NB In v3 of reality.eth this feature was built in and there was no way to turn it off.
+ * From v4, we ship two versions: RealityETH_ERC20 without it, and RealityETHReopenable_ERC20 with it.
+ */
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETHReopenable_v4_0 is IRealityETHReopenable_ERC20, RealityETH_ERC20_v4_0 {
