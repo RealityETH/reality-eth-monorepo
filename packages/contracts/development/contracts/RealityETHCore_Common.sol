@@ -97,7 +97,7 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
     }
 
     /* solhint-disable quotes */
-    function _createInitialTemplates() internal {
+    function _createInitialTemplates() virtual internal {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
