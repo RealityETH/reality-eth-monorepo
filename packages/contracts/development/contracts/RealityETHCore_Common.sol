@@ -90,10 +90,14 @@ abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHi
         _;
     }
 
-    /* solhint-disable quotes */
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() {
+        _createInitialTemplates();
+    }
+
+    /* solhint-disable quotes */
+    function _createInitialTemplates() internal {
         createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
