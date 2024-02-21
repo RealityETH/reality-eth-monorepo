@@ -8,9 +8,9 @@ import {IRealityETHHistoryVerification} from "./IRealityETHHistoryVerification.s
 // solhint-disable-next-line contract-name-camelcase
 abstract contract RealityETHCore_Common is IRealityETHCore_Common, IRealityETHHistoryVerification {
     // Proportion withheld when you claim an earlier bond.
-    uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
+    uint256 internal constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
-    uint256 private nextTemplateID = 0;
+    uint256 internal nextTemplateID = 0;
     mapping(uint256 => uint256) public templates;
     mapping(uint256 => bytes32) public template_hashes;
     mapping(bytes32 => Question) public questions;
