@@ -2713,7 +2713,7 @@ class TestRealitio(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
 
-    #@unittest.skipIf(WORKING_ONLY, "Not under construction")
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_frozen(self):
 
         if not IS_FREEZE_SUPPORTED:
