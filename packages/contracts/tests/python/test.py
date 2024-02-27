@@ -2713,8 +2713,102 @@ class TestRealitio(TestCase):
         with self.assertRaises(TransactionFailed):
             self.rc0.functions.isHistoryOfUnfinalizedQuestionValid(self.question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact()
 
+
+    def _setupEarlyAnsweredQuestion(self, questioner, answerer):
+
+        # We'll set up a question that finalizes before the freeze date to check we can still get its result after the freeze
+        txid = self.rc0.functions.askQuestionERC20(
+            0,
+            "my early question",
+            self.arb0.address,
+            30,
+            0,
+            0
+            ,1100
+        ).transact(self._txargs(sender=questioner))
+        early_question_id = calculate_question_id(self.rc0.address, 0, "my early question", self.arb0.address, 30, 0, 0, questioner, 0)
+        st = None
+        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 0, 200, answerer)
+        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 200, 400, answerer)
+
+        fee = self.rc0.functions.arbitrator_question_fees(self.arb0.address).call()
+
+        expected_winnings = 1100+400+subfee(200)-fee
+
+        return early_question_id, st, expected_winnings
+
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
-    def test_frozen(self):
+    def test_frozen_claim_and_disabled(self):
+
+        if not IS_FREEZE_SUPPORTED:
+            print("Skipping test_frozen, not supported by this version")
+            return
+
+        if ERC20:
+            self._issueTokens(self.web3.eth.accounts[0], 1000000, 1000000)
+            self._issueTokens(self.web3.eth.accounts[3], 1000000, 1000000)
+
+        early_question_id, st, expected_winnings = self._setupEarlyAnsweredQuestion(self.web3.eth.accounts[0], self.web3.eth.accounts[3])
+        self._advance_clock(40)
+        self.rc0.functions.setFreezeTimestamp(self._block_timestamp()).transact(self._txargs())
+
+        txid = self.rc0.functions.claimMultipleAndWithdrawBalance([early_question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs())
+        with self.assertRaises(TransactionFailed):
+            self.raiseOnZeroStatus(txid)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_frozen_withdraw(self):
+
+        if not IS_FREEZE_SUPPORTED:
+            print("Skipping test_frozen, not supported by this version")
+            return
+
+        if ERC20:
+            self._issueTokens(self.web3.eth.accounts[0], 1000000, 1000000)
+            self._issueTokens(self.web3.eth.accounts[3], 1000000, 1000000)
+
+        txid = self.rc0.functions.withdraw().transact(self._txargs(sender=self.web3.eth.accounts[3]))
+        self.assertEqual(self.rc0.functions.balanceOf(self.web3.eth.accounts[3]).call(), 0)
+
+        early_question_id, st, expected_winnings = self._setupEarlyAnsweredQuestion(self.web3.eth.accounts[0], self.web3.eth.accounts[3])
+        self._advance_clock(40)
+
+        txid = self.rc0.functions.claimWinnings(early_question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs())
+        self.raiseOnZeroStatus(txid)
+        self.assertEqual(self.rc0.functions.balanceOf(self.web3.eth.accounts[3]).call(), expected_winnings)
+
+        self.rc0.functions.setFreezeTimestamp(self._block_timestamp()).transact(self._txargs())
+
+        txid = self.rc0.functions.withdraw().transact(self._txargs(sender=self.web3.eth.accounts[3]))
+        with self.assertRaises(TransactionFailed):
+            self.raiseOnZeroStatus(txid)
+
+        self.assertEqual(self.rc0.functions.balanceOf(self.web3.eth.accounts[3]).call(), expected_winnings)
+
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_frozen_claim_winnings(self):
+
+        if not IS_FREEZE_SUPPORTED:
+            print("Skipping test_frozen, not supported by this version")
+            return
+
+        if ERC20:
+            self._issueTokens(self.web3.eth.accounts[0], 1000000, 1000000)
+            self._issueTokens(self.web3.eth.accounts[3], 1000000, 1000000)
+
+        early_question_id, st, expected_winnings = self._setupEarlyAnsweredQuestion(self.web3.eth.accounts[0], self.web3.eth.accounts[3])
+        self._advance_clock(40)
+
+        self.rc0.functions.setFreezeTimestamp(self._block_timestamp()).transact(self._txargs())
+
+        txid = self.rc0.functions.claimWinnings(early_question_id, st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs())
+        with self.assertRaises(TransactionFailed):
+            self.raiseOnZeroStatus(txid)
+
+    @unittest.skipIf(WORKING_ONLY, "Not under construction")
+    def test_frozen_result(self):
 
         if not IS_FREEZE_SUPPORTED:
             print("Skipping test_frozen, not supported by this version")
@@ -2730,25 +2824,14 @@ class TestRealitio(TestCase):
             self._issueTokens(k3, 1000000, 1000000)
             self._issueTokens(k4, 1000000, 1000000)
 
-        # We'll set up a question that finalizes before the freeze date to check we can still get its result after the freeze
-        txid = self.rc0.functions.askQuestionERC20(
-            0,
-            "my early question",
-            self.arb0.address,
-            30,
-            0,
-            0
-            ,1100
-        ).transact(self._txargs())
-        early_question_id = calculate_question_id(self.rc0.address, 0, "my early question", self.arb0.address, 30, 0, 0, self.web3.eth.accounts[0], 0)
-        st = None
-        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 0, 200, k3)
-        st = self.submitAnswerReturnUpdatedState( st, early_question_id, 1001, 200, 400, k3)
+        early_question_id, st, expected_winnings = self._setupEarlyAnsweredQuestion(k0, k3)
 
         self.assertFalse(self.rc0.functions.isFinalized(early_question_id).call())
         # Can't get result as not finalized
         with self.assertRaises(TransactionFailed):
             self.assertEqual(self.rc0.functions.resultFor(early_question_id).call(), to_answer_for_contract(1001))
+
+        self.rc0.functions.claimMultipleAndWithdrawBalance([self.question_id], [len(st['hash'])], st['hash'], st['addr'], st['bond'], st['answer']).transact(self._txargs(sender=k5))
 
         self._advance_clock(40)
         self.assertTrue(self.rc0.functions.isFinalized(early_question_id).call())
