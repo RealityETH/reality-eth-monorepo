@@ -11,8 +11,8 @@
         "rpcUrls": [
             "https://api.mycryptoapi.com/eth",
             "https://cloudflare-eth.com",
-            "https://ethereum.publicnode.com",
-            "wss://ethereum.publicnode.com",
+            "https://ethereum-rpc.publicnode.com",
+            "wss://ethereum-rpc.publicnode.com",
             "https://mainnet.gateway.tenderly.co",
             "wss://mainnet.gateway.tenderly.co",
             "https://rpc.blocknative.com/boost",
@@ -21,7 +21,9 @@
             "https://rpc.mevblocker.io",
             "https://rpc.mevblocker.io/fast",
             "https://rpc.mevblocker.io/noreverts",
-            "https://rpc.mevblocker.io/fullprivacy"
+            "https://rpc.mevblocker.io/fullprivacy",
+            "https://eth.drpc.org",
+            "wss://eth.drpc.org"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
@@ -74,8 +76,8 @@
         "network_name": "goerli",
         "rpcUrls": [
             "https://rpc.goerli.mudit.blog/",
-            "https://ethereum-goerli.publicnode.com",
-            "wss://ethereum-goerli.publicnode.com",
+            "https://ethereum-goerli-rpc.publicnode.com",
+            "wss://ethereum-goerli-rpc.publicnode.com",
             "https://goerli.gateway.tenderly.co",
             "wss://goerli.gateway.tenderly.co"
         ],
@@ -114,10 +116,12 @@
         },
         "rpcUrls": [
             "https://mainnet.optimism.io",
-            "https://optimism.publicnode.com",
-            "wss://optimism.publicnode.com",
+            "https://optimism-rpc.publicnode.com",
+            "wss://optimism-rpc.publicnode.com",
             "https://optimism.gateway.tenderly.co",
-            "wss://optimism.gateway.tenderly.co"
+            "wss://optimism.gateway.tenderly.co",
+            "https://optimism.drpc.org",
+            "wss://optimism.drpc.org"
         ],
         "hostedRPC": "https://mainnet.optimism.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism",
@@ -137,7 +141,9 @@
         },
         "network_name": "TelosEVM",
         "rpcUrls": [
-            "https://mainnet.telos.net/evm"
+            "https://mainnet.telos.net/evm",
+            "https://telos.drpc.org",
+            "wss://telos.drpc.org"
         ],
         "hostedRPC": "https://mainnet.telos.net/evm",
         "blockExplorerUrls": [
@@ -166,8 +172,8 @@
             "https://bsc-dataseed2.ninicoin.io",
             "https://bsc-dataseed3.ninicoin.io",
             "https://bsc-dataseed4.ninicoin.io",
-            "https://bsc.publicnode.com",
-            "wss://bsc.publicnode.com",
+            "https://bsc-rpc.publicnode.com",
+            "wss://bsc-rpc.publicnode.com",
             "wss://bsc-ws-node.nariox.org"
         ],
         "hostedRPC": "https://bsc-dataseed1.bnbchain.org",
@@ -231,8 +237,8 @@
             "https://data-seed-prebsc-2-s2.bnbchain.org:8545",
             "https://data-seed-prebsc-1-s3.bnbchain.org:8545",
             "https://data-seed-prebsc-2-s3.bnbchain.org:8545",
-            "https://bsc-testnet.publicnode.com",
-            "wss://bsc-testnet.publicnode.com"
+            "https://bsc-testnet-rpc.publicnode.com",
+            "wss://bsc-testnet-rpc.publicnode.com"
         ],
         "hostedRPC": "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
@@ -260,8 +266,8 @@
             "https://web3endpoints.com/gnosischain-mainnet",
             "https://gnosis.oat.farm",
             "wss://rpc.gnosischain.com/wss",
-            "https://gnosis.publicnode.com",
-            "wss://gnosis.publicnode.com"
+            "https://gnosis-rpc.publicnode.com",
+            "wss://gnosis-rpc.publicnode.com"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
@@ -287,10 +293,12 @@
             "https://rpc-mainnet.maticvigil.com",
             "https://rpc-mainnet.matic.quiknode.pro",
             "https://matic-mainnet-full-rpc.bwarelabs.com",
-            "https://polygon-bor.publicnode.com",
-            "wss://polygon-bor.publicnode.com",
+            "https://polygon-bor-rpc.publicnode.com",
+            "wss://polygon-bor-rpc.publicnode.com",
             "https://polygon.gateway.tenderly.co",
-            "wss://polygon.gateway.tenderly.co"
+            "wss://polygon.gateway.tenderly.co",
+            "https://polygon.drpc.org",
+            "wss://polygon.drpc.org"
         ],
         "hostedRPC": "https://polygon-rpc.com/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
@@ -329,7 +337,9 @@
         },
         "network_name": "zksync-sepolia",
         "rpcUrls": [
-            "https://sepolia.era.zksync.dev"
+            "https://sepolia.era.zksync.dev",
+            "https://zksync-sepolia.drpc.org",
+            "wss://zksync-sepolia.drpc.org"
         ],
         "hostedRPC": "https://sepolia.era.zksync.dev",
         "blockExplorerUrls": [
@@ -346,7 +356,9 @@
         },
         "network_name": "zksync-era",
         "rpcUrls": [
-            "https://mainnet.era.zksync.io"
+            "https://mainnet.era.zksync.io",
+            "https://zksync.drpc.org",
+            "wss://zksync.drpc.org"
         ],
         "hostedRPC": "https://mainnet.era.zksync.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
@@ -382,7 +394,9 @@
         },
         "network_name": "polygon-zkevm",
         "rpcUrls": [
-            "https://zkevm-rpc.com"
+            "https://zkevm-rpc.com",
+            "https://polygon-zkevm.drpc.org",
+            "wss://polygon-zkevm.drpc.org"
         ],
         "hostedRPC": "https://zkevm-rpc.com",
         "blockExplorerUrls": [
@@ -401,8 +415,10 @@
         "network_name": "holesky",
         "rpcUrls": [
             "https://rpc.holesky.ethpandaops.io",
-            "https://ethereum-holesky.publicnode.com",
-            "wss://ethereum-holesky.publicnode.com"
+            "https://ethereum-holesky-rpc.publicnode.com",
+            "wss://ethereum-holesky-rpc.publicnode.com",
+            "https://holesky.drpc.org",
+            "wss://holesky.drpc.org"
         ],
         "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "blockExplorerUrls": [
@@ -442,8 +458,8 @@
         "network_name": "avalanche",
         "rpcUrls": [
             "https://api.avax.network/ext/bc/C/rpc",
-            "https://avalanche-c-chain.publicnode.com",
-            "wss://avalanche-c-chain.publicnode.com"
+            "https://avalanche-c-chain-rpc.publicnode.com",
+            "wss://avalanche-c-chain-rpc.publicnode.com"
         ],
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
@@ -463,8 +479,8 @@
         "network_name": "mumbai",
         "rpcUrls": [
             "https://rpc-mumbai.maticvigil.com",
-            "https://polygon-mumbai-bor.publicnode.com",
-            "wss://polygon-mumbai-bor.publicnode.com",
+            "https://polygon-mumbai-bor-rpc.publicnode.com",
+            "wss://polygon-mumbai-bor-rpc.publicnode.com",
             "https://polygon-mumbai.gateway.tenderly.co",
             "wss://polygon-mumbai.gateway.tenderly.co"
         ],
@@ -560,8 +576,10 @@
             "https://rpc.sepolia.ethpandaops.io",
             "https://sepolia.gateway.tenderly.co",
             "wss://sepolia.gateway.tenderly.co",
-            "https://ethereum-sepolia.publicnode.com",
-            "wss://ethereum-sepolia.publicnode.com"
+            "https://ethereum-sepolia-rpc.publicnode.com",
+            "wss://ethereum-sepolia-rpc.publicnode.com",
+            "https://sepolia.drpc.org",
+            "wss://sepolia.drpc.org"
         ],
         "hostedRPC": "https://rpc.sepolia.org",
         "blockExplorerUrls": [
