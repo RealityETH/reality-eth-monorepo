@@ -116,6 +116,9 @@
     "421613": {
         "network_name": "arbitrum-goerli"
     },
+    "421614": {
+        "network_name": "arbitrum-sepolia"
+    },
     "534353": {
         "hostedRPC": "https://alpha-rpc.scroll.io/l2"
     },

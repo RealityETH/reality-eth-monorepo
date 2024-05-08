@@ -527,6 +527,23 @@
             "https://goerli.arbiscan.io"
         ]
     },
+    "421614": {
+        "chainId": "0x66eee",
+        "chainName": "Arbitrum Sepolia",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-sepolia",
+        "rpcUrls": [
+            "https://sepolia-rollup.arbitrum.io/rpc"
+        ],
+        "hostedRPC": "https://sepolia-rollup.arbitrum.io/rpc",
+        "blockExplorerUrls": [
+            "https://sepolia-explorer.arbitrum.io"
+        ]
+    },
     "534353": {
         "chainId": "0x82751",
         "chainName": "Scroll Alpha Testnet",
