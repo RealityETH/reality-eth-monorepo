@@ -501,7 +501,9 @@
                 "address": "0xB78396EFaF0a177d125e9d45B2C6398Ac5f803B9",
                 "block": 41977012,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)"
+                }
             }
         }
     },
