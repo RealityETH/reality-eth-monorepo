@@ -49,5 +49,30 @@
                 "standard": "EIP3091"
             }
         ]
+     } ,
+     {
+      "name": "Backstop Testnet 1",
+      "chainId": 88558801,
+      "shortName": "backstopTestnet1",
+      "chain": "Backstop",
+      "network": "mainnet",
+      "networkId": 88558801,
+      "nativeCurrency": {
+        "name": "Backstop Tokens",
+        "symbol": "ZBS",
+        "decimals": 18
+      },
+      "rpc": [
+        "https://testnet.rpc.backstop.technology"
+      ],
+      "faucets": [],
+      "infoURL": "https://backstop.technology/testnet",
+      "explorers": [
+            {
+                "name": "Backstop Testnet Explorer",
+                "url": "https://testnet.explorer.backstop.technology/",
+                "standard": "EIP3091"
+            }
+        ]
      }
 ]

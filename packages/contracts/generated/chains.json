@@ -603,5 +603,22 @@
             "https://sepolia.etherscan.io",
             "https://sepolia.otterscan.io"
         ]
+    },
+    "88558801": {
+        "chainId": "0x5474cd1",
+        "chainName": "Backstop Testnet 1",
+        "nativeCurrency": {
+            "name": "Backstop Tokens",
+            "symbol": "ZBS",
+            "decimals": 18
+        },
+        "network_name": "backstopTestnet1",
+        "rpcUrls": [
+            "https://testnet.rpc.backstop.technology"
+        ],
+        "hostedRPC": "https://testnet.rpc.backstop.technology",
+        "blockExplorerUrls": [
+            "https://testnet.explorer.backstop.technology/"
+        ]
     }
 }
