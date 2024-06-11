@@ -2,7 +2,7 @@
     "1": {
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "explorerURL": "https://etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AGLkTv6eaW7JhQsLgB6SMzo43uM9V12ZoNkjAw7uijra",
         "network_name": "mainnet"
     },
     "3": {
@@ -20,7 +20,7 @@
     "5": {
         "hostedRPC": "https://eth-goerli.g.alchemy.com/v2/i2jZKhmFBPZYl8YdSHxsZ6viP3PQLwId",
         "explorerURL": "https://goerli.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-goerli",
+        "graphURL": "https://gateway.testnet.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "network_name": "goerli"
     },
     "8": {
@@ -30,14 +30,14 @@
     "10": {
         "hostedRPC": "https://mainnet.optimism.io",
         "explorerURL": "https://optimistic.etherscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-optimism"
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL"
     },
     "40": {
         "network_name": "TelosEVM"
     },
     "56": {
         "explorerURL": "https://www.bscscan.com",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-bsc",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5KjMLU6mx7RrjJJK9XKrM7i6oeB7C6gpnsi3CTWqpYpm",
         "network_name": "bsc"
     },
     "69": {
@@ -57,7 +57,7 @@
     },
     "100": {
         "explorerURL": "https://gnosisscan.io",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-gnosis",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
         "network_name": "gnosis"
     },
     "137": {
@@ -96,12 +96,12 @@
     },
     "42161": {
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-arbitrum",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
         "network_name": "arbitrum-one"
     },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
-        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ava",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
         "network_name": "avalanche"
     },
     "80001": {
