@@ -68,6 +68,7 @@ const chains = {
     'kovan-optimistic': 69,
     'kintsugi': 1337702,
     'sepolia': 11155111,
+    'backstopTestnet1': 88558801
 }
 const non_infura_chains = {
     'gnosis': 'https://rpc.ankr.com/gnosis',
@@ -89,8 +90,9 @@ const non_infura_chains = {
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
     'sepolia': 'https://rpc.sepolia.org',
-    'holesky': 'https://ethereum-holesky.publicnode.com	',
+    'holesky': 'https://ethereum-holesky.publicnode.com',
     'telosevm': 'https://mainnet.telos.net/evm',
+    'backstopTestnet1': 'https://testnet.rpc.backstop.technology'
 }
 
 function constructContractTemplate(contract_name) {

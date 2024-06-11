@@ -1,8 +1,6 @@
 {
-    "address": "0x74549fdf4e00C7c564bB193a911887d8C291b13C",
-    "block": 2,
+    "address": "0xd05Af7EAB843aA2A04f623c18d2a1C8bB4F301a9",
+    "block": 24,
     "notes": null,
-    "arbitrators": {
-        "0xa6F3d82f7aEF02f3f24c3fBcfD814a74fE612D85": "Fork-backed adjudication framework"
-    }
+    "arbitrators": {}
 }
