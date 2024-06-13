@@ -367,6 +367,25 @@
             "https://explorer.zksync.io/"
         ]
     },
+    "690": {
+        "chainId": "0x2b2",
+        "chainName": "Redstone",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "redstone",
+        "rpcUrls": [
+            "https://rpc.redstonechain.com",
+            "wss://rpc.redstonechain.com"
+        ],
+        "hostedRPC": "https://rpc.redstonechain.com",
+        "blockExplorerUrls": [
+            "https://explorer.redstone.xyz",
+            "https://explorer.redstone.xyz/"
+        ]
+    },
     "777": {
         "chainId": "0x309",
         "chainName": "cheapETH",

@@ -80,6 +80,11 @@
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
         "network_name": "zksync-era"
     },
+    "690": {
+        "hostedRPC": "https://rpc.redstonechain.com",
+        "explorerURL": "https://explorer.redstone.xyz/",
+        "network_name": "redstone"
+    },
     "777": {
         "explorerURL": "https://explore.cheapswap.io/",
         "network_name": "cheapeth"
