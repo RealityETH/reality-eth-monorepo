@@ -4,6 +4,7 @@ const project_base = './../';
 const build_dir = './../truffle/build/contracts/';
 const rc = require('../index.js');
 const { join } = require('path');
+const chain_configs = require('./../generated/chains.json');
 
 let secrets_dir = join(__dirname, '../secrets');
 if (process.env.SECRETS) {
@@ -121,7 +122,23 @@ function usage_error(msg) {
     throw msg;
 }
 
-const chain_id = chains[chain];
+
+const isNumeric = (string) => /^[+-]?\d+(\.\d+)?$/.test(string)
+
+let chain_id;
+// Predefined chains (old method)
+if (chain in chains) {
+    chain_id = chains[chain];
+// Get the chain from the chain config
+} else {
+    for (const c in chain_configs) {
+        const cn = chain_configs[c].chainName.toLowerCase().replace(' ', '-');
+        if (cn == chain) {
+            chain_id = c;
+            break;
+        }
+    }
+}
 
 if (!chain_id) {
     usage_error("Network unknown");
@@ -195,14 +212,26 @@ function store_deployed_factory_contract(template, chain_id, out_json) {
     console.log('wrote file', file);
 }
 
+function chain_config_for_name(chain_name) {
+    for (cc in chain_configs) {
+        
+    }
+}
 
 function provider_for_chain() {
     if (non_infura_chains[chain]) {
         console.log('Using chain', non_infura_chains[chain]);
         return new ethers.providers.JsonRpcProvider(non_infura_chains[chain]);
     } else {
-        console.log('Using infura on chain', chain);
-        return new ethers.providers.InfuraProvider(chain);
+        if (chains[chain]) {
+            console.log('Using infura on chain', chain);
+            return new ethers.providers.InfuraProvider(chain);
+        } else {
+            const chain_config = chain_configs[chain_id];
+            const hostedRPC = chain_config.hostedRPC;
+            console.log('Using RPC', hostedRPC);
+            return new ethers.providers.JsonRpcProvider(chain_config.hostedRPC);
+        } 
     }
 }
 
@@ -227,6 +256,7 @@ async function waitForGas(provider) {
 
     const f = await provider.getFeeData()
      console.log('fee', f)
+throw new Error();
 return;
     if (f.gasPrice.gt(ethers.BigNumber.from(defaultConfigs.maxFeePerGas))) {
         console.log('Gas is too expensive, got', f.gasPrice.toString(), 'but you will only pay ', defaultConfigs.maxFeePerGas, ', retrying...')
