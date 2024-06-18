@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: Reality.eth
+description: Reality.eth, a crowd-sourced smart contract oracle
 repository: https://github.com/RealityETH/monorepo/
 schema:
   file: ./schema.graphql
