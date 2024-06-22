@@ -94,6 +94,11 @@
         "explorerURL": "https://zkevm.polygonscan.com/",
         "network_name": "polygon-zkevm"
     },
+    "10200": {
+        "hostedRPC": "https://rpc.chiadochain.net",
+        "explorerURL": "https://gnosis-chiado.blockscout.com/",
+        "network_name": "chiado"
+    },
     "17000": {
         "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "explorerURL": "https://holesky.etherscan.io/",

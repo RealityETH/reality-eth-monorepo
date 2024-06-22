@@ -423,6 +423,31 @@
             "https://zkevm.polygonscan.com/"
         ]
     },
+    "10200": {
+        "chainId": "0x27d8",
+        "chainName": "Gnosis Chiado Testnet",
+        "nativeCurrency": {
+            "name": "Chiado xDAI",
+            "symbol": "XDAI",
+            "decimals": 18
+        },
+        "network_name": "chiado",
+        "rpcUrls": [
+            "https://rpc.chiadochain.net",
+            "https://rpc.chiado.gnosis.gateway.fm",
+            "wss://rpc.chiadochain.net/wss",
+            "https://gnosis-chiado-rpc.publicnode.com",
+            "wss://gnosis-chiado-rpc.publicnode.com",
+            "https://gnosis-chiado.drpc.org",
+            "wss://gnosis-chiado.drpc.org"
+        ],
+        "hostedRPC": "https://rpc.chiadochain.net",
+        "blockExplorerUrls": [
+            "https://blockscout.chiadochain.net",
+            "https://gnosis-chiado.blockscout.com",
+            "https://gnosis-chiado.blockscout.com/"
+        ]
+    },
     "17000": {
         "chainId": "0x4268",
         "chainName": "Holesky",
