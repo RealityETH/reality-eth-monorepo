@@ -137,6 +137,13 @@ if (chain in chains) {
             chain_id = c;
             break;
         }
+        if (chain_configs[c].network_name) {
+            const cn2 = chain_configs[c].network_name.toLowerCase();
+            if (cn2 == chain) {
+                chain_id = c;
+                break;
+            }
+        }
     }
 }
 
