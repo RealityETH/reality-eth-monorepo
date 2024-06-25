@@ -15,7 +15,7 @@ export default function() {
 	$("#filter-list a").removeClass("selected");
 	var category_name = window.location.hash.split("#!/category/")[1];
 	if(category_name){
-	    var selector = "[data-category=\""+category_name+"\"]";
+	    var selector = "[data-category=\""+$.escapeSelector(category_name)+"\"]";
 	    $(selector).addClass("selected");
 	} else {
 	    $("[data-category=\"all\"]").addClass("selected");

@@ -2770,7 +2770,7 @@ function category_text(question_json, target_el) {
     if (cat == '') {
         cat_txt = 'Unassigned';
     } else {
-        cat_txt = $("#filter-list").find("[data-category='" + cat + "']").text();
+        cat_txt = $("#filter-list").find("[data-category='" + $.escapeSelector(cat) + "']").text();
         if (cat_txt == '') {
             cat_txt = '"' + cat + '"';
         }
@@ -5744,7 +5744,7 @@ window.addEventListener('load', async function() {
         console.log('Chain ID is ', cid);
 
         if (args['category']) {
-            $("#filter-list").find("[data-category='" + args['category'] + "']").addClass("selected")
+            $("#filter-list").find("[data-category='" + $.escapeSelector(args['category']) + "']").addClass("selected")
         } else {
             $("#filter-list").find("[data-category='all']").addClass("selected")
         }
@@ -5900,7 +5900,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         if (args['category']) {
             CATEGORY = args['category'];
             $('body').addClass('category-' + category);
-            const cat_txt = $("#filter-list").find("[data-category='" + category + "']").text();
+            const cat_txt = $("#filter-list").find("[data-category='" + $.escapeSelector(category) + "']").text();
             $('#filterby').text(cat_txt);
         }
 
