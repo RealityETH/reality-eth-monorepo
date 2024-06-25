@@ -289,7 +289,9 @@
                 "block": 34578493,
                 "token_address": "0x9a2A80c38AbB1FDC3Cb0fbf94FEFe88BEf828E00",
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros"
+                }
             }
         },
         "SWISE": {
