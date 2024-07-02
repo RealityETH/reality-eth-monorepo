@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/graph",
-  "version": "0.4.58",
+  "version": "0.4.59",
   "scripts": {
     "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
     "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
