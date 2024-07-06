@@ -4733,7 +4733,7 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, search_filt
 
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
-        $('body').addClass('connection-error');
+        $('body').addClass('no-graph-endpoint');
         console.log('No graph endpoint found for this network, skipping graph fetch');
         return false;
     }
