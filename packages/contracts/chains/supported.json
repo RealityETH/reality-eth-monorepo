@@ -140,6 +140,9 @@
     "1337702": {
         "network_name": "kintsugi"
     },
+    "11155420": {
+        "network_name": "optimism-sepolia"
+    },
     "11155111": {
         "network_name": "sepolia"
     }

@@ -648,6 +648,25 @@
             "https://sepolia.otterscan.io"
         ]
     },
+    "11155420": {
+        "chainId": "0xaa37dc",
+        "chainName": "OP Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "optimism-sepolia",
+        "rpcUrls": [
+            "https://sepolia.optimism.io",
+            "https://optimism-sepolia.drpc.org",
+            "wss://optimism-sepolia.drpc.org"
+        ],
+        "hostedRPC": "https://sepolia.optimism.io",
+        "blockExplorerUrls": [
+            "https://optimism-sepolia.blockscout.com"
+        ]
+    },
     "88558801": {
         "chainId": "0x5474cd1",
         "chainName": "Backstop Testnet 1",
