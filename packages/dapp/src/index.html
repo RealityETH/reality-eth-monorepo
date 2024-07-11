@@ -61,7 +61,7 @@
                 
 </span>
 
-            <span class="error-label not-specified-network">You followed a link to the <span class="network-specified-text"></span> but you are currently on <span class="network-detected-text"></span>. 
+            <span class="error-label not-specified-network">You followed a link to <span class="network-specified-text"></span> but you are currently on <span class="network-detected-text"></span>. 
                 <br />
                 <br />
                 <span>Please <span class="add-network-button">switch network</span>.</span>
@@ -105,42 +105,13 @@
 
             <hr class="upper-divider">
             <div class="network-status-container">
-                    <span class="network-status network-id-1">Main Ethereum Network</span>
-                    <span class="network-status network-id-4">Rinkeby Test Network</span>
-                    <span class="network-status network-id-5">Goerli Test Network</span>
-                    <span class="network-status network-id-8">Ubiq Main Network</span>
-                    <span class="network-status network-id-10">Optimism Network</span>
-                    <span class="network-status network-id-40">Telos EVM Chain</span>
-                    <span class="network-status network-id-56">Binance Smart Chain</span>
-                    <span class="network-status network-id-69">Optimistic Kovan Network</span>
-                    <span class="network-status network-id-77">Sokal Network</span>
-                    <span class="network-status network-id-97">BSC Testnet (Chapel)</span>
-                    <span class="network-status network-id-280">ZKSync Goerli Network</span>
-                    <span class="network-status network-id-300">ZKSync Sepolia Network</span>
-                    <span class="network-status network-id-324">ZKSync Era (not audited)</span>
+                <!--
+                An entry like the following will be created for each supported chain and shown if the chain is selected.
+                Add it manually if you want to customize the display to be different to chainName in our config.
                     <span class="network-status network-id-777">CheapETH Network</span>
-                    <span class="network-status network-id-100">Gnosis Network</span>
-                    <span class="network-status network-id-137">Polygon Main Network</span>
-                    <span class="network-status network-id-1101">Polygon zkEVM</span>
-                    <span class="network-status network-id-10200">Chiado Test Network</span>
-                    <span class="network-status network-id-17000">Holesky Test Network</span>
-                    <span class="network-status network-id-80001">Polygon Mumbai Test Network</span>
-                    <span class="network-status network-id-690">Redstone Network</span>
-                    <span class="network-status network-id-534353">Scroll Alpha Test Network</span>
-                    <span class="network-status network-id-43114">AVA C-Chain</span>
-                    <span class="network-status network-id-42161">Arbitrum One Network</span>
-                    <span class="network-status network-id-421611">Arbitrum Rinkeby Test Network</span>
-                    <span class="network-status network-id-421613">Arbitrum Goerli Test Network</span>
-                    <span class="network-status network-id-421614">Arbitrum Sepolia Test Network</span>
-                    <span class="network-status network-id-1337702">Kintsugi Test Network</span>
-                    <span class="network-status network-id-11155111">Sepolia Test Network</span>
-                    <span class="network-status network-id-11155420">Optimism Sepolia Test Network</span>
-                    <span class="network-status network-id-88558801">Backstop L2 Test Network</span>
-                    <span class="network-status network-id-123411710">Local Test Network</span>
-                    <span class="network-status network-id-unknown">Unknown Test Network</span>
+                -->
+                <span class="network-status network-id-10">Optimism</span>
             </div>
-
-
 
             <div id="site-introduction__buttons">
                 <a id="post-a-question-button" class="rcbrowser__open-button" data-target-id="id0" href="">Ask a Question</a>
@@ -438,7 +409,7 @@
             <div class="rcbrowser-main">
                 <div class="rcbrowser-main-body chain-list-explanation">
 
-                    <div class="current-chain-display"><p>You are on the <span class="current-chain-text"></span>.</p></div>
+                    <div class="current-chain-display"><p>You are on <span class="current-chain-text"></span>.</p></div>
 
                     <div class="graph-node-switch">
                         <div class="via-graph-only">
@@ -456,6 +427,10 @@
                         </div>
                     </div>
 
+                    <!--
+                    Chains not listed here but listed in the contracts config will be added automatically alphabetically.
+                    To customize their appearance
+                    -->
                     <h3>Other networks</h3>
                     <ul class="other-chain-list other-chain-list-production">
                         <li class="chain-item" data-chain-id="1"><a href="#!/network/1">Main Ethereum Network</a></li>
@@ -475,11 +450,7 @@
 
                     <h3>Test Networks</h3>
                     <ul class="other-chain-list other-chain-list-testnet">
-                        <li class="chain-item" data-chain-id="5"><a href="#!/network/5">Goerli Testnet</a></li>
-                        <li class="chain-item" data-chain-id="17000"><a href="#!/network/17000">Holesky Testnet</a></li>
-                        <li class="chain-item" data-chain-id="4"><a href="#!/network/4">Rinkeby Testnet</a></li>
-                        <li class="chain-item" data-chain-id="11155111"><a href="#!/network/11155111">Sepolia Testnet</a></li>
-                        <li class="chain-item" data-chain-id="77"><a href="#!/network/77">Sokal Testnet</a></li>
+
 
                         <li class="chain-item" data-chain-id="421613"><a href="#!/network/421613">Arbitrum Goerli Testnet</a></li>
                         <li class="chain-item" data-chain-id="421611"><a href="#!/network/421611">Arbitrum Rinkeby Testnet</a></li>
@@ -490,13 +461,19 @@
                         <li class="chain-item" data-chain-id="97"><a href="#!/network/97">BSC Chapel Testnet</a></li>
 
                         <li class="chain-item" data-chain-id="10200"><a href="#!/network/10200">Gnosis Chiado Testnet</a></li>
+                        <li class="chain-item" data-chain-id="5"><a href="#!/network/5">Goerli Testnet</a></li>
+
+                        <li class="chain-item" data-chain-id="17000"><a href="#!/network/17000">Holesky Testnet</a></li>
 
                         <li class="chain-item" data-chain-id="69"><a href="#!/network/69">Optimism Kovan Testnet</a></li>
                         <li class="chain-item" data-chain-id="11155420"><a href="#!/network/11155420">Optimism Sepolia Network</a></li>
 
                         <li class="chain-item" data-chain-id="80001"><a href="#!/network/80001">Polygon Mumbai Testnet</a></li>
 
+                        <li class="chain-item" data-chain-id="4"><a href="#!/network/4">Rinkeby Testnet</a></li>
                         <li class="chain-item" data-chain-id="534353"><a href="#!/network/534353">Scroll Alpha Testnet</a></li>
+                        <li class="chain-item" data-chain-id="11155111"><a href="#!/network/11155111">Sepolia Testnet</a></li>
+                        <li class="chain-item" data-chain-id="77"><a href="#!/network/77">Sokal Testnet</a></li>
 
                         <li class="chain-item" data-chain-id="280"><a href="#!/network/280">ZKSync Goerli Network</a></li>
                         <li class="chain-item" data-chain-id="300"><a href="#!/network/280">ZKSync Sepolia Network</a></li>

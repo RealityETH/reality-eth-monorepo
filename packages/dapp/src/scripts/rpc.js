@@ -5,7 +5,7 @@ import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
 import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
-import { displayWrongChain } from './ui_lib.js';
+import { displayWrongChain, setupChainList } from './ui_lib.js';
 
 export default function() {
 
@@ -638,14 +638,6 @@ $('#chain-list-window .rcbrowser__close-button').on('click', function(e) {
     $('#chain-list-window').css('z-index', 0).removeClass('is-open');
     document.documentElement.style.cursor = ""; // Work around Interact draggable bug
 });
-
-$('.chain-item a').click(function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const cid = $(this).closest('.chain-item').attr('data-chain-id')
-    window.location.hash = '!/network/'+cid;
-    window.location.reload(true);
-})
 
 $('#your-question-answer-window .rcbrowser__close-button').on('click', function(e) {
     e.preventDefault();
@@ -5689,6 +5681,8 @@ window.addEventListener('load', async function() {
 
     let cid;
 
+    setupChainList(rc_contracts.supportedChains());
+
     const args = parseHash();
     if (args['token'] && args['token'] != 'ETH') {
         TOKEN_TICKER = args['token'];
@@ -5798,6 +5792,7 @@ window.addEventListener('load', async function() {
         }
 
         const all_rc_configs = rc_contracts.realityETHConfigs(cid, TOKEN_TICKER);
+
         let rc_config = null;
         let show_all = true;
         if (args['contract']) {

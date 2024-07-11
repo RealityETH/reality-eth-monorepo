@@ -241,6 +241,74 @@ function displayWrongChain(specified, detected, rcc, jq) {
     return;
 }
 
+function isProbablyATestnet(chain_name) {
+    const markers = ['sepolia', 'goerli', 'rinkeby', 'ropsten', 'holesky', 'kovan', 'kintsugi', 'sokol', 'mumbai', 'test'];
+    for (let i=0; i<markers.length; i++) {
+        if (chain_name.toLowerCase().indexOf(markers[i]) !== -1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function alphabeticalInsert(jli, entry) {
+    let done = false;
+    jli.find('li').each(function() {
+        if (done) {
+            return;
+        }
+        if ($(this).text().localeCompare($(entry).text()) > 0) {
+            // console.log('insert', entry, 'before', $(this));
+            entry.insertBefore($(this));
+            done = true;
+        }
+    });
+    if (!done) {
+        // console.log('append', entry, 'to container', jli);
+        jli.append(entry);
+    }
+}
+
+function setupChainList(supported_chains) {
+    // console.log('supported_chains', supported_chains);
+    // Generate the network status list and chain switch menu based on supported chains
+    // If they are already hard-coded in the HTML, leave them alone, we do this if we need customization
+    const status_container = $('div.network-status-container');
+    const testnet_container = $('.other-chain-list-testnet');
+    const mainnet_container = $('.other-chain-list-production');
+    for(const cid in supported_chains) {
+        const cls = 'network-id-'+cid;
+        let txt = supported_chains[cid];
+        if (status_container.find('.'+cls).length == 0) {
+            //console.log('no class '+cls+', adding');
+            const entry = $('<span class="network-status"></span>');
+            entry.addClass('network-status');
+            entry.addClass(cls);
+            entry.text(txt);
+            // console.log('append entry', entry);
+            status_container.append(entry);
+        }
+        if (testnet_container.find('[data-chain-id="'+cid+'"]').length == 0 && mainnet_container.find('[data-chain-id="'+cid+'"]').length == 0) {
+            const lnk = $('<li class="chain-item"><a href="#"></a></li>');
+            lnk.attr('data-chain-id', cid);
+            lnk.find('a').attr('href', '#!/network/'+cid).text(txt);
+            if (isProbablyATestnet(txt)) {
+                alphabeticalInsert(testnet_container, lnk);
+            } else {
+                alphabeticalInsert(mainnet_container, lnk);
+            }
+        }
+    }
+    $('.chain-item a').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const cid = $(this).closest('.chain-item').attr('data-chain-id')
+        window.location.hash = '!/network/'+cid;
+        window.location.reload(true);
+    })
+
+}
+
 export { 
     storeCustomContract, 
     importedCustomContracts, 
@@ -249,5 +317,6 @@ export {
     parseHash,
     updateHashQuestionID,
     loadSearchFilters,
-    displayWrongChain
+    displayWrongChain,
+    setupChainList
 }
