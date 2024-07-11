@@ -182,6 +182,14 @@ function isChainSupported(chain_id) {
     return (""+chain_id in chain_info);
 }
 
+function supportedChains() {
+    let ret = {};
+    for (chain_id in chain_info) {
+        ret[""+chain_id] = chain_info[""+chain_id].chainName;
+    }
+    return ret;
+}
+
 function walletAddParameters(chain_id) {
     var params = ['chainId', 'chainName', 'nativeCurrency', 'rpcUrls', 'blockExplorerUrls']
     var ret = {};
@@ -338,6 +346,7 @@ module.exports.templateConfig = templateConfig;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
 module.exports.isChainSupported = isChainSupported;
+module.exports.supportedChains = supportedChains;
 module.exports.factoryList = factoryList;
 module.exports.tokenAndContractConfigFromFactory = tokenAndContractConfigFromFactory;
 module.exports.configForAddress = configForAddress;
