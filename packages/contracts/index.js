@@ -182,10 +182,12 @@ function isChainSupported(chain_id) {
     return (""+chain_id in chain_info);
 }
 
-function supportedChains() {
+function supportedChains(include_deprecated = false) {
     let ret = {};
     for (chain_id in chain_info) {
-        ret[""+chain_id] = chain_info[""+chain_id].chainName;
+        if (include_deprecated || !chain_info[""+chain_id].deprecated) {
+            ret[""+chain_id] = chain_info[""+chain_id].chainName;
+        }
     }
     return ret;
 }

@@ -74,6 +74,10 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['network_name'] = our_data['network_name'];
     }
 
+    if (our_data['deprecated']) {
+        chainparams['deprecated'] = true;
+    }
+
     chainparams['blockExplorerUrls'] = [];
     if ('explorers' in chain_info) {
         for(var exi in chain_info['explorers']) {

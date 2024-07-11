@@ -45,6 +45,7 @@
         "rpcUrls": [],
         "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten",
+        "deprecated": true,
         "blockExplorerUrls": [
             "https://ropsten.etherscan.io"
         ]
@@ -465,6 +466,7 @@
             "wss://holesky.drpc.org"
         ],
         "hostedRPC": "https://ethereum-holesky.publicnode.com",
+        "deprecated": true,
         "blockExplorerUrls": [
             "https://holesky.beaconcha.in",
             "https://holesky.otterscan.io",
@@ -617,6 +619,7 @@
             "https://rpc.kintsugi.themerge.dev"
         ],
         "hostedRPC": "https://rpc.kintsugi.themerge.dev",
+        "deprecated": true,
         "blockExplorerUrls": [
             "https://explorer.kintsugi.themerge.dev"
         ]

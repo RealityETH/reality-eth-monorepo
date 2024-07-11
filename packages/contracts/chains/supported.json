@@ -9,7 +9,8 @@
         "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
         "explorerURL": "https://ropsten.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten",
-        "network_name": "ropsten"
+        "network_name": "ropsten",
+        "deprecated": true
     },
     "4": {
         "hostedRPC": "https://eth-rinkeby.alchemyapi.io/v2/m2Op-gK2G1RiwtWHr6QB_JH9-ry0A6do",
@@ -102,7 +103,8 @@
     "17000": {
         "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "explorerURL": "https://holesky.etherscan.io/",
-        "network_name": "holesky"
+        "network_name": "holesky",
+        "deprecated": true
     },
     "42161": {
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
@@ -138,7 +140,8 @@
         "hostedRPC": "https://alpha-rpc.scroll.io/l2"
     },
     "1337702": {
-        "network_name": "kintsugi"
+        "network_name": "kintsugi",
+        "deprecated": true
     },
     "11155420": {
         "network_name": "optimism-sepolia"
