@@ -3471,3 +3471,16 @@ span.filter-icon {
 .network-connected .loading-text-connected {
     display:inline;
 }
+
+.no-graph-endpoint-only {
+    display: none;
+}
+.has-graph-endpoint-only {
+    display: block;
+}
+.no-graph-endpoint .no-graph-endpoint-only {
+    display: block;
+}
+.no-graph-endpoint .has-graph-endpoint-only {
+    display: none;
+}

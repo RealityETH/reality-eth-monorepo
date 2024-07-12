@@ -4725,7 +4725,6 @@ async function fetchAndDisplayQuestionFromGraph(displayed_contracts, search_filt
 
     const network_graph_url = CHAIN_INFO.graphURL;
     if (!network_graph_url) {
-        $('body').addClass('no-graph-endpoint');
         console.log('No graph endpoint found for this network, skipping graph fetch');
         return false;
     }
@@ -5685,6 +5684,10 @@ window.addEventListener('load', async function() {
         }
 
         CHAIN_INFO = rc_contracts.chainData(cid);
+
+        if (!CHAIN_INFO.graphURL) {
+            $('body').addClass('no-graph-endpoint');
+        }
 
         // If we specify a contract but not a token, get the token ticker based on the contract
 

@@ -413,16 +413,24 @@
 
                     <div class="graph-node-switch">
                         <div class="via-graph-only">
-                            You are currently loading the page via The Graph. This usually provides the best performance, but it relies on a hosted service.
-                            If you have a browser like Brave, Frame, or MetaMask, you can switch to an RPC node.
-                            <div>
-                                <div class="graph-node-switch-link">Switch to RPC</div>
+                            <div class="has-graph-endpoint-only">
+                                You are currently loading the page via The Graph. This usually provides the best performance, but it relies on a hosted service.
+                                If you have a browser like Brave, Frame, or MetaMask, you can switch to an RPC node.
                             </div>
+                            <div class="no-graph-endpoint-only">
+                                We cannot load this chain via Graph as we do not have an endpoint for it.
+                            </div>
+                            <div class="graph-node-switch-link">Switch to RPC</div>
                         </div>
                         <div class="via-node-only">
-                            You are currently loading the page via an RPC node. If you find the page loads slowly, you may get better performance by switching to The Graph's hosted service.
-                            <div>
-                                <div class="graph-node-switch-link">Switch to Graph</div>
+                            <div class="has-graph-endpoint-only">
+                                You are currently loading the page via an RPC node. If you find the page loads slowly, you may get better performance by switching to The Graph's hosted service.
+                                <div>
+                                    <div class="graph-node-switch-link">Switch to Graph</div>
+                                </div>
+                            </div>
+                            <div class="no-graph-endpoint-only">
+                                This chain is being loaded over RPC, which may be slow.<br />We do not have an endpoint to load it via Graph.
                             </div>
                         </div>
                     </div>

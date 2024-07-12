@@ -5757,6 +5757,10 @@ window.addEventListener('load', async function() {
 
         CHAIN_INFO = rc_contracts.chainData(cid);
 
+        if (!CHAIN_INFO.graphURL) {
+            $('body').addClass('no-graph-endpoint');
+        }
+
         // If we specify a contract but not a token, get the token ticker based on the contract
 
         const imported_custom_contracts = importedCustomContracts(cid);
