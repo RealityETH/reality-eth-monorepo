@@ -125,7 +125,8 @@
     "88558801": {
         "hostedRPC": "https://testnet.rpc.backstop.technology",
         "explorerURL": "https://testnet.explorer.backstop.technology/",
-        "network_name": "backstopTestnet1"
+        "network_name": "backstopTestnet1",
+        "graphURL": "https://testnet.graph.backstop.technology/subgraphs/name/realityeth-backstop"
     },
     "421611": {
         "network_name": "arbitrum-rinkeby"

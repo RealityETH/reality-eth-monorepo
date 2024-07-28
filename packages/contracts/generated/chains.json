@@ -683,6 +683,7 @@
             "https://testnet.rpc.backstop.technology"
         ],
         "hostedRPC": "https://testnet.rpc.backstop.technology",
+        "graphURL": "https://testnet.graph.backstop.technology/subgraphs/name/realityeth-backstop",
         "blockExplorerUrls": [
             "https://testnet.explorer.backstop.technology/"
         ]
