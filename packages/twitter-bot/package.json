@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/twitter-bot",
-  "version": "1.0.59",
+  "version": "1.0.60",
   "description": "Bot for tweeting out reality.eth questions and answers",
   "main": "index.js",
   "scripts": {
@@ -24,8 +24,8 @@
   },
   "homepage": "https://github.com/RealityETH/reality-eth-monorepo#readme",
   "dependencies": {
-    "@reality.eth/contracts": "^3.0.58",
-    "@reality.eth/reality-eth-lib": "^3.2.42",
+    "@reality.eth/contracts": "^3.0.59",
+    "@reality.eth/reality-eth-lib": "^3.2.43",
     "axios": "^0.24.0",
     "ethers": "^5.6.8",
     "twit": "^2.2.11"
