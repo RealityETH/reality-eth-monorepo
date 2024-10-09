@@ -32,4 +32,4 @@ The following are published to npm. They are versioned individually, and updated
 
 Some packages reference each other, for example `dapp` needs `contracts` and `reality-eth-lib`. When developing it can be useful to make your local environment refer directly to the working versions of the other packages in the repo. To do this, instead of running the normal `npm install` for each JavaScript package, run `lerna bootstrap` from the uppermost directory. This will install external dependencies normally, but set up dependencies within this repo as symlinks.
 
-NB The dapp lerna setup does not seem to be working correctly. You may need to run `npm install` separately for the dapp.
+NB The dapp lerna setup does not seem to be working correctly. You may need to run `npm install` separately for the dapp. If `npm install` fails due to problems with node-gyp or node-sass, try deleting packages/dapp/package-lock.json and `node_modules` then running `npm install` again.
