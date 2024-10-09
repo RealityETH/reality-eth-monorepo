@@ -2878,11 +2878,23 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.removeClass('unconfirmed-transaction').removeClass('has-warnings');
     }
 
-    const metadata = arbitrationMetaDataFromCache(question_detail.arbitrator);
+    let metadata = arbitrationMetaDataFromCache(question_detail.arbitrator);
     if (metadata && 'tos' in metadata && metadata['tos']) {
         populateTOSSection(rcqa, metadata['tos']);
     } else {
-        populateTOSSection(rcqa, null);
+        if (metadata) {
+            // We already loaded it and confirmed it was empty
+            populateTOSSection(rcqa, null);
+        } else {
+            // Load it asynchronously to avoid delaying question display
+            loadArbitratorMetaData(question_detail.arbitrator).then(function(metadata) {
+                if (metadata && 'tos' in metadata && metadata['tos']) {
+                    populateTOSSection(rcqa, metadata['tos']);
+                } else {
+                    populateTOSSection(rcqa, null);
+                }
+            });
+        }
     }
 
     let bond = ethers.BigNumber.from(""+TOKEN_INFO[TOKEN_TICKER]['small_number']).div(2);
