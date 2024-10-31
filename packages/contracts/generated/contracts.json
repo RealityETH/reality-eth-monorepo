@@ -421,6 +421,12 @@
     },
     "10200": {
         "XDAI": {
+            "RealityETH-2.1": {
+                "address": "0xC68755Ba891A31b969764eB46C0bC7A5127A0854",
+                "block": 12569806,
+                "notes": null,
+                "arbitrators": {}
+            },
             "RealityETH-3.0": {
                 "address": "0x1E732a1C5e9181622DD5A931Ec6801889ce66185",
                 "block": 10438389,
