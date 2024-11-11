@@ -20,7 +20,8 @@ const settings = require(deployment_json);
 const address = settings.address;
 const chain_data = rc.chainData(chain_id);
 const rpc = chain_data.hostedRPC ? chain_data.hostedRPC : chain_data.rpcUrls[0];
-const start_block = config.block-1;
+const deployment_start_block = config.block-1;
+const start_block = process.argv[3] ? parseInt(process.argv[3]) : deployment_start_block;
 
 const provider = new ethers.providers.JsonRpcProvider(rpc);
 const abi = JSON.parse(fs.readFileSync('../abi/solc-0.8.6/RealityETH-all.abi.json'));
