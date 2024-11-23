@@ -312,7 +312,8 @@
                 "arbitrators": {
                     "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd": "Kleros",
                     "0x7202deD6f13525A8298Ea53fBFD4395fDCc8d5f1": "Reality.eth team - testing only",
-                    "0x34a8B97bd8Ac4AfBe91C71E961C3f9c1F064717F": "DXdao - Test"
+                    "0x34a8B97bd8Ac4AfBe91C71E961C3f9c1F064717F": "DXdao - Test",
+                    "0x5562ac605764dc4039fb6ab56a74f7321396cdf2": "Kleros with appeal support"
                 }
             },
             "RealityETH-3.0": {
