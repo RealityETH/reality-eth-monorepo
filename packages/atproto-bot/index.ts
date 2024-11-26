@@ -8,6 +8,16 @@ const rc_contracts = require('@reality.eth/contracts');
 const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js');
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
+const PER_QUERY = 20;
+const MAX_TWEET = 300;
+
+const SLEEP_SECS = 10; // How long to pause between runs
+
+const chain_ids = process.argv[2].split(',');
+const init = (process.argv.length > 3 && process.argv[3] == 'init');
+const noop_arg = (process.argv.length > 3 && process.argv[3] == 'noop');
+const NOOP = noop_arg; // || ('noop' in NEYNAR_CONFIG && NEYNAR_CONFIG['noop']);
+
 async function skeet(agent, seen_ts, txt, url, title_end) {
   if (!agent.session) {
     throw new Error("no session, wtf");
@@ -54,17 +64,6 @@ async function go() {
 
 go();
 export { }
-
-//const PER_QUERY = 20;
-const PER_QUERY = 1;
-const MAX_TWEET = 300;
-
-const SLEEP_SECS = 10; // How long to pause between runs
-
-const chain_ids = process.argv[2].split(',');
-const init = (process.argv.length > 3 && process.argv[3] == 'init');
-const noop_arg = (process.argv.length > 3 && process.argv[3] == 'noop');
-const NOOP = noop_arg; // || ('noop' in NEYNAR_CONFIG && NEYNAR_CONFIG['noop']);
 
 async function handleChains(agent) {
     if (NOOP) {
