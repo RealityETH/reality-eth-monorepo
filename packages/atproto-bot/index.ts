@@ -113,7 +113,7 @@ async function processChain(agent, chain_id, init) {
         }
     }
 
-    if (!'graphURL' in chain_data) {
+    if (!('graphURL' in chain_data)) {
         throw new Error("No graph URL found for chain", chain_id);
     }
     const graph_url = chain_data['graphURL'];
