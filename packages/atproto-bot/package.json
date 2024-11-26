@@ -26,7 +26,9 @@
     "@atproto/api": "^0.2.9",
     "@reality.eth/contracts": "^3.0.61",
     "@reality.eth/reality-eth-lib": "^3.2.45",
+    "axios": "^1.7.8",
     "dotenv": "^16.0.3",
-    "ethers": "^6.13.4"
+    "ethers": "^6.13.4",
+    "typescript": "^5.7.2"
   }
 }
