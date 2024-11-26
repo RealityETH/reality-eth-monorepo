@@ -9,7 +9,7 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
 const PER_QUERY = 20;
-const MAX_TWEET = 300;
+const MAX_TWEET = 280;
 
 const SLEEP_SECS = 10; // How long to pause between runs
 
@@ -19,6 +19,9 @@ const noop_arg = (process.argv.length > 3 && process.argv[3] == 'noop');
 const NOOP = noop_arg; // || ('noop' in NEYNAR_CONFIG && NEYNAR_CONFIG['noop']);
 
 async function skeet(agent, seen_ts, txt, url, title_end) {
+  if (title_end > MAX_TWEET) {
+    throw new Error("title too long", txt);
+  }
   if (!agent.session) {
     throw new Error("no session, wtf");
   }
@@ -35,6 +38,9 @@ async function skeet(agent, seen_ts, txt, url, title_end) {
     }
   ]
   const rt = new RichText({ text: txt })
+  if (rt.text.length >= 300) {
+     console.log('too long', txt, rt);
+  }
   //console.log('posting', rt);
   //await rt.detectFacets(agent) // automatically detects mentions and links
   const postRecord = {
@@ -302,7 +308,7 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt
         // Now trim the title to whatever we have left
         const chars_remain = MAX_TWEET - end_part.length;
         if (title.length > chars_remain) {
-            title = title.slice(0, chars_remain) + '...';
+            title = title.slice(0, chars_remain-3) + '...';
         }
 
         if (end_part == '') {
@@ -311,6 +317,7 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt
             str = title + ' ' + end_part;
         }
 
+	/*
         if (category && category != '' && category != 'undefined') {
             str = str + ' #'+category.replace(' ','_');
         }
@@ -318,6 +325,7 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt
         if (creator && creator != '' && creator != 'undefined') {
             str = str + ' #'+creator.replace(' ','');
         }
+        */
 
     }
 
