@@ -1,0 +1,32 @@
+{
+  "name": "@reality.eth/atproto-bot",
+  "version": "0.0.1",
+  "description": "Bot for tweeting out reality.eth questions and answers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RealityETH/reality-eth-monorepo.git"
+  },
+  "keywords": [
+    "reality.eth",
+    "twitter",
+    "oracle",
+    "reality",
+    "realitio"
+  ],
+  "author": "Edmund Edgar",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/RealityETH/reality-eth-monorepo/issues"
+  },
+  "homepage": "https://github.com/RealityETH/reality-eth-monorepo#readme",
+  "devDependencies": {
+    "tsx": "^3.12.6"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.2.9",
+    "@reality.eth/contracts": "^3.0.61",
+    "@reality.eth/reality-eth-lib": "^3.2.45",
+    "dotenv": "^16.0.3",
+    "ethers": "^6.13.4"
+  }
+}
