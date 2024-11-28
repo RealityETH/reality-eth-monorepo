@@ -57,14 +57,28 @@ async function skeet(agent, seen_ts, txt, url, title_end) {
 
 async function go() {
     config();
+    const session_fn = './state/session.json';
     let agent = new BskyAgent({
       service: 'https://bsky.social',
+      persistSession: (evt: AtpSessionEvent, sesh?: AtpSessionData) => {
+	if (!sesh) {
+	  console.log('no session');
+	  return;
+	}
+	console.log('new login, storing session');
+        fs.writeFileSync(session_fn, JSON.stringify(sesh), {encoding: "utf8"});
+      }
     });
     const login_params = {
       identifier: process.env.BSKY_USERNAME as string,
       password: process.env.BSKY_PASS as string
     };
-    await agent.login(login_params);
+    if (fs.existsSync(session_fn)) {
+      const sess = JSON.parse(fs.readFileSync(session_fn, {encoding: "utf8"}));
+      await agent.resumeSession(sess);
+    } else {
+      await agent.login(login_params);
+    }
     await handleChains(agent);
 }
 
