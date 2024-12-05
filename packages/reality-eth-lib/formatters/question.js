@@ -563,3 +563,10 @@ exports.answerHash = function(answer_plaintext, nonce) {
         [ new BN(answer_plaintext.replace(/^0x/, ''), 16), new BN(nonce.replace(/^0x/, ''), 16)]
     ).toString('hex');
 }
+
+exports.shortDisplayQuestionID = function(question_id) {
+    // Question ID may or may not have the contract address prepended
+    const bits = question_id.split('-');
+    const qid = bits[bits.length-1];
+    return qid.substring(2,9) + '...' + qid.slice(-7);
+}

@@ -386,6 +386,16 @@ describe('Question ID tests', function() {
 
 });
 
+describe('Short question ID tests', function() {
+   // First 7 characters of main ID (without prefixing contract address), "...", last 7 characters
+   const full_qid = '0xe78996a233895be74a66f451f1019ca9734205cc-0x2703ce72afee88da2cb1e7b405c6d5354af732d9893538f684083698763ef35a';
+   const normal_qid = '0x2703ce72afee88da2cb1e7b405c6d5354af732d9893538f684083698763ef35a';
+   const full_to_short = rc_question.shortDisplayQuestionID(full_qid);
+   const normal_to_short = rc_question.shortDisplayQuestionID(normal_qid);
+   expect(full_to_short).to.equal('2703ce7...63ef35a');
+   expect(normal_to_short).to.equal('2703ce7...63ef35a');
+});
+
 describe('Custom template handling', function() {
   const example_template = '{"title": "%s", "dogs": "%s", "cats": "%s"}';
   const example_template_arr = '{"title": "%s", "dogs": "%s", "cats": [%s], "ants": [%s]}';
