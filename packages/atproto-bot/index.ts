@@ -11,21 +11,72 @@ const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js
 const PER_QUERY = 20;
 const MAX_TWEET = 280;
 
-const SLEEP_SECS = 10; // How long to pause between runs
+const SLEEP_SECS = 3; // How long to pause between runs
 
 const chain_ids = process.argv[2].split(',');
 const init = (process.argv.length > 3 && process.argv[3] == 'init');
 const noop_arg = (process.argv.length > 3 && process.argv[3] == 'noop');
 const NOOP = noop_arg; // || ('noop' in NEYNAR_CONFIG && NEYNAR_CONFIG['noop']);
 
-async function skeet(agent, seen_ts, txt, url, title_end) {
+const sleep = (milliseconds) => {
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
+async function fetchQuestionSkeet(agent, q_id, title) {
+    // Ideally we would fetch for a post with the expected URL.
+    // However, the search on the URL (or the tag) appears not to be working.
+    // Instead, we will tag with a short tag which appears in the text.
+    // We will then search for the short tag.
+    // The short tag may collide with unrelated questions.
+    // So we will loop through what we get and check the URL.
+    console.log('search with short id is', rc_question.shortDisplayQuestionID(q_id));
+    // console.log('search for', title);
+      const res = await agent.api.app.bsky.feed.searchPosts({
+        q: rc_question.shortDisplayQuestionID(q_id),
+        //q: title,
+        sort: 'top',
+        author: agent.session.did,
+        // url: q_url,
+        // tag: ["1dbfe6c33236a9b1bc1ce5a1172e868446a411bc9c4d98ddd8fb4f4b560cf953"],
+        // tag: q_id.slice(-64),
+        limit: 2
+      });
+      // console.log('seach result', res.data);
+      if (res.data.posts) {
+        // console.log('result', res.data.posts);
+        for (let i=0; i<res.data.posts.length; i++) {
+          const post = res.data.posts[i];
+           //console.log('got post', res.data.posts[i]);
+          if (post.record && post.record.facets) {
+             for (let j=0; j<post.record.facets.length; j++) {
+                const features = res.data.posts[i].record.facets[j].features
+                if (features && features.length) {
+                  const link = features[0].uri;
+                  //console.log('look for', q_id, 'in ', link);
+                  if (link && link.toLowerCase().indexOf(q_id.toLowerCase()) !== -1){
+                     console.log('found, returning data', res.data.posts[i]);
+                     return res.data.posts[i];
+                  }
+                }
+             }
+          }
+          // console.log(res.data.posts[i]);
+        }
+      }
+    console.log('not found for ', q_id);
+    return null;
+}
+
+async function skeet(agent, seen_ts, qid, txt, url, title_end, reply_to) {
+// console.log('skeet reply_to is', reply_to);
   if (title_end > MAX_TWEET) {
     throw new Error("title too long", txt);
   }
   if (!agent.session) {
     throw new Error("no session, wtf");
   }
-  const facets = [
+
+  const facets = reply_to ? [] : [
     {
       index: {
         byteStart: 0,
@@ -35,24 +86,53 @@ async function skeet(agent, seen_ts, txt, url, title_end) {
         $type: 'app.bsky.richtext.facet#link',
         uri: url
       }]
+    },
+    {
+      index: {
+        byteStart: title_end+1,
+        byteEnd: title_end+19
+      },
+      features: [{
+        $type: 'app.bsky.richtext.facet#tag',
+        tag: qid.slice(-64)
+      }]
     }
   ]
+  const short_id = "#"+rc_question.shortDisplayQuestionID(qid);
+  txt = reply_to ? txt : txt + ' ' + short_id
   const rt = new RichText({ text: txt })
   if (rt.text.length >= 300) {
      console.log('too long', txt, rt);
   }
   //console.log('posting', rt);
   //await rt.detectFacets(agent) // automatically detects mentions and links
-  const postRecord = {
+
+  let postRecord = {
     $type: 'app.bsky.feed.post',
     text: rt.text,
-    facets: facets,
-    createdAt: new Date(seen_ts*1000).toISOString()
+    createdAt: new Date(seen_ts*1000).toISOString(),
   }
+
+  if (reply_to) {
+    postRecord.reply = {
+        "root": {
+          "uri": reply_to.uri,
+          "cid": reply_to.cid
+        },
+        "parent": {
+          "uri": reply_to.uri,
+          "cid": reply_to.cid
+        }
+    };
+  } else {
+    postRecord.facets = facets;
+  }
+
   const res = await agent.app.bsky.feed.post.create({
     repo: agent.session?.did,
   }, postRecord);
-  console.log(res);
+  // console.log(res);
+  return res;
 }
 
 async function go() {
@@ -164,63 +244,42 @@ async function processChain(agent, chain_id, init) {
 
 }
 
+async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts, q_id) {
 
-async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts) {
+    let q_created = {};
 
-    /*
-    const sleep = (milliseconds) => {
-      return new Promise(resolve => setTimeout(resolve, milliseconds))
-    }
-    await sleep(10000);
-    */
+    // Fetch the next range, unless we got a specific id
+    const where = q_id ? `id: "${q_id}"` : `createdTimestamp_gt: ${initial_ts}`; 
+
+    const query = `
+      {
+        questions(orderBy: createdTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: { ${where} }) {
+            id,
+            createdTimestamp,
+            user,
+            qCategory,
+            contract,
+            data,
+            bounty,
+            currentAnswer,
+            currentAnswerTimestamp,
+            currentAnswerBond,
+            template {
+                questionText
+            }
+        }
+      }
+    `
 
     const qres = await axios.post(graph_url, {
-      query: `
-      {
-        questions(orderBy: createdTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: { createdTimestamp_gt: ${initial_ts}, currentAnswerTimestamp: null }) {
-            id,
-            createdTimestamp,
-            user,
-            qCategory,
-            contract,
-            data,
-            bounty,
-            currentAnswer,
-            currentAnswerTimestamp,
-            currentAnswerBond,
-            template {
-                questionText
-            }
-        }
-      }
-    `
+      query: query 
     })
+    // console.log(query);
 
-    const ares = await axios.post(graph_url, {
-      query: `
-      {
-        questions(orderBy: currentAnswerTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: { currentAnswerTimestamp_gt: ${initial_ts} }) {
-            id,
-            createdTimestamp,
-            user,
-            qCategory,
-            contract,
-            data,
-            bounty,
-            currentAnswer,
-            currentAnswerTimestamp,
-            currentAnswerBond,
-            template {
-                questionText
-            }
-
-        }
-      }
-    `
-    })
-
-    // console.log(ares.data.errors);
-    const questions = qres.data.data.questions.concat(ares.data.data.questions);
+    if (qres.data.errors) {
+       console.log(qres.data.errors);
+    }
+    const questions = qres.data.data.questions;
 
     // console.log('res', res.data);
     let i = 0;
@@ -249,24 +308,13 @@ async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, init
         let bounty_txt = '';
         let current_answer_txt = '';
         const decimals = tokens[token].decimals;
-        if (q.currentAnswerTimestamp && parseInt(q.currentAnswerTimestamp) > 0) {
-            // console.log('q.currentAnswerTimestamp', q.currentAnswerTimestamp, 'gt', initial_ts);
-            current_answer_txt = rc_question.getAnswerString(question_json, q.currentAnswer);
-            seen_ts = q.currentAnswerTimestamp;
-            // console.log('bond', q.currentAnswerBond);
-            const bond = ethers.formatUnits(q.currentAnswerBond, decimals).replace(/\.0+$/,'') + ' ' + token;
-            bond_txt = '('+bond+')';
-        } else if (q.bounty > 0) {
+        if (q.bounty > 0) {
             const bounty = ethers.formatUnits(q.bounty, decimals).replace(/\.0+$/,'') + ' ' + token;
             bounty_txt = '(pays '+bounty+')'
         }
 
         let msg_id = id;
-        if (q.currentAnswerTimestamp) {
-            msg_id = msg_id + '-' + q.currentAnswerTimestamp;
-        }
-        console.log('made msg id ', msg_id);
-
+        // console.log('made msg id ', msg_id);
         //console.log(url);
 
         if (ts < q.createdTimestamp) {
@@ -280,24 +328,177 @@ async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, init
             console.log('skipping question with errors', question_json['errors'], contract, template_text)
             continue;
         }
-        await tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt, current_answer_txt, q.qCategory, q.user, url);
+
+        const existing = await fetchQuestionSkeet(agent, msg_id, title);
+        if (existing) {
+            console.log('question already found, skipping');
+            continue;
+        }
+
+        const response = await tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, q.qCategory, q.user, url);
+        q_created[id] = response;
+        
         updateStateFile(chain_id, seen_ts, i);
+        await sleep(SLEEP_SECS*1000);
     }
+
+    //console.log('q_created', q_created);
+    return q_created;
+
 }
 
-async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt, answer_txt, category, creator, url) {
+async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts) {
+ 
+    // TODO: Filter to unrevealed
+    const ares = await axios.post(graph_url, {
+      query: `
+      {
+        responses(orderBy: timestamp, orderDirection: asc, first: ${PER_QUERY},  where: { timestamp_gt: ${initial_ts} }) {
+            question {
+                id,
+                contract,
+                data,
+                template {
+                    questionText
+                }
+            },
+            id,
+            user,
+            timestamp,
+            answer,
+            bond
+        }
+      }
+    `
+    })
+
+    // console.log('ares', ares.data.errors);
+    const answers = ares.data.data.responses;
+
+    // console.log('ares', answers);
+    let ai = 0;
+    for (const a of answers) {
+        ai++;
+        //console.log(q)
+        const q = a.question;
+        const contract = q.contract;
+        const id = q.id;
+        const data = q.data;
+        const template_text = q.template.questionText;
+        let question_json;
+        let ts = 0;
+        try {
+            question_json = rc_question.populatedJSONForTemplate(template_text, data, true);
+        } catch (e) {
+            console.log('parse failure, skipping');
+            continue;
+        }
+        let title = question_json['title'];
+
+        const token = contract_tokens[contract.toLowerCase()];
+        const url = 'https://reality.eth.link/app/#!/network/'+chain_id+'/contract/'+contract+'/token/'+token+'/question/'+id;
+
+        let seen_ts = q.createdTimestamp;
+        let bond_txt = '';
+        let bounty_txt = '';
+        let answer_txt = '';
+        const decimals = tokens[token].decimals;
+        // console.log('q.currentAnswerTimestamp', q.currentAnswerTimestamp, 'gt', initial_ts);
+        answer_txt = rc_question.getAnswerString(question_json, a.answer);
+        seen_ts = a.timestamp
+        // console.log('bond', q.currentAnswerBond);
+        const bond = ethers.formatUnits(a.bond, decimals).replace(/\.0+$/,'') + ' ' + token;
+        bond_txt = '('+bond+')';
+
+        //const bounty = ethers.formatUnits(q.bounty, decimals).replace(/\.0+$/,'') + ' ' + token;
+        // bounty_txt = '(pays '+bounty+')'
+
+        let msg_id = id;
+        /*
+        if (q.currentAnswerTimestamp) {
+            msg_id = msg_id + '-' + q.currentAnswerTimestamp;
+        }
+        //console.log('made msg id ', msg_id);
+        */
+
+        //console.log(url);
+
+        if (ts < a.timestamp) {
+            ts = a.timestamp;
+            ai = 0;
+        }
+        if (!title) {
+            continue;
+        }
+        if ('errors' in question_json) {
+            console.log('skipping question with errors', question_json['errors'], contract, template_text)
+            continue;
+        }
+
+        let reply_to = await fetchQuestionSkeet(agent, id, title);
+        if (!reply_to) {
+            console.log('question not found when handling answer, trying to create it', msg_id);
+            // Create just this question so we can answer it
+            const created = await handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts, id);
+            if (created[id]) {
+                reply_to = created[id];
+                // console.log('created', created);
+                // console.log('reply_to', reply_to);
+            } else {
+                console.log('question not found and creation failed, skipping');
+                continue;
+            }
+        }
+        let user = a.user;
+
+        await tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user, reply_to);
+console.log('todo: update state file for answer');
+        //updateStateFile(chain_id, seen_ts, i);
+    }
+
+}
+
+async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts) {
+
+    await handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts);
+    await handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts);
+   
+}
+
+async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user, reply_to) {
+
+    // See if we can do the whole thing without trimming
+    let tweet = answer_txt;
+    let available = MAX_TWEET - bond_txt.length - 2;
+
+    if (tweet.length > available) {
+
+        // Try to keep the answer, but truncate it if we need to
+        if (tweet.length > MAX_TWEET) {
+            tweet = tweet.slice(0, MAX_TWEET-3) + '...';
+        }
+
+    }
+
+    tweet = tweet + ' ' + bond_txt;
+
+    if (NOOP) {
+        console.log(tweet);
+        return;
+    }
+
+    const response = await skeet(agent, seen_ts, msg_id, tweet, null, tweet.length, reply_to);
+    return response;
+}
+
+
+async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category, creator, url) {
 
     // See if we can do the whole thing without trimming
     let str = title;
 
     if (bounty_txt != '') {
         str = str + ' ' + bounty_txt;
-    }
-    if (answer_txt != '') {
-        str = str + ' ' + answer_txt;
-    }
-    if (bond_txt != '') {
-        str = str + ' ' + bond_txt;
     }
 
     if (str.length > MAX_TWEET) {
@@ -310,10 +511,6 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt
         }
 
         let end_part = answer_txt;
-        
-        if (bond_txt != '') {
-            end_part = end_part + ' ' + bond_txt;
-        }
         
         if (bounty_txt != '') {
             end_part = bounty_txt + ' ' + end_part;
@@ -351,16 +548,8 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bond_txt, bounty_txt
         return;
     }
 
-    await skeet(agent, seen_ts, tweet, url, title.length);
-    /*
-    try {
-        await client.publishCast(NEYNAR_CONFIG.UUID, tweet, {idem: msg_id})
-    } catch(e) {
-        if (e.response.status == 409) {
-            console.log('skipping duplicate', msg_id);
-        }
-    }
-    */
+    const response = await skeet(agent, seen_ts, msg_id, tweet, url, title.length);
+    return response;
 }
 
 function updateStateFile(chain_id, createdTimestamp, indexFromTimestamp) {
