@@ -9,9 +9,9 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
 const PER_QUERY = 20;
-const MAX_TWEET = 280;
+const MAX_TWEET = 260;
 
-const SLEEP_SECS = 3; // How long to pause between runs
+const SLEEP_SECS = 2; // How long to pause between runs
 
 const chain_ids = process.argv[2].split(',');
 const init = (process.argv.length > 3 && process.argv[3] == 'init');
@@ -67,20 +67,26 @@ async function fetchQuestionSkeet(agent, q_id, title) {
     return null;
 }
 
-async function skeet(agent, seen_ts, qid, txt, url, title_end, reply_to) {
+async function skeet(agent, seen_ts, qid, txt, url, reply_to) {
 // console.log('skeet reply_to is', reply_to);
-  if (title_end > MAX_TWEET) {
-    throw new Error("title too long", txt);
-  }
   if (!agent.session) {
     throw new Error("no session, wtf");
   }
 
+  const textEncoder = new TextEncoder();
+  const main_length = textEncoder.encode(txt).length;
+  if (main_length > MAX_TWEET) {
+    throw new Error("title too long", txt);
+  }
+
+  const short_id = "#"+rc_question.shortDisplayQuestionID(qid);
+  const link_txt = "⇒Answer";
+  const answer_link_length = textEncoder.encode(link_txt).length;
   const facets = reply_to ? [] : [
     {
       index: {
-        byteStart: 0,
-        byteEnd: title_end
+        byteStart: main_length + 1 + short_id.length + 1,
+        byteEnd: main_length + 1 + short_id.length + 2 + answer_link_length
       },
       features: [{
         $type: 'app.bsky.richtext.facet#link',
@@ -89,8 +95,8 @@ async function skeet(agent, seen_ts, qid, txt, url, title_end, reply_to) {
     },
     {
       index: {
-        byteStart: title_end+1,
-        byteEnd: title_end+19
+        byteStart: main_length+1,
+        byteEnd: main_length+1+short_id.length
       },
       features: [{
         $type: 'app.bsky.richtext.facet#tag',
@@ -98,8 +104,9 @@ async function skeet(agent, seen_ts, qid, txt, url, title_end, reply_to) {
       }]
     }
   ]
-  const short_id = "#"+rc_question.shortDisplayQuestionID(qid);
-  txt = reply_to ? txt : txt + ' ' + short_id
+  if (!reply_to) {
+    txt = txt + ' ' + short_id + "\n\n" + link_txt;
+  }
   const rt = new RichText({ text: txt })
   if (rt.text.length >= 300) {
      console.log('too long', txt, rt);
@@ -131,7 +138,7 @@ async function skeet(agent, seen_ts, qid, txt, url, title_end, reply_to) {
   const res = await agent.app.bsky.feed.post.create({
     repo: agent.session?.did,
   }, postRecord);
-  // console.log(res);
+   console.log(res);
   return res;
 }
 
@@ -164,6 +171,19 @@ async function go() {
 
 go();
 export { }
+
+function truncateStringByBytes(inputString, maxBytes) {
+    const encoder = new TextEncoder();
+    const byteArray = encoder.encode(inputString);
+
+    if (byteArray.length <= maxBytes) {
+        return inputString; // Return original string if within byte limit
+    }
+
+    const truncatedArray = byteArray.slice(0, maxBytes);
+    const decoder = new TextDecoder();
+    return decoder.decode(truncatedArray);
+}
 
 async function handleChains(agent) {
     if (NOOP) {
@@ -219,26 +239,43 @@ async function processChain(agent, chain_id, init) {
 
     // console.log(graph_url);
 
-    const state_file_name = './state/'+chain_id+'.json';
-    if (!fs.existsSync(state_file_name)) {
+    const state_file_name_q = './state/question-'+chain_id+'.json';
+    if (!fs.existsSync(state_file_name_q)) {
         if (!init) {
-            console.log('No state file for chain,', chain_id, 'run with init to create it');
+            console.log('No question state file for chain,', chain_id, 'run with init to create it');
             fs.unlinkSync(lock_file_name);
             return;
         }
         // No state file so initialize starting now
         const tsnow = parseInt(new Date().getTime()/1000);
-        updateStateFile(chain_id, tsnow, 0);
+        updateStateFile(chain_id, 'question', tsnow, 0);
     }
 
-    const chain_state = require(state_file_name);
+    const state_file_name_a = './state/answer-'+chain_id+'.json';
+    if (!fs.existsSync(state_file_name_a)) {
+        if (!init) {
+            console.log('No answer state file for chain,', chain_id, 'run with init to create it');
+            fs.unlinkSync(lock_file_name);
+            return;
+        }
+        // No state file so initialize starting now
+        const tsnow = parseInt(new Date().getTime()/1000);
+        updateStateFile(chain_id, 'answer', tsnow, 0);
+    }
+
+    const question_state = require(state_file_name_q);
+    const answer_state = require(state_file_name_a);
     // console.log(chain_state);
-    let initial_ts = 0;
-    if ('ts' in chain_state) {
-        initial_ts = chain_state['ts'];
+    let q_initial_ts = 0;
+    if ('ts' in question_state) {
+        q_initial_ts = question_state['ts'];
+    }
+    let a_initial_ts = 0;
+    if ('ts' in answer_state) {
+        a_initial_ts = answer_state['ts'];
     }
 
-    await doQuery(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts);
+    await doQuery(agent, graph_url, chain_id, contract_tokens, tokens, q_initial_ts, a_initial_ts);
 
     fs.unlinkSync(lock_file_name);
 
@@ -338,7 +375,7 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
         const response = await tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, q.qCategory, q.user, url);
         q_created[id] = response;
         
-        updateStateFile(chain_id, seen_ts, i);
+        updateStateFile(chain_id, 'question', seen_ts, i);
         await sleep(SLEEP_SECS*1000);
     }
 
@@ -452,16 +489,15 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
         let user = a.user;
 
         await tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user, reply_to);
-console.log('todo: update state file for answer');
-        //updateStateFile(chain_id, seen_ts, i);
+        updateStateFile(chain_id, 'answer', seen_ts, ai);
     }
 
 }
 
-async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts) {
+async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, q_initial_ts, a_initial_ts) {
 
-    await handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts);
-    await handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts);
+    await handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, q_initial_ts);
+    await handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, tokens, a_initial_ts);
    
 }
 
@@ -471,13 +507,11 @@ async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user,
     let tweet = answer_txt;
     let available = MAX_TWEET - bond_txt.length - 2;
 
-    if (tweet.length > available) {
+    const textEncoder = new TextEncoder();
+    const tweet_length = textEncoder.encode(tweet).length;
 
-        // Try to keep the answer, but truncate it if we need to
-        if (tweet.length > MAX_TWEET) {
-            tweet = tweet.slice(0, MAX_TWEET-3) + '...';
-        }
-
+    if (tweet_length > available) {
+        tweet = truncateStringByBytes(tweet, available-3) + '...';
     }
 
     tweet = tweet + ' ' + bond_txt;
@@ -487,7 +521,7 @@ async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user,
         return;
     }
 
-    const response = await skeet(agent, seen_ts, msg_id, tweet, null, tweet.length, reply_to);
+    const response = await skeet(agent, seen_ts, msg_id, tweet, null, reply_to);
     return response;
 }
 
@@ -501,32 +535,33 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category
         str = str + ' ' + bounty_txt;
     }
 
-    if (str.length > MAX_TWEET) {
+    const textEncoder = new TextEncoder();
+    const str_length = textEncoder.encode(str).length;
+
+    if (str_length > MAX_TWEET-25) {
 
         str = '';
+        let end_part = '';
 
-        // Try to keep the answer, but truncate it if we need to
-        if (answer_txt.length > 20) {
-            answer_txt = answer_txt.slice(0, 20) + '...';
-        }
-
-        let end_part = answer_txt;
-        
+        /*
         if (bounty_txt != '') {
-            end_part = bounty_txt + ' ' + end_part;
+            end_part = bounty_txt;
         }
+        */
 
         // Now trim the title to whatever we have left
         const chars_remain = MAX_TWEET - end_part.length;
-        if (title.length > chars_remain) {
-            title = title.slice(0, chars_remain-3) + '...';
+        if (str_length > chars_remain) {
+            str = truncateStringByBytes(str, chars_remain-3) + '...';
         }
 
+        /*
         if (end_part == '') {
             str = title;
         } else {
             str = title + ' ' + end_part;
         }
+        */
 
 	/*
         if (category && category != '' && category != 'undefined') {
@@ -548,12 +583,12 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category
         return;
     }
 
-    const response = await skeet(agent, seen_ts, msg_id, tweet, url, title.length);
+    const response = await skeet(agent, seen_ts, msg_id, tweet, url);
     return response;
 }
 
-function updateStateFile(chain_id, createdTimestamp, indexFromTimestamp) {
-    const chain_state_file = './state/'+chain_id+'.json';
+function updateStateFile(chain_id, section, createdTimestamp, indexFromTimestamp) {
+    const chain_state_file = './state/'+section+'-'+chain_id+'.json';
     const json = {
         'ts': createdTimestamp, 
         'index': indexFromTimestamp
