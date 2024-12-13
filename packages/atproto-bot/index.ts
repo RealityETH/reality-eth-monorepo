@@ -9,7 +9,7 @@ const rc_question = require('@reality.eth/reality-eth-lib/formatters/question.js
 const rc_template = require('@reality.eth/reality-eth-lib/formatters/template.js');
 
 const PER_QUERY = 20;
-const MAX_TWEET = 260;
+const MAX_TWEET = 260; // 300 - "Answer" (6) - 2 line returns (2) - hashtag (18) - some for luck
 
 const SLEEP_SECS = 2; // How long to pause between runs
 
@@ -528,32 +528,26 @@ async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user,
 
 async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category, creator, url) {
 
-    // See if we can do the whole thing without trimming
-    let str = title;
-
-    if (bounty_txt != '') {
-        str = str + ' ' + bounty_txt;
+    if (title == '') {
+        console.log('no title, skipping');
+        return null;
     }
 
+    // See if we can do the whole thing without trimming
     const textEncoder = new TextEncoder();
-    const str_length = textEncoder.encode(str).length;
+    let title_length = textEncoder.encode(title).length;
+    let bounty_length = textEncoder.encode(bounty_txt).length;
+    let total_length = title_length + bounty_length;
+    if (bounty_length) {
+        total_length = title_length + 1 + bounty_length;
+    }
 
-    if (str_length > MAX_TWEET-25) {
+    if (total_length > MAX_TWEET) {
 
-        str = '';
-        let end_part = '';
-
-        /*
-        if (bounty_txt != '') {
-            end_part = bounty_txt;
-        }
-        */
+        let chars_remain = MAX_TWEET - bounty_length - 1;
 
         // Now trim the title to whatever we have left
-        const chars_remain = MAX_TWEET - end_part.length;
-        if (str_length > chars_remain) {
-            str = truncateStringByBytes(str, chars_remain-3) + '...';
-        }
+        title = truncateStringByBytes(title, chars_remain-3) + '...';
 
         /*
         if (end_part == '') {
@@ -576,7 +570,7 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category
     }
 
     //const tweet = str + ' ' + url;
-    const tweet = str;
+    const tweet = title + ' ' + bounty_txt;
 
     if (NOOP) {
         console.log(tweet);
