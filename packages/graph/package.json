@@ -37,6 +37,7 @@
     "deploy-studio:polygon": "npm run prepare:polygon && graph deploy $GRAPH_AUTH --studio realityeth-polygon",
     "deploy-studio:mumbai": "npm run prepare:mumbai && graph deploy $GRAPH_AUTH --studio realityeth-mumbai",
     "deploy-studio:rinkeby": "npm run prepare:rinkeby && graph deploy $GRAPH_AUTH --studio realityeth-rinkeby",
+    "deploy-studio:sepolia": "npm run prepare:sepolia && graph deploy $GRAPH_AUTH --studio realityeth-sepolia",
     "deploy-studio:sokol": "npm run prepare:sokol && graph deploy $GRAPH_AUTH --studio realityeth-sokol",
     "deploy-studio:gnosis": "npm run prepare:gnosis && graph deploy $GRAPH_AUTH --studio realityeth-gnosis",
     "deploy-studio:zksync-goerli": "npm run prepare:zksync-goerli && graph deploy $GRAPH_AUTH realityeth-zksync-goerli-2",
@@ -55,6 +56,7 @@
     "prepare:polygon": "npm run clean && node render-templates.js 137 && graph codegen",
     "prepare:mumbai": "npm run clean && node render-templates.js 80001 && graph codegen",
     "prepare:rinkeby": "npm run clean && node render-templates.js 4 && graph codegen",
+    "prepare:sepolia": "npm run clean && node render-templates.js 11155111 && graph codegen",
     "prepare:sokol": "npm run clean && node render-templates.js 77 && graph codegen",
     "prepare:gnosis": "npm run clean && node render-templates.js 100 && graph codegen",
     "prepare:zksync-goerli": "npm run clean && node render-templates.js 280 && graph codegen",
@@ -75,5 +77,5 @@
     "@graphprotocol/graph-cli": "^0.54.0",
     "@graphprotocol/graph-ts": "^0.27.0"
   },
-  "gitHead": "f6cef51640ccf3d13e5c0fd08ae418cf9a7d871f"
+  "gitHead": "6f86d929c31197aa5c70afbc0648d96f5fa1b0f4"
 }
