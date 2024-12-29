@@ -34,7 +34,7 @@
     "url": "https://github.com/RealityETH/monorepo/issues"
   },
   "homepage": "https://reality.eth.link",
-  "gitHead": "6f86d929c31197aa5c70afbc0648d96f5fa1b0f4",
+  "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f",
   "dependencies": {
     "ethers": "^5.6.8"
   }
