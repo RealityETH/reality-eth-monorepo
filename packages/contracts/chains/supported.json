@@ -148,6 +148,7 @@
         "network_name": "optimism-sepolia"
     },
     "11155111": {
-        "network_name": "sepolia"
+        "network_name": "sepolia",
+        "graphURL": "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U"
     }
 }
