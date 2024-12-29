@@ -95,6 +95,11 @@
         "explorerURL": "https://zkevm.polygonscan.com/",
         "network_name": "polygon-zkevm"
     },
+    "1301": {
+        "hostedRPC": "https://sepolia.unichain.org",
+        "explorerURL": "https://unichain-sepolia.blockscout.com/",
+        "network_name": "unichain-sepolia"
+    },
     "10200": {
         "hostedRPC": "https://rpc.chiadochain.net",
         "explorerURL": "https://gnosis-chiado.blockscout.com/",
@@ -122,12 +127,6 @@
         "explorerURL": "https://mumbai.polygonscan.com",
         "network_name": "mumbai"
     },
-    "88558801": {
-        "hostedRPC": "https://testnet.rpc.backstop.technology",
-        "explorerURL": "https://testnet.explorer.backstop.technology/",
-        "network_name": "backstopTestnet1",
-        "graphURL": "https://testnet.graph.backstop.technology/subgraphs/name/realityeth-backstop"
-    },
     "421611": {
         "network_name": "arbitrum-rinkeby"
     },
@@ -144,11 +143,17 @@
         "network_name": "kintsugi",
         "deprecated": true
     },
-    "11155420": {
-        "network_name": "optimism-sepolia"
-    },
     "11155111": {
         "network_name": "sepolia",
         "graphURL": "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U"
+    },
+    "11155420": {
+        "network_name": "optimism-sepolia"
+    },
+    "88558801": {
+        "hostedRPC": "https://testnet.rpc.backstop.technology",
+        "explorerURL": "https://testnet.explorer.backstop.technology/",
+        "network_name": "backstopTestnet1",
+        "graphURL": "https://testnet.graph.backstop.technology/subgraphs/name/realityeth-backstop"
     }
 }

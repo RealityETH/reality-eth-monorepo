@@ -426,6 +426,27 @@
             "https://zkevm.polygonscan.com/"
         ]
     },
+    "1301": {
+        "chainId": "0x515",
+        "chainName": "Unichain Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain-sepolia",
+        "rpcUrls": [
+            "https://sepolia.unichain.org",
+            "https://unichain-sepolia-rpc.publicnode.com",
+            "wss://unichain-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia.unichain.org",
+        "blockExplorerUrls": [
+            "https://unichain-sepolia.blockscout.com",
+            "https://sepolia.uniscan.xyz",
+            "https://unichain-sepolia.blockscout.com/"
+        ]
+    },
     "10200": {
         "chainId": "0x27d8",
         "chainName": "Gnosis Chiado Testnet",
