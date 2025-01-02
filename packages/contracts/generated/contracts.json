@@ -423,10 +423,12 @@
     "1301": {
         "ETH": {
             "RealityETH-3.0": {
-                "address": "0x9C644675dBbdd5882bE1969F09E755B0654b74D7",
-                "block": 8607313,
+                "address": "0x288799697AE9EbceDC1b30BBAE6a38e03e41CdDb",
+                "block": 8809697,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x756c1f6f031fA8ADa12c340EA2559C0C4C93439D": "Butter dev arbitrator"
+                }
             }
         }
     },
