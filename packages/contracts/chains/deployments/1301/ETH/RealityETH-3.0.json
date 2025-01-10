@@ -3,6 +3,7 @@
     "block": 8809697,
     "notes": null,
     "arbitrators": {
-        "0x756c1f6f031fA8ADa12c340EA2559C0C4C93439D": "Butter dev arbitrator"
+        "0x756c1f6f031fA8ADa12c340EA2559C0C4C93439D": "Butter dev arbitrator",
+        "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D1": "Kleros (Oracle court)"
     }
 }
