@@ -1,4 +1,6 @@
 import { BskyAgent, AtpSessionEvent, AtpSessionData, RichText } from '@atproto/api';
+import { TID } from '@atproto/common-web';
+
 import { config } from 'dotenv';
 
 const axios = require('axios')
@@ -22,7 +24,34 @@ const sleep = (milliseconds) => {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
-async function fetchQuestionSkeet(agent, q_id, title) {
+async function fetchQuestionSkeetByRkey(agent, rkey) {
+    // Ideally we would fetch for a post with the expected URL.
+    // However, the search on the URL (or the tag) appears not to be working.
+    // Instead, we will tag with a short tag which appears in the text.
+    // We will then search for the short tag.
+    // The short tag may collide with unrelated questions.
+    // So we will loop through what we get and check the URL.
+    const at_uri = "at://" + agent.session.did + "/app.bsky.feed.post/" + rkey;
+
+    console.log('search with at uri', at_uri);
+    // console.log('search for', title);
+    const res = await agent.api.app.bsky.feed.getPosts({
+      uris: [at_uri]
+    });
+    console.log('seach result', res.data);
+    if (res.data.posts) {
+      // console.log('result', res.data.posts);
+      for (let i=0; i<res.data.posts.length; i++) {
+        const post = res.data.posts[i];
+        return post;
+      }
+    }
+    console.log('no existing post found for ', rkey);
+    return null;
+}
+
+
+async function fetchQuestionSkeet(agent, q_id, rkey, title) {
     // Ideally we would fetch for a post with the expected URL.
     // However, the search on the URL (or the tag) appears not to be working.
     // Instead, we will tag with a short tag which appears in the text.
@@ -67,7 +96,7 @@ async function fetchQuestionSkeet(agent, q_id, title) {
     return null;
 }
 
-async function skeet(agent, seen_ts, qid, txt, url, reply_to) {
+async function skeet(agent, seen_ts, qid, rkey, txt, url, reply_to) {
 // console.log('skeet reply_to is', reply_to);
   if (!agent.session) {
     throw new Error("no session, wtf");
@@ -135,10 +164,19 @@ async function skeet(agent, seen_ts, qid, txt, url, reply_to) {
     postRecord.facets = facets;
   }
 
+  const res = await agent.com.atproto.repo.putRecord({
+     repo: agent.accountDid,
+     collection: 'app.bsky.feed.post',
+     rkey: rkey,
+     record: postRecord
+  })
+  console.log(res);
+
+   /*
   const res = await agent.app.bsky.feed.post.create({
     repo: agent.session?.did,
   }, postRecord);
-   console.log(res);
+   */
   return res;
 }
 
@@ -281,30 +319,73 @@ async function processChain(agent, chain_id, init) {
 
 }
 
+async function calculateRkey(graph_url, chain_id, q_id) {
+
+    let where = `question: "${q_id}", actionType: "AskQuestion"`;
+
+    const query = `
+      {
+        userActions(orderBy: createdTimestamp, orderDirection: asc, first: 1,  where: { ${where} }) {
+            id,
+            question {
+                createdTimestamp,
+            }
+        }
+      }
+    `
+
+    const qres = await axios.post(graph_url, {
+      query: query 
+    })
+
+    if (qres.data.errors) {
+       console.log(qres.data.errors);
+    }
+    const userActions = qres.data.data.userActions;
+
+    // console.log('res', res.data);
+    for (const ua of userActions) {
+        const uaID = ua.id;
+        const bits = uaID.split('-');
+        const logIndex = bits[1];
+        const rkey_ts = ua.question.createdTimestamp*1000000 + parseInt(logIndex);
+        const rkey_clock_identifier = rc_contracts.realityETH10BitChainID(chain_id);
+        // console.log("make rkey sith ", rkey_ts, rkey_clock_identifier);
+        const rkey = TID.fromTime(rkey_ts, rkey_clock_identifier)['str'];
+        // console.log("made rkey", rkey);
+        return rkey;
+    }
+
+}
+
 async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts, q_id) {
 
     let q_created = {};
 
     // Fetch the next range, unless we got a specific id
-    const where = q_id ? `id: "${q_id}"` : `createdTimestamp_gt: ${initial_ts}`; 
+    let where = q_id ? `question: "${q_id}"` : `createdTimestamp_gt: ${initial_ts}`; 
+    where = where + ', actionType: "AskQuestion"'
 
     const query = `
       {
-        questions(orderBy: createdTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: { ${where} }) {
+        userActions(orderBy: createdTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: { ${where} }) {
             id,
-            createdTimestamp,
-            user,
-            qCategory,
-            contract,
-            data,
-            bounty,
-            currentAnswer,
-            currentAnswerTimestamp,
-            currentAnswerBond,
-            template {
-                questionText
+            question {
+                id,
+                createdTimestamp,
+                user,
+                qCategory,
+                contract,
+                data,
+                bounty,
+                currentAnswer,
+                currentAnswerTimestamp,
+                currentAnswerBond,
+                template {
+                    questionText
+                }
             }
-        }
+      }
       }
     `
 
@@ -316,13 +397,18 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
     if (qres.data.errors) {
        console.log(qres.data.errors);
     }
-    const questions = qres.data.data.questions;
+    const userActions = qres.data.data.userActions;
 
     // console.log('res', res.data);
     let i = 0;
     let ts = 0;
-    for (const q of questions) {
+    for (const ua of userActions) {
         i++;
+        const uaID = ua.id;
+        const bits = uaID.split('-');
+        const logIndex = bits[1];
+        //console.log('made index', uaID, logIndex);
+        const q = ua.question;
         //console.log(q)
         const contract = q.contract;
         const id = q.id;
@@ -350,14 +436,21 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
             bounty_txt = '(pays '+bounty+')'
         }
 
-        let msg_id = id;
-        // console.log('made msg id ', msg_id);
+        // console.log('made msg id ', rkey);
         //console.log(url);
 
         if (ts < q.createdTimestamp) {
             ts = q.createdTimestamp;
             i = 0;
         }
+
+        const rkey_ts = q.createdTimestamp*1000000 + parseInt(logIndex);
+        const rkey_clock_identifier = rc_contracts.realityETH10BitChainID(chain_id);
+        // console.log("make rkey sith ", rkey_ts, rkey_clock_identifier);
+        const rkey = TID.fromTime(rkey_ts, rkey_clock_identifier)['str'];
+        // console.log("made rkey", rkey);
+        
+
         if (!title) {
             continue;
         }
@@ -366,13 +459,13 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
             continue;
         }
 
-        const existing = await fetchQuestionSkeet(agent, msg_id, title);
+        const existing = await fetchQuestionSkeetByRkey(agent, rkey);
         if (existing) {
             console.log('question already found, skipping');
             continue;
         }
 
-        const response = await tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, q.qCategory, q.user, url);
+        const response = await tweetQuestion(agent, rkey, id, seen_ts, title, bounty_txt, q.qCategory, q.user, url);
         q_created[id] = response;
         
         updateStateFile(chain_id, 'question', seen_ts, i);
@@ -385,12 +478,13 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
 }
 
 async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts) {
- 
+
     // TODO: Filter to unrevealed
     const ares = await axios.post(graph_url, {
       query: `
       {
-        responses(orderBy: timestamp, orderDirection: asc, first: ${PER_QUERY},  where: { timestamp_gt: ${initial_ts} }) {
+        userActions(orderBy: createdTimestamp, orderDirection: asc, first: ${PER_QUERY},  where: {actionType: "AnswerQuestion", createdTimestamp_gt: ${initial_ts} }) {
+            id,
             question {
                 id,
                 contract,
@@ -399,25 +493,29 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
                     questionText
                 }
             },
-            id,
-            user,
-            timestamp,
-            answer,
-            bond
+            response {
+                id,
+                user,
+                timestamp,
+                answer,
+                bond
+            }
         }
       }
     `
     })
 
     // console.log('ares', ares.data.errors);
-    const answers = ares.data.data.responses;
+    const answers = ares.data.data.userActions;
 
     // console.log('ares', answers);
     let ai = 0;
     for (const a of answers) {
+console.log("answer entry", a);
         ai++;
         //console.log(q)
         const q = a.question;
+        const ur = a.response;
         const contract = q.contract;
         const id = q.id;
         const data = q.data;
@@ -441,16 +539,16 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
         let answer_txt = '';
         const decimals = tokens[token].decimals;
         // console.log('q.currentAnswerTimestamp', q.currentAnswerTimestamp, 'gt', initial_ts);
-        answer_txt = rc_question.getAnswerString(question_json, a.answer);
-        seen_ts = a.timestamp
+        answer_txt = rc_question.getAnswerString(question_json, ur.answer);
+        seen_ts = ur.timestamp
         // console.log('bond', q.currentAnswerBond);
-        const bond = ethers.formatUnits(a.bond, decimals).replace(/\.0+$/,'') + ' ' + token;
+        const bond = ethers.formatUnits(ur.bond, decimals).replace(/\.0+$/,'') + ' ' + token;
         bond_txt = '('+bond+')';
 
         //const bounty = ethers.formatUnits(q.bounty, decimals).replace(/\.0+$/,'') + ' ' + token;
         // bounty_txt = '(pays '+bounty+')'
 
-        let msg_id = id;
+        let qid = id;
         /*
         if (q.currentAnswerTimestamp) {
             msg_id = msg_id + '-' + q.currentAnswerTimestamp;
@@ -460,8 +558,8 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
 
         //console.log(url);
 
-        if (ts < a.timestamp) {
-            ts = a.timestamp;
+        if (ts < ur.timestamp) {
+            ts = ur.timestamp;
             ai = 0;
         }
         if (!title) {
@@ -472,9 +570,10 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
             continue;
         }
 
-        let reply_to = await fetchQuestionSkeet(agent, id, title);
+        const question_rkey = await calculateRkey(graph_url, chain_id, id);
+        let reply_to = await fetchQuestionSkeetByRkey(agent, question_rkey);
         if (!reply_to) {
-            console.log('question not found when handling answer, trying to create it', msg_id);
+            console.log('question not found when handling answer, trying to create it', id);
             // Create just this question so we can answer it
             const created = await handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, tokens, initial_ts, id);
             if (created[id]) {
@@ -486,9 +585,18 @@ async function handleAnswerBatch(agent, graph_url, chain_id, contract_tokens, to
                 continue;
             }
         }
-        let user = a.user;
+        let user = ur.user;
 
-        await tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user, reply_to);
+        const uaID = a.id;
+        const bits = uaID.split('-');
+        const logIndex = bits[1];
+        const rkey_ts = ur.timestamp*1000000 + parseInt(logIndex);
+        //const rkey_ts = q.createdTimestamp*1000000 + parseInt(logIndex);
+        const rkey_clock_identifier = rc_contracts.realityETH10BitChainID(chain_id);
+        console.log("make rkey sith ", rkey_ts, rkey_clock_identifier);
+        const rkey = TID.fromTime(rkey_ts, rkey_clock_identifier)['str'];
+
+        await tweetResponse(agent, rkey, id, seen_ts, bond_txt, answer_txt, user, reply_to);
         updateStateFile(chain_id, 'answer', seen_ts, ai);
     }
 
@@ -501,7 +609,7 @@ async function doQuery(agent, graph_url, chain_id, contract_tokens, tokens, q_in
    
 }
 
-async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user, reply_to) {
+async function tweetResponse(agent, rkey, qid, seen_ts, bond_txt, answer_txt, user, reply_to) {
 
     // See if we can do the whole thing without trimming
     let tweet = answer_txt;
@@ -521,12 +629,12 @@ async function tweetResponse(agent, msg_id, seen_ts, bond_txt, answer_txt, user,
         return;
     }
 
-    const response = await skeet(agent, seen_ts, msg_id, tweet, null, reply_to);
+    const response = await skeet(agent, seen_ts, qid, rkey, tweet, null, reply_to);
     return response;
 }
 
 
-async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category, creator, url) {
+async function tweetQuestion(agent, rkey, qid, seen_ts, title, bounty_txt, category, creator, url) {
 
     if (title == '') {
         console.log('no title, skipping');
@@ -577,7 +685,7 @@ async function tweetQuestion(agent, msg_id, seen_ts, title, bounty_txt, category
         return;
     }
 
-    const response = await skeet(agent, seen_ts, msg_id, tweet, url);
+    const response = await skeet(agent, seen_ts, qid, rkey, tweet, url);
     return response;
 }
 
