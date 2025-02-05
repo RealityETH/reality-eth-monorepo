@@ -466,7 +466,7 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
         }
 
         const response = await tweetQuestion(agent, rkey, id, seen_ts, title, bounty_txt, q.qCategory, q.user, url);
-        q_created[id] = response;
+        q_created[id] = response.data;
         
         updateStateFile(chain_id, 'question', seen_ts, i);
         await sleep(SLEEP_SECS*1000);
@@ -579,11 +579,13 @@ console.log("answer entry", a);
             if (created[id]) {
                 reply_to = created[id];
                 // console.log('created', created);
-                // console.log('reply_to', reply_to);
+                // console.log('made reply_to', reply_to);
             } else {
                 console.log('question not found and creation failed, skipping');
                 continue;
             }
+        } else {
+         //  console.log('found reply_to', reply_to);
         }
         let user = ur.user;
 
