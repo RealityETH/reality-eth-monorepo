@@ -1646,6 +1646,82 @@ div.rcbrowser__close-icon {
     margin: -30px 0 0;
 }
 
+.bsky-comments-container {
+    display:none;
+    color: #757b82;
+    font-size: 13px;
+    min-height:22px;
+}
+.bsky-comments-container a {
+    color: #757b82;
+}
+
+.bsky-header-text {
+    margin-left:10px;
+}
+
+.bsky-comments-container.loaded {
+    display:block;
+}
+
+.bsky-post-record-text {
+    margin-top:4px; 
+    font-size:14px;
+    max-width:660px;
+}
+
+.bsky-comments-header {
+    background: url(../image/bluesky.png) top left no-repeat;
+    display: flex;
+    align-items:center;
+    padding-left: 22px;
+}
+
+.bsky-comments-preview{
+    display: flex;
+    align-items:center;
+}
+
+.has-replies .bsky-link-container {
+    display:none;
+}
+
+.bsky-link-container {
+    margin-left: 10px;
+    display: flex;
+    align-items:center;
+}
+
+.bsky-comments-body {
+    padding-bottom: 10px;
+    border-bottom: 1px solid $border-main;
+}
+
+.bsky-comment-icons {
+    margin-left:10px;
+}
+
+.bsky-discuss-link {
+    font-size: 13px;
+    color: $gray;
+    margin: 15px 0;
+}
+.bsky-discuss-link a {
+    color: $gray !important;
+}
+
+.bsky-link-container {
+    min-height:22px;
+}
+
+.has-no-replies .bsky-link-container {
+    visibility: hidden;
+}
+
+.comments-header-hover .bsky-link-container {
+    visibility: visible !important;
+}
+
 // current answer
 .current-answer-container {
     margin: 15px 0;
@@ -3483,4 +3559,17 @@ span.filter-icon {
 }
 .no-graph-endpoint .has-graph-endpoint-only {
     display: none;
+}
+
+.comment-toggle-show .show-hide-show {
+    display:none;
+}
+.comment-toggle-hide .show-hide-hide {
+    display:none;
+}
+.comment-toggle-hide .bsky-comments-body {
+    display:none;
+}
+.has-no-replies .bsky-comments-preview {
+    display:none;
 }

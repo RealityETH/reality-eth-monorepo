@@ -4,7 +4,7 @@ import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters } from './ui_lib.js';
-import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters, displayBlueskyComments } from './ui_lib.js';
 import { displayWrongChain, setupChainList } from './ui_lib.js';
 
 export default function() {
@@ -1503,9 +1503,11 @@ function filledQuestion(item, fetched_ms) {
         question = QUESTION_DETAIL_CACHE[cqid];
     } 
 
+console.log('filled q', item);
     question.arbitrator = item.arbitrator;
     question.question_id = item.questionId;
     question.creation_ts = ethers.BigNumber.from(item.createdTimestamp);
+    question.created_log_index = parseInt(item.createdLogIndex);
     question.question_creator = item.user;
     question.question_created_block = item.createdBlock;
     question.content_hash = item.contentHash;
@@ -2219,9 +2221,11 @@ function updateQuestionWindowIfOpen(question) {
 
     const window_id = 'qadetail-' + contractQuestionID(question);
     let rcqa = $('#' + window_id);
+
     if (rcqa.length) {
     console.log('updateQuestionWindowIfOpen', question);
         rcqa = populateQuestionWindow(rcqa, question, true);
+        displayBlueskyComments(rcqa);
     }
 
 }
@@ -2242,6 +2246,8 @@ function displayQuestionDetail(question_detail) {
         rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         rcqa.attr('id', window_id);
         rcqa.attr('data-contract-question-id', contract_question_id);
+        rcqa.attr('data-log-index', question_detail.created_log_index);
+        rcqa.attr('data-creation-ts', question_detail.creation_ts);
 
         rcqa.find('.rcbrowser__close-button').on('click', function() {
             let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
@@ -2263,6 +2269,7 @@ function displayQuestionDetail(question_detail) {
         rcqa.removeClass('template-item');
 
         rcqa = populateQuestionWindow(rcqa, question_detail, false);
+        displayBlueskyComments(rcqa);
 
         $('#qa-detail-container').append(rcqa);
 
@@ -4594,7 +4601,8 @@ function reflectDisplayEntryChanges() {
 }
 
 function questionFetchFields() {
-    const txt = `
+ 
+    let txt = `
         id,
         questionId,
         contract,
@@ -4658,6 +4666,13 @@ function questionFetchFields() {
           revealedBlock
         }
     `;
+
+    // needs graph v0.0.8 or higher
+    // this should be deployed if we use the atproto bot for the chain
+    const did = $('body').attr('data-atproto-did');
+    const atproto_field = did ? ",createdLogIndex" : '';
+    txt = txt + atproto_field;
+
     return txt;
 }
 
@@ -5384,6 +5399,15 @@ function initChain(cid) {
     const current_chain_text = $('.network-status'+net_cls).text();
     $('.current-chain-text').text(current_chain_text);
     $('.chain-item[data-chain-id="' + cid + '"]').addClass('selected-chain');
+ 
+    const bot_did = rc_contracts.atProtoBotDid(cid);
+    if (bot_did) {
+        $('body').attr('data-atproto-did', bot_did);
+        const reality_eth_10_bit_chain_id = rc_contracts.realityETH10BitChainID(cid);
+        if (reality_eth_10_bit_chain_id) {
+            $('body').attr('data-10-bit-chain-id', reality_eth_10_bit_chain_id);
+        }
+    }
 
     if (typeof ethereum !== 'undefined') {
         ethereum.on('chainChanged', function(new_chain_id) {

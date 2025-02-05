@@ -1242,6 +1242,19 @@
 
                 <div class="rcbrowser-main-body">
 
+                    <div class="bsky-comments-container comment-toggle-hide">
+                        <div class="bsky-comments-header">
+                            <div class="bsky-link-container">
+                                <a class="bsky-link-to-bsky" target="_blank">Comment on this question</a>
+                            </div>
+                            <div class="bsky-comments-preview">
+                                <span class="bsky-header-text "><a class="show-hide-toggle" href="#"><span class="show-hide-hide">Hide</span><span class="show-hide-show">Show</span> <span class="bsky-comment-count"></span> comments by </span></a>
+                                <span class="bsky-comment-icons"></span>
+                            </div>
+                        </div>
+                        <div class="bsky-comments-body"></div>
+                    </div>
+
                     <div class="no-arbitrator-only no-arbitrator-message">
                         This question does not use an arbitrator. Whoever posts the highest bond will be considered correct.
                     </div>
@@ -1374,6 +1387,22 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
+
+<div class="bsky-comment-template" style="display:none">
+      <ul data-bsky-comment-uri="" class="comment" style="display: flex; list-style: none; padding:0px; margin-bottom:0px;">
+      <li style="margin-right: 10px;">
+        <img class="bsky-avatar-img" src="#" width="42px" height="42px" style="clip-path: circle()" />
+      </li>
+      <li>
+        <div style="color:#757b82">
+          <a target="_blank" class="bsky-post-author-handle" href="" rel="ugc"></a>
+          <span class="bsky-display-name" style="white-space: nowrap;"></span>
+          <a target="_blank" class="bsky-post-reply-datetime" style="font-size:80%; white-space: nowrap;">${replyDate.toLocaleString()}</a>
+        </div>
+        <div class="bsky-post-record-text"></div>
+      </li>
+    </ul>
+</div>
 
 </body>
 </html>

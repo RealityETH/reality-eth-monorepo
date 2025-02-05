@@ -1,4 +1,6 @@
 'use strict';
+import { addBskyComments } from './bsky-comments.js';
+import { TID } from '@atproto/common-web';
 
 const storeCustomContract = function (ctr, custom_contract_str, chain_id) {
     console.log('Trying to store custom deployment', ctr, custom_contract_str);
@@ -309,6 +311,31 @@ function setupChainList(supported_chains) {
 
 }
 
+function displayBlueskyComments(question_div) {
+    const rkey_clock_identifier = $('body').attr('data-10-bit-chain-id');
+    const atproto_did = $('body').attr('data-atproto-did');
+    if (!atproto_did) {
+        console.log('no did set for bsky comments');
+        return;
+    }
+    if (!rkey_clock_identifier) {
+        console.log('no 10bit id for bsky comments');
+        return;
+    }
+    const log_index = parseInt(question_div.attr('data-log-index'));
+    const creation_ts = parseInt(question_div.attr('data-creation-ts'));
+    if (!log_index || !creation_ts) {
+        console.log('no time data for bsky comments');
+        return;
+    }
+    const rkey_ts = creation_ts * 1000000 + log_index;
+    console.log("make rkey with ", rkey_ts, rkey_clock_identifier);
+    const rkey = TID.fromTime(rkey_ts, rkey_clock_identifier)['str'];
+    const at_url = "at://" + atproto_did + "/app.bsky.feed.post/" + rkey;
+    console.log('showing comments with at_url', at_url)
+    addBskyComments(question_div.find('.bsky-comments-container'), at_url, [atproto_did]);
+}
+
 export { 
     storeCustomContract, 
     importedCustomContracts, 
@@ -318,5 +345,6 @@ export {
     updateHashQuestionID,
     loadSearchFilters,
     displayWrongChain,
-    setupChainList
+    setupChainList,
+    displayBlueskyComments
 }

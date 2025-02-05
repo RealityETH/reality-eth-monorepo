@@ -4,7 +4,7 @@ import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
 
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
-import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters } from './ui_lib.js';
+import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters, displayBlueskyComments } from './ui_lib.js';
 import { displayWrongChain, setupChainList } from './ui_lib.js';
 
 export default function() {
@@ -1641,6 +1641,7 @@ function filledQuestionDetail(contract, question_id, data_type, freshness, data)
             if (data && (freshness >= question.freshness.question_log)) {
                 question.freshness.question_log = freshness;
                 //question.question_id = data.args['question_id'];
+                question.logIndex = data.logIndex;
                 question.arbitrator = data.args['arbitrator'];
                 question.creation_ts = data.args['created'];
                 question.question_creator = data.args['user'];
@@ -2639,6 +2640,8 @@ async function openQuestionWindow(contract_question_id) {
     // Then repopulate with the most recent of everything anything has changed
     question = await ensureQuestionDetailFetched(contract_addr, question_id, 1, 1, CURRENT_BLOCK_NUMBER, CURRENT_BLOCK_NUMBER)
     updateQuestionWindowIfOpen(question);
+
+
     /*
     .catch(function(e){
         console.log(e);
@@ -2653,6 +2656,7 @@ function updateQuestionWindowIfOpen(question) {
     let rcqa = $('#' + window_id);
     if (rcqa.length) {
         rcqa = populateQuestionWindow(rcqa, question, true);
+        displayBlueskyComments(rcqa);
     }
 
 }
@@ -2673,7 +2677,8 @@ function displayQuestionDetail(question_detail) {
         rcqa = $('.rcbrowser--qa-detail.template-item').clone();
         rcqa.attr('id', window_id);
         rcqa.attr('data-contract-question-id', contract_question_id);
-
+        rcqa.attr('data-log-index', question_detail.logIndex);
+        rcqa.attr('data-creation-ts', question_detail.creation_ts);
         rcqa.find('.rcbrowser__close-button').on('click', function() {
             let parent_div = $(this).closest('div.rcbrowser.rcbrowser--qa-detail');
             let left = parseInt(parent_div.css('left').replace('px', ''));
@@ -5453,6 +5458,15 @@ function initChain(cid) {
     const current_chain_text = $('.network-status'+net_cls).text();
     $('.current-chain-text').text(current_chain_text);
     $('.chain-item[data-chain-id="' + cid + '"]').addClass('selected-chain');
+
+    const bot_did = rc_contracts.atProtoBotDid(cid);
+    if (bot_did) {
+        $('body').attr('data-atproto-did', bot_did);
+        const reality_eth_10_bit_chain_id = rc_contracts.realityETH10BitChainID(cid);
+        if (reality_eth_10_bit_chain_id) {
+            $('body').attr('data-10-bit-chain-id', reality_eth_10_bit_chain_id);
+        }
+    }
 
     if (typeof ethereum !== 'undefined') {
         ethereum.on('chainChanged', function(new_chain_id) {
