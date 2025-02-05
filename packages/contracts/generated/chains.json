@@ -677,6 +677,7 @@
             "https://eth-sepolia.g.alchemy.com/v2/WddzdzI2o9S3COdT73d5w6AIogbKq4X-"
         ],
         "hostedRPC": "https://rpc.sepolia.org",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "graphURL": "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
         "blockExplorerUrls": [
             "https://sepolia.etherscan.io",

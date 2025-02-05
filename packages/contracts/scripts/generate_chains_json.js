@@ -60,6 +60,9 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
     if (our_data['iconURL']) {
         chainparams['iconUrls'] = [our_data['iconURL']];
     } 
+    if (our_data['atprotoBot']) {
+        chainparams['atprotoBot'] = our_data['atprotoBot'];
+    }
 
     if (our_data['graphURL']) {
         chainparams['graphURL'] = our_data['graphURL'];

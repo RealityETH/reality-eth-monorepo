@@ -145,7 +145,8 @@
     },
     "11155111": {
         "network_name": "sepolia",
-        "graphURL": "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U"
+        "graphURL": "https://gateway.thegraph.com/api/[api-key]/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5"
     },
     "11155420": {
         "network_name": "optimism-sepolia"

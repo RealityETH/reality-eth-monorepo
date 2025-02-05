@@ -344,6 +344,13 @@ function realityETH10BitChainID(chain_id) {
     return assigned_manually[""+chain_id];
 }
 
+function atProtoBotDid(chain_id) {
+    if (chain_info[""+chain_id] && chain_info[""+chain_id]['atprotoBot']) {
+        return chain_info[""+chain_id]['atprotoBot']
+    }
+    return null;
+}
+
 function getChainLabel(chain_id) {
     const c = chain_info[chain_id];
     if (!c) {
@@ -372,3 +379,4 @@ module.exports.configForAddress = configForAddress;
 module.exports.populateImports = populateImports;
 module.exports.getChainLabel = getChainLabel;
 module.exports.realityETH10BitChainID = realityETH10BitChainID;
+module.exports.atProtoBotDid = atProtoBotDid;
