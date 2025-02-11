@@ -37,7 +37,8 @@ function addBskyComments(rootJQ, atProto, skipByDids) {
         .then((data) => {
 
           rootJQ.find('.bsky-link-to-bsky').attr('href', ToBskyUrl(atProto));
-          rootJQ.addClass('bsky-active');
+          rootJQ.closest('.rcbrowser').addClass('bsky-active');
+          rootJQ.closest('.rcbrowser').find('.bsky-link-to-bsky-upper').attr('href', ToBskyUrl(atProto));
 
           rootJQ.find('.show-hide-toggle').unbind('click').click(function(evt) {
             evt.stopPropagation();
@@ -49,10 +50,6 @@ function addBskyComments(rootJQ, atProto, skipByDids) {
             return false;
           });
 
-          rootJQ.find('.bsky-comments-header').hover(
-            function(){ $(this).addClass('comments-header-hover') },
-            function(){ $(this).removeClass('comments-header-hover') }
-          );
           const replies_to_show = flattenThread(data.thread, skipByDids);
 
           if (replies_to_show.length > 0) {
@@ -121,7 +118,7 @@ function addBskyComments(rootJQ, atProto, skipByDids) {
       }
 
     function populateComment(comment_template, comment) {
-console.log('comment', comment, comment_template);
+      //console.log('comment', comment, comment_template);
       comment_template.attr('data-bsky-comment-uri', comment.post.uri);
       comment_template.find('.bsky-avatar-img').attr('src', comment.post.author.avatar);
       comment_template.find('.bsky-post-author-handle').attr('href', 'https://bsky.app/profile/' + comment.post.author.handle);

@@ -1714,12 +1714,14 @@ div.rcbrowser__close-icon {
     min-height:22px;
 }
 
-.has-no-replies .bsky-link-container {
-    visibility: hidden;
+a.bsky-link-to-bsky-upper {
+    color:$gray;
+    float:right;
+    display:none;
 }
 
-.comments-header-hover .bsky-link-container {
-    visibility: visible !important;
+.bsky-active .bsky-link-to-bsky-upper {
+    display:inline;
 }
 
 // current answer
