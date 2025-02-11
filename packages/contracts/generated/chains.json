@@ -23,7 +23,8 @@
             "https://rpc.mevblocker.io/noreverts",
             "https://rpc.mevblocker.io/fullprivacy",
             "https://eth.drpc.org",
-            "wss://eth.drpc.org"
+            "wss://eth.drpc.org",
+            "https://api.securerpc.com/v1"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AGLkTv6eaW7JhQsLgB6SMzo43uM9V12ZoNkjAw7uijra",
