@@ -93,6 +93,8 @@ const non_infura_chains = {
     'sepolia': 'https://rpc.sepolia.org',
     'holesky': 'https://ethereum-holesky.publicnode.com',
     'telosevm': 'https://mainnet.telos.net/evm',
+    'unichain': 'https://mainnet.unichain.org',
+    'base': 'https://mainnet.base.org',
     'backstopTestnet1': 'https://testnet.rpc.backstop.technology'
 }
 

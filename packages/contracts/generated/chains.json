@@ -281,6 +281,20 @@
             "https://gnosis.dex.guru"
         ]
     },
+    "130": {
+        "chainId": "0x82",
+        "chainName": "Unichain",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain",
+        "rpcUrls": [],
+        "blockExplorerUrls": [
+            "https://unichain.blockscout.com/"
+        ]
+    },
     "137": {
         "chainId": "0x89",
         "chainName": "Polygon Mainnet",
@@ -446,6 +460,32 @@
             "https://unichain-sepolia.blockscout.com",
             "https://sepolia.uniscan.xyz",
             "https://unichain-sepolia.blockscout.com/"
+        ]
+    },
+    "8453": {
+        "chainId": "0x2105",
+        "chainName": "Base",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "base",
+        "rpcUrls": [
+            "https://mainnet.base.org/",
+            "https://developer-access-mainnet.base.org/",
+            "https://base.gateway.tenderly.co",
+            "wss://base.gateway.tenderly.co",
+            "https://base-rpc.publicnode.com",
+            "wss://base-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://mainnet.base.org",
+        "blockExplorerUrls": [
+            "https://basescan.org",
+            "https://base.blockscout.com",
+            "https://base.dex.guru",
+            "https://base.superscan.network",
+            "https://basescan.org/"
         ]
     },
     "10200": {

@@ -61,6 +61,10 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
         "network_name": "gnosis"
     },
+    "130": {
+        "explorerURL": "https://unichain.blockscout.com/",
+        "network_name": "unichain"
+    },
     "137": {
         "explorerURL": "https://polygonscan.com/",
         "graphURLHosted": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
@@ -99,6 +103,11 @@
         "hostedRPC": "https://sepolia.unichain.org",
         "explorerURL": "https://unichain-sepolia.blockscout.com/",
         "network_name": "unichain-sepolia"
+    },
+    "8453": {
+        "hostedRPC": "https://mainnet.base.org",
+        "explorerURL": "https://basescan.org/",
+        "network_name": "base"
     },
     "10200": {
         "hostedRPC": "https://rpc.chiadochain.net",

@@ -326,6 +326,16 @@
             }
         }
     },
+    "130": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xB920dBedE88B42aA77eE55ebcE3671132ee856fC",
+                "block": 8561869,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "137": {
         "MATIC": {
             "Arbitrator": {
@@ -435,6 +445,16 @@
                     "0x2642BFBfe5d8dfc53276c3D510484644dDb20276": "Butter dev arbitrator",
                     "0x8FeAB350A304140b1593A38a13607d122BEC44b6": "Kleros (Oracle court)"
                 }
+            }
+        }
+    },
+    "8453": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8",
+                "block": 26260675,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
