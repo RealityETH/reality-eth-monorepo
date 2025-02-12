@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/graph",
-  "version": "0.4.74",
+  "version": "0.4.75",
   "scripts": {
     "create-local": "graph create realityeth/realityeth --node http://127.0.0.1:8020",
     "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
@@ -40,6 +40,8 @@
     "deploy-studio:sepolia": "npm run prepare:sepolia && graph deploy $GRAPH_AUTH --studio realityeth-sepolia",
     "deploy-studio:sokol": "npm run prepare:sokol && graph deploy $GRAPH_AUTH --studio realityeth-sokol",
     "deploy-studio:gnosis": "npm run prepare:gnosis && graph deploy $GRAPH_AUTH --studio realityeth-gnosis",
+    "deploy-studio:unichain": "npm run prepare:unichain && graph deploy $GRAPH_AUTH --studio realityeth-unichain",
+    "deploy-studio:base": "npm run prepare:base && graph deploy $GRAPH_AUTH --studio realityeth-base",
     "deploy-studio:zksync-goerli": "npm run prepare:zksync-goerli && graph deploy $GRAPH_AUTH realityeth-zksync-goerli-2",
     "deploy-studio:zksync-era": "npm run prepare:zksync-era && graph deploy $GRAPH_AUTH realityeth-zksync-era",
     "deploy-studio:all": "npm run deploy-studio:arbitrum && npm run deploy-studio:ava && npm run deploy-studio:bsc && npm run deploy-studio:kovan && npm run deploy-studio:mainnet && npm run deploy-studio:mainnet && npm run deploy-studio:optimism && npm run deploy-studio:polygon && npm run deploy-studio:rinkeby && npm run deploy-studio:sokol && npm run deploy-studio:gnosis",
@@ -59,6 +61,8 @@
     "prepare:sepolia": "npm run clean && node render-templates.js 11155111 && graph codegen",
     "prepare:sokol": "npm run clean && node render-templates.js 77 && graph codegen",
     "prepare:gnosis": "npm run clean && node render-templates.js 100 && graph codegen",
+    "prepare:unichain": "npm run clean && node render-templates.js 130 && graph codegen",
+    "prepare:base": "npm run clean && node render-templates.js 8453 && graph codegen",
     "prepare:zksync-goerli": "npm run clean && node render-templates.js 280 && graph codegen",
     "clean": "rm -rf build/Reality*",
     "lint": "npm run eslint .",
@@ -67,7 +71,7 @@
     "prettier-write": "prettier --write '**/*.ts'"
   },
   "dependencies": {
-    "@reality.eth/contracts": "^3.0.71",
+    "@reality.eth/contracts": "^3.0.72",
     "babel-polyfill": "^6.26.0",
     "babel-register": "^6.26.0",
     "mustache": "^4.2.0",
