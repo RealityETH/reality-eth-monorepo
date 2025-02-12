@@ -452,16 +452,19 @@ async function handleQuestionBatch(agent, graph_url, chain_id, contract_tokens, 
         
 
         if (!title) {
+            updateStateFile(chain_id, 'question', seen_ts, i);
             continue;
         }
         if ('errors' in question_json) {
             console.log('skipping question with errors', question_json['errors'], contract, template_text)
+            updateStateFile(chain_id, 'question', seen_ts, i);
             continue;
         }
 
         const existing = await fetchQuestionSkeetByRkey(agent, rkey);
         if (existing) {
             console.log('question already found, skipping');
+            updateStateFile(chain_id, 'question', seen_ts, i);
             continue;
         }
 
