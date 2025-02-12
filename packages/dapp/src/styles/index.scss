@@ -1570,7 +1570,7 @@ div.rcbrowser__close-icon {
 }
 
 // arbitration button
-.arbitration-button {
+.arbitration-button, a.arbitration-button {
     font-size: 12px;
     color: $rcBrowserSubText;
     text-decoration: none;
@@ -1599,7 +1599,7 @@ div.rcbrowser__close-icon {
 }
 
 // arbitration button
-.arbitration-button-foreign-proxy {
+.arbitration-button-foreign-proxy, a.arbitration-button-foreign-proxy {
     font-size: 12px;
     color: $rcBrowserSubText;
     text-decoration: none;
