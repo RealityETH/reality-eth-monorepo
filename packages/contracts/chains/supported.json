@@ -59,6 +59,7 @@
     "100": {
         "explorerURL": "https://gnosisscan.io",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "network_name": "gnosis"
     },
     "130": {
