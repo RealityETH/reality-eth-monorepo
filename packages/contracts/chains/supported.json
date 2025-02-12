@@ -106,6 +106,7 @@
     },
     "8453": {
         "hostedRPC": "https://mainnet.base.org",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/8Gtjsx3LGtN3Jfxx1YEbLWNLEd2ntrq3dsyzXgGHov1i",
         "explorerURL": "https://basescan.org/",
         "network_name": "base"
     },
