@@ -131,7 +131,7 @@ exports.bytes32ToString = function(bytes32str, qjson) {
         var bn = new BN(bytes32str, 16).fromTwos(256);
     } else if (qtype == 'uint' || qtype == 'datetime') {
         var bn = new BN(bytes32str, 16);
-    } else if (qtype == 'bytes32') {
+    } else if (qtype == 'hash') {
         var bn = new BN(bytes32str, 16);
         return module.exports.padToBytes32(bn.toString('hex')).toLowerCase();
     } else {
@@ -452,7 +452,7 @@ exports.getAnswerString = function(question_json, answer) {
         case 'int':
             label = module.exports.bytes32ToString(answer, question_json);
             break;
-        case 'bytes32':
+        case 'hash':
             label = module.exports.bytes32ToString(answer, question_json);
             break;
         case 'bool':

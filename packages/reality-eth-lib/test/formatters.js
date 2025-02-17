@@ -102,7 +102,7 @@ describe('Answer strings', function() {
   it('Leaves bytes32 strings unchanged except forced to lower case', function() {
     // We don't have a built-in type for this yet so just switch out the uint one
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
-    q['type'] = 'bytes32';
+    q['type'] = 'hash';
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
