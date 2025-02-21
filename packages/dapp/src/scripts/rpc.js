@@ -1,4 +1,4 @@
-'use strict';
+'Use strict';
 
 import interact from 'interactjs';
 import Ps from 'perfect-scrollbar';
@@ -6,6 +6,7 @@ import Ps from 'perfect-scrollbar';
 import { storeCustomContract, importedCustomContracts, renderCurrentSearchFilters} from './ui_lib.js';
 import { parseHash, set_hash_param, updateHashQuestionID, loadSearchFilters, displayBlueskyComments } from './ui_lib.js';
 import { displayWrongChain, setupChainList } from './ui_lib.js';
+import { shortenPossibleHashToBox } from './ui_lib.js';
 
 export default function() {
 
@@ -2246,7 +2247,7 @@ function populateSectionEntry(entry, question) {
 
     // For these purposes we just ignore any outstanding commits
     if (isAnswered(question)) {
-        entry.find('.questions__item__answer').text(rc_question.getAnswerString(question_json, best_answer));
+        entry.find('.questions__item__answer').text(shortenPossibleHashToBox(rc_question.getAnswerString(question_json, best_answer)));
         entry.addClass('has-answer');
     } else {
         entry.find('.questions__item__answer').text('');
@@ -3926,6 +3927,20 @@ function isAnswerInputLookingValid(parent_div, question_json) {
         const dt_invalids = areDatetimeElementsInvalid(answer_element);            
         if (dt_invalids[0] || dt_invalids[1]) {
             console.log('bad datetime');
+            return false;
+        }
+    } else if (question_json['type'] == 'bytes32') {
+        const is_valid = /^0x[0-9a-fA-F]+$/.test(answer_element.val());
+        if (!is_valid) {
+            console.log('bad bytes32');
+            return false;
+        }
+        if (answer_element.val().toLowerCase() == '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff') {
+            console.log('invalid value entered');
+            return false;
+        }
+        if (answer_element.val().toLowerCase() == '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe') {
+            console.log('not-answered value entered');
             return false;
         }
     }
