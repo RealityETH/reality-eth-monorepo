@@ -333,7 +333,8 @@
                 "block": 8561869,
                 "notes": null,
                 "arbitrators": {
-                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)"
+                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
+                    "0x6fa32dCAc55ADB31B3A2d87A2af653c46C68B9EB": "CFM arbitrator"
                 }
             }
         }
