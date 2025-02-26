@@ -31,6 +31,9 @@
     "mocha": "^5.2.0",
     "truffle": "^4.0.1"
   },
+  "overrides": {
+    "elliptic": "^6.6.1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RealityETH/monorepo.git"
