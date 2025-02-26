@@ -336,6 +336,16 @@ function displayBlueskyComments(question_div) {
     addBskyComments(question_div.find('.bsky-comments-container'), at_url, [atproto_did]);
 }
 
+function shortenPossibleHashToBox(val) {
+    if (val.length != 66) {
+        return val;
+    }
+    if (!val.match(/0x[0-9a-fA-F]{64}/)) {
+        return val;
+    }
+    return val.substring(0, 14) + ".." + val.substring(54);
+}
+
 export { 
     storeCustomContract, 
     importedCustomContracts, 
@@ -346,5 +356,6 @@ export {
     loadSearchFilters,
     displayWrongChain,
     setupChainList,
+    shortenPossibleHashToBox,
     displayBlueskyComments
 }

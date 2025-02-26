@@ -1077,6 +1077,48 @@
             <span class="rcbrowser-form-footer">&nbsp;</a></span>
         </form>
     </div>
+
+    <div class="answer-form-container hash template-item" style="display:none">
+        <div class="answer-form-header">
+            <span class="answer-prompt-text no-answer-only">Do you know the answer to this question?</span>
+            <span class="answer-prompt-text has-answer-only">Do you want to correct this answer?</span>
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--hash">
+            <div class="input-container input-container--answer">
+                <div class="input-inner">
+                    <!--<span class="input-header">Enter the Answer:</span>-->
+                    <input type="text" name="input-answer" class="rcbrowser-input rcbrowser-input--hash--answer form-item form-item-value datetime-input-hash">
+                </div>
+                <div class="input-type-weirdness-warning">
+                Note that 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe and 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff cannot be used as they have a special meaning.
+                </div>
+                <div class="error-container">Please enter a hash value in hex, for instance 0x00000000000000000000000000000000000000000000000000000000003a00d3.</div>
+
+                    <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                    <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question answerable</a></div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+
+                <div class="error-container">Your bond needs to be at least <span class="min-amount"></span> <span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span> <span class="token-ticker-text">ETH</span> on this answer.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">&nbsp;</a></span>
+        </form>
+    </div>
+
+
     <div class="answer-form-container datetime template-item" style="display:none">
         <div class="answer-form-header">
             <span class="answer-prompt-text no-answer-only">Do you know the answer to this question?</span>
