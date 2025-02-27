@@ -27,7 +27,7 @@
     "@reality.eth/contracts": "^3.0.78",
     "@reality.eth/reality-eth-lib": "^3.3.0",
     "axios": "^0.24.0",
-    "ethers": "^5.6.8",
+    "ethers": "^5.8.0",
     "masto": "^4.2.7"
   },
   "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f"
