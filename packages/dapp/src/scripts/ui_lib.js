@@ -343,7 +343,7 @@ function shortenPossibleHashToBox(val) {
     if (!val.match(/0x[0-9a-fA-F]{64}/)) {
         return val;
     }
-    return val.substring(0, 14) + ".." + val.substring(54);
+    return val.substring(0, 10) + ".." + val.substring(62);
 }
 
 export { 

@@ -716,6 +716,13 @@ $('#post-a-question-button,.post-a-question-link').on('click', function(e) {
             });
 
             const optionText = $("option:selected",this).text();
+
+            if ($("option:selected",this).val() == 'custom') {
+                $(this).closest('form').addClass('custom-template');
+            } else {
+                $(this).closest('form').removeClass('custom-template');
+            }
+
             $("option:selected", this).text(optionLabel + optionText);
         });
 
@@ -806,8 +813,15 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         return;
     }
 
-    const qtype = question_type.val();
-    const template_id = rc_template.defaultTemplateIDForType(qtype);
+    let qtype = question_type.val();
+    let template_id;
+    if (qtype == 'custom') {
+        template_id = win.find('input.custom-template-id').val();
+        // TODO: Make a more sophisticated way of working out how to encode input for custom templates
+        qtype = 'bool';
+    } else {
+        template_id = rc_template.defaultTemplateIDForType(qtype);
+    }
     const qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
     let opening_ts = 0;
     if (opening_ts_val != '') {

@@ -1830,9 +1830,10 @@ div.rcbrowser--qa-detail.top-entry-unrevealed .unrevealed-top-answer-container {
 
 .unconfirmed-answer-body {
     color: $rcBrowserBodyText;
+    font-family: $font-family-serif;
     line-height: 1.2;
     margin-top: -0.2em;
-    font-size: 18px;
+    font-size: 22px;
 }
 
 .unconfirmed-answer-body > p {
@@ -2127,6 +2128,10 @@ textarea[name="question-body"]:placeholder-shown{
     padding: 0 12px;
     height: 42px;
     line-height: 42px;
+}
+
+.rcbrowser-input.custom-template-id {
+    width: 200px;
 }
 
 .rcbrowser-input--number {
@@ -3579,3 +3584,12 @@ span.filter-icon {
     font-size: 13px;
     margin-top: 8px;
 }
+
+.custom-template-only {
+    visibility: hidden;
+}
+
+.custom-template .custom-template-only {
+    visibility:visible;
+}
+

@@ -707,6 +707,7 @@
                                     <option value="multiple-select">Multiple Choice (>1 correct)</option>
                                     <option value="uint">Number (Positive)</option>
                                     <option value="datetime">Date</option>
+                                    <option value="custom">Custom template</option>
                                 </select>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
@@ -747,8 +748,13 @@
                     </div>
 
                     <div class="row clearfix version-supports-min-bond-only">
-                        <div class="cols-2">
-                            &nbsp;
+                        <div class="cols-2 custom-template-only">
+                            <div class="input-container">
+                                <div class="input-inner">
+                                    <span class="input-header">Template ID</span>
+                                    <input type="number" name="custom-template-id" class="custom-template-id rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0">
+                                </div>
+                            </div>
                         </div>
                         <div class="cols-2">
                             <div class="input-container  input-container--has-quick-help">
