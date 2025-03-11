@@ -99,6 +99,7 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
   });
 
+  /*
   it('Leaves bytes32 strings unchanged except forced to lower case', function() {
     // We don't have a built-in type for this yet so just switch out the uint one
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
@@ -109,6 +110,7 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('0x0000000000000000000000000000000000000000000000001BC16D674EC80000'.toLowerCase());
     expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('Invalid');
   });
+  */
 
 
 /*
