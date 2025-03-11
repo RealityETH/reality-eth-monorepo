@@ -131,6 +131,9 @@ exports.bytes32ToString = function(bytes32str, qjson) {
         var bn = new BN(bytes32str, 16).fromTwos(256);
     } else if (qtype == 'uint' || qtype == 'datetime') {
         var bn = new BN(bytes32str, 16);
+    } else if (qtype == 'hash') {
+        var bn = new BN(bytes32str, 16);
+        return module.exports.padToBytes32(bn.toString('hex')).toLowerCase();
     } else {
         throw Error("Unrecognized answer type " + qtype);
     }
@@ -449,6 +452,9 @@ exports.getAnswerString = function(question_json, answer) {
         case 'int':
             label = module.exports.bytes32ToString(answer, question_json);
             break;
+        case 'hash':
+            label = module.exports.bytes32ToString(answer, question_json);
+            break;
         case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
                 label = 'Yes';
@@ -562,4 +568,11 @@ exports.answerHash = function(answer_plaintext, nonce) {
         ["uint256", "uint256"],
         [ new BN(answer_plaintext.replace(/^0x/, ''), 16), new BN(nonce.replace(/^0x/, ''), 16)]
     ).toString('hex');
+}
+
+exports.shortDisplayQuestionID = function(question_id) {
+    // Question ID may or may not have the contract address prepended
+    const bits = question_id.split('-');
+    const qid = bits[bits.length-1];
+    return qid.substring(2,9) + '...' + qid.slice(-7);
 }

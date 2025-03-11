@@ -1570,7 +1570,7 @@ div.rcbrowser__close-icon {
 }
 
 // arbitration button
-.arbitration-button {
+.arbitration-button, a.arbitration-button {
     font-size: 12px;
     color: $rcBrowserSubText;
     text-decoration: none;
@@ -1599,7 +1599,7 @@ div.rcbrowser__close-icon {
 }
 
 // arbitration button
-.arbitration-button-foreign-proxy {
+.arbitration-button-foreign-proxy, a.arbitration-button-foreign-proxy {
     font-size: 12px;
     color: $rcBrowserSubText;
     text-decoration: none;
@@ -1644,6 +1644,84 @@ div.rcbrowser__close-icon {
 #your-question-answer-window .answer-claim-button {
     float: right;
     margin: -30px 0 0;
+}
+
+.bsky-comments-container {
+    display:none;
+    color: #757b82;
+    font-size: 13px;
+    min-height:22px;
+}
+.bsky-comments-container a {
+    color: #757b82;
+}
+
+.bsky-header-text {
+    margin-left:10px;
+}
+
+.bsky-comments-container.loaded {
+    display:block;
+}
+
+.bsky-post-record-text {
+    margin-top:4px; 
+    font-size:14px;
+    max-width:660px;
+}
+
+.bsky-comments-header {
+    background: url(../image/bluesky.png) top left no-repeat;
+    display: flex;
+    align-items:center;
+    padding-left: 22px;
+}
+
+.bsky-comments-preview{
+    display: flex;
+    align-items:center;
+}
+
+.has-replies .bsky-link-container {
+    display:none;
+}
+
+.bsky-link-container {
+    margin-left: 10px;
+    display: flex;
+    align-items:center;
+}
+
+.bsky-comments-body {
+    padding-bottom: 10px;
+    border-bottom: 1px solid $border-main;
+}
+
+.bsky-comment-icons {
+    margin-left:10px;
+}
+
+.bsky-discuss-link {
+    font-size: 13px;
+    color: $gray;
+    margin: 15px 0;
+}
+.bsky-discuss-link a {
+    color: $gray !important;
+}
+
+.bsky-link-container {
+    min-height:22px;
+}
+
+a.bsky-link-to-bsky-upper {
+    color:$gray;
+    float:right;
+    display:none;
+}
+
+.bsky-active .bsky-link-to-bsky-upper {
+    display:inline;
 }
 
 // current answer
@@ -1752,9 +1830,10 @@ div.rcbrowser--qa-detail.top-entry-unrevealed .unrevealed-top-answer-container {
 
 .unconfirmed-answer-body {
     color: $rcBrowserBodyText;
+    font-family: $font-family-serif;
     line-height: 1.2;
     margin-top: -0.2em;
-    font-size: 18px;
+    font-size: 22px;
 }
 
 .unconfirmed-answer-body > p {
@@ -2049,6 +2128,10 @@ textarea[name="question-body"]:placeholder-shown{
     padding: 0 12px;
     height: 42px;
     line-height: 42px;
+}
+
+.rcbrowser-input.custom-template-id {
+    width: 200px;
 }
 
 .rcbrowser-input--number {
@@ -3484,3 +3567,29 @@ span.filter-icon {
 .no-graph-endpoint .has-graph-endpoint-only {
     display: none;
 }
+
+.comment-toggle-show .show-hide-show {
+    display:none;
+}
+.comment-toggle-hide .show-hide-hide {
+    display:none;
+}
+.comment-toggle-hide .bsky-comments-body {
+    display:none;
+}
+.has-no-replies .bsky-comments-preview {
+    display:none;
+}
+.input-type-weirdness-warning {
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.custom-template-only {
+    visibility: hidden;
+}
+
+.custom-template .custom-template-only {
+    visibility:visible;
+}
+

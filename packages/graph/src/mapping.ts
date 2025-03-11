@@ -124,6 +124,7 @@ export function handleNewQuestion(event: LogNewQuestion): void {
 
       question.createdBlock = event.block.number;
       question.createdTimestamp = event.params.created;
+      question.createdLogIndex = event.logIndex;
       question.updatedBlock = event.block.number;
       question.updatedTimestamp = event.block.timestamp;
 
@@ -190,6 +191,7 @@ export function handleNewAnswer(event: LogNewAnswer): void {
   response.bond = event.params.bond;
   response.user = event.params.user;
   response.timestamp = event.params.ts;
+  response.logIndex = event.logIndex;
   response.isCommitment = isCommitment;
   response.historyHash = event.params.history_hash;
   response.save();

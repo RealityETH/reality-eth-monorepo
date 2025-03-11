@@ -326,6 +326,30 @@ function tokenAndContractConfigFromFactory(factory_data, chain_id) {
         
 }
 
+// An identifier for reality.eth use where we need a number for a chain...
+// ...but we don't have enough bits to use the normal Chain ID
+// This is intended for when we abuse atproto TIDs to make a unique rkey per question
+// The Chain ID will go in the "clock identifier" field which is only 10 bits
+// https://atproto.com/ja/specs/tid
+function realityETH10BitChainID(chain_id) {
+    // For any chain ID below 512 we'll use the chain ID as is
+    if (chain_id < 512) {
+        return chain_id;
+    }
+    // Above that we'll assign them manually starting at the max
+    // We'll only assign them if we need them, ie if we're making rkeys for that chain
+    const assigned_manually = {
+        "11155111": 1023
+    }
+    return assigned_manually[""+chain_id];
+}
+
+function atProtoBotDid(chain_id) {
+    if (chain_info[""+chain_id] && chain_info[""+chain_id]['atprotoBot']) {
+        return chain_info[""+chain_id]['atprotoBot']
+    }
+    return null;
+}
 
 function getChainLabel(chain_id) {
     const c = chain_info[chain_id];
@@ -354,3 +378,5 @@ module.exports.tokenAndContractConfigFromFactory = tokenAndContractConfigFromFac
 module.exports.configForAddress = configForAddress;
 module.exports.populateImports = populateImports;
 module.exports.getChainLabel = getChainLabel;
+module.exports.realityETH10BitChainID = realityETH10BitChainID;
+module.exports.atProtoBotDid = atProtoBotDid;

@@ -1,14 +1,14 @@
 {
   "name": "@reality.eth/template-generator",
-  "version": "0.3.66",
+  "version": "0.4.1",
   "private": false,
   "homepage": "./",
   "dependencies": {
     "@ensdomains/ui": "^3.4.2",
-    "@reality.eth/contracts": "^3.0.60",
-    "@reality.eth/reality-eth-lib": "^3.2.44",
+    "@reality.eth/contracts": "^3.0.79",
+    "@reality.eth/reality-eth-lib": "^3.3.1",
     "classnames": "^2.3.1",
-    "ethers": "^5.4.4",
+    "ethers": "^5.8.0",
     "lodash.memoize": "^4.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
@@ -50,5 +50,5 @@
       "last 1 safari version"
     ]
   },
-  "gitHead": "03e4a48bc6ffcb5d327c5503fa1afb2eba3f97fb"
+  "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f"
 }

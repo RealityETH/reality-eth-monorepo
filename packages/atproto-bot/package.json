@@ -1,11 +1,7 @@
 {
-  "name": "@reality.eth/farcaster-bot",
-  "version": "1.1.1",
+  "name": "@reality.eth/atproto-bot",
+  "version": "0.1.1",
   "description": "Bot for tweeting out reality.eth questions and answers",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/RealityETH/reality-eth-monorepo.git"
@@ -23,12 +19,17 @@
     "url": "https://github.com/RealityETH/reality-eth-monorepo/issues"
   },
   "homepage": "https://github.com/RealityETH/reality-eth-monorepo#readme",
+  "devDependencies": {
+    "tsx": "^3.12.6"
+  },
   "dependencies": {
-    "@neynar/nodejs-sdk": "^1.55.0",
+    "@atproto/api": "^0.13.16",
     "@reality.eth/contracts": "^3.0.79",
     "@reality.eth/reality-eth-lib": "^3.3.1",
-    "axios": "^0.24.0",
-    "ethers": "^5.8.0"
+    "axios": "^1.7.8",
+    "dotenv": "^16.0.3",
+    "ethers": "^6.13.4",
+    "typescript": "^5.7.2"
   },
   "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f"
 }

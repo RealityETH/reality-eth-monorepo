@@ -23,14 +23,17 @@
             "https://rpc.mevblocker.io/noreverts",
             "https://rpc.mevblocker.io/fullprivacy",
             "https://eth.drpc.org",
-            "wss://eth.drpc.org"
+            "wss://eth.drpc.org",
+            "https://api.securerpc.com/v1"
         ],
         "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
-        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AGLkTv6eaW7JhQsLgB6SMzo43uM9V12ZoNkjAw7uijra",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AGLkTv6eaW7JhQsLgB6SMzo43uM9V12ZoNkjAw7uijra",
         "blockExplorerUrls": [
             "https://etherscan.io",
             "https://eth.blockscout.com",
-            "https://ethereum.dex.guru"
+            "https://ethereum.dex.guru",
+            "https://ethereum.routescan.io"
         ]
     },
     "3": {
@@ -129,7 +132,8 @@
         "blockExplorerUrls": [
             "https://optimistic.etherscan.io",
             "https://optimism.blockscout.com",
-            "https://optimism.dex.guru"
+            "https://optimism.dex.guru",
+            "https://mainnet.superscan.network"
         ]
     },
     "40": {
@@ -271,6 +275,7 @@
             "wss://gnosis-rpc.publicnode.com"
         ],
         "hostedRPC": "https://rpc.gnosischain.com",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
         "blockExplorerUrls": [
             "https://gnosisscan.io",
@@ -278,12 +283,28 @@
             "https://gnosis.dex.guru"
         ]
     },
+    "130": {
+        "chainId": "0x82",
+        "chainName": "Unichain",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain",
+        "rpcUrls": [],
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/ChZUYehW8ionezxqgM1UQsrjuZpcBbNkiTjQX5jBauEi",
+        "blockExplorerUrls": [
+            "https://unichain.blockscout.com/"
+        ]
+    },
     "137": {
         "chainId": "0x89",
         "chainName": "Polygon Mainnet",
         "nativeCurrency": {
-            "name": "MATIC",
-            "symbol": "MATIC",
+            "name": "POL",
+            "symbol": "POL",
             "decimals": 18
         },
         "network_name": "matic",
@@ -424,6 +445,54 @@
             "https://zkevm.polygonscan.com/"
         ]
     },
+    "1301": {
+        "chainId": "0x515",
+        "chainName": "Unichain Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain-sepolia",
+        "rpcUrls": [
+            "https://sepolia.unichain.org",
+            "https://unichain-sepolia-rpc.publicnode.com",
+            "wss://unichain-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia.unichain.org",
+        "blockExplorerUrls": [
+            "https://unichain-sepolia.blockscout.com",
+            "https://sepolia.uniscan.xyz",
+            "https://unichain-sepolia.blockscout.com/"
+        ]
+    },
+    "8453": {
+        "chainId": "0x2105",
+        "chainName": "Base",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "base",
+        "rpcUrls": [
+            "https://mainnet.base.org/",
+            "https://developer-access-mainnet.base.org/",
+            "https://base.gateway.tenderly.co",
+            "wss://base.gateway.tenderly.co",
+            "https://base-rpc.publicnode.com",
+            "wss://base-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://mainnet.base.org",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/8Gtjsx3LGtN3Jfxx1YEbLWNLEd2ntrq3dsyzXgGHov1i",
+        "blockExplorerUrls": [
+            "https://basescan.org",
+            "https://base.blockscout.com",
+            "https://base.dex.guru",
+            "https://base.superscan.network",
+            "https://basescan.org/"
+        ]
+    },
     "10200": {
         "chainId": "0x27d8",
         "chainName": "Gnosis Chiado Testnet",
@@ -463,7 +532,8 @@
             "https://ethereum-holesky-rpc.publicnode.com",
             "wss://ethereum-holesky-rpc.publicnode.com",
             "https://holesky.drpc.org",
-            "wss://holesky.drpc.org"
+            "wss://holesky.drpc.org",
+            "https://rpc-holesky.rockx.com"
         ],
         "hostedRPC": "https://ethereum-holesky.publicnode.com",
         "deprecated": true,
@@ -510,7 +580,9 @@
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
         "blockExplorerUrls": [
+            "https://snowscan.xyz",
             "https://snowtrace.io",
+            "https://avascan.info",
             "https://cchain.explorer.avax.network/"
         ]
     },
@@ -583,10 +655,13 @@
         },
         "network_name": "arbitrum-sepolia",
         "rpcUrls": [
-            "https://sepolia-rollup.arbitrum.io/rpc"
+            "https://sepolia-rollup.arbitrum.io/rpc",
+            "https://arbitrum-sepolia-rpc.publicnode.com",
+            "wss://arbitrum-sepolia-rpc.publicnode.com"
         ],
         "hostedRPC": "https://sepolia-rollup.arbitrum.io/rpc",
         "blockExplorerUrls": [
+            "https://sepolia.arbiscan.io",
             "https://sepolia-explorer.arbitrum.io"
         ]
     },
@@ -643,12 +718,17 @@
             "https://ethereum-sepolia-rpc.publicnode.com",
             "wss://ethereum-sepolia-rpc.publicnode.com",
             "https://sepolia.drpc.org",
-            "wss://sepolia.drpc.org"
+            "wss://sepolia.drpc.org",
+            "https://rpc-sepolia.rockx.com",
+            "https://eth-sepolia.g.alchemy.com/v2/WddzdzI2o9S3COdT73d5w6AIogbKq4X-"
         ],
         "hostedRPC": "https://rpc.sepolia.org",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
         "blockExplorerUrls": [
             "https://sepolia.etherscan.io",
-            "https://sepolia.otterscan.io"
+            "https://sepolia.otterscan.io",
+            "https://11155111.testnet.routescan.io"
         ]
     },
     "11155420": {
@@ -667,6 +747,7 @@
         ],
         "hostedRPC": "https://sepolia.optimism.io",
         "blockExplorerUrls": [
+            "https://sepolia-optimism.etherscan.io",
             "https://optimism-sepolia.blockscout.com"
         ]
     },

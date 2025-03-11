@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/reality-eth-lib",
-  "version": "3.2.44",
+  "version": "3.3.1",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "test": "env TZ='Asia/Kabul' mocha ./test"
@@ -16,7 +16,7 @@
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {
-    "@reality.eth/contracts": "^3.0.60",
+    "@reality.eth/contracts": "^3.0.79",
     "bignumber.js": "^7.2.1",
     "bn.js": "^5.2.1",
     "ethereumjs-abi": "^0.6.5",
@@ -39,5 +39,5 @@
     "url": "https://github.com/RealityETH/monorepo/issues"
   },
   "homepage": "https://reality.eth.link",
-  "gitHead": "03e4a48bc6ffcb5d327c5503fa1afb2eba3f97fb"
+  "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f"
 }

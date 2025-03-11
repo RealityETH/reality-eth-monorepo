@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/contracts",
-  "version": "3.0.60",
+  "version": "3.0.79",
   "description": "Collection of smart contracts for the Realitio fact verification platform",
   "scripts": {
     "generate-chains": "node scripts/generate_chains_json.js",
@@ -34,8 +34,8 @@
     "url": "https://github.com/RealityETH/monorepo/issues"
   },
   "homepage": "https://reality.eth.link",
-  "gitHead": "03e4a48bc6ffcb5d327c5503fa1afb2eba3f97fb",
+  "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f",
   "dependencies": {
-    "ethers": "^5.6.8"
+    "ethers": "^5.8.0"
   }
 }

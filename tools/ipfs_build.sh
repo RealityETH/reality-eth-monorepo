@@ -68,7 +68,15 @@ echo "https://ipfs.io/ipfs/${IPFS_HASH}"
 
 popd
 
-echo "To update ipns, on the box with the ipns key, run:"
-echo 'RE_IPFS=`ssh rc-dev-2.socialminds.jp "cat /tmp/RealityETH-build-ipfs/ipfs.txt"` && echo $RE_IPFS && ipfs name publish --key reality-eth /ipfs/$RE_IPFS'
+#echo "To update ipns, on the box with the ipns key, run:"
+#echo 'RE_IPFS=`ssh rc-dev-2.socialminds.jp "cat /tmp/RealityETH-build-ipfs/ipfs.txt"` && echo $RE_IPFS && ipfs name publish --key reality-eth /ipfs/$RE_IPFS'
 
+CID=`ipfs cid format -v 1 -b base32 "$IPFS_HASH"`
+echo "Made CID $CID"
+
+# The service needs to have been added to ipfs with eg
+# ipfs pin remote service add filebase https://api.filebase.io/v1/ipfs <API_KEY>
+
+echo "Trying to pin with filebase..."
+ipfs pin remote add --service filebase "${IPFS_HASH}"
 

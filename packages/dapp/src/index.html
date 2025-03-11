@@ -351,7 +351,7 @@
                 </ul>
             </div>
         </nav>
-        <a data-base-url="https://ipfs.io/ipfs/IPFS_HASH/app" href="https://ipfs.io/ipfs/QmeiLmfNqwDoJ5J4FS9nAUFE3Ejjo1nLwGVuaXwAccQc2y/app/" id="previous-version">&lt; Previous version</a>
+        <a data-base-url="https://ipfs.io/ipfs/IPFS_HASH/app" href="https://ipfs.io/ipfs/QmWJdojnvZYorGSTaPT1JtsLVqv9u8x7GhKfDAiXw8SrsU/app/" id="previous-version">&lt; Previous version</a>
 
         <a id="backtotop" href="#"><span></span></a>
     </footer>
@@ -444,6 +444,7 @@
                         <li class="chain-item" data-chain-id="1"><a href="#!/network/1">Main Ethereum Network</a></li>
                         <li class="chain-item" data-chain-id="42161"><a href="#!/network/42161">Arbitrum One Network</a></li>
                         <li class="chain-item" data-chain-id="43114"><a href="#!/network/43114">AVA C-Chain</a></li>
+                        <li class="chain-item" data-chain-id="8453"><a href="#!/network/8453">Base</a></li>
                         <li class="chain-item" data-chain-id="56"><a href="#!/network/56">Binance Smart Chain</a></li>
                         <li class="chain-item" data-chain-id="777"><a href="#!/network/777">CheapETH Network</a></li>
                         <li class="chain-item" data-chain-id="100"><a href="#!/network/100">Gnosis Chain</a></li>
@@ -451,6 +452,7 @@
                         <li class="chain-item" data-chain-id="137"><a href="#!/network/137">Polygon Main Network (Matic)</a></li>
                         <li class="chain-item" data-chain-id="1101"><a href="#!/network/1101">Polygon zkEVM</a></li>
                         <li class="chain-item" data-chain-id="690"><a href="#!/network/690">Redstone Network</a></li>
+                        <li class="chain-item" data-chain-id="130"><a href="#!/network/130">Unichain</a></li>
                         <li class="chain-item" data-chain-id="40"><a href="#!/network/40">Telos EVM</a></li>
                         <li class="chain-item" data-chain-id="8"><a href="#!/network/8">Ubiq Main Network</a></li>
                         <li class="chain-item" data-chain-id="324"><a href="#!/network/324">zkSync Era (not audited)</a></li>
@@ -482,6 +484,8 @@
                         <li class="chain-item" data-chain-id="534353"><a href="#!/network/534353">Scroll Alpha Testnet</a></li>
                         <li class="chain-item" data-chain-id="11155111"><a href="#!/network/11155111">Sepolia Testnet</a></li>
                         <li class="chain-item" data-chain-id="77"><a href="#!/network/77">Sokal Testnet</a></li>
+
+                        <li class="chain-item" data-chain-id="1301"><a href="#!/network/1301">Unichain Sepolia Testnet</a></li>
 
                         <li class="chain-item" data-chain-id="280"><a href="#!/network/280">ZKSync Goerli Network</a></li>
                         <li class="chain-item" data-chain-id="300"><a href="#!/network/280">ZKSync Sepolia Network</a></li>
@@ -703,6 +707,7 @@
                                     <option value="multiple-select">Multiple Choice (>1 correct)</option>
                                     <option value="uint">Number (Positive)</option>
                                     <option value="datetime">Date</option>
+                                    <option value="custom">Custom template</option>
                                 </select>
                                 <div class="quick-help">
                                     <span class="quick-help-button">?</span>
@@ -743,8 +748,13 @@
                     </div>
 
                     <div class="row clearfix version-supports-min-bond-only">
-                        <div class="cols-2">
-                            &nbsp;
+                        <div class="cols-2 custom-template-only">
+                            <div class="input-container">
+                                <div class="input-inner">
+                                    <span class="input-header">Template ID</span>
+                                    <input type="number" name="custom-template-id" class="custom-template-id rcbrowser-input rcbrowser-input--number form-item" placeholder="0" VALUE="0">
+                                </div>
+                            </div>
                         </div>
                         <div class="cols-2">
                             <div class="input-container  input-container--has-quick-help">
@@ -1073,6 +1083,48 @@
             <span class="rcbrowser-form-footer">&nbsp;</a></span>
         </form>
     </div>
+
+    <div class="answer-form-container hash template-item" style="display:none">
+        <div class="answer-form-header">
+            <span class="answer-prompt-text no-answer-only">Do you know the answer to this question?</span>
+            <span class="answer-prompt-text has-answer-only">Do you want to correct this answer?</span>
+        </div>
+
+        <form name="" action="" method="post" class="rcbrowser-form" data-form-type="answer--hash">
+            <div class="input-container input-container--answer">
+                <div class="input-inner">
+                    <!--<span class="input-header">Enter the Answer:</span>-->
+                    <input type="text" name="input-answer" class="rcbrowser-input rcbrowser-input--hash--answer form-item form-item-value datetime-input-hash">
+                </div>
+                <div class="input-type-weirdness-warning">
+                Note that 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe and 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff cannot be used as they have a special meaning.
+                </div>
+                <div class="error-container">Please enter a hash value in hex, for instance 0x00000000000000000000000000000000000000000000000000000000003a00d3.</div>
+
+                    <div class="invalid-switch-container"><a class="invalid-text-link">Mark this question invalid</a><a class="valid-text-link">Mark this question valid</a></div>
+                    <div class="too-soon-switch-container"><a class="too-soon-text-link">Mark this question answered too soon</a><a class="not-too-soon-text-link">Mark this question answerable</a></div>
+            </div>
+
+            <div class="input-container input-container--bond">
+                <div class="input-inner">
+                    <span class="input-header">Bond (<span class="token-ticker-text">ETH</span>):</span>
+                    <input type="number" name="questionBond" class="rcbrowser-input rcbrowser-input--number rcbrowser-input--number--bond form-item">
+                </div>
+
+                <div class="error-container">Your bond needs to be at least <span class="min-amount"></span> <span class="token-ticker-text">ETH</span>.</div>
+                <div class="answer-credit-info">You have already put up <span class="answer-payment-value"></span> <span class="token-ticker-text">ETH</span> on this answer.</div>
+                <div class="answer-debit-info">You will have to pay the previous answerer <span class="answer-payment-value"></span><span class="token-ticker-text">ETH</span>.</div>
+            </div>
+
+            <div class="submit-container">
+                <input type="submit" class="rcbrowser-submit button--bounce post-answer-button" value="Post">
+            </div>
+
+            <span class="rcbrowser-form-footer">&nbsp;</a></span>
+        </form>
+    </div>
+
+
     <div class="answer-form-container datetime template-item" style="display:none">
         <div class="answer-form-header">
             <span class="answer-prompt-text no-answer-only">Do you know the answer to this question?</span>
@@ -1150,6 +1202,7 @@
 
                     <h2 class="rcbrowser-main-header-title question-title"></h2>
                     <div class="rcbrowser-main-header-category-and-date">
+                        <a class="bsky-link-to-bsky-upper" target="_blank">Discuss</a>
                         Posted <span data-prefix-text="in " class="rcbrowser-main-header-category"></span> on <span class="rcbrowser-main-header-date"></span>
                     </div>
 
@@ -1250,6 +1303,21 @@
                         <br />
                         This may mean you need to ask it to arbitrate by some other method.
                         Alternatively it may mean it cannot do arbitration at all, and whoever posts the highest bond will be considered correct.
+                    </div>
+
+                    <div class="bsky-comments-container comment-toggle-hide">
+                        <div class="bsky-comments-header">
+                            <!--
+                            <div class="bsky-link-container">
+                                <a class="bsky-link-to-bsky" target="_blank">Comment on this question</a>
+                            </div>
+                            -->
+                            <div class="bsky-comments-preview">
+                                <span class="bsky-header-text "><a class="show-hide-toggle" href="#"><span class="show-hide-hide">Hide</span><span class="show-hide-show">Show</span> <span class="bsky-comment-count"></span> comments by </span></a>
+                                <span class="bsky-comment-icons"></span>
+                            </div>
+                        </div>
+                        <div class="bsky-comments-body"></div>
                     </div>
 
                     <div class="answer-deadline-container">Deadline: <span class="answer-deadline timeago"></span></div>
@@ -1372,6 +1440,22 @@
             </div><!-- /.rcbrowser-main -->
         </div><!-- /.rcbrowser-inner -->
     </div><!-- /.rcbrowser--qa-detail -->
+
+<div class="bsky-comment-template" style="display:none">
+      <ul data-bsky-comment-uri="" class="comment" style="display: flex; list-style: none; padding:0px; margin-bottom:0px;">
+      <li style="margin-right: 10px;">
+        <img class="bsky-avatar-img" src="#" width="42px" height="42px" style="clip-path: circle()" />
+      </li>
+      <li>
+        <div style="color:#757b82">
+          <a target="_blank" class="bsky-post-author-handle" href="" rel="ugc"></a>
+          <span class="bsky-display-name" style="white-space: nowrap;"></span>
+          <a target="_blank" class="bsky-post-reply-datetime" style="font-size:80%; white-space: nowrap;">${replyDate.toLocaleString()}</a>
+        </div>
+        <div class="bsky-post-record-text"></div>
+      </li>
+    </ul>
+</div>
 
 </body>
 </html>

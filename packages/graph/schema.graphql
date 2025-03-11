@@ -5,6 +5,7 @@ type Question @entity {
 
   createdBlock: BigInt!
   createdTimestamp: BigInt!
+  createdLogIndex: BigInt!
   updatedBlock: BigInt!
   updatedTimestamp: BigInt!
 
@@ -60,6 +61,7 @@ type Outcome @entity {
 type Response @entity {
   id: ID!
   timestamp: BigInt!
+  logIndex: BigInt!
   answer: Bytes
   isUnrevealed: Boolean!
   isCommitment: Boolean!

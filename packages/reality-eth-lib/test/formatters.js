@@ -98,6 +98,19 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000016345785D8A0000')).to.equal('0.1');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
   });
+
+  it('Leaves bytes32 strings unchanged except forced to lower case', function() {
+    // We don't have a built-in type for this yet so just switch out the uint one
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    q['type'] = 'hash';
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000DE0B6B3A7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('0x0000000000000000000000000000000000000000000000001BC16D674EC80000'.toLowerCase());
+    expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('Invalid');
+  });
+
+
 /*
   it('Handles ints as expected using 1 decimal', function() {
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('int'), '');
@@ -384,6 +397,16 @@ describe('Question ID tests', function() {
     expect(v3qid).to.equal('0xb1d1cad2a10db4d4b3693f4fb859cb2e7f772702acb1b5daa54080910c0734c9');
   });
 
+});
+
+describe('Short question ID tests', function() {
+   // First 7 characters of main ID (without prefixing contract address), "...", last 7 characters
+   const full_qid = '0xe78996a233895be74a66f451f1019ca9734205cc-0x2703ce72afee88da2cb1e7b405c6d5354af732d9893538f684083698763ef35a';
+   const normal_qid = '0x2703ce72afee88da2cb1e7b405c6d5354af732d9893538f684083698763ef35a';
+   const full_to_short = rc_question.shortDisplayQuestionID(full_qid);
+   const normal_to_short = rc_question.shortDisplayQuestionID(normal_qid);
+   expect(full_to_short).to.equal('2703ce7...63ef35a');
+   expect(normal_to_short).to.equal('2703ce7...63ef35a');
 });
 
 describe('Custom template handling', function() {
