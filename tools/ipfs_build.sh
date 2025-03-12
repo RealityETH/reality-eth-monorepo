@@ -77,6 +77,9 @@ echo "Made CID $CID"
 # The service needs to have been added to ipfs with eg
 # ipfs pin remote service add filebase https://api.filebase.io/v1/ipfs <API_KEY>
 
+echo "Doing local pin"
+ipfs pin add "${IPFS_HASH}"
+
 echo "Trying to pin with filebase..."
 ipfs pin remote add --service filebase "${IPFS_HASH}"
 
