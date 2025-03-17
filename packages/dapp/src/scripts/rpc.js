@@ -45,9 +45,6 @@ let ARBITRATOR_METADATA = require('./arbitrator_metadata_legacy.json'); // Old c
 
 let PENDING_USER_TXES_BY_CQID = {};
 
-const TEMPLATE_CONFIG = rc_contracts.templateConfig();
-const QUESTION_TYPE_TEMPLATES = TEMPLATE_CONFIG.base_ids;
-
 // Special ABIs for Kleros
 const PROXIED_ARBITRATOR_ABI_OLD = require('./abi/kleros/ProxiedArbitratorOld.json');
 const PROXIED_ARBITRATOR_ABI_NEW = require('./abi/kleros/ProxiedArbitratorNew.json');
@@ -56,7 +53,7 @@ let SUBMITTED_QUESTION_ID_BY_TIMESTAMP = {};
 let USER_CLAIMABLE_BY_CONTRACT = {};
 
 let CATEGORY = null;
-let CONTRACT_TEMPLATE_CONTENT = {}; TEMPLATE_CONFIG.content;
+let CONTRACT_TEMPLATE_CONTENT = {};
 
 let LAST_POLLED_BLOCK = null;
 let IS_INITIAL_LOAD_DONE = false;
@@ -802,14 +799,27 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     const answer_options = win.find('.answer-option');
     const opening_ts_val = win.find('.opening-ts').val();
 
-    const category = win.find('div.select-container--question-category select');
+    let category_or_description;
+    let is_category_needed = false;
+    if ($('body').hasClass('version-has-description')) {
+        console.log('ta', win.find('textarea[name="question-description-body"]'));
+        category_or_description = win.find('textarea[name="question-description-body"]').val();
+    } else if ($('body').hasClass('version-has-category')) {
+        category_or_description = win.find('div.select-container--question-category select').val();
+        is_category_needed = true;
+    } else {
+        category_or_description = '';
+    }
+console.log('category_or_description is ', category_or_description);
+
     let outcomes = [];
     for (let i = 0; i < answer_options.length; i++) {
         outcomes[i] = answer_options[i].value;
     }
     const reward = (reward_val == '') ? ethers.BigNumber.from(0) : humanToDecimalizedBigNumber(reward_val);
 
-    if (!validate(win)) {
+    if (!validate(win, is_category_needed)) {
+console.log('vadliation failed');
         return;
     }
 
@@ -822,14 +832,14 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
     } else {
         template_id = rc_template.defaultTemplateIDForType(qtype);
     }
-    const qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category.val());
+console.log('encode');
+    const qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category_or_description);
+console.log('encoded to ',qtext);
     let opening_ts = 0;
     if (opening_ts_val != '') {
         opening_ts = new Date(opening_ts_val);
         opening_ts = parseInt(opening_ts / 1000);
     }
-
-    const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
 
     let min_bond = ethers.BigNumber.from(0);
     if (win.hasClass('version-supports-min-bond')) {
@@ -837,6 +847,7 @@ $(document).on('click', '#post-a-question-window .post-question-submit', async f
         min_bond = humanToDecimalizedBigNumber(min_bond_val);
     }
 
+    const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
     const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0, min_bond.toHexString(), RC_DEFAULT_ADDRESS, rcver);
     //console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
     //console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
@@ -1224,7 +1235,7 @@ $(document).on('click', '.answer-claim-button', function() {
 
 });
 
-function validate(win) {
+function validate(win, is_category_needed) {
     let valid = true;
 
     const qtext = win.find('.question-body');
@@ -1279,6 +1290,9 @@ function validate(win) {
 
     const select_ids = ['.question-type', '.arbitrator', '.step-delay', '.question-category'];
     for (const id of select_ids) {
+        if (!is_category_needed && id == '.question-category') {
+            continue;
+        }
         if (win.find(id).val() == "default") {
             win.find(id).parent().addClass('is-error');
             valid = false;
@@ -2777,6 +2791,9 @@ function setupDatetimeDatePicker(rcqa) {
 }
 
 function category_text(question_json, target_el) {
+    if (!question_json.hasOwnProperty('category')) {
+        return '';
+    }
     const cat = question_json['category'];
     let cat_txt = '';
     if (cat == '') {
@@ -2891,6 +2908,12 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.find('.question-title').text(question_json['title']).expander({
             slicePoint: 200
         });
+
+        if (question_json.hasOwnProperty('description')) {
+            rcqa.find('.question-description').text(question_json['description']).expander({
+                slicePoint: 200
+            });
+        }
     }
     rcqa.find('.reward-value').text(decimalizedBigNumberToHuman(question_detail.bounty));
 
@@ -5956,6 +5979,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
         }
 
         RC_DEFAULT_ADDRESS = rc_json.address;
+        const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
         for(const cfg_addr in all_rc_configs) {
             const cfg = all_rc_configs[cfg_addr];
             const inst = rc_contracts.realityETHInstance(cfg);
@@ -5965,7 +5989,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             }
 
             // Everyone gets the initial config
-            CONTRACT_TEMPLATE_CONTENT[cfg_addr.toLowerCase()] = TEMPLATE_CONFIG.content;
+            CONTRACT_TEMPLATE_CONTENT[cfg_addr.toLowerCase()] = rc_contracts.templateConfig(rcver);;
 
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
@@ -5983,6 +6007,15 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         }
         //console.log('arb init', ARBITRATOR_LIST_BY_CONTRACT, ARBITRATOR_FAILED_BY_CONTRACT, ARBITRATOR_VERIFIED_BY_CONTRACT);
+
+        const has_description = rc_contracts.versionHasFeature(rcver, 'description');
+        const has_category = rc_contracts.versionHasFeature(rcver, 'category');
+        if (has_description) {
+            $('body').addClass('version-has-description');
+        }
+        if (has_category) {
+            $('body').addClass('version-has-category');
+        }
         
         // Set up dummy contract objects, we'll make copies of them with the correct addresses when we need them
         ARBITRATOR_INSTANCE = new ethers.Contract(rc_json.address, arb_json.abi, provider); 
