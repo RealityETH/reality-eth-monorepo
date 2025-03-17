@@ -626,6 +626,12 @@
                 "arbitrators": {
                     "0x05b942faecfb3924970e3a28e0f230910cedff45": "Kleros"
                 }
+            },
+            "RealityETH-3.2": {
+                "address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1",
+                "block": 7898415,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -649,6 +655,12 @@
             "RealityETH-3.0": {
                 "address": "0xd05Af7EAB843aA2A04f623c18d2a1C8bB4F301a9",
                 "block": 24,
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH-3.2": {
+                "address": "0x3a9Ef99956021d545214B7021D449ACb20fCF2b3",
+                "block": 240,
                 "notes": null,
                 "arbitrators": {}
             },
