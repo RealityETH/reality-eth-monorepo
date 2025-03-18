@@ -16,6 +16,7 @@ type Question @entity {
   qJsonStr: String
   qTitle: String
   qCategory: String
+  qDescription: String
   qLang: String
   qType: String
 
