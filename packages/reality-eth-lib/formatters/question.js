@@ -452,9 +452,9 @@ exports.getAnswerString = function(question_json, answer) {
         case 'int':
             label = module.exports.bytes32ToString(answer, question_json);
             break;
-        //case 'hash':
-        //    label = module.exports.bytes32ToString(answer, question_json);
-        //    break;
+        case 'hash':
+            label = module.exports.bytes32ToString(answer, question_json);
+            break;
         case 'bool':
             if (new BigNumber(answer).toNumber() === 1) {
                 label = 'Yes';
