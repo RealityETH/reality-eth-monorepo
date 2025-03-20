@@ -214,6 +214,11 @@ function templateConfig(vernum) {
     }
 }
 
+function defaultTemplateIDForType(template_type, vernum) {
+    const tc = templateConfig(vernum);
+    return tc.base_ids[template_type];
+}
+
 function defaultTokenForChain(chain_id) {
     // Use the native token if we have one
     // If not, use the first one
@@ -241,7 +246,7 @@ function versionHasFeature(vernum, feature_name) {
         const bits = vernum.split('.');
         const maj = parseInt(bits[0]);
         return (maj >= min_maj);
-    } else if (feature_name == 'description') {
+    } else if (feature_name == 'description' || feature_name == 'hash-type') {
         const min_min = 2;
         const bits = vernum.split('.');
         const min = parseInt(bits[1]);
@@ -386,6 +391,7 @@ module.exports.tokenConfig = tokenConfig
 module.exports.chainData = chainData;
 module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;
+module.exports.defaultTemplateIDForType = defaultTemplateIDForType;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
 module.exports.isChainSupported = isChainSupported;
