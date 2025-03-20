@@ -874,6 +874,8 @@ console.log('vadliation failed');
         return;
     }
 
+    const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
+
     let qtype = question_type.val();
     let template_id;
     if (qtype == 'custom') {
@@ -881,13 +883,10 @@ console.log('vadliation failed');
         // TODO: Make a more sophisticated way of working out how to encode input for custom templates
         qtype = 'bool';
     } else {
-        template_id = rc_template.defaultTemplateIDForType(qtype);
+        template_id = rc_contracts.defaultTemplateIDForType(qtype, rcver);
     }
 
-console.log('encode');
     const qtext = rc_question.encodeText(qtype, question_body.val(), outcomes, category_or_description);
-console.log('encoded to ',qtext);
-
     let opening_ts = 0;
     if (opening_ts_val != '') {
         opening_ts = new Date(opening_ts_val);
@@ -900,7 +899,6 @@ console.log('encoded to ',qtext);
         min_bond = humanToDecimalizedBigNumber(min_bond_val);
     }
 
-    const rcver = RC_INSTANCE_VERSIONS[RC_DEFAULT_ADDRESS.toLowerCase()];
     const question_id = rc_question.questionID(template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0, min_bond.toHexString(), RC_DEFAULT_ADDRESS, rcver);
     //console.log('question_id inputs for id ', question_id, template_id, qtext, arbitrator, timeout_val, opening_ts, ACCOUNT, 0);
     //console.log('content_hash inputs for content hash ', rc_question.contentHash(template_id, opening_ts, qtext), template_id, opening_ts, qtext);
@@ -5929,8 +5927,7 @@ console.log('TOKEN_INFO', TOKEN_INFO);
             }
 
             // Everyone gets the initial config
-            CONTRACT_TEMPLATE_CONTENT[cfg_addr.toLowerCase()] = rc_contracts.templateConfig(rcver);;
-
+            CONTRACT_TEMPLATE_CONTENT[cfg_addr.toLowerCase()] = rc_contracts.templateConfig(rcver).content;
 
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()] = {}
             ARBITRATOR_LIST_BY_CONTRACT[cfg_addr.toLowerCase()][cfg_addr.toLowerCase()] = 'No arbitration (highest bond wins)';
@@ -5951,6 +5948,13 @@ console.log('TOKEN_INFO', TOKEN_INFO);
 
         const has_description = rc_contracts.versionHasFeature(rcver, 'description');
         const has_category = rc_contracts.versionHasFeature(rcver, 'category');
+        $('.select-container--question-type select[name="question-type"]').find('option').each(function() {
+            const needed_feature = $(this).attr('data-needs-version-support');
+            if (needed_feature) {
+                $(this).prop('disabled', !rc_contracts.versionHasFeature(rcver, needed_feature));
+            }
+        });
+
         if (has_description) {
             $('body').addClass('version-has-description');
         }
