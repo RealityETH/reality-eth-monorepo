@@ -97,7 +97,7 @@ function tokenConfig(token, chain_id) {
 }
 
 function realityETHConfig(chain_id, token, version) {
-    const versions = ['3.2', '3.0', '2.1', '2.1-rc1', '2.0'];
+    const versions = ['3.0', '3.2', '2.1', '2.1-rc1', '2.0'];
     const token_info = chainTokenList(chain_id);
     if (!token_info[token]) {
         console.log("Token not found for chain");
