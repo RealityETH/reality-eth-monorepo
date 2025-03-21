@@ -18,7 +18,7 @@ See the README of each respective package for details.
 
 The following scripts are used for deployment, under tools/:
   
-  * ipfs_build.sh: Deploy web-accessible parts of the project to a web-accessible URL, and pin it to IPFS on the local server. You should then manually add it to pinata and register it with ENS to update reality.eth.link.
+  * ipfs_build.sh: Deploy web-accessible parts of the project to a web-accessible URL, pin it to IPFS on the local server and on Filebase. You should then register it with ENS to update reality.eth.link.
   * gh_build.sh: As with ipfs_build.sh but deploying the dapp only, to github.io repo at https://realityeth.github.io/. This is usually updated more frequently than the IPFS build.
 
 ### NPM packages
