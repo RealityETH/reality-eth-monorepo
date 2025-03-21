@@ -72,7 +72,7 @@ const chains = {
     'backstopTestnet1': 88558801
 }
 const non_infura_chains = {
-    'gnosis': 'https://rpc.ankr.com/gnosis',
+    'gnosis': 'https://gnosis.oat.farm',
     'scroll-alpha-testnet': 'https://alpha-rpc.scroll.io/l2',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
