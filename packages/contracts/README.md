@@ -30,7 +30,7 @@ The above are combined into JSON files under *generated/* using `npm run-script 
 
 *development/contracts/* contains source files and build files for contracts from the original build, as laid out by truffle. These files are no longer supported as a way of managing contract addresses.
 
-*config/templates.json* contains information about templates deployed by the constructor to save fetching them from the event logs.
+*config/templates.json* and *config/templates_3.2.json* contain information about templates deployed by the constructor to save fetching them from the event logs. (The core templates change in version 3.2, also backported to 2.2, to replace the category with a new description field, and add the "hash" type.)
 
 ## Compilation
 

@@ -1,7 +1,6 @@
 let all_config = require('./generated/contracts.json');
 let token_info = require('./generated/tokens.json');
 const chain_info = require('./generated/chains.json');
-const template_config = require('./config/templates.json');
 const factory_config = require('./generated/factories.json');
 
 function populateImports(imported_contracts, chain_id) {
@@ -28,6 +27,7 @@ function realityETHInstance(config) {
         'RealityETH-2.1': require('./abi/solc-0.8.6/RealityETH-2.1.abi.json'),
         'RealityETH-2.1-rc1': require('./abi/solc-0.8.6/RealityETH-2.1.abi.json'),
         'RealityETH-3.0': require('./abi/solc-0.8.6/RealityETH-3.0.abi.json'),
+        'RealityETH-3.2': require('./abi/solc-0.8.6/RealityETH-3.2.abi.json'),
         'RealityETH_ERC20-2.0': require('./abi/solc-0.8.6/RealityETH_ERC20-2.0.abi.json'),
         'RealityETH_ERC20-3.0': require('./abi/solc-0.8.6/RealityETH_ERC20-3.0.abi.json')
     }
@@ -97,7 +97,7 @@ function tokenConfig(token, chain_id) {
 }
 
 function realityETHConfig(chain_id, token, version) {
-    const versions = ['3.0', '2.1', '2.1-rc1', '2.0'];
+    const versions = ['3.0', '3.2', '2.1', '2.1-rc1', '2.0'];
     const token_info = chainTokenList(chain_id);
     if (!token_info[token]) {
         console.log("Token not found for chain");
@@ -138,7 +138,7 @@ function realityETHConfig(chain_id, token, version) {
 
 function realityETHConfigs(chain_id, token) {
     let configs = {};
-    const versions = ['3.0', '2.1', '2.1-rc1', '2.0'];
+    const versions = ['3.2', '3.0', '2.1', '2.1-rc1', '2.0'];
     const token_info = chainTokenList(chain_id);
     if (!token_info[token]) {
         console.log("Token not found for network");
@@ -204,8 +204,19 @@ function walletAddParameters(chain_id) {
     return ret; 
 }
 
-function templateConfig() {
-    return template_config;
+function templateConfig(vernum) {
+    const old_templates = require('./config/templates.json');
+    const new_templates = require('./config/templates_3.2.json'); // This is also backported to 2.2
+    if (vernum == 2.2 || vernum < 3.2) {
+        return old_templates;
+    } else {
+        return new_templates;
+    }
+}
+
+function defaultTemplateIDForType(template_type, vernum) {
+    const tc = templateConfig(vernum);
+    return tc.base_ids[template_type];
 }
 
 function defaultTokenForChain(chain_id) {
@@ -229,11 +240,22 @@ function defaultTokenForChain(chain_id) {
 }
 
 function versionHasFeature(vernum, feature_name) {
+    vernum = ""+vernum;
     if (feature_name == 'min-bond' || feature_name == 'reopen-question') {
         const min_maj = 3;
-        const bits = vernum+"".split('.');    
+        const bits = vernum.split('.');
         const maj = parseInt(bits[0]);
         return (maj >= min_maj);
+    } else if (feature_name == 'description' || feature_name == 'hash-type') {
+        const min_min = 2;
+        const bits = vernum.split('.');
+        const min = parseInt(bits[1]);
+        return (min >= min_min);
+    } else if (feature_name == 'category') {
+        const min_min = 2;
+        const bits = vernum.split('.');
+        const min = parseInt(bits[1]);
+        return (min < min_min);
     } else {
         throw new Error('Feature not known: '+feature_name);
     }
@@ -369,6 +391,7 @@ module.exports.tokenConfig = tokenConfig
 module.exports.chainData = chainData;
 module.exports.walletAddParameters = walletAddParameters;
 module.exports.templateConfig = templateConfig;
+module.exports.defaultTemplateIDForType = defaultTemplateIDForType;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
 module.exports.isChainSupported = isChainSupported;

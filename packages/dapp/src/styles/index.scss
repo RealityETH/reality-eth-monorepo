@@ -864,11 +864,22 @@ a.questions__item__title {
     display: block;
     text-decoration: none;
     margin-bottom: 9px;
-    line-height: 1.6;
     font-size: 1.6em;
     font-family: $font-family-serif;
     font-weight: normal;
     color: $gray;
+}
+
+.rcbrowser-main-header-description.question-description,
+a.questions__item__description {
+    display: block;
+    text-decoration: none;
+    margin: 0px 0px 10px 0px;
+    font-size: 1.6em;
+    font-family: $font-family-serif;
+    font-weight: normal;
+    color: $gray;
+    font-style: italic;
 }
 
 .long-title .rcbrowser-main-header-title.question-title {
@@ -876,7 +887,7 @@ a.questions__item__title {
     font-size: 1.3em;
 }
 
-.rcbrowser-main-header-title.question-title {
+.rcbrowser-main-header-title.question-title, .rcbrowser-main-header-description.question-description {
     margin: 10px 0px 0px 0px;
 }
 a.questions__item__title:hover {
@@ -1319,6 +1330,11 @@ footer .cols ul {
 
 .rcbrowser--postaquestion,
 .rcbrowser--postaquestion .rcbrowser-header {
+    width: 800px;
+}
+
+.rcbrowser--postaquestion-description,
+.rcbrowser--postaquestion-description .rcbrowser-header {
     width: 800px;
 }
 
@@ -2055,6 +2071,10 @@ input[type="number"] {
     margin-top: 0;
 }
 
+.textarea-container--postaquestion-description {
+    margin-top: 0;
+}
+
 .row.clearfix {
     margin: 15px 0;
 }
@@ -2091,6 +2111,44 @@ textarea[name="question-body"]:-ms-input-placeholder {
 }
 
 textarea[name="question-body"]:placeholder-shown{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+    width: calc(100% - 30px);
+}
+
+textarea[name="question-description-body"] {
+    height: 100px;
+    padding: 12px;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
+textarea[name="question-description-body"]::-webkit-input-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 18- */
+textarea[name="question-description-body"]:-moz-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* Firefox 19+ */
+textarea[name="question-description-body"]::-moz-placeholder{
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+/* IE 10+ */
+textarea[name="question-description-body"]:-ms-input-placeholder {
+    color: $light-gray;
+    font-family: $font-family-serif;
+    font-size: 20px;
+}
+
+textarea[name="question-description-body"]:placeholder-shown{
     color: $light-gray;
     font-family: $font-family-serif;
     font-size: 20px;
@@ -3593,3 +3651,15 @@ span.filter-icon {
     visibility:visible;
 }
 
+.select-container--question-category {
+    visibility:hidden;
+}
+body.version-has-category .select-container--question-category {
+    visibility:visible;
+}
+.textarea-container--postaquestion-description {
+    display:none;
+}
+body.version-has-description .textarea-container--postaquestion-description {
+    display:block;
+}

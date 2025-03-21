@@ -87,6 +87,11 @@ export function handleNewQuestion(event: LogNewQuestion): void {
             question.qCategory = qCategory.toString();
         }
 
+        let qDescription = json_dict.get('description')
+        if (qDescription != null && qDescription.kind == JSONValueKind.STRING) {
+            question.qDescription = qDescription.toString();
+        }
+
         let qLang = json_dict.get('lang')
         if (qLang != null && qLang.kind == JSONValueKind.STRING) {
             question.qLang = qLang.toString();

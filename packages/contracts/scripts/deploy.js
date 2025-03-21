@@ -72,7 +72,7 @@ const chains = {
     'backstopTestnet1': 88558801
 }
 const non_infura_chains = {
-    'gnosis': 'https://rpc.ankr.com/gnosis',
+    'gnosis': 'https://gnosis.oat.farm',
     'scroll-alpha-testnet': 'https://alpha-rpc.scroll.io/l2',
     'sokol': 'https://sokol.poa.network',
     'bsc': 'https://bsc-dataseed.binance.org',
@@ -90,7 +90,7 @@ const non_infura_chains = {
     'optimism': 'https://mainnet.optimism.io',
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
-    'sepolia': 'https://rpc.sepolia.org',
+    'sepolia': 'https://sepolia.backstop.technology/', // 'https://rpc.sepolia.org',
     'holesky': 'https://ethereum-holesky.publicnode.com',
     'telosevm': 'https://mainnet.telos.net/evm',
     'unichain': 'https://mainnet.unichain.org',
