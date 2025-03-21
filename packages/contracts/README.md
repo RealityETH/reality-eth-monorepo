@@ -13,6 +13,9 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
     const contract = realityeth_contracts.realityETHInstance(config);
     const ethers_instance = new ethers.Contract(contract.address, contract.abi, provider);
 
+    const template_id = realityeth_contracts.defaultTemplateIDForType('hash', '3.2')
+
+
 This module also contains support for checking which tokens are available on the given chain, checking which features it has etc.
 
 See [example.js](example.js) for more examples.
