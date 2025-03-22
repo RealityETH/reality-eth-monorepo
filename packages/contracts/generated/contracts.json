@@ -21,6 +21,12 @@
                     "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)",
                     "0x728cba71a3723caab33ea416cb46e2cc9215a596": "Kleros (Old General Court, deprecated)"
                 }
+            },
+            "RealityETH-3.2": {
+                "address": "0x6a2155613b68eFB38D5c6074921F3F4281c8c177",
+                "block": 22100226,
+                "notes": null,
+                "arbitrators": {}
             }
         },
         "FOX": {
