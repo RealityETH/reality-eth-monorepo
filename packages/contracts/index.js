@@ -290,11 +290,11 @@ function configForAddress(addr, chain_id) {
                     if (!config.arbitrators) {
                         config.arbitrators = [];
                     }
-                    const [contract_name, contract_version] = ver.split('-');
-                    config.version_number = ver;
+                    const [contract_name, version_number] = ver.split('-');
+                    config.version_number = version_number;
                     config.chain_id = cid;
                     config.contract_name = contract_name;
-                    config.contract_version = contract_version;
+                    config.contract_version = ver;
                     config.token_ticker = ticker;
                     return config;
                 }
