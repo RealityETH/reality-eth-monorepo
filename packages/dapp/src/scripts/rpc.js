@@ -814,7 +814,10 @@ console.log('category_or_description is ', category_or_description);
 
     let outcomes = [];
     for (let i = 0; i < answer_options.length; i++) {
-        outcomes[i] = answer_options[i].value;
+        if ( (answer_options[i].value == '') || (answer_options[i].value == ' ') ) {
+            continue;
+        }
+        outcomes.push(answer_options[i].value);
     }
     const reward = (reward_val == '') ? ethers.BigNumber.from(0) : humanToDecimalizedBigNumber(reward_val);
 
