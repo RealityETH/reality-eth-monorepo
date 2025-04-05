@@ -577,6 +577,7 @@
             "wss://forno.celo.org/ws"
         ],
         "hostedRPC": "https://forno.celo.org",
+        "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
         "blockExplorerUrls": [
             "https://celoscan.io",
             "https://explorer.celo.org"

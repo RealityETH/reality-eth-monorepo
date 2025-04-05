@@ -132,6 +132,7 @@
     },
     "42220": {
         "hostedRPC": "https://forno.celo.org",
+        "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
         "network_name": "celo"
     },
     "43114": {
