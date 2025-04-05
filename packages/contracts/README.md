@@ -90,4 +90,3 @@ Once the deployment is complete, run `npm run-script generate`. You should never
 For a new deployment to show up in the dapp it is necessary to rebuild the dapp with the updated `packages/contracts`. For Graph support to work in the dapp, the Subgraph will also need to be republished, using the code under `packages/graph`. If the chain has not been used before, it also needs to be added to `packages/dapp/src/index.html`.
 
 If you have added Reality.eth for a new token, or a new arbitrator, or both, please submit the changes to this repo as a PR so that we can update the dapp at reality.eth and the Subgraphs we maintain.
-
