@@ -563,6 +563,25 @@
             "https://explorer.arbitrum.io"
         ]
     },
+    "42220": {
+        "chainId": "0xa4ec",
+        "chainName": "Celo Mainnet",
+        "nativeCurrency": {
+            "name": "CELO",
+            "symbol": "CELO",
+            "decimals": 18
+        },
+        "network_name": "celo",
+        "rpcUrls": [
+            "https://forno.celo.org",
+            "wss://forno.celo.org/ws"
+        ],
+        "hostedRPC": "https://forno.celo.org",
+        "blockExplorerUrls": [
+            "https://celoscan.io",
+            "https://explorer.celo.org"
+        ]
+    },
     "43114": {
         "chainId": "0xa86a",
         "chainName": "Avalanche C-Chain",

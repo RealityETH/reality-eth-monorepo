@@ -531,6 +531,16 @@
             }
         }
     },
+    "42220": {
+        "CELO": {
+            "RealityETH-3.0": {
+                "address": "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3",
+                "block": 31954377,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "43114": {
         "AVAX": {
             "RealityETH-3.0": {

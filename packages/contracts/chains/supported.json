@@ -130,6 +130,10 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
         "network_name": "arbitrum-one"
     },
+    "42220": {
+        "hostedRPC": "https://forno.celo.org",
+        "network_name": "celo"
+    },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
