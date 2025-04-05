@@ -221,12 +221,6 @@ function store_deployed_factory_contract(template, chain_id, out_json) {
     console.log('wrote file', file);
 }
 
-function chain_config_for_name(chain_name) {
-    for (cc in chain_configs) {
-        
-    }
-}
-
 function provider_for_chain() {
     if (non_infura_chains[chain]) {
         console.log('Using chain', non_infura_chains[chain]);
