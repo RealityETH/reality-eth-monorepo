@@ -8,12 +8,10 @@ You will need the Metamask_ extension for Chrome or Firefox or a a browser with 
 
 To post or answer questions you will need ETH or the equivalent on the network you are on.
 
-If you prefer to try the app without using real money, you can switch Metamask to the Rinkeby or Kovan Testnet. You can get testnet coins at the `Rinkeby Faucet`_ and the `Kovan Faucet`_.
+If you prefer to try the app without using real money, you can switch Metamask to the Sepolia Testnet.
 
 .. _Metamask: http://metamask.io/
 .. _Brave: https://brave.com/
-.. _`Rinkeby Faucet`: https://faucet.rinkeby.io/
-.. _`Kovan Faucet`: https://faucet.kovan.network/
 
 
 Asking a question
@@ -39,6 +37,7 @@ Question Type
 * Single-choice: One answer can be selected from a list. The answer form will display this as a select box.
 * Multiple-choice: Multiple answers can be selected from a list. The answer form will display this as a group of checkboxes.
 * Datetime: A date or date and time. The answer form will display this as a date picker.
+* Hash (version 3.2 and higher, or version 2.2): A 32-byte hash. The answer form will display `0x` plus 64 hexadecimal characters.
 
 See :doc:`contracts` for how these values will be reported to contracts.
 
@@ -55,9 +54,13 @@ Category
 ~~~~~~~~
 This is intended to help people find questions of the subject they are interested in.
 
-.. note:: Posting a question will open a MetaMask window which will prompt you to confirm it. 
-          You will have to pay a fee to the network, called "gas". 
-          If you are not in a hurry, you can usually set a much lower gas price than the default suggested by MetaMask.
+This is removed in version 3.2.
+
+Description
+~~~~~~~~~~~
+A detailed description of the question. (This field is optional.)
+
+This was introduced in version 3.2.
 
 Answering a question
 --------------------
@@ -76,7 +79,7 @@ This is money that you will get back if your answer is accepted as the final ans
 
 Posting a bond stakes a claim to the answer you are giving: Even if someone else later reposts the same answer, you will get your bond back, and also be paid, as a minimum, an amount equal to the bond you have posted.
 
-.. note:: When you send a transaction to the Ethereum network, it can takes seconds, minutes or even hours to confirm.
+.. note:: When you send a transaction to the Ethereum network, it may take some time to confirm.
 
           You can go ahead and supply your own answer to a question before it has confirmed. However, other users will not see either the question or your answer until they are confirmed.
 

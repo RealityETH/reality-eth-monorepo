@@ -126,7 +126,13 @@ Questions are created by calling the `askQuestion` method of the reality.eth con
 
 The supported types are `bool`, `uint`, `single-select`, `multiple-select`, `datetime`.
 
-Our built-in templates expect a type, the question title, a list of outcomes (for select types only), a category and a language. If your template expects the same parameters in the same order, you can use the following methods to format the text:
+The type `hash` is also supported by version `3.2` or higher, and by version `2.2`.
+
+Below version `3.2`, our built-in templates expect a type, the question title, a list of outcomes (for select types only), a category and a language. 
+
+From version `3.2`, the category is replaced by a description. This also applies to version `2.2`.
+
+If your template expects the same parameters in the same order, you can use the following methods to format the text:
 
 
 .. code-block:: javascript

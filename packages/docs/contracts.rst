@@ -100,6 +100,17 @@ A ``datetime`` type represents a question that is answered with a date/time. Thi
 The question may also specify a ``precision`` indicating whether it expects a datetime to the nearest year (``Y``), month (``m``), day (``d``), hour (``H``), minute (``i``) or second (``s``). If no precision is specified, it should be assumed to be ``d``, ie the answer should be a date (in UTC) with no time. An answer with a greater precision than that specified should be considered wrong.
 
 
+hash
+""""
+
+A ``hash`` type represents a 32-byte hash. This will be represented as `0x` plus 64 hexadecimal characters in the UI.
+
+Note that it cannot represent a hash ``0xff..ff`` or ``0xff..fe``, as these have special values meaning "invalid" or "answered too soon".
+
+The ``hash`` type is supported from `3.2` or higher. It is also back-ported to version `2.2`.
+
+
+
 How questions are structured
 ----------------------------
 
