@@ -2881,6 +2881,8 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.addClass('has-too-soon-option');
     }
 
+    rcqa.addClass('question-type-'+question_type);
+
     const cat_el = rcqa.find('.rcbrowser-main-header-category');
     cat_el.text(category_text(question_json, cat_el)); 
 
