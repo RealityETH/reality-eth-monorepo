@@ -1535,7 +1535,6 @@ function filledQuestion(item, fetched_ms) {
         question = QUESTION_DETAIL_CACHE[cqid];
     } 
 
-console.log('filled q', item);
     question.arbitrator = item.arbitrator;
     question.question_id = item.questionId;
     question.creation_ts = ethers.BigNumber.from(item.createdTimestamp);
