@@ -365,7 +365,8 @@
         ],
         "hostedRPC": "https://sepolia.era.zksync.dev",
         "blockExplorerUrls": [
-            "https://sepolia.explorer.zksync.io"
+            "https://sepolia.explorer.zksync.io",
+            "https://sepolia.explorer.zksync.io/"
         ]
     },
     "324": {

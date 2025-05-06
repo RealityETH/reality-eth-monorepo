@@ -82,6 +82,8 @@
         "network_name": "zkSync2-testnet"
     },
     "300": {
+        "hostedRPC": "https://sepolia.era.zksync.dev",
+        "explorerURL": "https://sepolia.explorer.zksync.io/",
         "network_name": "zksync-sepolia"
     },
     "324": {
