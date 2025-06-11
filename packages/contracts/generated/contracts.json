@@ -646,6 +646,15 @@
         }
     },
     "11155111": {
+        "BOND": {
+            "RealityETH_ERC20-3.2": {
+                "address": "0x8A5f1C6361E280348a59daC10160A88428FFBd51",
+                "block": 8526475,
+                "token_address": "0x88498CE124778cB92b0b4c1ab9244D38c3aA7df3",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "ETH": {
             "RealityETH-3.0": {
                 "address": "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA",
