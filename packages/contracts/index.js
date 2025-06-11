@@ -29,7 +29,8 @@ function realityETHInstance(config) {
         'RealityETH-3.0': require('./abi/solc-0.8.6/RealityETH-3.0.abi.json'),
         'RealityETH-3.2': require('./abi/solc-0.8.6/RealityETH-3.2.abi.json'),
         'RealityETH_ERC20-2.0': require('./abi/solc-0.8.6/RealityETH_ERC20-2.0.abi.json'),
-        'RealityETH_ERC20-3.0': require('./abi/solc-0.8.6/RealityETH_ERC20-3.0.abi.json')
+        'RealityETH_ERC20-3.0': require('./abi/solc-0.8.6/RealityETH_ERC20-3.0.abi.json'),
+        'RealityETH_ERC20-3.2': require('./abi/solc-0.8.6/RealityETH_ERC20-3.2.abi.json')
     }
     return {
         "abi": abis[config.contract_version],
