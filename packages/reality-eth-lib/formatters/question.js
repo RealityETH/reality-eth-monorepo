@@ -106,6 +106,8 @@ exports.answerToBytes32 = function(answer, qjson) {
     if (decimals > 0) {
         var multiplier = new BigNumber(10).pow(new BigNumber(decimals));
         answer = new BigNumber(answer).times(multiplier).toString(16);
+    } else {
+        answer = new BigNumber(answer).toString(16);
     }
     //console.log('muliplied to ',answer.toString());
     var bn;
