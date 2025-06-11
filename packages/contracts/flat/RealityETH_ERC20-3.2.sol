@@ -255,12 +255,12 @@ contract RealityETH_ERC20_v3_2 is BalanceHolder {
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() {
-        createTemplate('{"title": "%s", "type": "bool", "description": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "description": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "description": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "description": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "datetime", "description": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "hash", "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "bool", "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "datetime", "description": "%s", "lang": "%s"}');
+         createTemplate('{"title": "%s", "type": "hash", "description": "%s", "lang": "%s"}');
     }
 
     /// @notice Set the address of the ERC20 token that will be used for bonds.
