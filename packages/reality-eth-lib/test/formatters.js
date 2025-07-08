@@ -36,6 +36,18 @@ describe('Answer formatting', function() {
     expect(rc_question.answerToBytes32(1, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
     expect(rc_question.answerToBytes32(0, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
   });
+  it('Keeps hex as hex', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    q['type'] = 'hash';
+    //var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('hash'), '');
+    expect(rc_question.answerToBytes32("a", q)).to.equal('0x000000000000000000000000000000000000000000000000000000000000000a');
+    expect(rc_question.answerToBytes32("0xa", q)).to.equal('0x000000000000000000000000000000000000000000000000000000000000000a');
+    expect(rc_question.answerToBytes32("0", q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32("0x0", q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd", q)).to.equal('0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd');
+    expect(rc_question.answerToBytes32("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffFD", q)).to.equal('0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd');
+    expect(rc_question.answerToBytes32("1", q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
+  });
   it('Turns options into hex', function() {
     var outcomes = ['thing1', 'thing2', 'thing3'];
     var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
@@ -99,7 +111,6 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
   });
 
-  /*
   it('Leaves bytes32 strings unchanged except forced to lower case', function() {
     // We don't have a built-in type for this yet so just switch out the uint one
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
@@ -109,8 +120,9 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000')).to.equal('0x0000000000000000000000000000000000000000000000000de0b6b3a7640000');
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('0x0000000000000000000000000000000000000000000000001BC16D674EC80000'.toLowerCase());
     expect(rc_question.getAnswerString(q, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')).to.equal('Invalid');
+    expect(rc_question.getAnswerString(q, '0xa')).to.equal('0x000000000000000000000000000000000000000000000000000000000000000a');
+    expect(rc_question.getAnswerString(q, 'a')).to.equal('0x000000000000000000000000000000000000000000000000000000000000000a');
   });
-  */
 
 
 /*

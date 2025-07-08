@@ -96,6 +96,9 @@ exports.arrayToBitmaskBigNumber = function(selections) {
 
 exports.answerToBytes32 = function(answer, qjson) {
     var qtype = qjson['type'];
+    if (qtype == 'hash') {
+        return module.exports.bytes32ToString(answer, qjson);
+    }
     if (qtype == 'multiple-select') {
         answer = module.exports.arrayToBitmaskBigNumber(answer);
     }
