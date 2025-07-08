@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/farcaster-bot",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "description": "Bot for tweeting out reality.eth questions and answers",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,7 @@
   "dependencies": {
     "@neynar/nodejs-sdk": "^1.55.0",
     "@reality.eth/contracts": "^3.2.11",
-    "@reality.eth/reality-eth-lib": "^3.4.12",
+    "@reality.eth/reality-eth-lib": "^3.4.13",
     "axios": "^0.24.0",
     "ethers": "^5.8.0"
   },
