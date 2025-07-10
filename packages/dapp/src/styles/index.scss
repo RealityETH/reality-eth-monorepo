@@ -1852,6 +1852,10 @@ div.rcbrowser--qa-detail.top-entry-unrevealed .unrevealed-top-answer-container {
     font-size: 20px;
 }
 
+.question-type-hash .unconfirmed-answer-body {
+    font-size:16px;
+}
+
 .unconfirmed-answer-body > p {
     margin: 0 0 9px;
 }
@@ -1888,6 +1892,10 @@ div.unconfirmed-question-header span.pending-question-txid {
 
 .current-answer-body > p:last-of-type {
     margin: 0;
+}
+
+.question-type-hash .current-answer-body {
+    font-size:16px;
 }
 
 // date
