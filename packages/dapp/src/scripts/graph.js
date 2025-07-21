@@ -3582,7 +3582,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
 
     // Selects will just have "invalid" as an option in the pull-down.
     // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
-    const has_invalid_selection = (answer_element.attr('data-invalid-selected') == '1');
+    const has_invalid_selection = (answer_element.attr('data-invalid-selected') == '1' || answer_element.val() == '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff');
     if (has_invalid_selection) {
         new_answer = rc_question.getInvalidValue(question_json);
         console.log('invalid selected, so submitting the invalid value ', new_answer);
@@ -3591,7 +3591,7 @@ function formattedAnswerFromForm(parent_div, question_json) {
 
     // Selects will just have "invalid" as an option in the pull-down.
     // However, if there is no select we instead use a link underneath the input, and toggle the data-invalid-selected class on the input
-    const has_answered_too_soon_select = (answer_element.attr('data-too-soon-selected') == '1');
+    const has_answered_too_soon_select = (answer_element.attr('data-too-soon-selected') == '1' || answer_element.val() == '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe');
     if (has_answered_too_soon_select) {
         new_answer = rc_question.getAnsweredTooSoonValue(question_json);
         console.log('answered too soon selected, so submitting the answered too soon value ', new_answer);
