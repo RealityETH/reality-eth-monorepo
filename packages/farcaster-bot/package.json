@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/farcaster-bot",
-  "version": "1.2.16",
+  "version": "1.2.17",
   "description": "Bot for tweeting out reality.eth questions and answers",
   "main": "index.js",
   "scripts": {
@@ -25,8 +25,8 @@
   "homepage": "https://github.com/RealityETH/reality-eth-monorepo#readme",
   "dependencies": {
     "@neynar/nodejs-sdk": "^1.55.0",
-    "@reality.eth/contracts": "^3.2.14",
-    "@reality.eth/reality-eth-lib": "^3.4.16",
+    "@reality.eth/contracts": "^3.2.15",
+    "@reality.eth/reality-eth-lib": "^3.4.17",
     "axios": "^0.24.0",
     "ethers": "^5.8.0"
   },
