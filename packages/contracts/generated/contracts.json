@@ -588,7 +588,9 @@
                 "address": "0x86b653Dc9aa6d7311109276925927087573f91CB",
                 "block": 34619265,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0xd919c6Edfb458C15c12b921Cbc9F6eEf06F0E9c5": "Kleros arbitrator (Precog)"
+                }
             }
         }
     },
