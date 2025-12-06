@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/mastodon-bot",
-  "version": "1.2.15",
+  "version": "1.2.16",
   "description": "Bot for tweeting out reality.eth questions and answers",
   "main": "index.js",
   "scripts": {
@@ -24,8 +24,8 @@
   },
   "homepage": "https://github.com/RealityETH/reality-eth-monorepo#readme",
   "dependencies": {
-    "@reality.eth/contracts": "^3.2.13",
-    "@reality.eth/reality-eth-lib": "^3.4.15",
+    "@reality.eth/contracts": "^3.2.14",
+    "@reality.eth/reality-eth-lib": "^3.4.16",
     "axios": "^0.24.0",
     "ethers": "^5.8.0",
     "masto": "^4.2.7"
