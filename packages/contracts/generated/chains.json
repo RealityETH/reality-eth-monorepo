@@ -628,6 +628,26 @@
             "https://mumbai.polygonscan.com"
         ]
     },
+    "84532": {
+        "chainId": "0x14a34",
+        "chainName": "Base Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "base-sepolia",
+        "rpcUrls": [
+            "https://sepolia.base.org",
+            "https://base-sepolia-rpc.publicnode.com",
+            "wss://base-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia.base.org",
+        "blockExplorerUrls": [
+            "https://sepolia.basescan.org",
+            "https://base-sepolia.blockscout.com"
+        ]
+    },
     "421611": {
         "chainId": "0x66eeb",
         "chainName": "Arbitrum Rinkeby",

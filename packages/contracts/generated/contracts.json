@@ -582,6 +582,16 @@
             }
         }
     },
+    "84532": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x86b653Dc9aa6d7311109276925927087573f91CB",
+                "block": 34619265,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "421611": {
         "ARETH": {
             "Arbitrator": {
