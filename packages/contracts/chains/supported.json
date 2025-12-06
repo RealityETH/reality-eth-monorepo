@@ -146,6 +146,9 @@
         "explorerURL": "https://mumbai.polygonscan.com",
         "network_name": "mumbai"
     },
+    "84532": {
+        "network_name": "base-sepolia"
+    },
     "421611": {
         "network_name": "arbitrum-rinkeby"
     },
