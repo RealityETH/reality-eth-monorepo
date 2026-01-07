@@ -78,7 +78,7 @@ To deploy contracts using the code compiled under contracts/bytecode, use
 
 This will add contract addresses to the existing deployed contract .json definitions, and deploy per-token versions in the format expected by the `@reality.eth/dapp` ui.
 
-If you prefer to keep your secret keys somewhere else you can pass it as an environment variable, eg
+If you prefer to keep your secret keys somewhere else, you can pass it as an environment variable, eg
 `$ SECRETS=/home/ed/secrets node deploy.js <RealityETH|Arbitrator|ERC20> <network> <token_name> [<dispute_fee>] [<arbitrator_owner>]`
 
 Supported networks are hard-coded in the `deploy.js` file. You may also wish to edit it to alter gas limits, etc.
