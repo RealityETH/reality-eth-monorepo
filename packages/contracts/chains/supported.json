@@ -14,13 +14,11 @@
         "deprecated": true
     },
     "4": {
-        "hostedRPC": "https://eth-rinkeby.alchemyapi.io/v2/m2Op-gK2G1RiwtWHr6QB_JH9-ry0A6do",
         "explorerURL": "https://rinkeby.etherscan.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
         "network_name": "rinkeby"
     },
     "5": {
-        "hostedRPC": "https://eth-goerli.g.alchemy.com/v2/i2jZKhmFBPZYl8YdSHxsZ6viP3PQLwId",
         "explorerURL": "https://goerli.etherscan.io",
         "graphURL": "https://gateway.testnet.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "network_name": "goerli"
