@@ -6,7 +6,7 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 ### Quick example:
 
     const realityeth_contracts = require('@reality.eth/contracts')
-    const chain_id = 4; // eg rinkeby
+    const chain_id = 11155111; // eg sepolia
     const provider = ...;
     
     const config = realityeth_contracts.realityETHConfig(chain_id, 'ETH', '3.0')
@@ -60,7 +60,7 @@ These tests test the bytecode not the source code, so you need to recompile befo
 
 ## Deployment
 
-You will need the private key of an account with funds to deploy on the relevant network. It should be in hex, beginning "0x", in a file called `mainnet.sec` or `rinkeby.sec` or the equivalent for the network you will deploy to. A different key should be used for each network to avoid clashing contract addresses.
+You will need the private key of an account with funds to deploy on the relevant network. It should be in hex, beginning "0x", in a file called `mainnet.sec` or `sepolia.sec` or the equivalent for the network you will deploy to. A different key should be used for each network to avoid clashing contract addresses.
 
 `$ mkdir packages/contracts/secrets`
 
