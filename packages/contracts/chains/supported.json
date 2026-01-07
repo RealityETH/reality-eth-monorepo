@@ -1,6 +1,6 @@
 {
     "1": {
-        "hostedRPC": "https://eth-mainnet.alchemyapi.io/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
+        "hostedRPC": "https://eth-mainnet.g.alchemy.com/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
         "explorerURL": "https://etherscan.io",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/deployments/id/QmaugeofXNk2tCN3U3LaEi8vRq99zZ6pbKYJDWbbVF1Z9E",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
