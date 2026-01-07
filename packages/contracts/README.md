@@ -6,7 +6,7 @@ Contracts for Reality.eth, including source code, ABI and addresses of contracts
 ### Quick example:
 
     const realityeth_contracts = require('@reality.eth/contracts')
-    const chain_id = 11155111; // eg sepolia
+    const chain_id = 11155111; // eg sepolia testnet
     const provider = ...;
     
     const config = realityeth_contracts.realityETHConfig(chain_id, 'ETH', '3.0')
