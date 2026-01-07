@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/atproto-bot",
-  "version": "0.2.20",
+  "version": "0.2.21",
   "description": "Bot for tweeting out reality.eth questions and answers",
   "repository": {
     "type": "git",
@@ -24,8 +24,8 @@
   },
   "dependencies": {
     "@atproto/api": "^0.13.16",
-    "@reality.eth/contracts": "^3.2.18",
-    "@reality.eth/reality-eth-lib": "^3.4.20",
+    "@reality.eth/contracts": "^3.2.19",
+    "@reality.eth/reality-eth-lib": "^3.4.21",
     "axios": "^1.7.8",
     "dotenv": "^16.0.3",
     "ethers": "^6.13.4",
