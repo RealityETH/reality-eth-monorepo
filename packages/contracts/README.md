@@ -1,5 +1,5 @@
 # @reality.eth/contracts
-Contracts for Reality.eth, including source code, ABI and addresses of contracts on mainnet and test networks.
+Contracts for Reality.eth, including source code, ABI, addresses of contracts on mainnet and test networks and Subgraph endpoints.
 
 ## Using the contracts
 
