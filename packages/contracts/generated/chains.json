@@ -145,11 +145,11 @@
         },
         "network_name": "TelosEVM",
         "rpcUrls": [
-            "https://mainnet.telos.net/evm",
+            "https://rpc.telos.net",
             "https://telos.drpc.org",
             "wss://telos.drpc.org"
         ],
-        "hostedRPC": "https://mainnet.telos.net/evm",
+        "hostedRPC": "https://rpc.telos.net",
         "blockExplorerUrls": [
             "https://teloscan.io"
         ]
@@ -291,10 +291,17 @@
             "decimals": 18
         },
         "network_name": "unichain",
-        "rpcUrls": [],
+        "rpcUrls": [
+            "https://mainnet.unichain.org",
+            "https://unichain-rpc.publicnode.com",
+            "wss://unichain-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://mainnet.unichain.org",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/ChZUYehW8ionezxqgM1UQsrjuZpcBbNkiTjQX5jBauEi",
         "blockExplorerUrls": [
+            "https://uniscan.xyz",
+            "https://unichain.blockscout.com",
             "https://unichain.blockscout.com/"
         ]
     },
@@ -327,6 +334,25 @@
             "https://polygonscan.com",
             "https://polygon.dex.guru",
             "https://polygonscan.com/"
+        ]
+    },
+    "143": {
+        "chainId": "0x8f",
+        "chainName": "Monad",
+        "nativeCurrency": {
+            "name": "Monad",
+            "symbol": "MON",
+            "decimals": 18
+        },
+        "network_name": "monad",
+        "rpcUrls": [
+            "https://rpc.monad.xyz"
+        ],
+        "hostedRPC": "https://rpc.monad.xyz",
+        "blockExplorerUrls": [
+            "https://monadvision.com",
+            "https://monadscan.com",
+            "https://monad.socialscan.io/"
         ]
     },
     "280": {
@@ -579,7 +605,7 @@
         "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
         "blockExplorerUrls": [
             "https://celoscan.io",
-            "https://explorer.celo.org"
+            "https://celo.blockscout.com"
         ]
     },
     "43114": {
@@ -740,7 +766,7 @@
     },
     "11155111": {
         "chainId": "0xaa36a7",
-        "chainName": "Sepolia",
+        "chainName": "Ethereum Sepolia",
         "nativeCurrency": {
             "name": "Sepolia Ether",
             "symbol": "ETH",
@@ -750,7 +776,6 @@
         "rpcUrls": [
             "https://rpc.sepolia.org",
             "https://rpc2.sepolia.org",
-            "https://rpc-sepolia.rockx.com",
             "https://rpc.sepolia.ethpandaops.io",
             "https://sepolia.gateway.tenderly.co",
             "wss://sepolia.gateway.tenderly.co",
@@ -758,7 +783,6 @@
             "wss://ethereum-sepolia-rpc.publicnode.com",
             "https://sepolia.drpc.org",
             "wss://sepolia.drpc.org",
-            "https://rpc-sepolia.rockx.com",
             "https://eth-sepolia.g.alchemy.com/v2/WddzdzI2o9S3COdT73d5w6AIogbKq4X-"
         ],
         "hostedRPC": "https://rpc.sepolia.org",
