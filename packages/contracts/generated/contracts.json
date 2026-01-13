@@ -395,6 +395,16 @@
             }
         }
     },
+    "143": {
+        "MONAD": {
+            "RealityETH-3.2": {
+                "address": "0xa317A7B24d72e3C6cD55c8F244AE01398A8D97e1",
+                "block": 48537242,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "280": {
         "ETH": {
             "RealityETH-3.0": {
