@@ -27,7 +27,19 @@ describe('Default template types', function() {
         expect(q.type).to.equal(t);
     }
   });
-
+  it('marks the question if it has extra unused data', function() {
+    const outcomes = ["oink", "oink2"];
+    for (var i=0; i<option_types.length; i++) {
+        var t = option_types[i];
+        var qtext = rc_question.encodeText(t, 'oink', outcomes, 'my-category', 'en_US');
+        var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), qtext);
+        var qtext1 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), qtext, true);
+        var qtext2 = qtext + '\u241f' + 'hey hey';
+        var q2 = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType(t), qtext2, true);
+        expect(q.type).to.equal(t);
+        expect(JSON.stringify(q)).not.to.equal(JSON.stringify(q2));
+    }
+  });
 });
 
 describe('Answer formatting', function() {

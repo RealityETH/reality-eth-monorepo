@@ -184,7 +184,7 @@ exports.secondsTodHms = function(sec) {
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
-exports.parseQuestionJSON = function(data, errors_to_title) {
+exports.parseQuestionJSON = function(data, errors_to_title, vsprint_errors) {
 
     // Strip unicode null-terminated-string control characters if there are any.
     // These seem to be stripped already if we got data via The Graph, and only passed to us on RPC.
@@ -211,12 +211,18 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             question_json['errors']['invalid_precision'] = true;
         }
     }
+
+    if (vsprint_errors && vsprint_errors['suspicious_extra_data']) {
+        if (!question_json['errors']) question_json['errors'] = {};
+        question_json['errors']['suspicious_extra_data'] = true;
+    }
+
     // If errors_to_title is specified, we add any error message to the title to make sure we don't lose it
     if (errors_to_title) {
         if ('errors' in question_json) {
             const prependers = {
                 'invalid_precision': 'Invalid date format',
-                'too_many_outcomes': 'Too many outcomes'
+                'too_many_outcomes': 'Too many outcomes',
             }
             for (const e in question_json['errors']) {
                 if (e in prependers) {
@@ -263,7 +269,8 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
             const prependers = {
                 'invalid_format': 'Invalid format',
                 'unsafe_markdown': 'Unsafe markdown',
-                'markdown_parse_failed': 'Bad markdown parse'
+                'markdown_parse_failed': 'Bad markdown parse',
+                'suspicious_extra_data': 'Suspicious Extra Data',
             }
             for (const e in question_json['errors']) {
                 if (e in prependers) {
@@ -279,11 +286,22 @@ exports.parseQuestionJSON = function(data, errors_to_title) {
 
 exports.populatedJSONForTemplate = function(template, question, errors_to_title) {
     var qbits = question.split(module.exports.delimiter());
+    var interpolated = vsprintf(template, qbits);
+
+    var vsprint_errors = null;
+    if (question != '') {
+        var tweak_question = question + 'x';
+        var qbits2 = tweak_question.split(module.exports.delimiter());
+        var interpolated2 = vsprintf(template, qbits2);
+        if (interpolated == interpolated2) {
+            // console.log('suspicious_extra_data: ', question, template);
+            vsprint_errors = {'suspicious_extra_data': true};
+        }
+    }
     //console.log('pp', template);
     //console.log('qbits', qbits);
-    var interpolated = vsprintf(template, qbits);
     //console.log('resulting template', interpolated);
-    return module.exports.parseQuestionJSON(interpolated, errors_to_title);
+    return module.exports.parseQuestionJSON(interpolated, errors_to_title, vsprint_errors);
 }
 
 // Encode text, assuming the template has placeholders in the order specified in the params.
