@@ -3260,8 +3260,14 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }
         rcqa.attr('data-datetime-precision', precision);
     }
-    
+
     setupDatetimeDatePicker(rcqa);
+
+    const raw_section = $('.raw-question-container');
+    raw_section.find('.raw-template-id').text(question_detail.template_id);
+    if (question_detail['question_text']) {
+        raw_section.find('.raw-question-parameters').text(question_detail['question_text']);
+    }
 
     //console.log(claimableItems(question_detail));
 

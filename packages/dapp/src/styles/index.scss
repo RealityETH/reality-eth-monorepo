@@ -3671,3 +3671,17 @@ body.version-has-category .select-container--question-category {
 body.version-has-description .textarea-container--postaquestion-description {
     display:block;
 }
+div.raw-data-container {
+    padding: 4px;
+    overflow:auto;
+    padding-bottom:15px;
+}
+span.raw-question-parameters {
+    font-family: monospace;
+    font-size:10px;
+    background-color:#f5f6f7;
+}
+div.raw-data-header {
+    text-align:center;
+    font-size:12px;
+}

@@ -1586,6 +1586,8 @@ function filledQuestion(item, fetched_ms) {
 
     try {
         // question.question_json = JSON.parse(item.json_str);
+        question.raw_question_text = item.data;
+        question.raw_template_id = item.template.id;
         question.question_json = rc_question.populatedJSONForTemplate(item.template.questionText, item.data, true);
         question.has_invalid_option = rc_question.hasInvalidOption(question.question_json, question.version_number);
         question.has_too_soon_option = rc_question.hasAnsweredTooSoonOption(question.question_json, question.version_number);
@@ -2807,6 +2809,12 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         rcqa.find('.answered-history-container').after(ans_frm);
     }
 
+    const raw_section = $('.raw-question-container');
+    raw_section.find('.raw-template-id').text(question_detail.template_id);
+    if (question_detail['raw_question_text']) {
+        raw_section.find('.raw-question-parameters').text(question_detail['raw_question_text']);
+    }
+
     // If the user has edited the field, never repopulate it underneath them
     const bond_field = rcqa.find('.rcbrowser-input--number--bond.form-item');
     if (!bond_field.hasClass('edited')) {
@@ -2835,7 +2843,7 @@ function populateQuestionWindow(rcqa, question_detail, is_refresh) {
         }
         rcqa.attr('data-datetime-precision', precision);
     }
-    
+
     setupDatetimeDatePicker(rcqa);
 
     //console.log(claimableItems(question_detail));
