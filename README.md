@@ -57,6 +57,25 @@ cp /tmp/kubo/ipfs ~/.local/bin/ipfs
 
 Make sure `~/.local/bin` is on your `PATH`.
 
+#### GitHub Pages deploy key
+
+Required for `gh_build.sh`. Generate a dedicated SSH key and add it as a deploy key (with write access) on the `RealityETH.github.io` repo:
+
+```
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_ghpages -C "realityeth.github.io deploy"
+cat ~/.ssh/id_ed25519_ghpages.pub
+```
+
+Then add a host alias to `~/.ssh/config`:
+
+```
+Host github-pages
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_ghpages
+    IdentitiesOnly yes
+```
+
 #### Filebase remote pinning
 
 Required for `ipfs_build.sh`. Add Filebase as a remote pinning service using your access token from the Filebase dashboard:
