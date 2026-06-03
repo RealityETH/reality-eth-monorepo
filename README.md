@@ -31,3 +31,36 @@ The following are published to npm. They are versioned individually, and updated
   * @reality.eth/cli-tools
 
 Some packages reference each other, for example `dapp` needs `contracts` and `reality-eth-lib`. When developing it can be useful to make your local environment refer directly to the working versions of the other packages in the repo. To do this, instead of running the normal `npm install` for each JavaScript package, run `./bootstrap.sh` from the uppermost directory. This will install external dependencies normally, but set up dependencies within this repo as symlinks.
+
+### Build dependencies
+
+#### Node.js
+
+Install [nvm](https://github.com/nvm-sh/nvm), then from the repo root:
+
+```
+nvm install
+```
+
+This will install the version specified in `.nvmrc`. Run `nvm use` at the start of each shell session to activate it.
+
+#### IPFS
+
+Required for `ipfs_build.sh`. Install the [Kubo](https://github.com/ipfs/kubo) binary as the local user:
+
+```
+mkdir -p ~/.local/bin
+curl -L https://github.com/ipfs/kubo/releases/download/v0.41.0/kubo_v0.41.0_linux-amd64.tar.gz \
+  | tar -xz -C /tmp
+cp /tmp/kubo/ipfs ~/.local/bin/ipfs
+```
+
+Make sure `~/.local/bin` is on your `PATH`.
+
+#### Filebase remote pinning
+
+Required for `ipfs_build.sh`. Add Filebase as a remote pinning service using your access token from the Filebase dashboard:
+
+```
+ipfs pin remote service add filebase https://api.filebase.io/v1/ipfs <YOUR_FILEBASE_TOKEN>
+```
