@@ -1,7 +1,8 @@
 {
   "parser": "@babel/eslint-parser",
   "extends": [
-    "eslint:recommended"
+    "eslint:recommended",
+    "prettier"
   ],
   "env": {
     "browser": true,
@@ -11,6 +12,10 @@
     "ecmaVersion": 8,
     "sourceType": "module",
     "requireConfigFile": false
+  },
+  "globals": {
+    "$": "readonly",
+    "jQuery": "readonly"
   },
   "rules": {
     "semi": 2
