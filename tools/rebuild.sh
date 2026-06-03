@@ -1,3 +1,3 @@
-pushd packages/dapp && npm install && npm run build
+pushd packages/dapp && npm run build
 popd
-cd packages/template-generator && npm install && npm run build
+cd packages/template-generator && npm run build
