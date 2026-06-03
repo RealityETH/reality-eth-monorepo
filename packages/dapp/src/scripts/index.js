@@ -1,5 +1,8 @@
 import '../styles/index.scss';
 
+document.body.style.visibility = 'visible';
+document.getElementById('app-loading').remove();
+
 ('use strict');
 
 import common from './common.js';
