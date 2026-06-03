@@ -61,6 +61,7 @@
     "process": "^0.11.10",
     "randombytes": "^2.1.0",
     "stream": "^0.0.2",
+    "stream-browserify": "^3.0.0",
     "timeago.js": "^3.0.1"
   },
   "gitHead": "5bba76f537e2056abeab2d4bfd33f3052287d14f"
