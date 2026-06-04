@@ -83,7 +83,7 @@ If you prefer to keep your secret keys somewhere else, you can pass it as an env
 
 Supported networks are hard-coded in the `deploy.js` file. You may also wish to edit it to alter gas limits, etc.
 
-Once the deployment is complete, run `npm run-script generate`. You should never edit the `generated/` files directly.
+Once the deployment is complete, run `npm run-script generate`. Never edit the `generated/` files directly.
 
 ## Adding your contracts to the dapp
 
