@@ -19,6 +19,7 @@
                 "arbitrators": {
                     "0xFf32eff53459485074b4Db14633252C9dcA3791A": "Kleros General Court",
                     "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)",
+                    "0x7837638B3b1546c70dfCbFBd1ce55AC88758D517": "Kleros (Precog)",
                     "0x728cba71a3723caab33ea416cb46e2cc9215a596": "Kleros (Old General Court, deprecated)"
                 }
             },
@@ -347,7 +348,7 @@
                 "notes": null,
                 "arbitrators": {
                     "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
-                    "0xd04f24364687dBD6db67D2101faE59e91a6e605B": "CFM arbitrator"
+                    "0x1301d3C29A8723fae7Ee1343203eA16bd7845996": "CFM arbitrator"
                 }
             }
         }
@@ -490,8 +491,7 @@
                 "block": 26260675,
                 "notes": null,
                 "arbitrators": {
-                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
-                    "0xd04f24364687dBD6db67D2101faE59e91a6e605B": "Kleros arbitrator (Precog)"
+                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)"
                 }
             }
         }
@@ -547,7 +547,9 @@
                 "address": "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9",
                 "block": 459975,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x6B6BD5224bB20d22D81f9BEE8aFb652AcE0a9276": "Kleros (Precog)"
+                }
             }
         }
     },
@@ -644,7 +646,8 @@
                 "block": 41977012,
                 "notes": null,
                 "arbitrators": {
-                    "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)"
+                    "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)",
+                    "0x8C521BD71B0bdAfF6d6bc69B64a309097DaA54ca": "Kleros (Precog)"
                 }
             }
         }
@@ -695,7 +698,8 @@
                 "block": 3044431,
                 "notes": null,
                 "arbitrators": {
-                    "0x05b942faecfb3924970e3a28e0f230910cedff45": "Kleros"
+                    "0x05b942faecfb3924970e3a28e0f230910cedff45": "Kleros",
+                    "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA": "Kleros (Precog)"
                 }
             },
             "RealityETH-3.2": {

@@ -5,6 +5,7 @@
     "arbitrators": {
         "0xFf32eff53459485074b4Db14633252C9dcA3791A": "Kleros General Court",
         "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)",
+        "0x7837638B3b1546c70dfCbFBd1ce55AC88758D517": "Kleros (Precog)",
         "0x728cba71a3723caab33ea416cb46e2cc9215a596": "Kleros (Old General Court, deprecated)"
     }
 }

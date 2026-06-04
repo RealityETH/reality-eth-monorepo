@@ -3,6 +3,7 @@
     "block": 41977012,
     "notes": null,
     "arbitrators": {
-        "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)"
+        "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)",
+        "0x8C521BD71B0bdAfF6d6bc69B64a309097DaA54ca": "Kleros (Precog)"
     }
 }
