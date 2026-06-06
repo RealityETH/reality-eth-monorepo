@@ -4,7 +4,6 @@ asn1crypto==1.5.1
 async-timeout==4.0.3
 attrs==23.2.0
 bitarray==2.9.2
-bitcoin==1.1.42
 cached-property==1.5.2
 certifi==2023.11.17
 cffi==1.16.0
@@ -21,7 +20,6 @@ eth-rlp==1.0.0
 eth-tester==0.10.0b1
 eth-typing==3.5.2
 eth-utils==2.3.1
-ethereum==2.3.2
 frozenlist==1.4.1
 future==0.18.3
 hexbytes==0.3.1
@@ -41,14 +39,12 @@ py-evm==0.8.0b1
 pycparser==2.21
 pycryptodome==3.19.1
 pyethash==0.1.27
-pysha3==1.0.2
 pyunormalize==15.1.0
 PyYAML==6.0.1
 referencing==0.32.1
 regex==2023.12.25
 repoze.lru==0.7
 requests==2.31.0
-rlp==3.0.0
 rpds-py==0.16.2
 scrypt==0.8.20
 semantic-version==2.10.0
