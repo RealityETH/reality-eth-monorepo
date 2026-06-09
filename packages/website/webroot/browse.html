@@ -301,6 +301,46 @@
   /* ── Dot separators ──────────────────────────────────── */
   .dot { color: var(--text-dim); }
 
+  /* ── Header nav ──────────────────────────────────────── */
+  .header-nav { display: flex; align-items: center; gap: 4px; }
+  .nav-link {
+    padding: 5px 10px; border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-muted); text-decoration: none;
+    white-space: nowrap; transition: color 0.15s;
+  }
+  .nav-link:hover { color: var(--text); }
+  @media (max-width: 700px) { .header-nav { display: none; } }
+
+  /* ── Page intro ───────────────────────────────────────── */
+  .page-intro {
+    font-size: 16px; color: var(--text); line-height: 1.6;
+    margin-bottom: 32px;
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+  }
+  .page-intro a { color: var(--accent); text-decoration: none; }
+  .page-intro a:hover { text-decoration: underline; }
+
+  /* ── Footer ───────────────────────────────────────────── */
+  .site-footer {
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 48px; padding: 24px 16px;
+    color: var(--text-dim); font-size: 12px;
+  }
+  .footer-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .footer-copy { flex: 1; min-width: 180px; }
+  .footer-copy a { color: var(--text-dim); text-decoration: none; }
+  .footer-copy a:hover { color: var(--text-muted); }
+  .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+  .footer-links a { color: var(--text-dim); text-decoration: none; }
+  .footer-links a:hover { color: var(--text-muted); }
+
   /* ── Star button ─────────────────────────────────────── */
   .star-btn {
     background: none; border: none; cursor: pointer; padding: 2px;
@@ -389,11 +429,18 @@
       <option value="1">Ethereum</option>
       <option value="100">Gnosis</option>
     </select>
+    <nav class="header-nav">
+      <a class="nav-link" href="app/docs/html/">Docs</a>
+      <a class="nav-link" href="https://github.com/RealityETH/monorepo">GitHub</a>
+    </nav>
     <button class="btn-outline">Connect wallet</button>
   </div>
 </header>
 
 <div class="page">
+
+	<p class="page-intro">Reality.eth is a smart contract oracle for answering natural-language questions and getting the answer on-chain. Operating since 2014, it is open source, fully permissionless and has no admin backdoor. <a href="app/docs/html/">Read the docs</a> to learn how it works and how to integrate it in your project.
+	</p>
 
   <!-- ── Starred integrations ────────────────────────── -->
   <div id="starred-section">
@@ -443,6 +490,21 @@
   </div>
 
 </div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span class="footer-copy">reality.eth — built by <a href="http://www.socialminds.jp/">Social Minds Inc</a></span>
+    <nav class="footer-links">
+      <a href="app/">dApp</a>
+      <a href="app/docs/html/">Docs</a>
+      <a href="app/docs/html/whitepaper.html">White paper</a>
+      <a href="https://github.com/RealityETH/monorepo">GitHub</a>
+      <a href="https://discord.gg/EtMkj8Z">Discord</a>
+      <a href="https://twitter.com/RealityEth">Twitter</a>
+      <a href="https://medium.com/@edmundedgar">Medium</a>
+    </nav>
+  </div>
+</footer>
 
 <script>
   const GRAPHQL = '/graphql';
