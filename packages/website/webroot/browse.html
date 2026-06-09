@@ -87,6 +87,10 @@
     background: transparent; color: var(--text-muted); font-size: 13px;
     cursor: pointer; margin-left: auto;
   }
+  #wallet-btn.connected {
+    border-color: rgba(63,185,80,0.5); color: var(--green);
+    font-family: monospace; font-size: 12px; letter-spacing: -0.01em;
+  }
   @media (max-width: 600px) {
     .search-wrap { display: none; }
     .chain-select { font-size: 12px; padding-right: 22px; }
@@ -409,6 +413,7 @@
   .starred-chip-unstar:hover { color: var(--red); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="js/wallet.js"></script>
 </head>
 <body>
 
@@ -433,7 +438,7 @@
       <a class="nav-link" href="app/docs/html/">Docs</a>
       <a class="nav-link" href="https://github.com/RealityETH/monorepo">GitHub</a>
     </nav>
-    <button class="btn-outline">Connect wallet</button>
+    <button id="wallet-btn" class="btn-outline">Connect wallet</button>
   </div>
 </header>
 
@@ -1148,8 +1153,27 @@
     }).join('');
   }
 
+  // ── Wallet ─────────────────────────────────────────────
+  function onWalletChange(addr) {
+    const btn = document.getElementById('wallet-btn');
+    if (!btn) return;
+    if (addr) {
+      btn.textContent = RealityWallet.shortAddr(addr);
+      btn.classList.add('connected');
+      btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
+    } else {
+      btn.textContent = 'Connect wallet';
+      btn.classList.remove('connected');
+      btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
+    }
+  }
+
   // ── Boot ───────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    RealityWallet.initWallet(onWalletChange);
+    document.getElementById('wallet-btn').onclick =
+      () => RealityWallet.connectWallet(onWalletChange);
+
     renderStarred();
     initControls();
     showSkeleton();
