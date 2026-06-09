@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reality.eth — Browse Questions</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2330;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --accent: #58a6ff;
+    --accent-subtle: rgba(88,166,255,0.1);
+    --green: #3fb950;
+    --green-subtle: rgba(63,185,80,0.1);
+    --amber: #d29922;
+    --amber-subtle: rgba(210,153,34,0.1);
+    --red: #f85149;
+    --red-subtle: rgba(248,81,73,0.1);
+    --purple: #bc8cff;
+    --purple-subtle: rgba(188,140,255,0.1);
+    --radius: 8px;
+    --radius-sm: 5px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ──────────────────────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 24px;
+  }
+  .header-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px;
+    height: 56px;
+  }
+  .logo {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    text-decoration: none; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .logo-mark {
+    width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px;
+  }
+  .search-wrap { flex: 1; max-width: 440px; position: relative; }
+  .search-wrap svg {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--text-dim); pointer-events: none;
+  }
+  .search-input {
+    width: 100%; padding: 7px 12px 7px 34px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .search-input::placeholder { color: var(--text-dim); }
+  .search-input:focus { border-color: var(--accent); }
+  .chain-select {
+    padding: 7px 10px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none; cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+    padding-right: 28px;
+  }
+  .btn-outline {
+    padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: transparent; color: var(--text-muted); font-size: 13px;
+    cursor: pointer; margin-left: auto;
+  }
+  @media (max-width: 600px) {
+    .search-wrap { display: none; }
+    .chain-select { font-size: 12px; padding-right: 22px; }
+  }
+
+  /* ── Page ────────────────────────────────────────────── */
+  .page { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* ── Section heading ─────────────────────────────────── */
+  .section-heading {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .section-heading h2 { font-size: 15px; font-weight: 600; }
+  .section-heading .sub { font-size: 13px; color: var(--text-dim); }
+  .section-heading .see-all {
+    margin-left: auto; font-size: 13px; color: var(--accent); text-decoration: none;
+  }
+
+  /* ── Integration cards ───────────────────────────────── */
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  @media (max-width: 800px) { .app-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 400px) { .app-grid { grid-template-columns: 1fr; } }
+
+  .app-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 18px;
+    cursor: pointer;
+    text-decoration: none; color: inherit;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .app-card:hover { background: var(--bg-card-hover); border-color: var(--border); }
+
+  .app-card-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .app-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .app-chain-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .chain-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: var(--text-dim);
+    title: attr(data-chain);
+  }
+
+  .app-card-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .app-card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.45; margin-bottom: 14px; flex: 1; }
+
+  .app-card-stats {
+    display: flex; gap: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .stat { display: flex; flex-direction: column; gap: 1px; }
+  .stat-val { font-size: 15px; font-weight: 600; }
+  .stat-val.open { color: var(--green); }
+  .stat-val.total { color: var(--text-muted); }
+  .stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* Unknown/unidentified cluster cards */
+  .app-card.unknown .app-icon {
+    background: var(--border-subtle);
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .app-card.unknown .app-card-name { color: var(--text-muted); font-family: monospace; font-size: 12px; letter-spacing: -0.01em; }
+  .identify-link { font-size: 11px; color: var(--accent); margin-top: 6px; text-decoration: none; }
+
+  /* "More apps" card */
+  .app-card.more {
+    border-style: dashed;
+    background: transparent;
+    align-items: center; justify-content: center;
+    gap: 6px; text-align: center;
+    color: var(--text-dim); font-size: 13px;
+    min-height: 160px;
+  }
+  .app-card.more:hover { background: var(--bg-card); color: var(--text-muted); }
+  .more-count { font-size: 22px; font-weight: 600; color: var(--text-muted); }
+
+  /* ── Divider with label ───────────────────────────────── */
+  .divider-label {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .divider-label span { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; }
+  .divider-label::before, .divider-label::after { content: ''; flex: 1; height: 1px; background: var(--border-subtle); }
+  .divider-label::before { display: none; }
+
+  /* ── Recent questions ────────────────────────────────── */
+  .recent-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .recent-header h2 { font-size: 15px; font-weight: 600; }
+  .filter-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-muted); font-size: 12px; cursor: pointer;
+    transition: all 0.1s;
+  }
+  .filter-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .filter-btn.active { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+  .sort-select {
+    margin-left: auto; padding: 5px 28px 5px 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-muted); font-size: 12px;
+    outline: none; cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+  }
+
+  /* ── Question cards ──────────────────────────────────── */
+  .q-list { display: flex; flex-direction: column; gap: 1px; margin-top: 16px; }
+  .q-card {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 15px 18px;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .q-card:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .q-card:last-child  { border-radius: 0 0 var(--radius) var(--radius); }
+  .q-card + .q-card   { border-top: none; }
+  .q-card:hover { background: var(--bg-card-hover); border-color: var(--border); }
+
+  .q-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;
+  }
+  .badge-app  { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); }
+  .badge-chain{ background: var(--border-subtle); color: var(--text-dim); }
+  .badge-open { background: var(--green-subtle); color: var(--green); }
+  .badge-arb  { background: var(--amber-subtle); color: var(--amber); }
+  .badge-final{ background: var(--border-subtle); color: var(--text-dim); }
+  .badge-upcoming { background: var(--accent-subtle); color: var(--accent); }
+
+  .q-text { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 9px; line-height: 1.4; }
+  .q-text-md { font-weight: normal; }
+  .q-text-md h1 { font-size: 12px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px; }
+  .q-text-md hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+  .q-text-md p { margin: 0; }
+  .q-text-md a { color: var(--accent); text-decoration: none; }
+  .q-text-md a:hover { text-decoration: underline; }
+  .q-text-md strong { font-weight: 600; }
+  .q-text-md em { font-style: italic; }
+
+  .q-footer { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text-dim); }
+  .q-bond { display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
+  .q-bond-amount { font-weight: 600; color: var(--text); }
+  .q-answer { display: flex; align-items: center; gap: 4px; }
+  .answer-val {
+    padding: 1px 7px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .answer-yes     { background: var(--green-subtle); color: var(--green); }
+  .answer-no      { background: var(--red-subtle); color: var(--red); }
+  .answer-opt     { background: var(--accent-subtle); color: var(--accent); }
+  .answer-invalid { background: var(--amber-subtle); color: var(--amber); }
+  .q-time { margin-left: auto; white-space: nowrap; }
+
+  /* ── Loading skeleton ────────────────────────────────── */
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  .skel {
+    display: inline-block; border-radius: 4px;
+    background: linear-gradient(90deg, var(--border-subtle) 25%, var(--border) 50%, var(--border-subtle) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+  }
+  .skel-xs    { height: 18px; width: 50px; }
+  .skel-sm    { height: 18px; width: 80px; }
+  .skel-title { height: 16px; width: 100%; display: block; margin-bottom: 6px; }
+  .q-skeleton { pointer-events: none; }
+
+  /* ── Empty / Load more ───────────────────────────────── */
+  .q-empty {
+    padding: 40px 24px; text-align: center;
+    color: var(--text-dim); font-size: 13px;
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+  }
+  .load-more-wrap { text-align: center; margin-top: 16px; }
+  .load-more-btn {
+    display: none; padding: 8px 24px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-muted);
+    font-size: 13px; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .load-more-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--accent); }
+
+  /* ── Dot separators ──────────────────────────────────── */
+  .dot { color: var(--text-dim); }
+
+  /* ── Star button ─────────────────────────────────────── */
+  .star-btn {
+    background: none; border: none; cursor: pointer; padding: 2px;
+    color: var(--text-dim); display: flex; align-items: center;
+    transition: color 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .star-btn:hover { color: var(--amber); transform: scale(1.15); }
+  .star-btn.starred { color: var(--amber); }
+  .star-btn.starred svg { fill: var(--amber); }
+  .app-card:not(:hover) .star-btn:not(.starred) { opacity: 0; }
+
+  /* ── Integration filter active state ─────────────────── */
+  .app-card.integ-active {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .app-card.integ-active .app-card-name { color: var(--accent); }
+  .app-grid.has-active .app-card:not(.integ-active) { opacity: 0.45; }
+
+  /* ── Active filter strip ──────────────────────────────── */
+  #integ-filter-strip {
+    display: none;
+    align-items: center; gap: 10px;
+    padding: 8px 14px;
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-size: 13px; color: var(--accent);
+  }
+  #integ-filter-strip .strip-label { flex: 1; }
+  #integ-filter-strip .strip-clear {
+    background: none; border: none; cursor: pointer;
+    color: var(--accent); font-size: 18px; line-height: 1;
+    padding: 0 2px; opacity: 0.7;
+  }
+  #integ-filter-strip .strip-clear:hover { opacity: 1; }
+
+  /* ── Starred section ─────────────────────────────────── */
+  #starred-section { margin-bottom: 36px; display: none; }
+  .starred-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .starred-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px 6px 8px;
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: 20px; text-decoration: none; color: var(--text-muted);
+    font-size: 13px; transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+  }
+  .starred-chip:hover { background: var(--bg-card-hover); border-color: var(--border); color: var(--text); }
+  .starred-chip-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .starred-chip-unstar {
+    background: none; border: none; cursor: pointer; padding: 0 0 0 4px;
+    color: var(--text-dim); display: flex; align-items: center;
+    font-size: 14px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .starred-chip-unstar:hover { color: var(--red); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <img class="logo-mark" src="packages/website/webroot/icon.png" alt="reality.eth" width="28" height="28">
+      reality.eth
+    </a>
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input class="search-input" type="text" placeholder="Search questions…">
+    </div>
+    <select id="chain-select" class="chain-select">
+      <option value="0">All chains</option>
+      <option value="1">Ethereum</option>
+      <option value="100">Gnosis</option>
+    </select>
+    <button class="btn-outline">Connect wallet</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── Starred integrations ────────────────────────── -->
+  <div id="starred-section">
+    <div class="section-heading" style="margin-bottom:12px">
+      <h2>⭐ Starred</h2>
+    </div>
+    <div class="starred-row" id="starred-row"></div>
+  </div>
+
+  <!-- ── Known integrations ──────────────────────────── -->
+  <div class="section-heading">
+    <h2>Integrations</h2>
+    <span class="sub">Apps using reality.eth as their oracle</span>
+  </div>
+
+  <div id="integrations-grid" class="app-grid" style="margin-bottom:48px"></div>
+
+  <!-- ── Recent questions ──────────────────────────────── -->
+  <div class="recent-header">
+    <h2>Recent questions</h2>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="open">Open</button>
+    <button class="filter-btn" data-filter="arb">Pending arbitration</button>
+    <button class="filter-btn" data-filter="finalized">Finalized</button>
+    <div class="filter-sep"></div>
+    <button class="filter-btn" data-type="bool">Yes/No</button>
+    <button class="filter-btn" data-type="multi">Multiple choice</button>
+    <select id="sort-select" class="sort-select">
+      <option value="recent">Sort: Recent activity</option>
+      <option value="bond">Sort: Highest bond</option>
+      <option value="closing">Sort: Closing soon</option>
+      <option value="newest">Sort: Newest</option>
+    </select>
+  </div>
+
+  <div id="integ-filter-strip" style="display:none">
+    <span class="strip-label"></span>
+    <button class="strip-clear" onclick="selectIntegration(null)" title="Clear filter">×</button>
+  </div>
+
+  <div id="q-list" class="q-list"></div>
+
+  <div class="load-more-wrap">
+    <button id="load-more-btn" class="load-more-btn">Load more</button>
+  </div>
+
+</div>
+
+<script>
+  const GRAPHQL = '/graphql';
+  const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+  // State
+  let allQuestions = [];
+  let cursor = null;
+  let hasNextPage = false;
+  let statusFilter = 'all';
+  let typeFilter = null;
+  let sortOpt = 'recent';
+  let chainFilter = 0;
+  let searchQuery = '';
+  let integrationFilter = null;
+
+  // Token metadata (loaded from contracts.json + tokens.json)
+  let tokenDecimals = {};    // symbol -> decimals
+  let contractTokenMap = {}; // `${chainId}-${addr}` -> symbol
+
+  // Integration registry (loaded from integrations.json)
+  let integrations = {};         // id -> { name, icon, color, description }
+  let creatorMap = {};           // address -> integration id
+  let templateIdMap = {};        // templateId string -> integration id
+  let titlePatterns = [];        // [{ contains, startsWith, integration }]
+  let markdownTemplateIds = new Set(); // templateId strings that use text/markdown
+
+  async function loadTokenMeta() {
+    try {
+      const [cRes, tRes, iRes] = await Promise.all([
+        fetch('/packages/contracts/generated/contracts.json'),
+        fetch('/packages/contracts/generated/tokens.json'),
+        fetch('integrations.json'),
+      ]);
+      const contracts    = await cRes.json();
+      const tokens       = await tRes.json();
+      const integrData   = await iRes.json();
+
+      // Integration registry
+      integrations         = integrData.integrations      || {};
+      creatorMap           = integrData.creatorMap         || {};
+      templateIdMap        = integrData.templateIdMap      || {};
+      titlePatterns        = integrData.titlePatterns      || [];
+      markdownTemplateIds  = new Set(integrData.markdownTemplateIds || []);
+
+      for (const [sym, info] of Object.entries(tokens)) {
+        tokenDecimals[sym.toUpperCase()] = info.decimals;
+      }
+      for (const [chainIdStr, tokenDict] of Object.entries(contracts)) {
+        const chainId = parseInt(chainIdStr);
+        for (const [sym, versionDict] of Object.entries(tokenDict)) {
+          for (const details of Object.values(versionDict)) {
+            if (details.address) {
+              contractTokenMap[`${chainId}-${details.address.toLowerCase()}`] = sym.toUpperCase();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load token metadata, falling back to 18 decimals:', e);
+    }
+  }
+
+  function getContractToken(chainId, contract) {
+    const key = `${chainId}-${(contract || '').toLowerCase()}`;
+    const sym = contractTokenMap[key];
+    if (sym) return { symbol: sym, decimals: tokenDecimals[sym] ?? 18 };
+    // Fallback: native token by well-known chain IDs
+    const native = { 1: 'ETH', 100: 'XDAI', 137: 'MATIC', 10: 'OETH', 42161: 'ARETH' };
+    const nativeSym = native[chainId] || 'ETH';
+    return { symbol: nativeSym, decimals: tokenDecimals[nativeSym] ?? 18 };
+  }
+
+  // ── Integration classification ─────────────────────────
+  function classifyQuestion(q) {
+    const creator    = (q.creator || '').toLowerCase();
+    const templateId = String(q.templateId || '');
+    const title      = q.title || q.data || '';
+
+    if (creator && creatorMap[creator])    return creatorMap[creator];
+    if (templateId && templateIdMap[templateId]) return templateIdMap[templateId];
+    for (const p of titlePatterns) {
+      if (p.startsWith && title.startsWith(p.startsWith)) return p.integration;
+      if (p.contains && title.includes(p.contains))       return p.integration;
+    }
+    return null;
+  }
+
+  // ── Fetch ──────────────────────────────────────────────
+  function buildQuery(limit, after) {
+    const orderByMap = {
+      recent:  { orderBy: 'updatedTimestamp',             orderDirection: 'desc' },
+      bond:    { orderBy: 'lastBond',                     orderDirection: 'desc' },
+      closing: { orderBy: 'scheduledFinalizationTimestamp', orderDirection: 'asc' },
+      newest:  { orderBy: 'createdTimestamp',             orderDirection: 'desc' },
+    };
+    const { orderBy, orderDirection } = orderByMap[sortOpt] || orderByMap.recent;
+    const afterClause = after ? `, after: "${after}"` : '';
+
+    const whereParts = [];
+    if (chainFilter > 0) whereParts.push(`chainId: ${chainFilter}`);
+    if (searchQuery) {
+      // Ponder 0.7 title_contains is case-sensitive; capitalise the first character
+      // so common searches like "bitcoin" match "Bitcoin" titles.
+      const sq = searchQuery.replace(/"/g, '\\"');
+      const sqCapped = sq.charAt(0).toUpperCase() + sq.slice(1);
+      whereParts.push(`title_contains: "${sqCapped}"`);
+    }
+
+    // Process integration filter first so we know if we'll need an OR clause.
+    // If so, we can't also push an OR for status (two OR keys in one where object
+    // is invalid GraphQL), and we fall back to client-side status filtering only.
+    let hasIntegrationOR = false;
+    if (integrationFilter) {
+      if (integrationFilter === 'other') {
+        const allC = Object.keys(creatorMap).map(a => `"${a}"`).join(',');
+        const allT = Object.keys(templateIdMap).map(t => `"${t}"`).join(',');
+        whereParts.push(`creator_not_in: [${allC}]`);
+        if (allT) whereParts.push(`templateId_not_in: [${allT}]`);
+      } else {
+        const cs = Object.entries(creatorMap).filter(([,v]) => v === integrationFilter).map(([a]) => `"${a}"`);
+        const ts = Object.entries(templateIdMap).filter(([,v]) => v === integrationFilter).map(([t]) => `"${t}"`);
+        if (cs.length && ts.length) {
+          whereParts.push(`OR: [{creator_in: [${cs.join(',')}]}, {templateId_in: [${ts.join(',')}]}]`);
+          hasIntegrationOR = true;
+        } else if (cs.length) {
+          whereParts.push(`creator_in: [${cs.join(',')}]`);
+        } else if (ts.length) {
+          whereParts.push(`templateId_in: [${ts.join(',')}]`);
+        }
+      }
+    }
+
+    // Push status filter server-side so we don't fill our page quota with
+    // non-matching questions (e.g. finalized questions dominating recent-activity
+    // order when "open" is selected).
+    if (statusFilter === 'arb') {
+      whereParts.push(`isPendingArbitration: true`);
+    } else if (statusFilter === 'open' && !hasIntegrationOR) {
+      const now = String(Math.floor(Date.now() / 1000));
+      whereParts.push(`isPendingArbitration: false`);
+      whereParts.push(`OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`);
+    }
+
+    const whereClause = whereParts.length ? `, where: { ${whereParts.join(', ')} }` : '';
+
+    return `{
+      questions(limit: ${limit}, orderBy: "${orderBy}", orderDirection: "${orderDirection}"${whereClause}${afterClause}) {
+        items {
+          id title data type category chainId contract creator templateId
+          currentAnswer currentAnswerBond
+          isPendingArbitration answerFinalizedTimestamp
+          scheduledFinalizationTimestamp openingTimestamp
+          updatedTimestamp createdTimestamp
+          lastBond minBond outcomes
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }`;
+  }
+
+  let fetching = false;
+  let integCounts = {};  // id -> { total, open }
+
+  async function fetchQuestions(reset = true) {
+    if (fetching && !reset) return;
+    fetching = true;
+
+    if (reset) {
+      allQuestions = [];
+      cursor = null;
+      hasNextPage = false;
+      showSkeleton();
+    }
+
+    try {
+      const res = await fetch(GRAPHQL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: buildQuery(50, reset ? null : cursor) }),
+      });
+      const json = await res.json();
+      const result = json.data.questions;
+      allQuestions = reset ? result.items : [...allQuestions, ...result.items];
+      cursor = result.pageInfo.endCursor;
+      hasNextPage = result.pageInfo.hasNextPage;
+    } catch (e) {
+      console.error('GraphQL error:', e);
+    }
+
+    fetching = false;
+    renderIntegrationCards();
+    renderList();
+  }
+
+  async function fetchIntegrationCounts() {
+    const now = String(Math.floor(Date.now() / 1000));
+    const allCreators    = Object.keys(creatorMap).map(a => `"${a}"`).join(',');
+    const allTemplateIds = Object.keys(templateIdMap).map(t => `"${t}"`).join(',');
+    const openSuffix     = `isPendingArbitration: false, OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`;
+
+    const fetchOne = async id => {
+      let base;
+      if (id === 'other') {
+        base = `creator_not_in: [${allCreators}], templateId_not_in: [${allTemplateIds}]`;
+      } else {
+        const creators = Object.entries(creatorMap)
+          .filter(([, v]) => v === id)
+          .map(([addr]) => `"${addr}"`);
+        if (!creators.length) return [id, null];
+        base = `creator_in: [${creators.join(',')}]`;
+      }
+      const query = `{ cnt: questions(limit:1, where:{${base}}) { totalCount }
+                       open: questions(limit:1, where:{${base}, ${openSuffix}}) { totalCount } }`;
+      const res  = await fetch(GRAPHQL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) });
+      const data = (await res.json()).data;
+      return [id, { total: data.cnt?.totalCount ?? null, open: data.open?.totalCount ?? null }];
+    };
+
+    try {
+      const results = await Promise.all(Object.keys(integrations).map(fetchOne));
+      integCounts = Object.fromEntries(results.filter(([, v]) => v !== null));
+    } catch (e) {
+      console.error('Count query error:', e);
+    }
+
+    renderIntegrationCards();
+  }
+
+  async function ensureEnoughResults(minCount = 20) {
+    while (hasNextPage && !fetching) {
+      if (applyFilters(allQuestions).length >= minCount) break;
+      await fetchQuestions(false);
+    }
+  }
+
+  // ── Status ─────────────────────────────────────────────
+  function getStatus(q) {
+    const now = Math.floor(Date.now() / 1000);
+    if (q.isPendingArbitration) return 'arb';
+    if (q.answerFinalizedTimestamp && Number(q.answerFinalizedTimestamp) > 0) return 'finalized';
+    const sched = Number(q.scheduledFinalizationTimestamp || 0);
+    if (sched > 0 && sched < now) return 'finalized';
+    const opens = Number(q.openingTimestamp || 0);
+    if (opens > now) return 'upcoming';
+    return 'open';
+  }
+
+  // ── Filters ────────────────────────────────────────────
+  function applyFilters(questions) {
+    let out = questions;
+
+    if (statusFilter !== 'all') {
+      out = out.filter(q => {
+        const s = getStatus(q);
+        if (statusFilter === 'open')      return s === 'open';
+        if (statusFilter === 'arb')       return s === 'arb';
+        if (statusFilter === 'finalized') return s === 'finalized';
+        return true;
+      });
+    }
+
+    if (typeFilter === 'bool') {
+      out = out.filter(q => q.type === 'bool');
+    } else if (typeFilter === 'multi') {
+      out = out.filter(q => q.type === 'single-select' || q.type === 'multiple-select');
+    }
+
+    if (integrationFilter === 'other') {
+      out = out.filter(q => classifyQuestion(q) === null);
+    } else if (integrationFilter) {
+      out = out.filter(q => classifyQuestion(q) === integrationFilter);
+    }
+
+    if (searchQuery) {
+      const sq = searchQuery.toLowerCase();
+      out = out.filter(q => (q.title || q.data || '').toLowerCase().includes(sq));
+    }
+
+    // client-side re-sort for "closing soon" since 0-valued timestamps need special handling
+    if (sortOpt === 'closing') {
+      const now = Math.floor(Date.now() / 1000);
+      out = [...out].sort((a, b) => {
+        const fa = Number(a.scheduledFinalizationTimestamp || 0);
+        const fb = Number(b.scheduledFinalizationTimestamp || 0);
+        const af = fa > now ? fa : fa > 0 ? fa : Infinity;
+        const bf = fb > now ? fb : fb > 0 ? fb : Infinity;
+        return af - bf;
+      });
+    }
+
+    return out;
+  }
+
+  // ── Format helpers ─────────────────────────────────────
+  function formatBond(amountStr, chainId, contract) {
+    if (!amountStr || amountStr === '0') return null;
+    try {
+      const raw = BigInt(amountStr);
+      if (raw === 0n) return null;
+      const { symbol, decimals } = getContractToken(chainId, contract);
+      const scale = 10 ** decimals;
+      const human = Number(raw) / scale;
+      if (human < 0.0001) return `< 0.0001 ${symbol}`;
+      if (human < 1)      return `${+human.toFixed(4)} ${symbol}`;
+      return `${+human.toFixed(2)} ${symbol}`;
+    } catch { return null; }
+  }
+
+  function formatAnswer(q) {
+    if (!q.currentAnswer) return null;
+    if (q.currentAnswer === INVALID_ANS) return { text: 'Invalid / N-A', cls: 'answer-invalid' };
+    try {
+      const val = BigInt(q.currentAnswer);
+      if (q.type === 'bool') {
+        return val === 1n
+          ? { text: 'Yes', cls: 'answer-yes' }
+          : { text: 'No',  cls: 'answer-no'  };
+      }
+      if (q.type === 'single-select' && q.outcomes) {
+        const outcomes = JSON.parse(q.outcomes);
+        const idx = Number(val);
+        return { text: outcomes[idx] ?? `Option ${idx}`, cls: 'answer-opt' };
+      }
+      if (q.type === 'multiple-select' && q.outcomes) {
+        const outcomes = JSON.parse(q.outcomes);
+        const selected = outcomes.filter((_, i) => (val & (1n << BigInt(i))) !== 0n);
+        return { text: selected.length ? selected.join(', ') : '(none)', cls: 'answer-opt' };
+      }
+      if (q.type === 'uint') {
+        return { text: val.toString(), cls: 'answer-opt' };
+      }
+    } catch {}
+    return null;
+  }
+
+  function chainLabel(chainId) {
+    return { 1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 10: 'Optimism', 42161: 'Arbitrum' }[chainId] || `Chain ${chainId}`;
+  }
+
+  function formatRelTime(ts) {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = Number(ts) - now;
+    if (diff <= 0) return null;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    const d = Math.floor(diff / 86400);
+    const h = Math.floor((diff % 86400) / 3600);
+    return h > 0 ? `${d}d ${h}h` : `${d}d`;
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Render ─────────────────────────────────────────────
+  function renderCard(q) {
+    const status      = getStatus(q);
+    const rawTitle    = q.title || q.data || '(untitled)';
+    const isMarkdown  = markdownTemplateIds.has(String(q.templateId));
+    const title       = rawTitle;
+    const chain       = chainLabel(q.chainId);
+    const bond        = formatBond(q.lastBond || q.currentAnswerBond, q.chainId, q.contract);
+    const minBond     = formatBond(q.minBond, q.chainId, q.contract);
+    const answer      = formatAnswer(q);
+    const integId     = classifyQuestion(q);
+    const integ       = integrations[integId];
+
+    const statusBadge = {
+      arb:      `<span class="badge badge-arb">⚖ Arbitration</span>`,
+      finalized:`<span class="badge badge-final">✓ Finalized</span>`,
+      upcoming: `<span class="badge badge-upcoming">Upcoming</span>`,
+      open:     `<span class="badge badge-open">● Open</span>`,
+    }[status] || '';
+
+    let catBadge;
+    if (integ) {
+      catBadge = `<span class="badge badge-app">
+        <span style="width:8px;height:8px;border-radius:2px;background:${integ.color};display:inline-block;flex-shrink:0"></span>
+        ${esc(integ.name)}</span>`;
+    } else {
+      const label = q.category || q.type;
+      catBadge = label ? `<span class="badge badge-app">${esc(label)}</span>` : '';
+    }
+
+    const bondHtml = bond
+      ? `<div class="q-bond">Bond: <span class="q-bond-amount">${esc(bond)}</span></div>`
+      : minBond
+      ? `<div class="q-bond">Min bond: <span class="q-bond-amount">${esc(minBond)}</span></div>`
+      : '';
+
+    const answerHtml = answer
+      ? `<div class="q-answer">Answer: <span class="answer-val ${answer.cls}">${esc(answer.text)}</span></div>`
+      : '';
+
+    let timeHtml;
+    if      (status === 'arb')      timeHtml = 'Awaiting arbitration';
+    else if (status === 'finalized') timeHtml = 'Finalized';
+    else if (status === 'upcoming') {
+      const rel = formatRelTime(q.openingTimestamp);
+      timeHtml = rel ? `Opens in ${rel}` : 'Opens soon';
+    } else {
+      const sched = Number(q.scheduledFinalizationTimestamp || 0);
+      if (sched > 0) {
+        const rel = formatRelTime(q.scheduledFinalizationTimestamp);
+        timeHtml = rel ? `Closes in ${rel}` : 'Finalizing…';
+      } else {
+        timeHtml = 'Awaiting first answer';
+      }
+    }
+
+    return `
+      <a class="q-card" href="question.html?id=${encodeURIComponent(q.id)}">
+        <div class="q-meta">
+          ${catBadge}
+          <span class="badge badge-chain">${chain}</span>
+          ${statusBadge}
+        </div>
+        <div class="q-text${isMarkdown ? ' q-text-md' : ''}">${isMarkdown ? marked.parse(title) : esc(title)}</div>
+        <div class="q-footer">
+          ${bondHtml}
+          ${answerHtml}
+          <div class="q-time">${timeHtml}</div>
+        </div>
+      </a>`;
+  }
+
+  // ── Integration cards ──────────────────────────────────
+  function renderIntegrationCards() {
+    const grid = document.getElementById('integrations-grid');
+    if (!grid || !Object.keys(integrations).length) return;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    grid.innerHTML = Object.entries(integrations).map(([id, info]) => {
+      const counts = integCounts[id];
+      const matchFn = id === 'other' ? q => classifyQuestion(q) === null : q => classifyQuestion(q) === id;
+      const openCount  = counts?.open  ?? allQuestions.filter(q => matchFn(q) && getStatus(q) === 'open').length;
+      const totalCount = counts?.total ?? allQuestions.filter(q => matchFn(q)).length;
+      const isLoading  = !counts;
+      const isActive   = integrationFilter === id;
+
+      const initial = info.icon || info.name.charAt(0).toUpperCase();
+      const color = info.color || '#58a6ff';
+
+      const fmt = n => isLoading ? '…' : n.toLocaleString();
+
+      return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer" onclick="selectIntegration('${id}')">
+        <div class="app-card-top">
+          <div class="app-icon" style="background:${color}">${initial}</div>
+        </div>
+        <div class="app-card-name">${info.name}</div>
+        <div class="app-card-desc">${info.description || ''}</div>
+        <div class="app-card-stats">
+          <div class="stat">
+            <span class="stat-val open">${fmt(openCount)}</span>
+            <span class="stat-label">Open</span>
+          </div>
+          <div class="stat">
+            <span class="stat-val total">${fmt(totalCount)}</span>
+            <span class="stat-label">Total</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.classList.toggle('has-active', integrationFilter !== null);
+  }
+
+  function selectIntegration(id) {
+    integrationFilter = (integrationFilter === id) ? null : id;
+    renderIntegrationCards();
+
+    const strip = document.getElementById('integ-filter-strip');
+    if (strip) {
+      if (integrationFilter) {
+        const info = integrations[integrationFilter];
+        strip.querySelector('.strip-label').textContent =
+          `Filtering by: ${info ? info.name : integrationFilter}`;
+        strip.style.display = 'flex';
+      } else {
+        strip.style.display = 'none';
+      }
+    }
+
+    if (integrationFilter) {
+      document.getElementById('q-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    fetchQuestions(true);
+  }
+
+  function renderList() {
+    const list = document.getElementById('q-list');
+    const btn  = document.getElementById('load-more-btn');
+    const filtered = applyFilters(allQuestions);
+
+    if (filtered.length === 0 && allQuestions.length === 0) {
+      list.innerHTML = '<div class="q-empty">Loading…</div>';
+      btn.style.display = 'none';
+      return;
+    }
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="q-empty">No questions match your filters.</div>';
+      btn.style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = filtered.map(renderCard).join('');
+    btn.style.display = hasNextPage ? 'inline-flex' : 'none';
+  }
+
+  function showSkeleton() {
+    document.getElementById('q-list').innerHTML = Array(6).fill(0).map(() => `
+      <div class="q-card q-skeleton">
+        <div class="q-meta">
+          <span class="skel skel-sm"></span>
+          <span class="skel skel-xs"></span>
+          <span class="skel skel-xs"></span>
+        </div>
+        <div class="skel skel-title"></div>
+        <div class="skel skel-title" style="width:65%"></div>
+        <div class="q-footer">
+          <span class="skel skel-sm"></span>
+          <span class="skel skel-sm" style="margin-left:auto;width:60px"></span>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── Event wiring ───────────────────────────────────────
+  function initControls() {
+    // Status + type filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = btn.dataset.filter;
+        const t = btn.dataset.type;
+        if (f) {
+          statusFilter = f;
+          document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          if (f === 'all' && integrationFilter) {
+            integrationFilter = null;
+            document.getElementById('integ-filter-strip').style.display = 'none';
+            renderIntegrationCards();
+            fetchQuestions(true);
+            return;
+          }
+          // Re-fetch when an integration is active so the server-side status
+          // filter can take effect rather than just re-filtering a stale page.
+          if (integrationFilter) {
+            fetchQuestions(true);
+            return;
+          }
+        } else if (t) {
+          if (typeFilter === t) {
+            typeFilter = null;
+            btn.classList.remove('active');
+          } else {
+            typeFilter = t;
+            document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+          }
+        }
+        renderList();
+      });
+    });
+
+    // Sort
+    document.getElementById('sort-select').addEventListener('change', function () {
+      sortOpt = this.value;
+      fetchQuestions(true);
+    });
+
+    // Chain filter
+    document.getElementById('chain-select').addEventListener('change', function () {
+      chainFilter = parseInt(this.value) || 0;
+      fetchQuestions(true);
+    });
+
+    // Search (debounced) — re-fetches from server so the full database is searched,
+    // not just the current page of loaded questions.
+    let searchTimer;
+    document.querySelector('.search-input').addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchQuery = this.value.trim();
+        fetchQuestions(true);
+      }, 400);
+    });
+
+    // Load more
+    document.getElementById('load-more-btn').addEventListener('click', () => {
+      fetchQuestions(false);
+    });
+  }
+
+  // ── Starred (integration cards) ────────────────────────
+  const STORAGE_KEY = 'reality-eth-starred';
+
+  function getStarred() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function setStarred(arr) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+
+  function toggleStar(e, appId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const starred = getStarred();
+    const idx = starred.indexOf(appId);
+    if (idx === -1) starred.push(appId);
+    else starred.splice(idx, 1);
+    setStarred(starred);
+    renderStarred();
+  }
+
+  function renderStarred() {
+    const starred = getStarred();
+    document.querySelectorAll('.app-card[data-app-id]').forEach(card => {
+      const btn = card.querySelector('.star-btn');
+      if (btn) btn.classList.toggle('starred', starred.includes(card.dataset.appId));
+    });
+
+    const section = document.getElementById('starred-section');
+    const row     = document.getElementById('starred-row');
+    if (starred.length === 0) { section.style.display = 'none'; return; }
+
+    section.style.display = 'block';
+    row.innerHTML = starred.map(id => {
+      const card = document.querySelector(`.app-card[data-app-id="${CSS.escape(id)}"]`);
+      if (!card) return '';
+      return `
+        <div class="starred-chip" onclick="window.location.href='#'">
+          <div class="starred-chip-icon" style="background:${card.dataset.appColor}">${esc(card.dataset.appInitial)}</div>
+          <span>${esc(card.dataset.appName)}</span>
+          <button class="starred-chip-unstar" onclick="toggleStar(event,'${CSS.escape(id)}')" title="Unstar">×</button>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Boot ───────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    renderStarred();
+    initControls();
+    showSkeleton();
+    loadTokenMeta().then(() => {
+      fetchIntegrationCounts();
+      fetchQuestions(true);
+    });
+  });
+</script>
+</body>
+</html>

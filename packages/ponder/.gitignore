@@ -1,0 +1,5 @@
+.env.local
+node_modules/
+.ponder/
+generated/
+ponder-errors.log
