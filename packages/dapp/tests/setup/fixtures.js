@@ -54,3 +54,53 @@ export async function createFixtures() {
     timeout,
   };
 }
+
+// Compute reality.eth v3.0 question ID deterministically (matches contract logic)
+function computeQuestionId(templateId, openingTs, question, arbitrator, timeout, nonce, sender, contractAddress) {
+  const contentHash = ethers.utils.solidityKeccak256(
+    ['uint256', 'uint32', 'string'],
+    [templateId, openingTs, question]
+  );
+  return ethers.utils.solidityKeccak256(
+    ['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'],
+    [contentHash, arbitrator, timeout, 0, contractAddress, sender, nonce]
+  );
+}
+
+export async function createClaimFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.utils.parseEther('0.001');
+  const bond = ethers.utils.parseEther('0.001');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Will this claim test pass?',
+    ethers.constants.AddressZero, 60, 1,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  // Only create if not already on-chain (beforeAll may run twice on worker restart)
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0); // content_hash != 0
+
+  if (!alreadyExists) {
+    const tx1 = await reality.askQuestion(
+      TEMPLATE.bool, 'Will this claim test pass?',
+      ethers.constants.AddressZero, 60, 0, 1,
+      { value: bounty }
+    );
+    await tx1.wait();
+
+    // Submit YES answer
+    await (await reality.submitAnswer(questionId, YES, 0, { value: bond })).wait();
+
+    // Advance past the 60s timeout so the question is finalized
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  }
+
+  return { claimQuestionId: questionId, bond, bounty, answer: YES };
+}
