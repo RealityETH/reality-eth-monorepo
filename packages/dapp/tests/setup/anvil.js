@@ -23,6 +23,7 @@ export async function startAnvil() {
     '--fork-block-number', String(FORK_BLOCK),
     '--port', String(ANVIL_PORT),
     '--chain-id', String(GNOSIS_CHAIN_ID),
+    '--retries', '2',
     '--silent',
   ]);
 

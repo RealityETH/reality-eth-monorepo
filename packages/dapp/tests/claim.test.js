@@ -61,12 +61,17 @@ test.describe('claim winnings', () => {
   test('calldata is correct for claim', async ({ page }) => {
     await loadAndOpenClaim(page);
 
+    // Resolve AFTER orig(args) mines the TX so that by the time Node.js receives
+    // the promise value, the TX is definitely mined.  If we resolved before mining
+    // (the naive pattern), evm_revert in afterEach can race the pending fetch and
+    // sometimes run first, letting the TX mine on the restored state (hist_hash → 0).
     const txPromise = page.evaluate(() =>
       new Promise(resolve => {
         const orig = window.ethereum.request.bind(window.ethereum);
         window.ethereum.request = async (args) => {
+          const result = await orig(args);
           if (args.method === 'eth_sendTransaction') resolve(args.params[0]);
-          return orig(args);
+          return result;
         };
       })
     );
@@ -112,10 +117,20 @@ test.describe('claim winnings', () => {
 
     await page.click(claimAllSelector);
 
-    const txHash = await txHashPromise;
-    await provider.waitForTransaction(txHash);
+    // Wait for tx to be submitted, then poll getBalance until it increases.
+    // We avoid provider.waitForTransaction(hash) here because that method calls
+    // eth_getTransactionReceipt which routes through anvil; if the tx isn't mined
+    // yet, anvil falls back to the archive and gets a 429 under rate-limiting.
+    // eth_getBalance for a local account never hits the archive.
+    await txHashPromise;
+    let balanceAfter = balanceBefore;
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      balanceAfter = await provider.getBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+      if (balanceAfter.gt(balanceBefore)) break;
+      await new Promise(r => setTimeout(r, 500));
+    }
 
-    const balanceAfter = await provider.getBalance('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
     // Should receive bond (0.001) + bounty (0.001) = 0.002 ETH, minus gas
     const increase = balanceAfter.sub(balanceBefore);
     expect(increase.gt(ethers.utils.parseEther('0.001'))).toBe(true);

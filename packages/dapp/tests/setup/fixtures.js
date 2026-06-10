@@ -67,6 +67,33 @@ function computeQuestionId(templateId, openingTs, question, arbitrator, timeout,
   );
 }
 
+export async function createCommitRevealFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  // nonce=2 avoids collision with createFixtures (nonce=0) and createClaimFixtures (nonce=1)
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Will this test pass?',
+    ethers.constants.AddressZero, 60, 2,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+
+  if (!alreadyExists) {
+    const tx = await reality.askQuestion(
+      TEMPLATE.bool, 'Will this test pass?',
+      ethers.constants.AddressZero, 60, 0, 2,
+      { value: ethers.utils.parseEther('0.001') }
+    );
+    await tx.wait();
+  }
+
+  return { boolQuestionId: questionId };
+}
+
 export async function createClaimFixtures() {
   const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
   const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);

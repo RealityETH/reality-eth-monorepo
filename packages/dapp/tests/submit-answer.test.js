@@ -48,12 +48,15 @@ test.describe('submit answer', () => {
   test('calldata is correct for yes answer', async ({ page }) => {
     await loadQuestion(page);
 
+    // Resolve AFTER orig(args) mines the TX so evm_revert in afterEach cannot race
+    // the pending eth_sendTransaction fetch and mine on the post-revert state.
     const txPromise = page.evaluate(() =>
       new Promise(resolve => {
         const orig = window.ethereum.request.bind(window.ethereum);
         window.ethereum.request = async (args) => {
+          const result = await orig(args);
           if (args.method === 'eth_sendTransaction') resolve(args.params[0]);
-          return orig(args);
+          return result;
         };
       })
     );
@@ -93,14 +96,24 @@ test.describe('submit answer', () => {
     await win.locator('select[name="input-answer"]').selectOption('1');
     await win.locator('input[name="questionBond"]').fill('0.002');
     await win.locator('input.post-answer-button').click();
-    const txHash = await txHashPromise;
+    // Wait for tx to be submitted, then poll getBestAnswer until it changes.
+    // Avoids provider.waitForTransaction(hash) — that calls eth_getTransactionReceipt
+    // via anvil which under archive rate-limiting (429) propagates the error back to
+    // Node.js.  getBestAnswer reads only locally-written state, no archive needed.
+    await txHashPromise;
 
     const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-    const receipt = await provider.waitForTransaction(txHash);
-    expect(receipt.status).toBe(1);
-
     const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, provider);
-    const bestAnswer = await reality.getBestAnswer(fixtures.boolQuestionId);
-    expect(bestAnswer).toBe('0x0000000000000000000000000000000000000000000000000000000000000001');
+    const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+    let bestAnswer = ethers.constants.HashZero;
+    const deadline = Date.now() + 30000;
+    while (Date.now() < deadline) {
+      try {
+        bestAnswer = await reality.getBestAnswer(fixtures.boolQuestionId);
+        if (bestAnswer === YES) break;
+      } catch (_) {}
+      await new Promise(r => setTimeout(r, 500));
+    }
+    expect(bestAnswer).toBe(YES);
   });
 });

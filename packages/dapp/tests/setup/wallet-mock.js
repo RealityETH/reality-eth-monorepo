@@ -10,9 +10,16 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
   const _address = ${JSON.stringify(TEST_ACCOUNT.address)};
   const _handlers = {};
 
-  // Clip eth_getLogs fromBlock to just before the fork so we never scan
-  // 28M+ historical blocks on the archive node.
-  const LOG_SCAN_MIN_BLOCK = ${FORK_BLOCK - 100};
+  // Clip eth_getLogs fromBlock to the first local block so continuous event scans
+  // never touch the archive.  Targeted historical queries (fromBlock == toBlock at an
+  // old height, e.g. template fetching) have toBlock < LOG_SCAN_MIN_BLOCK so they are
+  // not clipped and still reach the archive normally.
+  const LOG_SCAN_MIN_BLOCK = ${FORK_BLOCK + 1};
+
+  // These contracts exist on the local fork — all eth_calls to them are fast.
+  const KNOWN_LOCAL_CONTRACTS = new Set([
+    '0xe78996a233895be74a66f451f1019ca9734205cc', // reality.eth v3.0
+  ]);
 
   async function rpc(method, params = []) {
     const res = await fetch(RPC_URL, {
@@ -23,6 +30,20 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
     const json = await res.json();
     if (json.error) throw new Error(json.error.message);
     return json.result;
+  }
+
+  async function estimateGas(tx) {
+    if (tx && tx.to && KNOWN_LOCAL_CONTRACTS.has(tx.to.toLowerCase())) {
+      try {
+        return await rpc('eth_estimateGas', [tx]);
+      } catch (_) {
+        // Archive rate-limiting: fall back to a safe ceiling so the dapp can still
+        // proceed.  The actual tx execution reads only locally-written state.
+        return '0x493E0'; // 300 000 gas
+      }
+    }
+    // Non-local contracts don't need gas estimation in our test flows.
+    return '0x493E0';
   }
 
   window.ethereum = {
@@ -48,9 +69,12 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
           return null;
         }
 
+        case 'eth_estimateGas':
+          return estimateGas(params[0]);
+
         case 'eth_sendTransaction': {
-          // Forward to anvil using the pre-funded test account
-          // anvil_impersonateAccount lets us send without a private key
+          // Forward to anvil using the pre-funded test account.
+          // anvil_impersonateAccount lets us send without a private key.
           const tx = params[0];
           await rpc('anvil_impersonateAccount', [_address]);
           const hash = await rpc('eth_sendTransaction', [{ ...tx, from: _address }]);
@@ -58,11 +82,21 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
           return hash;
         }
 
+        case 'eth_call': {
+          // Non-local contracts don't exist locally and would hit the archive under
+          // rate-limiting, stalling indefinitely.  Throw immediately so that the
+          // dapp's catch blocks (e.g. loadArbitratorMetaData, populateArbitratorSelect)
+          // handle gracefully without blocking critical paths like updateClaimableDisplay.
+          const isLocal = params[0] && params[0].to &&
+            KNOWN_LOCAL_CONTRACTS.has(params[0].to.toLowerCase());
+          if (!isLocal) throw new Error('execution reverted');
+          return rpc('eth_call', params);
+        }
+
         case 'eth_getLogs': {
-          // Clip fromBlock to LOG_SCAN_MIN_BLOCK only when the scan reaches into recent
-          // blocks (toBlock is 'latest' or >= LOG_SCAN_MIN_BLOCK). Targeted historical
-          // queries like template fetching (fromBlock == toBlock == 17997262) must pass
-          // through unmodified so the archive node can answer them.
+          // Clip fromBlock to LOG_SCAN_MIN_BLOCK only when the range extends into
+          // recent/latest blocks.  Historical point-queries (e.g. template fetching
+          // where fromBlock == toBlock == some old block) pass through unchanged.
           const filter = { ...params[0] };
           if (filter.fromBlock) {
             const from = parseInt(filter.fromBlock, 16);
