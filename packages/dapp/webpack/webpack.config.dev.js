@@ -16,6 +16,7 @@ module.exports = merge(common, {
   devServer: {
     client: {
       logging: 'error',
+      overlay: false,
     },
     hot: true,
   },
@@ -30,6 +31,7 @@ module.exports = merge(common, {
     }),
     new StylelintPlugin({
       files: Path.join('src', '**/*.s?(a|c)ss'),
+      emitWarning: true,
     }),
   ],
   module: {
@@ -50,7 +52,10 @@ module.exports = merge(common, {
             },
           },
           'postcss-loader',
-          'sass-loader',
+          {
+            loader: 'sass-loader',
+            options: { implementation: require('sass') },
+          },
         ],
       },
     ],
