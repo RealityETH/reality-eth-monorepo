@@ -37,6 +37,7 @@ npm run test:ui
 
 | File | Tests |
 |---|---|
+| `arbitration-kleros-proxy.test.js` | Foreign-proxy URL carries correct question/chain params; on-chain ruling via proxy impersonation |
 | `claim.test.js` | Calldata for `claimMultipleAndWithdrawBalance`; ETH balance increases after claim |
 | `commit-reveal.test.js` | Calldata for `submitAnswerCommitment` + `submitAnswerReveal`; revealed answer lands on chain |
 | `submit-answer.test.js` | Calldata for `submitAnswer`; answer appears on chain via `getBestAnswer` |
@@ -94,12 +95,15 @@ Injected via `page.addInitScript()`. Implements EIP-1193 (`window.ethereum`) bac
 3. Import `walletMockScript` from `./setup/wallet-mock.js`
 4. Follow the `beforeAll` (fixtures) / `beforeEach` (snapshot) / `afterEach` (revert) pattern
 5. Set the `graph` cookie to `'0'` before navigation
-6. Add any new contract addresses that should be treated as local to `KNOWN_LOCAL_CONTRACTS` in `wallet-mock.js`
+6. Add any new contract addresses to `KNOWN_LOCAL_CONTRACTS` in `wallet-mock.js`
 7. Use the "resolve after `await orig(args)`" interceptor pattern (see above)
+
+### Kleros proxy flow
+For questions with the Kleros arbitrator (`0x29f39...`), the dapp calls `getDisputeFee` on the proxy. This reverts on the Gnosis ForeignArbitrationProxy, so the dapp falls through to `loadArbitratorMetaData`, discovers `foreignProxy: true`, and populates `.arbitration-button-foreign-proxy`. Clicking that button calls `window.open('index.html#!/foreign-proxy/<json>')` to switch chains. Test 1 for Kleros intercepts `window.open` and verifies the URL contains the correct `question_id`, `network_id` (target chain), and `foreign_proxy` (Ethereum-side proxy address).
 
 ## Known limitations
 
 - The test account (`0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`) is the first default Anvil account, pre-funded with 10 000 ETH on the fork.
-- Only reality.eth v3.0 (`0xE78996A233895bE74a66F451f1019cA9734205cc`) is treated as a local contract. Calls to v3.2 or any arbitrator contract return `execution reverted`.
+- Local contracts: reality.eth v3.0 (`0xE78996A233895bE74a66F451f1019cA9734205cc`) and the Kleros ForeignArbitrationProxy (`0x29f39de98d750eb77b5fafb31b2837f079fce222`). Calls to all other addresses return `execution reverted`.
 - The Gnosis public RPC (`rpc.gnosischain.com`) is used for archive access during mining. If it is rate-limited, tests slow down but should still pass thanks to `--retries 2`.
 - Test files must be run from `packages/dapp/tests/` — running from the parent package picks up the wrong Playwright version.

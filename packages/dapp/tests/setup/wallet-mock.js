@@ -19,6 +19,7 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
   // These contracts exist on the local fork — all eth_calls to them are fast.
   const KNOWN_LOCAL_CONTRACTS = new Set([
     '0xe78996a233895be74a66f451f1019ca9734205cc', // reality.eth v3.0
+    '0x29f39de98d750eb77b5fafb31b2837f079fce222', // Kleros ForeignArbitrationProxy
   ]);
 
   async function rpc(method, params = []) {

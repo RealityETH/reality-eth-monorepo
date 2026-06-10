@@ -94,6 +94,49 @@ export async function createCommitRevealFixtures() {
   return { boolQuestionId: questionId };
 }
 
+export async function createKlerosFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.utils.parseEther('0.001');
+  const bond = ethers.utils.parseEther('0.001');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  // Fork block 46600000 has timestamp Jun 9 2026 (~1780967485).  With a 300-day timeout,
+  // finalization_ts ≈ Mar 2027, so isFinalized() returns false at test-run time (~Jun 2026)
+  // and the dapp shows the arbitration button.  reality.eth enforces timeout < 365 days.
+  const timeout = 300 * 24 * 3600;
+
+  // nonce=3 avoids collision with other fixtures (nonce=0,1,2).
+  // Different arbitrator + question text also guarantees a unique question ID.
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Will this kleros arbitration test pass?',
+    CONTRACTS.klerosArbitrator, timeout, 3,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+
+  if (!alreadyExists) {
+    const tx1 = await reality.askQuestion(
+      TEMPLATE.bool, 'Will this kleros arbitration test pass?',
+      CONTRACTS.klerosArbitrator, timeout, 0, 3,
+      { value: bounty }
+    );
+    await tx1.wait();
+
+    // Submit an answer so bond > 0 — the dapp requires a non-zero bond before
+    // allowing the user to request arbitration.
+    const tx2 = await reality.submitAnswer(questionId, YES, 0, { value: bond });
+    await tx2.wait();
+    // No evm_increaseTime here: the question must remain open (not finalized)
+    // so the dapp shows the .arbitration-button.
+  }
+
+  return { klerosQuestionId: questionId, bond, bounty, answer: YES };
+}
+
 export async function createClaimFixtures() {
   const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
   const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
