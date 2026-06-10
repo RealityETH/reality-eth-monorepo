@@ -119,7 +119,7 @@ exports.answerToBytes32 = function(answer, qjson) {
     } else if (qtype == 'uint') {
         bn = new BN(answer, 16);
     } else {
-        return module.exports.padToBytes32(new BigNumber(answer).toString(16));
+        return module.exports.padToBytes32(answer);
     }
     return module.exports.padToBytes32(bn.toString(16));
 }

@@ -60,6 +60,31 @@ describe('Answer formatting', function() {
     expect(rc_question.answerToBytes32("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffFD", q)).to.equal('0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd');
     expect(rc_question.answerToBytes32("1", q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
   });
+  it('Encodes datetime timestamps correctly, including those whose hex representation contains digits a-f', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('datetime'), '');
+    // Trivial: 0 and 1 are the same in hex and decimal, so they pass even with the double-parse bug.
+    expect(rc_question.answerToBytes32(0, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32(1, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000001');
+    // 16 = 0x10: the hex string '10' re-parses as decimal 10 (= 0xa), producing the wrong value.
+    expect(rc_question.answerToBytes32(16, q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000010');
+    // 1527638400 = 0x5b0de980 (2018-05-30 UTC): hex contains 'b', 'd', 'e' → NaN without fix.
+    expect(rc_question.answerToBytes32(1527638400, q)).to.equal('0x000000000000000000000000000000000000000000000000000000005b0de980');
+    // 1767225600 = 0x6955b900 (2026-01-01 UTC): hex contains 'b' → NaN without fix.
+    expect(rc_question.answerToBytes32(1767225600, q)).to.equal('0x000000000000000000000000000000000000000000000000000000006955b900');
+  });
+  it('Encodes single-select option indices correctly, including indices >= 10', function() {
+    var outcomes = [];
+    for (var i = 0; i < 20; i++) outcomes.push('option' + i);
+    var qtext = rc_question.encodeText('single-select', 'Which?', outcomes, 'misc');
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('single-select'), qtext);
+    // Indices 0-9 have the same single-character hex and decimal representation: pass without fix.
+    expect(rc_question.answerToBytes32('0', q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
+    expect(rc_question.answerToBytes32('9', q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000009');
+    // Index 10 = 0xa: hex string 'a' is invalid base-10 → NaN without fix.
+    expect(rc_question.answerToBytes32('10', q)).to.equal('0x000000000000000000000000000000000000000000000000000000000000000a');
+    // Index 16 = 0x10: hex string '10' re-parses as decimal 10 (= 0xa), silently wrong without fix.
+    expect(rc_question.answerToBytes32('16', q)).to.equal('0x0000000000000000000000000000000000000000000000000000000000000010');
+  });
   it('Turns options into hex', function() {
     var outcomes = ['thing1', 'thing2', 'thing3'];
     var qtext = rc_question.encodeText('multiple-select', 'oink', outcomes, 'my-category');
