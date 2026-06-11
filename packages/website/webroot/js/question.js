@@ -284,6 +284,39 @@ function answerColorClass(bytes32, qjson) {
   return 'other';
 }
 
+// ── Transaction UX ───────────────────────────────────────────────────────────
+function txErrorMessage(err) {
+  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED') return 'Cancelled';
+  if (err?.reason)          return String(err.reason).slice(0, 160);
+  if (err?.data?.message)   return String(err.data.message).slice(0, 160);
+  if (err?.message)         return String(err.message).slice(0, 160);
+  return 'Transaction failed';
+}
+
+function showTxError(btn, msg) {
+  btn.parentElement?.querySelector('.tx-error')?.remove();
+  const p = el('p', 'tx-error', msg);
+  btn.after(p);
+  setTimeout(() => p.remove(), 8000);
+}
+
+async function runTx(btn, originalText, txFn) {
+  btn.disabled = true;
+  const origText = originalText;
+  btn.textContent = 'Waiting for wallet…';
+  try {
+    const tx = await txFn();
+    btn.textContent = 'Pending…';
+    await tx.wait();
+    btn.textContent = '✓ Done';
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = origText;
+    showTxError(btn, txErrorMessage(err));
+  }
+}
+
 // ── Bond validation ───────────────────────────────────────────────────────────
 function validateBond(bondWrap, bondInput, minRequired) {
   const val = parseFloat(bondInput.value);
@@ -333,7 +366,10 @@ function buildAnswerForm(data, walletAddr) {
       new Date(openingTS * 1000).toLocaleString());
     bf.appendChild(p);
     bf.appendChild(ot);
-    return bf;
+    const card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', 'Interact'));
+    card.appendChild(bf);
+    return card;
   }
 
   // Finalized: return nothing (no submit form shown)
@@ -485,11 +521,15 @@ function buildAnswerForm(data, walletAddr) {
     const bondWei  = ethers.utils.parseEther(bondInput.value);
     const maxPrev  = data.bond; // front-run guard
 
-    realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei })
-      .catch(err => console.error('submitAnswer failed', err));
+    runTx(btn, 'Post answer', () =>
+      realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei })
+    );
   });
 
-  return form;
+  const card = el('div', 'card');
+  card.appendChild(el('div', 'card-title', 'Interact'));
+  card.appendChild(form);
+  return card;
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -922,19 +962,16 @@ async function main() {
   if (isReopenable && reopenContainer && realityRW) {
     const btn = reopenContainer.querySelector('.reopen-question-submit');
     if (btn) {
-      btn.addEventListener('click', async () => {
-        try {
-          // Use the original question_id as the nonce for the new question — it's
-          // always unique (a 256-bit hash) and never collides with the small integer
-          // nonces used when questions are first created.
-          const reopenNonce = ethers.BigNumber.from(QUESTION_ID);
-          const tx = await realityRW.reopenQuestion(
+      btn.addEventListener('click', () => {
+        // Use the original question_id as the nonce — always unique (256-bit hash)
+        const reopenNonce = ethers.BigNumber.from(QUESTION_ID);
+        runTx(btn, btn.textContent, () =>
+          realityRW.reopenQuestion(
             data.templateId, data.questionStr, data.arbitrator,
             data.timeout, data.openingTS, reopenNonce, data.minBond,
             QUESTION_ID, { value: 0 }
-          );
-          await tx.wait();
-        } catch (err) { console.error('reopenQuestion failed', err); }
+          )
+        );
       });
     }
   }
@@ -949,15 +986,14 @@ async function main() {
       claimSection.style.display = '';
       const claimBtn = claimSection.querySelector('button.claim-button');
       if (claimBtn) {
-        claimBtn.addEventListener('click', async () => {
-          try {
-            const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
-            const tx = await realityRW.claimMultipleAndWithdrawBalance(
+        claimBtn.addEventListener('click', () => {
+          const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
+          runTx(claimBtn, claimBtn.textContent, () =>
+            realityRW.claimMultipleAndWithdrawBalance(
               args.question_ids, args.lengths, args.hist_hashes,
               args.addrs, args.bonds, args.answers
-            );
-            await tx.wait();
-          } catch (err) { console.error('claim failed', err); }
+            )
+          );
         });
       }
     }
