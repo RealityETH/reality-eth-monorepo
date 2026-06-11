@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>reality.eth — Question detail</title>
+<title>reality.eth — Question</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -31,33 +31,25 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
+    background: var(--bg); color: var(--text); font-size: 14px;
+    line-height: 1.5; min-height: 100vh;
   }
 
-  /* ── Header ──────────────────────────────── */
+  /* ── Header ── */
   header {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(13,17,23,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-subtle);
-    padding: 0 24px;
+    background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle); padding: 0 24px;
   }
   .header-inner {
     max-width: 1100px; margin: 0 auto;
-    display: flex; align-items: center; gap: 16px;
-    height: 56px;
+    display: flex; align-items: center; gap: 16px; height: 56px;
   }
   .logo {
     font-size: 15px; font-weight: 600; color: var(--text);
     text-decoration: none; display: flex; align-items: center; gap: 8px;
   }
-  .logo-mark {
-    width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px;
-  }
+  .logo-mark { width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px; }
   .search-wrap { flex: 1; max-width: 400px; position: relative; }
   .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-dim); pointer-events: none; }
   .search-input {
@@ -66,13 +58,7 @@
     border-radius: var(--radius-sm); color: var(--text); font-size: 13px; outline: none;
   }
   .search-input::placeholder { color: var(--text-dim); }
-  .chain-select {
-    padding: 7px 28px 7px 10px; background: var(--bg-card);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text); font-size: 13px; outline: none; cursor: pointer; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 8px center;
-  }
+  .search-input:focus { border-color: var(--accent); }
   .btn-outline {
     padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     background: transparent; color: var(--text-muted); font-size: 13px; cursor: pointer; margin-left: auto;
@@ -81,52 +67,15 @@
     border-color: rgba(63,185,80,0.5); color: var(--green);
     font-family: monospace; font-size: 12px; letter-spacing: -0.01em;
   }
-
-  /* ── Interact card: open (connected) state ───────────── */
-  .interact-connected-as {
-    font-size: 11px; color: var(--text-dim); font-family: monospace;
-    margin-bottom: 14px;
-  }
-  .ans-group { display: flex; gap: 6px; margin-bottom: 14px; }
-  .ans-btn {
-    flex: 1; padding: 8px 4px; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); background: transparent;
-    font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-muted);
-    transition: all 0.1s;
-  }
-  .ans-btn:hover { border-color: var(--text-muted); color: var(--text); }
-  .ans-btn.sel-yes { border-color: var(--green); background: var(--green-subtle); color: var(--green); }
-  .ans-btn.sel-no  { border-color: var(--red);   background: var(--red-subtle);   color: var(--red); }
-  .ans-btn.sel-inv { border-color: var(--border); background: var(--border-subtle); color: var(--text-muted); }
-  .bond-row {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  }
-  .bond-row label { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
-  .bond-input-field {
-    flex: 1; padding: 7px 10px; background: var(--bg);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text); font-size: 13px; outline: none;
-  }
-  .bond-input-field:focus { border-color: var(--accent); }
-  .bond-sym { font-size: 12px; color: var(--text-dim); }
-  .btn-post {
-    width: 100%; padding: 9px; border-radius: var(--radius-sm);
-    background: var(--accent); border: none;
-    color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
-    transition: opacity 0.15s; margin-top: 12px;
-  }
-  .btn-post:hover { opacity: 0.88; }
-  .btn-post:disabled { opacity: 0.35; cursor: not-allowed; }
   @media (max-width: 600px) {
     .search-wrap { display: none; }
-    .chain-select { font-size: 12px; }
     header { padding: 0 16px; }
   }
 
-  /* ── Page ────────────────────────────────── */
+  /* ── Page ── */
   .page { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
 
-  /* ── Breadcrumb ──────────────────────────── */
+  /* ── Breadcrumb ── */
   .breadcrumb {
     display: flex; align-items: center; gap: 6px;
     font-size: 13px; color: var(--text-dim); margin-bottom: 20px;
@@ -135,32 +84,23 @@
   .breadcrumb a:hover { color: var(--text); }
   .breadcrumb svg { flex-shrink: 0; }
 
-  /* ── Question header ─────────────────────── */
+  /* ── Question header ── */
   .q-header { margin-bottom: 28px; }
   .q-badges { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
   }
-  .badge-app  { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); }
-  .badge-chain{ background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
-  .badge-open { background: var(--green-subtle); color: var(--green); }
-  .badge-arb  { background: var(--amber-subtle); color: var(--amber); }
-  .badge-final{ background: var(--border-subtle); color: var(--text-dim); }
-  .app-dot-sm { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+  .badge-open    { background: var(--green-subtle); color: var(--green); }
+  .badge-final   { background: var(--border-subtle); color: var(--text-dim); }
+  .badge-upcoming{ background: var(--accent-subtle); color: var(--accent); }
+  .badge-type    { background: var(--accent-subtle); color: var(--accent); }
+  .badge-app     { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); }
+  .badge-chain   { background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
+  .q-text-large  { font-size: 22px; font-weight: 600; line-height: 1.35; }
 
-  .q-text-large {
-    font-size: 22px; font-weight: 600; line-height: 1.35; color: var(--text);
-    margin-bottom: 0;
-  }
-
-  /* ── Two-column layout ───────────────────── */
-  .layout {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 20px;
-    align-items: start;
-  }
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
   .col-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
   .col-side  { display: flex; flex-direction: column; gap: 14px; }
   @media (max-width: 700px) {
@@ -169,7 +109,7 @@
     .q-text-large { font-size: 18px; }
   }
 
-  /* ── Cards ───────────────────────────────── */
+  /* ── Cards ── */
   .card {
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     border-radius: var(--radius); padding: 18px;
@@ -179,153 +119,207 @@
     letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 14px;
   }
 
-  /* ── Status card ─────────────────────────── */
-  .status-answer {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 16px;
-  }
-  .answer-pill-large {
-    padding: 6px 20px; border-radius: var(--radius);
-    font-size: 20px; font-weight: 700; letter-spacing: 0.01em;
-  }
-  .answer-yes-lg { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
-  .answer-no-lg  { background: var(--red-subtle);   color: var(--red);   border: 1px solid rgba(248,81,73,0.3); }
-  .answer-inv-lg { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
-
-  .status-bond-label { font-size: 11px; color: var(--text-dim); text-align: right; }
-  .status-bond-val { font-size: 17px; font-weight: 700; color: var(--text); text-align: right; }
-
-  .timer-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .timer-label { font-size: 12px; color: var(--text-dim); }
-  .timer-val { font-size: 13px; font-weight: 600; color: var(--amber); }
-  .timer-bar-wrap { height: 4px; background: var(--border-subtle); border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
-  .timer-bar { height: 100%; border-radius: 2px; background: var(--amber); width: 82%; }
-
-  .status-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    padding-top: 14px; border-top: 1px solid var(--border-subtle);
-  }
-  .sg-item { display: flex; flex-direction: column; gap: 2px; }
-  .sg-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-  .sg-val { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-  .sg-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 12px; }
-
-  /* ── Interact card ───────────────────────── */
-  .interact-card {
-    background: var(--bg-card); border: 1px solid var(--border-subtle);
-    border-radius: var(--radius); padding: 16px;
-  }
-  .interact-locked {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 10px; padding: 8px 0; text-align: center;
-  }
-  .lock-icon {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--border-subtle);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text-dim);
-  }
-  .lock-text { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
-  .btn-connect {
-    width: 100%; padding: 9px; border-radius: var(--radius-sm);
-    background: var(--accent); border: none;
-    color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
-  }
-  .interact-hint {
-    font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 4px;
-  }
-
-  /* ── Bond history ────────────────────────── */
+  /* ── Bond history timeline ── */
   .bond-list { display: flex; flex-direction: column; }
-  .bond-entry {
+
+  .current-answer-container,
+  .answered-history-item {
     display: grid;
     grid-template-columns: 22px 1fr auto;
     gap: 0 12px;
     padding: 12px 0;
     position: relative;
   }
-  .bond-entry + .bond-entry { border-top: 1px solid var(--border-subtle); }
+  .current-answer-container { padding-top: 0; }
+  .answered-history-item    { border-top: 1px solid var(--border-subtle); }
 
-  /* Connector line between entries */
-  .bond-entry:not(:last-child) .bond-connector::after {
+  /* Connector line from current answer entry downward */
+  .has-history .current-answer-container .bond-connector::after,
+  .answered-history-item:not(:last-child) .bond-connector::after {
     content: '';
     position: absolute;
-    left: 10px; top: 36px;
-    width: 1px; height: calc(100% - 24px);
+    left: 10px; top: 32px;
+    width: 1px; height: calc(100% - 10px);
     background: var(--border-subtle);
   }
-  .bond-connector { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; padding-top: 2px; position: relative; }
 
+  .bond-connector {
+    grid-column: 1; grid-row: 1 / 3;
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 2px; position: relative;
+  }
   .answer-dot {
     width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 700;
   }
-  .dot-yes { background: var(--green-subtle); color: var(--green); border: 1.5px solid rgba(63,185,80,0.4); }
-  .dot-no  { background: var(--red-subtle);   color: var(--red);   border: 1.5px solid rgba(248,81,73,0.4); }
-  .dot-inv { background: var(--border-subtle); color: var(--text-dim); border: 1.5px solid var(--border); }
+  .dot-yes   { background: var(--green-subtle); color: var(--green);    border: 1.5px solid rgba(63,185,80,0.4); }
+  .dot-no    { background: var(--red-subtle);   color: var(--red);      border: 1.5px solid rgba(248,81,73,0.4); }
+  .dot-inv   { background: var(--border-subtle);color: var(--text-dim); border: 1.5px solid var(--border); }
+  .dot-other { background: var(--accent-subtle);color: var(--accent);   border: 1.5px solid rgba(88,166,255,0.3); }
 
-  .bond-main { grid-column: 2; display: flex; flex-direction: column; gap: 3px; }
-  .bond-answer-label { font-size: 13px; font-weight: 600; }
-  .bond-answer-label.yes { color: var(--green); }
-  .bond-answer-label.no  { color: var(--red); }
-  .bond-answer-label.inv { color: var(--text-muted); }
+  .bond-main { grid-column: 2; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .bond-answer-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .bond-answer-label.yes   { color: var(--green); }
+  .bond-answer-label.no    { color: var(--red); }
+  .bond-answer-label.inv   { color: var(--text-muted); }
+  .bond-answer-label.other { color: var(--text); }
 
-  .bond-submeta { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-dim); }
+  .bond-submeta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
   .bond-addr { font-family: monospace; }
-  .bond-tag {
-    padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600;
-  }
-  .tag-current { background: var(--green-subtle); color: var(--green); }
-  .tag-disputed { background: var(--red-subtle); color: var(--red); }
+  .bond-addr-link { color: var(--accent); text-decoration: none; font-family: monospace; }
+  .bond-addr-link:hover { text-decoration: underline; }
 
-  .bond-right { grid-column: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .bond-tag { padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-left: 5px; }
+  .tag-current  { background: var(--green-subtle); color: var(--green); }
+  .tag-disputed { background: var(--red-subtle);   color: var(--red); }
+
+  .bond-right { grid-column: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .bond-amount { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; }
-  .bond-bar-wrap { width: 80px; height: 3px; background: var(--border-subtle); border-radius: 2px; overflow: hidden; }
+  .bond-bar-wrap { width: 70px; height: 3px; background: var(--border-subtle); border-radius: 2px; overflow: hidden; }
   .bond-bar { height: 100%; border-radius: 2px; }
-  .bar-yes { background: var(--green); }
-  .bar-no  { background: var(--red); }
-  .bond-time { font-size: 11px; color: var(--text-dim); }
+  .bar-yes   { background: var(--green); }
+  .bar-no    { background: var(--red); }
+  .bar-inv   { background: var(--text-dim); }
+  .bar-other { background: var(--accent); }
 
-  /* ── Metadata card ───────────────────────── */
-  .meta-list { display: flex; flex-direction: column; gap: 10px; }
-  .meta-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
-  .meta-key { color: var(--text-dim); flex-shrink: 0; }
-  .meta-val { color: var(--text-muted); text-align: right; word-break: break-all; }
-  .meta-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 11px; }
-  .meta-val.mono { font-family: monospace; font-size: 11px; }
+  /* ── Status card ── */
+  .status-answer {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  }
+  .status-answer-label { font-size: 11px; color: var(--text-dim); margin-bottom: 5px; }
+  .answer-pill-large {
+    padding: 6px 20px; border-radius: var(--radius);
+    font-size: 20px; font-weight: 700; letter-spacing: 0.01em; display: inline-block;
+  }
+  .answer-yes-lg { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .answer-no-lg  { background: var(--red-subtle);   color: var(--red);   border: 1px solid rgba(248,81,73,0.3); }
+  .answer-inv-lg { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
 
-  /* ── Arbitrator notice ───────────────────── */
-  .arb-notice {
+  .status-bond-label { font-size: 11px; color: var(--text-dim); text-align: right; margin-bottom: 2px; }
+  .status-bond-val   { font-size: 17px; font-weight: 700; color: var(--text); text-align: right; }
+
+  .timer-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .timer-label { font-size: 12px; color: var(--text-dim); }
+  .timer-val   { font-size: 13px; font-weight: 600; color: var(--amber); }
+  .timer-val.finalized { color: var(--green); }
+
+  .timer-bar-wrap { height: 4px; background: var(--border-subtle); border-radius: 2px; margin-bottom: 16px; overflow: hidden; }
+  .timer-bar { height: 100%; border-radius: 2px; background: var(--amber); }
+
+  .status-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding-top: 14px; border-top: 1px solid var(--border-subtle);
+  }
+  .sg-item  { display: flex; flex-direction: column; gap: 2px; }
+  .sg-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .sg-val   { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+  .sg-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 12px; }
+  .sg-val a:hover { text-decoration: underline; }
+
+  /* ── Interact card: locked state ── */
+  .interact-locked {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 8px 0 4px; text-align: center;
+  }
+  .lock-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--border-subtle);
+    display: flex; align-items: center; justify-content: center; color: var(--text-dim);
+  }
+  .lock-text { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+  .btn-connect {
+    width: 100%; padding: 9px; border-radius: var(--radius-sm);
+    background: var(--accent); border: none;
+    color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s; margin-top: 10px;
+  }
+  .btn-connect:hover { opacity: 0.88; }
+  .interact-hint { font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 6px; }
+  .interact-hint strong { color: var(--text-muted); }
+
+  /* ── Answer form (connected state) ── */
+  .answer-form-open { display: flex; flex-direction: column; gap: 12px; }
+
+  .answer-select {
+    width: 100%; padding: 8px 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; outline: none;
+  }
+  .answer-select:focus { border-color: var(--accent); }
+  .multi-option { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+  .multi-option input { cursor: pointer; }
+  .uint-input {
+    width: 100%; padding: 7px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none;
+  }
+  .uint-input:focus { border-color: var(--accent); }
+  input[type="date"].datetime-input-date {
+    width: 100%; padding: 7px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none;
+  }
+  .invalid-switch-container, .too-soon-switch-container { font-size: 12px; }
+  .invalid-switch-container a, .too-soon-switch-container a { color: var(--text-dim); text-decoration: none; }
+  .invalid-switch-container a:hover, .too-soon-switch-container a:hover { color: var(--red); }
+  .invalid-switch-container a.active, .too-soon-switch-container a.active { color: var(--amber); font-weight: 600; }
+  .input-container--bond { position: relative; }
+  .bond-input-field {
+    width: 100%; padding: 7px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none;
+  }
+  .bond-input-field:focus { border-color: var(--accent); }
+  .input-container--bond.is-error .bond-input-field { border-color: var(--red); }
+  .min-amount { font-size: 11px; color: var(--red); display: block; margin-top: 3px; }
+  .input-container--bond:not(.is-error) .min-amount { display: none; }
+  .post-answer-button, .btn-post {
+    width: 100%; padding: 9px; border-radius: var(--radius-sm);
+    background: var(--accent); border: none; color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .post-answer-button:hover { opacity: 0.88; }
+  .post-answer-button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .answer-form-container.before-opening.is-open { font-size: 13px; color: var(--text-muted); }
+  .answer-form-container.before-opening.is-open p { margin-bottom: 8px; }
+  .opening-time-label { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Reopen ── */
+  .reopen-container {
     background: var(--amber-subtle); border: 1px solid rgba(210,153,34,0.25);
-    border-radius: var(--radius); padding: 13px 16px;
-    display: flex; gap: 12px; align-items: flex-start;
+    border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--text-muted);
   }
-  .arb-notice-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
-  .arb-notice-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-  .arb-notice-text strong { color: var(--text); }
-
-  /* ── Related questions ───────────────────── */
-  .related-list { display: flex; flex-direction: column; gap: 1px; }
-  .related-item {
-    display: block; padding: 11px 14px;
+  .reopen-container p { margin-bottom: 10px; }
+  .reopen-question-submit {
+    padding: 7px 16px; background: var(--amber); border: none;
+    border-radius: var(--radius-sm); color: var(--bg); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .reopened-container {
     background: var(--bg-card); border: 1px solid var(--border-subtle);
-    text-decoration: none; color: inherit;
-    transition: background 0.1s, border-color 0.1s;
+    border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--text-muted);
   }
-  .related-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
-  .related-item:last-child  { border-radius: 0 0 var(--radius) var(--radius); }
-  .related-item + .related-item { border-top: none; }
-  .related-item:hover { background: var(--bg-card-hover); border-color: var(--border); }
-  .related-item:only-child { border-radius: var(--radius); }
-  .related-q { font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.35; }
-  .related-meta { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--text-dim); }
-  .rv { padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
-  .rv-yes { background: var(--green-subtle); color: var(--green); }
-  .rv-no  { background: var(--red-subtle); color: var(--red); }
+
+  /* ── Claim ── */
+  .claim-section {
+    background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25);
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .claim-button {
+    width: 100%; padding: 9px; background: var(--green); border: none;
+    border-radius: var(--radius-sm); color: var(--bg);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .claim-button:hover { opacity: 0.88; }
+
+  /* ── Details card (meta-list style) ── */
+  .meta-list { display: flex; flex-direction: column; gap: 10px; }
+  .meta-row  { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
+  .meta-key  { color: var(--text-dim); flex-shrink: 0; }
+  .meta-val  { color: var(--text-muted); text-align: right; word-break: break-all; }
+  .meta-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 11px; }
+  .meta-val a:hover { text-decoration: underline; }
+  .meta-val.mono { font-family: monospace; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -340,371 +334,99 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" type="text" placeholder="Search questions…">
     </div>
-    <select class="chain-select">
-      <option>All chains</option>
-      <option selected>Ethereum</option>
-      <option>Gnosis</option>
-      <option>Polygon</option>
-    </select>
     <button id="wallet-btn" class="btn-outline">Connect wallet</button>
   </div>
 </header>
 
-<div class="page">
+<!-- #question-page receives state classes: question-state-open, question-state-finalized,
+     has-history, reopenable, reopened — set by question.js after data loads. -->
+<div id="question-page" class="page">
 
-  <!-- Breadcrumb -->
   <div class="breadcrumb">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
     <a href="browse.html">Browse</a>
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    <a href="#">Snapshot</a>
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-    <span>MakerDAO</span>
   </div>
 
-  <!-- Question header -->
   <div class="q-header">
     <div class="q-badges">
-      <span class="badge badge-app">
-        <span class="app-dot-sm" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)"></span>
-        Snapshot · MakerDAO
-      </span>
-      <span class="badge badge-chain">Ethereum</span>
-      <span class="badge badge-open">● Open</span>
+      <span class="badge badge-open" id="status-badge">Loading…</span>
     </div>
-    <h1 class="q-text-large">Did the Maker Governance vote on MIP102c2-SP18 (Scope Defined Parameter Changes) pass?</h1>
+    <h1 class="q-text-large" id="question-title">Loading question…</h1>
   </div>
 
-  <!-- Two columns -->
   <div class="layout">
 
-    <!-- ── Left column ────────────────────── -->
+    <!-- ── Left column ── -->
     <div class="col-main">
 
-      <!-- Bond / answer history -->
+      <!-- Answer history with bond timeline -->
       <div class="card">
         <div class="card-title">Answer history</div>
         <div class="bond-list">
-
-          <!-- Most recent = top, largest bond -->
-          <div class="bond-entry">
-            <div class="bond-connector">
-              <div class="answer-dot dot-yes">Y</div>
-            </div>
-            <div class="bond-main">
-              <div class="bond-answer-label yes">Yes <span class="bond-tag tag-current">current</span></div>
-              <div class="bond-submeta">
-                <span class="bond-addr">0x7f3a…d291</span>
-                <span>·</span>
-                <span>2 hours ago</span>
-              </div>
-            </div>
-            <div class="bond-right">
-              <div class="bond-amount">2.5 ETH</div>
-              <div class="bond-bar-wrap"><div class="bond-bar bar-yes" style="width:100%"></div></div>
-            </div>
+          <div class="current-answer-container">
+            <!-- populated by renderHistory -->
           </div>
-
-          <div class="bond-entry">
-            <div class="bond-connector">
-              <div class="answer-dot dot-no">N</div>
-            </div>
-            <div class="bond-main">
-              <div class="bond-answer-label no">No <span class="bond-tag tag-disputed">disputed</span></div>
-              <div class="bond-submeta">
-                <span class="bond-addr">0x4d8c…a07f</span>
-                <span>·</span>
-                <span>9 hours ago</span>
-              </div>
-            </div>
-            <div class="bond-right">
-              <div class="bond-amount">1.25 ETH</div>
-              <div class="bond-bar-wrap"><div class="bond-bar bar-no" style="width:50%"></div></div>
-            </div>
+          <div class="answered-history-container">
+            <!-- .answered-history-item elements added by JS -->
           </div>
-
-          <div class="bond-entry">
-            <div class="bond-connector">
-              <div class="answer-dot dot-yes">Y</div>
-            </div>
-            <div class="bond-main">
-              <div class="bond-answer-label yes">Yes</div>
-              <div class="bond-submeta">
-                <span class="bond-addr">0x9a1e…55bc</span>
-                <span>·</span>
-                <span>1 day ago</span>
-              </div>
-            </div>
-            <div class="bond-right">
-              <div class="bond-amount">0.625 ETH</div>
-              <div class="bond-bar-wrap"><div class="bond-bar bar-yes" style="width:25%"></div></div>
-            </div>
-          </div>
-
-          <div class="bond-entry">
-            <div class="bond-connector">
-              <div class="answer-dot dot-no">N</div>
-            </div>
-            <div class="bond-main">
-              <div class="bond-answer-label no">No</div>
-              <div class="bond-submeta">
-                <span class="bond-addr">0x2b5f…e340</span>
-                <span>·</span>
-                <span>1 day ago</span>
-              </div>
-            </div>
-            <div class="bond-right">
-              <div class="bond-amount">0.313 ETH</div>
-              <div class="bond-bar-wrap"><div class="bond-bar bar-no" style="width:12.5%"></div></div>
-            </div>
-          </div>
-
-          <div class="bond-entry">
-            <div class="bond-connector">
-              <div class="answer-dot dot-yes">Y</div>
-            </div>
-            <div class="bond-main">
-              <div class="bond-answer-label yes">Yes</div>
-              <div class="bond-submeta">
-                <span class="bond-addr">0x6c9d…b182</span>
-                <span>·</span>
-                <span>2 days ago</span>
-              </div>
-            </div>
-            <div class="bond-right">
-              <div class="bond-amount">0.156 ETH</div>
-              <div class="bond-bar-wrap"><div class="bond-bar bar-yes" style="width:6.25%"></div></div>
-            </div>
-          </div>
-
         </div>
       </div>
 
-      <!-- Related from same DAO -->
-      <div>
-        <div class="card-title" style="padding: 0 2px 10px">More from MakerDAO</div>
-        <div class="related-list">
-          <a class="related-item" href="#">
-            <div class="related-q">Did the Maker Governance vote on MIP40c3-SP87 (Modify Core Unit Budget) pass?</div>
-            <div class="related-meta">
-              <span class="badge badge-final" style="font-size:10px;padding:1px 7px">Finalized</span>
-              Final answer: <span class="rv rv-yes">Yes</span>
-              <span>·</span> <span>5 days ago</span>
-            </div>
-          </a>
-          <a class="related-item" href="#">
-            <div class="related-q">Did the Maker Governance vote on MIP55c3-SP14 (Special Purpose Fund) pass?</div>
-            <div class="related-meta">
-              <span class="badge badge-final" style="font-size:10px;padding:1px 7px">Finalized</span>
-              Final answer: <span class="rv rv-no">No</span>
-              <span>·</span> <span>12 days ago</span>
-            </div>
-          </a>
-          <a class="related-item" href="#">
-            <div class="related-q">Did [Governance Poll] Ratification Poll for Stability Scope Bounded Mutable Parameters pass?</div>
-            <div class="related-meta">
-              <span class="badge badge-open" style="font-size:10px;padding:1px 7px">● Open</span>
-              Current answer: <span class="rv rv-yes">Yes</span>
-              <span>·</span> <span>Closes in 4d</span>
-            </div>
-          </a>
-        </div>
+      <!-- Reopen / reopened notices -->
+      <div class="reopen-container" style="display:none">
+        <p>This question was answered when it was too soon.</p>
+        <button class="reopen-question-submit">Reopen question</button>
+      </div>
+      <div class="reopened-container" style="display:none">
+        <p>This question has been reopened for further answers.</p>
       </div>
 
     </div>
 
-    <!-- ── Right column ────────────────────── -->
+    <!-- ── Right column ── -->
     <div class="col-side">
 
-      <!-- Status -->
-      <div class="card">
-        <div class="card-title">Current status</div>
+      <!-- Status — populated by renderStatusCard -->
+      <div id="status-card" class="card" style="display:none"></div>
 
-        <div class="status-answer">
-          <div>
-            <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px">Best answer</div>
-            <span class="answer-pill-large answer-yes-lg">Yes</span>
-          </div>
-          <div>
-            <div class="status-bond-label">Top bond</div>
-            <div class="status-bond-val">2.5 ETH</div>
-          </div>
-        </div>
-
-        <div class="timer-row">
-          <span class="timer-label">Finalizes in</span>
-          <span class="timer-val">17h 43m</span>
-        </div>
-        <div class="timer-bar-wrap">
-          <div class="timer-bar"></div>
-        </div>
-
-        <div class="status-grid">
-          <div class="sg-item">
-            <span class="sg-label">Total bonds</span>
-            <span class="sg-val">4.84 ETH</span>
-          </div>
-          <div class="sg-item">
-            <span class="sg-label">Answers</span>
-            <span class="sg-val">5</span>
-          </div>
-          <div class="sg-item">
-            <span class="sg-label">Arbitrator</span>
-            <span class="sg-val"><a href="#">Kleros</a></span>
-          </div>
-          <div class="sg-item">
-            <span class="sg-label">Min bond</span>
-            <span class="sg-val">0.01 ETH</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interact -->
-      <div class="interact-card">
+      <!-- Answer form — replaced by question.js with the type-specific form -->
+      <div id="answer-form-container" class="card">
         <div class="card-title">Interact</div>
-
-        <!-- Locked state (not connected) -->
-        <div id="interact-locked-state">
-          <div class="interact-locked">
-            <div class="lock-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <div class="lock-text">Connect your wallet to answer this question or dispute the current answer.</div>
-          </div>
-          <button class="btn-connect" style="margin-top:12px"
-            onclick="RealityWallet.connectWallet(onWalletChange)">Connect wallet</button>
-          <div class="interact-hint">Next valid bond: <strong style="color:var(--text-muted)">5.0 ETH</strong> to dispute</div>
-        </div>
-
-        <!-- Open state (connected) -->
-        <div id="interact-open-state" style="display:none">
-          <div id="interact-connected-as" class="interact-connected-as"></div>
-          <div class="ans-group">
-            <button class="ans-btn" onclick="selectAnswer(this,'yes')">Yes</button>
-            <button class="ans-btn" onclick="selectAnswer(this,'no')">No</button>
-            <button class="ans-btn" onclick="selectAnswer(this,'inv')">Invalid</button>
-          </div>
-          <div class="bond-row">
-            <label for="bond-input">Bond</label>
-            <input id="bond-input" class="bond-input-field" type="number" value="5.0" min="0.001" step="0.001">
-            <span class="bond-sym">ETH</span>
-          </div>
-          <div class="interact-hint">Min to dispute current answer: <strong style="color:var(--text-muted)">5.0 ETH</strong></div>
-          <button id="post-btn" class="btn-post" disabled>Select an answer</button>
-        </div>
+        <p style="color:var(--text-dim);font-size:13px">Loading…</p>
       </div>
 
-      <!-- Metadata -->
-      <div class="card">
-        <div class="card-title">Details</div>
-        <div class="meta-list">
-          <div class="meta-row">
-            <span class="meta-key">Question ID</span>
-            <span class="meta-val mono"><a href="#">0x8f3c…a291</a></span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Contract</span>
-            <span class="meta-val"><a href="#">0x5b7b…d4e8</a></span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Created by</span>
-            <span class="meta-val"><a href="#">0x3d3d…8f2a</a></span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Opened</span>
-            <span class="meta-val">3 Jun 2026, 09:14</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Closes</span>
-            <span class="meta-val">6 Jun 2026, 09:14</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Type</span>
-            <span class="meta-val">Yes / No / Invalid</span>
-          </div>
-          <div class="meta-row">
-            <span class="meta-key">Template</span>
-            <span class="meta-val">2 (Snapshot)</span>
-          </div>
-        </div>
+      <!-- Claim section (shown when finalized and user has claimable winnings) -->
+      <div class="claim-section" style="display:none">
+        <div class="card-title" style="margin-bottom:10px">Claim winnings</div>
+        <button class="claim-button">Claim &amp; withdraw</button>
       </div>
 
     </div>
   </div>
+
 </div>
 
+<script src="js/ethers.js"></script>
 <script src="js/wallet.js"></script>
+<script src="js/question.js"></script>
 <script>
-  // ── Wallet ─────────────────────────────────────────────
   function onWalletChange(addr) {
     const btn = document.getElementById('wallet-btn');
-    if (btn) {
-      if (addr) {
-        btn.textContent = RealityWallet.shortAddr(addr);
-        btn.classList.add('connected');
-        btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
-      } else {
-        btn.textContent = 'Connect wallet';
-        btn.classList.remove('connected');
-        btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
-      }
-    }
-    updateInteractCard(addr);
-  }
-
-  function updateInteractCard(addr) {
-    const locked = document.getElementById('interact-locked-state');
-    const open   = document.getElementById('interact-open-state');
-    if (!locked || !open) return;
+    if (!btn) return;
     if (addr) {
-      locked.style.display = 'none';
-      open.style.display = 'block';
-      const label = document.getElementById('interact-connected-as');
-      if (label) label.textContent = 'Connected: ' + RealityWallet.shortAddr(addr);
+      btn.textContent = RealityWallet.shortAddr(addr);
+      btn.classList.add('connected');
+      btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
     } else {
-      locked.style.display = 'block';
-      open.style.display = 'none';
-      resetAnswerForm();
+      btn.textContent = 'Connect wallet';
+      btn.classList.remove('connected');
+      btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
     }
   }
-
-  // ── Answer form ────────────────────────────────────────
-  let selectedAnswer = null;
-
-  function selectAnswer(btn, val) {
-    selectedAnswer = val;
-    document.querySelectorAll('.ans-btn').forEach(b => {
-      b.classList.remove('sel-yes', 'sel-no', 'sel-inv');
-    });
-    btn.classList.add(val === 'yes' ? 'sel-yes' : val === 'no' ? 'sel-no' : 'sel-inv');
-
-    const postBtn = document.getElementById('post-btn');
-    if (postBtn) {
-      postBtn.disabled = false;
-      postBtn.textContent = 'Post answer';
-    }
-  }
-
-  function resetAnswerForm() {
-    selectedAnswer = null;
-    document.querySelectorAll('.ans-btn').forEach(b => {
-      b.classList.remove('sel-yes', 'sel-no', 'sel-inv');
-    });
-    const postBtn = document.getElementById('post-btn');
-    if (postBtn) { postBtn.disabled = true; postBtn.textContent = 'Select an answer'; }
-    const input = document.getElementById('bond-input');
-    if (input) input.value = '5.0';
-  }
-
   document.addEventListener('DOMContentLoaded', () => {
     RealityWallet.initWallet(onWalletChange);
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
-
-    document.getElementById('post-btn').addEventListener('click', () => {
-      // Stub — transaction sending not yet implemented.
-      alert(`Would post answer "${selectedAnswer}" with bond ${document.getElementById('bond-input').value} ETH.\n\n(Transaction sending not yet implemented.)`);
-    });
   });
 </script>
 </body>

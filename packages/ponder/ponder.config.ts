@@ -5,15 +5,31 @@ import { http, fallback } from "viem";
 // v2.0, v2.1, v3.0, v3.2, and the ERC20 variants, so one ABI covers everything.
 import abi from "../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json";
 
+// Build a network transport. Only include the private RPC in the fallback when
+// it's explicitly configured — http(undefined) generates a wall of errors.
+function net(chainId: number, envUrl: string | undefined, publicUrl: string, maxRequestsPerSecond = 5) {
+  const opts = { timeout: 30_000, retryCount: 2, retryDelay: 2000 };
+  return {
+    chainId,
+    maxRequestsPerSecond,
+    transport: envUrl
+      ? fallback([http(envUrl, opts), http(publicUrl, opts)], { retryCount: 1 })
+      : http(publicUrl, opts),
+  };
+}
+
 export default createConfig({
   networks: {
-    mainnet:   { chainId: 1,     maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_1),     http("https://ethereum-rpc.publicnode.com")]) },
-    gnosis:    { chainId: 100,   maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_100),   http("https://rpc.gnosischain.com")]) },
-    arbitrum:  { chainId: 42161, maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_42161), http("https://arbitrum-one-rpc.publicnode.com")]) },
+    mainnet:   net(1,     process.env.PONDER_RPC_URL_1,     "https://ethereum-rpc.publicnode.com"),
+    gnosis:    net(100,   process.env.PONDER_RPC_URL_100,   "https://rpc.gnosischain.com"),
+    arbitrum:  net(42161, process.env.PONDER_RPC_URL_42161, "https://arbitrum-one-rpc.publicnode.com"),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
-    base:      { chainId: 8453,  maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_8453),  http("https://base-rpc.publicnode.com")]) },
-    celo:      { chainId: 42220, maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_42220), http("https://celo-rpc.publicnode.com")]) },
-    avalanche: { chainId: 43114, maxRequestsPerSecond: 10, transport: fallback([http(process.env.PONDER_RPC_URL_43114), http("https://avalanche-c-chain-rpc.publicnode.com")]) },
+    // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
+    //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
+    //   reliable dedicated endpoint (e.g. Alchemy, Infura, or mainnet.base.org).
+    // base: net(8453, process.env.PONDER_RPC_URL_8453, "https://base-rpc.publicnode.com"),
+    celo:      net(42220, process.env.PONDER_RPC_URL_42220, "https://celo-rpc.publicnode.com"),
+    avalanche: net(43114, process.env.PONDER_RPC_URL_43114, "https://avalanche-c-chain-rpc.publicnode.com"),
   },
 
   contracts: {
@@ -34,7 +50,8 @@ export default createConfig({
         gnosis:    { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 },
         arbitrum:  { address: "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9", startBlock: 459975 },
         // optimism disabled
-        base:      { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
+        // base disabled (see network comment above)
+        // base:   { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
         celo:      { address: "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3", startBlock: 31954377 },
         avalanche: { address: "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502", startBlock: 4090592 },
       },
