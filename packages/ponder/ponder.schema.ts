@@ -9,6 +9,8 @@ export const template = onchainTable("template", (p) => ({
   user: p.hex().notNull(),
   questionText: p.text(),
   createdBlock: p.bigint().notNull(),
+  createdLogIndex: p.integer().notNull(),
+  createdTxHash: p.hex().notNull(),
   createdTimestamp: p.bigint().notNull(),
 }));
 
@@ -63,6 +65,8 @@ export const question = onchainTable(
     reopensQuestionId: p.text(),
 
     createdBlock: p.bigint().notNull(),
+    createdLogIndex: p.integer().notNull(),
+    createdTxHash: p.hex().notNull(),
     createdTimestamp: p.bigint().notNull(),
     updatedBlock: p.bigint().notNull(),
     updatedTimestamp: p.bigint().notNull(),
@@ -94,6 +98,8 @@ export const response = onchainTable("response", (p) => ({
 
   timestamp: p.bigint().notNull(),
   createdBlock: p.bigint().notNull(),
+  createdLogIndex: p.integer().notNull(),
+  createdTxHash: p.hex().notNull(),
   revealedBlock: p.bigint(),
 }));
 

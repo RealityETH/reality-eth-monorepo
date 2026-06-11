@@ -45,6 +45,8 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         user,
         questionText: stripNullBytes(question_text),
         createdBlock: event.block.number,
+        createdLogIndex: event.log.logIndex,
+        createdTxHash: event.log.transactionHash,
         createdTimestamp: event.block.timestamp,
       })
       .onConflictDoNothing();
@@ -105,6 +107,8 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         arbitrationOccurred: false,
         scheduledFinalizationTimestamp: BigInt(opening_ts) + BigInt(timeout),
         createdBlock: event.block.number,
+        createdLogIndex: event.log.logIndex,
+        createdTxHash: event.log.transactionHash,
         createdTimestamp: event.block.timestamp,
         updatedBlock: event.block.number,
         updatedTimestamp: event.block.timestamp,
@@ -133,6 +137,8 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         isUnrevealed: is_commitment,
         timestamp: ts,
         createdBlock: event.block.number,
+        createdLogIndex: event.log.logIndex,
+        createdTxHash: event.log.transactionHash,
       })
       .onConflictDoNothing();
 
