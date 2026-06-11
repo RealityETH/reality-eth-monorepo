@@ -218,6 +218,47 @@ export async function createClaimFixtures() {
   return { claimQuestionId: questionId, bond, bounty, answer: YES };
 }
 
+// Creates a question that has ONE existing answer (YES, 0.001 ETH bond) but is
+// still OPEN from the browser's perspective.
+//
+// The key constraint: isFinalized() in the dapp checks `fin * 1000 < Date.now()`.
+// After an answer the contract sets finalization_ts = block.timestamp + timeout.
+// The fork block is ~2 days in the past relative to the browser clock, so any
+// question with timeout < 2 days would already appear finalized.  We use a 90-day
+// timeout so finalization_ts = fork_ts + 90d ≈ September 2026 > browser June 2026.
+export async function createBondEscalationFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty    = ethers.utils.parseEther('0.001');
+  const initBond  = ethers.utils.parseEther('0.001');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const TIMEOUT_90_DAYS = 7776000; // 90 * 24 * 3600
+
+  // nonce=10 — nonces 0-9 on v3.0 are taken by other fixture functions
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Bond escalation test: bool',
+    ethers.constants.AddressZero, TIMEOUT_90_DAYS, 10,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+
+  if (!alreadyExists) {
+    const tx1 = await reality.askQuestion(
+      TEMPLATE.bool, 'Bond escalation test: bool',
+      ethers.constants.AddressZero, TIMEOUT_90_DAYS, 0, 10,
+      { value: bounty }
+    );
+    await tx1.wait();
+    await (await reality.submitAnswer(questionId, YES, 0, { value: initBond })).wait();
+  }
+
+  return { questionId, initBond };
+}
+
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
 function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
   const contentHash = ethers.utils.solidityKeccak256(
