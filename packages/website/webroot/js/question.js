@@ -109,7 +109,7 @@ async function fetchPonderData() {
       items { id }
     }
   }`;
-  const resp = await fetch('/graphql', {
+  const resp = await fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
   });
@@ -124,7 +124,7 @@ async function fetchTemplateStr(templateId) {
   if (builtin) return builtin;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
-    const resp = await fetch('/graphql', {
+    const resp = await fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: `{ template(id: ${tid}) { questionText } }` }),
     });

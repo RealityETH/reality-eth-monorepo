@@ -414,6 +414,7 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="js/wallet.js"></script>
+<script src="js/settings.js"></script>
 </head>
 <body>
 
@@ -512,7 +513,7 @@
 </footer>
 
 <script>
-  const GRAPHQL = '/graphql';
+  const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
 
   // State
