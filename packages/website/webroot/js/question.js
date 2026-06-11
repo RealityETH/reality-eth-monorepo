@@ -14,6 +14,25 @@ const CONTRACT_MAJOR = {
   '0xeb51d9d9717906c981c57af09c4a3449ef30705b': 3,
 };
 
+// Map contract address → deployment block (for targeted log queries in RPC fallback).
+// Unknown contracts fall back to FORK_BLOCK so the test suite still works.
+const CONTRACT_START_BLOCK = {
+  // Gnosis
+  '0x79e32ae03fb27b07c89c0c568f80287c01ca2e57': 14005802,  // v2.1
+  '0xe78996a233895be74a66f451f1019ca9734205cc': 17997262,  // v3.0
+  '0xeb51d9d9717906c981c57af09c4a3449ef30705b': 39142627,  // v3.2
+  // Mainnet
+  '0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47':  6531265,  // v2.0
+  '0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c': 13194676,  // v3.0
+  '0x6a2155613b68efb38d5c6074921f3f4281c8c177': 22100226,  // v3.2
+  // Arbitrum
+  '0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9':   459975,  // v3.0
+  // Celo
+  '0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3': 31954377,  // v3.0
+  // Avalanche
+  '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502':  4090592,  // v3.0
+};
+
 const CHAIN_TOKEN   = { 1:'ETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO' };
 const EXPLORER      = { 1:'https://etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io' };
 const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com' };
@@ -62,8 +81,8 @@ const qPage = document.getElementById('question-page');
 if (!CONTRACT || !QUESTION_ID || !qPage) return;
 
 // ── Provider ──────────────────────────────────────────────────────────────────
-// Reads come from Ponder; RPC is the fallback and is used for writes.
-// Always build a read provider: wallet if available, public RPC otherwise.
+// readProvider is always available for the correct chain (no wallet needed).
+// reality / realityRW are set in main() once we know the wallet's chain.
 const majorVersion = CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3;
 let reality = null, realityRW = null;
 
@@ -71,14 +90,6 @@ const publicRpcUrl = PUBLIC_RPC[CHAIN_ID];
 const readProvider = publicRpcUrl
   ? new ethers.providers.JsonRpcProvider(publicRpcUrl, CHAIN_ID)
   : null;
-
-if (window.ethereum) {
-  const _wp = new ethers.providers.Web3Provider(window.ethereum);
-  reality   = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
-  realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
-} else if (readProvider) {
-  reality = new ethers.Contract(CONTRACT, REALITY_ABI, readProvider);
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function safeCall(fn, fallback) {
@@ -767,13 +778,28 @@ function buildLockedState(data) {
 async function main() {
   const BN0 = ethers.BigNumber.from(0);
 
-  // 1. Wallet address (optional — reads work without it)
+  // 1. Wallet setup — check chain ID so reads always go to the right chain
   let walletAddr = null;
   if (window.ethereum) {
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      const [accounts, chainHex] = await Promise.all([
+        window.ethereum.request({ method: 'eth_accounts' }),
+        window.ethereum.request({ method: 'eth_chainId' }),
+      ]);
       walletAddr = (accounts && accounts[0]) || null;
+      const walletChainId = parseInt(chainHex, 16);
+      const _wp = new ethers.providers.Web3Provider(window.ethereum);
+      // Use wallet for reads only when it's on the right chain
+      if (walletChainId === CHAIN_ID) {
+        reality = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
+      }
+      // Wallet is always the write provider (user must switch chain themselves)
+      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
     } catch {}
+  }
+  // Fall back to public RPC for reads if wallet is absent or on wrong chain
+  if (!reality && readProvider) {
+    reality = new ethers.Contract(CONTRACT, REALITY_ABI, readProvider);
   }
 
   // 2. Load question data — Ponder first (production), RPC fallback (test env)
@@ -790,12 +816,13 @@ async function main() {
       if (titleEl) titleEl.textContent = 'Failed to load question (no data source available).';
       return;
     }
-    // RPC path: used by the test suite (Ponder not running during tests)
+    // RPC path: used by the test suite and as production fallback
+    const startBlock = CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
     const [bond, finalizeTS, newQEvents, answerEvents] = await Promise.all([
       safeCall(() => reality.getBond(QUESTION_ID), BN0),
       safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
-      safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), FORK_BLOCK), []),
-      safeCall(() => reality.queryFilter(reality.filters.LogNewAnswer(null, QUESTION_ID), FORK_BLOCK), []),
+      safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), startBlock), []),
+      safeCall(() => reality.queryFilter(reality.filters.LogNewAnswer(null, QUESTION_ID), startBlock), []),
     ]);
     const qEv        = newQEvents[0];
     const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
@@ -807,7 +834,7 @@ async function main() {
     let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
     if (!rpcTemplateStr) {
       const tevents = await safeCall(
-        () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), FORK_BLOCK), []
+        () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), startBlock), []
       );
       rpcTemplateStr = tevents[0]?.args.question_text
         || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
