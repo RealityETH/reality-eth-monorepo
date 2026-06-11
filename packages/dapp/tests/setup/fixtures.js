@@ -57,15 +57,16 @@ export async function createFixtures() {
   };
 }
 
-// Compute reality.eth v3.0 question ID deterministically (matches contract logic)
-function computeQuestionId(templateId, openingTs, question, arbitrator, timeout, nonce, sender, contractAddress) {
+// Compute reality.eth v3.0 question ID deterministically (matches contract logic).
+// minBond defaults to 0 (askQuestion); pass a BigNumber for askQuestionWithMinBond.
+function computeQuestionId(templateId, openingTs, question, arbitrator, timeout, nonce, sender, contractAddress, minBond = 0) {
   const contentHash = ethers.utils.solidityKeccak256(
     ['uint256', 'uint32', 'string'],
     [templateId, openingTs, question]
   );
   return ethers.utils.solidityKeccak256(
     ['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'],
-    [contentHash, arbitrator, timeout, 0, contractAddress, sender, nonce]
+    [contentHash, arbitrator, timeout, minBond, contractAddress, sender, nonce]
   );
 }
 
@@ -342,6 +343,37 @@ export async function createUpcomingQuestionFixtures() {
   }
 
   return { questionId, openingTs };
+}
+
+// Creates an unanswered v3.0 bool question with min_bond = 0.002 ETH.
+// Used to test that the dapp pre-fills the bond field with min_bond and that
+// keyup validation enforces the floor even with no current best bond.
+export async function createMinBondFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty  = ethers.utils.parseEther('0.001');
+  const minBond = ethers.utils.parseEther('0.002');
+  const TIMEOUT_90_DAYS = 7776000; // 90 * 24 * 3600
+
+  // nonce=14 — nonces 0-13 on v3.0 are already taken
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Min bond test: bool',
+    ethers.constants.AddressZero, TIMEOUT_90_DAYS, 14,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30, minBond
+  );
+
+  const existing = await reality.questions(questionId);
+  if (ethers.BigNumber.from(existing[0]).eq(0)) {
+    await (await reality.askQuestionWithMinBond(
+      TEMPLATE.bool, 'Min bond test: bool',
+      ethers.constants.AddressZero, TIMEOUT_90_DAYS, 0, 14, minBond,
+      { value: bounty }
+    )).wait();
+  }
+
+  return { questionId, minBond };
 }
 
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
