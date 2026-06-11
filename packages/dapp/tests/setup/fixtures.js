@@ -25,28 +25,30 @@ export async function createFixtures() {
 
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  // Create a simple bool question with a short timeout for testing
-  const timeout = 60; // 60 seconds
-  const minBond = ethers.utils.parseEther('0.001');
-  const openingTs = 0; // open immediately
+  const timeout = 60;
+  const openingTs = 0;
   const nonce = 0;
   const question = 'Will this test pass?';
 
-  const tx = await reality.askQuestion(
-    TEMPLATE.bool,
-    question,
-    ethers.constants.AddressZero, // no arbitrator
-    timeout,
-    openingTs,
-    nonce,
-    { value: ethers.utils.parseEther('0.001') } // bounty
+  // nonce=0 — deterministically compute the ID so we can guard against re-creation
+  // on stale Anvil instances (same pattern as all other createXxxFixtures functions).
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, openingTs, question,
+    ethers.constants.AddressZero, timeout, nonce,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
-  const receipt = await tx.wait();
 
-  const logTopic = reality.interface.getEventTopic('LogNewQuestion');
-  const log = receipt.logs.find(l => l.topics[0] === logTopic);
-  const parsed = reality.interface.parseLog(log);
-  const questionId = parsed.args.question_id;
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+
+  if (!alreadyExists) {
+    const tx = await reality.askQuestion(
+      TEMPLATE.bool, question,
+      ethers.constants.AddressZero, timeout, openingTs, nonce,
+      { value: ethers.utils.parseEther('0.001') }
+    );
+    await tx.wait();
+  }
 
   return {
     boolQuestionId: questionId,
