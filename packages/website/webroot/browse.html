@@ -87,6 +87,15 @@
     background: transparent; color: var(--text-muted); font-size: 13px;
     cursor: pointer; margin-left: auto;
   }
+  /* ── Data-source indicators ── */
+  .data-ind {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    color: var(--text-dim); cursor: default; transition: color 0.2s, background 0.2s;
+  }
+  .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
+  @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   #wallet-btn.connected {
     border-color: rgba(63,185,80,0.5); color: var(--green);
     font-family: monospace; font-size: 12px; letter-spacing: -0.01em;
@@ -439,6 +448,12 @@
       <a class="nav-link" href="app/docs/html/">Docs</a>
       <a class="nav-link" href="https://github.com/RealityETH/monorepo">GitHub</a>
     </nav>
+    <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+    </span>
+    <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </span>
     <button id="wallet-btn" class="btn-outline">Connect wallet</button>
   </div>
 </header>
@@ -515,6 +530,18 @@
 <script>
   const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+  const ponderInd = document.getElementById('ind-ponder');
+  const rpcInd    = document.getElementById('ind-rpc');
+  async function withIndicator(el, fn) {
+    el?.classList.add('active');
+    const start = Date.now();
+    try { return await fn(); }
+    finally {
+      const wait = Math.max(0, 1000 - (Date.now() - start));
+      setTimeout(() => el?.classList.remove('active'), wait);
+    }
+  }
 
   // State
   let allQuestions = [];
@@ -687,11 +714,11 @@
     }
 
     try {
-      const res = await fetch(GRAPHQL, {
+      const res = await withIndicator(ponderInd, () => fetch(GRAPHQL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: buildQuery(50, reset ? null : cursor) }),
-      });
+      }));
       const json = await res.json();
       const result = json.data.questions;
       allQuestions = reset ? result.items : [...allQuestions, ...result.items];
@@ -725,7 +752,7 @@
       }
       const query = `{ cnt: questions(limit:1, where:{${base}}) { totalCount }
                        open: questions(limit:1, where:{${base}, ${openSuffix}}) { totalCount } }`;
-      const res  = await fetch(GRAPHQL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) });
+      const res  = await withIndicator(ponderInd, () => fetch(GRAPHQL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) }));
       const data = (await res.json()).data;
       return [id, { total: data.cnt?.totalCount ?? null, open: data.open?.totalCount ?? null }];
     };
