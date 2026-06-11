@@ -1,19 +1,21 @@
 import unittest
 from unittest import TestCase, main
-from ethereum.utils import decode_hex, encode_hex
-from ethereum.tools import tester as t
-#from ethereum.tools.tester import TransactionFailed, ABIContract
 
 from eth_tester.exceptions import TransactionFailed
 
-
-from ethereum.tools import keys
-from ethereum.abi import ContractTranslator
-import time
-from sha3 import keccak_256
 from hashlib import sha256
 
-import eth.exceptions
+def decode_hex(hex_str):
+    if isinstance(hex_str, (bytes, bytearray)):
+        return hex_str
+    if hex_str.startswith('0x') or hex_str.startswith('0X'):
+        hex_str = hex_str[2:]
+    return bytes.fromhex(hex_str)
+
+def encode_hex(b):
+    if isinstance(b, (bytes, bytearray)):
+        return b.hex()
+    return hex(b)[2:]
 
 from web3.providers.eth_tester import EthereumTesterProvider
 from web3 import Web3
@@ -173,7 +175,7 @@ class TestRealitio(TestCase):
 
     def _contractFromBuildJSON(self, con_name, sender=None, startgas=DEPLOY_GAS):
         if sender is None:
-            sender = t.k0
+            sender = self.web3.eth.accounts[0]
 
         bytecode_file = '../../bytecode/' + con_name + '.bin'
         abi_file = '../../abi/solc-0.4.25/' + con_name + '.abi.json'
@@ -346,7 +348,7 @@ class TestRealitio(TestCase):
             self.rc0.functions.getFinalAnswerIfMatches(
                 self.question_id,
                 decode_hex(expect_ch[2:]),
-                keys.privtoaddr(t.k2),
+                self.web3.eth.accounts[2],
                 0,
                 25
             ).call()
@@ -447,9 +449,9 @@ class TestRealitio(TestCase):
 
         # You cannot notify realitio of arbitration unless you are the arbitrator
         with self.assertRaises(TransactionFailed):
-            self.rc0.functions.notifyOfArbitrationRequest(self.question_id, keys.privtoaddr(t.k0), 0).transact() 
+            self.rc0.functions.notifyOfArbitrationRequest(self.question_id, self.web3.eth.accounts[0], 0).transact() 
 
-        self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), keys.privtoaddr(t.k0)).transact()
+        self.arb0.functions.submitAnswerByArbitrator(self.question_id, to_answer_for_contract(123456), self.web3.eth.accounts[0]).transact()
 
         self.assertTrue(self.rc0.functions.isFinalized(self.question_id).call())
         self.assertEqual(from_answer_for_contract(self.rc0.functions.getFinalAnswer(self.question_id).call()), 123456, "Arbitrator submitting final answer calls finalize")
@@ -611,7 +613,7 @@ class TestRealitio(TestCase):
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002, 2, 4, k3)
-        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         with self.assertRaises(TransactionFailed):
             txid = self.arb0.functions.requestArbitration(self.question_id, 2).transact(self._txargs(val=fee))
             self.raiseOnZeroStatus(txid)
@@ -620,7 +622,7 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_none(self):
-        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         with self.assertRaises(TransactionFailed):
             txid = self.arb0.functions.requestArbitration(self.question_id, 0).transact(self._txargs(val=fee))
             self.raiseOnZeroStatus(txid)
@@ -628,7 +630,7 @@ class TestRealitio(TestCase):
 
     @unittest.skipIf(WORKING_ONLY, "Not under construction")
     def test_bond_claim_arbitration_existing_final(self):
-        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
         k3 = self.web3.eth.accounts[3]
         k4 = self.web3.eth.accounts[4]
 
@@ -864,7 +866,7 @@ class TestRealitio(TestCase):
     
         k3 = self.web3.eth.accounts[3]
         self._issueTokens(k3, 1000, 1000)
-        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1002,  0,  1, k3, True)
@@ -886,7 +888,7 @@ class TestRealitio(TestCase):
         self._issueTokens(k3, 1000000, 1000000)
         self._issueTokens(k4, 1000000, 1000000)
 
-        fee = self.arb0.functions.getDisputeFee(encode_hex("0x00")).call()
+        fee = self.arb0.functions.getDisputeFee(decode_hex("0x00")).call()
 
         st = None
         st = self.submitAnswerReturnUpdatedState( st, self.question_id, 1001, 0, 2, k4)
@@ -1437,7 +1439,7 @@ class TestRealitio(TestCase):
         end_bal = self.rc0.functions.balanceOf(self.arb0.address).call()
         self.assertEqual(end_bal - start_bal, (321*2))
 
-        start_arb_bal = self.token0.functions.balanceOf(t.a8).call()
+        start_arb_bal = self.token0.functions.balanceOf(self.web3.eth.accounts[8]).call()
 
         # Some tokens should be piled up in the arbitrator's account in the RealitioERC20 contract
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100+321+321)
@@ -1451,12 +1453,12 @@ class TestRealitio(TestCase):
         # Now the owner can call withdrawERC20 to their own account, but only the owner
         with self.assertRaises(TransactionFailed):
             # Not the owner
-            txid = self.arb0.functions.withdrawERC20(self.token0.address, t.a8).transact(self._txargs(sender=k4))
+            txid = self.arb0.functions.withdrawERC20(self.token0.address, self.web3.eth.accounts[8]).transact(self._txargs(sender=k4))
             self.raiseOnZeroStatus(txid)
 
-        self.arb0.functions.withdrawERC20(self.token0.address, t.a8).transact()
+        self.arb0.functions.withdrawERC20(self.token0.address, self.web3.eth.accounts[8]).transact()
 
-        end_arb_bal = self.token0.functions.balanceOf(t.a8).call()
+        end_arb_bal = self.token0.functions.balanceOf(self.web3.eth.accounts[8]).call()
 
         self.assertEqual(end_arb_bal - start_arb_bal, (100+321+321))
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 0)
@@ -1507,12 +1509,12 @@ class TestRealitio(TestCase):
             self.raiseOnZeroStatus(txid)
 
         with self.assertRaises(TransactionFailed):
-            txid = self.arb0.functions.updateRegisteredWallet(t.a8).transact(self._txargs(sender=k2))
+            txid = self.arb0.functions.updateRegisteredWallet(self.web3.eth.accounts[8]).transact(self._txargs(sender=k2))
             self.raiseOnZeroStatus(txid)
         
-        self.arb0.functions.updateRegisteredWallet(t.a8).transact()
+        self.arb0.functions.updateRegisteredWallet(self.web3.eth.accounts[8]).transact()
 
-        start_reg_wal_bal = self.token0.functions.balanceOf(t.a8).call()
+        start_reg_wal_bal = self.token0.functions.balanceOf(self.web3.eth.accounts[8]).call()
 
         # Some tokens should be piled up in the arbitrator's account in the RealitioERC20 contract
         self.assertEqual(self.rc0.functions.balanceOf(self.arb0.address).call(), 100+321+321)

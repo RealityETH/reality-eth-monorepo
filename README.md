@@ -44,6 +44,25 @@ nvm install
 
 This will install the version specified in `.nvmrc`. Run `nvm use` at the start of each shell session to activate it.
 
+#### Docs (Sphinx)
+
+The docs package uses Sphinx with a pinned `requirements.txt`. To build:
+
+```
+cd packages/docs
+python3 -m venv ~/venv/reality-eth-docs
+source ~/venv/reality-eth-docs/bin/activate
+pip install -r requirements.txt
+make html
+```
+
+**Known issue:** Sphinx 3.5.4 has a Python version check bug that causes an `ImportError` on Python 3.10. After installing, patch the venv:
+
+```
+sed -i 's/sys.version_info > (3, 10)/sys.version_info >= (3, 11)/' \
+  ~/venv/reality-eth-docs/lib/python3.10/site-packages/sphinx/util/typing.py
+```
+
 #### IPFS
 
 Required for `ipfs_build.sh`. Install the [Kubo](https://github.com/ipfs/kubo) binary as the local user:
