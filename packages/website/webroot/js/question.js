@@ -91,6 +91,20 @@ const readProvider = publicRpcUrl
   ? new ethers.providers.JsonRpcProvider(publicRpcUrl, CHAIN_ID)
   : null;
 
+// ── Data-source indicators ────────────────────────────────────────────────────
+const ponderInd = document.getElementById('ind-ponder');
+const rpcInd    = document.getElementById('ind-rpc');
+
+async function withIndicator(el, fn) {
+  el?.classList.add('active');
+  const start = Date.now();
+  try { return await fn(); }
+  finally {
+    const wait = Math.max(0, 1000 - (Date.now() - start));
+    setTimeout(() => el?.classList.remove('active'), wait);
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function safeCall(fn, fallback) {
   try { return await fn(); } catch { return fallback; }
@@ -130,10 +144,12 @@ async function fetchPonderData() {
       items { id }
     }
   }`;
-  const resp = await fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
+  const resp = await withIndicator(ponderInd, () =>
+    fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    })
+  );
   if (!resp.ok) throw new Error('GraphQL unavailable');
   const json = await resp.json();
   if (!json.data?.question) throw new Error('Question not in Ponder');
@@ -145,10 +161,12 @@ async function fetchTemplateStr(templateId) {
   if (builtin) return builtin;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
-    const resp = await fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: `{ template(id: ${tid}) { questionText } }` }),
-    });
+    const resp = await withIndicator(ponderInd, () =>
+      fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `{ template(id: ${tid}) { questionText } }` }),
+      })
+    );
     const { data } = await resp.json();
     return data?.template?.questionText || BUILTIN_TEMPLATES[0];
   } catch { return BUILTIN_TEMPLATES[0]; }
@@ -857,41 +875,43 @@ async function main() {
       return;
     }
     // RPC path: used by the test suite and as production fallback
-    const startBlock = CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
-    const [bond, finalizeTS, newQEvents, answerEvents] = await Promise.all([
-      safeCall(() => reality.getBond(QUESTION_ID), BN0),
-      safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
-      safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), startBlock), []),
-      safeCall(() => reality.queryFilter(reality.filters.LogNewAnswer(null, QUESTION_ID), startBlock), []),
-    ]);
-    const qEv        = newQEvents[0];
-    const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
-    const questionStr = qEv ? qEv.args.question : '';
-    const openingTS   = qEv ? qEv.args.opening_ts : 0;
-    const qTimeout    = qEv ? qEv.args.timeout    : 0;
-    const arbitrator  = qEv ? qEv.args.arbitrator  : ethers.constants.AddressZero;
-    const nonce       = qEv ? qEv.args.nonce        : BN0;
-    let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
-    if (!rpcTemplateStr) {
-      const tevents = await safeCall(
-        () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), startBlock), []
-      );
-      rpcTemplateStr = tevents[0]?.args.question_text
-        || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
-    }
-    let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
-    if (majorVersion >= 3) {
-      [minBond, settledTooSoon, reopenedBy] = await Promise.all([
-        safeCall(() => reality.getMinBond(QUESTION_ID), BN0),
-        safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
-        safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
+    data = await withIndicator(rpcInd, async () => {
+      const startBlock = CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
+      const [bond, finalizeTS, newQEvents, answerEvents] = await Promise.all([
+        safeCall(() => reality.getBond(QUESTION_ID), BN0),
+        safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
+        safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), startBlock), []),
+        safeCall(() => reality.queryFilter(reality.filters.LogNewAnswer(null, QUESTION_ID), startBlock), []),
       ]);
-    }
-    data = {
-      bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
-      templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
-      minBond, settledTooSoon, reopenedBy, answerEvents,
-    };
+      const qEv        = newQEvents[0];
+      const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
+      const questionStr = qEv ? qEv.args.question : '';
+      const openingTS   = qEv ? qEv.args.opening_ts : 0;
+      const qTimeout    = qEv ? qEv.args.timeout    : 0;
+      const arbitrator  = qEv ? qEv.args.arbitrator  : ethers.constants.AddressZero;
+      const nonce       = qEv ? qEv.args.nonce        : BN0;
+      let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
+      if (!rpcTemplateStr) {
+        const tevents = await safeCall(
+          () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), startBlock), []
+        );
+        rpcTemplateStr = tevents[0]?.args.question_text
+          || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
+      }
+      let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
+      if (majorVersion >= 3) {
+        [minBond, settledTooSoon, reopenedBy] = await Promise.all([
+          safeCall(() => reality.getMinBond(QUESTION_ID), BN0),
+          safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
+          safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
+        ]);
+      }
+      return {
+        bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
+        templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
+        minBond, settledTooSoon, reopenedBy, answerEvents,
+      };
+    });
   }
 
   // 3. Update question title and status + type badges
