@@ -112,6 +112,10 @@ test.describe('claim winnings', () => {
       })
     );
 
+    // Re-assert visibility: the dapp's background polling can briefly re-hide
+    // the claim button after the initial display, then show it again once the
+    // contract's balanceOf resolves on the reverted fork. Wait for it to settle.
+    await page.waitForSelector(claimAllSelector, { state: 'visible', timeout: 15000 });
     await page.click(claimAllSelector);
 
     // Wait for tx to be submitted, then poll getBalance until it increases.
