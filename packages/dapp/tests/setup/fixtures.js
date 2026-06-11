@@ -259,6 +259,60 @@ export async function createBondEscalationFixtures() {
   return { questionId, initBond };
 }
 
+// Creates two questions for history display tests:
+//   oneAnswerQuestionId  — 1 answer (YES, 0.001 ETH); has-history should NOT be set
+//   twoAnswerQuestionId  — 2 answers (YES@0.001, then NO@0.002); has-history SHOULD be set
+//
+// Both use a 90-day timeout so they appear open from the browser clock (see
+// createBondEscalationFixtures for the full reasoning).
+export async function createAnswerHistoryFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.utils.parseEther('0.001');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const NO  = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  const TIMEOUT_90_DAYS = 7776000;
+
+  // nonces 11 and 12 — nonces 0-10 on v3.0 are already taken
+  async function ensureQuestion(text, nonce, submits) {
+    const questionId = computeQuestionId(
+      TEMPLATE.bool, 0, text,
+      ethers.constants.AddressZero, TIMEOUT_90_DAYS, nonce,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+    const existing = await reality.questions(questionId);
+    if (!ethers.BigNumber.from(existing[0]).eq(0)) return questionId; // already exists
+
+    await (await reality.askQuestion(
+      TEMPLATE.bool, text, ethers.constants.AddressZero,
+      TIMEOUT_90_DAYS, 0, nonce, { value: bounty }
+    )).wait();
+    for (const { answer, bond, maxPrev } of submits) {
+      await (await reality.submitAnswer(
+        questionId, answer, maxPrev, { value: bond }
+      )).wait();
+    }
+    return questionId;
+  }
+
+  const oneAnswerQuestionId = await ensureQuestion(
+    'History test: 1 answer', 11,
+    [{ answer: YES, bond: ethers.utils.parseEther('0.001'), maxPrev: 0 }]
+  );
+
+  const twoAnswerQuestionId = await ensureQuestion(
+    'History test: 2 answers', 12,
+    [
+      { answer: YES, bond: ethers.utils.parseEther('0.001'), maxPrev: 0 },
+      { answer: NO,  bond: ethers.utils.parseEther('0.002'), maxPrev: ethers.utils.parseEther('0.001') },
+    ]
+  );
+
+  return { oneAnswerQuestionId, twoAnswerQuestionId };
+}
+
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
 function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
   const contentHash = ethers.utils.solidityKeccak256(
