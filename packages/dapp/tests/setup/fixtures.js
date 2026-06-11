@@ -313,6 +313,37 @@ export async function createAnswerHistoryFixtures() {
   return { oneAnswerQuestionId, twoAnswerQuestionId };
 }
 
+// Creates a question whose opening_ts is 30 days in the future from when
+// the fixture runs, so isBeforeOpeningDate() returns true in the browser.
+export async function createUpcomingQuestionFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.utils.parseEther('0.001');
+  // 30 days from now in the test runner's clock — safely after the browser clock
+  // no matter when the suite runs, without hard-coding a specific date.
+  const openingTs = Math.floor(Date.now() / 1000) + 30 * 86400;
+
+  // nonce=13 — nonces 0-12 on v3.0 are already taken
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, openingTs, 'Upcoming test: future opening',
+    ethers.constants.AddressZero, 60, 13,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (ethers.BigNumber.from(existing[0]).eq(0)) {
+    await (await reality.askQuestion(
+      TEMPLATE.bool, 'Upcoming test: future opening',
+      ethers.constants.AddressZero, 60, openingTs, 13,
+      { value: bounty }
+    )).wait();
+  }
+
+  return { questionId, openingTs };
+}
+
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
 function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
   const contentHash = ethers.utils.solidityKeccak256(
