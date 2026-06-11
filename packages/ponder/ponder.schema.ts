@@ -87,6 +87,7 @@ export const response = onchainTable("response", (p) => ({
   questionId: p.text().notNull(),
 
   answer: p.hex(),
+  commitmentHash: p.hex(),
   bond: p.bigint().notNull(),
   user: p.hex().notNull(),
   // Running history hash after this response — lets the client verify

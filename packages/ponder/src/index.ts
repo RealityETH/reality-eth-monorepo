@@ -1,7 +1,7 @@
 import { ponder } from "@/generated";
 import { question, response, template, claim } from "../ponder.schema";
 import { populatedJSONForTemplate, resolveTemplateText, stripNullBytes } from "./lib/parseQuestion";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 function cqId(contract: `0x${string}`, questionId: `0x${string}`): string {
   return `${contract.toLowerCase()}-${questionId}`;
@@ -130,6 +130,7 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         id: `${qId}-${event.log.transactionHash}-${event.log.logIndex}`,
         questionId: qId,
         answer: is_commitment ? undefined : answer,
+        commitmentHash: is_commitment ? answer : undefined,
         bond,
         user,
         historyHash: history_hash,
@@ -158,10 +159,17 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
   // ── Answer reveals ────────────────────────────────────────────────────────
 
   ponder.on(`${name}:LogAnswerReveal`, async ({ event, context }) => {
-    const { question_id, answer } = event.args;
+    const { question_id, answer_hash, answer } = event.args;
     const { db } = context;
+    const qId = cqId(event.log.address, question_id);
 
-    await qUpdate(db, cqId(event.log.address, question_id), {
+    // Update the matching commitment response with the revealed answer
+    await db.sql
+      .update(response)
+      .set({ answer, isUnrevealed: false })
+      .where(and(eq(response.questionId, qId), eq(response.commitmentHash, answer_hash)));
+
+    await qUpdate(db, qId, {
       currentAnswer: answer,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,

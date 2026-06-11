@@ -76,6 +76,8 @@
   .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
   .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
   @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .data-ind.ok   { color: var(--green) !important; }
+  .data-ind.fail { color: var(--amber) !important; }
   @media (max-width: 600px) {
     .search-wrap { display: none; }
     header { padding: 0 16px; }

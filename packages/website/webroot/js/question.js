@@ -47,11 +47,16 @@ const BUILTIN_TEMPLATES = {
 
 const REALITY_ABI = [
   'function getBond(bytes32) view returns (uint256)',
+  'function getBestAnswer(bytes32) view returns (bytes32)',
   'function getContentHash(bytes32) view returns (bytes32)',
   'function getFinalizeTS(bytes32) view returns (uint32)',
+  'function getHistoryHash(bytes32) view returns (bytes32)',
   'function getMinBond(bytes32) view returns (uint256)',
+  'function getTimeout(bytes32) view returns (uint32)',
+  'function getArbitrator(bytes32) view returns (address)',
   'function isSettledTooSoon(bytes32) view returns (bool)',
   'function reopened_questions(bytes32) view returns (bytes32)',
+  'function template_hashes(uint256) view returns (bytes32)',
   'function templates(uint256) view returns (string)',
   'function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) payable',
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
@@ -138,7 +143,7 @@ async function fetchPonderData() {
       minBond scheduledFinalizationTimestamp
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
-      items { answer bond user historyHash isCommitment timestamp }
+      items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp }
     }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
       items { id }
@@ -178,13 +183,18 @@ function adaptPonderData(ponderData, BN0) {
     .sort((a, b) => (Number(a.timestamp) < Number(b.timestamp) ? -1 : 1));
   const answerEvents = responses.map(r => ({
     args: {
-      answer:        r.answer || ZERO_HASH,
-      question_id:   QUESTION_ID,
-      history_hash:  r.historyHash,
-      user:          r.user,
-      bond:          ethers.BigNumber.from(r.bond.toString()),
-      ts:            Number(r.timestamp),
-      is_commitment: r.isCommitment,
+      // For history-hash computation: use the commitment hash for commitments
+      // (that's the value actually hashed on-chain), actual answer otherwise
+      answer:          r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH),
+      // For display: the revealed answer (null while still unrevealed)
+      display_answer:  r.answer,
+      question_id:     QUESTION_ID,
+      history_hash:    r.historyHash,
+      user:            r.user,
+      bond:            ethers.BigNumber.from(r.bond.toString()),
+      ts:              Number(r.timestamp),
+      is_commitment:   r.isCommitment,
+      is_unrevealed:   r.isUnrevealed ?? false,
     }
   }));
   return {
@@ -585,10 +595,12 @@ function renderHistory(data) {
   }, BigInt(0));
 
   function buildEntryContents(ev, tag, isCurrent) {
-    const color   = answerColorClass(ev.args.answer, qjson);
-    const label   = bytes32ToLabel(ev.args.answer, qjson) || '?';
+    const isUnrevealed = ev.args.is_unrevealed;
+    const displayAns   = isUnrevealed ? null : (ev.args.display_answer || ev.args.answer);
+    const color   = isUnrevealed ? 'other' : answerColorClass(displayAns, qjson);
+    const label   = isUnrevealed ? 'Commitment' : (bytes32ToLabel(displayAns, qjson) || '?');
     const bondStr = `${formatEth(ev.args.bond)} ${token}`;
-    const letter  = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
+    const letter  = isUnrevealed ? '?' : ({ yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·');
 
     // Connector + dot
     const connector = el('div', 'bond-connector');
@@ -832,6 +844,92 @@ function buildLockedState(data) {
   return card;
 }
 
+// ── RPC verification ─────────────────────────────────────────────────────────
+async function verifyWithRpc(data) {
+  if (!reality) return;
+
+  const errors = [];
+
+  await withIndicator(rpcInd, async () => {
+    const calls = [
+      safeCall(() => reality.getBestAnswer(QUESTION_ID), null),
+      safeCall(() => reality.getHistoryHash(QUESTION_ID), null),
+      safeCall(() => reality.getBond(QUESTION_ID), null),
+      safeCall(() => reality.getFinalizeTS(QUESTION_ID), null),
+      safeCall(() => reality.getTimeout(QUESTION_ID), null),
+      safeCall(() => reality.getArbitrator(QUESTION_ID), null),
+      safeCall(() => reality.getContentHash(QUESTION_ID), null),
+    ];
+    if (data.templateId > 4) {
+      calls.push(safeCall(() => reality.template_hashes(data.templateId), null));
+    }
+    const [bestAnswer, historyHash, bond, finalizeTS, timeout, arbitrator, contentHash, templateHash]
+      = await Promise.all(calls);
+
+    // Content hash covers templateId + openingTs + question data in one shot
+    if (contentHash) {
+      const computed = ethers.utils.solidityKeccak256(
+        ['uint256', 'uint32', 'string'],
+        [data.templateId, data.openingTS, data.questionStr]
+      );
+      if (computed.toLowerCase() !== contentHash.toLowerCase())
+        errors.push('content hash mismatch');
+    }
+
+    // Template text (custom templates only)
+    if (templateHash && data.templateStr) {
+      const computed = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(data.templateStr));
+      if (computed.toLowerCase() !== templateHash.toLowerCase())
+        errors.push('template hash mismatch');
+    }
+
+    // Reconstruct history hash from the answer list
+    if (historyHash !== null) {
+      let computed = ZERO_HASH;
+      for (const ev of data.answerEvents) {
+        computed = ethers.utils.solidityKeccak256(
+          ['bytes32', 'bytes32', 'uint256', 'address', 'bool'],
+          [computed, ev.args.answer, ev.args.bond, ev.args.user, ev.args.is_commitment]
+        );
+      }
+      if (computed.toLowerCase() !== historyHash.toLowerCase())
+        errors.push('history hash mismatch');
+    }
+
+    // Current best answer — catches a concealed commitment reveal
+    if (bestAnswer !== null && data.answerEvents.length > 0) {
+      const latest = data.answerEvents[data.answerEvents.length - 1];
+      // For an unrevealed commitment, on-chain best_answer is the commitment hash
+      const expected = (latest.args.is_commitment && latest.args.is_unrevealed)
+        ? latest.args.answer          // commitment hash stored in args.answer
+        : (latest.args.display_answer || ZERO_HASH);
+      if (bestAnswer.toLowerCase() !== expected.toLowerCase())
+        errors.push('current answer mismatch (possible concealed reveal)');
+    }
+
+    if (bond !== null && !bond.eq(data.bond))
+      errors.push('bond mismatch');
+    if (finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
+      errors.push('finalization timestamp mismatch');
+    if (timeout !== null && Number(timeout) !== data.timeout)
+      errors.push('timeout mismatch');
+    if (arbitrator !== null && data.arbitrator &&
+        arbitrator.toLowerCase() !== data.arbitrator.toLowerCase())
+      errors.push('arbitrator mismatch');
+  });
+
+  const ind = ponderInd;
+  if (!ind) return;
+  if (errors.length === 0) {
+    ind.classList.add('ok');
+    ind.title = 'Ponder (indexed data) — RPC verified ✓';
+  } else {
+    ind.classList.add('fail');
+    ind.title = `Ponder — WARNING: ${errors.join('; ')}`;
+    console.warn('[reality.eth] RPC verification discrepancies:', errors);
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   const BN0 = ethers.BigNumber.from(0);
@@ -868,6 +966,8 @@ async function main() {
     const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
     data = adaptPonderData(ponderResult, BN0);
     data.qjson = populateTemplate(templateStr, pq.data);
+    data.templateStr = templateStr;
+    data.fromPonder = true;
   } catch {
     if (!reality) {
       const titleEl = document.getElementById('question-title');
@@ -1018,6 +1118,9 @@ async function main() {
       }
     }
   }
+
+  // 11. Background RPC verification (only when data came from Ponder)
+  if (data.fromPonder) verifyWithRpc(data).catch(() => {});
 }
 
 main().catch(err => {
