@@ -14,8 +14,9 @@ const CONTRACT_MAJOR = {
   '0xeb51d9d9717906c981c57af09c4a3449ef30705b': 3,
 };
 
-const CHAIN_TOKEN = { 1:'ETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO' };
-const EXPLORER    = { 1:'https://etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io' };
+const CHAIN_TOKEN   = { 1:'ETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO' };
+const EXPLORER      = { 1:'https://etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io' };
+const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com' };
 
 const BUILTIN_TEMPLATES = {
   0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
@@ -61,13 +62,22 @@ const qPage = document.getElementById('question-page');
 if (!CONTRACT || !QUESTION_ID || !qPage) return;
 
 // ── Provider ──────────────────────────────────────────────────────────────────
-// Wallet is only required for write operations; reads come from Ponder.
+// Reads come from Ponder; RPC is the fallback and is used for writes.
+// Always build a read provider: wallet if available, public RPC otherwise.
 const majorVersion = CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3;
 let reality = null, realityRW = null;
+
+const publicRpcUrl = PUBLIC_RPC[CHAIN_ID];
+const readProvider = publicRpcUrl
+  ? new ethers.providers.JsonRpcProvider(publicRpcUrl, CHAIN_ID)
+  : null;
+
 if (window.ethereum) {
   const _wp = new ethers.providers.Web3Provider(window.ethereum);
   reality   = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
   realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
+} else if (readProvider) {
+  reality = new ethers.Contract(CONTRACT, REALITY_ABI, readProvider);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -777,7 +787,7 @@ async function main() {
   } catch {
     if (!reality) {
       const titleEl = document.getElementById('question-title');
-      if (titleEl) titleEl.textContent = 'Failed to load question.';
+      if (titleEl) titleEl.textContent = 'Failed to load question (no data source available).';
       return;
     }
     // RPC path: used by the test suite (Ponder not running during tests)
