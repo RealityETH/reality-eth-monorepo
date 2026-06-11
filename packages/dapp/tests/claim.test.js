@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ethers } from 'ethers';
 import { snapshot, revert, ANVIL_URL } from './setup/anvil.js';
-import { walletMockScript } from './setup/wallet-mock.js';
+import { setupPage } from './setup/wallet-mock.js';
 import { createClaimFixtures, CONTRACTS } from './setup/fixtures.js';
 import { DAPP_URL } from './setup/dapp-server.js';
 
@@ -33,10 +33,7 @@ test.describe('claim winnings', () => {
   const claimAllSelector = `#your-question-answer-window .contract-claim-section[data-contract="${CONTRACTS.realityEth30.toLowerCase()}"] .answer-claim-button.claim-all`;
 
   async function loadAndOpenClaim(page) {
-    await page.addInitScript(walletMockScript());
-    await page.context().addCookies([
-      { name: 'graph', value: '0', domain: 'localhost', path: '/' },
-    ]);
+    await setupPage(page);
     await page.goto(
       `${DAPP_URL}/#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.claimQuestionId}`
     );

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ethers } from 'ethers';
 import { snapshot, revert, ANVIL_URL } from './setup/anvil.js';
-import { walletMockScript } from './setup/wallet-mock.js';
+import { setupPage } from './setup/wallet-mock.js';
 import { createCommitRevealFixtures, CONTRACTS } from './setup/fixtures.js';
 import { DAPP_URL } from './setup/dapp-server.js';
 
@@ -33,10 +33,7 @@ test.describe('commit-reveal', () => {
   });
 
   async function loadQuestion(page) {
-    await page.addInitScript(walletMockScript());
-    await page.context().addCookies([
-      { name: 'graph', value: '0', domain: 'localhost', path: '/' },
-    ]);
+    await setupPage(page);
     // The /commit/1 hash param sets USE_COMMIT_REVEAL=true in the dapp
     await page.goto(
       `${DAPP_URL}/#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}/commit/1`

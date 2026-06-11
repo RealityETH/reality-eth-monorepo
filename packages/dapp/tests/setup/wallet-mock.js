@@ -1,5 +1,26 @@
 import { ANVIL_URL, TEST_ACCOUNT, FORK_BLOCK } from './anvil.js';
 
+// Set up a fresh Playwright page for a dapp test:
+//  - inject the wallet mock
+//  - set graph=0 cookie to put the dapp in RPC mode
+//  - intercept The Graph HTTP requests so the dapp never loads mainnet questions
+//    (even in RPC mode, pageInit still calls fetchAndDisplayQuestionFromGraph via axios)
+export async function setupPage(page) {
+  await page.addInitScript(walletMockScript());
+  await page.context().addCookies([
+    { name: 'graph', value: '0', domain: 'localhost', path: '/' },
+  ]);
+  // Return empty question lists for any The Graph API call so mainnet questions
+  // don't contaminate the local fork and cause slow pre-fork log fetches.
+  await page.route('**/thegraph.com/**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { questions: [] } }),
+    })
+  );
+}
+
 // Returns a script string to be injected via page.addInitScript().
 // The mock implements EIP-1193 backed by the local anvil node.
 export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) {
@@ -18,7 +39,9 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
 
   // These contracts exist on the local fork — all eth_calls to them are fast.
   const KNOWN_LOCAL_CONTRACTS = new Set([
+    '0x79e32ae03fb27b07c89c0c568f80287c01ca2e57', // reality.eth v2.1
     '0xe78996a233895be74a66f451f1019ca9734205cc', // reality.eth v3.0
+    '0xeb51d9d9717906c981c57af09c4a3449ef30705b', // reality.eth v3.2
     '0x29f39de98d750eb77b5fafb31b2837f079fce222', // Kleros ForeignArbitrationProxy
   ]);
 

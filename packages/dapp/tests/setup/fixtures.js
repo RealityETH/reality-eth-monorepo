@@ -1,12 +1,14 @@
 import { ethers } from 'ethers';
 import { createRequire } from 'module';
-import { ANVIL_URL, TEST_ACCOUNT } from './anvil.js';
+import { ANVIL_URL, TEST_ACCOUNT, FORK_BLOCK } from './anvil.js';
 
 const require = createRequire(import.meta.url);
 
-const REALITY_ETH_ABI = require('../../../contracts/abi/solc-0.8.6/RealityETH-3.0.abi.json');
+const REALITY_ETH_ABI    = require('../../../contracts/abi/solc-0.8.6/RealityETH-3.0.abi.json');
+const REALITY_ETH_V21_ABI = require('../../../contracts/abi/solc-0.8.6/RealityETH-2.1.abi.json');
 
 export const CONTRACTS = {
+  realityEth21: '0x79e32aE03fb27B07C89c0c568F80287C01ca2E57',
   realityEth30: '0xE78996A233895bE74a66F451f1019cA9734205cc',
   realityEth32: '0xEb51d9d9717906c981C57af09C4a3449eF30705b',
   klerosArbitrator: '0x29f39de98d750eb77b5fafb31b2837f079fce222',
@@ -137,6 +139,47 @@ export async function createKlerosFixtures() {
   return { klerosQuestionId: questionId, bond, bounty, answer: YES };
 }
 
+export async function createAnswerTypeFixtures() {
+  const DELIMITER = '␟'; // reality.eth question field separator
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+  const bounty = ethers.utils.parseEther('0.001');
+  // No answer submitted in these fixtures, so finalization_ts stays 0 and
+  // isFinalized() (which checks browser clock) returns false regardless of timeout.
+  const timeout = 60;
+  const openingTs = 0;
+
+  async function ensure(templateId, questionText, nonce) {
+    const questionId = computeQuestionId(
+      templateId, openingTs, questionText,
+      ethers.constants.AddressZero, timeout, nonce,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+    const existing = await reality.questions(questionId);
+    if (ethers.BigNumber.from(existing[0]).eq(0)) {
+      const tx = await reality.askQuestion(
+        templateId, questionText, ethers.constants.AddressZero,
+        timeout, openingTs, nonce, { value: bounty }
+      );
+      await tx.wait();
+    }
+    return questionId;
+  }
+
+  // Outcomes string for select-type templates (2 and 3)
+  const OUTCOMES = '"Cat","Dog","Fish"';
+
+  return {
+    // nonces 4-8 avoid collision with other fixture functions (0-3)
+    boolId:           await ensure(0, 'Answer-types test: bool',                        4),
+    uintId:           await ensure(1, 'Answer-types test: uint',                        5),
+    singleSelectId:   await ensure(2, `Answer-types test: single-select${DELIMITER}${OUTCOMES}`, 6),
+    multipleSelectId: await ensure(3, `Answer-types test: multiple-select${DELIMITER}${OUTCOMES}`, 7),
+    datetimeId:       await ensure(4, 'Answer-types test: datetime',                    8),
+  };
+}
+
 export async function createClaimFixtures() {
   const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
   const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
@@ -173,4 +216,100 @@ export async function createClaimFixtures() {
   }
 
   return { claimQuestionId: questionId, bond, bounty, answer: YES };
+}
+
+// v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
+function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
+  const contentHash = ethers.utils.solidityKeccak256(
+    ['uint256', 'uint32', 'string'],
+    [templateId, openingTs, question]
+  );
+  return ethers.utils.solidityKeccak256(
+    ['bytes32', 'address', 'uint32', 'address', 'uint256'],
+    [contentHash, arbitrator, timeout, sender, nonce]
+  );
+}
+
+export async function createVisibilityFixtures() {
+  const DELIMITER = '␟'; // U+241F
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const bounty = ethers.utils.parseEther('0.001');
+  const timeout = 60;
+  const openingTs = 0;
+
+  // ── v2.1 questions (bool and uint) ──────────────────────────────────────────
+  // v2.1 has no "answered too soon" option (requires contract version >= 3).
+  // v2.1 also requires a non-zero arbitrator (unlike v3 which accepts address(0)).
+  // We use the Kleros proxy address — it's deployed on the fork and satisfies the check.
+  // Nonces 0 and 1 on the v2.1 contract; no other fixture uses that contract.
+  const realityV21 = new ethers.Contract(CONTRACTS.realityEth21, REALITY_ETH_V21_ABI, wallet);
+  const V21_ARBITRATOR = CONTRACTS.klerosArbitrator;
+
+  async function ensureV21(templateId, questionText, nonce) {
+    const questionId = computeQuestionIdV21(
+      templateId, openingTs, questionText,
+      V21_ARBITRATOR, timeout, nonce, TEST_ACCOUNT.address
+    );
+    const existing = await realityV21.questions(questionId);
+    if (ethers.BigNumber.from(existing[0]).eq(0)) {
+      const tx = await realityV21.askQuestion(
+        templateId, questionText, V21_ARBITRATOR,
+        timeout, openingTs, nonce, { value: bounty }
+      );
+      await tx.wait();
+    }
+    return questionId;
+  }
+
+  const v21BoolId = await ensureV21(0, 'Visibility test: v2.1 bool', 0);
+  const v21UintId = await ensureV21(1, 'Visibility test: v2.1 uint', 1);
+
+  // ── v3.0 question with has_invalid:false custom template ─────────────────────
+  // The template embeds "has_invalid": false so the dapp hides the invalid option.
+  // We use queryFilter on LogNewTemplate to find the template if it already exists,
+  // avoiding a duplicate-creation revert on repeated test runs.
+  const realityV30 = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+  const NO_INVALID_TEMPLATE_CONTENT =
+    '{"title": "%s", "type": "bool", "has_invalid": false, "category": "%s", "lang": "%s"}';
+
+  let noInvalidTemplateId;
+  const existingTemplates = await realityV30.queryFilter(
+    realityV30.filters.LogNewTemplate(null, TEST_ACCOUNT.address),
+    FORK_BLOCK
+  );
+  const existing = existingTemplates.find(
+    e => e.args.question_text === NO_INVALID_TEMPLATE_CONTENT
+  );
+  if (existing) {
+    noInvalidTemplateId = existing.args.template_id.toNumber();
+  } else {
+    const tx = await realityV30.createTemplate(NO_INVALID_TEMPLATE_CONTENT);
+    const receipt = await tx.wait();
+    const logTopic = realityV30.interface.getEventTopic('LogNewTemplate');
+    const log = receipt.logs.find(l => l.topics[0] === logTopic);
+    noInvalidTemplateId = realityV30.interface.parseLog(log).args.template_id.toNumber();
+  }
+
+  // Question text for the 3-placeholder template: title ␟ category ␟ lang
+  const noInvalidQuestionText = `Visibility test: has_invalid false${DELIMITER}misc${DELIMITER}en_US`;
+  // nonce 9 on v3.0 — nonces 0-8 are already used by other fixture functions
+  const noInvalidBoolId = await (async () => {
+    const questionId = computeQuestionId(
+      noInvalidTemplateId, openingTs, noInvalidQuestionText,
+      ethers.constants.AddressZero, timeout, 9,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+    const existingQ = await realityV30.questions(questionId);
+    if (ethers.BigNumber.from(existingQ[0]).eq(0)) {
+      const tx = await realityV30.askQuestion(
+        noInvalidTemplateId, noInvalidQuestionText, ethers.constants.AddressZero,
+        timeout, openingTs, 9, { value: bounty }
+      );
+      await tx.wait();
+    }
+    return questionId;
+  })();
+
+  return { v21BoolId, v21UintId, noInvalidBoolId };
 }

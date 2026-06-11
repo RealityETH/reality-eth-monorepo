@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { ethers } from 'ethers';
 import { snapshot, revert, ANVIL_URL } from './setup/anvil.js';
-import { walletMockScript } from './setup/wallet-mock.js';
+import { setupPage } from './setup/wallet-mock.js';
 import { createFixtures, CONTRACTS } from './setup/fixtures.js';
 import { DAPP_URL } from './setup/dapp-server.js';
 
@@ -28,10 +28,7 @@ test.describe('submit answer', () => {
   });
 
   async function loadQuestion(page) {
-    await page.addInitScript(walletMockScript());
-    await page.context().addCookies([
-      { name: 'graph', value: '0', domain: 'localhost', path: '/' },
-    ]);
+    await setupPage(page);
     await page.goto(`${DAPP_URL}/#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`);
 
     // Wait for the question window to open and for the dapp to set question-state-open
