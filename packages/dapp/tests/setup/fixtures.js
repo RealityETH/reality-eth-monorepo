@@ -376,6 +376,48 @@ export async function createMinBondFixtures() {
   return { questionId, minBond };
 }
 
+// Creates a v3.0 bool question finalized with "Answered Too Soon" so the dapp
+// classifies it as reopenable.  The 60s timeout combined with the fork block
+// timestamp (~June 9 2026) ensures isFinalized() returns true against the
+// browser clock (~June 11 2026) immediately on page load.
+export async function createReopenFixtures() {
+  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.utils.parseEther('0.001');
+  const bond   = ethers.utils.parseEther('0.001');
+  // bytes32(uint(-2)) — the "Answered Too Soon" sentinel value
+  const ANSWERED_TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+
+  // nonce=15 — nonces 0-14 on v3.0 are already taken
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Reopen test: bool',
+    ethers.constants.AddressZero, 60, 15,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+
+  if (!alreadyExists) {
+    await (await reality.askQuestion(
+      TEMPLATE.bool, 'Reopen test: bool',
+      ethers.constants.AddressZero, 60, 0, 15,
+      { value: bounty }
+    )).wait();
+
+    await (await reality.submitAnswer(
+      questionId, ANSWERED_TOO_SOON, 0, { value: bond }
+    )).wait();
+
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  }
+
+  return { questionId };
+}
+
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
 function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
   const contentHash = ethers.utils.solidityKeccak256(
