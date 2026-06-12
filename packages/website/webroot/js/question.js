@@ -957,8 +957,10 @@ async function verifyWithRpc(data) {
         errors.push('template hash mismatch');
     }
 
-    // Reconstruct history hash from the answer list
-    if (historyHash !== null) {
+    // Reconstruct history hash from the answer list.
+    // Skip for finalized questions: claiming rewinds the on-chain hash, so a
+    // mismatch is expected and tells us nothing useful once settled.
+    if (historyHash !== null && !isFinalized(data.finalizeTS)) {
       let computed = ZERO_HASH;
       for (const ev of data.answerEvents) {
         computed = ethers.utils.solidityKeccak256(
