@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reality.eth — My Account</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --bg-card: #161b22; --border: #30363d; --border-subtle: #21262d;
+    --text: #e6edf3; --text-muted: #8b949e; --text-dim: #484f58;
+    --accent: #58a6ff; --accent-subtle: rgba(88,166,255,0.1);
+    --green: #3fb950; --green-subtle: rgba(63,185,80,0.12);
+    --amber: #d29922; --amber-subtle: rgba(210,153,34,0.12);
+    --red: #f85149; --red-subtle: rgba(248,81,73,0.12);
+    --radius: 8px; --radius-sm: 5px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  /* ── Header ── */
+  header { position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle); padding: 0 24px; }
+  .header-inner { max-width: 860px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px; height: 56px; }
+  .logo { font-size: 15px; font-weight: 600; color: var(--text);
+    text-decoration: none; display: flex; align-items: center; gap: 8px; }
+  .logo svg { color: var(--accent); }
+  .header-nav { display: flex; align-items: center; gap: 4px; }
+  .nav-link { font-size: 13px; color: var(--text-muted); text-decoration: none;
+    padding: 4px 8px; border-radius: 4px; transition: color 0.15s; }
+  .nav-link:hover { color: var(--text); }
+  .header-spacer { flex: 1; }
+  #wallet-btn { padding: 6px 14px; border-radius: var(--radius-sm);
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 13px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+  #wallet-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #wallet-btn.connected { border-color: rgba(63,185,80,0.5); color: var(--green); font-family: monospace; font-size: 12px; }
+
+  /* ── Page ── */
+  .page { max-width: 860px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  /* ── Connect prompt ── */
+  .connect-prompt { text-align: center; padding: 60px 20px; }
+  .connect-prompt p { color: var(--text-muted); margin-bottom: 20px; }
+  .btn-connect-lg { padding: 10px 28px; background: var(--accent); border: none;
+    border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn-connect-lg:hover { opacity: 0.88; }
+
+  /* ── Hero (address + balances) ── */
+  .account-hero { background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .hero-addr { display: flex; align-items: center; gap: 10px; }
+  .hero-addr-text { font-family: monospace; font-size: 14px; color: var(--text); }
+  .hero-addr-link { color: var(--text-dim); text-decoration: none; font-size: 12px; padding: 3px 7px;
+    border: 1px solid var(--border); border-radius: 4px; transition: color 0.15s, border-color 0.15s; }
+  .hero-addr-link:hover { color: var(--accent); border-color: var(--accent); }
+  .hero-balances { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .balance-chip { display: flex; flex-direction: column; align-items: flex-end; }
+  .balance-chip-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .balance-chip-val { font-size: 16px; font-weight: 700; color: var(--text); }
+  .balance-sep { width: 1px; height: 30px; background: var(--border-subtle); }
+  .btn-sm { padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s; border: none; }
+  .btn-sm:hover:not(:disabled) { opacity: 0.85; }
+  .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-withdraw { background: var(--border-subtle); color: var(--text-muted); }
+
+  /* ── Claim banner ── */
+  .claim-banner { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .claim-banner-text strong { display: block; font-size: 15px; font-weight: 600; color: var(--green); }
+  .claim-banner-text span { font-size: 12px; color: var(--text-muted); }
+  .btn-claim { background: var(--green); color: var(--bg); padding: 8px 18px;
+    border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: opacity 0.15s; white-space: nowrap; }
+  .btn-claim:hover:not(:disabled) { opacity: 0.88; }
+  .btn-claim:disabled { opacity: 0.45; cursor: not-allowed; }
+  .other-chain-note { font-size: 12px; color: var(--amber); margin-top: 4px; }
+
+  /* ── Tabs ── */
+  .tabs-row { display: flex; gap: 2px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+  .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted);
+    background: none; border: none; border-bottom: 2px solid transparent;
+    cursor: pointer; transition: color 0.15s; margin-bottom: -1px; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-count { font-size: 11px; background: var(--border-subtle); color: var(--text-dim);
+    padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+
+  /* ── Loading/Empty states ── */
+  .state-msg { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 13px; }
+  .state-error { color: var(--amber); }
+
+  /* ── Question list ── */
+  .q-list { display: flex; flex-direction: column; gap: 1px; }
+  .q-item {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 8px 16px; align-items: start;
+    transition: border-color 0.15s;
+  }
+  .q-item:hover { border-color: var(--border); }
+  .q-item + .q-item { margin-top: 6px; }
+  .q-item-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+  .q-item-title { font-size: 13px; font-weight: 500; color: var(--text); text-decoration: none; line-height: 1.4; }
+  .q-item-title:hover { color: var(--accent); }
+  .q-item-meta { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .q-item-meta-sep { color: var(--border); }
+
+  /* Badges (reused from question.html style) */
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px;
+    border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-open   { background: var(--green-subtle); color: var(--green); }
+  .badge-final  { background: var(--border-subtle); color: var(--text-dim); }
+  .badge-upcoming { background: var(--accent-subtle); color: var(--accent); }
+
+  /* Answer pill */
+  .ans-pill { display: inline-flex; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .ans-yes  { background: var(--green-subtle); color: var(--green); }
+  .ans-no   { background: var(--red-subtle); color: var(--red); }
+  .ans-inv  { background: var(--border-subtle); color: var(--text-dim); }
+  .ans-other { background: var(--accent-subtle); color: var(--accent); }
+
+  /* Win/loss indicators */
+  .win-mark  { color: var(--green); font-size: 11px; font-weight: 700; }
+  .loss-mark { color: var(--red); font-size: 11px; }
+
+  /* Right column of each q-item */
+  .q-item-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+  .q-item-amount { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .q-item-amount.claimable { color: var(--green); }
+  .q-item-amount.claimed { color: var(--text-dim); font-weight: 400; font-style: italic; }
+  .q-item-chain { font-size: 10px; color: var(--text-dim); }
+
+  /* TX feedback */
+  .tx-error { font-size: 12px; color: var(--red); margin-top: 6px; padding: 6px 10px;
+    background: var(--red-subtle); border-radius: 4px; display: none; }
+  .tx-error.visible { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="browse.html">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      reality.eth
+    </a>
+    <nav class="header-nav">
+      <a class="nav-link" href="browse.html">Browse</a>
+      <a class="nav-link" href="ask.html">Ask</a>
+    </nav>
+    <div class="header-spacer"></div>
+    <button id="wallet-btn">Connect wallet</button>
+  </div>
+</header>
+
+<div class="page">
+
+  <div id="connect-prompt" class="connect-prompt">
+    <p>Connect your wallet to view your questions, answers, and claimable winnings.</p>
+    <button class="btn-connect-lg" id="connect-btn">Connect wallet</button>
+  </div>
+
+  <div id="account-content" style="display:none">
+
+    <!-- Address + balances -->
+    <div class="account-hero">
+      <div class="hero-addr">
+        <span class="hero-addr-text" id="hero-addr">—</span>
+        <a class="hero-addr-link" id="hero-explorer-link" href="#" target="_blank" rel="noopener" style="display:none">↗ Explorer</a>
+      </div>
+      <div class="hero-balances">
+        <div class="balance-chip">
+          <span class="balance-chip-label">Wallet</span>
+          <span class="balance-chip-val" id="wallet-balance">—</span>
+        </div>
+        <div class="balance-sep"></div>
+        <div class="balance-chip">
+          <span class="balance-chip-label">Contract</span>
+          <span class="balance-chip-val" id="contract-balance">—</span>
+        </div>
+        <button class="btn-sm btn-withdraw" id="withdraw-btn" style="display:none">Withdraw</button>
+      </div>
+    </div>
+
+    <!-- Claim banner -->
+    <div class="claim-banner" id="claim-banner" style="display:none">
+      <div class="claim-banner-text">
+        <strong id="claim-amount">0 ETH claimable</strong>
+        <span id="claim-desc">from finalized questions on this chain</span>
+        <div class="other-chain-note" id="other-chain-note" style="display:none"></div>
+      </div>
+      <div>
+        <button class="btn-claim" id="claim-btn">Claim all &amp; withdraw</button>
+        <div class="tx-error" id="claim-error"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-row">
+      <button class="tab-btn active" data-tab="asked">
+        Asked <span class="tab-count" id="asked-count">0</span>
+      </button>
+      <button class="tab-btn" data-tab="answered">
+        Answered <span class="tab-count" id="answered-count">0</span>
+      </button>
+    </div>
+
+    <!-- Question lists -->
+    <div id="tab-asked">
+      <div class="state-msg" id="asked-loading">Loading…</div>
+      <div class="q-list" id="asked-list"></div>
+    </div>
+    <div id="tab-answered" style="display:none">
+      <div class="state-msg" id="answered-loading">Loading…</div>
+      <div class="q-list" id="answered-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/ethers.js"></script>
+<script src="js/wallet.js"></script>
+<script src="js/settings.js"></script>
+<script>
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const ZERO_HASH = '0x' + '0'.repeat(64);
+
+const CHAIN_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 11155111:'ETH' };
+const CHAIN_NAME  = { 1:'Ethereum', 10:'Optimism', 100:'Gnosis', 137:'Polygon', 42161:'Arbitrum', 8453:'Base', 11155111:'Sepolia' };
+const CHAIN_NATIVE_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'MATIC', 42161:'ARETH', 8453:'ETH', 11155111:'ETH' };
+const EXPLORER    = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 11155111:'https://sepolia.etherscan.io' };
+const PUBLIC_RPC  = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
+
+const VERSION_PREF = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
+
+const REALITY_ABI = [
+  'function balanceOf(address) view returns (uint256)',
+  'function withdraw()',
+  'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let walletAddr   = null;
+let walletChainId = null;
+let provider     = null;
+let signer       = null;
+let contractsData = null;
+let pendingClaimData = null;  // [{contract, question_ids, lengths, hist_hashes, addrs, bonds, answers}]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function formatEth(bn) {
+  if (!bn || ethers.BigNumber.from(bn.toString()).isZero()) return '0';
+  return parseFloat(ethers.utils.formatEther(bn)).toString();
+}
+
+function shortAddr(a) { return a ? `${a.slice(0,6)}…${a.slice(-4)}` : ''; }
+
+function isFinalized(q) {
+  const ts = Number(q.answerFinalizedTimestamp || 0);
+  return ts > 0 && ts * 1000 < Date.now();
+}
+
+function questionUrl(q) {
+  return `question.html#!/network/${q.chainId}/question/${q.contract}-${q.questionId}`;
+}
+
+// ── GraphQL ───────────────────────────────────────────────────────────────────
+async function gql(query) {
+  const url = (window.RealitySettings?.getPonderUrl?.()) || '/graphql';
+  const res = await fetch(url, { method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }) });
+  if (!res.ok) throw new Error(`GraphQL HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0]?.message || 'GraphQL error');
+  return json.data;
+}
+
+// ── Contracts.json ─────────────────────────────────────────────────────────────
+async function loadContracts() {
+  if (contractsData) return contractsData;
+  const r = await fetch('/packages/contracts/generated/contracts.json');
+  contractsData = await r.json();
+  return contractsData;
+}
+
+function getRcContracts(data, chainId) {
+  const token = CHAIN_NATIVE_TOKEN[chainId];
+  if (!token) return [];
+  const versions = data[String(chainId)]?.[token] || {};
+  return Object.entries(versions)
+    .filter(([, v]) => v.address)
+    .map(([ver, v]) => ({ address: v.address.toLowerCase(), ver }));
+}
+
+// ── Answer display ─────────────────────────────────────────────────────────────
+const BOOL_LABEL = { '0x0000000000000000000000000000000000000000000000000000000000000000': 'No',
+                     '0x0000000000000000000000000000000000000000000000000000000000000001': 'Yes' };
+const INVALID = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+const TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+
+function answerLabel(hex) {
+  if (!hex) return null;
+  const lo = hex.toLowerCase();
+  if (lo === INVALID.toLowerCase()) return 'Invalid';
+  if (lo === TOO_SOON.toLowerCase()) return 'Too soon';
+  return BOOL_LABEL[lo] || hex.slice(0, 10) + '…';
+}
+
+function answerClass(hex) {
+  if (!hex) return 'ans-inv';
+  const lo = hex.toLowerCase();
+  if (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase()) return 'ans-inv';
+  const lbl = BOOL_LABEL[lo];
+  if (lbl === 'Yes') return 'ans-yes';
+  if (lbl === 'No')  return 'ans-no';
+  return 'ans-other';
+}
+
+// ── Claim calculation ─────────────────────────────────────────────────────────
+function computeClaimable(question, responses, userAddr) {
+  const BN0 = ethers.BigNumber.from(0);
+  if (!isFinalized(question)) return { total: BN0 };
+  const finalAnswer = question.currentAnswer;
+  if (!finalAnswer) return { total: BN0 };
+  if (!question.historyHash || question.historyHash === ZERO_HASH) return { total: BN0 };
+
+  const bounty = ethers.BigNumber.from(question.bounty || '0');
+  const user = userAddr.toLowerCase();
+  let ttl = BN0, is_yours = false, is_first = true;
+
+  for (let i = responses.length - 1; i >= 0; i--) {
+    const r = responses[i];
+    const answer = r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH);
+    const bond = ethers.BigNumber.from(r.bond.toString());
+    const isYou = r.user.toLowerCase() === user;
+
+    if (is_yours) {
+      if (!isYou && finalAnswer.toLowerCase() === answer.toLowerCase()) {
+        is_yours = false; ttl = ttl.sub(bond);
+      } else {
+        ttl = ttl.add(bond);
+      }
+    } else if (isYou && finalAnswer.toLowerCase() === answer.toLowerCase()) {
+      is_yours = true; ttl = ttl.add(bond);
+    }
+    if (is_first && is_yours) ttl = ttl.add(bounty);
+    is_first = false;
+  }
+
+  if (!ttl.gt(BN0)) return { total: BN0 };
+
+  // Build claim args (newest → oldest)
+  const n = responses.length;
+  const answers = [], addrs = [], bonds = [], hist_hashes = [];
+  for (let i = 0; i < n; i++) {
+    const idx = n - 1 - i;
+    const r = responses[idx];
+    answers.push(r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH));
+    addrs.push(r.user);
+    bonds.push(ethers.BigNumber.from(r.bond.toString()));
+    hist_hashes.push(idx > 0 ? (responses[idx - 1].historyHash || ZERO_HASH) : ZERO_HASH);
+  }
+
+  return { total: ttl,
+    questionId: question.questionId, contract: question.contract.toLowerCase(), chainId: question.chainId,
+    question_ids: [question.questionId], lengths: [n],
+    answers, addrs, bonds, hist_hashes };
+}
+
+// ── Ponder data loading ───────────────────────────────────────────────────────
+async function loadAccountData(addr) {
+  const a = addr.toLowerCase();
+  const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator`;
+
+  // Phase 1: parallel
+  const [askedData, respData, claimData] = await Promise.all([
+    gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:100) { items{${qFields}} } }`),
+    gql(`{ responses(where:{user:"${a}"},orderBy:"timestamp",orderDirection:"asc",limit:500) { items{id questionId answer commitmentHash bond user historyHash isCommitment timestamp} } }`),
+    gql(`{ claims(where:{user:"${a}"},limit:500) { items{questionId amount} } }`),
+  ]);
+
+  const askedQuestions = askedData.questions?.items || [];
+  const userResponses  = respData.responses?.items  || [];
+  const claimedSet     = new Set((claimData.claims?.items || []).map(c => c.questionId));
+
+  // Phase 2: fetch answered questions in parallel
+  const answeredIds = [...new Set(userResponses.map(r => r.questionId))];
+  const answeredQuestions = (await Promise.all(
+    answeredIds.map(id => gql(`{question(id:"${id}"){${qFields}}}`).then(d => d.question).catch(() => null))
+  )).filter(Boolean);
+
+  // Phase 3: full response history for finalized, unclaimed, answered questions
+  const claimCandidates = answeredQuestions.filter(q =>
+    isFinalized(q) && !claimedSet.has(q.id)
+  );
+  const fullRespMap = {};
+  await Promise.all(claimCandidates.map(async q => {
+    const d = await gql(`{responses(where:{questionId:"${q.id}"},orderBy:"timestamp",orderDirection:"asc",limit:1000){items{answer commitmentHash bond user historyHash isCommitment}}}`);
+    fullRespMap[q.id] = d.responses?.items || [];
+  }));
+
+  // Phase 4: compute claimables
+  const claimables = [];
+  for (const q of claimCandidates) {
+    const result = computeClaimable(q, fullRespMap[q.id] || [], addr);
+    if (result.total.gt(0)) claimables.push(result);
+  }
+
+  return { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables };
+}
+
+// ── RPC balances ──────────────────────────────────────────────────────────────
+async function loadBalances(addr, chainId) {
+  const BN0 = ethers.BigNumber.from(0);
+  const prov = provider || new ethers.providers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId);
+  const contracts = await loadContracts();
+  const rcList = getRcContracts(contracts, chainId);
+
+  const [walletBal, ...rcBals] = await Promise.all([
+    prov.getBalance(addr).catch(() => BN0),
+    ...rcList.map(({ address }) =>
+      new ethers.Contract(address, REALITY_ABI, prov).balanceOf(addr).catch(() => BN0)
+    ),
+  ]);
+
+  const contractBal = rcBals.reduce((a, b) => a.add(b), BN0);
+  const withdrawableContracts = rcList.filter((_, i) => rcBals[i]?.gt(0)).map(r => r.address);
+  return { walletBal, contractBal, withdrawableContracts };
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────────────
+function relTime(ts) {
+  const diff = Math.floor(Date.now() / 1000) - Number(ts);
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(Number(ts) * 1000).toLocaleDateString();
+}
+
+function statusBadge(q) {
+  if (isFinalized(q)) return '<span class="badge badge-final">Finalized</span>';
+  const now = Date.now() / 1000;
+  const schedTS = Number(q.scheduledFinalizationTimestamp || 0);
+  if (schedTS > 0 && schedTS > now) return '<span class="badge badge-open">Open</span>';
+  return '<span class="badge badge-upcoming">Upcoming</span>';
+}
+
+// ── Render: asked tab ─────────────────────────────────────────────────────────
+function renderAsked(questions) {
+  const loading = document.getElementById('asked-loading');
+  const list    = document.getElementById('asked-list');
+  loading.style.display = 'none';
+
+  if (!questions.length) {
+    loading.textContent = 'No questions asked yet.';
+    loading.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('asked-count').textContent = questions.length;
+  list.innerHTML = '';
+
+  for (const q of questions) {
+    const fin  = isFinalized(q);
+    const token = CHAIN_TOKEN[q.chainId] || 'ETH';
+    const bond  = ethers.BigNumber.from(q.currentAnswerBond || '0');
+    const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
+    const title = q.title || q.id;
+
+    let rightHtml = '';
+    if (fin && q.currentAnswer) {
+      const label = answerLabel(q.currentAnswer);
+      const cls   = answerClass(q.currentAnswer);
+      rightHtml = `<span class="ans-pill ${cls}">${label}</span>`;
+    } else if (bond.gt(0)) {
+      rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`;
+    }
+
+    const answers = q.currentAnswer ? 1 : 0; // approximate; ponder doesn't expose count cheaply
+    const bounty  = ethers.BigNumber.from(q.bounty || '0');
+    const bountyStr = bounty.gt(0) ? ` · reward ${formatEth(bounty)} ${token}` : '';
+
+    const item = document.createElement('div');
+    item.className = 'q-item';
+    item.innerHTML = `
+      <div>
+        <div class="q-item-top">
+          ${statusBadge(q)}
+          <a class="q-item-title" href="${questionUrl(q)}">${escHtml(title)}</a>
+        </div>
+        <div class="q-item-meta">
+          <span>${chain}</span>
+          <span class="q-item-meta-sep">·</span>
+          <span>${relTime(q.createdTimestamp)}</span>
+          ${bountyStr ? `<span class="q-item-meta-sep">·</span><span>${bountyStr.slice(3)}</span>` : ''}
+        </div>
+      </div>
+      <div class="q-item-side">${rightHtml}<span class="q-item-chain">${chain}</span></div>`;
+    list.appendChild(item);
+  }
+}
+
+// ── Render: answered tab ──────────────────────────────────────────────────────
+function renderAnswered(questions, userResponses, claimedSet, claimables) {
+  const loading = document.getElementById('answered-loading');
+  const list    = document.getElementById('answered-list');
+  loading.style.display = 'none';
+
+  if (!questions.length) {
+    loading.textContent = 'No questions answered yet.';
+    loading.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('answered-count').textContent = questions.length;
+  list.innerHTML = '';
+
+  // Index user's responses by questionId (take last = most recent answer)
+  const myLastResp = {};
+  for (const r of userResponses) { myLastResp[r.questionId] = r; }
+
+  // Index claimables by question.id
+  const claimMap = {};
+  for (const c of claimables) { claimMap[c.questionId] = c; }
+
+  // Sort: finalized with claimable first, then open, then claimed/finalized
+  const sorted = [...questions].sort((a, b) => {
+    const ca = claimMap[a.questionId], cb = claimMap[b.questionId];
+    if (ca && !cb) return -1;
+    if (!ca && cb) return 1;
+    if (isFinalized(a) && !isFinalized(b)) return 1;
+    if (!isFinalized(a) && isFinalized(b)) return -1;
+    return Number(b.createdTimestamp) - Number(a.createdTimestamp);
+  });
+
+  for (const q of sorted) {
+    const fin   = isFinalized(q);
+    const token = CHAIN_TOKEN[q.chainId] || 'ETH';
+    const chain = CHAIN_NAME[q.chainId]  || `Chain ${q.chainId}`;
+    const title = q.title || q.id;
+    const myResp = myLastResp[q.id];
+    const claimItem = claimMap[q.questionId];
+    const alreadyClaimed = claimedSet.has(q.id);
+
+    // My answer pill
+    let myAnsHtml = '';
+    if (myResp && !myResp.isCommitment) {
+      const ans   = myResp.answer;
+      const label = answerLabel(ans);
+      const cls   = answerClass(ans);
+      myAnsHtml = `<span class="ans-pill ${cls}" title="Your answer">${escHtml(label)}</span>`;
+    } else if (myResp?.isCommitment) {
+      myAnsHtml = `<span class="ans-pill ans-inv">Commitment</span>`;
+    }
+
+    // Win/loss
+    let outcomeHtml = '';
+    if (fin && myResp && !myResp.isCommitment && q.currentAnswer) {
+      const won = myResp.answer?.toLowerCase() === q.currentAnswer.toLowerCase();
+      outcomeHtml = won
+        ? '<span class="win-mark">✓ Won</span>'
+        : '<span class="loss-mark">Lost</span>';
+    }
+
+    // Right column: claimable / bond / claimed
+    let rightHtml = '';
+    if (claimItem) {
+      rightHtml = `<div class="q-item-amount claimable">${formatEth(claimItem.total)} ${token}</div><div class="q-item-chain">claimable</div>`;
+    } else if (alreadyClaimed) {
+      rightHtml = `<div class="q-item-amount claimed">Claimed</div>`;
+    } else if (myResp) {
+      const bond = ethers.BigNumber.from(myResp.bond || '0');
+      if (bond.gt(0)) rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">your bond</div>`;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'q-item';
+    item.innerHTML = `
+      <div>
+        <div class="q-item-top">
+          ${statusBadge(q)}
+          ${myAnsHtml}
+          ${outcomeHtml}
+          <a class="q-item-title" href="${questionUrl(q)}">${escHtml(title)}</a>
+        </div>
+        <div class="q-item-meta">
+          <span>${chain}</span>
+          <span class="q-item-meta-sep">·</span>
+          <span>${relTime(myResp?.timestamp || q.createdTimestamp)}</span>
+        </div>
+      </div>
+      <div class="q-item-side">${rightHtml}</div>`;
+    list.appendChild(item);
+  }
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Render: balances + claim banner ──────────────────────────────────────────
+function renderBalances({ walletBal, contractBal, withdrawableContracts }, chainId) {
+  const token = CHAIN_TOKEN[chainId] || 'ETH';
+  document.getElementById('wallet-balance').textContent   = `${formatEth(walletBal)} ${token}`;
+  document.getElementById('contract-balance').textContent = `${formatEth(contractBal)} ${token}`;
+
+  const wdBtn = document.getElementById('withdraw-btn');
+  if (contractBal.gt(0) && withdrawableContracts.length > 0) {
+    wdBtn.style.display = '';
+    wdBtn.onclick = () => handleWithdraw(withdrawableContracts, chainId);
+  } else {
+    wdBtn.style.display = 'none';
+  }
+}
+
+function renderClaimBanner(claimables, chainId) {
+  const banner = document.getElementById('claim-banner');
+  const chainClaimables = claimables.filter(c => c.chainId === chainId);
+  const otherClaimables = claimables.filter(c => c.chainId !== chainId);
+
+  if (chainClaimables.length === 0 && otherClaimables.length === 0) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const token = CHAIN_TOKEN[chainId] || 'ETH';
+  const BN0   = ethers.BigNumber.from(0);
+
+  if (chainClaimables.length > 0) {
+    const total = chainClaimables.reduce((s, c) => s.add(c.total), BN0);
+    banner.style.display = '';
+    document.getElementById('claim-amount').textContent =
+      `${formatEth(total)} ${token} claimable`;
+    document.getElementById('claim-desc').textContent =
+      `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${CHAIN_NAME[chainId] || `chain ${chainId}`}`;
+
+    // Build grouped claim data per contract
+    const byContract = {};
+    for (const c of chainClaimables) {
+      const k = c.contract;
+      if (!byContract[k]) byContract[k] = { contract: k, question_ids:[], lengths:[], hist_hashes:[], addrs:[], bonds:[], answers:[] };
+      byContract[k].question_ids.push(...c.question_ids);
+      byContract[k].lengths.push(...c.lengths);
+      byContract[k].hist_hashes.push(...c.hist_hashes);
+      byContract[k].addrs.push(...c.addrs);
+      byContract[k].bonds.push(...c.bonds);
+      byContract[k].answers.push(...c.answers);
+    }
+    pendingClaimData = Object.values(byContract);
+    document.getElementById('claim-btn').style.display = '';
+  } else {
+    banner.style.display = '';
+    document.getElementById('claim-amount').textContent = '';
+    document.getElementById('claim-desc').textContent = '';
+    document.getElementById('claim-btn').style.display = 'none';
+  }
+
+  const noteEl = document.getElementById('other-chain-note');
+  if (otherClaimables.length > 0) {
+    const otherBN = otherClaimables.reduce((s, c) => s.add(c.total), BN0);
+    const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[c.chainId] || `chain ${c.chainId}`))].join(', ');
+    noteEl.textContent = `Also claimable on: ${chains} (switch chain to claim)`;
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.style.display = 'none';
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('tab-asked').style.display    = tab === 'asked'    ? '' : 'none';
+    document.getElementById('tab-answered').style.display = tab === 'answered' ? '' : 'none';
+  });
+});
+
+// ── TX helpers ────────────────────────────────────────────────────────────────
+function txErr(err) {
+  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED') return 'Cancelled.';
+  return err?.reason || err?.data?.message || err?.message || 'Transaction failed.';
+}
+
+async function handleWithdraw(contractAddrs, chainId) {
+  if (!signer) return;
+  const btn = document.getElementById('withdraw-btn');
+  btn.disabled = true; btn.textContent = 'Waiting…';
+  try {
+    for (const addr of contractAddrs) {
+      const rc = new ethers.Contract(addr, REALITY_ABI, signer);
+      const tx = await rc.withdraw();
+      btn.textContent = 'Pending…';
+      await tx.wait();
+    }
+    btn.textContent = '✓ Done';
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Withdraw';
+    alert(txErr(err));
+  }
+}
+
+async function handleClaimAll() {
+  if (!signer || !pendingClaimData) return;
+  const btn   = document.getElementById('claim-btn');
+  const errEl = document.getElementById('claim-error');
+  errEl.classList.remove('visible');
+  btn.disabled = true; btn.textContent = 'Waiting for wallet…';
+  try {
+    for (const group of pendingClaimData) {
+      const rc = new ethers.Contract(group.contract, REALITY_ABI, signer);
+      const tx = await rc.claimMultipleAndWithdrawBalance(
+        group.question_ids, group.lengths, group.hist_hashes,
+        group.addrs, group.bonds, group.answers
+      );
+      btn.textContent = 'Pending…';
+      await tx.wait();
+    }
+    btn.textContent = '✓ Done';
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    btn.disabled = false; btn.textContent = 'Claim all & withdraw';
+    errEl.textContent = txErr(err);
+    errEl.classList.add('visible');
+  }
+}
+
+document.getElementById('claim-btn').addEventListener('click', handleClaimAll);
+
+// ── Account update ────────────────────────────────────────────────────────────
+async function updateExplorerLink(addr, chainId) {
+  const exp = EXPLORER[chainId];
+  document.getElementById('hero-addr').textContent = shortAddr(addr);
+  const link = document.getElementById('hero-explorer-link');
+  if (exp) {
+    link.href = `${exp}/address/${addr}`;
+    link.style.display = '';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+async function runAccount(addr, chainId) {
+  document.getElementById('connect-prompt').style.display = 'none';
+  document.getElementById('account-content').style.display = '';
+
+  updateExplorerLink(addr, chainId);
+
+  // Balances (non-blocking)
+  loadBalances(addr, chainId)
+    .then(bals => renderBalances(bals, chainId))
+    .catch(() => {
+      document.getElementById('wallet-balance').textContent   = '—';
+      document.getElementById('contract-balance').textContent = '—';
+    });
+
+  // Ponder data
+  try {
+    const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } =
+      await loadAccountData(addr);
+
+    renderAsked(askedQuestions);
+    renderAnswered(answeredQuestions, userResponses, claimedSet, claimables);
+    renderClaimBanner(claimables, chainId);
+  } catch (err) {
+    console.error('account load error', err);
+    document.getElementById('asked-loading').textContent  = 'Failed to load data (is the indexer running?)';
+    document.getElementById('asked-loading').className    = 'state-msg state-error';
+    document.getElementById('asked-loading').style.display = 'block';
+    document.getElementById('answered-loading').style.display = 'none';
+  }
+}
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+function onWalletChange(addr) {
+  walletAddr = addr;
+  const btn = document.getElementById('wallet-btn');
+  if (addr) {
+    btn.textContent = RealityWallet.shortAddr(addr);
+    btn.classList.add('connected');
+    btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer   = provider.getSigner();
+    provider.getNetwork().then(net => {
+      walletChainId = net.chainId;
+      runAccount(addr, net.chainId);
+    });
+    window.ethereum.removeAllListeners?.('chainChanged');
+    window.ethereum.on('chainChanged', hex => {
+      walletChainId = parseInt(hex, 16);
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer   = provider.getSigner();
+      runAccount(addr, walletChainId);
+    });
+  } else {
+    btn.textContent = 'Connect wallet';
+    btn.classList.remove('connected');
+    btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
+    provider = null; signer = null;
+    document.getElementById('connect-prompt').style.display = '';
+    document.getElementById('account-content').style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('wallet-btn').onclick =
+    () => RealityWallet.connectWallet(onWalletChange);
+  document.getElementById('connect-btn').onclick =
+    () => RealityWallet.connectWallet(onWalletChange);
+  RealityWallet.initWallet(onWalletChange);
+});
+</script>
+</body>
+</html>
