@@ -331,19 +331,19 @@ function showTxError(btn, msg) {
   setTimeout(() => p.remove(), 8000);
 }
 
-async function runTx(btn, originalText, txFn) {
+async function runTx(btn, originalText, txFn, onSubmitted) {
   btn.disabled = true;
-  const origText = originalText;
   btn.textContent = 'Waiting for wallet…';
   try {
     const tx = await txFn();
     btn.textContent = 'Pending…';
+    if (onSubmitted) onSubmitted();
     await tx.wait();
     btn.textContent = '✓ Done';
     setTimeout(() => location.reload(), 1500);
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = origText;
+    btn.textContent = originalText;
     showTxError(btn, txErrorMessage(err));
   }
 }
@@ -399,7 +399,7 @@ function buildAnswerForm(data, walletAddr) {
     bf.appendChild(p);
     bf.appendChild(ot);
     const card = el('div', 'card');
-    card.appendChild(el('div', 'card-title', 'Interact'));
+    card.appendChild(el('div', 'card-title', 'Answer'));
     card.appendChild(bf);
     return card;
   }
@@ -553,13 +553,14 @@ function buildAnswerForm(data, walletAddr) {
     const bondWei  = ethers.utils.parseEther(bondInput.value);
     const maxPrev  = data.bond; // front-run guard
 
-    runTx(btn, 'Post answer', () =>
-      realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei })
+    runTx(btn, 'Post answer',
+      () => realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei }),
+      () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
     );
   });
 
   const card = el('div', 'card');
-  card.appendChild(el('div', 'card-title', 'Interact'));
+  card.appendChild(el('div', 'card-title', 'Answer'));
   card.appendChild(form);
   return card;
 }
@@ -637,6 +638,38 @@ function renderWarnings(data) {
     div.innerHTML = `${warnIcon}<div class="q-warning-text"><strong>${w.title}</strong><span>${w.body}</span></div>`;
     container.appendChild(div);
   }
+}
+
+// ── Optimistic answer entry ───────────────────────────────────────────────────
+function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
+  const bondList = qPage.querySelector('.bond-list');
+  if (!bondList) return;
+
+  const token    = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+  const explorer = EXPLORER[CHAIN_ID]    || '';
+  const color    = answerColorClass(ansBytes, qjson);
+  const label    = bytes32ToLabel(ansBytes, qjson) || '?';
+  const bondStr  = `${formatEth(bondWei)} ${token}`;
+  const letter   = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
+  const short    = walletAddr ? `${walletAddr.slice(0,6)}…${walletAddr.slice(-4)}` : '';
+  const addrHtml = short
+    ? (explorer
+        ? `<a class="bond-addr-link" href="${explorer}/address/${walletAddr}" target="_blank" rel="noopener noreferrer">${short}</a>`
+        : `<span class="bond-addr">${short}</span>`)
+    : '';
+
+  const entry = document.createElement('div');
+  entry.className = 'optimistic-entry';
+  entry.innerHTML = `
+    <div class="bond-connector"><div class="answer-dot dot-${color}">${letter}</div></div>
+    <div class="bond-main">
+      <div class="bond-answer-label ${color}">${label}<span class="bond-tag tag-pending">Submitting…</span></div>
+      <div class="bond-submeta">${addrHtml}${addrHtml ? ' · ' : ''}<span>Unconfirmed</span></div>
+    </div>
+    <div class="bond-right"><div class="bond-amount">${bondStr}</div></div>`;
+
+  bondList.insertBefore(entry, bondList.firstChild);
+  qPage.classList.add('has-history');
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -911,7 +944,7 @@ function buildLockedState(data) {
 
   const card = el('div', 'card');
   card.innerHTML = `
-    <div class="card-title">Interact</div>
+    <div class="card-title">Answer</div>
     <div class="interact-locked">
       <div class="lock-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
