@@ -81,6 +81,14 @@
   .btn-claim:disabled { opacity: 0.45; cursor: not-allowed; }
   .other-chain-note { font-size: 12px; color: var(--amber); margin-top: 4px; }
 
+  /* ── Chain pills ── */
+  .chain-pills-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chain-pill { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; }
+  .chain-pill:hover { border-color: var(--accent); color: var(--text); }
+  .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+
   /* ── Tabs ── */
   .tabs-row { display: flex; gap: 2px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
   .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted);
@@ -203,6 +211,9 @@
       </div>
     </div>
 
+    <!-- Chain filter pills (shown when activity spans multiple chains) -->
+    <div id="chain-pills" class="chain-pills-row" style="display:none"></div>
+
     <!-- Tabs -->
     <div class="tabs-row">
       <button class="tab-btn active" data-tab="asked">
@@ -255,7 +266,9 @@ let walletChainId = null;
 let provider     = null;
 let signer       = null;
 let contractsData = null;
-let pendingClaimData = null;  // [{contract, question_ids, lengths, hist_hashes, addrs, bonds, answers}]
+let pendingClaimData  = null;  // [{contract, question_ids, lengths, hist_hashes, addrs, bonds, answers}]
+let allData           = null;  // full Ponder result, kept for re-filtering without new requests
+let selectedViewChain = null;  // null = all chains, number = filter to this chainId
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatEth(bn) {
@@ -610,6 +623,54 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Chain pills ───────────────────────────────────────────────────────────────
+function buildChainPills(foundChains) {
+  const container = document.getElementById('chain-pills');
+  container.innerHTML = '';
+  if (foundChains.length <= 1) { container.style.display = 'none'; return; }
+  container.style.display = '';
+
+  const makeBtn = (label, chainId) => {
+    const btn = document.createElement('button');
+    btn.className = 'chain-pill' + (chainId === selectedViewChain ? ' active' : '');
+    btn.dataset.chain = chainId === null ? 'all' : String(chainId);
+    btn.textContent = label;
+    btn.addEventListener('click', () => selectViewChain(chainId));
+    container.appendChild(btn);
+  };
+
+  makeBtn('All chains', null);
+  for (const chainId of foundChains) {
+    makeBtn(CHAIN_NAME[chainId] || `Chain ${chainId}`, chainId);
+  }
+}
+
+function selectViewChain(chainId) {
+  selectedViewChain = chainId;
+
+  document.querySelectorAll('.chain-pill').forEach(btn => {
+    const b = btn.dataset.chain === 'all' ? null : Number(btn.dataset.chain);
+    btn.classList.toggle('active', b === chainId);
+  });
+
+  if (!allData) return;
+  const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } = allData;
+
+  const asked    = chainId !== null
+    ? askedQuestions.filter(q => Number(q.chainId) === chainId)
+    : askedQuestions;
+  const answered = chainId !== null
+    ? answeredQuestions.filter(q => Number(q.chainId) === chainId)
+    : answeredQuestions;
+
+  renderAsked(asked);
+  renderAnswered(answered, userResponses, claimedSet, claimables);
+
+  // Claim banner: if a specific chain is selected use it; otherwise use the wallet chain
+  const claimChain = chainId !== null ? chainId : (walletChainId || null);
+  renderClaimBanner(claimables, claimChain);
+}
+
 // ── Render: balances + claim banner ──────────────────────────────────────────
 function renderBalances({ walletBal, contractBal, withdrawableContracts }, chainId) {
   const token = CHAIN_TOKEN[chainId] || 'ETH';
@@ -627,16 +688,21 @@ function renderBalances({ walletBal, contractBal, withdrawableContracts }, chain
 
 function renderClaimBanner(claimables, chainId) {
   const banner = document.getElementById('claim-banner');
-  const chainClaimables = claimables.filter(c => c.chainId === chainId);
-  const otherClaimables = claimables.filter(c => c.chainId !== chainId);
+  const BN0    = ethers.BigNumber.from(0);
+
+  const chainClaimables = claimables.filter(c => Number(c.chainId) === Number(chainId));
+  const otherClaimables = claimables.filter(c => Number(c.chainId) !== Number(chainId));
 
   if (chainClaimables.length === 0 && otherClaimables.length === 0) {
     banner.style.display = 'none';
+    pendingClaimData = null;
     return;
   }
 
   const token = CHAIN_TOKEN[chainId] || 'ETH';
-  const BN0   = ethers.BigNumber.from(0);
+  const claimBtn  = document.getElementById('claim-btn');
+  const noteEl    = document.getElementById('other-chain-note');
+  const needsSwitch = chainId !== null && chainId !== walletChainId;
 
   if (chainClaimables.length > 0) {
     const total = chainClaimables.reduce((s, c) => s.add(c.total), BN0);
@@ -646,35 +712,50 @@ function renderClaimBanner(claimables, chainId) {
     document.getElementById('claim-desc').textContent =
       `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${CHAIN_NAME[chainId] || `chain ${chainId}`}`;
 
-    // Build grouped claim data per contract
-    const byContract = {};
-    for (const c of chainClaimables) {
-      const k = c.contract;
-      if (!byContract[k]) byContract[k] = { contract: k, question_ids:[], lengths:[], hist_hashes:[], addrs:[], bonds:[], answers:[] };
-      byContract[k].question_ids.push(...c.question_ids);
-      byContract[k].lengths.push(...c.lengths);
-      byContract[k].hist_hashes.push(...c.hist_hashes);
-      byContract[k].addrs.push(...c.addrs);
-      byContract[k].bonds.push(...c.bonds);
-      byContract[k].answers.push(...c.answers);
+    if (needsSwitch) {
+      // Can see claimables but wallet is on a different chain — can't submit tx
+      claimBtn.style.display = 'none';
+      noteEl.textContent = `Switch to ${CHAIN_NAME[chainId] || `chain ${chainId}`} in your wallet to claim`;
+      noteEl.style.display = 'block';
+      pendingClaimData = null;
+    } else {
+      // Build grouped claim data per contract
+      const byContract = {};
+      for (const c of chainClaimables) {
+        const k = c.contract;
+        if (!byContract[k]) byContract[k] = { contract: k, question_ids:[], lengths:[], hist_hashes:[], addrs:[], bonds:[], answers:[] };
+        byContract[k].question_ids.push(...c.question_ids);
+        byContract[k].lengths.push(...c.lengths);
+        byContract[k].hist_hashes.push(...c.hist_hashes);
+        byContract[k].addrs.push(...c.addrs);
+        byContract[k].bonds.push(...c.bonds);
+        byContract[k].answers.push(...c.answers);
+      }
+      pendingClaimData = Object.values(byContract);
+      claimBtn.style.display = '';
+      claimBtn.disabled = false;
+      claimBtn.textContent = 'Claim all & withdraw';
+
+      // Note about other chains (only when showing wallet chain or "All")
+      if (otherClaimables.length > 0) {
+        const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[Number(c.chainId)] || `chain ${c.chainId}`))].join(', ');
+        noteEl.textContent = `Also claimable on: ${chains} (select chain above to claim)`;
+        noteEl.style.display = 'block';
+      } else {
+        noteEl.style.display = 'none';
+      }
     }
-    pendingClaimData = Object.values(byContract);
-    document.getElementById('claim-btn').style.display = '';
   } else {
+    // No claimables on this chain, but there are some on others
     banner.style.display = '';
     document.getElementById('claim-amount').textContent = '';
-    document.getElementById('claim-desc').textContent = '';
-    document.getElementById('claim-btn').style.display = 'none';
-  }
+    document.getElementById('claim-desc').textContent   = '';
+    claimBtn.style.display = 'none';
+    pendingClaimData = null;
 
-  const noteEl = document.getElementById('other-chain-note');
-  if (otherClaimables.length > 0) {
-    const otherBN = otherClaimables.reduce((s, c) => s.add(c.total), BN0);
-    const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[c.chainId] || `chain ${c.chainId}`))].join(', ');
-    noteEl.textContent = `Also claimable on: ${chains} (switch chain to claim)`;
+    const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[Number(c.chainId)] || `chain ${c.chainId}`))].join(', ');
+    noteEl.textContent = `Claimable on: ${chains} (select chain above to claim)`;
     noteEl.style.display = 'block';
-  } else {
-    noteEl.style.display = 'none';
   }
 }
 
@@ -742,44 +823,74 @@ async function handleClaimAll() {
 document.getElementById('claim-btn').addEventListener('click', handleClaimAll);
 
 // ── Account update ────────────────────────────────────────────────────────────
-async function updateExplorerLink(addr, chainId) {
-  const exp = EXPLORER[chainId];
-  document.getElementById('hero-addr').textContent = shortAddr(addr);
-  const link = document.getElementById('hero-explorer-link');
-  if (exp) {
-    link.href = `${exp}/address/${addr}`;
-    link.style.display = '';
-  } else {
-    link.style.display = 'none';
-  }
+let accountLoadGen = 0;
+
+function resetAccountUI() {
+  document.getElementById('asked-list').innerHTML     = '';
+  document.getElementById('answered-list').innerHTML  = '';
+  document.getElementById('asked-count').textContent  = '0';
+  document.getElementById('answered-count').textContent = '0';
+  document.getElementById('asked-loading').textContent  = 'Loading…';
+  document.getElementById('asked-loading').className    = 'state-msg';
+  document.getElementById('asked-loading').style.display  = 'block';
+  document.getElementById('answered-loading').textContent = 'Loading…';
+  document.getElementById('answered-loading').className   = 'state-msg';
+  document.getElementById('answered-loading').style.display = 'block';
+  document.getElementById('claim-banner').style.display  = 'none';
+  document.getElementById('wallet-balance').textContent   = '…';
+  document.getElementById('contract-balance').textContent = '…';
+  document.getElementById('withdraw-btn').style.display   = 'none';
+  document.getElementById('chain-pills').innerHTML = '';
+  document.getElementById('chain-pills').style.display = 'none';
+  pendingClaimData  = null;
+  allData           = null;
+  selectedViewChain = null;
 }
 
 async function runAccount(addr, chainId) {
+  const gen = ++accountLoadGen;
+
   document.getElementById('connect-prompt').style.display = 'none';
   document.getElementById('account-content').style.display = '';
 
-  updateExplorerLink(addr, chainId);
+  // Update address + explorer link immediately
+  const exp = EXPLORER[chainId];
+  document.getElementById('hero-addr').textContent = shortAddr(addr);
+  const link = document.getElementById('hero-explorer-link');
+  if (exp) { link.href = `${exp}/address/${addr}`; link.style.display = ''; }
+  else      { link.style.display = 'none'; }
 
-  // Balances (non-blocking)
+  resetAccountUI();
+
+  // Balances (non-blocking; discard if superseded)
   loadBalances(addr, chainId)
-    .then(bals => renderBalances(bals, chainId))
+    .then(bals => { if (gen === accountLoadGen) renderBalances(bals, chainId); })
     .catch(() => {
+      if (gen !== accountLoadGen) return;
       document.getElementById('wallet-balance').textContent   = '—';
       document.getElementById('contract-balance').textContent = '—';
     });
 
   // Ponder data
   try {
-    const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } =
-      await loadAccountData(addr);
+    const data = await loadAccountData(addr);
+    if (gen !== accountLoadGen) return;
 
-    renderAsked(askedQuestions);
-    renderAnswered(answeredQuestions, userResponses, claimedSet, claimables);
-    renderClaimBanner(claimables, chainId);
+    allData = data;
+
+    // Find which chains actually have activity
+    const chainSet = new Set();
+    for (const q of data.askedQuestions)    chainSet.add(Number(q.chainId));
+    for (const q of data.answeredQuestions) chainSet.add(Number(q.chainId));
+    const foundChains = [...chainSet].sort((a, b) => a - b);
+
+    buildChainPills(foundChains);
+    selectViewChain(null); // always start on "All chains"
   } catch (err) {
+    if (gen !== accountLoadGen) return;
     console.error('account load error', err);
-    document.getElementById('asked-loading').textContent  = 'Failed to load data (is the indexer running?)';
-    document.getElementById('asked-loading').className    = 'state-msg state-error';
+    document.getElementById('asked-loading').textContent   = 'Failed to load data (is the indexer running?)';
+    document.getElementById('asked-loading').className     = 'state-msg state-error';
     document.getElementById('asked-loading').style.display = 'block';
     document.getElementById('answered-loading').style.display = 'none';
   }
@@ -804,7 +915,7 @@ function onWalletChange(addr) {
       walletChainId = parseInt(hex, 16);
       provider = new ethers.providers.Web3Provider(window.ethereum);
       signer   = provider.getSigner();
-      runAccount(addr, walletChainId);
+      if (walletAddr) runAccount(walletAddr, walletChainId);
     });
   } else {
     btn.textContent = 'Connect wallet';

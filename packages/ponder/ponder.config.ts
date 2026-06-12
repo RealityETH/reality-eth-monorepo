@@ -20,9 +20,10 @@ function net(chainId: number, envUrl: string | undefined, publicUrl: string, max
 
 export default createConfig({
   networks: {
-    mainnet:   net(1,     process.env.PONDER_RPC_URL_1,     "https://ethereum-rpc.publicnode.com"),
-    gnosis:    net(100,   process.env.PONDER_RPC_URL_100,   "https://rpc.gnosischain.com"),
-    arbitrum:  net(42161, process.env.PONDER_RPC_URL_42161, "https://arbitrum-one-rpc.publicnode.com"),
+    mainnet:   net(1,         process.env.PONDER_RPC_URL_1,         "https://ethereum-rpc.publicnode.com"),
+    gnosis:    net(100,       process.env.PONDER_RPC_URL_100,       "https://rpc.gnosischain.com"),
+    arbitrum:  net(42161,     process.env.PONDER_RPC_URL_42161,     "https://arbitrum-one-rpc.publicnode.com"),
+    sepolia:   net(11155111,  process.env.PONDER_RPC_URL_11155111,  "https://ethereum-sepolia-rpc.publicnode.com"),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
     // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
     //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
@@ -33,12 +34,13 @@ export default createConfig({
   },
 
   contracts: {
-    // v3.2 — most recent deployment, mainnet and gnosis only.
+    // v3.2 — most recent deployment.
     RealityETH_v3_2: {
       abi,
       network: {
         mainnet: { address: "0x6a2155613b68eFB38D5c6074921F3F4281c8c177", startBlock: 22100226 },
         gnosis:  { address: "0xEb51d9d9717906c981C57af09C4a3449eF30705b", startBlock: 39142627 },
+        sepolia: { address: "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1", startBlock: 7898415 },
       },
     },
 
@@ -49,6 +51,7 @@ export default createConfig({
         mainnet:   { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 },
         gnosis:    { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 },
         arbitrum:  { address: "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9", startBlock: 459975 },
+        sepolia:   { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431 },
         // optimism disabled
         // base disabled (see network comment above)
         // base:   { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
@@ -102,6 +105,17 @@ export default createConfig({
             "0x934326a86A99DaB25bB8329089ce73ed9c7c0E4a", // POLK v3.0, block 34578493
           ],
           startBlock: 20882108,
+        },
+      },
+    },
+
+    // Sepolia: BOND token (v3.2 ERC20)
+    RealityETH_ERC20_sepolia: {
+      abi,
+      network: {
+        sepolia: {
+          address: "0x8A5f1C6361E280348a59daC10160A88428FFBd51", // BOND v3.2, block 8526475
+          startBlock: 8526475,
         },
       },
     },
