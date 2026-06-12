@@ -6,6 +6,7 @@
     "postinstall": "node scripts/patch-ponder-ui.js",
     "dev": "ponder dev --log-format json",
     "start": "ponder start --log-format json",
+    "serve": "ponder serve --port 42070 --log-format json",
     "codegen": "ponder codegen"
   },
   "dependencies": {

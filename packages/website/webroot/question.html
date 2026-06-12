@@ -109,6 +109,18 @@
   .badge-app     { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); }
   .badge-chain   { background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
   .q-text-large  { font-size: 22px; font-weight: 600; line-height: 1.35; }
+  .q-text-large.q-text-md { font-weight: normal; font-size: 15px; }
+  .q-text-md h1 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
+  .q-text-md h2 { font-size: 15px; font-weight: 600; margin: 12px 0 4px; }
+  .q-text-md h3 { font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+  .q-text-md p  { margin: 0 0 8px; }
+  .q-text-md p:last-child { margin-bottom: 0; }
+  .q-text-md hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .q-text-md a  { color: var(--accent); text-decoration: none; }
+  .q-text-md a:hover { text-decoration: underline; }
+  .q-text-md strong { font-weight: 600; }
+  .q-text-md em { font-style: italic; }
+  .q-text-md ul, .q-text-md ol { margin: 0 0 8px 20px; }
 
   /* ── Warnings ── */
   .q-warnings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
@@ -409,7 +421,7 @@
     <div class="q-badges">
       <span class="badge badge-open" id="status-badge">Loading…</span>
     </div>
-    <h1 class="q-text-large" id="question-title">Loading question…</h1>
+    <div class="q-text-large" id="question-title">Loading question…</div>
   </div>
 
   <div id="warnings-container" class="q-warnings"></div>
@@ -466,6 +478,8 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script src="js/ethers.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/settings.js"></script>

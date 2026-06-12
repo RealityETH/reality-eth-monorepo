@@ -425,6 +425,7 @@
   .starred-chip-unstar:hover { color: var(--red); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/settings.js"></script>
 </head>
@@ -878,7 +879,14 @@
         return { text: selected.length ? selected.join(', ') : '(none)', cls: 'answer-opt' };
       }
       if (q.type === 'uint') {
-        return { text: val.toString(), cls: 'answer-opt' };
+        // Standard uint template stores answers scaled by 10^18
+        const D = 10n ** 18n;
+        const whole = val / D;
+        const frac  = val % D;
+        const text  = frac === 0n
+          ? whole.toString()
+          : whole.toString() + '.' + frac.toString().padStart(18, '0').replace(/0+$/, '');
+        return { text, cls: 'answer-opt' };
       }
     } catch {}
     return null;
@@ -901,6 +909,15 @@
 
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Parse markdown for use inside a card <a> element.
+  // Strips <a> tags from the output to avoid invalid nested anchors, which
+  // cause browsers to close the outer card anchor early and break the layout.
+  function renderMarkdownCard(title) {
+    const safe = DOMPurify.sanitize(title, {USE_PROFILES: {html: false}});
+    const html = marked.parse(safe);
+    return html.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1');
   }
 
   const WARN_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
@@ -989,7 +1006,7 @@
           <span class="badge badge-chain">${chain}</span>
           ${statusBadge}
         </div>
-        <div class="q-text${isMarkdown ? ' q-text-md' : ''}">${isMarkdown ? marked.parse(title) : esc(title)}</div>
+        <div class="q-text${isMarkdown ? ' q-text-md' : ''}">${isMarkdown ? renderMarkdownCard(title) : esc(title)}</div>
         <div class="q-footer">
           ${bondHtml}
           ${answerHtml}

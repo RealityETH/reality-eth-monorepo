@@ -22,15 +22,15 @@ export default createConfig({
   networks: {
     mainnet:   net(1,         process.env.PONDER_RPC_URL_1,         "https://ethereum-rpc.publicnode.com"),
     gnosis:    net(100,       process.env.PONDER_RPC_URL_100,       "https://rpc.gnosischain.com"),
-    arbitrum:  net(42161,     process.env.PONDER_RPC_URL_42161,     "https://arbitrum-one-rpc.publicnode.com"),
+    // arbitrum: disabled — ~2s block time causes high CPU load during sync
     sepolia:   net(11155111,  process.env.PONDER_RPC_URL_11155111,  "https://ethereum-sepolia-rpc.publicnode.com"),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
     // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
     //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
     //   reliable dedicated endpoint (e.g. Alchemy, Infura, or mainnet.base.org).
     // base: net(8453, process.env.PONDER_RPC_URL_8453, "https://base-rpc.publicnode.com"),
-    celo:      net(42220, process.env.PONDER_RPC_URL_42220, "https://celo-rpc.publicnode.com"),
-    avalanche: net(43114, process.env.PONDER_RPC_URL_43114, "https://avalanche-c-chain-rpc.publicnode.com"),
+    // celo: disabled — ~5s block time causes high CPU load during sync
+    // avalanche: disabled — ~2s block time causes high CPU load during sync
   },
 
   contracts: {
@@ -50,13 +50,13 @@ export default createConfig({
       network: {
         mainnet:   { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 },
         gnosis:    { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 },
-        arbitrum:  { address: "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9", startBlock: 459975 },
+        // arbitrum: disabled (see network comment)
         sepolia:   { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431 },
         // optimism disabled
         // base disabled (see network comment above)
-        // base:   { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
-        celo:      { address: "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3", startBlock: 31954377 },
-        avalanche: { address: "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502", startBlock: 4090592 },
+        // base:      { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
+        // celo:      { address: "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3", startBlock: 31954377 },
+        // avalanche: { address: "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502", startBlock: 4090592 },
       },
     },
 

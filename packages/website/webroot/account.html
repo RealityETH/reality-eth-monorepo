@@ -44,6 +44,15 @@
   /* ── Connect prompt ── */
   .connect-prompt { text-align: center; padding: 60px 20px; }
   .connect-prompt p { color: var(--text-muted); margin-bottom: 20px; }
+  .addr-input-row { display: flex; gap: 8px; justify-content: center; max-width: 420px; margin: 0 auto 14px; }
+  .addr-input { flex: 1; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: monospace; outline: none; }
+  .addr-input:focus { border-color: var(--accent); }
+  .addr-input::placeholder { color: var(--text-dim); font-family: -apple-system, sans-serif; }
+  .btn-addr-go { padding: 8px 16px; background: var(--border-subtle); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-addr-go:hover { border-color: var(--accent); color: var(--accent); }
+  .connect-sep { color: var(--text-dim); font-size: 12px; margin: 14px 0; }
   .btn-connect-lg { padding: 10px 28px; background: var(--accent); border: none;
     border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
   .btn-connect-lg:hover { opacity: 0.88; }
@@ -52,11 +61,12 @@
   .account-hero { background: var(--bg-card); border: 1px solid var(--border-subtle);
     border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .hero-addr { display: flex; align-items: center; gap: 10px; }
+  .hero-addr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .hero-addr-text { font-family: monospace; font-size: 14px; color: var(--text); }
   .hero-addr-link { color: var(--text-dim); text-decoration: none; font-size: 12px; padding: 3px 7px;
     border: 1px solid var(--border); border-radius: 4px; transition: color 0.15s, border-color 0.15s; }
   .hero-addr-link:hover { color: var(--accent); border-color: var(--accent); }
+  .hero-wallet-note { font-size: 11px; color: var(--amber); }
   .hero-balances { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .balance-chip { display: flex; flex-direction: column; align-items: flex-end; }
   .balance-chip-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -151,6 +161,20 @@
     background: var(--red-subtle); border-radius: 4px; display: none; }
   .tx-error.visible { display: block; }
 </style>
+<script>
+// Show account skeleton before ethers.js loads to avoid blank-screen wait.
+// Reads URL param first, falls back to cached wallet address.
+(function(){
+  var addr = (new URLSearchParams(location.search).get('address')||'').toLowerCase();
+  if(!/^0x[0-9a-f]{40}$/.test(addr)){
+    try { addr = (localStorage.getItem('reality-eth-wallet')||'').toLowerCase(); } catch(e){}
+  }
+  if(!/^0x[0-9a-f]{40}$/.test(addr)) return;
+  var s = document.createElement('style');
+  s.textContent = '#connect-prompt{display:none!important}#account-content{display:block!important}';
+  document.head.appendChild(s);
+})();
+</script>
 </head>
 <body>
 
@@ -172,7 +196,12 @@
 <div class="page">
 
   <div id="connect-prompt" class="connect-prompt">
-    <p>Connect your wallet to view your questions, answers, and claimable winnings.</p>
+    <p>Enter an address to browse activity, or connect your wallet.</p>
+    <div class="addr-input-row">
+      <input class="addr-input" id="addr-input" type="text" placeholder="0x… Ethereum address" autocomplete="off" spellcheck="false">
+      <button class="btn-addr-go" id="addr-go-btn">View</button>
+    </div>
+    <div class="connect-sep">or</div>
     <button class="btn-connect-lg" id="connect-btn">Connect wallet</button>
   </div>
 
@@ -183,6 +212,7 @@
       <div class="hero-addr">
         <span class="hero-addr-text" id="hero-addr">—</span>
         <a class="hero-addr-link" id="hero-explorer-link" href="#" target="_blank" rel="noopener" style="display:none">↗ Explorer</a>
+        <span class="hero-wallet-note" id="hero-wallet-note" style="display:none"></span>
       </div>
       <div class="hero-balances">
         <div class="balance-chip">
@@ -261,19 +291,36 @@ const REALITY_ABI = [
 ];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let walletAddr   = null;
+let viewAddr      = null;  // address whose data is displayed (from URL or wallet)
+let walletAddr    = null;  // connected wallet (for signing — may differ from viewAddr)
 let walletChainId = null;
-let provider     = null;
-let signer       = null;
+let provider      = null;
+let signer        = null;
 let contractsData = null;
-let pendingClaimData  = null;  // [{contract, question_ids, lengths, hist_hashes, addrs, bonds, answers}]
-let allData           = null;  // full Ponder result, kept for re-filtering without new requests
-let selectedViewChain = null;  // null = all chains, number = filter to this chainId
+let pendingClaimData  = null;
+let allData           = null;
+let selectedViewChain = null;
+
+// ── URL helpers ───────────────────────────────────────────────────────────────
+function getUrlAddress() {
+  return new URLSearchParams(window.location.search).get('address')?.toLowerCase() || null;
+}
+function setUrlAddress(addr) {
+  const url = new URL(window.location);
+  if (addr) url.searchParams.set('address', addr);
+  else url.searchParams.delete('address');
+  history.replaceState(null, '', url);
+}
+
+// Returns true when the connected wallet can sign transactions for viewAddr
+function canClaim() {
+  return !!(walletAddr && viewAddr && walletAddr === viewAddr);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatEth(bn) {
   if (!bn || ethers.BigNumber.from(bn.toString()).isZero()) return '0';
-  return parseFloat(ethers.utils.formatEther(bn)).toString();
+  return ethers.utils.formatEther(bn).replace(/\.0+$/, '');
 }
 
 function shortAddr(a) { return a ? `${a.slice(0,6)}…${a.slice(-4)}` : ''; }
@@ -407,21 +454,27 @@ async function loadAccountData(addr) {
   const userResponses  = respData.responses?.items  || [];
   const claimedSet     = new Set((claimData.claims?.items || []).map(c => c.questionId));
 
-  // Phase 2: fetch answered questions in parallel
+  // Phase 2: fetch all answered questions in one batch query
   const answeredIds = [...new Set(userResponses.map(r => r.questionId))];
-  const answeredQuestions = (await Promise.all(
-    answeredIds.map(id => gql(`{question(id:"${id}"){${qFields}}}`).then(d => d.question).catch(() => null))
-  )).filter(Boolean);
+  let answeredQuestions = [];
+  if (answeredIds.length > 0) {
+    const idList = answeredIds.map(id => `"${id}"`).join(',');
+    const answeredData = await gql(`{ questions(where:{id_in:[${idList}]},limit:${answeredIds.length}) { items{${qFields}} } }`);
+    answeredQuestions = answeredData.questions?.items || [];
+  }
 
-  // Phase 3: full response history for finalized, unclaimed, answered questions
+  // Phase 3: fetch all response histories for claim candidates in one batch query
   const claimCandidates = answeredQuestions.filter(q =>
     isFinalized(q) && !claimedSet.has(q.id)
   );
   const fullRespMap = {};
-  await Promise.all(claimCandidates.map(async q => {
-    const d = await gql(`{responses(where:{questionId:"${q.id}"},orderBy:"timestamp",orderDirection:"asc",limit:1000){items{answer commitmentHash bond user historyHash isCommitment}}}`);
-    fullRespMap[q.id] = d.responses?.items || [];
-  }));
+  if (claimCandidates.length > 0) {
+    const candIds = claimCandidates.map(q => `"${q.id}"`).join(',');
+    const histData = await gql(`{ responses(where:{questionId_in:[${candIds}]},orderBy:"timestamp",orderDirection:"asc",limit:${claimCandidates.length * 100}) { items{answer commitmentHash bond user historyHash isCommitment questionId} } }`);
+    for (const r of histData.responses?.items || []) {
+      (fullRespMap[r.questionId] ??= []).push(r);
+    }
+  }
 
   // Phase 4: compute claimables
   const claimables = [];
@@ -653,6 +706,13 @@ function selectViewChain(chainId) {
     btn.classList.toggle('active', b === chainId);
   });
 
+  // Update explorer link for the selected chain (or wallet chain if All)
+  const linkChain = chainId !== null ? chainId : walletChainId;
+  const link = document.getElementById('hero-explorer-link');
+  const exp = linkChain ? EXPLORER[linkChain] : null;
+  if (exp && viewAddr) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
+  else                 { link.style.display = 'none'; }
+
   if (!allData) return;
   const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } = allData;
 
@@ -666,7 +726,6 @@ function selectViewChain(chainId) {
   renderAsked(asked);
   renderAnswered(answered, userResponses, claimedSet, claimables);
 
-  // Claim banner: if a specific chain is selected use it; otherwise use the wallet chain
   const claimChain = chainId !== null ? chainId : (walletChainId || null);
   renderClaimBanner(claimables, claimChain);
 }
@@ -678,7 +737,7 @@ function renderBalances({ walletBal, contractBal, withdrawableContracts }, chain
   document.getElementById('contract-balance').textContent = `${formatEth(contractBal)} ${token}`;
 
   const wdBtn = document.getElementById('withdraw-btn');
-  if (contractBal.gt(0) && withdrawableContracts.length > 0) {
+  if (canClaim() && contractBal.gt(0) && withdrawableContracts.length > 0) {
     wdBtn.style.display = '';
     wdBtn.onclick = () => handleWithdraw(withdrawableContracts, chainId);
   } else {
@@ -712,8 +771,17 @@ function renderClaimBanner(claimables, chainId) {
     document.getElementById('claim-desc').textContent =
       `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${CHAIN_NAME[chainId] || `chain ${chainId}`}`;
 
-    if (needsSwitch) {
-      // Can see claimables but wallet is on a different chain — can't submit tx
+    if (!canClaim()) {
+      // No wallet connected, or wrong wallet — show amounts but can't claim
+      claimBtn.style.display = 'none';
+      const matchNote = walletAddr
+        ? `Connected as <a href="account.html?address=${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`
+        : 'Connect wallet to claim';
+      noteEl.innerHTML = matchNote;
+      noteEl.style.display = 'block';
+      pendingClaimData = null;
+    } else if (needsSwitch) {
+      // Correct wallet but wrong chain
       claimBtn.style.display = 'none';
       noteEl.textContent = `Switch to ${CHAIN_NAME[chainId] || `chain ${chainId}`} in your wallet to claim`;
       noteEl.style.display = 'block';
@@ -823,6 +891,63 @@ async function handleClaimAll() {
 document.getElementById('claim-btn').addEventListener('click', handleClaimAll);
 
 // ── Account update ────────────────────────────────────────────────────────────
+// ── Wallet UI update (called when wallet connects/disconnects without changing viewAddr) ──
+function updateWalletUI() {
+  // Hero wallet-mismatch note
+  const noteEl = document.getElementById('hero-wallet-note');
+  if (walletAddr && viewAddr && walletAddr !== viewAddr) {
+    noteEl.innerHTML = `Connected as <a href="account.html?address=${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`;
+    noteEl.style.display = '';
+  } else {
+    noteEl.style.display = 'none';
+  }
+
+  // Balances — only meaningful when wallet matches viewAddr
+  if (canClaim() && walletChainId) {
+    loadBalances(viewAddr, walletChainId)
+      .then(bals => renderBalances(bals, walletChainId))
+      .catch(() => {
+        document.getElementById('wallet-balance').textContent   = '—';
+        document.getElementById('contract-balance').textContent = '—';
+      });
+  } else {
+    document.getElementById('wallet-balance').textContent   = '—';
+    document.getElementById('contract-balance').textContent = '—';
+    document.getElementById('withdraw-btn').style.display   = 'none';
+  }
+
+  // Re-render claim banner with updated canClaim state
+  if (allData) {
+    const claimChain = selectedViewChain !== null ? selectedViewChain : walletChainId;
+    renderClaimBanner(allData.claimables, claimChain);
+  }
+
+  // Update explorer link for the wallet chain if no chain pill is selected
+  if (selectedViewChain === null && walletChainId && viewAddr) {
+    const exp = EXPLORER[walletChainId];
+    const link = document.getElementById('hero-explorer-link');
+    if (exp) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
+    else      { link.style.display = 'none'; }
+  }
+}
+
+// ── Navigate to an address (from input or wallet) ─────────────────────────────
+function setViewAddr(addr) {
+  addr = addr.toLowerCase();
+  if (addr === viewAddr) return;
+  viewAddr = addr;
+  setUrlAddress(addr);
+  document.getElementById('connect-prompt').style.display = 'none';
+  document.getElementById('account-content').style.display = '';
+  document.getElementById('hero-addr').textContent = shortAddr(addr);
+  // Explorer link: default to wallet chain or hide until chain pill selected
+  const exp = walletChainId ? EXPLORER[walletChainId] : null;
+  const link = document.getElementById('hero-explorer-link');
+  if (exp) { link.href = `${exp}/address/${addr}`; link.style.display = ''; }
+  else      { link.style.display = 'none'; }
+  runAccount(addr);
+}
+
 let accountLoadGen = 0;
 
 function resetAccountUI() {
@@ -837,8 +962,8 @@ function resetAccountUI() {
   document.getElementById('answered-loading').className   = 'state-msg';
   document.getElementById('answered-loading').style.display = 'block';
   document.getElementById('claim-banner').style.display  = 'none';
-  document.getElementById('wallet-balance').textContent   = '…';
-  document.getElementById('contract-balance').textContent = '…';
+  document.getElementById('wallet-balance').textContent   = '—';
+  document.getElementById('contract-balance').textContent = '—';
   document.getElementById('withdraw-btn').style.display   = 'none';
   document.getElementById('chain-pills').innerHTML = '';
   document.getElementById('chain-pills').style.display = 'none';
@@ -847,29 +972,11 @@ function resetAccountUI() {
   selectedViewChain = null;
 }
 
-async function runAccount(addr, chainId) {
+async function runAccount(addr) {
   const gen = ++accountLoadGen;
 
-  document.getElementById('connect-prompt').style.display = 'none';
-  document.getElementById('account-content').style.display = '';
-
-  // Update address + explorer link immediately
-  const exp = EXPLORER[chainId];
-  document.getElementById('hero-addr').textContent = shortAddr(addr);
-  const link = document.getElementById('hero-explorer-link');
-  if (exp) { link.href = `${exp}/address/${addr}`; link.style.display = ''; }
-  else      { link.style.display = 'none'; }
-
   resetAccountUI();
-
-  // Balances (non-blocking; discard if superseded)
-  loadBalances(addr, chainId)
-    .then(bals => { if (gen === accountLoadGen) renderBalances(bals, chainId); })
-    .catch(() => {
-      if (gen !== accountLoadGen) return;
-      document.getElementById('wallet-balance').textContent   = '—';
-      document.getElementById('contract-balance').textContent = '—';
-    });
+  updateWalletUI();
 
   // Ponder data
   try {
@@ -898,32 +1005,43 @@ async function runAccount(addr, chainId) {
 
 // ── Wallet ────────────────────────────────────────────────────────────────────
 function onWalletChange(addr) {
-  walletAddr = addr;
+  walletAddr = addr ? addr.toLowerCase() : null;
   const btn = document.getElementById('wallet-btn');
-  if (addr) {
-    btn.textContent = RealityWallet.shortAddr(addr);
+
+  if (walletAddr) {
+    btn.textContent = RealityWallet.shortAddr(walletAddr);
     btn.classList.add('connected');
     btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer   = provider.getSigner();
     provider.getNetwork().then(net => {
       walletChainId = net.chainId;
-      runAccount(addr, net.chainId);
+      if (!viewAddr) {
+        // Nothing loaded yet — use the wallet address
+        setViewAddr(walletAddr);
+      } else {
+        // Already viewing an address — just update wallet-sensitive UI
+        updateWalletUI();
+      }
     });
     window.ethereum.removeAllListeners?.('chainChanged');
     window.ethereum.on('chainChanged', hex => {
       walletChainId = parseInt(hex, 16);
       provider = new ethers.providers.Web3Provider(window.ethereum);
       signer   = provider.getSigner();
-      if (walletAddr) runAccount(walletAddr, walletChainId);
+      updateWalletUI();
     });
   } else {
+    provider = null; signer = null;
     btn.textContent = 'Connect wallet';
     btn.classList.remove('connected');
     btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
-    provider = null; signer = null;
-    document.getElementById('connect-prompt').style.display = '';
-    document.getElementById('account-content').style.display = 'none';
+    if (viewAddr) {
+      updateWalletUI(); // keep showing data, just update claim buttons
+    } else {
+      document.getElementById('connect-prompt').style.display = '';
+      document.getElementById('account-content').style.display = 'none';
+    }
   }
 }
 
@@ -932,6 +1050,26 @@ document.addEventListener('DOMContentLoaded', () => {
     () => RealityWallet.connectWallet(onWalletChange);
   document.getElementById('connect-btn').onclick =
     () => RealityWallet.connectWallet(onWalletChange);
+
+  // Address input
+  const addrInput = document.getElementById('addr-input');
+  const handleAddrGo = () => {
+    const raw = addrInput.value.trim().toLowerCase();
+    if (/^0x[0-9a-f]{40}$/.test(raw)) setViewAddr(raw);
+  };
+  document.getElementById('addr-go-btn').addEventListener('click', handleAddrGo);
+  addrInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleAddrGo(); });
+
+  // Load from URL immediately (no wallet needed)
+  const urlAddr = getUrlAddress();
+  if (urlAddr) {
+    viewAddr = urlAddr;
+    document.getElementById('connect-prompt').style.display = 'none';
+    document.getElementById('account-content').style.display = '';
+    document.getElementById('hero-addr').textContent = shortAddr(urlAddr);
+    runAccount(urlAddr);
+  }
+
   RealityWallet.initWallet(onWalletChange);
 });
 </script>

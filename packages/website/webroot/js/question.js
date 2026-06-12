@@ -124,9 +124,7 @@ function el(tag, cls, text) {
 
 function formatEth(bn) {
   if (!bn || ethers.BigNumber.from(bn).eq(0)) return '0';
-  const s = ethers.utils.formatEther(bn);
-  // Trim trailing zeros but keep at least 3 decimals
-  return parseFloat(s).toString();
+  return ethers.utils.formatEther(bn).replace(/\.0+$/, '');
 }
 
 // ── Ponder data loading ───────────────────────────────────────────────────────
@@ -413,7 +411,7 @@ function buildAnswerForm(data, walletAddr) {
     : bond.gt(0) ? bond.mul(2) : (minBond.gt(0) ? minBond : ethers.BigNumber.from(0));
 
   const prefill = minRequired.gt(0)
-    ? parseFloat(ethers.utils.formatEther(minRequired)).toString()
+    ? ethers.utils.formatEther(minRequired).replace(/\.0+$/, '')
     : '0.001';
 
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
@@ -1155,7 +1153,16 @@ async function main() {
 
   // 3. Update question title and status + type badges
   const titleEl = document.getElementById('question-title');
-  if (titleEl) titleEl.textContent = data.qjson?.title || '';
+  if (titleEl) {
+    const rawTitle = data.qjson?.title || '';
+    if (data.qjson?.format === 'text/markdown' && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+      const safeSource = DOMPurify.sanitize(rawTitle, {USE_PROFILES: {html: false}});
+      titleEl.innerHTML = DOMPurify.sanitize(marked.parse(safeSource));
+      titleEl.classList.add('q-text-md');
+    } else {
+      titleEl.textContent = rawTitle;
+    }
+  }
 
   const finalized   = isFinalized(data.finalizeTS);
   const beforeOpen  = isBeforeOpening(data.openingTS);
