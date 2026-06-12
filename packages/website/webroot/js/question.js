@@ -141,6 +141,7 @@ async function fetchPonderData() {
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
       minBond scheduledFinalizationTimestamp
+      arbitrationOccurred
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
       items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp }
@@ -208,8 +209,9 @@ function adaptPonderData(ponderData, BN0) {
     questionStr:   pq.data,
     qjson:         null,
     minBond:       ethers.BigNumber.from((pq.minBond || '0').toString()),
-    settledTooSoon: (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
-    reopenedBy:    (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
+    settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
+    reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
+    arbitrationOccurred:  !!pq.arbitrationOccurred,
     answerEvents,
   };
 }
@@ -376,7 +378,8 @@ function buildClaimArgs(questionId, answerEvents) {
 
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
-  const { qjson, bond, minBond, openingTS, finalizeTS } = data;
+  const { qjson, minBond, openingTS, finalizeTS, answerEvents } = data;
+  const bond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
   const finalized    = isFinalized(finalizeTS);
   const beforeOpen   = isBeforeOpening(openingTS);
   const type         = qjson.type || 'bool';
@@ -566,10 +569,8 @@ function formatRelTime(ts) {
   if (diff < 60)    return 'just now';
   if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  const d = Math.floor(diff / 86400);
-  if (d < 60)       return `${d}d ago`;
   const dt = new Date(Number(ts) * 1000);
-  return dt.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  return dt.toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
 function formatDuration(secs) {
@@ -583,7 +584,7 @@ function formatDuration(secs) {
 }
 
 function renderHistory(data) {
-  const { answerEvents, qjson } = data;
+  const { answerEvents, qjson, arbitrationOccurred } = data;
   const n        = answerEvents.length;
   const token    = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
   const explorer = EXPLORER[CHAIN_ID]    || '';
@@ -631,16 +632,18 @@ function renderHistory(data) {
     if (ev.args.ts) submeta.appendChild(document.createTextNode(formatRelTime(ev.args.ts)));
     main.appendChild(submeta);
 
-    // Right: bond amount + bar
-    const right   = el('div', 'bond-right');
-    right.appendChild(el('div', `bond-amount answer-bond-value`, bondStr));
-    const barWrap = el('div', 'bond-bar-wrap');
-    const bar     = el('div', `bond-bar bar-${color}`);
-    if (maxBond > BigInt(0)) {
-      bar.style.width = Math.round(Number(BigInt(ev.args.bond.toString()) * BigInt(100) / maxBond)) + '%';
+    // Right: bond amount + bar (omitted for arbitrated answers where bond is meaningless)
+    const right = el('div', 'bond-right');
+    if (tag !== 'arbitrated') {
+      right.appendChild(el('div', `bond-amount answer-bond-value`, bondStr));
+      const barWrap = el('div', 'bond-bar-wrap');
+      const bar     = el('div', `bond-bar bar-${color}`);
+      if (maxBond > BigInt(0)) {
+        bar.style.width = Math.round(Number(BigInt(ev.args.bond.toString()) * BigInt(100) / maxBond)) + '%';
+      }
+      barWrap.appendChild(bar);
+      right.appendChild(barWrap);
     }
-    barWrap.appendChild(bar);
-    right.appendChild(barWrap);
 
     return { connector, main, right };
   }
@@ -651,7 +654,9 @@ function renderHistory(data) {
   if (n === 0) return;
 
   // Build current answer entry (latest)
-  const { connector, main, right } = buildEntryContents(answerEvents[n - 1], 'current', true);
+  const latestIsArbitrated = arbitrationOccurred && answerEvents[n - 1].args.bond.isZero();
+  const currentTag = latestIsArbitrated ? 'arbitrated' : 'current';
+  const { connector, main, right } = buildEntryContents(answerEvents[n - 1], currentTag, true);
   curContainer.innerHTML = '';
   curContainer.appendChild(connector);
   curContainer.appendChild(main);
@@ -664,7 +669,8 @@ function renderHistory(data) {
 
   // History: show from second-latest down to oldest (newest at top)
   for (let i = n - 2; i >= 0; i--) {
-    const tag  = i === n - 2 ? 'disputed' : null;
+    const isArbitrated = arbitrationOccurred && answerEvents[i].args.bond.isZero();
+    const tag  = isArbitrated ? 'arbitrated' : (i === n - 2 ? 'disputed' : null);
     const { connector, main, right } = buildEntryContents(answerEvents[i], tag, false);
     const item = el('div', 'answered-history-item');
     item.appendChild(connector);
@@ -694,7 +700,8 @@ function renderStatusCard(data) {
     const label    = bytes32ToLabel(latest.args.answer, qjson) || '?';
     const color    = answerColorClass(latest.args.answer, qjson);
     const pillCls  = color === 'yes' ? 'answer-yes-lg' : color === 'no' ? 'answer-no-lg' : 'answer-inv-lg';
-    const bondStr  = `${formatEth(bond)} ${token}`;
+    const topBond  = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
+    const bondStr  = `${formatEth(topBond)} ${token}`;
     html += `
       <div class="status-answer">
         <div>
