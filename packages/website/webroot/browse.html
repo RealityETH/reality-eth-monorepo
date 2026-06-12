@@ -277,6 +277,9 @@
   .answer-opt     { background: var(--accent-subtle); color: var(--accent); }
   .answer-invalid { background: var(--amber-subtle); color: var(--amber); }
   .q-time { margin-left: auto; white-space: nowrap; }
+  .q-warn-icon { display: inline-flex; align-items: center; cursor: default; flex-shrink: 0; }
+  .q-warn-icon.warn   { color: var(--amber); }
+  .q-warn-icon.danger { color: var(--red); }
 
   /* ── Loading skeleton ────────────────────────────────── */
   @keyframes shimmer {
@@ -557,6 +560,8 @@
   // Token metadata (loaded from contracts.json + tokens.json)
   let tokenDecimals = {};    // symbol -> decimals
   let contractTokenMap = {}; // `${chainId}-${addr}` -> symbol
+  // known arbitrators: `${chainId}-${addr}` -> true
+  let knownArbitratorMap = {};
 
   // Integration registry (loaded from integrations.json)
   let integrations = {};         // id -> { name, icon, color, description }
@@ -592,6 +597,9 @@
           for (const details of Object.values(versionDict)) {
             if (details.address) {
               contractTokenMap[`${chainId}-${details.address.toLowerCase()}`] = sym.toUpperCase();
+            }
+            for (const arbAddr of Object.keys(details.arbitrators || {})) {
+              knownArbitratorMap[`${chainId}-${arbAddr.toLowerCase()}`] = true;
             }
           }
         }
@@ -692,7 +700,7 @@
           isPendingArbitration answerFinalizedTimestamp
           scheduledFinalizationTimestamp openingTimestamp
           updatedTimestamp createdTimestamp
-          lastBond minBond outcomes
+          lastBond minBond bounty timeout arbitrator outcomes
         }
         pageInfo { hasNextPage endCursor }
       }
@@ -893,6 +901,28 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  const WARN_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+
+  function getWarnings(q) {
+    const warnings = [];
+    const arbKey = `${q.chainId}-${(q.arbitrator || '').toLowerCase()}`;
+    const chainHasArbs = Object.keys(knownArbitratorMap).some(k => k.startsWith(`${q.chainId}-`));
+    if (q.arbitrator && !/^0x0+$/.test(q.arbitrator) && chainHasArbs && !knownArbitratorMap[arbKey]) {
+      warnings.push({ level: 'danger', text: 'Unrecognised arbitrator' });
+    }
+    if (q.timeout > 0 && q.timeout < 86400) {
+      warnings.push({ level: 'warn', text: 'Very short dispute window (< 24h)' });
+    }
+    if (q.answerFinalizedTimestamp > 0) {
+      const bond = BigInt(q.currentAnswerBond || '0');
+      const bounty = BigInt(q.bounty || '0');
+      if (bond + bounty < 1000000000000000000n) {
+        warnings.push({ level: 'warn', text: 'Low reward and bond' });
+      }
+    }
+    return warnings;
+  }
+
   // ── Render ─────────────────────────────────────────────
   function renderCard(q) {
     const status      = getStatus(q);
@@ -906,6 +936,7 @@
     const integId     = classifyQuestion(q);
     const integ       = integrations[integId];
 
+    const warnings    = getWarnings(q);
     const statusBadge = {
       arb:      `<span class="badge badge-arb">⚖ Arbitration</span>`,
       finalized:`<span class="badge badge-final">✓ Finalized</span>`,
@@ -960,6 +991,7 @@
         <div class="q-footer">
           ${bondHtml}
           ${answerHtml}
+          ${warnings.map(w => `<span class="q-warn-icon ${w.level}" title="${esc(w.text)}">${WARN_ICON}</span>`).join('')}
           <div class="q-time">${timeHtml}</div>
         </div>
       </a>`;
