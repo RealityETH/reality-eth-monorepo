@@ -140,7 +140,7 @@ async function fetchPonderData() {
       templateId data
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
-      minBond scheduledFinalizationTimestamp
+      minBond bounty scheduledFinalizationTimestamp
       arbitrationOccurred
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
@@ -209,6 +209,7 @@ function adaptPonderData(ponderData, BN0) {
     questionStr:   pq.data,
     qjson:         null,
     minBond:       ethers.BigNumber.from((pq.minBond || '0').toString()),
+    bounty:        ethers.BigNumber.from((pq.bounty  || '0').toString()),
     settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
     reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
@@ -561,6 +562,72 @@ function buildAnswerForm(data, walletAddr) {
   card.appendChild(el('div', 'card-title', 'Interact'));
   card.appendChild(form);
   return card;
+}
+
+// ── Warnings ─────────────────────────────────────────────────────────────────
+
+let knownArbitrators = null; // Set of lowercase addresses, or null if not yet loaded
+
+async function loadKnownArbitrators() {
+  try {
+    const res = await fetch('/packages/contracts/generated/contracts.json');
+    const contracts = await res.json();
+    const chainData = contracts[String(CHAIN_ID)] || {};
+    const addrs = new Set();
+    for (const versions of Object.values(chainData)) {
+      for (const info of Object.values(versions)) {
+        for (const addr of Object.keys(info.arbitrators || {})) {
+          addrs.add(addr.toLowerCase());
+        }
+      }
+    }
+    knownArbitrators = addrs;
+  } catch {
+    knownArbitrators = null;
+  }
+}
+
+function renderWarnings(data) {
+  const container = document.getElementById('warnings-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const warnings = [];
+
+  // Unknown arbitrator — only warn if we successfully loaded the list for this chain
+  if (knownArbitrators && knownArbitrators.size > 0 &&
+      data.arbitrator && !/^0x0+$/.test(data.arbitrator) &&
+      !knownArbitrators.has(data.arbitrator.toLowerCase())) {
+    warnings.push({ level: 'danger', title: 'Unrecognised arbitrator',
+      body: 'We do not recognise this arbitrator. Do not rely on this information unless you trust them.' });
+  }
+
+  // Low timeout
+  if (data.timeout > 0 && data.timeout < 86400) {
+    warnings.push({ level: 'warn', title: 'Very short dispute window',
+      body: 'The timeout is less than 24 hours. There may not be enough time for people to correct mistakes or lies.' });
+  }
+
+  // Low reward — only meaningful once the question is finalized
+  if (isFinalized(data.finalizeTS)) {
+    const topBond = (data.answerEvents || []).reduce(
+      (mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
+    const totalStake = (data.bounty || ethers.BigNumber.from(0)).add(topBond);
+    const ONE_ETH = ethers.utils.parseEther('1');
+    if (totalStake.lt(ONE_ETH)) {
+      warnings.push({ level: 'warn', title: 'Low reward and bond',
+        body: 'The reward was very low and no substantial bond was posted. There may not have been enough incentive to post accurate information.' });
+    }
+  }
+
+  const warnIcon = `<svg class="q-warning-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+
+  for (const w of warnings) {
+    const div = document.createElement('div');
+    div.className = `q-warning ${w.level}`;
+    div.innerHTML = `${warnIcon}<div class="q-warning-text"><strong>${w.title}</strong><span>${w.body}</span></div>`;
+    container.appendChild(div);
+  }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -941,6 +1008,9 @@ async function verifyWithRpc(data) {
 async function main() {
   const BN0 = ethers.BigNumber.from(0);
 
+  // Start loading known arbitrators in parallel; awaited just before renderWarnings
+  const arbitratorListReady = loadKnownArbitrators();
+
   // 1. Wallet setup — check chain ID so reads always go to the right chain
   let walletAddr = null;
   if (window.ethereum) {
@@ -1061,6 +1131,8 @@ async function main() {
   // 5. Render history + status card
   renderHistory(data);
   renderStatusCard(data);
+  await arbitratorListReady;
+  renderWarnings(data);
 
   // 6. Answer form (or locked state if no wallet and question is open)
   const formSlot = qPage.querySelector('#answer-form-container');

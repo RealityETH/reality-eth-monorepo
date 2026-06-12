@@ -110,6 +110,24 @@
   .badge-chain   { background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
   .q-text-large  { font-size: 22px; font-weight: 600; line-height: 1.35; }
 
+  /* ── Warnings ── */
+  .q-warnings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .q-warning {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5;
+  }
+  .q-warning-icon { flex-shrink: 0; margin-top: 1px; }
+  .q-warning-text strong { display: block; font-weight: 600; margin-bottom: 2px; }
+  .q-warning-text span   { color: inherit; opacity: 0.85; }
+  .q-warning.warn {
+    background: var(--amber-subtle); color: var(--amber);
+    border: 1px solid rgba(210,153,34,0.25);
+  }
+  .q-warning.danger {
+    background: var(--red-subtle); color: var(--red);
+    border: 1px solid rgba(248,81,73,0.25);
+  }
+
   /* ── Layout ── */
   .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
   .col-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
@@ -372,6 +390,8 @@
     </div>
     <h1 class="q-text-large" id="question-title">Loading question…</h1>
   </div>
+
+  <div id="warnings-container" class="q-warnings"></div>
 
   <div class="layout">
 
