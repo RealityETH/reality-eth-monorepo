@@ -33,9 +33,9 @@ const CONTRACT_START_BLOCK = {
   '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502':  4090592,  // v3.0
 };
 
-const CHAIN_TOKEN   = { 1:'ETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO' };
-const EXPLORER      = { 1:'https://etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io' };
-const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com' };
+const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
+const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
+const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
 
 const BUILTIN_TEMPLATES = {
   0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
@@ -564,20 +564,29 @@ function buildAnswerForm(data, walletAddr) {
   return card;
 }
 
-// ── Warnings ─────────────────────────────────────────────────────────────────
+// ── Contracts metadata (arbitrators + start block + version) ─────────────────
 
 let knownArbitrators = null; // Set of lowercase addresses, or null if not yet loaded
+let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
+let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
 
-async function loadKnownArbitrators() {
+// Kick off immediately so it loads in parallel with Ponder
+const contractsMetaPromise = (async () => {
   try {
     const res = await fetch('/packages/contracts/generated/contracts.json');
-    const contracts = await res.json();
-    const chainData = contracts[String(CHAIN_ID)] || {};
+    const data = await res.json();
+    const chainData = data[String(CHAIN_ID)] || {};
     const addrs = new Set();
-    for (const versions of Object.values(chainData)) {
-      for (const info of Object.values(versions)) {
+    for (const [, versions] of Object.entries(chainData)) {
+      for (const [ver, info] of Object.entries(versions)) {
         for (const addr of Object.keys(info.arbitrators || {})) {
           addrs.add(addr.toLowerCase());
+        }
+        if (info.address?.toLowerCase() === CONTRACT.toLowerCase()) {
+          metaStartBlock   = info.block ?? null;
+          // Version key is like "RealityETH-3.2" or "RealityETH_ERC20-3.2"
+          const major = ver.match(/[-_](\d+)\./)?.[1];
+          metaMajorVersion = major ? parseInt(major) : null;
         }
       }
     }
@@ -585,7 +594,7 @@ async function loadKnownArbitrators() {
   } catch {
     knownArbitrators = null;
   }
-}
+})();
 
 function renderWarnings(data) {
   const container = document.getElementById('warnings-container');
@@ -1010,8 +1019,8 @@ async function verifyWithRpc(data) {
 async function main() {
   const BN0 = ethers.BigNumber.from(0);
 
-  // Start loading known arbitrators in parallel; awaited just before renderWarnings
-  const arbitratorListReady = loadKnownArbitrators();
+  // contractsMetaPromise already started at module load; awaited before renderWarnings
+  // (and also awaited in the RPC fallback path to get the deployment block)
 
   // 1. Wallet setup — check chain ID so reads always go to the right chain
   let walletAddr = null;
@@ -1053,10 +1062,13 @@ async function main() {
       if (titleEl) titleEl.textContent = 'Failed to load question (no data source available).';
       return;
     }
-    // RPC path: used by the test suite and as production fallback
+    // RPC path — await meta so we have the correct deployment block and version
+    await contractsMetaPromise;
+    const effectiveMajor = metaMajorVersion ?? (CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3);
+    const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
+
     data = await withIndicator(rpcInd, async () => {
-      const startBlock = CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
-      const [bond, finalizeTS, newQEvents, answerEvents] = await Promise.all([
+      const [bond, finalizeTS, newQEvents, rawAnswerEvents] = await Promise.all([
         safeCall(() => reality.getBond(QUESTION_ID), BN0),
         safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
         safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), startBlock), []),
@@ -1078,17 +1090,32 @@ async function main() {
           || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
       }
       let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
-      if (majorVersion >= 3) {
+      if (effectiveMajor >= 3) {
         [minBond, settledTooSoon, reopenedBy] = await Promise.all([
           safeCall(() => reality.getMinBond(QUESTION_ID), BN0),
           safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
           safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
         ]);
       }
+      // Normalise raw ethers events to the same shape as adaptPonderData output
+      const answerEvents = rawAnswerEvents.map(ev => ({
+        args: {
+          answer:         ev.args.answer,
+          display_answer: ev.args.is_commitment ? null : ev.args.answer,
+          question_id:    ev.args.question_id,
+          history_hash:   ev.args.history_hash,
+          user:           ev.args.user,
+          bond:           ev.args.bond,
+          ts:             ev.args.ts.toNumber(),
+          is_commitment:  ev.args.is_commitment,
+          is_unrevealed:  ev.args.is_commitment, // RPC can't confirm reveals
+        },
+      }));
+      const arbitrationOccurred = answerEvents.some(ev => ev.args.bond.isZero());
       return {
         bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
         templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
-        minBond, settledTooSoon, reopenedBy, answerEvents,
+        minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred, answerEvents,
       };
     });
   }
@@ -1133,7 +1160,7 @@ async function main() {
   // 5. Render history + status card
   renderHistory(data);
   renderStatusCard(data);
-  await arbitratorListReady;
+  await contractsMetaPromise;
   renderWarnings(data);
 
   // 6. Answer form (or locked state if no wallet and question is open)

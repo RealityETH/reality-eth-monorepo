@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reality.eth — Ask a question</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2330;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --accent: #58a6ff;
+    --accent-subtle: rgba(88,166,255,0.1);
+    --green: #3fb950;
+    --green-subtle: rgba(63,185,80,0.12);
+    --amber: #d29922;
+    --amber-subtle: rgba(210,153,34,0.12);
+    --red: #f85149;
+    --red-subtle: rgba(248,81,73,0.12);
+    --purple: #bc8cff;
+    --radius: 8px;
+    --radius-sm: 5px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px;
+    line-height: 1.5; min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle); padding: 0 24px;
+  }
+  .header-inner {
+    max-width: 900px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px; height: 56px;
+  }
+  .logo {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+  .logo svg { color: var(--accent); }
+  .header-sep { color: var(--border); font-size: 18px; }
+  .header-title { color: var(--text-muted); font-size: 14px; }
+  .header-spacer { flex: 1; }
+  #wallet-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 13px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #wallet-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #wallet-btn.connected { border-color: var(--green); color: var(--green); }
+
+  /* ── Page ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .page-intro { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+
+  /* ── Layout ── */
+  .ask-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+  @media (max-width: 680px) {
+    .ask-layout { grid-template-columns: 1fr; }
+    .col-side { order: -1; }
+  }
+
+  /* ── Cards ── */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card + .card { margin-top: 16px; }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 18px; }
+
+  /* ── Form elements ── */
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  .label-note { font-weight: 400; color: var(--text-dim); }
+  .field-help { font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.5; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .is-error .field-error { display: block; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%; padding: 8px 11px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus,
+  input[type="date"]:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  select option, select optgroup { background: #1c2330; }
+  .is-error input, .is-error select, .is-error textarea { border-color: var(--red); }
+
+  /* ── Answer options ── */
+  .answer-options { display: none; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .answer-options.visible { display: flex; }
+  .answer-option-row { display: flex; gap: 6px; align-items: center; }
+  .answer-option-row input { flex: 1; }
+  .remove-option {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    padding: 4px 6px; border-radius: 4px; font-size: 16px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .remove-option:hover:not(:disabled) { color: var(--red); }
+  .remove-option:disabled { opacity: 0.3; cursor: default; }
+  .add-option-btn {
+    background: none; border: 1px dashed var(--border); border-radius: var(--radius-sm);
+    color: var(--text-dim); cursor: pointer; padding: 6px 12px;
+    font-size: 12px; width: 100%; margin-top: 2px; transition: border-color 0.15s, color 0.15s;
+  }
+  .add-option-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Arbitrator ── */
+  .arb-tos { font-size: 11px; margin-top: 6px; color: var(--text-dim); }
+  .arb-tos a { color: var(--accent); text-decoration: none; }
+  .arb-tos a:hover { text-decoration: underline; }
+  .arb-other { margin-top: 8px; display: none; }
+  .arb-other.visible { display: block; }
+
+  /* ── Cost summary ── */
+  .cost-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+  .cost-row:last-of-type { border-bottom: none; }
+  .cost-label { color: var(--text-muted); }
+  .cost-val { font-weight: 600; color: var(--text); }
+  .cost-total .cost-label { color: var(--text); font-weight: 600; }
+  .cost-total .cost-val { color: var(--accent); font-size: 15px; }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%; padding: 10px 20px; margin-top: 16px;
+    background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .submit-btn:hover:not(:disabled) { opacity: 0.88; }
+  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .tx-error {
+    margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--red-subtle); border: 1px solid rgba(248,81,73,0.3);
+    color: var(--red); font-size: 12px; display: none;
+  }
+  .tx-error.visible { display: block; }
+
+  /* ── Info / warning boxes ── */
+  .info-box {
+    background: var(--accent-subtle); border: 1px solid rgba(88,166,255,0.2);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--accent); line-height: 1.5; margin-top: 14px;
+  }
+  .warn-box {
+    background: var(--amber-subtle); border: 1px solid rgba(210,153,34,0.25);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--amber); line-height: 1.5;
+  }
+
+  /* ── Network ── */
+  .network-row { display: flex; align-items: center; gap: 8px; }
+  .network-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .network-dot.unknown { background: var(--text-dim); }
+  .network-name { font-size: 13px; color: var(--text-muted); }
+  #network-unsupported { display: none; margin-top: 10px; }
+  .chain-pills { display: none; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .chain-pills.visible { display: flex; }
+  .chain-pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .chain-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="browse.html">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      reality.eth
+    </a>
+    <span class="header-sep">/</span>
+    <span class="header-title">Ask a question</span>
+    <div class="header-spacer"></div>
+    <button id="wallet-btn">Connect wallet</button>
+  </div>
+</header>
+
+<div class="page">
+  <h1>Ask a question</h1>
+  <p class="page-intro">Create a new question on-chain. Anyone can bond ETH on an answer. The final unchallenged answer after the dispute window closes becomes the result.</p>
+
+  <form id="ask-form" novalidate>
+  <div class="ask-layout">
+
+    <!-- ── Left column ── -->
+    <div class="col-main">
+
+      <div class="card">
+        <div class="card-title">Question</div>
+
+        <div class="field" id="field-body">
+          <label for="question-body">Question text</label>
+          <textarea id="question-body" name="question-body" rows="4"
+            placeholder="e.g. Will ETH be above $5000 at the end of 2025?"></textarea>
+          <div class="field-error">Please enter your question.</div>
+        </div>
+
+        <div class="field" id="field-category">
+          <label for="question-category">Category</label>
+          <select id="question-category" name="question-category">
+            <option value="">Select category…</option>
+            <option value="arts">Arts</option>
+            <option value="business-finance">Business &amp; Finance</option>
+            <option value="cryptocurrency">Cryptocurrency</option>
+            <option value="news-politics">News &amp; Politics</option>
+            <option value="science-tech">Science &amp; Technology</option>
+            <option value="sports">Sports</option>
+            <option value="weather">Weather</option>
+            <option value="misc">Misc</option>
+          </select>
+          <div class="field-error">Please select a category.</div>
+          <div class="field-help">Helps others find and classify the question.</div>
+        </div>
+
+        <div class="field" id="field-opening">
+          <label for="opening-date">Opening date <span class="label-note">(optional)</span></label>
+          <input type="date" id="opening-date" name="opening-date">
+          <div class="field-help">When answers can first be posted. Leave blank to open immediately. Set this to after the event takes place so answers can be verified before they are submitted.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Answer type</div>
+
+        <div class="field" id="field-type">
+          <label for="question-type">Type</label>
+          <select id="question-type" name="question-type">
+            <option value="bool" selected>Yes / No</option>
+            <option value="single-select">Multiple choice — one correct answer</option>
+            <option value="multiple-select">Multiple choice — multiple correct answers</option>
+            <option value="uint">Number (positive integer)</option>
+            <option value="datetime">Date / time</option>
+          </select>
+          <div class="field-help">For prediction markets and DAO votes, Yes / No is usually right.</div>
+        </div>
+
+        <div class="answer-options" id="answer-options">
+          <label>Answer options</label>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option A" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option B" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <button type="button" class="add-option-btn" id="add-option">+ Add another option</button>
+          <div class="field-error" id="options-error" style="display:none">Please enter at least two options.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Dispute settings</div>
+
+        <div class="field" id="field-timeout">
+          <label for="question-timeout">Dispute window</label>
+          <select id="question-timeout" name="question-timeout">
+            <option value="30">30 seconds — testing only</option>
+            <option value="180">3 minutes — testing / bots only</option>
+            <option value="900">15 minutes</option>
+            <option value="3600">1 hour</option>
+            <option value="10800">3 hours</option>
+            <option value="43200">12 hours</option>
+            <option value="86400" selected>1 day</option>
+            <option value="172800">2 days</option>
+            <option value="259200">3 days</option>
+            <option value="345600">4 days</option>
+            <option value="432000">5 days</option>
+            <option value="604800">1 week</option>
+          </select>
+          <div class="field-help">After each new answer, this window resets. The last unchallenged answer when the window expires is the result. Longer windows give more time to correct mistakes.</div>
+        </div>
+
+        <div class="field" id="field-minbond">
+          <label for="question-minbond">Minimum bond <span class="label-note" id="token-label">(ETH, optional)</span></label>
+          <input type="number" id="question-minbond" name="question-minbond" min="0" step="any" placeholder="0">
+          <div class="field-error">Please enter a valid amount.</div>
+          <div class="field-help">The smallest bond allowed for the first answer. Higher minimum bonds raise the cost of a wrong answer.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Right column ── -->
+    <div class="col-side">
+
+      <div class="card">
+        <div class="card-title">Network</div>
+        <div class="network-row">
+          <div class="network-dot unknown" id="network-dot"></div>
+          <span class="network-name" id="network-name">Not connected</span>
+        </div>
+        <div class="chain-pills" id="chain-pills">
+          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
+          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
+          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
+          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
+          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
+          <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
+        </div>
+        <div class="warn-box" id="timeout-warning" style="display:none;margin-top:10px">
+          ⚠ Dispute window under 24 hours. There may not be enough time for people to correct wrong answers.
+        </div>
+        <div class="warn-box" id="network-unsupported">
+          ⚠ This network is not supported. Switch to Ethereum, Gnosis, Polygon, Arbitrum, Optimism, or Base.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Reward</div>
+        <div class="field" id="field-reward">
+          <label for="question-reward">Reward <span class="label-note" id="reward-token-label">(ETH)</span></label>
+          <input type="number" id="question-reward" name="question-reward" min="0" step="any" value="0" placeholder="0">
+          <div class="field-error">Please enter a valid amount.</div>
+          <div class="field-help">Paid to whoever provides the final answer. Zero is fine — the answerer still earns the disputed bond.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Arbitrator</div>
+        <div class="field" id="field-arbitrator">
+          <label for="question-arbitrator">Arbitrator</label>
+          <select id="question-arbitrator" name="question-arbitrator">
+            <option value="">Loading…</option>
+          </select>
+          <div class="field-error">Please select an arbitrator.</div>
+          <div class="arb-tos" id="arb-tos" style="display:none">
+            Terms of service: <a href="#" id="arb-tos-link" target="_blank" rel="noopener">View</a>
+          </div>
+          <div class="arb-other" id="arb-other">
+            <input type="text" id="arbitrator-address" placeholder="0x… arbitrator address">
+          </div>
+          <div class="field-help">Resolves disputes when challengers disagree. The arbitrator fee is added to your total cost.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cost summary</div>
+        <div class="cost-row">
+          <span class="cost-label">Reward</span>
+          <span class="cost-val" id="summary-reward">0 ETH</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Arbitrator fee</span>
+          <span class="cost-val" id="summary-arb-fee">—</span>
+        </div>
+        <div class="cost-row cost-total">
+          <span class="cost-label">Total</span>
+          <span class="cost-val" id="summary-total">—</span>
+        </div>
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>Ask question</button>
+        <div class="tx-error" id="tx-error"></div>
+        <div class="info-box" id="wallet-notice">Connect your wallet to ask a question.</div>
+      </div>
+
+    </div>
+  </div>
+  </form>
+</div>
+
+<script src="js/ethers.js"></script>
+<script src="js/wallet.js"></script>
+<script>
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const DELIM = '␟';
+
+const TEMPLATE_IDS = { bool: 0, uint: 1, 'single-select': 2, 'multiple-select': 3, datetime: 4 };
+
+// Preferred contract version order (newest first)
+const VERSION_PREFERENCE = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
+
+const CHAIN_NATIVE_TOKEN = {
+  1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
+  10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
+};
+const CHAIN_NAME = {
+  1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 42161: 'Arbitrum',
+  10: 'Optimism', 8453: 'Base', 130: 'Unichain', 11155111: 'Sepolia',
+};
+
+const RC_ABI = [
+  'function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) payable returns (bytes32)',
+  'function askQuestionWithMinBond(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) payable returns (bytes32)',
+  'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
+];
+
+const ARB_ABI = [
+  'function arbitrator_question_fees(address) view returns (uint256)',
+];
+
+// Kleros TOS (keyed by lowercase address prefix — used for known arbitrators)
+const ARB_TOS = {
+  '0xff32eff': 'https://kleros.io/tos',
+  '0xf72cfd1': 'https://kleros.io/tos',
+  '0x7837638': 'https://kleros.io/tos',
+  '0x728cba7': 'https://kleros.io/tos',
+  '0x29f39de': 'https://kleros.io/tos',
+  '0x5afa42b': 'https://kleros.io/tos',
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let provider = null;
+let signer   = null;
+let walletAddr = null;
+let chainId  = null;
+let rcAddress = null;   // reality.eth contract for current chain
+let rcToken   = 'ETH'; // native token ticker
+let contractsData = null;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+
+const form         = document.getElementById('ask-form');
+const submitBtn    = document.getElementById('submit-btn');
+const txError      = document.getElementById('tx-error');
+const walletNotice = document.getElementById('wallet-notice');
+const arbSelect    = document.getElementById('question-arbitrator');
+const arbTosEl     = document.getElementById('arb-tos');
+const arbTosLink   = document.getElementById('arb-tos-link');
+const arbOtherEl   = document.getElementById('arb-other');
+const networkName  = document.getElementById('network-name');
+const networkDot   = document.getElementById('network-dot');
+const timeoutWarning   = document.getElementById('timeout-warning');
+const networkUnsupported = document.getElementById('network-unsupported');
+const typeSelect   = document.getElementById('question-type');
+const optionsWrap  = document.getElementById('answer-options');
+const addOptionBtn = document.getElementById('add-option');
+const rewardInput  = document.getElementById('question-reward');
+const timeoutSel   = document.getElementById('question-timeout');
+
+// ── Contracts data ─────────────────────────────────────────────────────────────
+
+async function loadContracts() {
+  if (contractsData) return contractsData;
+  const res = await fetch('/packages/contracts/generated/contracts.json');
+  contractsData = await res.json();
+  return contractsData;
+}
+
+function findContractForChain(data, chain) {
+  const token = CHAIN_NATIVE_TOKEN[chain];
+  if (!token) return null;
+  const versions = data[String(chain)]?.[token] || {};
+  for (const ver of VERSION_PREFERENCE) {
+    if (versions[ver]?.address) {
+      return { address: versions[ver].address, version: ver, token };
+    }
+  }
+  return null;
+}
+
+function findArbitratorsForChain(data, chain) {
+  const token = CHAIN_NATIVE_TOKEN[chain];
+  if (!token) return [];
+  const versions = data[String(chain)]?.[token] || {};
+  const seen = new Map();
+  for (const info of Object.values(versions)) {
+    for (const [addr, name] of Object.entries(info.arbitrators || {})) {
+      seen.set(addr.toLowerCase(), { addr, name });
+    }
+  }
+  return [...seen.values()];
+}
+
+// ── Arbitrator select ─────────────────────────────────────────────────────────
+
+async function populateArbitrators(chain, rcAddr) {
+  const data = await loadContracts();
+  const arbs = findArbitratorsForChain(data, chain);
+
+  arbSelect.innerHTML = '';
+  if (arbs.length === 0) {
+    arbSelect.innerHTML = '<option value="">No known arbitrators for this network</option>';
+  } else {
+    arbSelect.innerHTML = '<option value="">Select arbitrator…</option>';
+    for (const { addr, name } of arbs) {
+      const opt = document.createElement('option');
+      opt.value = addr;
+      opt.textContent = name;
+      opt.dataset.fee = '';
+      arbSelect.appendChild(opt);
+    }
+  }
+  // "No arbitrator" option
+  const selfOpt = document.createElement('option');
+  selfOpt.value = 'self';
+  selfOpt.textContent = 'No arbitrator (contract itself) — free';
+  selfOpt.dataset.fee = '0';
+  arbSelect.appendChild(selfOpt);
+  // "Other" option
+  const otherOpt = document.createElement('option');
+  otherOpt.value = 'other';
+  otherOpt.textContent = 'Other (enter address)…';
+  arbSelect.appendChild(otherOpt);
+
+  updateArbTos();
+  updateCost();
+
+  // Fetch fees in background — update labels as they arrive
+  if (rcAddr) {
+    const prov = provider || new ethers.providers.Web3Provider(window.ethereum);
+    for (const { addr, name } of arbs) {
+      try {
+        const arb = new ethers.Contract(addr, ARB_ABI, prov);
+        const fee = await arb.arbitrator_question_fees(rcAddr);
+        const eth = ethers.utils.formatEther(fee);
+        const display = parseFloat(eth) === 0 ? 'free' : `${parseFloat(eth)} ${rcToken}`;
+        // Update matching option label
+        for (const opt of arbSelect.options) {
+          if (opt.value.toLowerCase() === addr.toLowerCase()) {
+            opt.textContent = `${name} — ${display}`;
+            opt.dataset.fee = ethers.utils.formatEther(fee);
+            break;
+          }
+        }
+      } catch { /* arbitrator doesn't implement the interface or call failed */ }
+      if (arbSelect.value.toLowerCase() === addr.toLowerCase()) updateCost();
+    }
+  }
+}
+
+function updateArbTos() {
+  const val = arbSelect.value;
+  const isOther = val === 'other';
+  arbOtherEl.classList.toggle('visible', isOther);
+
+  const prefix = val.slice(0, 9).toLowerCase();
+  const tos = ARB_TOS[prefix];
+  arbTosEl.style.display = tos ? 'block' : 'none';
+  if (tos) arbTosLink.href = tos;
+}
+
+// ── Chain switching ───────────────────────────────────────────────────────────
+
+const CHAIN_ADD_PARAMS = {
+  100: {
+    chainId: '0x64', chainName: 'Gnosis',
+    nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
+    rpcUrls: ['https://rpc.gnosischain.com'],
+    blockExplorerUrls: ['https://gnosisscan.io'],
+  },
+};
+
+async function switchChain(chain) {
+  if (!window.ethereum) return;
+  const hexChain = '0x' + chain.toString(16);
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
+  } catch (err) {
+    if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
+      try {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
+      } catch {}
+    }
+  }
+}
+
+function updateChainPills(activeChain) {
+  const pills = document.getElementById('chain-pills');
+  pills.classList.toggle('visible', !!walletAddr);
+  for (const pill of pills.querySelectorAll('.chain-pill')) {
+    pill.classList.toggle('active', parseInt(pill.dataset.chain) === activeChain);
+  }
+}
+
+// ── Network setup ─────────────────────────────────────────────────────────────
+
+async function setupForChain(chain) {
+  chainId = chain;
+  const name = CHAIN_NAME[chain] || `Chain ${chain}`;
+  const data = await loadContracts();
+  const info = findContractForChain(data, chain);
+
+  networkName.textContent = name;
+  networkDot.classList.toggle('unknown', !info);
+  networkUnsupported.style.display = info ? 'none' : 'block';
+  updateChainPills(chain);
+
+  if (!info) {
+    rcAddress = null;
+    rcToken = CHAIN_NATIVE_TOKEN[chain] || 'ETH';
+    arbSelect.innerHTML = '<option value="">Unsupported network</option>';
+    updateCost();
+    return;
+  }
+
+  rcAddress = info.address;
+  rcToken = info.token;
+
+  // Update token labels
+  document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
+  document.getElementById('reward-token-label').textContent = `(${rcToken})`;
+  document.getElementById('summary-reward').textContent = `0 ${rcToken}`;
+
+  await populateArbitrators(chain, rcAddress);
+  updateSubmitState();
+}
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+function onWalletChange(addr) {
+  walletAddr = addr;
+  const btn = document.getElementById('wallet-btn');
+  if (addr) {
+    btn.textContent = RealityWallet.shortAddr(addr);
+    btn.classList.add('connected');
+    btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer   = provider.getSigner();
+    walletNotice.style.display = 'none';
+
+    // Get chain
+    provider.getNetwork().then(net => setupForChain(net.chainId));
+
+    // Listen for chain changes
+    window.ethereum.removeAllListeners?.('chainChanged');
+    window.ethereum.on('chainChanged', hexChain => {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer   = provider.getSigner();
+      setupForChain(parseInt(hexChain, 16));
+    });
+  } else {
+    btn.textContent = 'Connect wallet';
+    btn.classList.remove('connected');
+    btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
+    provider = null; signer = null;
+    networkName.textContent = 'Not connected';
+    networkDot.classList.add('unknown');
+    walletNotice.style.display = 'block';
+    updateChainPills(null);
+  }
+  updateSubmitState();
+}
+
+// ── Answer type toggling ──────────────────────────────────────────────────────
+
+typeSelect.addEventListener('change', () => {
+  const t = typeSelect.value;
+  const multi = t === 'single-select' || t === 'multiple-select';
+  optionsWrap.classList.toggle('visible', multi);
+});
+
+addOptionBtn.addEventListener('click', () => {
+  const rows = optionsWrap.querySelectorAll('.answer-option-row');
+  const letter = String.fromCharCode(65 + rows.length);
+  const row = document.createElement('div');
+  row.className = 'answer-option-row';
+  row.innerHTML = `<input type="text" placeholder="Option ${letter}" class="answer-option-input">
+    <button type="button" class="remove-option">×</button>`;
+  optionsWrap.insertBefore(row, addOptionBtn);
+  updateRemoveButtons();
+});
+
+optionsWrap.addEventListener('click', e => {
+  if (!e.target.classList.contains('remove-option') || e.target.disabled) return;
+  e.target.closest('.answer-option-row').remove();
+  updateRemoveButtons();
+});
+
+function updateRemoveButtons() {
+  const rows = optionsWrap.querySelectorAll('.answer-option-row');
+  rows.forEach(r => { r.querySelector('.remove-option').disabled = rows.length <= 2; });
+}
+
+// ── Timeout warning ───────────────────────────────────────────────────────────
+
+timeoutSel.addEventListener('change', () => {
+  timeoutWarning.style.display = parseInt(timeoutSel.value) < 86400 ? 'block' : 'none';
+  updateCost();
+});
+
+// ── Arbitrator change ─────────────────────────────────────────────────────────
+
+arbSelect.addEventListener('change', () => { updateArbTos(); updateCost(); });
+
+// ── Cost summary ──────────────────────────────────────────────────────────────
+
+rewardInput.addEventListener('input', updateCost);
+
+function updateCost() {
+  const reward = parseFloat(rewardInput.value) || 0;
+  const opt    = arbSelect.options[arbSelect.selectedIndex];
+  const fee    = opt?.dataset?.fee !== undefined && opt.dataset.fee !== ''
+    ? parseFloat(opt.dataset.fee) : null;
+
+  document.getElementById('summary-reward').textContent =
+    `${reward || 0} ${rcToken}`;
+  document.getElementById('summary-arb-fee').textContent =
+    fee !== null ? (fee > 0 ? `${fee} ${rcToken}` : 'Free') : '—';
+  document.getElementById('summary-total').textContent =
+    fee !== null ? `${+(reward + fee).toFixed(6)} ${rcToken}` : '—';
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+
+function setError(fieldId, msg) {
+  const el = document.getElementById(fieldId);
+  el.classList.add('is-error');
+  if (msg) { const fe = el.querySelector('.field-error'); if (fe) fe.textContent = msg; }
+}
+function clearError(fieldId) {
+  document.getElementById(fieldId)?.classList.remove('is-error');
+}
+
+function validate() {
+  let ok = true;
+  const body = document.getElementById('question-body').value.trim();
+  if (!body) { setError('field-body'); ok = false; } else clearError('field-body');
+
+  const cat = document.getElementById('question-category').value;
+  if (!cat) { setError('field-category'); ok = false; } else clearError('field-category');
+
+  const type = typeSelect.value;
+  if (type === 'single-select' || type === 'multiple-select') {
+    const opts = [...optionsWrap.querySelectorAll('.answer-option-input')]
+      .map(i => i.value.trim()).filter(Boolean);
+    const errEl = document.getElementById('options-error');
+    if (opts.length < 2) {
+      errEl.style.display = 'block'; ok = false;
+    } else {
+      errEl.style.display = 'none';
+    }
+  }
+
+  if (!arbSelect.value) { setError('field-arbitrator'); ok = false; } else clearError('field-arbitrator');
+  if (arbSelect.value === 'other') {
+    const addr = document.getElementById('arbitrator-address').value.trim();
+    if (!ethers.utils.isAddress(addr)) { setError('field-arbitrator', 'Please enter a valid address.'); ok = false; }
+  }
+
+  const minBondVal = document.getElementById('question-minbond').value;
+  if (minBondVal && isNaN(parseFloat(minBondVal))) {
+    setError('field-minbond', 'Please enter a valid amount.'); ok = false;
+  } else clearError('field-minbond');
+
+  const rewardVal = rewardInput.value;
+  if (rewardVal && isNaN(parseFloat(rewardVal))) {
+    setError('field-reward', 'Please enter a valid amount.'); ok = false;
+  } else clearError('field-reward');
+
+  return ok;
+}
+
+function updateSubmitState() {
+  submitBtn.disabled = !walletAddr || !rcAddress;
+}
+
+// ── Question encoding ─────────────────────────────────────────────────────────
+
+function encodeQuestion(type, title, outcomes, category) {
+  const parts = [title];
+  if (type === 'single-select' || type === 'multiple-select') {
+    parts.push(outcomes.map(o => JSON.stringify(o)).join(','));
+  }
+  parts.push(category);
+  return parts.join(DELIM);
+}
+
+// ── TX helper ─────────────────────────────────────────────────────────────────
+
+function txErrorMessage(err) {
+  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED') return 'Transaction rejected.';
+  return err?.reason || err?.data?.message || err?.message || 'Transaction failed.';
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!signer || !rcAddress) return;
+  if (!validate()) return;
+
+  txError.classList.remove('visible');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Waiting for wallet…';
+
+  try {
+    const type     = typeSelect.value;
+    const title    = document.getElementById('question-body').value.trim();
+    const category = document.getElementById('question-category').value;
+    const opening  = document.getElementById('opening-date').value;
+    const timeout  = parseInt(timeoutSel.value);
+    const rewardEth  = rewardInput.value || '0';
+    const minBondEth = document.getElementById('question-minbond').value || '0';
+    const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
+      .map(i => i.value.trim()).filter(Boolean);
+
+    const templateId = TEMPLATE_IDS[type];
+    const qtext = encodeQuestion(type, title, outcomes, category);
+    const openingTs = opening
+      ? Math.floor(new Date(opening + 'T00:00:00Z').getTime() / 1000) : 0;
+    const rewardWei  = ethers.utils.parseEther(rewardEth);
+    const minBondWei = ethers.utils.parseEther(minBondEth);
+
+    // Resolve arbitrator address and get current fee
+    let arbAddr, feeWei = ethers.BigNumber.from(0);
+    const arbVal = arbSelect.value;
+    if (arbVal === 'self') {
+      arbAddr = rcAddress;
+    } else if (arbVal === 'other') {
+      arbAddr = document.getElementById('arbitrator-address').value.trim();
+    } else {
+      arbAddr = arbVal;
+      try {
+        const arbContract = new ethers.Contract(arbAddr, ARB_ABI, provider);
+        feeWei = await arbContract.arbitrator_question_fees(rcAddress);
+      } catch {}
+    }
+
+    const value = rewardWei.add(feeWei);
+    const reality = new ethers.Contract(rcAddress, RC_ABI, signer);
+
+    let tx;
+    if (minBondWei.gt(0)) {
+      tx = await reality.askQuestionWithMinBond(
+        templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value });
+    } else {
+      tx = await reality.askQuestion(
+        templateId, qtext, arbAddr, timeout, openingTs, 0, { value });
+    }
+
+    submitBtn.textContent = 'Pending…';
+    const receipt = await tx.wait();
+
+    // Extract question ID from LogNewQuestion event
+    const iface = new ethers.utils.Interface(RC_ABI);
+    let questionId = null;
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed.name === 'LogNewQuestion') { questionId = parsed.args.question_id; break; }
+      } catch {}
+    }
+
+    submitBtn.textContent = '✓ Question asked!';
+    setTimeout(() => {
+      if (questionId) {
+        window.location.href =
+          `question.html#!/network/${chainId}/question/${rcAddress.toLowerCase()}-${questionId}`;
+      } else {
+        window.location.href = 'browse.html';
+      }
+    }, 1000);
+
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Ask question';
+    txError.textContent = txErrorMessage(err);
+    txError.classList.add('visible');
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('wallet-btn').onclick =
+    () => RealityWallet.connectWallet(onWalletChange);
+  RealityWallet.initWallet(onWalletChange);
+  loadContracts().catch(() => {}); // warm cache
+
+  document.getElementById('chain-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.chain-pill');
+    if (pill) switchChain(parseInt(pill.dataset.chain));
+  });
+});
+</script>
+</body>
+</html>
