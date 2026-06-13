@@ -68,12 +68,13 @@
   @media (max-width: 700px) { .header-nav { display: none; } }
 
   /* ── Page ── */
-  .page { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
   h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
   .page-intro { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
 
   /* ── Layout ── */
   .ask-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+  .ask-layout > * { min-width: 0; }
   @media (max-width: 680px) {
     .ask-layout { grid-template-columns: 1fr; }
     .col-side { order: -1; }
@@ -246,8 +247,8 @@
   .badge-cat  { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border); }
   .badge-lang { background: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border-subtle); }
   .view-title-text {
-    font-size: 15px; line-height: 1.6; color: var(--text); margin: 16px 0 6px;
-    white-space: pre-wrap; word-break: break-word;
+    font-size: 15px; line-height: 1.6; color: var(--text); margin: 0 0 6px;
+    overflow-wrap: anywhere;
   }
   .view-title-text .ph { color: var(--accent); font-style: italic; }
   .view-outcomes { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
