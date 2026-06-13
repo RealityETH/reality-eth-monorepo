@@ -76,6 +76,9 @@ const REALITY_ABI = [
   'function templates(uint256) view returns (string)',
   'function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) payable',
   'function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens)',
+  'function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) payable',
+  'function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens)',
+  'function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond)',
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
   'function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) payable',
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
@@ -460,6 +463,86 @@ function buildClaimArgs(questionId, answerEvents) {
   return { question_ids: [questionId], lengths: [n], hist_hashes, addrs, bonds, answers };
 }
 
+// ── Commit-reveal helpers ─────────────────────────────────────────────────────
+function makeRevealNonce() {
+  return ethers.utils.hexlify(ethers.utils.randomBytes(32));
+}
+
+function computeCommitHash(ansBytes, nonce) {
+  // Matches soliditySHA3(["uint256","uint256"], [answer, nonce]) in the contracts lib
+  return ethers.utils.solidityKeccak256(['uint256', 'uint256'], [ansBytes, nonce]);
+}
+
+const PENDING_REVEAL_KEY = `cr-${CHAIN_ID}-${CONTRACT.toLowerCase()}-${QUESTION_ID}`;
+
+function storePendingReveal(walletAddr, ansBytes, nonce, bondWei) {
+  try {
+    localStorage.setItem(PENDING_REVEAL_KEY, JSON.stringify({
+      wallet: walletAddr.toLowerCase(), answer: ansBytes, nonce, bond: bondWei.toHexString(),
+    }));
+  } catch {}
+}
+
+function clearPendingReveal() {
+  try { localStorage.removeItem(PENDING_REVEAL_KEY); } catch {}
+}
+
+function loadPendingReveal(walletAddr) {
+  try {
+    const item = JSON.parse(localStorage.getItem(PENDING_REVEAL_KEY) || 'null');
+    if (item?.wallet === walletAddr?.toLowerCase()) return item;
+  } catch {}
+  return null;
+}
+
+async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjson) {
+  const originalText = btn.textContent;
+  const nonce = makeRevealNonce();
+  const answerHash = computeCommitHash(ansBytes, nonce);
+  storePendingReveal(walletAddr, ansBytes, nonce, bondWei);
+
+  btn.disabled = true;
+  try {
+    await ensureCorrectChain();
+    const wp = new ethers.providers.Web3Provider(window.ethereum);
+    const rc = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+
+    if (metaTokenAddress) {
+      btn.textContent = `Approve ${metaToken} in wallet…`;
+      const tokenRead = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, wp);
+      const allowance = await tokenRead.allowance(walletAddr, CONTRACT);
+      if (allowance.lt(bondWei)) {
+        const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, wp.getSigner());
+        const approveTx = await tokenRW.approve(CONTRACT, bondWei);
+        btn.textContent = `Approving ${metaToken}…`;
+        await approveTx.wait();
+      }
+    }
+
+    btn.textContent = 'Waiting for wallet (commit)…';
+    const commitTx = metaTokenAddress
+      ? await rc.submitAnswerCommitmentERC20(QUESTION_ID, answerHash, maxPrev, walletAddr, bondWei)
+      : await rc.submitAnswerCommitment(QUESTION_ID, answerHash, maxPrev, walletAddr, { value: bondWei });
+    btn.textContent = 'Committing…';
+    addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson);
+    await commitTx.wait();
+
+    btn.textContent = 'Waiting for wallet (reveal)…';
+    const revealTx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
+    btn.textContent = 'Revealing…';
+    await revealTx.wait();
+
+    clearPendingReveal();
+    btn.textContent = '✓ Done';
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    showTxError(btn, txErrorMessage(err));
+    // If commit confirmed but reveal failed, storePendingReveal remains for the next page load
+  }
+}
+
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
   const { qjson, minBond, openingTS, finalizeTS, answerEvents } = data;
@@ -591,10 +674,22 @@ function buildAnswerForm(data, walletAddr) {
   bondWrap.appendChild(minEl);
   form.appendChild(bondWrap);
 
+  // ── Commit-reveal toggle ──
+  const crLabel = el('label', 'cr-toggle');
+  const crCb    = document.createElement('input');
+  crCb.type = 'checkbox';
+  crLabel.appendChild(crCb);
+  crLabel.appendChild(document.createTextNode(' Use commit-reveal'));
+  form.appendChild(crLabel);
+
   // ── Submit button ──
   const btn = el('button', 'post-answer-button btn-post', 'Post answer');
   btn.type = 'button';
   form.appendChild(btn);
+
+  crCb.addEventListener('change', () => {
+    btn.textContent = crCb.checked ? 'Commit then reveal' : 'Post answer';
+  });
 
   // ── Bond keyup validation ──
   bondInput.addEventListener('keyup', () => validateBond(bondWrap, bondInput, minRequired));
@@ -629,14 +724,15 @@ function buildAnswerForm(data, walletAddr) {
 
     if (rawAnswer === '' || rawAnswer === undefined) return;
     if (!validateBond(bondWrap, bondInput, minRequired)) return;
-
     if (!realityRW) { console.error('No wallet connected'); return; }
 
     const ansBytes = answerToBytes32(rawAnswer, qjson);
     const bondWei  = ethers.utils.parseEther(bondInput.value);
-    const maxPrev  = data.bond; // front-run guard
+    const maxPrev  = data.bond;
 
-    if (metaTokenAddress) {
+    if (crCb.checked) {
+      runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjson);
+    } else if (metaTokenAddress) {
       runTxWithERC20Approval(
         btn, 'Post answer', walletAddr,
         metaTokenAddress, CONTRACT, bondWei,
@@ -653,6 +749,50 @@ function buildAnswerForm(data, walletAddr) {
 
   const card = el('div', 'card');
   card.appendChild(el('div', 'card-title', 'Answer'));
+
+  // ── Pending-reveal notice ──
+  // If the latest answer is our unrevealed commitment and we have the nonce stored, show a Reveal button.
+  if (walletAddr) {
+    const pending = loadPendingReveal(walletAddr);
+    const lastEv  = data.answerEvents[data.answerEvents.length - 1];
+    if (pending && lastEv?.args.is_unrevealed &&
+        lastEv.args.user.toLowerCase() === walletAddr.toLowerCase()) {
+      const expiryTs  = lastEv.args.ts + Math.floor(data.timeout / 8);
+      const remaining = expiryTs - Math.floor(Date.now() / 1000);
+      const expiryStr = remaining > 0 ? `Expires in ${formatDuration(remaining)}.` : 'Commitment has expired.';
+
+      const notice = el('div', 'pending-reveal-notice');
+      notice.innerHTML = `<strong>Unrevealed commitment</strong>${expiryStr} Complete your reveal to finalise your answer.`;
+      const revealBtn = el('button', 'reveal-btn', 'Reveal my answer');
+      revealBtn.type = 'button';
+      notice.appendChild(revealBtn);
+      card.appendChild(notice);
+
+      revealBtn.addEventListener('click', async () => {
+        revealBtn.disabled = true;
+        revealBtn.textContent = 'Waiting for wallet…';
+        try {
+          await ensureCorrectChain();
+          const wp = new ethers.providers.Web3Provider(window.ethereum);
+          const rc = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+          const ansBytes = pending.answer;
+          const nonce    = pending.nonce;
+          const bondWei  = ethers.BigNumber.from(pending.bond);
+          const tx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
+          revealBtn.textContent = 'Revealing…';
+          await tx.wait();
+          clearPendingReveal();
+          revealBtn.textContent = '✓ Done';
+          setTimeout(() => location.reload(), 1500);
+        } catch (err) {
+          revealBtn.disabled = false;
+          revealBtn.textContent = 'Reveal my answer';
+          showTxError(revealBtn, txErrorMessage(err));
+        }
+      });
+    }
+  }
+
   card.appendChild(form);
   return card;
 }
