@@ -256,7 +256,8 @@
     background: var(--bg); border: 1px solid var(--border-subtle);
     font-size: 13px; color: var(--text-muted);
   }
-  .view-meta-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+  .view-meta-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; }
+  .has-content-above .view-meta-row { border-top: 1px solid var(--border-subtle); }
   .view-meta-item { font-size: 12px; }
   .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
   .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
@@ -320,10 +321,15 @@
         <div class="col-main">
           <div class="card">
             <div class="view-id-line">Template #<span class="view-id-num" id="view-id-num"></span></div>
-            <div id="view-badges"></div>
+            <div id="view-badges" style="margin-bottom:12px;"></div>
+            <div class="json-preview" id="view-json"></div>
+          </div>
+        </div>
+        <div class="col-side">
+          <div class="card" id="view-detail-card">
             <div class="view-title-text" id="view-title-text"></div>
             <div class="view-outcomes" id="view-outcomes"></div>
-            <div class="view-meta-row">
+            <div class="view-meta-row" id="view-meta-row">
               <div class="view-meta-item">
                 <div class="view-meta-label">Creator</div>
                 <div class="view-meta-val" id="view-creator"></div>
@@ -338,15 +344,10 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="col-side">
-          <div class="card">
-            <div class="card-title">JSON</div>
-            <div class="json-preview" id="view-json"></div>
-          </div>
           <div class="card">
             <div class="card-title">Actions</div>
             <a class="view-action-btn view-action-primary" id="view-browse-link" href="#">Browse questions using this template</a>
+            <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
             <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
           </div>
         </div>
@@ -367,8 +368,9 @@
       <div class="card">
         <div class="card-title">Template type</div>
         <div class="type-toggle">
+          <button type="button" class="type-toggle-btn" id="toggle-zodiac">Zodiac</button>
           <button type="button" class="type-toggle-btn active" id="toggle-custom">Custom</button>
-          <button type="button" class="type-toggle-btn" id="toggle-zodiac">Zodiac Reality Module</button>
+          <button type="button" class="type-toggle-btn" id="toggle-raw">Raw JSON</button>
         </div>
         <div class="info-box" id="zodiac-info" style="display:none; margin-top:14px;">
           Generates the standard SafeSnap template for on-chain execution of Snapshot DAO proposals. The ENS name is embedded in the question text so voters know which space's requirements apply.
@@ -452,6 +454,18 @@
             <option value="fi">Finnish</option>
             <option value="no">Norwegian</option>
           </select>
+        </div>
+      </div>
+
+      <!-- Raw JSON form -->
+      <div class="card" id="form-raw" style="display:none">
+        <div class="card-title">Template JSON</div>
+        <div class="field">
+          <textarea id="raw-json" rows="14"
+            style="font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace; font-size: 12px; line-height: 1.6;"
+            placeholder='{"title": "...", "type": "bool", "category": "...", "lang": "en"}'></textarea>
+          <div class="field-help">Edit the JSON directly. Required: <code>title</code>, <code>type</code>, <code>category</code>.</div>
+          <div class="field-error" id="raw-error" style="display:none">Invalid JSON or missing required fields (title, type, category).</div>
         </div>
       </div>
 
@@ -746,8 +760,10 @@ function setTemplateMode(mode) {
   templateMode = mode;
   document.getElementById('toggle-custom').classList.toggle('active', mode === 'custom');
   document.getElementById('toggle-zodiac').classList.toggle('active', mode === 'zodiac');
+  document.getElementById('toggle-raw').classList.toggle('active',    mode === 'raw');
   document.getElementById('form-custom').style.display  = mode === 'custom'  ? '' : 'none';
   document.getElementById('form-zodiac').style.display  = mode === 'zodiac'  ? '' : 'none';
+  document.getElementById('form-raw').style.display     = mode === 'raw'     ? '' : 'none';
   document.getElementById('zodiac-info').style.display  = mode === 'zodiac'  ? '' : 'none';
   updatePreview();
   updateSubmitState();
@@ -824,10 +840,20 @@ function buildZodiacTitle(ens) {
 });
 document.getElementById('tmpl-type').addEventListener('change', updatePreview);
 document.getElementById('tmpl-lang').addEventListener('change', updatePreview);
+document.getElementById('raw-json').addEventListener('input', updatePreview);
 
 // ── Template building ─────────────────────────────────────────────────────────
 
 function buildTemplate() {
+  if (templateMode === 'raw') {
+    const rawVal = document.getElementById('raw-json').value.trim();
+    if (!rawVal) return null;
+    try {
+      const tmpl = JSON.parse(rawVal);
+      if (!tmpl.title || !tmpl.type || !tmpl.category) return null;
+      return tmpl;
+    } catch { return null; }
+  }
   if (templateMode === 'zodiac') {
     const ens = document.getElementById('tmpl-ens').value.trim();
     if (!ens || !ens.includes('.')) return null;
@@ -864,6 +890,19 @@ function buildTemplate() {
 // ── JSON preview ──────────────────────────────────────────────────────────────
 
 function updatePreview() {
+  if (templateMode === 'raw') {
+    const rawVal = document.getElementById('raw-json').value.trim();
+    try {
+      const tmpl = JSON.parse(rawVal);
+      jsonPreview.className = 'json-preview';
+      jsonPreview.textContent = JSON.stringify(tmpl, null, 2);
+    } catch {
+      jsonPreview.className = 'json-preview empty';
+      jsonPreview.textContent = rawVal ? 'Invalid JSON.' : 'Enter template JSON.';
+    }
+    updateSubmitState();
+    return;
+  }
   const tmpl = buildTemplate();
   if (!tmpl) {
     jsonPreview.className = 'json-preview empty';
@@ -879,6 +918,20 @@ function updatePreview() {
 // ── Validation ────────────────────────────────────────────────────────────────
 
 function validate() {
+  if (templateMode === 'raw') {
+    const rawVal = document.getElementById('raw-json').value.trim();
+    const errEl  = document.getElementById('raw-error');
+    try {
+      const tmpl = JSON.parse(rawVal);
+      if (!tmpl.title || !tmpl.type || !tmpl.category) throw new Error();
+      errEl.style.display = 'none';
+      return true;
+    } catch {
+      errEl.style.display = 'block';
+      return false;
+    }
+  }
+
   let ok = true;
 
   if (templateMode === 'zodiac') {
@@ -1019,9 +1072,8 @@ async function gql(query, variables) {
 function parseHash() {
   const raw = window.location.hash.replace(/^#!?\/?/, '');
   if (!raw) return null;
-  // numeric only → search by templateId
+  if (raw.startsWith('raw/')) return { mode: 'rawCreate', json: decodeURIComponent(raw.slice(4)) };
   if (/^\d+$/.test(raw)) return { mode: 'byId', templateId: parseInt(raw) };
-  // compound ponder key  chainId-0xaddr-templateId
   const m = raw.match(/^(\d+)-(0x[a-fA-F0-9]+)-(\d+)$/);
   if (m) return { mode: 'direct', ponderId: raw };
   return null;
@@ -1086,6 +1138,9 @@ function renderTemplateView(t) {
     outcomesWrap.appendChild(row);
   }
 
+  const hasAbove = !!tmpl.title || !!tmpl.outcomes?.length || tmpl.decimals !== undefined;
+  document.getElementById('view-detail-card').classList.toggle('has-content-above', hasAbove);
+
   document.getElementById('view-creator').textContent = t.user;
   document.getElementById('view-contract').textContent =
     `${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`} · ${t.contract.slice(0,10)}…`;
@@ -1093,8 +1148,13 @@ function renderTemplateView(t) {
 
   document.getElementById('view-json').textContent = JSON.stringify(tmpl, null, 2);
 
-  const browseLink = document.getElementById('view-browse-link');
-  browseLink.href = `browse.html#!/network/${t.chainId}/template/${t.templateId}`;
+  document.getElementById('view-browse-link').href =
+    `browse.html#!/network/${t.chainId}/template/${t.templateId}`;
+
+  document.getElementById('clone-btn').onclick = () => {
+    const json = JSON.stringify(tmpl, null, 2);
+    window.location.hash = '!/raw/' + encodeURIComponent(json);
+  };
 
   document.getElementById('view-loading').style.display = 'none';
   document.getElementById('view-single').style.display = '';
@@ -1173,15 +1233,30 @@ document.addEventListener('DOMContentLoaded', () => {
     () => RealityWallet.connectWallet(onWalletChange);
   RealityWallet.initWallet(onWalletChange);
 
-  const parsed = parseHash();
-  if (parsed) {
-    loadViewMode(parsed);
-  } else {
-    loadContracts().catch(() => {});
+  function applyHash() {
+    const parsed = parseHash();
+    if (parsed?.mode === 'rawCreate') {
+      document.getElementById('view-section').style.display = 'none';
+      document.getElementById('create-section').style.display = '';
+      document.getElementById('header-title').textContent = 'Create template';
+      document.title = 'reality.eth — Create template';
+      setTemplateMode('raw');
+      document.getElementById('raw-json').value = parsed.json;
+      updatePreview();
+      if (!contractsData) loadContracts().catch(() => {});
+    } else if (parsed) {
+      loadViewMode(parsed);
+    } else {
+      loadContracts().catch(() => {});
+    }
   }
+
+  window.addEventListener('hashchange', applyHash);
+  applyHash();
 
   document.getElementById('toggle-custom').addEventListener('click', () => setTemplateMode('custom'));
   document.getElementById('toggle-zodiac').addEventListener('click', () => setTemplateMode('zodiac'));
+  document.getElementById('toggle-raw').addEventListener('click',    () => setTemplateMode('raw'));
 
   document.getElementById('chain-pills').addEventListener('click', e => {
     const pill = e.target.closest('.chain-pill');
