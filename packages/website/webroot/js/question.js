@@ -134,6 +134,16 @@ async function safeCall(fn, fallback) {
   try { return await fn(); } catch { return fallback; }
 }
 
+// Render an address as a link to our account page plus an ↗ emoji to the explorer.
+function addrLinks(addr, chainId = CHAIN_ID) {
+  if (!addr || /^0x0+$/.test(addr)) return null;
+  const short = addr.slice(0, 6) + '…' + addr.slice(-4);
+  const exp   = EXPLORER[chainId] || '';
+  const acct  = `<a class="bond-addr-link" href="account.html?address=${addr}">${short}</a>`;
+  const extLk = exp ? ` <a class="bond-addr-ext" href="${exp}/address/${addr}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
+  return acct + extLk;
+}
+
 function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -873,17 +883,11 @@ function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
   if (!bondList) return;
 
   const token    = metaToken;
-  const explorer = EXPLORER[CHAIN_ID]    || '';
   const color    = answerColorClass(ansBytes, qjson);
   const label    = bytes32ToLabel(ansBytes, qjson) || '?';
   const bondStr  = `${formatEth(bondWei)} ${token}`;
   const letter   = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
-  const short    = walletAddr ? `${walletAddr.slice(0,6)}…${walletAddr.slice(-4)}` : '';
-  const addrHtml = short
-    ? (explorer
-        ? `<a class="bond-addr-link" href="${explorer}/address/${walletAddr}" target="_blank" rel="noopener noreferrer">${short}</a>`
-        : `<span class="bond-addr">${short}</span>`)
-    : '';
+  const addrHtml = walletAddr ? (addrLinks(walletAddr) || '') : '';
 
   const entry = document.createElement('div');
   entry.className = 'optimistic-entry';
@@ -923,7 +927,6 @@ function renderHistory(data) {
   const { answerEvents, qjson, arbitrationOccurred } = data;
   const n        = answerEvents.length;
   const token    = metaToken;
-  const explorer = EXPLORER[CHAIN_ID]    || '';
 
   // Max bond across all answers — used to scale bar widths
   const maxBond = answerEvents.reduce((mx, ev) => {
@@ -952,16 +955,11 @@ function renderHistory(data) {
 
     const submeta = el('div', 'bond-submeta');
     if (ev.args.user && !/^0x0+$/.test(ev.args.user)) {
-      const short = ev.args.user.slice(0,6) + '…' + ev.args.user.slice(-4);
-      if (explorer) {
-        const a = document.createElement('a');
-        a.className = 'bond-addr-link';
-        a.href = `${explorer}/address/${ev.args.user}`;
-        a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.textContent = short;
-        submeta.appendChild(a);
-      } else {
-        submeta.appendChild(el('span', 'bond-addr', short));
+      const links = addrLinks(ev.args.user);
+      if (links) {
+        const wrap = document.createElement('span');
+        wrap.innerHTML = links;
+        submeta.appendChild(wrap);
       }
       submeta.appendChild(document.createTextNode(' · '));
     }
@@ -1208,7 +1206,6 @@ function renderStatusCard(data) {
   const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator } = data;
   const n        = answerEvents.length;
   const token    = metaToken;
-  const explorer = EXPLORER[CHAIN_ID]    || '';
   const finalized = isFinalized(finalizeTS);
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1260,9 +1257,7 @@ function renderStatusCard(data) {
     (sum, ev) => sum.add(ev.args.bond), ethers.BigNumber.from(0)
   );
   const arbHtml = (arbitrator && !/^0x0+$/.test(arbitrator))
-    ? (explorer
-        ? `<a href="${explorer}/address/${arbitrator}" target="_blank" rel="noopener">${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}</a>`
-        : `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`)
+    ? (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`)
     : '—';
   const minBondStr = minBond?.gt(0) ? `${formatEth(minBond)} ${token}` : '—';
   const totalStr   = totalBond.gt(0) ? `${formatEth(totalBond)} ${token}` : '—';
@@ -1294,16 +1289,11 @@ function renderStatusCard(data) {
 // ── Details card ─────────────────────────────────────────────────────────────
 function buildDetailsCard(data, chainId) {
   const token = CHAIN_TOKEN[chainId] || 'ETH';
-  const exp   = EXPLORER[chainId]    || '';
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function addrHtml(a) {
-    if (!a || /^0x0+$/.test(a)) return null;
-    const short = a.slice(0,6) + '…' + a.slice(-4);
-    return exp
-      ? `<a href="${exp}/address/${a}" target="_blank" rel="noopener">${short}</a>`
-      : `<span>${short}</span>`;
+    return addrLinks(a, chainId);
   }
 
   function dur(s) {
