@@ -204,7 +204,7 @@ async function fetchPonderData() {
   // responses and reopeners are separate top-level queries (no nested relations in Ponder)
   const query = `{
     question(id: ${qid}) {
-      templateId data
+      templateId data title type category lang outcomes
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
@@ -375,7 +375,9 @@ function populateTemplate(templateStr, questionStr) {
     }
     return j;
   } catch {
-    return { type: 'bool', title: questionStr || '' };
+    // Template has invalid JSON (e.g. unquoted key). Salvage type via regex; title = first ␟-delimited field.
+    const typeMatch = /"type"\s*:\s*"([^"]+)"/.exec(interpolated);
+    return { type: typeMatch?.[1] ?? 'bool', title: parts[0] || questionStr || '' };
   }
 }
 
@@ -1763,10 +1765,35 @@ async function main() {
   try {
     const ponderResult = await fetchPonderData();
     const pq = ponderResult.question;
-    const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
     data = adaptPonderData(ponderResult, BN0);
-    data.qjson = populateTemplate(templateStr, pq.data);
-    data.templateStr = templateStr;
+    // Use Ponder's pre-parsed fields (indexed at event time) to avoid client-side
+    // JSON parse failures when question content contains special characters.
+    if (pq.title != null || pq.type != null) {
+      let outcomes;
+      try { outcomes = pq.outcomes ? JSON.parse(pq.outcomes) : undefined; } catch {}
+      data.qjson = {
+        title:    pq.title    ?? undefined,
+        type:     pq.type     ?? undefined,
+        category: pq.category ?? undefined,
+        lang:     pq.lang     ?? undefined,
+        // Ponder doesn't store decimals; the only uint template uses 18.
+        ...(pq.type === 'uint' && { decimals: 18 }),
+        ...(outcomes != null && { outcomes }),
+      };
+      // If Ponder couldn't parse the type (malformed template JSON), extract it via regex from the raw template.
+      if (data.qjson.type == null) {
+        try {
+          const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
+          data.templateStr = templateStr;
+          const typeMatch = /"type"\s*:\s*"([^"]+)"/.exec(templateStr);
+          if (typeMatch) data.qjson.type = typeMatch[1];
+        } catch {}
+      }
+    } else {
+      const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
+      data.qjson = populateTemplate(templateStr, pq.data);
+      data.templateStr = templateStr;
+    }
     data.fromPonder = true;
   } catch {
     if (!reality) {
