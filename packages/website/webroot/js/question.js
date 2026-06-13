@@ -66,6 +66,7 @@ const REALITY_ABI = [
   'function getBestAnswer(bytes32) view returns (bytes32)',
   'function getContentHash(bytes32) view returns (bytes32)',
   'function getFinalizeTS(bytes32) view returns (uint32)',
+  'function getOpeningTS(bytes32) view returns (uint32)',
   'function getHistoryHash(bytes32) view returns (bytes32)',
   'function getMinBond(bytes32) view returns (uint256)',
   'function getTimeout(bytes32) view returns (uint32)',
@@ -243,7 +244,7 @@ async function blockAfterTimestamp(provider, ts, lo, hi) {
 //     there before falling back to a wider chunked scan up to that bound.
 //  3. Full chunked scan from startBlock to currentBlock as last resort.
 // Returns { events, currentBlock } so callers can reuse currentBlock.
-async function findLogNewQuestion(reality, filter, startBlock, finalizeTS) {
+async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
   const tip = await safeCall(() => reality.provider.getBlock('latest'), null);
   const currentBlock = tip?.number ?? startBlock + 5_000_000;
 
@@ -252,10 +253,10 @@ async function findLogNewQuestion(reality, filter, startBlock, finalizeTS) {
     () => reality.queryFilter(filter, Math.max(startBlock, currentBlock - 10), currentBlock), null);
   if (recent?.length) return { events: recent, currentBlock };
 
-  if (tip && finalizeTS > 0 && finalizeTS < tip.timestamp) {
-    // Stage 2: binary-search timestamps → refBlock is the first block after finalizeTS.
+  if (tip && upperBoundTs > 0 && upperBoundTs < tip.timestamp) {
+    // Stage 2: binary-search timestamps → refBlock is the first block after upperBoundTs.
     // LogNewQuestion is somewhere before refBlock.
-    const refBlock = await blockAfterTimestamp(reality.provider, finalizeTS, startBlock, currentBlock);
+    const refBlock = await blockAfterTimestamp(reality.provider, upperBoundTs, startBlock, currentBlock);
 
     // Try a 200k-block window backwards from refBlock first (covers ~11 days on Gnosis,
     // ~28 days on Ethereum — enough for most question lifetimes).
@@ -1733,13 +1734,15 @@ async function main() {
     const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
-      // Fetch direct state first; finalizeTS guides the smart LogNewQuestion search.
-      const [bond, finalizeTS] = await Promise.all([
+      // Fetch direct state first; openingTS (tighter) or finalizeTS guides the search.
+      const [bond, finalizeTS, openingTSRaw] = await Promise.all([
         safeCall(() => reality.getBond(QUESTION_ID), BN0),
         safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
+        safeCall(() => reality.getOpeningTS(QUESTION_ID), 0),
       ]);
+      const upperBoundTs = Number(openingTSRaw) || Number(finalizeTS);
       const { events: newQEvents, currentBlock } = await findLogNewQuestion(
-        reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, Number(finalizeTS));
+        reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);
       const qEv        = newQEvents[0];
       const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
       const questionStr = qEv ? qEv.args.question : '';
