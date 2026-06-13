@@ -224,6 +224,57 @@ async function queryFilterRobust(contract, filter, from, to, stopOnFirst = false
   return results;
 }
 
+// Binary-search block timestamps: returns the lowest block number where block.timestamp > ts.
+async function blockAfterTimestamp(provider, ts, lo, hi) {
+  while (hi - lo > 5) {
+    const mid = Math.floor((lo + hi) / 2);
+    const blk = await safeCall(() => provider.getBlock(mid), null);
+    if (!blk) { hi = mid; continue; }
+    if (blk.timestamp <= ts) lo = mid + 1;
+    else hi = mid;
+  }
+  return hi;
+}
+
+// Locate a LogNewQuestion event using a multi-stage strategy:
+//  1. Quick 10-block scan from chain tip — nearly free, handles recent questions.
+//  2. If finalizeTS is known, binary-search block timestamps to get a tight upper
+//     bound (question must precede finalizeTS), then scan a window backwards from
+//     there before falling back to a wider chunked scan up to that bound.
+//  3. Full chunked scan from startBlock to currentBlock as last resort.
+// Returns { events, currentBlock } so callers can reuse currentBlock.
+async function findLogNewQuestion(reality, filter, startBlock, finalizeTS) {
+  const tip = await safeCall(() => reality.provider.getBlock('latest'), null);
+  const currentBlock = tip?.number ?? startBlock + 5_000_000;
+
+  // Stage 1: quick recent scan
+  const recent = await safeCall(
+    () => reality.queryFilter(filter, Math.max(startBlock, currentBlock - 10), currentBlock), null);
+  if (recent?.length) return { events: recent, currentBlock };
+
+  if (tip && finalizeTS > 0 && finalizeTS < tip.timestamp) {
+    // Stage 2: binary-search timestamps → refBlock is the first block after finalizeTS.
+    // LogNewQuestion is somewhere before refBlock.
+    const refBlock = await blockAfterTimestamp(reality.provider, finalizeTS, startBlock, currentBlock);
+
+    // Try a 200k-block window backwards from refBlock first (covers ~11 days on Gnosis,
+    // ~28 days on Ethereum — enough for most question lifetimes).
+    const winStart = Math.max(startBlock, refBlock - 200_000);
+    const winEvents = await queryFilterRobust(reality, filter, winStart, refBlock, true);
+    if (winEvents.length) return { events: winEvents, currentBlock };
+
+    // Widen to the full bounded range if the window missed it.
+    if (winStart > startBlock) {
+      const bounded = await queryFilterRobust(reality, filter, startBlock, winStart, true);
+      if (bounded.length) return { events: bounded, currentBlock };
+    }
+  }
+
+  // Stage 3: full fallback
+  const events = await queryFilterRobust(reality, filter, startBlock, currentBlock, true);
+  return { events, currentBlock };
+}
+
 function adaptPonderData(ponderData, BN0) {
   const { question: pq, responses: responsePage, reopeners } = ponderData;
   const responses = (responsePage?.items || [])
@@ -1682,12 +1733,13 @@ async function main() {
     const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
-      const currentBlock = await safeCall(() => reality.provider.getBlockNumber(), startBlock + 5_000_000);
-      const [bond, finalizeTS, newQEvents] = await Promise.all([
+      // Fetch direct state first; finalizeTS guides the smart LogNewQuestion search.
+      const [bond, finalizeTS] = await Promise.all([
         safeCall(() => reality.getBond(QUESTION_ID), BN0),
         safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
-        queryFilterRobust(reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, currentBlock, true),
       ]);
+      const { events: newQEvents, currentBlock } = await findLogNewQuestion(
+        reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, Number(finalizeTS));
       const qEv        = newQEvents[0];
       const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
       const questionStr = qEv ? qEv.args.question : '';
