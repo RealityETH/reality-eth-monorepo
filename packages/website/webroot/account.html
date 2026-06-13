@@ -297,9 +297,10 @@ let walletChainId = null;
 let provider      = null;
 let signer        = null;
 let contractsData = null;
+let contractTokenMap  = {}; // address.toLowerCase() → { tokenSym, tokenAddress }
 let pendingClaimData  = null;
 let allData           = null;
-let selectedViewChain = null;
+let selectedViewChains = new Set(); // empty = all chains
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 function getUrlAddress() {
@@ -351,16 +352,39 @@ async function loadContracts() {
   if (contractsData) return contractsData;
   const r = await fetch('/packages/contracts/generated/contracts.json');
   contractsData = await r.json();
+  contractTokenMap = buildContractTokenMap(contractsData);
   return contractsData;
 }
 
+function buildContractTokenMap(data) {
+  const map = {};
+  for (const chainData of Object.values(data)) {
+    for (const [tokenSym, versions] of Object.entries(chainData)) {
+      for (const v of Object.values(versions)) {
+        if (v.address) map[v.address.toLowerCase()] = { tokenSym, tokenAddress: v.token_address || null };
+      }
+    }
+  }
+  return map;
+}
+
 function getRcContracts(data, chainId) {
-  const token = CHAIN_NATIVE_TOKEN[chainId];
-  if (!token) return [];
-  const versions = data[String(chainId)]?.[token] || {};
-  return Object.entries(versions)
-    .filter(([, v]) => v.address)
-    .map(([ver, v]) => ({ address: v.address.toLowerCase(), ver }));
+  const chainData = data[String(chainId)] || {};
+  const result = [];
+  for (const [tokenSym, versions] of Object.entries(chainData)) {
+    for (const [ver, v] of Object.entries(versions)) {
+      if (v.address) result.push({ address: v.address.toLowerCase(), ver, tokenSym, tokenAddress: v.token_address || null });
+    }
+  }
+  return result;
+}
+
+function tokenForQuestion(q) {
+  if (q.contract) {
+    const info = contractTokenMap[q.contract.toLowerCase()];
+    if (info) return info.tokenSym;
+  }
+  return CHAIN_NATIVE_TOKEN[q.chainId] || 'ETH';
 }
 
 // ── Answer display ─────────────────────────────────────────────────────────────
@@ -500,7 +524,8 @@ async function loadBalances(addr, chainId) {
     ),
   ]);
 
-  const contractBal = rcBals.reduce((a, b) => a.add(b), BN0);
+  // Only sum native-token contract balances for the chip — ERC20 amounts are in different units
+  const contractBal = rcList.reduce((sum, r, i) => !r.tokenAddress ? sum.add(rcBals[i] || BN0) : sum, BN0);
   const withdrawableContracts = rcList.filter((_, i) => rcBals[i]?.gt(0)).map(r => r.address);
   return { walletBal, contractBal, withdrawableContracts };
 }
@@ -540,7 +565,7 @@ function renderAsked(questions) {
 
   for (const q of questions) {
     const fin  = isFinalized(q);
-    const token = CHAIN_TOKEN[q.chainId] || 'ETH';
+    const token = tokenForQuestion(q);
     const bond  = ethers.BigNumber.from(q.currentAnswerBond || '0');
     const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
     const title = q.title || q.id;
@@ -613,7 +638,7 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
 
   for (const q of sorted) {
     const fin   = isFinalized(q);
-    const token = CHAIN_TOKEN[q.chainId] || 'ETH';
+    const token = tokenForQuestion(q);
     const chain = CHAIN_NAME[q.chainId]  || `Chain ${q.chainId}`;
     const title = q.title || q.id;
     const myResp = myLastResp[q.id];
@@ -677,37 +702,42 @@ function escHtml(s) {
 }
 
 // ── Chain pills ───────────────────────────────────────────────────────────────
-function buildChainPills(foundChains) {
+const SUPPORTED_CHAINS = [1, 100, 11155111];
+
+function buildChainPills() {
   const container = document.getElementById('chain-pills');
   container.innerHTML = '';
-  if (foundChains.length <= 1) { container.style.display = 'none'; return; }
   container.style.display = '';
-
-  const makeBtn = (label, chainId) => {
+  for (const chainId of SUPPORTED_CHAINS) {
     const btn = document.createElement('button');
-    btn.className = 'chain-pill' + (chainId === selectedViewChain ? ' active' : '');
-    btn.dataset.chain = chainId === null ? 'all' : String(chainId);
-    btn.textContent = label;
-    btn.addEventListener('click', () => selectViewChain(chainId));
+    btn.type = 'button';
+    btn.className = 'chain-pill' + (selectedViewChains.has(chainId) ? ' active' : '');
+    btn.dataset.chain = String(chainId);
+    btn.textContent = CHAIN_NAME[chainId] || `Chain ${chainId}`;
+    btn.addEventListener('click', () => toggleViewChain(chainId));
     container.appendChild(btn);
-  };
-
-  makeBtn('All chains', null);
-  for (const chainId of foundChains) {
-    makeBtn(CHAIN_NAME[chainId] || `Chain ${chainId}`, chainId);
   }
 }
 
-function selectViewChain(chainId) {
-  selectedViewChain = chainId;
+function effectiveClaimChain(claimables) {
+  if (selectedViewChains.size === 0) return walletChainId;
+  if (selectedViewChains.size === 1) return [...selectedViewChains][0];
+  // Multiple selected: prefer walletChainId if it has visible claimables
+  const visible = claimables.filter(c => selectedViewChains.has(Number(c.chainId)));
+  if (walletChainId && visible.some(c => Number(c.chainId) === walletChainId)) return walletChainId;
+  return visible.length ? Number(visible[0].chainId) : walletChainId;
+}
+
+function toggleViewChain(chainId) {
+  if (selectedViewChains.has(chainId)) selectedViewChains.delete(chainId);
+  else selectedViewChains.add(chainId);
 
   document.querySelectorAll('.chain-pill').forEach(btn => {
-    const b = btn.dataset.chain === 'all' ? null : Number(btn.dataset.chain);
-    btn.classList.toggle('active', b === chainId);
+    btn.classList.toggle('active', selectedViewChains.has(Number(btn.dataset.chain)));
   });
 
-  // Update explorer link for the selected chain (or wallet chain if All)
-  const linkChain = chainId !== null ? chainId : walletChainId;
+  // Explorer link: show when exactly one chain is selected (or wallet chain as fallback)
+  const linkChain = selectedViewChains.size === 1 ? [...selectedViewChains][0] : walletChainId;
   const link = document.getElementById('hero-explorer-link');
   const exp = linkChain ? EXPLORER[linkChain] : null;
   if (exp && viewAddr) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
@@ -716,18 +746,10 @@ function selectViewChain(chainId) {
   if (!allData) return;
   const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } = allData;
 
-  const asked    = chainId !== null
-    ? askedQuestions.filter(q => Number(q.chainId) === chainId)
-    : askedQuestions;
-  const answered = chainId !== null
-    ? answeredQuestions.filter(q => Number(q.chainId) === chainId)
-    : answeredQuestions;
-
-  renderAsked(asked);
-  renderAnswered(answered, userResponses, claimedSet, claimables);
-
-  const claimChain = chainId !== null ? chainId : (walletChainId || null);
-  renderClaimBanner(claimables, claimChain);
+  const inView = q => selectedViewChains.size === 0 || selectedViewChains.has(Number(q.chainId));
+  renderAsked(askedQuestions.filter(inView));
+  renderAnswered(answeredQuestions.filter(inView), userResponses, claimedSet, claimables);
+  renderClaimBanner(claimables, effectiveClaimChain(claimables));
 }
 
 // ── Render: balances + claim banner ──────────────────────────────────────────
@@ -737,7 +759,7 @@ function renderBalances({ walletBal, contractBal, withdrawableContracts }, chain
   document.getElementById('contract-balance').textContent = `${formatEth(contractBal)} ${token}`;
 
   const wdBtn = document.getElementById('withdraw-btn');
-  if (canClaim() && contractBal.gt(0) && withdrawableContracts.length > 0) {
+  if (canClaim() && withdrawableContracts.length > 0) {
     wdBtn.style.display = '';
     wdBtn.onclick = () => handleWithdraw(withdrawableContracts, chainId);
   } else {
@@ -758,16 +780,20 @@ function renderClaimBanner(claimables, chainId) {
     return;
   }
 
-  const token = CHAIN_TOKEN[chainId] || 'ETH';
   const claimBtn  = document.getElementById('claim-btn');
   const noteEl    = document.getElementById('other-chain-note');
   const needsSwitch = chainId !== null && chainId !== walletChainId;
 
   if (chainClaimables.length > 0) {
-    const total = chainClaimables.reduce((s, c) => s.add(c.total), BN0);
+    // Group by token symbol so mixed native+ERC20 shows "X ETH + Y GNO"
+    const byToken = {};
+    for (const c of chainClaimables) {
+      const sym = contractTokenMap[c.contract]?.tokenSym || CHAIN_NATIVE_TOKEN[chainId] || 'ETH';
+      byToken[sym] = (byToken[sym] || BN0).add(c.total);
+    }
+    const amountText = Object.entries(byToken).map(([sym, amt]) => `${formatEth(amt)} ${sym}`).join(' + ');
     banner.style.display = '';
-    document.getElementById('claim-amount').textContent =
-      `${formatEth(total)} ${token} claimable`;
+    document.getElementById('claim-amount').textContent = `${amountText} claimable`;
     document.getElementById('claim-desc').textContent =
       `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${CHAIN_NAME[chainId] || `chain ${chainId}`}`;
 
@@ -918,12 +944,11 @@ function updateWalletUI() {
 
   // Re-render claim banner with updated canClaim state
   if (allData) {
-    const claimChain = selectedViewChain !== null ? selectedViewChain : walletChainId;
-    renderClaimBanner(allData.claimables, claimChain);
+    renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
   }
 
   // Update explorer link for the wallet chain if no chain pill is selected
-  if (selectedViewChain === null && walletChainId && viewAddr) {
+  if (selectedViewChains.size === 0 && walletChainId && viewAddr) {
     const exp = EXPLORER[walletChainId];
     const link = document.getElementById('hero-explorer-link');
     if (exp) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
@@ -968,8 +993,8 @@ function resetAccountUI() {
   document.getElementById('chain-pills').innerHTML = '';
   document.getElementById('chain-pills').style.display = 'none';
   pendingClaimData  = null;
-  allData           = null;
-  selectedViewChain = null;
+  allData            = null;
+  selectedViewChains = new Set();
 }
 
 async function runAccount(addr) {
@@ -986,13 +1011,11 @@ async function runAccount(addr) {
     allData = data;
 
     // Find which chains actually have activity
-    const chainSet = new Set();
-    for (const q of data.askedQuestions)    chainSet.add(Number(q.chainId));
-    for (const q of data.answeredQuestions) chainSet.add(Number(q.chainId));
-    const foundChains = [...chainSet].sort((a, b) => a - b);
-
-    buildChainPills(foundChains);
-    selectViewChain(null); // always start on "All chains"
+    buildChainPills();
+    // selectedViewChains is empty (reset above) so render all chains
+    renderAsked(data.askedQuestions);
+    renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables);
+    renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
   } catch (err) {
     if (gen !== accountLoadGen) return;
     console.error('account load error', err);
