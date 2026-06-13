@@ -29,7 +29,7 @@ test.describe('submit answer', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html?network=100&contract=${CONTRACTS.realityEth30}&question=${fixtures.boolQuestionId}`
+      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
     );
     // Wait for the answer form to be rendered (question is open)
     await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });

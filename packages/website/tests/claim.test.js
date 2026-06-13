@@ -32,7 +32,7 @@ test.describe('claim winnings', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html?network=100&contract=${CONTRACTS.realityEth30}&question=${fixtures.claimQuestionId}`
+      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.claimQuestionId}`
     );
     // Wait for the claim button to appear in the finalized question's right column
     await page.waitForSelector('.claim-section .claim-button', { state: 'visible', timeout: 30000 });

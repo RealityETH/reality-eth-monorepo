@@ -87,21 +87,12 @@ const REALITY_ABI = [
 ];
 
 // ── URL parsing ───────────────────────────────────────────────────────────────
-// Hash format (canonical, IPFS-friendly): #!/network/{chainId}/question/{contract}-{questionId}
-// Query format (test suite fallback):     ?contract=0x...&question=0x...&network=100
+// Hash format: #!/network/{chainId}/question/{contract}-{questionId}
 let CONTRACT, QUESTION_ID, CHAIN_ID;
-const hash = location.hash;
-const hashMatch = hash.match(/\/network\/(\d+)\/question\/(0x[0-9a-fA-F]+)-(0x[0-9a-fA-F]+)/);
-if (hashMatch) {
-  CHAIN_ID    = parseInt(hashMatch[1], 10);
-  CONTRACT    = hashMatch[2];
-  QUESTION_ID = hashMatch[3];
-} else {
-  const params = new URLSearchParams(location.search);
-  CONTRACT    = params.get('contract');
-  QUESTION_ID = params.get('question');
-  CHAIN_ID    = parseInt(params.get('network') || '100', 10);
-}
+const hashMatch = location.hash.match(/\/network\/(\d+)\/question\/(0x[0-9a-fA-F]+)-(0x[0-9a-fA-F]+)/);
+CHAIN_ID    = hashMatch ? parseInt(hashMatch[1], 10) : 100;
+CONTRACT    = hashMatch?.[2];
+QUESTION_ID = hashMatch?.[3];
 const qPage = document.getElementById('question-page');
 if (!CONTRACT || !QUESTION_ID || !qPage) return;
 
