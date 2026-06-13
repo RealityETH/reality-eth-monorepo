@@ -553,7 +553,7 @@ async function populateArbitrators(chain, rcAddr, arbsObj) {
         const arb = new ethers.Contract(addr, ARB_ABI, prov);
         const fee = await arb.arbitrator_question_fees(rcAddr);
         const eth = ethers.utils.formatEther(fee);
-        const display = parseFloat(eth) === 0 ? 'free' : `${parseFloat(eth)} ${rcToken}`;
+        const display = parseFloat(eth) === 0 ? 'free' : `${formatAmount(parseFloat(eth))} ${rcToken}`;
         // Update matching option label
         for (const opt of arbSelect.options) {
           if (opt.value.toLowerCase() === addr.toLowerCase()) {
@@ -819,6 +819,11 @@ arbSelect.addEventListener('change', () => { updateArbTos(); updateCost(); });
 
 rewardInput.addEventListener('input', updateCost);
 
+function formatAmount(n) {
+  if (!n) return '0';
+  return n.toFixed(10).replace(/\.?0+$/, '');
+}
+
 function updateCost() {
   const reward = parseFloat(rewardInput.value) || 0;
   const opt    = arbSelect.options[arbSelect.selectedIndex];
@@ -826,11 +831,11 @@ function updateCost() {
     ? parseFloat(opt.dataset.fee) : null;
 
   document.getElementById('summary-reward').textContent =
-    `${reward || 0} ${rcToken}`;
+    `${formatAmount(reward)} ${rcToken}`;
   document.getElementById('summary-arb-fee').textContent =
-    fee !== null ? (fee > 0 ? `${fee} ${rcToken}` : 'Free') : '—';
+    fee !== null ? (fee > 0 ? `${formatAmount(fee)} ${rcToken}` : 'Free') : '—';
   document.getElementById('summary-total').textContent =
-    fee !== null ? `${+(reward + fee).toFixed(6)} ${rcToken}` : '—';
+    fee !== null ? `${formatAmount(reward + fee)} ${rcToken}` : '—';
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
