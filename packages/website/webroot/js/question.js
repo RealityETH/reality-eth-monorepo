@@ -954,6 +954,125 @@ function formatRelTime(ts) {
   return dt.toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
+// ── Snapshot panel ────────────────────────────────────────────────────────────
+function parseSnapshotRef(title) {
+  // Matches both "with the id X" and "with id X" (SafeSnap template variants)
+  const m = title.match(/Did the Snapshot proposal with (?:the )?id\s+(\S+)\s+in the\s+(\S+)\s+space/i);
+  if (!m) return null;
+  return { proposalId: m[1], space: m[2] };
+}
+
+async function renderSnapshotPanel(title) {
+  const panel = document.getElementById('snapshot-panel');
+  if (!panel) return;
+
+  const ref = parseSnapshotRef(title);
+  if (!ref) return;
+
+  const { proposalId, space } = ref;
+  const snapshotUrl = `https://snapshot.org/#/${space}/proposal/${proposalId}`;
+
+  // Show immediately with just the link
+  const card = el('div', 'snapshot-card');
+  const hdr = el('div', 'snapshot-header');
+
+  // Snapshot logo (S mark as inline SVG)
+  hdr.innerHTML = `<svg class="snapshot-logo" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M155.8 104.3c0 34.7-25.3 61.2-56.1 61.2S43.7 139 43.7 104.3c0-20.5 9.5-38.7 24.4-50.6C54 62.8 43.7 79.7 43.7 99c0 34.7 25.3 61.2 56.1 61.2s56.1-26.6 56.1-61.2c0-14-4.5-27-12.2-37.3 7.8 11.2 12.1 24.7 12.1 42.6z" fill="currentColor"/><path d="M99.7 38.5C70.5 38.5 47 62 47 91.2c0 29.1 23.4 52.7 52.7 52.7 29.2 0 52.7-23.6 52.7-52.7 0-29.2-23.5-52.7-52.7-52.7z" fill="currentColor" opacity=".4"/></svg>`;
+  const spaceLbl = el('span', 'snapshot-space', space);
+  const lnk = el('a', 'snapshot-link', 'View on Snapshot ↗');
+  lnk.href = snapshotUrl;
+  lnk.target = '_blank';
+  lnk.rel = 'noopener noreferrer';
+  hdr.appendChild(spaceLbl);
+  const spacer = el('span');
+  spacer.style.flex = '1';
+  hdr.appendChild(spacer);
+  hdr.appendChild(lnk);
+  card.appendChild(hdr);
+
+  const loadingEl = el('div', null, 'Loading proposal…');
+  loadingEl.style.cssText = 'font-size:12px;color:var(--text-dim)';
+  card.appendChild(loadingEl);
+
+  panel.appendChild(card);
+  panel.style.display = '';
+
+  // Only fetch for real proposal IDs (0x hex or Qm IPFS CID)
+  const looksReal = /^0x[0-9a-fA-F]{10,}$/.test(proposalId) || /^Qm[1-9A-Za-z]{30,}$/.test(proposalId);
+  if (!looksReal) {
+    loadingEl.remove();
+    return;
+  }
+
+  try {
+    const resp = await fetch('https://hub.snapshot.org/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: `{
+        proposal(id: "${proposalId}") {
+          title body state choices scores scores_total
+        }
+      }` }),
+    });
+    const json = await resp.json();
+    const p = json?.data?.proposal;
+    loadingEl.remove();
+    if (!p) return; // proposal not found — link still visible
+
+    // Title + state badge
+    const titleEl = el('div', 'snapshot-title');
+    titleEl.textContent = p.title;
+    const stateCls = { active:'snapshot-state-active', closed:'snapshot-state-closed', pending:'snapshot-state-pending' }[p.state] || 'snapshot-state-closed';
+    const stateBadge = el('span', `snapshot-state ${stateCls}`, p.state || '');
+    titleEl.appendChild(stateBadge);
+    card.insertBefore(titleEl, card.children[1]); // after header
+
+    // Choices with vote bars
+    if (p.choices?.length) {
+      const total = p.scores_total || p.scores?.reduce((s, x) => s + x, 0) || 0;
+      const choicesEl = el('div', 'snapshot-choices');
+      p.choices.forEach((choice, i) => {
+        const score = p.scores?.[i] || 0;
+        const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+        const row = el('div', 'snapshot-choice');
+        const lbl = el('span', 'snapshot-choice-label', choice);
+        const barWrap = el('div', 'snapshot-choice-bar-wrap');
+        const bar = el('div', 'snapshot-choice-bar');
+        bar.style.width = pct + '%';
+        barWrap.appendChild(bar);
+        const pctEl = el('span', 'snapshot-choice-pct', pct + '%');
+        row.appendChild(lbl);
+        row.appendChild(barWrap);
+        row.appendChild(pctEl);
+        choicesEl.appendChild(row);
+      });
+      card.appendChild(choicesEl);
+    }
+
+    // Body (collapsible)
+    if (p.body?.trim()) {
+      const bodySection = el('div', 'snapshot-body');
+      const toggle = el('button', 'snapshot-body-toggle', 'Show proposal ▾');
+      const bodyContent = el('div', 'snapshot-body-content');
+      // Render markdown if marked is available
+      if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+        bodyContent.innerHTML = DOMPurify.sanitize(marked.parse(p.body));
+      } else {
+        bodyContent.textContent = p.body;
+      }
+      toggle.addEventListener('click', () => {
+        const expanded = bodyContent.classList.toggle('expanded');
+        toggle.textContent = expanded ? 'Hide proposal ▴' : 'Show proposal ▾';
+      });
+      bodySection.appendChild(toggle);
+      bodySection.appendChild(bodyContent);
+      card.appendChild(bodySection);
+    }
+  } catch {
+    loadingEl.remove(); // fail silently — link still shows
+  }
+}
+
 function formatDuration(secs) {
   secs = Number(secs);
   if (secs <= 0)    return 'Any moment';
@@ -1649,6 +1768,7 @@ async function main() {
   renderStatusCard(data);
   await contractsMetaPromise;
   renderWarnings(data);
+  renderSnapshotPanel(data.qjson?.title || ''); // async, non-blocking
 
   // 6. Answer form (or locked state if no wallet and question is open)
   const formSlot = qPage.querySelector('#answer-form-container');
