@@ -105,7 +105,7 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         bounty: 0n,
         isPendingArbitration: false,
         arbitrationOccurred: false,
-        scheduledFinalizationTimestamp: BigInt(opening_ts) + BigInt(timeout),
+        scheduledFinalizationTimestamp: 0n,
         createdBlock: event.block.number,
         createdLogIndex: BigInt(event.log.logIndex),
         createdTxHash: event.log.transactionHash,
