@@ -73,15 +73,6 @@
   }
   .search-input::placeholder { color: var(--text-dim); }
   .search-input:focus { border-color: var(--accent); }
-  .chain-select {
-    padding: 7px 10px; background: var(--bg-card);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text); font-size: 13px; outline: none; cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 8px center;
-    padding-right: 28px;
-  }
   .btn-outline {
     padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     background: transparent; color: var(--text-muted); font-size: 13px;
@@ -102,7 +93,6 @@
   }
   @media (max-width: 600px) {
     .search-wrap { display: none; }
-    .chain-select { font-size: 12px; padding-right: 22px; }
   }
 
   /* ── Page ────────────────────────────────────────────── */
@@ -208,9 +198,11 @@
     margin-bottom: 16px;
   }
   .recent-header h2 { font-size: 15px; font-weight: 600; }
+  .filter-bars { display: flex; flex-direction: column; gap: 8px; }
   .filter-bar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
+
   .filter-btn {
     padding: 5px 12px; border-radius: 20px;
     border: 1px solid var(--border); background: transparent;
@@ -443,11 +435,6 @@
       </svg>
       <input class="search-input" type="text" placeholder="Search questions…">
     </div>
-    <select id="chain-select" class="chain-select">
-      <option value="0">All chains</option>
-      <option value="1">Ethereum</option>
-      <option value="100">Gnosis</option>
-    </select>
     <nav class="header-nav">
       <a class="nav-link" href="ask.html">Ask a question</a>
       <a class="nav-link" href="account.html">My account</a>
@@ -489,20 +476,27 @@
   <div class="recent-header">
     <h2>Recent questions</h2>
   </div>
-  <div class="filter-bar">
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="open">Open</button>
-    <button class="filter-btn" data-filter="arb">Pending arbitration</button>
-    <button class="filter-btn" data-filter="finalized">Finalized</button>
-    <div class="filter-sep"></div>
-    <button class="filter-btn" data-type="bool">Yes/No</button>
-    <button class="filter-btn" data-type="multi">Multiple choice</button>
-    <select id="sort-select" class="sort-select">
-      <option value="recent">Sort: Recent activity</option>
-      <option value="bond">Sort: Highest bond</option>
-      <option value="closing">Sort: Closing soon</option>
-      <option value="newest">Sort: Newest</option>
-    </select>
+  <div class="filter-bars">
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="open">Open</button>
+      <button class="filter-btn" data-filter="arb">Pending arbitration</button>
+      <button class="filter-btn" data-filter="finalized">Finalized</button>
+      <div class="filter-sep"></div>
+      <button class="filter-btn" data-type="bool">Yes/No</button>
+      <button class="filter-btn" data-type="multi">Multiple choice</button>
+      <select id="sort-select" class="sort-select">
+        <option value="recent">Sort: Recent activity</option>
+        <option value="bond">Sort: Highest bond</option>
+        <option value="closing">Sort: Closing soon</option>
+        <option value="newest">Sort: Newest</option>
+      </select>
+    </div>
+    <div class="filter-bar">
+<button class="filter-btn" data-chain="1">Ethereum</button>
+      <button class="filter-btn" data-chain="100">Gnosis</button>
+      <button class="filter-btn" data-chain="11155111">Sepolia</button>
+    </div>
   </div>
 
   <div id="integ-filter-strip" style="display:none">
@@ -553,10 +547,10 @@
   let allQuestions = [];
   let cursor = null;
   let hasNextPage = false;
-  let statusFilter = 'all';
-  let typeFilter = null;
+  let statusFilters = new Set(); // empty = show all
+  let typeFilters   = new Set(); // empty = show all types
   let sortOpt = 'recent';
-  let chainFilter = 0;
+  let chainFilters = new Set(); // empty = all chains
   let searchQuery = '';
   let integrationFilter = null;
 
@@ -649,7 +643,12 @@
     const afterClause = after ? `, after: "${after}"` : '';
 
     const whereParts = [];
-    if (chainFilter > 0) whereParts.push(`chainId: ${chainFilter}`);
+    if (chainFilters.size === 1) {
+      const [c] = chainFilters;
+      whereParts.push(`chainId: ${c}`);
+    } else if (chainFilters.size > 1) {
+      whereParts.push(`chainId_in: [${[...chainFilters].join(', ')}]`);
+    }
     if (searchQuery) {
       // Ponder 0.7 title_contains is case-sensitive; capitalise the first character
       // so common searches like "bitcoin" match "Bitcoin" titles.
@@ -682,15 +681,17 @@
       }
     }
 
-    // Push status filter server-side so we don't fill our page quota with
-    // non-matching questions (e.g. finalized questions dominating recent-activity
-    // order when "open" is selected).
-    if (statusFilter === 'arb') {
-      whereParts.push(`isPendingArbitration: true`);
-    } else if (statusFilter === 'open' && !hasIntegrationOR) {
-      const now = String(Math.floor(Date.now() / 1000));
-      whereParts.push(`isPendingArbitration: false`);
-      whereParts.push(`OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`);
+    // Push status filter server-side (single filter only) so we don't fill our
+    // page quota with non-matching questions.
+    if (statusFilters.size === 1) {
+      const [f] = statusFilters;
+      if (f === 'arb') {
+        whereParts.push(`isPendingArbitration: true`);
+      } else if (f === 'open' && !hasIntegrationOR) {
+        const now = String(Math.floor(Date.now() / 1000));
+        whereParts.push(`isPendingArbitration: false`);
+        whereParts.push(`OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`);
+      }
     }
 
     const whereClause = whereParts.length ? `, where: { ${whereParts.join(', ')} }` : '';
@@ -801,20 +802,16 @@
   function applyFilters(questions) {
     let out = questions;
 
-    if (statusFilter !== 'all') {
-      out = out.filter(q => {
-        const s = getStatus(q);
-        if (statusFilter === 'open')      return s === 'open';
-        if (statusFilter === 'arb')       return s === 'arb';
-        if (statusFilter === 'finalized') return s === 'finalized';
-        return true;
-      });
+    if (statusFilters.size > 0) {
+      out = out.filter(q => statusFilters.has(getStatus(q)));
     }
 
-    if (typeFilter === 'bool') {
-      out = out.filter(q => q.type === 'bool');
-    } else if (typeFilter === 'multi') {
-      out = out.filter(q => q.type === 'single-select' || q.type === 'multiple-select');
+    if (typeFilters.size > 0) {
+      out = out.filter(q => {
+        const isMulti = q.type === 'single-select' || q.type === 'multiple-select';
+        return (typeFilters.has('bool') && q.type === 'bool') ||
+               (typeFilters.has('multi') && isMulti);
+      });
     }
 
     if (integrationFilter === 'other') {
@@ -893,7 +890,7 @@
   }
 
   function chainLabel(chainId) {
-    return { 1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 10: 'Optimism', 42161: 'Arbitrum' }[chainId] || `Chain ${chainId}`;
+    return { 1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 10: 'Optimism', 42161: 'Arbitrum', 11155111: 'Sepolia' }[chainId] || `Chain ${chainId}`;
   }
 
   function formatRelTime(ts) {
@@ -1125,46 +1122,59 @@
       btn.addEventListener('click', () => {
         const f = btn.dataset.filter;
         const t = btn.dataset.type;
-        if (f) {
-          statusFilter = f;
-          document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          if (f === 'all' && integrationFilter) {
+        const c = btn.dataset.chain ? parseInt(btn.dataset.chain) : null;
+        if (c !== null) {
+          if (chainFilters.has(c)) chainFilters.delete(c);
+          else chainFilters.add(c);
+          syncFilterButtons();
+          fetchQuestions(true);
+          return;
+        } else if (f === 'all') {
+          statusFilters.clear();
+          if (integrationFilter) {
             integrationFilter = null;
             document.getElementById('integ-filter-strip').style.display = 'none';
             renderIntegrationCards();
-            fetchQuestions(true);
-            return;
           }
-          // Re-fetch when an integration is active so the server-side status
-          // filter can take effect rather than just re-filtering a stale page.
-          if (integrationFilter) {
+          syncFilterButtons();
+          fetchQuestions(true);
+          return;
+        } else if (f) {
+          if (statusFilters.has(f)) statusFilters.delete(f);
+          else statusFilters.add(f);
+          syncFilterButtons();
+          // Re-fetch when an integration filter is active (server-side filter changes)
+          // or when we've switched to/from single-status (server-side optimisation changes).
+          if (integrationFilter || statusFilters.size <= 1) {
             fetchQuestions(true);
             return;
           }
         } else if (t) {
-          if (typeFilter === t) {
-            typeFilter = null;
-            btn.classList.remove('active');
-          } else {
-            typeFilter = t;
-            document.querySelectorAll('.filter-btn[data-type]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-          }
+          if (typeFilters.has(t)) typeFilters.delete(t);
+          else typeFilters.add(t);
+          syncFilterButtons();
         }
         renderList();
       });
     });
 
+    function syncFilterButtons() {
+      document.querySelector('.filter-btn[data-filter="all"]')
+        .classList.toggle('active', statusFilters.size === 0);
+      document.querySelectorAll('.filter-btn[data-filter]:not([data-filter="all"])').forEach(b => {
+        b.classList.toggle('active', statusFilters.has(b.dataset.filter));
+      });
+      document.querySelectorAll('.filter-btn[data-type]').forEach(b => {
+        b.classList.toggle('active', typeFilters.has(b.dataset.type));
+      });
+      document.querySelectorAll('.filter-btn[data-chain]').forEach(b => {
+        b.classList.toggle('active', chainFilters.has(parseInt(b.dataset.chain)));
+      });
+    }
+
     // Sort
     document.getElementById('sort-select').addEventListener('change', function () {
       sortOpt = this.value;
-      fetchQuestions(true);
-    });
-
-    // Chain filter
-    document.getElementById('chain-select').addEventListener('change', function () {
-      chainFilter = parseInt(this.value) || 0;
       fetchQuestions(true);
     });
 

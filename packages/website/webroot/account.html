@@ -22,7 +22,7 @@
   header { position: sticky; top: 0; z-index: 100;
     background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-subtle); padding: 0 24px; }
-  .header-inner { max-width: 860px; margin: 0 auto;
+  .header-inner { max-width: 1100px; margin: 0 auto;
     display: flex; align-items: center; gap: 16px; height: 56px; }
   .logo { font-size: 15px; font-weight: 600; color: var(--text);
     text-decoration: none; display: flex; align-items: center; gap: 8px; }
@@ -39,7 +39,7 @@
   #wallet-btn.connected { border-color: rgba(63,185,80,0.5); color: var(--green); font-family: monospace; font-size: 12px; }
 
   /* ── Page ── */
-  .page { max-width: 860px; margin: 0 auto; padding: 28px 20px 64px; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
 
   /* ── Connect prompt ── */
   .connect-prompt { text-align: center; padding: 60px 20px; }
@@ -160,6 +160,12 @@
   .tx-error { font-size: 12px; color: var(--red); margin-top: 6px; padding: 6px 10px;
     background: var(--red-subtle); border-radius: 4px; display: none; }
   .tx-error.visible { display: block; }
+
+  /* Arbitrator sub-sections */
+  .arb-section-header { font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
+  .arb-section-header:first-child { padding-top: 4px; }
+  .arb-empty { font-size: 13px; color: var(--text-dim); padding: 6px 0 10px; }
 </style>
 <script>
 // Show account skeleton before ethers.js loads to avoid blank-screen wait.
@@ -252,6 +258,9 @@
       <button class="tab-btn" data-tab="answered">
         Answered <span class="tab-count" id="answered-count">0</span>
       </button>
+      <button class="tab-btn" data-tab="arbitrator" id="tab-btn-arbitrator" style="display:none">
+        Arbitrator <span class="tab-count" id="arbitrator-count">0</span>
+      </button>
     </div>
 
     <!-- Question lists -->
@@ -262,6 +271,9 @@
     <div id="tab-answered" style="display:none">
       <div class="state-msg" id="answered-loading">Loading…</div>
       <div class="q-list" id="answered-list"></div>
+    </div>
+    <div id="tab-arbitrator" style="display:none">
+      <div id="arbitrator-list"></div>
     </div>
 
   </div>
@@ -465,13 +477,14 @@ function computeClaimable(question, responses, userAddr) {
 // ── Ponder data loading ───────────────────────────────────────────────────────
 async function loadAccountData(addr) {
   const a = addr.toLowerCase();
-  const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator`;
+  const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator isPendingArbitration arbitrationOccurred`;
 
   // Phase 1: parallel
-  const [askedData, respData, claimData] = await Promise.all([
+  const [askedData, respData, claimData, arbData] = await Promise.all([
     gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:100) { items{${qFields}} } }`),
     gql(`{ responses(where:{user:"${a}"},orderBy:"timestamp",orderDirection:"asc",limit:500) { items{id questionId answer commitmentHash bond user historyHash isCommitment timestamp} } }`),
     gql(`{ claims(where:{user:"${a}"},limit:500) { items{questionId amount} } }`),
+    gql(`{ questions(where:{arbitrator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:200) { items{${qFields}} } }`),
   ]);
 
   const askedQuestions = askedData.questions?.items || [];
@@ -507,7 +520,9 @@ async function loadAccountData(addr) {
     if (result.total.gt(0)) claimables.push(result);
   }
 
-  return { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables };
+  const arbitratorQuestions = arbData.questions?.items || [];
+
+  return { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables, arbitratorQuestions };
 }
 
 // ── RPC balances ──────────────────────────────────────────────────────────────
@@ -697,6 +712,70 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
   }
 }
 
+// ── Render: arbitrator tab ────────────────────────────────────────────────────
+function renderArbitrator(questions) {
+  const btn  = document.getElementById('tab-btn-arbitrator');
+  const list = document.getElementById('arbitrator-list');
+
+  if (!questions.length) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  btn.style.display = '';
+  document.getElementById('arbitrator-count').textContent = questions.length;
+  list.innerHTML = '';
+
+  const open      = questions.filter(q => !q.isPendingArbitration && !q.arbitrationOccurred);
+  const requested = questions.filter(q => q.isPendingArbitration);
+  const resolved  = questions.filter(q => q.arbitrationOccurred);
+
+  function appendSection(label, items) {
+    const hdr = document.createElement('div');
+    hdr.className = 'arb-section-header';
+    hdr.textContent = label;
+    list.appendChild(hdr);
+
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'arb-empty';
+      empty.textContent = 'None';
+      list.appendChild(empty);
+      return;
+    }
+
+    for (const q of items) {
+      const token = tokenForQuestion(q);
+      const bond  = ethers.BigNumber.from(q.currentAnswerBond || '0');
+      const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
+      const title = q.title || q.id;
+      const rightHtml = bond.gt(0)
+        ? `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`
+        : '';
+      const item = document.createElement('div');
+      item.className = 'q-item';
+      item.innerHTML = `
+        <div>
+          <div class="q-item-top">
+            ${statusBadge(q)}
+            <a class="q-item-title" href="${questionUrl(q)}">${escHtml(title)}</a>
+          </div>
+          <div class="q-item-meta">
+            <span>${chain}</span>
+            <span class="q-item-meta-sep">·</span>
+            <span>${relTime(q.createdTimestamp)}</span>
+          </div>
+        </div>
+        <div class="q-item-side">${rightHtml}</div>`;
+      list.appendChild(item);
+    }
+  }
+
+  appendSection('Requested', requested);
+  appendSection('Open', open);
+  appendSection('Resolved', resolved);
+}
+
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -859,8 +938,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const tab = btn.dataset.tab;
-    document.getElementById('tab-asked').style.display    = tab === 'asked'    ? '' : 'none';
-    document.getElementById('tab-answered').style.display = tab === 'answered' ? '' : 'none';
+    document.getElementById('tab-asked').style.display       = tab === 'asked'       ? '' : 'none';
+    document.getElementById('tab-answered').style.display    = tab === 'answered'    ? '' : 'none';
+    document.getElementById('tab-arbitrator').style.display  = tab === 'arbitrator'  ? '' : 'none';
   });
 });
 
@@ -992,6 +1072,9 @@ function resetAccountUI() {
   document.getElementById('withdraw-btn').style.display   = 'none';
   document.getElementById('chain-pills').innerHTML = '';
   document.getElementById('chain-pills').style.display = 'none';
+  document.getElementById('arbitrator-list').innerHTML = '';
+  document.getElementById('arbitrator-count').textContent = '0';
+  document.getElementById('tab-btn-arbitrator').style.display = 'none';
   pendingClaimData  = null;
   allData            = null;
   selectedViewChains = new Set();
@@ -1015,6 +1098,7 @@ async function runAccount(addr) {
     // selectedViewChains is empty (reset above) so render all chains
     renderAsked(data.askedQuestions);
     renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables);
+    renderArbitrator(data.arbitratorQuestions);
     renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
   } catch (err) {
     if (gen !== accountLoadGen) return;
