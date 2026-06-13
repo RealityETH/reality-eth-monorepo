@@ -62,6 +62,16 @@
   #wallet-btn:hover { border-color: var(--accent); color: var(--accent); }
   #wallet-btn.connected { border-color: var(--green); color: var(--green); }
 
+  /* ── Data indicators ── */
+  .data-ind {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    color: var(--text-dim); cursor: default; transition: color 0.2s, background 0.2s;
+  }
+  .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
+  @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
   /* ── Page ── */
   .page { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
   h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
@@ -207,6 +217,12 @@
     <span class="header-sep">/</span>
     <span class="header-title">Ask a question</span>
     <div class="header-spacer"></div>
+    <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+    </span>
+    <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </span>
     <button id="wallet-btn">Connect wallet</button>
   </div>
 </header>
@@ -454,6 +470,20 @@ const ARB_TOS = {
   '0x29f39de': 'https://kleros.io/tos',
   '0x5afa42b': 'https://kleros.io/tos',
 };
+
+// ── Data indicators ───────────────────────────────────────────────────────────
+
+const ponderInd = document.getElementById('ind-ponder');
+const rpcInd    = document.getElementById('ind-rpc');
+async function withIndicator(el, fn) {
+  el?.classList.add('active');
+  const start = Date.now();
+  try { return await fn(); }
+  finally {
+    const wait = Math.max(0, 1000 - (Date.now() - start));
+    setTimeout(() => el?.classList.remove('active'), wait);
+  }
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -952,7 +982,7 @@ form.addEventListener('submit', async e => {
       if (!isERC20Contract) {
         try {
           const arbContract = new ethers.Contract(arbAddr, ARB_ABI, provider);
-          feeWei = await arbContract.arbitrator_question_fees(rcAddress);
+          feeWei = await withIndicator(rpcInd, () => arbContract.arbitrator_question_fees(rcAddress));
         } catch {}
       }
     }
@@ -961,12 +991,12 @@ form.addEventListener('submit', async e => {
     if (isERC20Contract && rcTokenAddress && rewardWei.gt(0)) {
       submitBtn.textContent = `Approve ${rcToken} in wallet…`;
       const tokenRead = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, provider);
-      const allowance = await tokenRead.allowance(walletAddr, rcAddress);
+      const allowance = await withIndicator(rpcInd, () => tokenRead.allowance(walletAddr, rcAddress));
       if (allowance.lt(rewardWei)) {
         const tokenRW = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, signer);
-        const approveTx = await tokenRW.approve(rcAddress, rewardWei);
+        const approveTx = await withIndicator(rpcInd, () => tokenRW.approve(rcAddress, rewardWei));
         submitBtn.textContent = `Approving ${rcToken}…`;
-        await approveTx.wait();
+        await withIndicator(rpcInd, () => approveTx.wait());
       }
     }
 
@@ -976,26 +1006,26 @@ form.addEventListener('submit', async e => {
     if (isERC20Contract) {
       const rc = new ethers.Contract(rcAddress, [...RC_ABI, ...RC_ERC20_ABI], signer);
       if (supportsMinBond && minBondWei.gt(0)) {
-        tx = await rc.askQuestionWithMinBondERC20(
-          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei);
+        tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBondERC20(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei));
       } else {
-        tx = await rc.askQuestionERC20(
-          templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei);
+        tx = await withIndicator(rpcInd, () => rc.askQuestionERC20(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei));
       }
     } else {
       const value = rewardWei.add(feeWei);
       const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
       if (minBondWei.gt(0)) {
-        tx = await rc.askQuestionWithMinBond(
-          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value });
+        tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBond(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value }));
       } else {
-        tx = await rc.askQuestion(
-          templateId, qtext, arbAddr, timeout, openingTs, 0, { value });
+        tx = await withIndicator(rpcInd, () => rc.askQuestion(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, { value }));
       }
     }
 
     submitBtn.textContent = 'Pending…';
-    const receipt = await tx.wait();
+    const receipt = await withIndicator(rpcInd, () => tx.wait());
 
     // Extract question ID from LogNewQuestion event
     const iface = new ethers.utils.Interface(RC_ABI);

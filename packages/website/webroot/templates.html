@@ -48,6 +48,12 @@
     text-decoration: none; display: flex; align-items: center; gap: 8px;
   }
   .logo-mark { width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px; }
+  .data-ind { display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+    color: var(--text-dim); cursor: default; transition: color 0.2s, background 0.2s; }
+  .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
+  @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
   .header-sep { color: var(--border); font-size: 18px; }
   .header-title { color: var(--text-muted); font-size: 14px; }
   .header-spacer { flex: 1; }
@@ -195,6 +201,12 @@
       <a class="nav-link" href="ask.html">Ask a question</a>
       <a class="nav-link" href="browse.html">Browse questions</a>
     </nav>
+    <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+    </span>
+    <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </span>
     <button id="wallet-btn">Connect wallet</button>
   </div>
 </header>
@@ -305,11 +317,20 @@ const loadMoreBtn  = document.getElementById('load-more-btn');
 
 // ── GraphQL ───────────────────────────────────────────────────────────────────
 
+const ponderInd = document.getElementById('ind-ponder');
+const rpcInd    = document.getElementById('ind-rpc');
+async function withIndicator(el, fn) {
+  el?.classList.add('active');
+  const start = Date.now();
+  try { return await fn(); }
+  finally { setTimeout(() => el?.classList.remove('active'), Math.max(0, 1000 - (Date.now() - start))); }
+}
+
 async function gql(query, variables) {
-  const res = await fetch(GRAPHQL, {
+  const res = await withIndicator(ponderInd, () => fetch(GRAPHQL, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables }),
-  });
+  }));
   const json = await res.json();
   if (json.errors?.length) throw new Error(json.errors[0].message);
   return json.data;
