@@ -234,6 +234,51 @@
     border-radius: var(--radius-sm); padding: 10px 13px;
     font-size: 12px; color: var(--amber); line-height: 1.5;
   }
+
+  /* ── View mode ── */
+  .view-id-line { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .view-id-num  { font-size: 22px; font-weight: 700; color: var(--text); font-family: ui-monospace, monospace; }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; margin-right: 5px; margin-bottom: 4px;
+  }
+  .badge-type { background: var(--accent-subtle); color: var(--accent); border: 1px solid rgba(88,166,255,0.2); }
+  .badge-cat  { background: var(--bg-raised); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-lang { background: var(--bg-raised); color: var(--text-dim); border: 1px solid var(--border-subtle); }
+  .view-title-text {
+    font-size: 15px; line-height: 1.6; color: var(--text); margin: 16px 0 6px;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .view-title-text .ph { color: var(--accent); font-style: italic; }
+  .view-outcomes { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .view-outcome {
+    padding: 6px 11px; border-radius: var(--radius-sm);
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    font-size: 13px; color: var(--text-muted);
+  }
+  .view-meta-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
+  .view-meta-item { font-size: 12px; }
+  .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
+  .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+  .view-action-btn {
+    display: block; width: 100%; text-align: center; text-decoration: none;
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+    margin-top: 8px; cursor: pointer; transition: opacity 0.15s;
+  }
+  .view-action-btn:hover { opacity: 0.85; }
+  .view-action-primary { background: var(--accent); color: #fff; border: none; }
+  .view-action-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .view-loading { color: var(--text-dim); font-size: 13px; padding: 32px 0; text-align: center; }
+  .view-error { color: var(--red); font-size: 13px; padding: 24px 0; }
+  .multi-results-note { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+  .multi-result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 6px;
+    background: var(--bg); border: 1px solid var(--border-subtle); cursor: pointer;
+  }
+  .multi-result-row:hover { border-color: var(--accent); }
+  .multi-result-row .chain-info { font-size: 12px; color: var(--text-muted); }
+  .multi-result-row .contract-info { font-size: 11px; color: var(--text-dim); font-family: monospace; }
 </style>
 </head>
 <body>
@@ -245,17 +290,72 @@
       reality.eth
     </a>
     <span class="header-sep">/</span>
-    <span class="header-title">Create template</span>
+    <span class="header-title" id="header-title">Create template</span>
     <div class="header-spacer"></div>
     <nav class="header-nav">
       <a class="nav-link" href="ask.html">Ask a question</a>
       <a class="nav-link" href="browse.html">Browse</a>
+      <a class="nav-link" href="templates.html">Templates</a>
     </nav>
     <button id="wallet-btn">Connect wallet</button>
   </div>
 </header>
 
 <div class="page">
+
+  <!-- ── View mode ── -->
+  <div id="view-section" style="display:none">
+    <div id="view-loading" class="view-loading">Loading template…</div>
+    <div id="view-error" class="view-error" style="display:none"></div>
+
+    <!-- multiple results when searching by numeric ID only -->
+    <div id="view-multi" style="display:none">
+      <p class="multi-results-note">This template ID exists on multiple chains/contracts. Select one:</p>
+      <div id="view-multi-list"></div>
+    </div>
+
+    <!-- single template view -->
+    <div id="view-single" style="display:none">
+      <div class="ask-layout">
+        <div class="col-main">
+          <div class="card">
+            <div class="view-id-line">Template #<span class="view-id-num" id="view-id-num"></span></div>
+            <div id="view-badges"></div>
+            <div class="view-title-text" id="view-title-text"></div>
+            <div class="view-outcomes" id="view-outcomes"></div>
+            <div class="view-meta-row">
+              <div class="view-meta-item">
+                <div class="view-meta-label">Creator</div>
+                <div class="view-meta-val" id="view-creator"></div>
+              </div>
+              <div class="view-meta-item">
+                <div class="view-meta-label">Contract</div>
+                <div class="view-meta-val" id="view-contract"></div>
+              </div>
+              <div class="view-meta-item">
+                <div class="view-meta-label">Transaction</div>
+                <div class="view-meta-val" id="view-txhash"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-side">
+          <div class="card">
+            <div class="card-title">JSON</div>
+            <div class="json-preview" id="view-json"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Actions</div>
+            <a class="view-action-btn view-action-primary" id="view-browse-link" href="#">Browse questions using this template</a>
+            <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Create mode ── -->
+  <div id="create-section">
   <h1>Create a question template</h1>
   <p class="page-intro">Templates define the structure of questions on Reality.eth. Create a template once, then reference it by ID when asking questions. The template is stored on-chain as a JSON string.</p>
 
@@ -412,13 +512,16 @@
           <div class="result-id-label">Template ID</div>
           <div class="result-id" id="result-id">—</div>
           <button type="button" class="result-copy" id="result-copy">Copy ID</button>
+          <a id="result-view-link" href="#" style="display:block; margin-top:8px; font-size:12px; color:var(--accent); text-align:center;">View template →</a>
         </div>
       </div>
 
     </div>
   </div>
+  </div><!-- /create-section -->
 </div>
 
+<script src="js/settings.js"></script>
 <script src="js/ethers.js"></script>
 <script src="js/wallet.js"></script>
 <script>
@@ -874,6 +977,9 @@ submitBtn.addEventListener('click', async () => {
     if (templateIdNum !== null) {
       resultId.textContent = templateIdNum;
       resultBox.classList.add('visible');
+      const ponderId = `${chainId}-${rcAddress.toLowerCase()}-${templateIdNum}`;
+      const viewLink = document.getElementById('result-view-link');
+      if (viewLink) viewLink.href = `template.html#!${ponderId}`;
     }
 
   } catch (err) {
@@ -891,13 +997,188 @@ document.getElementById('result-copy').addEventListener('click', () => {
   setTimeout(() => { btn.textContent = 'Copy ID'; }, 1500);
 });
 
+// ── View mode ─────────────────────────────────────────────────────────────────
+
+const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
+
+const TYPE_LABELS = {
+  'bool': 'Yes / No', 'uint': 'Number', 'datetime': 'Date / Time',
+  'single-select': 'Single choice', 'multiple-select': 'Multiple choice',
+};
+
+async function gql(query, variables) {
+  const res = await fetch(GRAPHQL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data;
+}
+
+function parseHash() {
+  const raw = window.location.hash.replace(/^#!?\/?/, '');
+  if (!raw) return null;
+  // numeric only → search by templateId
+  if (/^\d+$/.test(raw)) return { mode: 'byId', templateId: parseInt(raw) };
+  // compound ponder key  chainId-0xaddr-templateId
+  const m = raw.match(/^(\d+)-(0x[a-fA-F0-9]+)-(\d+)$/);
+  if (m) return { mode: 'direct', ponderId: raw };
+  return null;
+}
+
+function highlightPlaceholders(text) {
+  const div = document.createElement('div');
+  div.className = 'view-title-text';
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  div.innerHTML = escaped.replace(/%s/g, '<span class="ph">%s</span>');
+  return div;
+}
+
+function renderTemplateView(t) {
+  let tmpl = {};
+  try { tmpl = JSON.parse(t.questionText || '{}'); } catch {}
+
+  document.getElementById('header-title').textContent = `Template #${t.templateId}`;
+  document.title = `reality.eth — Template #${t.templateId}`;
+
+  document.getElementById('view-id-num').textContent = t.templateId;
+
+  const badges = document.getElementById('view-badges');
+  badges.innerHTML = '';
+  if (tmpl.type) {
+    const b = document.createElement('span');
+    b.className = 'badge badge-type';
+    b.textContent = TYPE_LABELS[tmpl.type] || tmpl.type;
+    badges.appendChild(b);
+  }
+  if (tmpl.category) {
+    const b = document.createElement('span');
+    b.className = 'badge badge-cat';
+    b.textContent = tmpl.category;
+    badges.appendChild(b);
+  }
+  if (tmpl.lang) {
+    const b = document.createElement('span');
+    b.className = 'badge badge-lang';
+    b.textContent = tmpl.lang;
+    badges.appendChild(b);
+  }
+
+  const titleWrap = document.getElementById('view-title-text');
+  titleWrap.innerHTML = '';
+  if (tmpl.title) titleWrap.appendChild(highlightPlaceholders(tmpl.title));
+
+  const outcomesWrap = document.getElementById('view-outcomes');
+  outcomesWrap.innerHTML = '';
+  if (tmpl.outcomes?.length) {
+    for (const o of tmpl.outcomes) {
+      const row = document.createElement('div');
+      row.className = 'view-outcome';
+      row.textContent = o;
+      outcomesWrap.appendChild(row);
+    }
+  }
+  if (tmpl.decimals !== undefined) {
+    const row = document.createElement('div');
+    row.className = 'view-outcome';
+    row.textContent = `Decimals: ${tmpl.decimals}`;
+    outcomesWrap.appendChild(row);
+  }
+
+  document.getElementById('view-creator').textContent = t.user;
+  document.getElementById('view-contract').textContent =
+    `${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`} · ${t.contract.slice(0,10)}…`;
+  document.getElementById('view-txhash').textContent = t.createdTxHash.slice(0, 14) + '…';
+
+  document.getElementById('view-json').textContent = JSON.stringify(tmpl, null, 2);
+
+  const browseLink = document.getElementById('view-browse-link');
+  browseLink.href = `browse.html#!/network/${t.chainId}/template/${t.templateId}`;
+
+  document.getElementById('view-loading').style.display = 'none';
+  document.getElementById('view-single').style.display = '';
+}
+
+function renderMultiResults(items) {
+  document.getElementById('view-loading').style.display = 'none';
+  document.getElementById('view-multi').style.display = '';
+  const list = document.getElementById('view-multi-list');
+  list.innerHTML = '';
+  for (const t of items) {
+    const row = document.createElement('div');
+    row.className = 'multi-result-row';
+    row.innerHTML = `<div>
+      <div class="chain-info">${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`}</div>
+      <div class="contract-info">${t.contract}</div>
+    </div>`;
+    row.addEventListener('click', () => {
+      document.getElementById('view-multi').style.display = 'none';
+      renderTemplateView(t);
+    });
+    list.appendChild(row);
+  }
+}
+
+async function loadViewMode(parsed) {
+  document.getElementById('create-section').style.display = 'none';
+  document.getElementById('view-section').style.display = '';
+
+  try {
+    if (parsed.mode === 'direct') {
+      const data = await gql(
+        `query($id: String!) { template(id: $id) {
+          id templateId contract chainId user questionText createdTxHash createdTimestamp
+        }}`,
+        { id: parsed.ponderId }
+      );
+      if (!data.template) {
+        document.getElementById('view-loading').style.display = 'none';
+        document.getElementById('view-error').textContent = 'Template not found.';
+        document.getElementById('view-error').style.display = '';
+        return;
+      }
+      renderTemplateView(data.template);
+    } else {
+      const data = await gql(
+        `query($id: Int!) { templates(where: { templateId: $id }, limit: 20) { items {
+          id templateId contract chainId user questionText createdTxHash createdTimestamp
+        }}}`,
+        { id: parsed.templateId }
+      );
+      const items = data.templates?.items || [];
+      if (!items.length) {
+        document.getElementById('view-loading').style.display = 'none';
+        document.getElementById('view-error').textContent = 'No template found with that ID.';
+        document.getElementById('view-error').style.display = '';
+        return;
+      }
+      if (items.length === 1) {
+        renderTemplateView(items[0]);
+      } else {
+        renderMultiResults(items);
+      }
+    }
+  } catch (err) {
+    document.getElementById('view-loading').style.display = 'none';
+    document.getElementById('view-error').textContent = `Error: ${err.message}`;
+    document.getElementById('view-error').style.display = '';
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('wallet-btn').onclick =
     () => RealityWallet.connectWallet(onWalletChange);
   RealityWallet.initWallet(onWalletChange);
-  loadContracts().catch(() => {});
+
+  const parsed = parseHash();
+  if (parsed) {
+    loadViewMode(parsed);
+  } else {
+    loadContracts().catch(() => {});
+  }
 
   document.getElementById('toggle-custom').addEventListener('click', () => setTemplateMode('custom'));
   document.getElementById('toggle-zodiac').addEventListener('click', () => setTemplateMode('zodiac'));
