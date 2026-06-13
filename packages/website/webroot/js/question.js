@@ -159,6 +159,15 @@ function formatEth(bn) {
 // ── Ponder data loading ───────────────────────────────────────────────────────
 const PONDER_QUESTION_ID = `${CONTRACT}-${QUESTION_ID}`;
 
+function ponderFetch(url, body) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  return fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body), signal: ctrl.signal,
+  }).finally(() => clearTimeout(timer));
+}
+
 async function fetchPonderData() {
   const qid = JSON.stringify(PONDER_QUESTION_ID);
   // responses and reopeners are separate top-level queries (no nested relations in Ponder)
@@ -177,12 +186,8 @@ async function fetchPonderData() {
       items { id }
     }
   }`;
-  const resp = await withIndicator(ponderInd, () =>
-    fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    })
-  );
+  const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
+  const resp = await withIndicator(ponderInd, () => ponderFetch(ponderUrl, { query }));
   if (!resp.ok) throw new Error('GraphQL unavailable');
   const json = await resp.json();
   if (!json.data?.question) throw new Error('Question not in Ponder');
@@ -194,15 +199,29 @@ async function fetchTemplateStr(templateId) {
   if (builtin) return builtin;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
+    const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
     const resp = await withIndicator(ponderInd, () =>
-      fetch(window.RealitySettings?.getPonderUrl() || '/graphql', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: `{ template(id: ${tid}) { questionText } }` }),
-      })
+      ponderFetch(ponderUrl, { query: `{ template(id: ${tid}) { questionText } }` })
     );
     const { data } = await resp.json();
     return data?.template?.questionText || BUILTIN_TEMPLATES[0];
   } catch { return BUILTIN_TEMPLATES[0]; }
+}
+
+// Fetch contract events with chunked fallback for restrictive public RPCs.
+// Tries the full range first; if it fails, scans in 50k-block chunks sequentially.
+// stopOnFirst=true exits as soon as any results are found (for single-event lookups).
+async function queryFilterRobust(contract, filter, from, to, stopOnFirst = false) {
+  const full = await safeCall(() => contract.queryFilter(filter, from, to), null);
+  if (full !== null) return full;
+  const CHUNK = 50000;
+  const results = [];
+  for (let s = from; s <= to; s += CHUNK) {
+    const chunk = await safeCall(() => contract.queryFilter(filter, s, Math.min(s + CHUNK - 1, to)), []);
+    results.push(...chunk);
+    if (stopOnFirst && results.length > 0) break;
+  }
+  return results;
 }
 
 function adaptPonderData(ponderData, BN0) {
@@ -1660,14 +1679,14 @@ async function main() {
     // RPC path — await meta so we have the correct deployment block and version
     await contractsMetaPromise;
     const effectiveMajor = metaMajorVersion ?? (CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3);
-    const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? FORK_BLOCK;
+    const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
-      const [bond, finalizeTS, newQEvents, rawAnswerEvents] = await Promise.all([
+      const currentBlock = await safeCall(() => reality.provider.getBlockNumber(), startBlock + 5_000_000);
+      const [bond, finalizeTS, newQEvents] = await Promise.all([
         safeCall(() => reality.getBond(QUESTION_ID), BN0),
         safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
-        safeCall(() => reality.queryFilter(reality.filters.LogNewQuestion(QUESTION_ID), startBlock), []),
-        safeCall(() => reality.queryFilter(reality.filters.LogNewAnswer(null, QUESTION_ID), startBlock), []),
+        queryFilterRobust(reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, currentBlock, true),
       ]);
       const qEv        = newQEvents[0];
       const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
@@ -1676,11 +1695,14 @@ async function main() {
       const qTimeout    = qEv ? qEv.args.timeout    : 0;
       const arbitrator  = qEv ? qEv.args.arbitrator  : ethers.constants.AddressZero;
       const nonce       = qEv ? qEv.args.nonce        : BN0;
+      // Scan answers from the question's own creation block (not the contract start block)
+      const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
+      const rawAnswerEvents = await queryFilterRobust(
+        reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
       let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
       if (!rpcTemplateStr) {
-        const tevents = await safeCall(
-          () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), startBlock), []
-        );
+        const tevents = await queryFilterRobust(
+          reality, reality.filters.LogNewTemplate(templateId), startBlock, currentBlock, true);
         rpcTemplateStr = tevents[0]?.args.question_text
           || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
       }
