@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>reality.eth — Create template</title>
-<script>(function(){var h=location.hash.replace(/^#!?\/?/,'');if(h){var s=document.createElement('style');s.textContent='#create-section{display:none}';document.head.appendChild(s);}}());</script>
+<script>(function(){var h=location.hash.replace(/^#!?\/?/,'');if(h&&!h.startsWith('raw/')){var s=document.createElement('style');s.textContent='#create-section{display:none}';document.head.appendChild(s);}}());</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1251,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const parsed = parseHash();
     if (parsed?.mode === 'rawCreate') {
       document.getElementById('view-section').style.display = 'none';
-      document.getElementById('create-section').style.display = '';
+      document.getElementById('create-section').style.display = 'block';
       document.getElementById('header-title').textContent = 'Create template';
       document.title = 'reality.eth — Create template';
       setTemplateMode('raw');
