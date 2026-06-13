@@ -3,7 +3,18 @@
   "version": "3.4.28",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
-    "test": "env TZ='Asia/Kabul' mocha ./test"
+    "build": "tsc",
+    "test": "npm run build && env TZ='Asia/Kabul' mocha ./test"
+  },
+  "exports": {
+    "./formatters/question.js": {
+      "require": "./dist/cjs/formatters/question.js",
+      "types": "./dist/cjs/formatters/question.d.ts"
+    },
+    "./formatters/template.js": {
+      "require": "./dist/cjs/formatters/template.js",
+      "types": "./dist/cjs/formatters/template.d.ts"
+    }
   },
   "keywords": [
     "Ethereum",
@@ -26,7 +37,8 @@
     "chai": "^4.3.6",
     "chai-bignumber": "^2.0.2",
     "mocha": "^5.2.0",
-    "truffle": "^4.0.1"
+    "truffle": "^4.0.1",
+    "typescript": "^6.0.3"
   },
   "repository": {
     "type": "git",
