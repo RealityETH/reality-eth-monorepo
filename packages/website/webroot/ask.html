@@ -185,6 +185,15 @@
   }
   .chain-pill:hover { border-color: var(--accent); color: var(--accent); }
   .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .token-pills { flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .token-pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .token-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .token-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .version-select { width: auto !important; font-size: 12px !important; padding: 4px 24px 4px 8px !important; }
 </style>
 </head>
 <body>
@@ -326,6 +335,13 @@
           <button type="button" class="chain-pill" data-chain="8453">Base</button>
           <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
         </div>
+        <div id="token-pills" class="token-pills" style="display:none"></div>
+        <div id="version-row" style="display:none; margin-top:10px;">
+          <select id="version-select" class="version-select"></select>
+        </div>
+        <div class="info-box" id="erc20-note" style="display:none; margin-top:10px;">
+          ERC20 token contracts require a separate token-approval flow to post rewards and bonds. Asking questions on ERC20 contracts is not yet supported here — choose a native-token contract instead.
+        </div>
         <div class="warn-box" id="timeout-warning" style="display:none;margin-top:10px">
           ⚠ Dispute window under 24 hours. There may not be enough time for people to correct wrong answers.
         </div>
@@ -438,6 +454,9 @@ let chainId  = null;
 let rcAddress = null;   // reality.eth contract for current chain
 let rcToken   = 'ETH'; // native token ticker
 let contractsData = null;
+let selectedToken    = null;
+let selectedVersion  = null;
+let isERC20Contract  = false;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -468,36 +487,24 @@ async function loadContracts() {
   return contractsData;
 }
 
-function findContractForChain(data, chain) {
-  const token = CHAIN_NATIVE_TOKEN[chain];
-  if (!token) return null;
-  const versions = data[String(chain)]?.[token] || {};
-  for (const ver of VERSION_PREFERENCE) {
-    if (versions[ver]?.address) {
-      return { address: versions[ver].address, version: ver, token };
-    }
-  }
-  return null;
+function getTokensForChain(data, chain) {
+  return Object.keys(data[String(chain)] || {});
 }
 
-function findArbitratorsForChain(data, chain) {
-  const token = CHAIN_NATIVE_TOKEN[chain];
-  if (!token) return [];
+function getVersionsForToken(data, chain, token) {
   const versions = data[String(chain)]?.[token] || {};
-  const seen = new Map();
-  for (const info of Object.values(versions)) {
-    for (const [addr, name] of Object.entries(info.arbitrators || {})) {
-      seen.set(addr.toLowerCase(), { addr, name });
-    }
-  }
-  return [...seen.values()];
+  return Object.keys(versions)
+    .filter(v => versions[v]?.address)
+    .sort((a, b) => {
+      const key = v => { const m = v.match(/(\d+)\.(\d+)$/); return m ? parseInt(m[1]) * 100 + parseInt(m[2]) : 0; };
+      return key(b) - key(a);
+    });
 }
 
 // ── Arbitrator select ─────────────────────────────────────────────────────────
 
-async function populateArbitrators(chain, rcAddr) {
-  const data = await loadContracts();
-  const arbs = findArbitratorsForChain(data, chain);
+async function populateArbitrators(chain, rcAddr, arbsObj) {
+  const arbs = Object.entries(arbsObj || {}).map(([addr, name]) => ({ addr, name }));
 
   arbSelect.innerHTML = '';
   if (arbs.length === 0) {
@@ -561,6 +568,98 @@ function updateArbTos() {
   if (tos) arbTosLink.href = tos;
 }
 
+// ── Token / version selection ─────────────────────────────────────────────────
+
+function buildTokenPills(data, chain, tokens, activeToken) {
+  const container = document.getElementById('token-pills');
+  container.innerHTML = '';
+  if (tokens.length <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+  for (const tok of tokens) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'token-pill' + (tok === activeToken ? ' active' : '');
+    btn.dataset.token = tok;
+    btn.textContent = tok;
+    container.appendChild(btn);
+  }
+}
+
+function buildVersionSelect(versions, activeVersion) {
+  const row = document.getElementById('version-row');
+  const sel = document.getElementById('version-select');
+  if (versions.length <= 1) {
+    row.style.display = 'none';
+    return;
+  }
+  row.style.display = 'block';
+  sel.innerHTML = '';
+  for (const ver of versions) {
+    const opt = document.createElement('option');
+    opt.value = ver;
+    opt.textContent = ver;
+    opt.selected = ver === activeVersion;
+    sel.appendChild(opt);
+  }
+}
+
+function versionMajor(versionStr) {
+  const m = versionStr.match(/-(\d+)\./);
+  return m ? parseInt(m[1]) : 0;
+}
+
+async function applyTokenVersion(data, chain, token, version) {
+  selectedToken = token;
+  selectedVersion = version;
+
+  const info = data[String(chain)]?.[token]?.[version];
+  if (!info) return;
+
+  rcAddress = info.address;
+  rcToken = token;
+  isERC20Contract = !!info.token_address;
+  const supportsMinBond = !isERC20Contract && versionMajor(version) >= 3;
+
+  document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
+  document.getElementById('reward-token-label').textContent = `(${rcToken})`;
+  document.getElementById('summary-reward').textContent = `0 ${rcToken}`;
+
+  // ERC20: disable reward and block submission
+  const erc20Note = document.getElementById('erc20-note');
+  const rewardInputEl = document.getElementById('question-reward');
+  erc20Note.style.display = isERC20Contract ? 'block' : 'none';
+  rewardInputEl.disabled = isERC20Contract;
+  if (isERC20Contract) rewardInputEl.value = '0';
+
+  // Min-bond: v3+ native only
+  const minBondInput = document.getElementById('question-minbond');
+  const minBondField = document.getElementById('field-minbond');
+  minBondInput.disabled = !supportsMinBond;
+  minBondField.style.opacity = supportsMinBond ? '' : '0.5';
+  if (!supportsMinBond) minBondInput.value = '';
+
+  await populateArbitrators(chain, rcAddress, info.arbitrators);
+  updateSubmitState();
+}
+
+function selectToken(token) {
+  if (!contractsData || !chainId) return;
+  for (const pill of document.getElementById('token-pills').querySelectorAll('.token-pill')) {
+    pill.classList.toggle('active', pill.dataset.token === token);
+  }
+  const versions = getVersionsForToken(contractsData, chainId, token);
+  buildVersionSelect(versions, versions[0]);
+  applyTokenVersion(contractsData, chainId, token, versions[0]);
+}
+
+function selectVersion(version) {
+  if (!contractsData || !chainId || !selectedToken) return;
+  applyTokenVersion(contractsData, chainId, selectedToken, version);
+}
+
 // ── Chain switching ───────────────────────────────────────────────────────────
 
 const CHAIN_ADD_PARAMS = {
@@ -600,31 +699,35 @@ async function setupForChain(chain) {
   chainId = chain;
   const name = CHAIN_NAME[chain] || `Chain ${chain}`;
   const data = await loadContracts();
-  const info = findContractForChain(data, chain);
+  const tokens = getTokensForChain(data, chain);
 
   networkName.textContent = name;
-  networkDot.classList.toggle('unknown', !info);
-  networkUnsupported.style.display = info ? 'none' : 'block';
   updateChainPills(chain);
 
-  if (!info) {
+  if (tokens.length === 0) {
+    networkDot.classList.add('unknown');
+    networkUnsupported.style.display = 'block';
     rcAddress = null;
     rcToken = CHAIN_NATIVE_TOKEN[chain] || 'ETH';
+    document.getElementById('token-pills').style.display = 'none';
+    document.getElementById('version-row').style.display = 'none';
+    document.getElementById('erc20-note').style.display = 'none';
     arbSelect.innerHTML = '<option value="">Unsupported network</option>';
     updateCost();
     return;
   }
 
-  rcAddress = info.address;
-  rcToken = info.token;
+  networkDot.classList.remove('unknown');
+  networkUnsupported.style.display = 'none';
 
-  // Update token labels
-  document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
-  document.getElementById('reward-token-label').textContent = `(${rcToken})`;
-  document.getElementById('summary-reward').textContent = `0 ${rcToken}`;
+  const nativeToken = CHAIN_NATIVE_TOKEN[chain];
+  const defaultToken = tokens.includes(nativeToken) ? nativeToken : tokens[0];
+  buildTokenPills(data, chain, tokens, defaultToken);
 
-  await populateArbitrators(chain, rcAddress);
-  updateSubmitState();
+  const versions = getVersionsForToken(data, chain, defaultToken);
+  buildVersionSelect(versions, versions[0]);
+
+  await applyTokenVersion(data, chain, defaultToken, versions[0]);
 }
 
 // ── Wallet ────────────────────────────────────────────────────────────────────
@@ -773,7 +876,7 @@ function validate() {
 }
 
 function updateSubmitState() {
-  submitBtn.disabled = !walletAddr || !rcAddress;
+  submitBtn.disabled = !walletAddr || !rcAddress || isERC20Contract;
 }
 
 // ── Question encoding ─────────────────────────────────────────────────────────
@@ -798,7 +901,7 @@ function txErrorMessage(err) {
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
-  if (!signer || !rcAddress) return;
+  if (!signer || !rcAddress || isERC20Contract) return;
   if (!validate()) return;
 
   txError.classList.remove('visible');
@@ -812,7 +915,8 @@ form.addEventListener('submit', async e => {
     const opening  = document.getElementById('opening-date').value;
     const timeout  = parseInt(timeoutSel.value);
     const rewardEth  = rewardInput.value || '0';
-    const minBondEth = document.getElementById('question-minbond').value || '0';
+    const supportsMinBond = versionMajor(selectedVersion) >= 3;
+    const minBondEth = supportsMinBond ? (document.getElementById('question-minbond').value || '0') : '0';
     const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
       .map(i => i.value.trim()).filter(Boolean);
 
@@ -892,6 +996,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('chain-pills').addEventListener('click', e => {
     const pill = e.target.closest('.chain-pill');
     if (pill) switchChain(parseInt(pill.dataset.chain));
+  });
+
+  document.getElementById('token-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.token-pill');
+    if (pill) selectToken(pill.dataset.token);
+  });
+
+  document.getElementById('version-select').addEventListener('change', e => {
+    selectVersion(e.target.value);
   });
 });
 </script>
