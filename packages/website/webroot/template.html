@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reality.eth — Create template</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2330;
+    --bg-raised: #1c2330;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #484f58;
+    --accent: #58a6ff;
+    --accent-subtle: rgba(88,166,255,0.1);
+    --green: #3fb950;
+    --green-subtle: rgba(63,185,80,0.12);
+    --amber: #d29922;
+    --amber-subtle: rgba(210,153,34,0.12);
+    --red: #f85149;
+    --red-subtle: rgba(248,81,73,0.12);
+    --radius: 8px;
+    --radius-sm: 5px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px;
+    line-height: 1.5; min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle); padding: 0 24px;
+  }
+  .header-inner {
+    max-width: 1100px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px; height: 56px;
+  }
+  .logo {
+    font-size: 15px; font-weight: 600; color: var(--text);
+    text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+  .logo svg { color: var(--accent); }
+  .header-sep { color: var(--border); font-size: 18px; }
+  .header-title { color: var(--text-muted); font-size: 14px; }
+  .header-spacer { flex: 1; }
+  .header-nav { display: flex; align-items: center; gap: 4px; }
+  .nav-link { font-size: 13px; color: var(--text-muted); text-decoration: none;
+    padding: 4px 8px; border-radius: 4px; transition: color 0.15s; }
+  .nav-link:hover { color: var(--text); }
+  #wallet-btn {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 13px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #wallet-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #wallet-btn.connected { border-color: rgba(63,185,80,0.5); color: var(--green); font-family: monospace; font-size: 12px; }
+  @media (max-width: 700px) { .header-nav { display: none; } }
+
+  /* ── Page ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .page-intro { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+
+  /* ── Layout ── */
+  .ask-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+  @media (max-width: 680px) {
+    .ask-layout { grid-template-columns: 1fr; }
+    .col-side { order: -1; }
+  }
+
+  /* ── Cards ── */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card + .card { margin-top: 16px; }
+  .card-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 18px; }
+
+  /* ── Form elements ── */
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  .label-note { font-weight: 400; color: var(--text-dim); }
+  .field-help { font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.5; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .is-error .field-error { display: block; }
+
+  input[type="text"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%; padding: 8px 11px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  select option { background: #1c2330; }
+  .is-error input, .is-error select, .is-error textarea { border-color: var(--red); }
+
+  /* ── Template type toggle ── */
+  .type-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .type-toggle-btn {
+    flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 500;
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .type-toggle-btn + .type-toggle-btn { border-left: 1px solid var(--border); }
+  .type-toggle-btn.active { background: var(--accent-subtle); color: var(--accent); }
+  .type-toggle-btn:hover:not(.active) { background: var(--bg-raised); color: var(--text); }
+
+  /* ── Answer options (same as ask.html) ── */
+  .answer-options { display: none; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .answer-options.visible { display: flex; }
+  .answer-option-row { display: flex; gap: 6px; align-items: center; }
+  .answer-option-row input { flex: 1; }
+  .remove-option {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    padding: 4px 6px; border-radius: 4px; font-size: 16px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .remove-option:hover:not(:disabled) { color: var(--red); }
+  .remove-option:disabled { opacity: 0.3; cursor: default; }
+  .add-option-btn {
+    background: none; border: 1px dashed var(--border); border-radius: var(--radius-sm);
+    color: var(--text-dim); cursor: pointer; padding: 6px 12px;
+    font-size: 12px; width: 100%; margin-top: 2px; transition: border-color 0.15s, color 0.15s;
+  }
+  .add-option-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Decimals / outcomes conditional fields ── */
+  .field-decimals, .field-outcomes { display: none; }
+  .field-decimals.visible, .field-outcomes.visible { display: block; margin-bottom: 20px; }
+
+  /* ── ENS generated title preview ── */
+  .generated-title {
+    display: none; margin-top: 12px; padding: 10px 12px;
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .generated-title.visible { display: block; }
+
+  /* ── Network (same as ask.html) ── */
+  .network-row { display: flex; align-items: center; gap: 8px; }
+  .network-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .network-dot.unknown { background: var(--text-dim); }
+  .network-name { font-size: 13px; color: var(--text-muted); }
+  .chain-pills { display: none; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .chain-pills.visible { display: flex; }
+  .chain-pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .chain-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .token-pills { flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .token-pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .token-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .token-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .version-select { width: auto !important; font-size: 12px !important; padding: 4px 24px 4px 8px !important; }
+
+  /* ── JSON preview ── */
+  .json-preview {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+    font-size: 11px; line-height: 1.6; color: var(--text-muted);
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); padding: 12px; overflow-x: auto;
+    white-space: pre; min-height: 80px;
+  }
+  .json-preview.empty { color: var(--text-dim); font-family: inherit; font-size: 12px; }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%; padding: 10px 20px; margin-top: 16px;
+    background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .submit-btn:hover:not(:disabled) { opacity: 0.88; }
+  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .tx-error {
+    margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--red-subtle); border: 1px solid rgba(248,81,73,0.3);
+    color: var(--red); font-size: 12px; display: none;
+  }
+  .tx-error.visible { display: block; }
+
+  /* ── Success result ── */
+  .result-box {
+    display: none; margin-top: 14px; padding: 14px;
+    background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.3);
+    border-radius: var(--radius-sm);
+  }
+  .result-box.visible { display: block; }
+  .result-id-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .result-id {
+    font-size: 28px; font-weight: 700; color: var(--green);
+    font-family: ui-monospace, monospace; margin-bottom: 10px;
+  }
+  .result-copy {
+    background: none; border: 1px solid rgba(63,185,80,0.4); color: var(--green);
+    border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .result-copy:hover { background: rgba(63,185,80,0.1); }
+
+  /* ── Info box ── */
+  .info-box {
+    background: var(--accent-subtle); border: 1px solid rgba(88,166,255,0.2);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--accent); line-height: 1.5; margin-top: 14px;
+  }
+  .warn-box {
+    background: var(--amber-subtle); border: 1px solid rgba(210,153,34,0.25);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--amber); line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="browse.html">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      reality.eth
+    </a>
+    <span class="header-sep">/</span>
+    <span class="header-title">Create template</span>
+    <div class="header-spacer"></div>
+    <nav class="header-nav">
+      <a class="nav-link" href="ask.html">Ask a question</a>
+      <a class="nav-link" href="browse.html">Browse</a>
+    </nav>
+    <button id="wallet-btn">Connect wallet</button>
+  </div>
+</header>
+
+<div class="page">
+  <h1>Create a question template</h1>
+  <p class="page-intro">Templates define the structure of questions on Reality.eth. Create a template once, then reference it by ID when asking questions. The template is stored on-chain as a JSON string.</p>
+
+  <div class="ask-layout">
+
+    <!-- ── Left column ── -->
+    <div class="col-main">
+
+      <div class="card">
+        <div class="card-title">Template type</div>
+        <div class="type-toggle">
+          <button type="button" class="type-toggle-btn active" id="toggle-custom">Custom</button>
+          <button type="button" class="type-toggle-btn" id="toggle-zodiac">Zodiac Reality Module</button>
+        </div>
+        <div class="info-box" id="zodiac-info" style="display:none; margin-top:14px;">
+          Generates the standard SafeSnap template for on-chain execution of Snapshot DAO proposals. The ENS name is embedded in the question text so voters know which space's requirements apply.
+        </div>
+      </div>
+
+      <!-- Custom form -->
+      <div class="card" id="form-custom">
+        <div class="card-title">Template details</div>
+
+        <div class="field" id="field-category">
+          <label for="tmpl-category">Category</label>
+          <input type="text" id="tmpl-category" placeholder="e.g. sports, crypto, DAO proposal">
+          <div class="field-error">Please enter a category.</div>
+        </div>
+
+        <div class="field" id="field-type">
+          <label for="tmpl-type">Answer type</label>
+          <select id="tmpl-type">
+            <option value="bool">Yes / No</option>
+            <option value="single-select">Multiple choice — one correct answer</option>
+            <option value="multiple-select">Multiple choice — multiple correct answers</option>
+            <option value="uint">Number (positive integer)</option>
+            <option value="datetime">Date / time</option>
+          </select>
+        </div>
+
+        <div class="field-decimals" id="field-decimals">
+          <label for="tmpl-decimals">Decimals</label>
+          <input type="number" id="tmpl-decimals" min="0" max="18" step="1" value="18"
+            placeholder="18">
+          <div class="field-help">Number of decimal places for the numeric answer.</div>
+          <div class="field-error" id="decimals-error">Please enter a valid number of decimals.</div>
+        </div>
+
+        <div class="answer-options field-outcomes" id="field-outcomes">
+          <label>Answer options</label>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option A" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option B" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <button type="button" class="add-option-btn" id="add-option">+ Add another option</button>
+          <div class="field-error" id="outcomes-error" style="display:none">Please enter at least two options.</div>
+        </div>
+
+        <div class="field" id="field-title">
+          <label for="tmpl-title">Question template</label>
+          <textarea id="tmpl-title" rows="4"
+            placeholder="e.g. Will the price of %s exceed $%s on %s?"></textarea>
+          <div class="field-help">Use <code>%s</code> as a placeholder for values filled in when asking each question.</div>
+          <div class="field-error">Please enter the template text.</div>
+        </div>
+
+        <div class="field" id="field-lang">
+          <label for="tmpl-lang">Language</label>
+          <select id="tmpl-lang">
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="ar">Arabic</option>
+            <option value="ru">Russian</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="tr">Turkish</option>
+            <option value="vi">Vietnamese</option>
+            <option value="th">Thai</option>
+            <option value="hi">Hindi</option>
+            <option value="id">Indonesian</option>
+            <option value="sv">Swedish</option>
+            <option value="da">Danish</option>
+            <option value="fi">Finnish</option>
+            <option value="no">Norwegian</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Zodiac form -->
+      <div class="card" id="form-zodiac" style="display:none">
+        <div class="card-title">DAO space</div>
+
+        <div class="field" id="field-ens">
+          <label for="tmpl-ens">ENS name</label>
+          <input type="text" id="tmpl-ens" placeholder="e.g. myprotocol.eth">
+          <div class="field-error">Please enter a valid ENS name.</div>
+          <div class="field-help">The Snapshot space ENS name for your DAO. This is embedded in the template text.</div>
+        </div>
+
+        <div class="generated-title" id="generated-title"></div>
+      </div>
+
+    </div>
+
+    <!-- ── Right column ── -->
+    <div class="col-side">
+
+      <div class="card">
+        <div class="card-title">Network</div>
+        <div class="network-row">
+          <div class="network-dot unknown" id="network-dot"></div>
+          <span class="network-name" id="network-name">Not connected</span>
+        </div>
+        <div class="chain-pills" id="chain-pills">
+          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
+          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
+          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
+          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
+          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
+          <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
+        </div>
+        <div id="token-pills" class="token-pills" style="display:none"></div>
+        <div id="version-row" style="display:none; margin-top:10px;">
+          <select id="version-select" class="version-select"></select>
+        </div>
+        <div class="warn-box" id="network-unsupported" style="display:none; margin-top:10px;">
+          ⚠ This network is not supported.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">JSON preview</div>
+        <div class="json-preview empty" id="json-preview">Fill in the form to preview the template JSON.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Create</div>
+        <button type="button" class="submit-btn" id="submit-btn" disabled>Create template</button>
+        <div class="tx-error" id="tx-error"></div>
+        <div class="info-box" id="wallet-notice">Connect your wallet to create a template.</div>
+        <div class="result-box" id="result-box">
+          <div class="result-id-label">Template ID</div>
+          <div class="result-id" id="result-id">—</div>
+          <button type="button" class="result-copy" id="result-copy">Copy ID</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/ethers.js"></script>
+<script src="js/wallet.js"></script>
+<script>
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const VERSION_PREFERENCE = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
+
+const CHAIN_NATIVE_TOKEN = {
+  1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
+  10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
+};
+const CHAIN_NAME = {
+  1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 42161: 'Arbitrum',
+  10: 'Optimism', 8453: 'Base', 130: 'Unichain', 11155111: 'Sepolia',
+};
+
+const CHAIN_ADD_PARAMS = {
+  100: {
+    chainId: '0x64', chainName: 'Gnosis',
+    nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
+    rpcUrls: ['https://rpc.gnosischain.com'],
+    blockExplorerUrls: ['https://gnosisscan.io'],
+  },
+};
+
+const RC_ABI = [
+  'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
+  'function createTemplate(string content) returns (uint256)',
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let provider = null;
+let signer   = null;
+let walletAddr = null;
+let chainId  = null;
+let rcAddress = null;
+let contractsData = null;
+let selectedToken   = null;
+let selectedVersion = null;
+let templateMode = 'custom'; // 'custom' | 'zodiac'
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+
+const submitBtn    = document.getElementById('submit-btn');
+const txError      = document.getElementById('tx-error');
+const walletNotice = document.getElementById('wallet-notice');
+const networkName  = document.getElementById('network-name');
+const networkDot   = document.getElementById('network-dot');
+const jsonPreview  = document.getElementById('json-preview');
+const resultBox    = document.getElementById('result-box');
+const resultId     = document.getElementById('result-id');
+const typeSelect   = document.getElementById('tmpl-type');
+const optionsWrap  = document.getElementById('field-outcomes');
+const addOptionBtn = document.getElementById('add-option');
+
+// ── Contracts loading ─────────────────────────────────────────────────────────
+
+async function loadContracts() {
+  if (contractsData) return contractsData;
+  const res = await fetch('/packages/contracts/generated/contracts.json');
+  contractsData = await res.json();
+  return contractsData;
+}
+
+function getTokensForChain(data, chain) {
+  return Object.keys(data[String(chain)] || {});
+}
+
+function getVersionsForToken(data, chain, token) {
+  const versions = data[String(chain)]?.[token] || {};
+  return Object.keys(versions)
+    .filter(v => versions[v]?.address)
+    .sort((a, b) => {
+      const key = v => { const m = v.match(/(\d+)\.(\d+)$/); return m ? parseInt(m[1]) * 100 + parseInt(m[2]) : 0; };
+      return key(b) - key(a);
+    });
+}
+
+// ── Token / version ───────────────────────────────────────────────────────────
+
+function buildTokenPills(data, chain, tokens, activeToken) {
+  const container = document.getElementById('token-pills');
+  container.innerHTML = '';
+  if (tokens.length <= 1) { container.style.display = 'none'; return; }
+  container.style.display = 'flex';
+  for (const tok of tokens) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'token-pill' + (tok === activeToken ? ' active' : '');
+    btn.dataset.token = tok;
+    btn.textContent = tok;
+    container.appendChild(btn);
+  }
+}
+
+function buildVersionSelect(versions, activeVersion) {
+  const row = document.getElementById('version-row');
+  const sel = document.getElementById('version-select');
+  if (versions.length <= 1) { row.style.display = 'none'; return; }
+  row.style.display = 'block';
+  sel.innerHTML = '';
+  for (const ver of versions) {
+    const opt = document.createElement('option');
+    opt.value = ver; opt.textContent = ver; opt.selected = ver === activeVersion;
+    sel.appendChild(opt);
+  }
+}
+
+function applyTokenVersion(data, chain, token, version) {
+  selectedToken = token;
+  selectedVersion = version;
+  const info = data[String(chain)]?.[token]?.[version];
+  rcAddress = info?.address || null;
+  updateSubmitState();
+}
+
+function selectToken(token) {
+  if (!contractsData || !chainId) return;
+  for (const pill of document.getElementById('token-pills').querySelectorAll('.token-pill')) {
+    pill.classList.toggle('active', pill.dataset.token === token);
+  }
+  const versions = getVersionsForToken(contractsData, chainId, token);
+  buildVersionSelect(versions, versions[0]);
+  applyTokenVersion(contractsData, chainId, token, versions[0]);
+}
+
+function selectVersion(version) {
+  if (!contractsData || !chainId || !selectedToken) return;
+  applyTokenVersion(contractsData, chainId, selectedToken, version);
+}
+
+// ── Chain switching ───────────────────────────────────────────────────────────
+
+async function switchChain(chain) {
+  if (!window.ethereum) return;
+  const hexChain = '0x' + chain.toString(16);
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
+  } catch (err) {
+    if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
+      try { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] }); } catch {}
+    }
+  }
+}
+
+function updateChainPills(activeChain) {
+  const pills = document.getElementById('chain-pills');
+  pills.classList.toggle('visible', !!walletAddr);
+  for (const pill of pills.querySelectorAll('.chain-pill')) {
+    pill.classList.toggle('active', parseInt(pill.dataset.chain) === activeChain);
+  }
+}
+
+async function setupForChain(chain) {
+  chainId = chain;
+  const name = CHAIN_NAME[chain] || `Chain ${chain}`;
+  const data = await loadContracts();
+  const tokens = getTokensForChain(data, chain);
+
+  networkName.textContent = name;
+  updateChainPills(chain);
+
+  if (tokens.length === 0) {
+    networkDot.classList.add('unknown');
+    document.getElementById('network-unsupported').style.display = 'block';
+    document.getElementById('token-pills').style.display = 'none';
+    document.getElementById('version-row').style.display = 'none';
+    rcAddress = null;
+    updateSubmitState();
+    return;
+  }
+
+  networkDot.classList.remove('unknown');
+  document.getElementById('network-unsupported').style.display = 'none';
+
+  const nativeToken = CHAIN_NATIVE_TOKEN[chain];
+  const defaultToken = tokens.includes(nativeToken) ? nativeToken : tokens[0];
+  buildTokenPills(data, chain, tokens, defaultToken);
+  const versions = getVersionsForToken(data, chain, defaultToken);
+  buildVersionSelect(versions, versions[0]);
+  applyTokenVersion(data, chain, defaultToken, versions[0]);
+}
+
+// ── Wallet ────────────────────────────────────────────────────────────────────
+
+function onWalletChange(addr) {
+  walletAddr = addr;
+  const btn = document.getElementById('wallet-btn');
+  if (addr) {
+    btn.textContent = RealityWallet.shortAddr(addr);
+    btn.classList.add('connected');
+    btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer   = provider.getSigner();
+    walletNotice.style.display = 'none';
+    provider.getNetwork().then(net => setupForChain(net.chainId));
+    window.ethereum.removeAllListeners?.('chainChanged');
+    window.ethereum.on('chainChanged', hexChain => {
+      provider = new ethers.providers.Web3Provider(window.ethereum);
+      signer   = provider.getSigner();
+      setupForChain(parseInt(hexChain, 16));
+    });
+  } else {
+    btn.textContent = 'Connect wallet';
+    btn.classList.remove('connected');
+    btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
+    provider = null; signer = null;
+    networkName.textContent = 'Not connected';
+    networkDot.classList.add('unknown');
+    walletNotice.style.display = 'block';
+    updateChainPills(null);
+  }
+  updateSubmitState();
+}
+
+// ── Template type toggle ──────────────────────────────────────────────────────
+
+function setTemplateMode(mode) {
+  templateMode = mode;
+  document.getElementById('toggle-custom').classList.toggle('active', mode === 'custom');
+  document.getElementById('toggle-zodiac').classList.toggle('active', mode === 'zodiac');
+  document.getElementById('form-custom').style.display  = mode === 'custom'  ? '' : 'none';
+  document.getElementById('form-zodiac').style.display  = mode === 'zodiac'  ? '' : 'none';
+  document.getElementById('zodiac-info').style.display  = mode === 'zodiac'  ? '' : 'none';
+  updatePreview();
+  updateSubmitState();
+}
+
+// ── Answer type ───────────────────────────────────────────────────────────────
+
+typeSelect.addEventListener('change', () => {
+  const t = typeSelect.value;
+  const isSelect = t === 'single-select' || t === 'multiple-select';
+  const isUint   = t === 'uint';
+  optionsWrap.classList.toggle('visible', isSelect);
+  document.getElementById('field-decimals').classList.toggle('visible', isUint);
+  document.getElementById('field-outcomes').classList.toggle('visible', isSelect);
+  updatePreview();
+});
+
+addOptionBtn.addEventListener('click', () => {
+  const rows = optionsWrap.querySelectorAll('.answer-option-row');
+  const letter = String.fromCharCode(65 + rows.length);
+  const row = document.createElement('div');
+  row.className = 'answer-option-row';
+  row.innerHTML = `<input type="text" placeholder="Option ${letter}" class="answer-option-input">
+    <button type="button" class="remove-option">×</button>`;
+  optionsWrap.insertBefore(row, addOptionBtn);
+  updateRemoveButtons();
+  updatePreview();
+});
+
+optionsWrap.addEventListener('click', e => {
+  if (!e.target.classList.contains('remove-option') || e.target.disabled) return;
+  e.target.closest('.answer-option-row').remove();
+  updateRemoveButtons();
+  updatePreview();
+});
+
+optionsWrap.addEventListener('input', updatePreview);
+
+function updateRemoveButtons() {
+  const rows = optionsWrap.querySelectorAll('.answer-option-row');
+  rows.forEach(r => { r.querySelector('.remove-option').disabled = rows.length <= 2; });
+}
+
+// ── ENS name handling ─────────────────────────────────────────────────────────
+
+document.getElementById('tmpl-ens').addEventListener('input', () => {
+  const ens = document.getElementById('tmpl-ens').value.trim();
+  const gen = document.getElementById('generated-title');
+  if (ens && ens.includes('.')) {
+    gen.textContent = buildZodiacTitle(ens);
+    gen.classList.add('visible');
+  } else {
+    gen.classList.remove('visible');
+  }
+  updatePreview();
+  updateSubmitState();
+});
+
+function buildZodiacTitle(ens) {
+  return (
+    'Did the Snapshot proposal with the id %s in the ' +
+    `${ens} space pass the execution of the array of Module transactions ` +
+    'that have the hash 0x%s and does it meet the requirements of the document ' +
+    `referenced in the dao requirements record at ${ens}? The hash is ` +
+    'the keccak of the concatenation of the individual EIP-712 hashes of ' +
+    'the Module transactions. If this question was asked before the corresponding ' +
+    'Snapshot proposal was resolved, it should ALWAYS be resolved to INVALID!'
+  );
+}
+
+// Live-update preview on all custom form inputs
+['tmpl-category', 'tmpl-title', 'tmpl-decimals', 'tmpl-lang'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+document.getElementById('tmpl-type').addEventListener('change', updatePreview);
+document.getElementById('tmpl-lang').addEventListener('change', updatePreview);
+
+// ── Template building ─────────────────────────────────────────────────────────
+
+function buildTemplate() {
+  if (templateMode === 'zodiac') {
+    const ens = document.getElementById('tmpl-ens').value.trim();
+    if (!ens || !ens.includes('.')) return null;
+    return { title: buildZodiacTitle(ens), type: 'bool', category: 'DAO proposal', lang: 'en' };
+  }
+
+  const type     = typeSelect.value;
+  const category = document.getElementById('tmpl-category').value.trim();
+  const title    = document.getElementById('tmpl-title').value.trim();
+  const lang     = document.getElementById('tmpl-lang').value;
+  const isSelect = type === 'single-select' || type === 'multiple-select';
+  const isUint   = type === 'uint';
+
+  if (!category || !title) return null;
+
+  const tmpl = { title, type, category, lang };
+
+  if (isUint) {
+    const dec = parseInt(document.getElementById('tmpl-decimals').value);
+    if (isNaN(dec)) return null;
+    tmpl.decimals = dec;
+  }
+
+  if (isSelect) {
+    const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
+      .map(i => i.value.trim()).filter(Boolean);
+    if (outcomes.length < 2) return null;
+    tmpl.outcomes = outcomes;
+  }
+
+  return tmpl;
+}
+
+// ── JSON preview ──────────────────────────────────────────────────────────────
+
+function updatePreview() {
+  const tmpl = buildTemplate();
+  if (!tmpl) {
+    jsonPreview.className = 'json-preview empty';
+    jsonPreview.textContent = 'Fill in the form to preview the template JSON.';
+    updateSubmitState();
+    return;
+  }
+  jsonPreview.className = 'json-preview';
+  jsonPreview.textContent = JSON.stringify(tmpl, null, 2);
+  updateSubmitState();
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+
+function validate() {
+  let ok = true;
+
+  if (templateMode === 'zodiac') {
+    const ens = document.getElementById('tmpl-ens').value.trim();
+    const field = document.getElementById('field-ens');
+    if (!ens || !ens.includes('.')) {
+      field.classList.add('is-error'); ok = false;
+    } else {
+      field.classList.remove('is-error');
+    }
+    return ok;
+  }
+
+  const category = document.getElementById('tmpl-category').value.trim();
+  const fieldCat = document.getElementById('field-category');
+  if (!category) { fieldCat.classList.add('is-error'); ok = false; }
+  else fieldCat.classList.remove('is-error');
+
+  const title = document.getElementById('tmpl-title').value.trim();
+  const fieldTitle = document.getElementById('field-title');
+  if (!title) { fieldTitle.classList.add('is-error'); ok = false; }
+  else fieldTitle.classList.remove('is-error');
+
+  const type = typeSelect.value;
+  if (type === 'uint') {
+    const dec = document.getElementById('tmpl-decimals').value;
+    const decimalsError = document.getElementById('decimals-error');
+    if (dec === '' || isNaN(parseInt(dec))) {
+      document.getElementById('field-decimals').classList.add('is-error');
+      decimalsError.style.display = 'block'; ok = false;
+    } else {
+      document.getElementById('field-decimals').classList.remove('is-error');
+      decimalsError.style.display = 'none';
+    }
+  }
+
+  if (type === 'single-select' || type === 'multiple-select') {
+    const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
+      .map(i => i.value.trim()).filter(Boolean);
+    const outErr = document.getElementById('outcomes-error');
+    if (outcomes.length < 2) { outErr.style.display = 'block'; ok = false; }
+    else outErr.style.display = 'none';
+  }
+
+  return ok;
+}
+
+function updateSubmitState() {
+  const tmpl = buildTemplate();
+  submitBtn.disabled = !walletAddr || !rcAddress || !tmpl;
+}
+
+// ── TX helpers ────────────────────────────────────────────────────────────────
+
+function txErrorMessage(err) {
+  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED') return 'Transaction rejected.';
+  return err?.reason || err?.data?.message || err?.message || 'Transaction failed.';
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+
+submitBtn.addEventListener('click', async () => {
+  if (!signer || !rcAddress) return;
+  if (!validate()) return;
+
+  const tmpl = buildTemplate();
+  if (!tmpl) return;
+
+  txError.classList.remove('visible');
+  resultBox.classList.remove('visible');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Waiting for wallet…';
+
+  try {
+    const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
+    const tx = await rc.createTemplate(JSON.stringify(tmpl));
+
+    submitBtn.textContent = 'Pending…';
+    const receipt = await tx.wait();
+
+    const iface = new ethers.utils.Interface(RC_ABI);
+    let templateIdNum = null;
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed.name === 'LogNewTemplate') {
+          templateIdNum = parsed.args.template_id.toNumber();
+          break;
+        }
+      } catch {}
+    }
+
+    submitBtn.textContent = '✓ Template created!';
+    submitBtn.disabled = true;
+
+    if (templateIdNum !== null) {
+      resultId.textContent = templateIdNum;
+      resultBox.classList.add('visible');
+    }
+
+  } catch (err) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create template';
+    txError.textContent = txErrorMessage(err);
+    txError.classList.add('visible');
+  }
+});
+
+document.getElementById('result-copy').addEventListener('click', () => {
+  navigator.clipboard?.writeText(resultId.textContent);
+  const btn = document.getElementById('result-copy');
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = 'Copy ID'; }, 1500);
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('wallet-btn').onclick =
+    () => RealityWallet.connectWallet(onWalletChange);
+  RealityWallet.initWallet(onWalletChange);
+  loadContracts().catch(() => {});
+
+  document.getElementById('toggle-custom').addEventListener('click', () => setTemplateMode('custom'));
+  document.getElementById('toggle-zodiac').addEventListener('click', () => setTemplateMode('zodiac'));
+
+  document.getElementById('chain-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.chain-pill');
+    if (pill) switchChain(parseInt(pill.dataset.chain));
+  });
+
+  document.getElementById('token-pills').addEventListener('click', e => {
+    const pill = e.target.closest('.token-pill');
+    if (pill) selectToken(pill.dataset.token);
+  });
+
+  document.getElementById('version-select').addEventListener('change', e => {
+    selectVersion(e.target.value);
+  });
+});
+</script>
+</body>
+</html>
