@@ -257,52 +257,68 @@ async function queryFilterRobust(contract, filter, from, to, stopOnFirst = false
 
 // Binary-search block timestamps: returns the lowest block number where block.timestamp > ts.
 async function blockAfterTimestamp(provider, ts, lo, hi) {
+  let iters = 0;
   while (hi - lo > 5) {
     const mid = Math.floor((lo + hi) / 2);
     const blk = await safeCall(() => provider.getBlock(mid), null);
     if (!blk) { hi = mid; continue; }
     if (blk.timestamp <= ts) lo = mid + 1;
     else hi = mid;
+    iters++;
   }
+  console.log(`[reality] blockAfterTimestamp: ts=${ts} → block ~${hi} (${iters} iterations)`);
   return hi;
 }
 
 // Locate a LogNewQuestion event using a multi-stage strategy:
 //  1. Quick 10-block scan from chain tip — nearly free, handles recent questions.
-//  2. If finalizeTS is known, binary-search block timestamps to get a tight upper
-//     bound (question must precede finalizeTS), then scan a window backwards from
+//  2. If upperBoundTs is known, binary-search block timestamps to get a tight upper
+//     bound (question must precede that timestamp), then scan a window backwards from
 //     there before falling back to a wider chunked scan up to that bound.
 //  3. Full chunked scan from startBlock to currentBlock as last resort.
 // Returns { events, currentBlock } so callers can reuse currentBlock.
 async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
   const tip = await safeCall(() => reality.provider.getBlock('latest'), null);
   const currentBlock = tip?.number ?? startBlock + 5_000_000;
+  console.log(`[reality] findLogNewQuestion: startBlock=${startBlock} currentBlock=${currentBlock} upperBoundTs=${upperBoundTs}`);
 
   // Stage 1: quick recent scan
   const recent = await safeCall(
     () => reality.queryFilter(filter, Math.max(startBlock, currentBlock - 10), currentBlock), null);
-  if (recent?.length) return { events: recent, currentBlock };
+  if (recent?.length) {
+    console.log(`[reality] findLogNewQuestion: found in stage 1 (recent tip scan) at block ${recent[0].blockNumber}`);
+    return { events: recent, currentBlock };
+  }
 
   if (tip && upperBoundTs > 0 && upperBoundTs < tip.timestamp) {
     // Stage 2: binary-search timestamps → refBlock is the first block after upperBoundTs.
-    // LogNewQuestion is somewhere before refBlock.
     const refBlock = await blockAfterTimestamp(reality.provider, upperBoundTs, startBlock, currentBlock);
+    console.log(`[reality] findLogNewQuestion: stage 2 — refBlock=${refBlock}, scanning window [${Math.max(startBlock, refBlock - 200_000)}, ${refBlock}]`);
 
-    // Try a 200k-block window backwards from refBlock first (covers ~11 days on Gnosis,
-    // ~28 days on Ethereum — enough for most question lifetimes).
+    // Try a 200k-block window backwards from refBlock first.
     const winStart = Math.max(startBlock, refBlock - 200_000);
     const winEvents = await queryFilterRobust(reality, filter, winStart, refBlock, true);
-    if (winEvents.length) return { events: winEvents, currentBlock };
+    if (winEvents.length) {
+      console.log(`[reality] findLogNewQuestion: found in stage 2 window at block ${winEvents[0].blockNumber}`);
+      return { events: winEvents, currentBlock };
+    }
 
     // Widen to the full bounded range if the window missed it.
     if (winStart > startBlock) {
+      console.log(`[reality] findLogNewQuestion: stage 2 window missed, scanning [${startBlock}, ${winStart}]`);
       const bounded = await queryFilterRobust(reality, filter, startBlock, winStart, true);
-      if (bounded.length) return { events: bounded, currentBlock };
+      if (bounded.length) {
+        console.log(`[reality] findLogNewQuestion: found in stage 2 bounded scan at block ${bounded[0].blockNumber}`);
+        return { events: bounded, currentBlock };
+      }
     }
   }
 
   // Stage 3: full fallback
+  console.log(`[reality] findLogNewQuestion: stage 3 — full scan [${startBlock}, ${currentBlock}]`);
   const events = await queryFilterRobust(reality, filter, startBlock, currentBlock, true);
+  if (events.length) console.log(`[reality] findLogNewQuestion: found in stage 3 at block ${events[0].blockNumber}`);
+  else               console.log(`[reality] findLogNewQuestion: not found`);
   return { events, currentBlock };
 }
 
