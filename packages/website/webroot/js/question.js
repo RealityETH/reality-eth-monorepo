@@ -1699,13 +1699,8 @@ async function main() {
       const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
       const rawAnswerEvents = await queryFilterRobust(
         reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
-      let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
-      if (!rpcTemplateStr) {
-        const tevents = await queryFilterRobust(
-          reality, reality.filters.LogNewTemplate(templateId), startBlock, currentBlock, true);
-        rpcTemplateStr = tevents[0]?.args.question_text
-          || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
-      }
+      const rpcTemplateStr = BUILTIN_TEMPLATES[templateId]
+        || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
       let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
       if (effectiveMajor >= 3) {
         [minBond, settledTooSoon, reopenedBy] = await Promise.all([
