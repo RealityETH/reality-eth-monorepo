@@ -262,11 +262,8 @@
   .view-meta-item { font-size: 12px; }
   .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
   .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
-  .view-actions-row {
-    display: flex; flex-direction: column; gap: 10px;
-    margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle);
-  }
-  .view-nav-link { font-size: 13px; color: var(--accent); text-decoration: none; }
+  .view-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .view-nav-link { font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; padding-top: 2px; }
   .view-nav-link:hover { text-decoration: underline; }
   .view-action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .view-action-btn {
@@ -326,9 +323,14 @@
     <!-- single template view -->
     <div id="view-single" style="display:none">
       <div class="card" id="view-detail-card">
-        <div class="view-id-line">Template #<span class="view-id-num" id="view-id-num"></span></div>
-        <div id="view-badges" style="margin-bottom:14px;"></div>
-        <div class="json-preview" id="view-json"></div>
+        <div class="view-top-row">
+          <div>
+            <div class="view-id-line">Template #<span class="view-id-num" id="view-id-num"></span></div>
+            <div id="view-badges"></div>
+          </div>
+          <a id="view-browse-link" href="#" class="view-nav-link">Browse questions using this template →</a>
+        </div>
+        <div class="json-preview" id="view-json" style="margin-top:14px;"></div>
         <div class="view-title-text" id="view-title-text" style="margin-top:14px;"></div>
         <div class="view-outcomes" id="view-outcomes"></div>
         <div class="view-meta-row" id="view-meta-row" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle);">
@@ -345,12 +347,9 @@
             <div class="view-meta-val" id="view-txhash"></div>
           </div>
         </div>
-        <div class="view-actions-row">
-          <a id="view-browse-link" href="#" class="view-nav-link">Browse questions using this template →</a>
-          <div class="view-action-btns">
-            <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
-            <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
-          </div>
+        <div class="view-action-btns" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+          <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
+          <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
         </div>
       </div>
     </div>
