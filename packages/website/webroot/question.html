@@ -132,13 +132,15 @@
   .q-warning-text strong { display: block; font-weight: 600; margin-bottom: 2px; }
   .q-warning-text span   { color: inherit; opacity: 0.85; }
   .q-warning.warn {
-    background: var(--amber-subtle); color: var(--amber);
-    border: 1px solid rgba(210,153,34,0.25);
+    background: var(--bg-card); color: var(--text-muted);
+    border: 1px solid var(--border);
   }
+  .q-warning.warn .q-warning-icon { color: var(--amber); }
   .q-warning.danger {
-    background: var(--red-subtle); color: var(--red);
-    border: 1px solid rgba(248,81,73,0.25);
+    background: var(--bg-card); color: var(--text-muted);
+    border: 1px solid var(--border);
   }
+  .q-warning.danger .q-warning-icon { color: var(--red); }
 
   /* ── Layout ── */
   .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
@@ -327,6 +329,16 @@
   .answer-form-container.before-opening.is-open { font-size: 13px; color: var(--text-muted); }
   .answer-form-container.before-opening.is-open p { margin-bottom: 8px; }
   .opening-time-label { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Finalized options read-only list ── */
+  .finalized-options { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+  .finalized-option { display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text-muted); padding: 6px 10px;
+    border-radius: var(--radius-sm); border: 1px solid transparent; }
+  .finalized-option-chosen { color: var(--text);
+    background: rgba(63,185,80,0.07); border-color: rgba(63,185,80,0.25); }
+  .finalized-option-mark { width: 14px; font-size: 11px; color: var(--green);
+    font-weight: 700; flex-shrink: 0; }
 
   /* ── Reopen ── */
   .reopen-container {

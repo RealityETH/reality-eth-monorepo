@@ -571,7 +571,48 @@ function buildAnswerForm(data, walletAddr) {
     return card;
   }
 
-  // Finalized: return nothing (no submit form shown)
+  // Finalized select/multi: show a read-only options list with the winner marked
+  if (finalized && (isSelectType || isMulti)) {
+    const n = answerEvents.length;
+    const winnerBytes = n > 0 ? answerEvents[n - 1].args.answer : null;
+    const lo = winnerBytes ? winnerBytes.toLowerCase() : null;
+    const isSpecial = lo && (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase());
+
+    const outcomes = isSelectType && type === 'bool'
+      ? [{ label: 'No', idx: 0 }, { label: 'Yes', idx: 1 }]
+      : (qjson.outcomes || []).map((o, i) => ({ label: o, idx: i }));
+
+    let winIdx = null, winMask = null;
+    if (!isSpecial && winnerBytes) {
+      const bn = ethers.BigNumber.from(winnerBytes);
+      if (isMulti) winMask = bn.toNumber();
+      else         winIdx  = bn.toNumber();
+    }
+
+    const card = el('div', 'card');
+    const list = el('div', 'finalized-options');
+    for (const { label, idx } of outcomes) {
+      const chosen = isSpecial ? false
+        : isMulti ? !!(winMask !== null && (winMask & (1 << idx)))
+        : winIdx === idx;
+      const row = el('div', 'finalized-option' + (chosen ? ' finalized-option-chosen' : ''));
+      const mark = el('span', 'finalized-option-mark', chosen ? '✓' : '');
+      row.appendChild(mark);
+      row.appendChild(document.createTextNode(label));
+      list.appendChild(row);
+    }
+    if (isSpecial) {
+      const specialLabel = lo === INVALID.toLowerCase() ? 'Invalid' : 'Answered too soon';
+      const row = el('div', 'finalized-option finalized-option-chosen');
+      row.appendChild(el('span', 'finalized-option-mark', '✓'));
+      row.appendChild(document.createTextNode(specialLabel));
+      list.appendChild(row);
+    }
+    card.appendChild(list);
+    return card;
+  }
+
+  // Finalized non-select: return nothing (answer shown in status card only)
   if (finalized) return null;
 
   // Compute minimum required bond
