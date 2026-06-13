@@ -263,9 +263,12 @@
   .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
   .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
   .view-actions-row {
-    display: flex; gap: 8px; flex-wrap: wrap;
+    display: flex; flex-direction: column; gap: 10px;
     margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle);
   }
+  .view-nav-link { font-size: 13px; color: var(--accent); text-decoration: none; }
+  .view-nav-link:hover { text-decoration: underline; }
+  .view-action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .view-action-btn {
     display: inline-block; text-align: center; text-decoration: none;
     padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
@@ -343,9 +346,11 @@
           </div>
         </div>
         <div class="view-actions-row">
-          <a class="view-action-btn view-action-primary" id="view-browse-link" href="#">Browse questions using this template</a>
-          <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
-          <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
+          <a id="view-browse-link" href="#" class="view-nav-link">Browse questions using this template →</a>
+          <div class="view-action-btns">
+            <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
+            <a class="view-action-btn view-action-secondary" href="template.html">Create a new template</a>
+          </div>
         </div>
       </div>
     </div>
