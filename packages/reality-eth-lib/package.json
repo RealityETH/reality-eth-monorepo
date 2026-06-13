@@ -18,7 +18,6 @@
   "dependencies": {
     "@reality.eth/contracts": "^3.2.25",
     "ethers": "^5.8.0",
-    "html-to-text": "^8.2.1",
     "isomorphic-dompurify": "^0.23.0",
     "marked": "^4.1.1",
     "sprintf-js": "^1.1.1"
