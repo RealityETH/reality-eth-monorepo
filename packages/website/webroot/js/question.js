@@ -135,6 +135,36 @@ async function safeCall(fn, fallback) {
   try { return await fn(); } catch { return fallback; }
 }
 
+// Fetch the full question struct in one eth_call. Handles v2 (10 fields, no min_bond)
+// and v3 (11 fields) by trying the longer decode first, falling back to the shorter one.
+async function questionsStruct(provider, contractAddr, questionId) {
+  const selector = ethers.utils.id('questions(bytes32)').slice(0, 10);
+  const raw = await safeCall(() => provider.call({
+    to: contractAddr,
+    data: selector + ethers.utils.hexZeroPad(questionId, 32).slice(2),
+  }), null);
+  if (!raw || raw === '0x') return null;
+  const T11 = ['bytes32','address','uint32','uint32','uint32','bool','uint256','bytes32','bytes32','uint256','uint256'];
+  const T10 = T11.slice(0, 10);
+  let d;
+  try       { d = ethers.utils.defaultAbiCoder.decode(T11, raw); }
+  catch     { d = await safeCall(() => ethers.utils.defaultAbiCoder.decode(T10, raw), null); }
+  if (!d) return null;
+  return {
+    content_hash:        d[0],
+    arbitrator:          d[1],
+    opening_ts:          Number(d[2]),
+    timeout:             Number(d[3]),
+    finalize_ts:         Number(d[4]),
+    is_pending_arbitration: d[5],
+    bounty:              d[6],
+    best_answer:         d[7],
+    history_hash:        d[8],
+    bond:                d[9],
+    min_bond:            d[10] ?? ethers.BigNumber.from(0),
+  };
+}
+
 // Render an address as a link to our account page plus an ↗ emoji to the explorer.
 function addrLinks(addr, chainId = CHAIN_ID) {
   if (!addr || /^0x0+$/.test(addr)) return null;
@@ -1734,22 +1764,30 @@ async function main() {
     const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
-      // Fetch direct state first; openingTS (tighter) or finalizeTS guides the search.
-      const [bond, finalizeTS, openingTSRaw] = await Promise.all([
-        safeCall(() => reality.getBond(QUESTION_ID), BN0),
-        safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
-        safeCall(() => reality.getOpeningTS(QUESTION_ID), 0),
-      ]);
-      const upperBoundTs = Number(openingTSRaw) || Number(finalizeTS);
+      // One call for all question struct fields; fall back to individual getters if it fails.
+      const q = await questionsStruct(reality.provider, CONTRACT, QUESTION_ID);
+      let bond, finalizeTS, upperBoundTs;
+      if (q) {
+        bond         = q.bond;
+        finalizeTS   = q.finalize_ts;
+        upperBoundTs = q.opening_ts || q.finalize_ts;
+      } else {
+        [bond, finalizeTS, upperBoundTs] = await Promise.all([
+          safeCall(() => reality.getBond(QUESTION_ID), BN0),
+          safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
+          safeCall(() => reality.getOpeningTS(QUESTION_ID), 0),
+        ]);
+        upperBoundTs = Number(upperBoundTs) || Number(finalizeTS);
+      }
       const { events: newQEvents, currentBlock } = await findLogNewQuestion(
         reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);
       const qEv        = newQEvents[0];
       const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
       const questionStr = qEv ? qEv.args.question : '';
-      const openingTS   = qEv ? qEv.args.opening_ts : 0;
-      const qTimeout    = qEv ? qEv.args.timeout    : 0;
-      const arbitrator  = qEv ? qEv.args.arbitrator  : ethers.constants.AddressZero;
-      const nonce       = qEv ? qEv.args.nonce        : BN0;
+      const openingTS   = qEv?.args.opening_ts  ?? q?.opening_ts  ?? 0;
+      const qTimeout    = qEv?.args.timeout      ?? q?.timeout     ?? 0;
+      const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.constants.AddressZero;
+      const nonce       = qEv?.args.nonce ?? BN0;
       // Scan answers from the question's own creation block (not the contract start block)
       const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
       const rawAnswerEvents = await queryFilterRobust(
@@ -1764,10 +1802,10 @@ async function main() {
         }
         rpcTemplateStr = rpcTemplateStr || '{"type":"bool","title":"%s"}';
       }
-      let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
+      const minBond      = q?.min_bond ?? BN0;
+      let settledTooSoon = false, reopenedBy = ZERO_HASH;
       if (effectiveMajor >= 3) {
-        [minBond, settledTooSoon, reopenedBy] = await Promise.all([
-          safeCall(() => reality.getMinBond(QUESTION_ID), BN0),
+        [settledTooSoon, reopenedBy] = await Promise.all([
           safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
           safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
         ]);
