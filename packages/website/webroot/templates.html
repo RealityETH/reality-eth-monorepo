@@ -236,6 +236,18 @@
         </div>
       </div>
     </div>
+    <div id="token-version-row" style="display:none; margin-top:10px;">
+      <div class="search-row" style="grid-template-columns: 1fr auto; align-items:end; gap:12px;">
+        <div class="search-field">
+          <label>Token</label>
+          <div class="search-chips" id="token-chips"></div>
+        </div>
+        <div class="search-field" id="version-field" style="display:none; min-width:160px;">
+          <label for="s-version">Version</label>
+          <select id="s-version"></select>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="status-bar">
@@ -269,10 +281,13 @@ const TYPE_LABELS = {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let cursor      = null;
-let hasMore     = false;
-let loading     = false;
+let cursor        = null;
+let hasMore       = false;
+let loading       = false;
 let selectedChain = '';
+let selectedToken = '';
+let selectedVersion = '';
+let contractsData = null;
 
 const TEMPLATE_FIELDS = `
   id templateId contract chainId user questionText createdTxHash createdTimestamp
@@ -300,6 +315,97 @@ async function gql(query, variables) {
   return json.data;
 }
 
+// ── Contracts ─────────────────────────────────────────────────────────────────
+
+async function loadContracts() {
+  if (contractsData) return contractsData;
+  const res = await fetch('/packages/contracts/generated/contracts.json');
+  contractsData = await res.json();
+  return contractsData;
+}
+
+function getTokensForChain(chain) {
+  return Object.keys(contractsData?.[String(chain)] || {});
+}
+
+function getVersionsForToken(chain, token) {
+  return Object.entries(contractsData?.[String(chain)]?.[token] || {})
+    .filter(([, v]) => v?.address)
+    .sort(([a], [b]) => {
+      const key = s => { const m = s.match(/(\d+)\.(\d+)$/); return m ? parseInt(m[1])*100+parseInt(m[2]) : 0; };
+      return key(b) - key(a);
+    })
+    .map(([k]) => k);
+}
+
+function getContractAddressesForFilter() {
+  if (!selectedChain || !contractsData) return null;
+  const chainData = contractsData[String(selectedChain)] || {};
+  const tokens = selectedToken ? [selectedToken] : Object.keys(chainData);
+  const addrs = [];
+  for (const tok of tokens) {
+    const versions = selectedVersion ? [selectedVersion] : Object.keys(chainData[tok] || {});
+    for (const ver of versions) {
+      const addr = chainData[tok]?.[ver]?.address;
+      if (addr) addrs.push(addr.toLowerCase());
+    }
+  }
+  return addrs.length ? addrs : null;
+}
+
+function updateTokenPills() {
+  if (!selectedChain) {
+    document.getElementById('token-version-row').style.display = 'none';
+    selectedToken = '';
+    selectedVersion = '';
+    return;
+  }
+  const tokens = getTokensForChain(selectedChain);
+  if (!tokens.length) {
+    document.getElementById('token-version-row').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('token-version-row').style.display = '';
+  const container = document.getElementById('token-chips');
+  container.innerHTML = '';
+
+  const allChip = makeChip('All tokens', '', 'token-chip', selectedToken === '');
+  container.appendChild(allChip);
+  for (const tok of tokens) {
+    container.appendChild(makeChip(tok, tok, 'token-chip', tok === selectedToken));
+  }
+
+  updateVersionSelect();
+}
+
+function updateVersionSelect() {
+  const field = document.getElementById('version-field');
+  const sel   = document.getElementById('s-version');
+
+  if (!selectedChain || !selectedToken) { field.style.display = 'none'; return; }
+
+  const versions = getVersionsForToken(selectedChain, selectedToken);
+  if (versions.length <= 1) { field.style.display = 'none'; return; }
+
+  field.style.display = '';
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">All versions</option>` +
+    versions.map(v => `<option value="${v}"${v === prev ? ' selected' : ''}>${v}</option>`).join('');
+  if (!versions.includes(prev)) selectedVersion = '';
+}
+
+function makeChip(label, value, cls, active) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `chain-chip${active ? ' active' : ''}`;
+  btn.dataset.value = value;
+  btn.textContent = label;
+  return btn;
+}
+
+// ── Where clause ──────────────────────────────────────────────────────────────
+
 function buildWhere() {
   const keyword = document.getElementById('s-keyword').value.trim();
   const creator = document.getElementById('s-creator').value.trim().toLowerCase();
@@ -310,6 +416,12 @@ function buildWhere() {
   if (creator) filters.push({ user_contains: creator });
   if (idVal)   filters.push({ templateId: parseInt(idVal) });
   if (selectedChain) filters.push({ chainId: parseInt(selectedChain) });
+
+  const addrs = getContractAddressesForFilter();
+  if (addrs) {
+    if (addrs.length === 1) filters.push({ contract: addrs[0] });
+    else filters.push({ contract_in: addrs });
+  }
 
   if (filters.length === 0) return {};
   if (filters.length === 1) return filters[0];
@@ -474,9 +586,29 @@ document.getElementById('chain-chips').addEventListener('click', e => {
   const chip = e.target.closest('.chain-chip');
   if (!chip) return;
   selectedChain = chip.dataset.chain;
-  for (const c of document.querySelectorAll('.chain-chip')) {
+  selectedToken = '';
+  selectedVersion = '';
+  for (const c of document.querySelectorAll('#chain-chips .chain-chip')) {
     c.classList.toggle('active', c === chip);
   }
+  updateTokenPills();
+  runSearch();
+});
+
+document.getElementById('token-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chain-chip');
+  if (!chip) return;
+  selectedToken = chip.dataset.value;
+  selectedVersion = '';
+  for (const c of document.querySelectorAll('#token-chips .chain-chip')) {
+    c.classList.toggle('active', c === chip);
+  }
+  updateVersionSelect();
+  runSearch();
+});
+
+document.getElementById('s-version').addEventListener('change', e => {
+  selectedVersion = e.target.value;
   runSearch();
 });
 
@@ -521,6 +653,7 @@ function onWalletChange(addr) {
 if (window.RealityWallet) {
   window.RealityWallet.initWallet(onWalletChange);
 }
+loadContracts().catch(() => {});
 fetchPage(null, true);
 </script>
 </body>
