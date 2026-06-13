@@ -1069,10 +1069,28 @@ async function gql(query, variables) {
   return json.data;
 }
 
+function b64urlEncode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function b64urlDecode(str) {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = (4 - b64.length % 4) % 4;
+  const bin = atob(b64 + '='.repeat(pad));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
 function parseHash() {
   const raw = window.location.hash.replace(/^#!?\/?/, '');
   if (!raw) return null;
-  if (raw.startsWith('raw/')) return { mode: 'rawCreate', json: decodeURIComponent(raw.slice(4)) };
+  if (raw.startsWith('raw/')) {
+    try { return { mode: 'rawCreate', json: b64urlDecode(raw.slice(4)) }; } catch { return null; }
+  }
   if (/^\d+$/.test(raw)) return { mode: 'byId', templateId: parseInt(raw) };
   const m = raw.match(/^(\d+)-(0x[a-fA-F0-9]+)-(\d+)$/);
   if (m) return { mode: 'direct', ponderId: raw };
@@ -1149,8 +1167,7 @@ function renderTemplateView(t) {
     `browse.html#!/network/${t.chainId}/template/${t.templateId}`;
 
   document.getElementById('clone-btn').onclick = () => {
-    const json = JSON.stringify(tmpl, null, 2);
-    window.location.hash = '!/raw/' + encodeURIComponent(json);
+    window.location.hash = '!/raw/' + b64urlEncode(JSON.stringify(tmpl, null, 2));
   };
 
   document.getElementById('view-loading').style.display = 'none';
