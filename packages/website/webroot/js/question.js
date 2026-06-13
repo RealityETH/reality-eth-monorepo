@@ -75,6 +75,7 @@ const REALITY_ABI = [
   'function template_hashes(uint256) view returns (bytes32)',
   'function templates(uint256) view returns (string)',
   'function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) payable',
+  'function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens)',
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
   'function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) payable',
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
@@ -353,6 +354,11 @@ function showTxError(btn, msg) {
   setTimeout(() => p.remove(), 8000);
 }
 
+const ERC20_TOKEN_ABI = [
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+];
+
 // Switch MetaMask to the question's chain if needed, then refresh realityRW.
 async function ensureCorrectChain() {
   if (!window.ethereum) throw new Error('No wallet connected');
@@ -371,6 +377,34 @@ async function ensureCorrectChain() {
   // Refresh write contract on the now-correct chain
   const wp = new ethers.providers.Web3Provider(window.ethereum);
   realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+}
+
+async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, spender, amountWei, txFn, onSubmitted) {
+  btn.disabled = true;
+  try {
+    await ensureCorrectChain();
+    const wp = new ethers.providers.Web3Provider(window.ethereum);
+    const tokenRead = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, wp);
+    const allowance = await tokenRead.allowance(walletAddr, spender);
+    if (allowance.lt(amountWei)) {
+      btn.textContent = `Approve ${metaToken} in wallet…`;
+      const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, wp.getSigner());
+      const approveTx = await tokenRW.approve(spender, amountWei);
+      btn.textContent = `Approving ${metaToken}…`;
+      await approveTx.wait();
+    }
+    btn.textContent = 'Waiting for wallet…';
+    const tx = await txFn();
+    btn.textContent = 'Pending…';
+    if (onSubmitted) onSubmitted();
+    await tx.wait();
+    btn.textContent = '✓ Done';
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    showTxError(btn, txErrorMessage(err));
+  }
 }
 
 async function runTx(btn, originalText, txFn, onSubmitted) {
@@ -596,10 +630,19 @@ function buildAnswerForm(data, walletAddr) {
     const bondWei  = ethers.utils.parseEther(bondInput.value);
     const maxPrev  = data.bond; // front-run guard
 
-    runTx(btn, 'Post answer',
-      () => realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei }),
-      () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
-    );
+    if (metaTokenAddress) {
+      runTxWithERC20Approval(
+        btn, 'Post answer', walletAddr,
+        metaTokenAddress, CONTRACT, bondWei,
+        () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, maxPrev, bondWei),
+        () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+      );
+    } else {
+      runTx(btn, 'Post answer',
+        () => realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei }),
+        () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+      );
+    }
   });
 
   const card = el('div', 'card');
@@ -613,6 +656,8 @@ function buildAnswerForm(data, walletAddr) {
 let knownArbitrators = null; // Set of lowercase addresses, or null if not yet loaded
 let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
 let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
+let metaToken        = CHAIN_TOKEN[CHAIN_ID] || 'ETH'; // Bond/reward token symbol
+let metaTokenAddress = null; // ERC20 token address, or null for native-token contracts
 
 // Kick off immediately so it loads in parallel with Ponder
 const contractsMetaPromise = (async () => {
@@ -621,7 +666,7 @@ const contractsMetaPromise = (async () => {
     const data = await res.json();
     const chainData = data[String(CHAIN_ID)] || {};
     const addrs = new Set();
-    for (const [, versions] of Object.entries(chainData)) {
+    for (const [tokenSym, versions] of Object.entries(chainData)) {
       for (const [ver, info] of Object.entries(versions)) {
         for (const addr of Object.keys(info.arbitrators || {})) {
           addrs.add(addr.toLowerCase());
@@ -631,6 +676,8 @@ const contractsMetaPromise = (async () => {
           // Version key is like "RealityETH-3.2" or "RealityETH_ERC20-3.2"
           const major = ver.match(/[-_](\d+)\./)?.[1];
           metaMajorVersion = major ? parseInt(major) : null;
+          metaTokenAddress = info.token_address || null;
+          if (metaTokenAddress) metaToken = tokenSym;
         }
       }
     }
@@ -688,7 +735,7 @@ function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
   const bondList = qPage.querySelector('.bond-list');
   if (!bondList) return;
 
-  const token    = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+  const token    = metaToken;
   const explorer = EXPLORER[CHAIN_ID]    || '';
   const color    = answerColorClass(ansBytes, qjson);
   const label    = bytes32ToLabel(ansBytes, qjson) || '?';
@@ -738,7 +785,7 @@ function formatDuration(secs) {
 function renderHistory(data) {
   const { answerEvents, qjson, arbitrationOccurred } = data;
   const n        = answerEvents.length;
-  const token    = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+  const token    = metaToken;
   const explorer = EXPLORER[CHAIN_ID]    || '';
 
   // Max bond across all answers — used to scale bar widths
@@ -838,7 +885,7 @@ function renderStatusCard(data) {
 
   const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator } = data;
   const n        = answerEvents.length;
-  const token    = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+  const token    = metaToken;
   const explorer = EXPLORER[CHAIN_ID]    || '';
   const finalized = isFinalized(finalizeTS);
 
@@ -979,7 +1026,7 @@ function buildDetailsCard(data, chainId) {
 // ── Locked interact state ─────────────────────────────────────────────────────
 function buildLockedState(data) {
   const { bond, minBond } = data;
-  const token = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+  const token = metaToken;
   const minRequired = minBond?.gt(0) && bond?.eq(0)
     ? minBond
     : bond?.gt(0) ? bond.mul(2) : (minBond?.gt(0) ? minBond : ethers.BigNumber.from(0));

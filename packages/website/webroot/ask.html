@@ -340,7 +340,7 @@
           <select id="version-select" class="version-select"></select>
         </div>
         <div class="info-box" id="erc20-note" style="display:none; margin-top:10px;">
-          ERC20 token contracts require a separate token-approval flow to post rewards and bonds. Asking questions on ERC20 contracts is not yet supported here — choose a native-token contract instead.
+          Reward is paid in the ERC20 token. If a non-zero reward is set, you will be asked to approve the token before the question is posted.
         </div>
         <div class="warn-box" id="timeout-warning" style="display:none;margin-top:10px">
           ⚠ Dispute window under 24 hours. There may not be enough time for people to correct wrong answers.
@@ -431,6 +431,16 @@ const RC_ABI = [
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
 ];
 
+const RC_ERC20_ABI = [
+  'function askQuestionERC20(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 tokens) returns (bytes32)',
+  'function askQuestionWithMinBondERC20(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, uint256 tokens) returns (bytes32)',
+];
+
+const ERC20_TOKEN_ABI = [
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+];
+
 const ARB_ABI = [
   'function arbitrator_question_fees(address) view returns (uint256)',
 ];
@@ -457,6 +467,7 @@ let contractsData = null;
 let selectedToken    = null;
 let selectedVersion  = null;
 let isERC20Contract  = false;
+let rcTokenAddress   = null; // ERC20 token contract address, or null for native
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
@@ -621,18 +632,15 @@ async function applyTokenVersion(data, chain, token, version) {
   rcAddress = info.address;
   rcToken = token;
   isERC20Contract = !!info.token_address;
-  const supportsMinBond = !isERC20Contract && versionMajor(version) >= 3;
+  rcTokenAddress = info.token_address || null;
+  const supportsMinBond = versionMajor(version) >= 3;
 
   document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
   document.getElementById('reward-token-label').textContent = `(${rcToken})`;
   document.getElementById('summary-reward').textContent = `0 ${rcToken}`;
 
-  // ERC20: disable reward and block submission
-  const erc20Note = document.getElementById('erc20-note');
-  const rewardInputEl = document.getElementById('question-reward');
-  erc20Note.style.display = isERC20Contract ? 'block' : 'none';
-  rewardInputEl.disabled = isERC20Contract;
-  if (isERC20Contract) rewardInputEl.value = '0';
+  // ERC20: show info note (reward works but requires token approval)
+  document.getElementById('erc20-note').style.display = isERC20Contract ? 'block' : 'none';
 
   // Min-bond: v3+ native only
   const minBondInput = document.getElementById('question-minbond');
@@ -876,7 +884,7 @@ function validate() {
 }
 
 function updateSubmitState() {
-  submitBtn.disabled = !walletAddr || !rcAddress || isERC20Contract;
+  submitBtn.disabled = !walletAddr || !rcAddress;
 }
 
 // ── Question encoding ─────────────────────────────────────────────────────────
@@ -901,7 +909,7 @@ function txErrorMessage(err) {
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
-  if (!signer || !rcAddress || isERC20Contract) return;
+  if (!signer || !rcAddress) return;
   if (!validate()) return;
 
   txError.classList.remove('visible');
@@ -927,7 +935,7 @@ form.addEventListener('submit', async e => {
     const rewardWei  = ethers.utils.parseEther(rewardEth);
     const minBondWei = ethers.utils.parseEther(minBondEth);
 
-    // Resolve arbitrator address and get current fee
+    // Resolve arbitrator address and get current fee (native contracts only)
     let arbAddr, feeWei = ethers.BigNumber.from(0);
     const arbVal = arbSelect.value;
     if (arbVal === 'self') {
@@ -936,22 +944,49 @@ form.addEventListener('submit', async e => {
       arbAddr = document.getElementById('arbitrator-address').value.trim();
     } else {
       arbAddr = arbVal;
-      try {
-        const arbContract = new ethers.Contract(arbAddr, ARB_ABI, provider);
-        feeWei = await arbContract.arbitrator_question_fees(rcAddress);
-      } catch {}
+      if (!isERC20Contract) {
+        try {
+          const arbContract = new ethers.Contract(arbAddr, ARB_ABI, provider);
+          feeWei = await arbContract.arbitrator_question_fees(rcAddress);
+        } catch {}
+      }
     }
 
-    const value = rewardWei.add(feeWei);
-    const reality = new ethers.Contract(rcAddress, RC_ABI, signer);
+    // ERC20 approval step (only when reward > 0)
+    if (isERC20Contract && rcTokenAddress && rewardWei.gt(0)) {
+      submitBtn.textContent = `Approve ${rcToken} in wallet…`;
+      const tokenRead = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, provider);
+      const allowance = await tokenRead.allowance(walletAddr, rcAddress);
+      if (allowance.lt(rewardWei)) {
+        const tokenRW = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, signer);
+        const approveTx = await tokenRW.approve(rcAddress, rewardWei);
+        submitBtn.textContent = `Approving ${rcToken}…`;
+        await approveTx.wait();
+      }
+    }
+
+    submitBtn.textContent = 'Waiting for wallet…';
 
     let tx;
-    if (minBondWei.gt(0)) {
-      tx = await reality.askQuestionWithMinBond(
-        templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value });
+    if (isERC20Contract) {
+      const rc = new ethers.Contract(rcAddress, [...RC_ABI, ...RC_ERC20_ABI], signer);
+      if (supportsMinBond && minBondWei.gt(0)) {
+        tx = await rc.askQuestionWithMinBondERC20(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei);
+      } else {
+        tx = await rc.askQuestionERC20(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei);
+      }
     } else {
-      tx = await reality.askQuestion(
-        templateId, qtext, arbAddr, timeout, openingTs, 0, { value });
+      const value = rewardWei.add(feeWei);
+      const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
+      if (minBondWei.gt(0)) {
+        tx = await rc.askQuestionWithMinBond(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value });
+      } else {
+        tx = await rc.askQuestion(
+          templateId, qtext, arbAddr, timeout, openingTs, 0, { value });
+      }
     }
 
     submitBtn.textContent = 'Pending…';
