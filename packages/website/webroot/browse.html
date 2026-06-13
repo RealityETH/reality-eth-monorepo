@@ -229,6 +229,16 @@
     cursor: pointer; transition: border-color 0.15s, background 0.15s;
     text-decoration: none; color: inherit; display: block;
   }
+  .q-card-main {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    grid-template-rows: auto 1fr auto;
+    align-items: start;
+    column-gap: 0;
+  }
+  .q-meta   { grid-column: 1; grid-row: 1; }
+  .q-text   { grid-column: 1; grid-row: 2; }
+  .q-footer { grid-column: 1; grid-row: 3; }
   .q-card:first-child { border-radius: var(--radius) var(--radius) 0 0; }
   .q-card:last-child  { border-radius: 0 0 var(--radius) var(--radius); }
   .q-card + .q-card   { border-top: none; }
@@ -259,16 +269,40 @@
   .q-footer { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text-dim); }
   .q-bond { display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
   .q-bond-amount { font-weight: 600; color: var(--text); }
-  .q-answer { display: flex; align-items: center; gap: 4px; }
-  .answer-val {
-    padding: 1px 7px; border-radius: 4px;
-    font-size: 11px; font-weight: 600;
+
+  .q-answer-side {
+    grid-column: 2; grid-row: 1 / 4;
+    align-self: stretch;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    border-left: 1px solid var(--border-subtle);
+    margin: -15px -18px -15px 16px; padding: 15px 18px;
+    text-align: center;
   }
-  .answer-yes     { background: var(--green-subtle); color: var(--green); }
-  .answer-no      { background: var(--red-subtle); color: var(--red); }
-  .answer-opt     { background: var(--accent-subtle); color: var(--accent); }
-  .answer-invalid { background: var(--amber-subtle); color: var(--amber); }
-  .q-time { margin-left: auto; white-space: nowrap; }
+  .answer-val {
+    font-size: 17px; font-weight: 600; line-height: 1.2;
+    word-break: break-word;
+  }
+  .answer-yes     { color: var(--green); }
+  .answer-no      { color: var(--red); }
+  .answer-opt     { color: var(--accent); }
+  .answer-invalid { color: var(--amber); }
+  .q-answer-time  { position: absolute; bottom: 10px; right: 14px;
+    font-size: 11px; color: var(--text-dim); text-align: right; }
+  .q-time { display: none; margin-left: auto; white-space: nowrap; }
+  @media (max-width: 600px) {
+    .q-card-main { grid-template-columns: 1fr; }
+    .q-meta   { grid-row: auto; order: 1; }
+    .q-text   { grid-row: auto; order: 2; }
+    .q-answer-side { grid-column: 1; grid-row: auto; order: 3;
+      align-self: auto; position: static;
+      display: block; border-left: none;
+      margin: 0 0 6px; padding: 0; text-align: left; justify-content: flex-start; }
+    .q-footer { grid-row: auto; order: 4; }
+    .answer-val { font-size: 15px; }
+    .q-answer-time { display: none; }
+    .q-time { display: block; }
+  }
   .q-warn-icon { display: inline-flex; align-items: center; cursor: default; flex-shrink: 0; }
   .q-warn-icon.warn   { color: var(--amber); }
   .q-warn-icon.danger { color: var(--red); }
@@ -976,10 +1010,6 @@
       ? `<div class="q-bond">Min bond: <span class="q-bond-amount">${esc(minBond)}</span></div>`
       : '';
 
-    const answerHtml = answer
-      ? `<div class="q-answer">Answer: <span class="answer-val ${answer.cls}">${esc(answer.text)}</span></div>`
-      : '';
-
     let timeHtml;
     if      (status === 'arb')      timeHtml = 'Awaiting arbitration';
     else if (status === 'finalized') timeHtml = 'Finalized';
@@ -996,19 +1026,26 @@
       }
     }
 
+    const answerSide = `<div class="q-answer-side">
+      ${answer ? `<span class="answer-val ${answer.cls}">${esc(answer.text)}</span>` : ''}
+      <div class="q-answer-time">${timeHtml}</div>
+    </div>`;
+
     return `
       <a class="q-card" href="question.html#!/network/${q.chainId}/question/${q.id}">
-        <div class="q-meta">
-          ${catBadge}
-          <span class="badge badge-chain">${chain}</span>
-          ${statusBadge}
-        </div>
-        <div class="q-text${isMarkdown ? ' q-text-md' : ''}">${isMarkdown ? renderMarkdownCard(title) : esc(title)}</div>
-        <div class="q-footer">
-          ${bondHtml}
-          ${answerHtml}
-          ${warnings.map(w => `<span class="q-warn-icon ${w.level}" title="${esc(w.text)}">${WARN_ICON}</span>`).join('')}
-          <div class="q-time">${timeHtml}</div>
+        <div class="q-card-main">
+          <div class="q-meta">
+            ${catBadge}
+            <span class="badge badge-chain">${chain}</span>
+            ${statusBadge}
+          </div>
+          <div class="q-text${isMarkdown ? ' q-text-md' : ''}">${isMarkdown ? renderMarkdownCard(title) : esc(title)}</div>
+          <div class="q-footer">
+            ${bondHtml}
+            ${warnings.map(w => `<span class="q-warn-icon ${w.level}" title="${esc(w.text)}">${WARN_ICON}</span>`).join('')}
+            <div class="q-time">${timeHtml}</div>
+          </div>
+          ${answerSide}
         </div>
       </a>`;
   }
@@ -1101,16 +1138,19 @@
   function showSkeleton() {
     document.getElementById('q-list').innerHTML = Array(6).fill(0).map(() => `
       <div class="q-card q-skeleton">
-        <div class="q-meta">
-          <span class="skel skel-sm"></span>
-          <span class="skel skel-xs"></span>
-          <span class="skel skel-xs"></span>
-        </div>
-        <div class="skel skel-title"></div>
-        <div class="skel skel-title" style="width:65%"></div>
-        <div class="q-footer">
-          <span class="skel skel-sm"></span>
-          <span class="skel skel-sm" style="margin-left:auto;width:60px"></span>
+        <div class="q-card-main">
+          <div class="q-meta">
+            <span class="skel skel-sm"></span>
+            <span class="skel skel-xs"></span>
+            <span class="skel skel-xs"></span>
+          </div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-title" style="width:65%"></div>
+          <div class="q-footer">
+            <span class="skel skel-sm"></span>
+            <span class="skel skel-sm" style="margin-left:auto;width:60px"></span>
+          </div>
+          <div class="q-answer-side"></div>
         </div>
       </div>`).join('');
   }
