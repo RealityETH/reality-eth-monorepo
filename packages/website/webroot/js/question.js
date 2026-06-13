@@ -1049,32 +1049,93 @@ async function renderArbitrationSection(data, walletAddr) {
 
   section.innerHTML = `
     <div class="card-title">Arbitration</div>
-    <p class="arb-note">Dispute the current answer by requesting arbitration.</p>
+    <p class="arb-note" id="arb-note">Dispute the current answer by requesting arbitration.</p>
     <button class="arb-btn" id="arb-btn" disabled>Loading fee…</button>`;
   section.style.display = '';
 
-  const btn = document.getElementById('arb-btn');
-  const prov = reality?.provider || readProvider;
+  const btn     = document.getElementById('arb-btn');
+  const noteEl  = document.getElementById('arb-note');
+  const prov    = reality?.provider || readProvider;
 
-  let fee;
+  // Step 1: try direct arbitration (getDisputeFee on the question's arbitrator).
+  // Step 2: on failure, detect Kleros foreign-proxy pattern and switch to the
+  //         fee/TX on the foreign chain (typically Ethereum mainnet).
+  let fee, arbContractAddr = arbitrator, txChainId = CHAIN_ID;
+
   try {
     fee = await new ethers.Contract(arbitrator, ARBITRATOR_ABI, prov).getDisputeFee(QUESTION_ID);
-    const nativeToken = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
-    const btnLabel = fee.isZero()
-      ? 'Request arbitration (free)'
-      : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
-    btn.textContent = btnLabel;
-    btn.disabled = false;
-    btn.addEventListener('click', () =>
-      runTx(btn, btnLabel, async () => {
-        const wp = new ethers.providers.Web3Provider(window.ethereum);
-        return new ethers.Contract(arbitrator, ARBITRATOR_ABI, wp.getSigner())
-          .requestArbitration(QUESTION_ID, bond, { value: fee });
-      })
-    );
   } catch {
-    btn.textContent = 'Fee unavailable — arbitrator may not be responding';
+    // Kleros home proxy (e.g. Gnosis) always reverts getDisputeFee — it's a bridge.
+    // Detect via metadata() → foreignProxy + foreignChainId, then query the foreign side.
+    try {
+      const homeAbi = [
+        'function metadata() view returns (string)',
+        'function foreignProxy() view returns (address)',
+        'function foreignChainId() view returns (uint256)',
+      ];
+      const home = new ethers.Contract(arbitrator, homeAbi, prov);
+      let meta = {};
+      try { meta = JSON.parse(await home.metadata()); } catch {}
+      if (!meta.foreignProxy) throw new Error('unknown arbitrator');
+
+      const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
+      txChainId = fpChainBN.toNumber();
+
+      const fpRpcUrl = PUBLIC_RPC[txChainId];
+      if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
+      const fpProv = new ethers.providers.JsonRpcProvider(fpRpcUrl, txChainId);
+      fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);
+      arbContractAddr = fpAddr;
+
+      noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${CHAIN_NAME[txChainId] || `chain ${txChainId}`} to pay the arbitration fee.`;
+    } catch {
+      btn.textContent = 'Fee unavailable — arbitrator may not be responding';
+      return;
+    }
   }
+
+  const nativeToken = CHAIN_TOKEN[txChainId] || 'ETH';
+  const btnLabel = fee.isZero()
+    ? 'Request arbitration (free)'
+    : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
+  btn.textContent = btnLabel;
+  btn.disabled = false;
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      if (!window.ethereum) throw new Error('No wallet connected');
+
+      // Switch to the correct chain (question chain for direct, foreign chain for Kleros)
+      const targetHex = '0x' + txChainId.toString(16);
+      const currentHex = await window.ethereum.request({ method: 'eth_chainId' });
+      if (parseInt(currentHex, 16) !== txChainId) {
+        btn.textContent = `Switching to ${CHAIN_NAME[txChainId] || `chain ${txChainId}`}…`;
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+        } catch (switchErr) {
+          if ((switchErr.code === 4902 || switchErr.code === -32603) && CHAIN_ADD_PARAMS?.[txChainId]) {
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[txChainId]] });
+          } else {
+            throw switchErr;
+          }
+        }
+      }
+
+      btn.textContent = 'Waiting for wallet…';
+      const wp = new ethers.providers.Web3Provider(window.ethereum);
+      const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, wp.getSigner())
+        .requestArbitration(QUESTION_ID, bond, { value: fee });
+      btn.textContent = 'Pending…';
+      await tx.wait();
+      btn.textContent = '✓ Done';
+      setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = btnLabel;
+      showTxError(btn, txErrorMessage(err));
+    }
+  });
 }
 
 function renderStatusCard(data) {
