@@ -64,6 +64,7 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
       arbitrator,
       timeout,
       opening_ts,
+      nonce,
     } = event.args;
     const { db, network } = context;
 
@@ -87,6 +88,7 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
         contract: event.log.address,
         chainId: network.chainId,
         templateId: template_id,
+        nonce,
         data: cleanData,
         title: parsed.title,
         type: parsed.type,

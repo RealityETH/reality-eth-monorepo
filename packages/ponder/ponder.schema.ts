@@ -24,6 +24,7 @@ export const question = onchainTable(
     chainId: p.integer().notNull(),
 
     templateId: p.bigint().notNull(),
+    nonce: p.bigint().notNull(),
 
     // Raw question content string from the event
     data: p.text().notNull(),
