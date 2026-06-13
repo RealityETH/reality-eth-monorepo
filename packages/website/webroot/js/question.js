@@ -1040,8 +1040,80 @@ async function renderArbitrationSection(data, walletAddr) {
   if (isPendingArbitration) {
     section.innerHTML = `
       <div class="card-title">Arbitration</div>
-      <div class="arb-pending-notice">Arbitration has been requested and is awaiting resolution by the arbitrator.</div>`;
+      <div class="arb-pending-notice" id="arb-pending-notice">Arbitration has been requested and is awaiting resolution by the arbitrator.</div>`;
     section.style.display = '';
+
+    // Asynchronously refine the notice for Kleros foreign-proxy arbitrators.
+    (async () => {
+      try {
+        const prov = reality?.provider || readProvider;
+        const homeAbi = [
+          'function metadata() view returns (string)',
+          'function foreignProxy() view returns (address)',
+          'function foreignChainId() view returns (uint256)',
+        ];
+        const home = new ethers.Contract(arbitrator, homeAbi, prov);
+        let meta = {};
+        try { meta = JSON.parse(await home.metadata()); } catch {}
+        if (!meta.foreignProxy) return;
+
+        const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
+        const fpChainId = fpChainBN.toNumber();
+        const fpRpcUrl = PUBLIC_RPC[fpChainId];
+        if (!fpRpcUrl) return;
+        const fpProv = new ethers.providers.JsonRpcProvider(fpRpcUrl, fpChainId);
+        const chainName = CHAIN_NAME[fpChainId] || `chain ${fpChainId}`;
+
+        // Check whether a Kleros dispute already exists (new API, then old API fallback).
+        let disputeExists = false;
+        try {
+          disputeExists = await new ethers.Contract(fpAddr,
+            ['function arbitrationIDToDisputeExists(uint256) view returns (bool)'], fpProv)
+            .arbitrationIDToDisputeExists(ethers.BigNumber.from(QUESTION_ID));
+        } catch {
+          try {
+            disputeExists = await new ethers.Contract(fpAddr,
+              ['function questionIDToDisputeExists(bytes32) view returns (bool)'], fpProv)
+              .questionIDToDisputeExists(QUESTION_ID);
+          } catch {}
+        }
+
+        // If no dispute yet, check for an in-progress arbitration request via events.
+        if (!disputeExists) {
+          try {
+            const reqFp = new ethers.Contract(fpAddr,
+              ['event ArbitrationRequested(bytes32 indexed _questionID, address indexed _requester)'], fpProv);
+            const evts = await reqFp.queryFilter(reqFp.filters.ArbitrationRequested(QUESTION_ID));
+            for (const evt of evts) {
+              let status = 0;
+              try {
+                [status] = await new ethers.Contract(fpAddr,
+                  ['function arbitrationRequests(uint256, address) view returns (uint8, uint248, uint256, uint256)'], fpProv)
+                  .arbitrationRequests(ethers.BigNumber.from(QUESTION_ID), evt.args._requester);
+              } catch {
+                try {
+                  [status] = await new ethers.Contract(fpAddr,
+                    ['function arbitrationRequests(bytes32, address) view returns (uint8, uint248)'], fpProv)
+                    .arbitrationRequests(QUESTION_ID, evt.args._requester);
+                } catch {}
+              }
+              if (status > 0 && status < 4) { disputeExists = true; break; }
+            }
+          } catch {}
+        }
+
+        const el = document.getElementById('arb-pending-notice');
+        if (!el) return;
+        if (disputeExists) {
+          el.textContent = `Dispute submitted to Kleros on ${chainName} and awaiting a ruling.`;
+        } else {
+          el.textContent = `Arbitration requested via Kleros. Waiting for the dispute to be registered on ${chainName}.`;
+        }
+      } catch {
+        // Silently fail — generic notice remains
+      }
+    })();
+
     return;
   }
 
