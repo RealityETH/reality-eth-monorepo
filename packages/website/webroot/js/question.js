@@ -73,7 +73,7 @@ const REALITY_ABI = [
   'function isSettledTooSoon(bytes32) view returns (bool)',
   'function reopened_questions(bytes32) view returns (bytes32)',
   'function template_hashes(uint256) view returns (bytes32)',
-  'function templates(uint256) view returns (string)',
+  'function templates(uint256) view returns (uint256)',
   'function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) payable',
   'function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens)',
   'function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) payable',
@@ -1699,8 +1699,16 @@ async function main() {
       const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
       const rawAnswerEvents = await queryFilterRobust(
         reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
-      const rpcTemplateStr = BUILTIN_TEMPLATES[templateId]
-        || await safeCall(() => reality.templates(templateId), '{"type":"bool","title":"%s"}');
+      let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
+      if (!rpcTemplateStr) {
+        const templateBlock = await safeCall(() => reality.templates(templateId), null);
+        if (templateBlock) {
+          const tevents = await safeCall(
+            () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), templateBlock, templateBlock), []);
+          rpcTemplateStr = tevents[0]?.args.question_text;
+        }
+        rpcTemplateStr = rpcTemplateStr || '{"type":"bool","title":"%s"}';
+      }
       let minBond = BN0, settledTooSoon = false, reopenedBy = ZERO_HASH;
       if (effectiveMajor >= 3) {
         [minBond, settledTooSoon, reopenedBy] = await Promise.all([
