@@ -164,7 +164,7 @@ async function fetchPonderData() {
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
-      arbitrationOccurred
+      arbitrationOccurred isPendingArbitration
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
       items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp }
@@ -236,6 +236,7 @@ function adaptPonderData(ponderData, BN0) {
     settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
     reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
+    isPendingArbitration: !!pq.isPendingArbitration,
     answerEvents,
   };
 }
@@ -357,6 +358,11 @@ function showTxError(btn, msg) {
 const ERC20_TOKEN_ABI = [
   'function allowance(address owner, address spender) view returns (uint256)',
   'function approve(address spender, uint256 amount) returns (bool)',
+];
+
+const ARBITRATOR_ABI = [
+  'function getDisputeFee(bytes32 question_id) view returns (uint256)',
+  'function requestArbitration(bytes32 question_id, uint256 max_previous) payable',
 ];
 
 // Switch MetaMask to the question's chain if needed, then refresh realityRW.
@@ -879,6 +885,58 @@ function renderHistory(data) {
   }
 }
 
+// ── Arbitration section ───────────────────────────────────────────────────────
+async function renderArbitrationSection(data, walletAddr) {
+  const section = document.getElementById('arbitration-section');
+  if (!section) return;
+
+  const { arbitrator, bond, isPendingArbitration } = data;
+  const finalized  = isFinalized(data.finalizeTS);
+  const beforeOpen = isBeforeOpening(data.openingTS);
+  const hasArbitrator = arbitrator && !/^0x0+$/.test(arbitrator);
+
+  if (!hasArbitrator) return;
+
+  if (isPendingArbitration) {
+    section.innerHTML = `
+      <div class="card-title">Arbitration</div>
+      <div class="arb-pending-notice">Arbitration has been requested and is awaiting resolution by the arbitrator.</div>`;
+    section.style.display = '';
+    return;
+  }
+
+  if (finalized || beforeOpen || bond.isZero() || !walletAddr) return;
+
+  section.innerHTML = `
+    <div class="card-title">Arbitration</div>
+    <p class="arb-note">Dispute the current answer by requesting arbitration.</p>
+    <button class="arb-btn" id="arb-btn" disabled>Loading fee…</button>`;
+  section.style.display = '';
+
+  const btn = document.getElementById('arb-btn');
+  const prov = reality?.provider || readProvider;
+
+  let fee;
+  try {
+    fee = await new ethers.Contract(arbitrator, ARBITRATOR_ABI, prov).getDisputeFee(QUESTION_ID);
+    const nativeToken = CHAIN_TOKEN[CHAIN_ID] || 'ETH';
+    const btnLabel = fee.isZero()
+      ? 'Request arbitration (free)'
+      : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
+    btn.textContent = btnLabel;
+    btn.disabled = false;
+    btn.addEventListener('click', () =>
+      runTx(btn, btnLabel, async () => {
+        const wp = new ethers.providers.Web3Provider(window.ethereum);
+        return new ethers.Contract(arbitrator, ARBITRATOR_ABI, wp.getSigner())
+          .requestArbitration(QUESTION_ID, bond, { value: fee });
+      })
+    );
+  } catch {
+    btn.textContent = 'Fee unavailable — arbitrator may not be responding';
+  }
+}
+
 function renderStatusCard(data) {
   const card = qPage.querySelector('#status-card');
   if (!card) return;
@@ -1238,7 +1296,9 @@ async function main() {
       return {
         bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
         templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
-        minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred, answerEvents,
+        minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
+        isPendingArbitration: false, // not available from events alone; Ponder path is authoritative
+        answerEvents,
       };
     });
   }
@@ -1336,7 +1396,10 @@ async function main() {
     }
   }
 
-  // 10. Claim section
+  // 10. Arbitration section
+  renderArbitrationSection(data, walletAddr).catch(() => {});
+
+  // 11. Claim section
   const claimSection = qPage.querySelector('.claim-section');
   if (claimSection && finalized && walletAddr && realityRW) {
     const userEvents = data.answerEvents.filter(
@@ -1359,7 +1422,7 @@ async function main() {
     }
   }
 
-  // 11. Background RPC verification (only when data came from Ponder)
+  // 12. Background RPC verification (only when data came from Ponder)
   if (data.fromPonder) verifyWithRpc(data).catch(() => {});
 }
 
