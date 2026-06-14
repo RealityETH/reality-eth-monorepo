@@ -111,7 +111,7 @@ if (chainBadge) {
 const majorVersion = CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3;
 let reality = null, realityRW = null;
 
-const publicRpcUrl = PUBLIC_RPC[CHAIN_ID];
+const publicRpcUrl = window.RealitySettings?.getRpcUrl(CHAIN_ID) || PUBLIC_RPC[CHAIN_ID];
 const readProvider = publicRpcUrl
   ? new ethers.providers.JsonRpcProvider(publicRpcUrl, CHAIN_ID)
   : null;
@@ -119,6 +119,12 @@ const readProvider = publicRpcUrl
 // ── Data-source indicators ────────────────────────────────────────────────────
 const ponderInd = document.getElementById('ind-ponder');
 const rpcInd    = document.getElementById('ind-rpc');
+const indGroup  = document.getElementById('data-ind-group');
+
+if (window.RealitySettings) {
+  RealitySettings.attachPonderPanel(ponderInd);
+  RealitySettings.attachRpcPanel(rpcInd, CHAIN_ID);
+}
 
 async function withIndicator(el, fn) {
   el?.classList.add('active');
@@ -218,10 +224,22 @@ async function fetchPonderData() {
     }
   }`;
   const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
-  const resp = await withIndicator(ponderInd, () => ponderFetch(ponderUrl, { query }));
-  if (!resp.ok) throw new Error('GraphQL unavailable');
+  let resp;
+  try {
+    resp = await withIndicator(ponderInd, () => ponderFetch(ponderUrl, { query }));
+  } catch {
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder unreachable'; }
+    throw new Error('Ponder unreachable');
+  }
+  if (!resp.ok) {
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder server error'; }
+    throw new Error('GraphQL unavailable');
+  }
   const json = await resp.json();
-  if (!json.data?.question) throw new Error('Question not in Ponder');
+  if (!json.data?.question) {
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Question not in Ponder index'; }
+    throw new Error('Question not in Ponder');
+  }
   return json.data;
 }
 
@@ -1597,6 +1615,7 @@ async function verifyWithRpc(data) {
 
   const errors = [];
 
+  indGroup?.classList.add('verifying');
   await withIndicator(rpcInd, async () => {
     const calls = [
       safeCall(() => reality.getBestAnswer(QUESTION_ID), null),
@@ -1667,9 +1686,11 @@ async function verifyWithRpc(data) {
       errors.push('arbitrator mismatch');
   });
 
+  indGroup?.classList.remove('verifying');
   const ind = ponderInd;
   if (!ind) return;
   if (errors.length === 0) {
+    indGroup?.classList.add('verified');
     ind.classList.add('ok');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
   } else {
@@ -1697,8 +1718,8 @@ async function main() {
       walletAddr = (accounts && accounts[0]) || null;
       const walletChainId = parseInt(chainHex, 16);
       const _wp = new ethers.providers.Web3Provider(window.ethereum);
-      // Use wallet for reads only when it's on the right chain
-      if (walletChainId === CHAIN_ID) {
+      // Use wallet for reads when on the right chain and user hasn't disabled it
+      if (walletChainId === CHAIN_ID && (window.RealitySettings?.getUseBrowserRpc() ?? true)) {
         reality = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
       }
       // Wallet is always the write provider (user must switch chain themselves)
@@ -1751,6 +1772,7 @@ async function main() {
       if (titleEl) titleEl.textContent = 'Failed to load question (no data source available).';
       return;
     }
+    document.getElementById('rpc-loading-note')?.style.removeProperty('display');
     // RPC path — await meta so we have the correct deployment block and version
     await contractsMetaPromise;
     const effectiveMajor = metaMajorVersion ?? (CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3);
@@ -1829,6 +1851,7 @@ async function main() {
   }
 
   // 3. Update question title and status + type badges
+  document.getElementById('rpc-loading-note')?.style.setProperty('display', 'none');
   const titleEl = document.getElementById('question-title');
   if (titleEl) {
     const rawTitle = data.qjson?.title || '';

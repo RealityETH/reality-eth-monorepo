@@ -68,6 +68,7 @@
     font-family: monospace; font-size: 12px; letter-spacing: -0.01em;
   }
   /* ── Data-source indicators ── */
+  .data-ind-group { display: inline-flex; align-items: center; gap: 1px; }
   .data-ind {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
@@ -76,8 +77,26 @@
   .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
   .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
   @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-  .data-ind.ok   { color: var(--green) !important; }
-  .data-ind.fail { color: var(--amber) !important; }
+  .data-ind.ok      { color: var(--green) !important; }
+  .data-ind.fail    { color: var(--amber) !important; }
+  .data-ind.offline { color: var(--amber) !important; background: var(--amber-subtle) !important; }
+  /* Connector between ponder and RPC icons — always 20px wide so RPC icon never shifts */
+  .data-ind-connector {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; flex-shrink: 0; opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    color: var(--text-muted);
+  }
+  .data-ind-connector .icon-check { display: none; }
+  .data-ind-connector .icon-arrow { display: block; }
+  .data-ind-group.verifying .data-ind-connector {
+    opacity: 1; animation: ind-pulse 0.9s ease-in-out infinite;
+  }
+  .data-ind-group.verified .data-ind-connector {
+    opacity: 1; color: var(--green);
+  }
+  .data-ind-group.verified .data-ind-connector .icon-check { display: block; }
+  .data-ind-group.verified .data-ind-connector .icon-arrow { display: none; }
   @media (max-width: 600px) {
     .search-wrap { display: none; }
     header { padding: 0 16px; }
@@ -110,6 +129,10 @@
   .badge-chain   { background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
   .q-text-large  { font-size: 22px; font-weight: 600; line-height: 1.35; }
   .q-text-large.q-text-md { font-weight: normal; font-size: 15px; }
+  .rpc-loading-note {
+    display: flex; align-items: flex-start; gap: 6px; margin-top: 10px;
+    font-size: 13px; color: var(--amber); line-height: 1.4;
+  }
   .q-text-md h1 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
   .q-text-md h2 { font-size: 15px; font-weight: 600; margin: 12px 0 4px; }
   .q-text-md h3 { font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
@@ -480,12 +503,18 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" type="text" placeholder="Search questions…">
     </div>
-    <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
-    </span>
-    <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </span>
+    <div class="data-ind-group" id="data-ind-group">
+      <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      </span>
+      <span class="data-ind-connector" id="ind-connector" aria-hidden="true">
+        <svg class="icon-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <svg class="icon-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>
+      <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </span>
+    </div>
     <button id="wallet-btn" class="btn-outline">Connect wallet</button>
   </div>
 </header>
@@ -505,6 +534,10 @@
       <span class="badge badge-chain" id="chain-badge" style="display:none"></span>
     </div>
     <div class="q-text-large" id="question-title">Loading question…</div>
+    <div class="rpc-loading-note" id="rpc-loading-note" style="display:none">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Indexer unavailable — loading from RPC, this may be slow.
+    </div>
   </div>
 
   <div id="warnings-container" class="q-warnings"></div>
