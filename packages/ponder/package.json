@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@ponder/core": "^0.7.0",
-    "viem": "^2.0.0"
+    "viem": "^2.0.0",
+    "@reality.eth/reality-eth-lib": "file:../reality-eth-lib"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
