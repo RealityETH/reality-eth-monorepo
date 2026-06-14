@@ -599,6 +599,7 @@
 <script>
   const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+  const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
   const ponderInd = document.getElementById('ind-ponder');
   const rpcInd    = document.getElementById('ind-rpc');
@@ -927,6 +928,7 @@
   function formatAnswer(q) {
     if (!q.currentAnswer) return null;
     if (q.currentAnswer === INVALID_ANS) return { text: 'Invalid / N-A', cls: 'answer-invalid' };
+    if (q.currentAnswer.toLowerCase() === TOO_SOON) return { text: 'Answered too soon', cls: 'answer-invalid' };
     try {
       const val = BigInt(q.currentAnswer);
       if (q.type === 'bool') {
