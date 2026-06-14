@@ -71,7 +71,7 @@ function openPanel(anchorEl, width, buildFn) {
   panel.style.cssText = `position:fixed;top:${rect.bottom + 6}px;left:${Math.max(8, left)}px;width:${width}px;`;
 
   const outside = (e) => {
-    if (!panel.contains(e.target) && e.target !== anchorEl) {
+    if (!panel.contains(e.target) && !anchorEl.contains(e.target)) {
       closePanel();
       document.removeEventListener('click', outside, true);
     }
@@ -83,6 +83,7 @@ function openPanel(anchorEl, width, buildFn) {
 
 function attachPonderPanel(el) {
   el.classList.add('sp-clickable');
+  el.style.cursor = 'pointer';
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (activeAnchor === el) { closePanel(); return; }
@@ -113,6 +114,7 @@ function attachPonderPanel(el) {
 
 function attachRpcPanel(el, currentChainId) {
   el.classList.add('sp-clickable');
+  el.style.cursor = 'pointer';
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     if (activeAnchor === el) { closePanel(); return; }
@@ -222,7 +224,13 @@ function injectStyles() {
   document.head.appendChild(s);
 }
 
-document.addEventListener('DOMContentLoaded', injectStyles);
+// Call immediately if DOM is already ready (scripts at bottom of body often
+// find readyState 'interactive'), otherwise wait for DOMContentLoaded.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', injectStyles);
+} else {
+  injectStyles();
+}
 
 window.RealitySettings = {
   getPonderUrl, setPonderUrl,
