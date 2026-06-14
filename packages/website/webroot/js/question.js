@@ -1865,19 +1865,39 @@ async function main() {
         ]);
         upperBoundTs = Number(upperBoundTs) || Number(finalizeTS);
       }
-      const { events: newQEvents, currentBlock } = await findLogNewQuestion(
-        reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);
-      const qEv        = newQEvents[0];
+
+      // Check IndexedDB for previously-fetched RPC events.
+      // On a cache hit we skip the expensive full log scan and only fetch events
+      // from lastBlock+1 onwards, which is fast even for old questions.
+      const cached = await QCache.get(CHAIN_ID, CONTRACT, QUESTION_ID);
+      let qEv, currentBlock, rawAnswerEvents;
+
+      if (cached.qEvent && cached.lastBlock !== null) {
+        currentBlock    = await safeCall(() => reality.provider.getBlockNumber(), cached.lastBlock);
+        qEv             = cached.qEvent;
+        const fromBlock = cached.lastBlock + 1;
+        const newAnswers = (fromBlock <= currentBlock)
+          ? await queryFilterRobust(reality, reality.filters.LogNewAnswer(null, QUESTION_ID), fromBlock, currentBlock)
+          : [];
+        rawAnswerEvents = [...cached.answerEvents, ...newAnswers];
+        QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
+      } else {
+        const found = await findLogNewQuestion(
+          reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);
+        currentBlock    = found.currentBlock;
+        qEv             = found.events[0] ?? null;
+        const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
+        rawAnswerEvents = await queryFilterRobust(
+          reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
+        QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, rawAnswerEvents, currentBlock);
+      }
+
       const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
       const questionStr = qEv ? qEv.args.question : '';
       const openingTS   = qEv?.args.opening_ts  ?? q?.opening_ts  ?? 0;
       const qTimeout    = qEv?.args.timeout      ?? q?.timeout     ?? 0;
       const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.constants.AddressZero;
       const nonce       = qEv?.args.nonce ?? BN0;
-      // Scan answers from the question's own creation block (not the contract start block)
-      const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
-      const rawAnswerEvents = await queryFilterRobust(
-        reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
       let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
       if (!rpcTemplateStr) {
         const templateBlock = await safeCall(() => reality.templates(templateId), null);
