@@ -13,6 +13,10 @@
   const WC_CHAINS          = [1];
   const WC_OPTIONAL_CHAINS = [10, 100, 137, 42161, 8453, 43114, 42220, 11155111];
 
+  // Saved reference to the injected wallet when WC overwrites window.ethereum,
+  // so it can be restored if the user later disconnects WC.
+  let _savedInjected = null;
+
   function shortAddr(addr) {
     return addr.slice(0, 6) + '…' + addr.slice(-4);
   }
@@ -26,6 +30,112 @@
       if (addr) localStorage.setItem(CACHE_KEY, addr.toLowerCase());
       else localStorage.removeItem(CACHE_KEY);
     } catch {}
+  }
+
+  // ── Wallet chooser modal ───────────────────────────────────────────────────
+
+  function showWalletChooser() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = [
+        'position:fixed;inset:0;z-index:9999',
+        'background:rgba(0,0,0,0.72)',
+        'display:flex;align-items:center;justify-content:center',
+      ].join(';');
+
+      const card = document.createElement('div');
+      card.style.cssText = [
+        'background:#161b22;border:1px solid #30363d;border-radius:12px',
+        'padding:24px 20px 16px;min-width:280px;max-width:340px;width:90%',
+      ].join(';');
+
+      const title = document.createElement('p');
+      title.style.cssText = 'font-size:15px;font-weight:600;color:#e6edf3;margin:0 0 16px;text-align:center';
+      title.textContent = 'Connect wallet';
+
+      function makeOption(label, sub, svgPath) {
+        const btn = document.createElement('button');
+        btn.style.cssText = [
+          'width:100%;padding:12px 14px;background:#0d1117',
+          'border:1px solid #30363d;border-radius:8px;cursor:pointer',
+          'display:flex;align-items:center;gap:12px;margin-bottom:10px',
+          'color:#e6edf3;text-align:left;font-family:inherit;font-size:14px',
+        ].join(';');
+        btn.onmouseover = () => { btn.style.borderColor = '#58a6ff'; };
+        btn.onmouseout  = () => { btn.style.borderColor = '#30363d'; };
+
+        const icon = document.createElement('span');
+        icon.style.cssText = 'flex-shrink:0;color:#8b949e;display:flex';
+        icon.innerHTML = svgPath;
+
+        const text = document.createElement('span');
+        const labelEl = document.createElement('div');
+        labelEl.style.fontWeight = '500';
+        labelEl.textContent = label;
+        text.appendChild(labelEl);
+        if (sub) {
+          const subEl = document.createElement('div');
+          subEl.style.cssText = 'font-size:12px;color:#8b949e;margin-top:2px';
+          subEl.textContent = sub;
+          text.appendChild(subEl);
+        }
+
+        btn.appendChild(icon);
+        btn.appendChild(text);
+        btn.addEventListener('click', () => { cleanup(); resolve(btn.dataset.choice); });
+        return btn;
+      }
+
+      const browserBtn = makeOption(
+        'Browser wallet', 'MetaMask, Rabby, Coinbase…',
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+        '<rect x="2" y="7" width="20" height="15" rx="2"/>' +
+        '<path d="M16 14h.01"/>' +
+        '<path d="M2 10h20"/>' +
+        '<path d="M6 4l3-1h6l3 1"/>' +
+        '</svg>'
+      );
+      browserBtn.dataset.choice = 'injected';
+
+      const wcBtn = makeOption(
+        'WalletConnect', 'Scan QR with your phone',
+        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+        '<path d="M3 7V5a2 2 0 012-2h2"/>' +
+        '<path d="M17 3h2a2 2 0 012 2v2"/>' +
+        '<path d="M21 17v2a2 2 0 01-2 2h-2"/>' +
+        '<path d="M7 21H5a2 2 0 01-2-2v-2"/>' +
+        '<rect x="7" y="7" width="3" height="3"/>' +
+        '<rect x="14" y="7" width="3" height="3"/>' +
+        '<rect x="7" y="14" width="3" height="3"/>' +
+        '<path d="M14 14h3v3"/>' +
+        '</svg>'
+      );
+      wcBtn.dataset.choice = 'walletconnect';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.style.cssText = [
+        'width:100%;padding:8px;background:none;border:none',
+        'color:#8b949e;cursor:pointer;font-size:13px;font-family:inherit',
+      ].join(';');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', () => { cleanup(); resolve(null); });
+
+      card.appendChild(title);
+      card.appendChild(browserBtn);
+      card.appendChild(wcBtn);
+      card.appendChild(cancelBtn);
+      overlay.appendChild(card);
+
+      function cleanup() {
+        overlay.remove();
+        document.removeEventListener('keydown', onKey);
+      }
+      function onKey(e) { if (e.key === 'Escape') { cleanup(); resolve(null); } }
+      document.addEventListener('keydown', onKey);
+      overlay.addEventListener('click', e => { if (e.target === overlay) { cleanup(); resolve(null); } });
+
+      document.body.appendChild(overlay);
+    });
   }
 
   // ── WalletConnect ──────────────────────────────────────────────────────────
@@ -104,7 +214,8 @@
     });
     provider.on('chainChanged', () => location.reload());
     provider.on('disconnect', () => {
-      window.ethereum = undefined;
+      window.ethereum = _savedInjected || undefined;
+      _savedInjected = null;
       setCached(null);
       try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
       onChange(null);
@@ -154,8 +265,28 @@
   // Shows wallet chooser / connect flow.
   async function connectWallet(onChange) {
     const eth = window.ethereum;
+
     if (eth) {
-      // Injected wallet already present
+      // Both injected wallet and WalletConnect are available — let user choose.
+      const choice = await showWalletChooser();
+
+      if (choice === 'walletconnect') {
+        // Save the injected wallet so we can restore it if the user disconnects WC.
+        _savedInjected = eth;
+        try {
+          await connectWC(onChange);
+        } catch (e) {
+          _savedInjected = null;
+          if (!e.message?.includes('User rejected') && e.code !== 4001) {
+            console.error('WalletConnect error:', e);
+          }
+        }
+        return;
+      }
+
+      if (choice !== 'injected') return; // cancelled
+
+      // Browser wallet chosen
       try {
         const accs = await eth.request({ method: 'eth_requestAccounts' });
         const addr = (accs[0] || '').toLowerCase() || null;
@@ -167,7 +298,7 @@
       return;
     }
 
-    // No injected wallet — use WalletConnect
+    // No injected wallet — go straight to WalletConnect.
     try {
       await connectWC(onChange);
     } catch (e) {
@@ -177,13 +308,14 @@
     }
   }
 
-  // Clear local state.
+  // Clear local state and session.
   function disconnectWallet(onChange) {
     const eth = window.ethereum;
-    // If it's a WC provider, also disconnect the session
+    // If it's a WC provider, disconnect the session and restore the injected wallet.
     if (eth && typeof eth.disconnect === 'function' && eth.session) {
       eth.disconnect().catch(() => {});
-      window.ethereum = undefined;
+      window.ethereum = _savedInjected || undefined;
+      _savedInjected = null;
     }
     setCached(null);
     onChange(null);
