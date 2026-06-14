@@ -213,9 +213,10 @@ async function fetchPonderData() {
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
       arbitrationOccurred isPendingArbitration
+      createdBlock createdLogIndex createdTxHash
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
-      items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp }
+      items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp createdBlock createdLogIndex createdTxHash }
     }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
       items { id }
@@ -343,6 +344,9 @@ function adaptPonderData(ponderData, BN0) {
   const responses = (responsePage?.items || [])
     .sort((a, b) => (Number(a.timestamp) < Number(b.timestamp) ? -1 : 1));
   const answerEvents = responses.map(r => ({
+    blockNumber:     r.createdBlock     ? Number(r.createdBlock)     : undefined,
+    logIndex:        r.createdLogIndex  ? Number(r.createdLogIndex)  : undefined,
+    transactionHash: r.createdTxHash    ?? undefined,
     args: {
       // For history-hash computation: use the commitment hash for commitments
       // (that's the value actually hashed on-chain), actual answer otherwise
@@ -367,6 +371,7 @@ function adaptPonderData(ponderData, BN0) {
     nonce:         BN0,
     templateId:    Number(pq.templateId || 0),
     questionStr:   pq.data,
+    createdBlock:  pq.createdBlock ? Number(pq.createdBlock) : undefined,
     qjson:         null,
     minBond:       ethers.BigNumber.from((pq.minBond || '0').toString()),
     bounty:        ethers.BigNumber.from((pq.bounty  || '0').toString()),
@@ -1752,23 +1757,35 @@ async function verifyWithRpc(data) {
     indGroup?.classList.add('verified');
     ind.classList.add('ok');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
-    // Warm the events cache in the background so future RPC-only loads skip
-    // the full log scan.  Only runs if the cache is empty — if the user has
-    // already visited via RPC, the cache is already populated.
+    // Warm the events cache in the background using pinpoint single-block fetches.
+    // Ponder tells us the exact createdBlock for each event, so we don't need
+    // a range scan at all — just one eth_getLogs call per unique block.
+    // Only runs if the cache is empty.
     (async () => {
       try {
         const existing = await QCache.get(CHAIN_ID, CONTRACT, QUESTION_ID);
-        if (existing.qEvent) return; // already cached
-        await contractsMetaPromise;
-        const sb = metaStartBlock ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
+        if (existing.qEvent) return;
         const currentBlock = await safeCall(() => reality.provider.getBlockNumber(), null);
         if (!currentBlock) return;
-        const { events: qEvs } = await findLogNewQuestion(
-          reality, reality.filters.LogNewQuestion(QUESTION_ID), sb, data.openingTS);
-        if (!qEvs[0]) return;
-        const answers = await queryFilterRobust(
-          reality, reality.filters.LogNewAnswer(null, QUESTION_ID), qEvs[0].blockNumber, currentBlock);
-        await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEvs[0], answers, currentBlock);
+
+        // LogNewQuestion — fetch from its exact block
+        let qEv = null;
+        if (data.createdBlock) {
+          const qEvs = await safeCall(() => reality.queryFilter(
+            reality.filters.LogNewQuestion(QUESTION_ID), data.createdBlock, data.createdBlock), []);
+          qEv = qEvs[0] ?? null;
+        }
+        if (!qEv) return;
+
+        // LogNewAnswer — one query per unique block that contains an answer
+        const uniqueBlocks = [...new Set(data.answerEvents.map(ev => ev.blockNumber).filter(Number.isInteger))];
+        const answerChunks = await Promise.all(uniqueBlocks.map(b =>
+          safeCall(() => reality.queryFilter(
+            reality.filters.LogNewAnswer(null, QUESTION_ID), b, b), [])));
+        const answers = answerChunks.flat()
+          .sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
+
+        await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, answers, currentBlock);
       } catch { /* best-effort — never block the UI */ }
     })();
     if (connEl) {
