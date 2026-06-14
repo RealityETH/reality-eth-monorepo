@@ -86,11 +86,11 @@ test.describe('min_bond enforcement', () => {
     const tx = await txPromise;
     expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth30.toLowerCase());
 
-    const iface = new ethers.utils.Interface(REALITY_ETH_ABI);
+    const iface = new ethers.Interface(REALITY_ETH_ABI);
     const decoded = iface.parseTransaction({ data: tx.data, value: tx.value });
     expect(decoded.name).toBe('submitAnswer');
     expect(decoded.args.question_id).toBe(fixtures.questionId);
-    expect(decoded.args.max_previous.eq(0)).toBe(true);
-    expect(ethers.BigNumber.from(tx.value).eq(fixtures.minBond)).toBe(true);
+    expect(decoded.args.max_previous).toBe(0n);
+    expect(BigInt(tx.value)).toBe(fixtures.minBond);
   });
 });

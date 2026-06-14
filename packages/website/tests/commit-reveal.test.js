@@ -64,7 +64,7 @@ test.describe('commit-reveal', () => {
     await page.waitForFunction(() => window.__capturedTxs.length >= 2, { timeout: 90000 });
     const txs = await page.evaluate(() => window.__capturedTxs);
 
-    const iface = new ethers.utils.Interface(REALITY_ETH_ABI);
+    const iface = new ethers.Interface(REALITY_ETH_ABI);
 
     // --- First tx: submitAnswerCommitment ---
     const commitTx = txs[0].params;
@@ -72,7 +72,7 @@ test.describe('commit-reveal', () => {
     const commitDecoded = iface.parseTransaction({ data: commitTx.data, value: commitTx.value });
     expect(commitDecoded.name).toBe('submitAnswerCommitment');
     expect(commitDecoded.args.question_id).toBe(fixtures.boolQuestionId);
-    expect(ethers.BigNumber.from(commitTx.value).eq(ethers.utils.parseEther('0.002'))).toBe(true);
+    expect(BigInt(commitTx.value)).toBe(ethers.parseEther('0.002'));
 
     // --- Second tx: submitAnswerReveal ---
     const revealTx = txs[1].params;
@@ -81,10 +81,10 @@ test.describe('commit-reveal', () => {
     expect(revealDecoded.name).toBe('submitAnswerReveal');
     expect(revealDecoded.args.question_id).toBe(fixtures.boolQuestionId);
     expect(revealDecoded.args.answer).toBe(YES);
-    expect(revealDecoded.args.bond.eq(ethers.utils.parseEther('0.002'))).toBe(true);
+    expect(revealDecoded.args.bond).toBe(ethers.parseEther('0.002'));
 
     // Cross-check: the committed hash must equal keccak256(answer, nonce)
-    const expectedHash = ethers.utils.solidityKeccak256(
+    const expectedHash = ethers.solidityPackedKeccak256(
       ['uint256', 'uint256'],
       [revealDecoded.args.answer, revealDecoded.args.nonce]
     );
@@ -111,10 +111,10 @@ test.describe('commit-reveal', () => {
     await page.locator('input[name="questionBond"]').fill('0.002');
     await page.locator('button.post-answer-button').click();
 
-    const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+    const provider = new ethers.JsonRpcProvider(ANVIL_URL);
     const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, provider);
 
-    let bestAnswer = ethers.constants.HashZero;
+    let bestAnswer = ethers.ZeroHash;
     const deadline = Date.now() + 90000;
     while (Date.now() < deadline) {
       try {

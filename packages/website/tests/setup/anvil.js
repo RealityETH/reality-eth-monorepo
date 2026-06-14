@@ -43,7 +43,7 @@ export async function stopAnvil() {
 }
 
 async function waitForAnvil(retries = 20, delayMs = 300) {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   for (let i = 0; i < retries; i++) {
     try {
       await provider.getBlockNumber();
@@ -56,24 +56,24 @@ async function waitForAnvil(retries = 20, delayMs = 300) {
 }
 
 export async function snapshot() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   return provider.send('evm_snapshot', []);
 }
 
 export async function revert(snapshotId) {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   await provider.send('evm_revert', [snapshotId]);
 }
 
 export async function mineBlocks(n = 1) {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   for (let i = 0; i < n; i++) {
     await provider.send('evm_mine', []);
   }
 }
 
 export async function increaseTime(seconds) {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   await provider.send('evm_increaseTime', [seconds]);
   await provider.send('evm_mine', []);
 }

@@ -112,11 +112,11 @@ test.describe('bond escalation', () => {
     const tx = await txPromise;
     expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth30.toLowerCase());
 
-    const iface = new ethers.utils.Interface(REALITY_ETH_ABI);
+    const iface = new ethers.Interface(REALITY_ETH_ABI);
     const decoded = iface.parseTransaction({ data: tx.data, value: tx.value });
     expect(decoded.name).toBe('submitAnswer');
     expect(decoded.args.question_id).toBe(fixtures.questionId);
-    expect(decoded.args.max_previous.eq(fixtures.initBond)).toBe(true);
-    expect(ethers.BigNumber.from(tx.value).eq(ethers.utils.parseEther('0.002'))).toBe(true);
+    expect(decoded.args.max_previous).toBe(fixtures.initBond);
+    expect(BigInt(tx.value)).toBe(ethers.parseEther('0.002'));
   });
 });

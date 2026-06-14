@@ -20,8 +20,8 @@ export const TEMPLATE = {
 };
 
 export async function createFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
 
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
@@ -34,18 +34,18 @@ export async function createFixtures() {
   // on stale Anvil instances (same pattern as all other createXxxFixtures functions).
   const questionId = computeQuestionId(
     TEMPLATE.bool, openingTs, question,
-    ethers.constants.AddressZero, timeout, nonce,
+    ethers.ZeroAddress, timeout, nonce,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
 
   if (!alreadyExists) {
     const tx = await reality.askQuestion(
       TEMPLATE.bool, question,
-      ethers.constants.AddressZero, timeout, openingTs, nonce,
-      { value: ethers.utils.parseEther('0.001') }
+      ethers.ZeroAddress, timeout, openingTs, nonce,
+      { value: ethers.parseEther('0.001') }
     );
     await tx.wait();
   }
@@ -62,36 +62,36 @@ export async function createFixtures() {
 // Compute reality.eth v3.0 question ID deterministically (matches contract logic).
 // minBond defaults to 0 (askQuestion); pass a BigNumber for askQuestionWithMinBond.
 function computeQuestionId(templateId, openingTs, question, arbitrator, timeout, nonce, sender, contractAddress, minBond = 0) {
-  const contentHash = ethers.utils.solidityKeccak256(
+  const contentHash = ethers.solidityPackedKeccak256(
     ['uint256', 'uint32', 'string'],
     [templateId, openingTs, question]
   );
-  return ethers.utils.solidityKeccak256(
+  return ethers.solidityPackedKeccak256(
     ['bytes32', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'],
     [contentHash, arbitrator, timeout, minBond, contractAddress, sender, nonce]
   );
 }
 
 export async function createCommitRevealFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
   // nonce=2 avoids collision with createFixtures (nonce=0) and createClaimFixtures (nonce=1)
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Will this test pass?',
-    ethers.constants.AddressZero, 60, 2,
+    ethers.ZeroAddress, 60, 2,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
 
   if (!alreadyExists) {
     const tx = await reality.askQuestion(
       TEMPLATE.bool, 'Will this test pass?',
-      ethers.constants.AddressZero, 60, 0, 2,
-      { value: ethers.utils.parseEther('0.001') }
+      ethers.ZeroAddress, 60, 0, 2,
+      { value: ethers.parseEther('0.001') }
     );
     await tx.wait();
   }
@@ -100,12 +100,12 @@ export async function createCommitRevealFixtures() {
 }
 
 export async function createKlerosFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty = ethers.utils.parseEther('0.001');
-  const bond = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
+  const bond = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
   // Fork block 46600000 has timestamp Jun 9 2026 (~1780967485).  With a 300-day timeout,
   // finalization_ts ≈ Mar 2027, so isFinalized() returns false at test-run time (~Jun 2026)
@@ -121,7 +121,7 @@ export async function createKlerosFixtures() {
   );
 
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
 
   if (!alreadyExists) {
     const tx1 = await reality.askQuestion(
@@ -144,10 +144,10 @@ export async function createKlerosFixtures() {
 
 export async function createAnswerTypeFixtures() {
   const DELIMITER = '␟'; // reality.eth question field separator
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
-  const bounty = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
   // No answer submitted in these fixtures, so finalization_ts stays 0 and
   // isFinalized() (which checks browser clock) returns false regardless of timeout.
   const timeout = 60;
@@ -156,13 +156,13 @@ export async function createAnswerTypeFixtures() {
   async function ensure(templateId, questionText, nonce) {
     const questionId = computeQuestionId(
       templateId, openingTs, questionText,
-      ethers.constants.AddressZero, timeout, nonce,
+      ethers.ZeroAddress, timeout, nonce,
       TEST_ACCOUNT.address, CONTRACTS.realityEth30
     );
     const existing = await reality.questions(questionId);
-    if (ethers.BigNumber.from(existing[0]).eq(0)) {
+    if (BigInt(existing[0]) === 0n) {
       const tx = await reality.askQuestion(
-        templateId, questionText, ethers.constants.AddressZero,
+        templateId, questionText, ethers.ZeroAddress,
         timeout, openingTs, nonce, { value: bounty }
       );
       await tx.wait();
@@ -184,28 +184,28 @@ export async function createAnswerTypeFixtures() {
 }
 
 export async function createClaimFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty = ethers.utils.parseEther('0.001');
-  const bond = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
+  const bond = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
 
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Will this claim test pass?',
-    ethers.constants.AddressZero, 60, 1,
+    ethers.ZeroAddress, 60, 1,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   // Only create if not already on-chain (beforeAll may run twice on worker restart)
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0); // content_hash != 0
+  const alreadyExists = BigInt(existing[0]) !== 0n; // content_hash != 0
 
   if (!alreadyExists) {
     const tx1 = await reality.askQuestion(
       TEMPLATE.bool, 'Will this claim test pass?',
-      ethers.constants.AddressZero, 60, 0, 1,
+      ethers.ZeroAddress, 60, 0, 1,
       { value: bounty }
     );
     await tx1.wait();
@@ -230,29 +230,29 @@ export async function createClaimFixtures() {
 // question with timeout < 2 days would already appear finalized.  We use a 90-day
 // timeout so finalization_ts = fork_ts + 90d ≈ September 2026 > browser June 2026.
 export async function createBondEscalationFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty    = ethers.utils.parseEther('0.001');
-  const initBond  = ethers.utils.parseEther('0.001');
+  const bounty    = ethers.parseEther('0.001');
+  const initBond  = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
   const TIMEOUT_90_DAYS = 7776000; // 90 * 24 * 3600
 
   // nonce=10 — nonces 0-9 on v3.0 are taken by other fixture functions
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Bond escalation test: bool',
-    ethers.constants.AddressZero, TIMEOUT_90_DAYS, 10,
+    ethers.ZeroAddress, TIMEOUT_90_DAYS, 10,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
 
   if (!alreadyExists) {
     const tx1 = await reality.askQuestion(
       TEMPLATE.bool, 'Bond escalation test: bool',
-      ethers.constants.AddressZero, TIMEOUT_90_DAYS, 0, 10,
+      ethers.ZeroAddress, TIMEOUT_90_DAYS, 0, 10,
       { value: bounty }
     );
     await tx1.wait();
@@ -269,11 +269,11 @@ export async function createBondEscalationFixtures() {
 // Both use a 90-day timeout so they appear open from the browser clock (see
 // createBondEscalationFixtures for the full reasoning).
 export async function createAnswerHistoryFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
   const NO  = '0x0000000000000000000000000000000000000000000000000000000000000000';
   const TIMEOUT_90_DAYS = 7776000;
@@ -282,14 +282,14 @@ export async function createAnswerHistoryFixtures() {
   async function ensureQuestion(text, nonce, submits) {
     const questionId = computeQuestionId(
       TEMPLATE.bool, 0, text,
-      ethers.constants.AddressZero, TIMEOUT_90_DAYS, nonce,
+      ethers.ZeroAddress, TIMEOUT_90_DAYS, nonce,
       TEST_ACCOUNT.address, CONTRACTS.realityEth30
     );
     const existing = await reality.questions(questionId);
-    if (!ethers.BigNumber.from(existing[0]).eq(0)) return questionId; // already exists
+    if (BigInt(existing[0]) !== 0n) return questionId; // already exists
 
     await (await reality.askQuestion(
-      TEMPLATE.bool, text, ethers.constants.AddressZero,
+      TEMPLATE.bool, text, ethers.ZeroAddress,
       TIMEOUT_90_DAYS, 0, nonce, { value: bounty }
     )).wait();
     for (const { answer, bond, maxPrev } of submits) {
@@ -302,14 +302,14 @@ export async function createAnswerHistoryFixtures() {
 
   const oneAnswerQuestionId = await ensureQuestion(
     'History test: 1 answer', 11,
-    [{ answer: YES, bond: ethers.utils.parseEther('0.001'), maxPrev: 0 }]
+    [{ answer: YES, bond: ethers.parseEther('0.001'), maxPrev: 0 }]
   );
 
   const twoAnswerQuestionId = await ensureQuestion(
     'History test: 2 answers', 12,
     [
-      { answer: YES, bond: ethers.utils.parseEther('0.001'), maxPrev: 0 },
-      { answer: NO,  bond: ethers.utils.parseEther('0.002'), maxPrev: ethers.utils.parseEther('0.001') },
+      { answer: YES, bond: ethers.parseEther('0.001'), maxPrev: 0 },
+      { answer: NO,  bond: ethers.parseEther('0.002'), maxPrev: ethers.parseEther('0.001') },
     ]
   );
 
@@ -319,11 +319,11 @@ export async function createAnswerHistoryFixtures() {
 // Creates a question whose opening_ts is 30 days in the future from when
 // the fixture runs, so isBeforeOpeningDate() returns true in the browser.
 export async function createUpcomingQuestionFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
   // 30 days from now in the test runner's clock — safely after the browser clock
   // no matter when the suite runs, without hard-coding a specific date.
   const openingTs = Math.floor(Date.now() / 1000) + 30 * 86400;
@@ -331,15 +331,15 @@ export async function createUpcomingQuestionFixtures() {
   // nonce=13 — nonces 0-12 on v3.0 are already taken
   const questionId = computeQuestionId(
     TEMPLATE.bool, openingTs, 'Upcoming test: future opening',
-    ethers.constants.AddressZero, 60, 13,
+    ethers.ZeroAddress, 60, 13,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   const existing = await reality.questions(questionId);
-  if (ethers.BigNumber.from(existing[0]).eq(0)) {
+  if (BigInt(existing[0]) === 0n) {
     await (await reality.askQuestion(
       TEMPLATE.bool, 'Upcoming test: future opening',
-      ethers.constants.AddressZero, 60, openingTs, 13,
+      ethers.ZeroAddress, 60, openingTs, 13,
       { value: bounty }
     )).wait();
   }
@@ -351,26 +351,26 @@ export async function createUpcomingQuestionFixtures() {
 // Used to test that the dapp pre-fills the bond field with min_bond and that
 // keyup validation enforces the floor even with no current best bond.
 export async function createMinBondFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty  = ethers.utils.parseEther('0.001');
-  const minBond = ethers.utils.parseEther('0.002');
+  const bounty  = ethers.parseEther('0.001');
+  const minBond = ethers.parseEther('0.002');
   const TIMEOUT_90_DAYS = 7776000; // 90 * 24 * 3600
 
   // nonce=14 — nonces 0-13 on v3.0 are already taken
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Min bond test: bool',
-    ethers.constants.AddressZero, TIMEOUT_90_DAYS, 14,
+    ethers.ZeroAddress, TIMEOUT_90_DAYS, 14,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30, minBond
   );
 
   const existing = await reality.questions(questionId);
-  if (ethers.BigNumber.from(existing[0]).eq(0)) {
+  if (BigInt(existing[0]) === 0n) {
     await (await reality.askQuestionWithMinBond(
       TEMPLATE.bool, 'Min bond test: bool',
-      ethers.constants.AddressZero, TIMEOUT_90_DAYS, 0, 14, minBond,
+      ethers.ZeroAddress, TIMEOUT_90_DAYS, 0, 14, minBond,
       { value: bounty }
     )).wait();
   }
@@ -383,29 +383,29 @@ export async function createMinBondFixtures() {
 // timestamp (~June 9 2026) ensures isFinalized() returns true against the
 // browser clock (~June 11 2026) immediately on page load.
 export async function createReopenFixtures() {
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
   const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
 
-  const bounty = ethers.utils.parseEther('0.001');
-  const bond   = ethers.utils.parseEther('0.001');
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
   // bytes32(uint(-2)) — the "Answered Too Soon" sentinel value
   const ANSWERED_TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
   // nonce=15 — nonces 0-14 on v3.0 are already taken
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Reopen test: bool',
-    ethers.constants.AddressZero, 60, 15,
+    ethers.ZeroAddress, 60, 15,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
   const existing = await reality.questions(questionId);
-  const alreadyExists = !ethers.BigNumber.from(existing[0]).eq(0);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
 
   if (!alreadyExists) {
     await (await reality.askQuestion(
       TEMPLATE.bool, 'Reopen test: bool',
-      ethers.constants.AddressZero, 60, 0, 15,
+      ethers.ZeroAddress, 60, 0, 15,
       { value: bounty }
     )).wait();
 
@@ -422,11 +422,11 @@ export async function createReopenFixtures() {
 
 // v2.1 question ID uses a shorter packed hash than v3.0 (no min_bond or contract address).
 function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeout, nonce, sender) {
-  const contentHash = ethers.utils.solidityKeccak256(
+  const contentHash = ethers.solidityPackedKeccak256(
     ['uint256', 'uint32', 'string'],
     [templateId, openingTs, question]
   );
-  return ethers.utils.solidityKeccak256(
+  return ethers.solidityPackedKeccak256(
     ['bytes32', 'address', 'uint32', 'address', 'uint256'],
     [contentHash, arbitrator, timeout, sender, nonce]
   );
@@ -434,9 +434,9 @@ function computeQuestionIdV21(templateId, openingTs, question, arbitrator, timeo
 
 export async function createVisibilityFixtures() {
   const DELIMITER = '␟'; // U+241F
-  const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
-  const wallet = new ethers.Wallet(TEST_ACCOUNT.privateKey, provider);
-  const bounty = ethers.utils.parseEther('0.001');
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const bounty = ethers.parseEther('0.001');
   const timeout = 60;
   const openingTs = 0;
 
@@ -454,7 +454,7 @@ export async function createVisibilityFixtures() {
       V21_ARBITRATOR, timeout, nonce, TEST_ACCOUNT.address
     );
     const existing = await realityV21.questions(questionId);
-    if (ethers.BigNumber.from(existing[0]).eq(0)) {
+    if (BigInt(existing[0]) === 0n) {
       const tx = await realityV21.askQuestion(
         templateId, questionText, V21_ARBITRATOR,
         timeout, openingTs, nonce, { value: bounty }
@@ -484,13 +484,13 @@ export async function createVisibilityFixtures() {
     e => e.args.question_text === NO_INVALID_TEMPLATE_CONTENT
   );
   if (existing) {
-    noInvalidTemplateId = existing.args.template_id.toNumber();
+    noInvalidTemplateId = Number(existing.args.template_id);
   } else {
     const tx = await realityV30.createTemplate(NO_INVALID_TEMPLATE_CONTENT);
     const receipt = await tx.wait();
-    const logTopic = realityV30.interface.getEventTopic('LogNewTemplate');
+    const logTopic = realityV30.interface.getEvent('LogNewTemplate').topicHash;
     const log = receipt.logs.find(l => l.topics[0] === logTopic);
-    noInvalidTemplateId = realityV30.interface.parseLog(log).args.template_id.toNumber();
+    noInvalidTemplateId = Number(realityV30.interface.parseLog(log).args.template_id);
   }
 
   // Question text for the 3-placeholder template: title ␟ category ␟ lang
@@ -499,13 +499,13 @@ export async function createVisibilityFixtures() {
   const noInvalidBoolId = await (async () => {
     const questionId = computeQuestionId(
       noInvalidTemplateId, openingTs, noInvalidQuestionText,
-      ethers.constants.AddressZero, timeout, 9,
+      ethers.ZeroAddress, timeout, 9,
       TEST_ACCOUNT.address, CONTRACTS.realityEth30
     );
     const existingQ = await realityV30.questions(questionId);
-    if (ethers.BigNumber.from(existingQ[0]).eq(0)) {
+    if (BigInt(existingQ[0]) === 0n) {
       const tx = await realityV30.askQuestion(
-        noInvalidTemplateId, noInvalidQuestionText, ethers.constants.AddressZero,
+        noInvalidTemplateId, noInvalidQuestionText, ethers.ZeroAddress,
         timeout, openingTs, 9, { value: bounty }
       );
       await tx.wait();

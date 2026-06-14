@@ -58,12 +58,12 @@ test.describe('submit answer', () => {
 
     expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth30.toLowerCase());
 
-    const iface = new ethers.utils.Interface(REALITY_ETH_ABI);
+    const iface = new ethers.Interface(REALITY_ETH_ABI);
     const decoded = iface.parseTransaction({ data: tx.data, value: tx.value });
     expect(decoded.name).toBe('submitAnswer');
     expect(decoded.args.question_id).toBe(fixtures.boolQuestionId);
     expect(decoded.args.answer).toBe('0x0000000000000000000000000000000000000000000000000000000000000001');
-    expect(ethers.BigNumber.from(tx.value).eq(ethers.utils.parseEther('0.002'))).toBe(true);
+    expect(BigInt(tx.value)).toBe(ethers.parseEther('0.002'));
   });
 
   test('submitted answer appears on chain', async ({ page }) => {
@@ -85,10 +85,10 @@ test.describe('submit answer', () => {
     await page.locator('button.post-answer-button').click();
     await txHashPromise;
 
-    const provider = new ethers.providers.JsonRpcProvider(ANVIL_URL);
+    const provider = new ethers.JsonRpcProvider(ANVIL_URL);
     const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, provider);
     const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
-    let bestAnswer = ethers.constants.HashZero;
+    let bestAnswer = ethers.ZeroHash;
     const deadline = Date.now() + 30000;
     while (Date.now() < deadline) {
       try {

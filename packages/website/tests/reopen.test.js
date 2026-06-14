@@ -65,13 +65,13 @@ test.describe('reopen flow', () => {
 
     expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth30.toLowerCase());
 
-    const iface = new ethers.utils.Interface(REALITY_ETH_ABI);
+    const iface = new ethers.Interface(REALITY_ETH_ABI);
     const decoded = iface.parseTransaction({ data: tx.data, value: tx.value });
     expect(decoded.name).toBe('reopenQuestion');
     expect(decoded.args.reopens_question_id).toBe(fixtures.questionId);
-    expect(decoded.args.timeout).toBe(60);
-    expect(decoded.args.min_bond.eq(0)).toBe(true);
-    expect(!tx.value || ethers.BigNumber.from(tx.value).eq(0)).toBe(true);
+    expect(decoded.args.timeout).toBe(60n);
+    expect(decoded.args.min_bond).toBe(0n);
+    expect(!tx.value || BigInt(tx.value) === 0n).toBe(true);
   });
 
   // ── Post-reopen state ──────────────────────────────────────────────────────
