@@ -368,6 +368,12 @@
   .invalid-switch-container a, .too-soon-switch-container a { color: var(--text-dim); text-decoration: none; }
   .invalid-switch-container a:hover, .too-soon-switch-container a:hover { color: var(--red); }
   .invalid-switch-container a.active, .too-soon-switch-container a.active { color: var(--amber); font-weight: 600; }
+  .multi-option input:disabled + * { opacity: 0.4; }
+  .multi-option:has(input:disabled) { opacity: 0.4; cursor: not-allowed; }
+  input.special-selected {
+    color: var(--text-dim); border-color: var(--amber);
+    background: var(--amber-subtle); cursor: not-allowed;
+  }
   .input-container--bond { position: relative; }
   .bond-input-field {
     width: 100%; padding: 7px 10px; background: var(--bg);

@@ -760,11 +760,11 @@ function buildAnswerForm(data, walletAddr) {
     });
     const inv = el('div', 'invalid-switch-container');
     if (!hasInvalid) inv.style.display = 'none';
-    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}">Mark as Invalid</a>`;
+    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
     inputWrap.appendChild(inv);
     const ts = el('div', 'too-soon-switch-container');
     if (!hasTooSoon) ts.style.display = 'none';
-    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}">Mark as Answered Too Soon</a>`;
+    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
     inputWrap.appendChild(ts);
 
   } else if (isUint) {
@@ -774,11 +774,11 @@ function buildAnswerForm(data, walletAddr) {
     inputWrap.appendChild(input);
     const inv = el('div', 'invalid-switch-container');
     if (!hasInvalid) inv.style.display = 'none';
-    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}">Mark as Invalid</a>`;
+    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
     inputWrap.appendChild(inv);
     const ts = el('div', 'too-soon-switch-container');
     if (!hasTooSoon) ts.style.display = 'none';
-    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}">Mark as Answered Too Soon</a>`;
+    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
     inputWrap.appendChild(ts);
 
   } else if (isDatetime) {
@@ -786,6 +786,14 @@ function buildAnswerForm(data, walletAddr) {
     input.type = 'date'; input.className = 'datetime-input-date';
     input.name = 'input-answer';
     inputWrap.appendChild(input);
+    const inv = el('div', 'invalid-switch-container');
+    if (!hasInvalid) inv.style.display = 'none';
+    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
+    inputWrap.appendChild(inv);
+    const ts = el('div', 'too-soon-switch-container');
+    if (!hasTooSoon) ts.style.display = 'none';
+    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
+    inputWrap.appendChild(ts);
   }
 
   // ── Bond row ──
@@ -824,9 +832,55 @@ function buildAnswerForm(data, walletAddr) {
     const link = e.target.closest('[data-special]');
     if (!link) return;
     e.preventDefault();
+
+    const alreadyActive = link.classList.contains('active');
+
+    // Reset all: restore link labels, clear stored answer
+    form.querySelectorAll('[data-special]').forEach(a => {
+      a.classList.remove('active');
+      if (a.dataset.label) a.textContent = a.dataset.label;
+    });
+    delete form.dataset.specialAnswer;
+
+    // Restore frozen text/date input if any
+    const answerInput = form.querySelector(
+      'input[name="input-answer"]:not([type="checkbox"]), .datetime-input-date'
+    );
+    if (answerInput) {
+      answerInput.readOnly = false;
+      if (answerInput.dataset.specialSaved !== undefined) {
+        answerInput.value       = answerInput.dataset.specialSaved;
+        answerInput.placeholder = answerInput.dataset.specialSavedPlaceholder || '';
+        delete answerInput.dataset.specialSaved;
+        delete answerInput.dataset.specialSavedPlaceholder;
+      }
+      answerInput.classList.remove('special-selected');
+    }
+
+    // Re-enable checkboxes
+    form.querySelectorAll('input[name="input-answer"][type="checkbox"]')
+        .forEach(cb => { cb.disabled = false; });
+
+    if (alreadyActive) return; // toggled off — done
+
+    // Activate this link
     form.dataset.specialAnswer = link.dataset.special;
-    form.querySelectorAll('[data-special]').forEach(a => a.classList.remove('active'));
     link.classList.add('active');
+    if (link.dataset.activeLabel) link.textContent = link.dataset.activeLabel;
+
+    // Freeze text/date input
+    if (answerInput) {
+      answerInput.dataset.specialSaved            = answerInput.value;
+      answerInput.dataset.specialSavedPlaceholder = answerInput.placeholder;
+      answerInput.value       = '';
+      answerInput.readOnly    = true;
+      answerInput.placeholder = link.dataset.special === INVALID ? 'Invalid' : 'Answered too soon';
+      answerInput.classList.add('special-selected');
+    }
+
+    // Disable checkboxes
+    form.querySelectorAll('input[name="input-answer"][type="checkbox"]')
+        .forEach(cb => { cb.disabled = true; });
   });
 
   // ── Submit handler ──
