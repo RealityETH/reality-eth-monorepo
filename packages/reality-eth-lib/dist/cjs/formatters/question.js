@@ -102,7 +102,7 @@ function delimiter() {
     return '␟';
 }
 function contentHash(template_id, opening_ts, content) {
-    return ethers_1.ethers.utils.solidityKeccak256(['uint256', 'uint32', 'string'], [template_id, opening_ts, content]);
+    return ethers_1.ethers.solidityPackedKeccak256(['uint256', 'uint32', 'string'], [template_id, opening_ts, content]);
 }
 function questionID(template_id, question, arbitrator, timeout, opening_ts, sender, nonce, min_bond, contract, version) {
     if (typeof version === 'undefined') {
@@ -123,11 +123,11 @@ function questionID(template_id, question, arbitrator, timeout, opening_ts, send
     }
     const content_hash = contentHash(template_id, opening_ts, question);
     if (vernum < 3) {
-        return ethers_1.ethers.utils.solidityKeccak256(['uint256', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce]);
+        return ethers_1.ethers.solidityPackedKeccak256(['uint256', 'address', 'uint32', 'address', 'uint256'], [content_hash, arbitrator, timeout, sender, nonce]);
     }
     else {
-        const contractAddr = ethers_1.ethers.utils.hexZeroPad(ethers_1.ethers.BigNumber.from(contract).toHexString(), 20);
-        return ethers_1.ethers.utils.solidityKeccak256(['uint256', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, contractAddr, sender, nonce]);
+        const contractAddr = ('0x' + BigInt(contract).toString(16).padStart(40, '0'));
+        return ethers_1.ethers.solidityPackedKeccak256(['uint256', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'], [content_hash, arbitrator, timeout, min_bond, contractAddr, sender, nonce]);
     }
 }
 function minNumber(qjson) {
@@ -175,7 +175,7 @@ function answerToBytes32(answer, qjson) {
         ans_hex = (bi < 0n ? bi + (1n << 256n) : bi).toString(16);
     }
     else if (decimals > 0) {
-        ans_hex = ethers_1.ethers.utils.parseUnits(String(answer), decimals).toHexString().replace(/^0x/, '');
+        ans_hex = ethers_1.ethers.parseUnits(String(answer), decimals).toString(16);
     }
     else {
         ans_hex = BigInt(answer).toString(16);
@@ -359,8 +359,8 @@ function encodeCustomText(params) {
     return items.join(delimiter());
 }
 function guessTemplateConfig(template) {
-    const placeholder = ethers_1.ethers.utils.solidityKeccak256(['string'], [template]);
-    const arr_placeholder = ethers_1.ethers.utils.solidityKeccak256(['string'], [template + '_arr']);
+    const placeholder = ethers_1.ethers.solidityPackedKeccak256(['string'], [template]);
+    const arr_placeholder = ethers_1.ethers.solidityPackedKeccak256(['string'], [template + '_arr']);
     const pl_arr = new Array(TEMPLATE_MAX_PLACEHOLDERS).fill(placeholder);
     let interpolated = vsprintf(template, pl_arr);
     interpolated = interpolated.replaceAll('[' + placeholder + ']', '"' + arr_placeholder + '"');
@@ -525,10 +525,10 @@ function getAnswerString(question_json, answer) {
 }
 function commitmentID(question_id, answer_hash, bond) {
     const bond_hex = (typeof bond === 'string') ? bond : ('0x' + bond.toString(16));
-    return ethers_1.ethers.utils.solidityKeccak256(['uint256', 'uint256', 'uint256'], [question_id, answer_hash, bond_hex]);
+    return ethers_1.ethers.solidityPackedKeccak256(['uint256', 'uint256', 'uint256'], [question_id, answer_hash, bond_hex]);
 }
 function answerHash(answer_plaintext, nonce) {
-    return ethers_1.ethers.utils.solidityKeccak256(['uint256', 'uint256'], [answer_plaintext, nonce]);
+    return ethers_1.ethers.solidityPackedKeccak256(['uint256', 'uint256'], [answer_plaintext, nonce]);
 }
 function shortDisplayQuestionID(question_id) {
     const bits = question_id.split('-');

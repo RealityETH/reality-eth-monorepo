@@ -108,7 +108,7 @@ export function delimiter(): string {
 }
 
 export function contentHash(template_id: number | string, opening_ts: number | string, content: string): string {
-    return ethers.utils.solidityKeccak256(
+    return ethers.solidityPackedKeccak256(
         ['uint256', 'uint32', 'string'],
         [template_id, opening_ts, content]
     );
@@ -145,13 +145,13 @@ export function questionID(
     const content_hash = contentHash(template_id, opening_ts, question);
 
     if (vernum < 3) {
-        return ethers.utils.solidityKeccak256(
+        return ethers.solidityPackedKeccak256(
             ['uint256', 'address', 'uint32', 'address', 'uint256'],
             [content_hash, arbitrator, timeout, sender, nonce]
         );
     } else {
-        const contractAddr = ethers.utils.hexZeroPad(ethers.BigNumber.from(contract!).toHexString(), 20);
-        return ethers.utils.solidityKeccak256(
+        const contractAddr = ('0x' + BigInt(contract!).toString(16).padStart(40, '0'));
+        return ethers.solidityPackedKeccak256(
             ['uint256', 'address', 'uint32', 'uint256', 'address', 'address', 'uint256'],
             [content_hash, arbitrator, timeout, min_bond, contractAddr, sender, nonce]
         );
@@ -203,7 +203,7 @@ export function answerToBytes32(answer: any, qjson: QuestionJSON): string {
         const bi = BigInt(String(answer));
         ans_hex = (bi < 0n ? bi + (1n << 256n) : bi).toString(16);
     } else if (decimals > 0) {
-        ans_hex = ethers.utils.parseUnits(String(answer), decimals).toHexString().replace(/^0x/, '');
+        ans_hex = ethers.parseUnits(String(answer), decimals).toString(16);
     } else {
         ans_hex = BigInt(answer).toString(16);
     }
@@ -388,8 +388,8 @@ export function encodeCustomText(params: Record<string, any>): string {
 }
 
 export function guessTemplateConfig(template: string): TemplateConfig {
-    const placeholder = ethers.utils.solidityKeccak256(['string'], [template]);
-    const arr_placeholder = ethers.utils.solidityKeccak256(['string'], [template + '_arr']);
+    const placeholder = ethers.solidityPackedKeccak256(['string'], [template]);
+    const arr_placeholder = ethers.solidityPackedKeccak256(['string'], [template + '_arr']);
     const pl_arr = new Array(TEMPLATE_MAX_PLACEHOLDERS).fill(placeholder);
     let interpolated = vsprintf(template, pl_arr);
     interpolated = interpolated.replaceAll('[' + placeholder + ']', '"' + arr_placeholder + '"');
@@ -554,14 +554,14 @@ export function getAnswerString(question_json: QuestionJSON, answer: string | nu
 
 export function commitmentID(question_id: string, answer_hash: string, bond: string | { toString(base: number): string }): string {
     const bond_hex = (typeof bond === 'string') ? bond : ('0x' + bond.toString(16));
-    return ethers.utils.solidityKeccak256(
+    return ethers.solidityPackedKeccak256(
         ['uint256', 'uint256', 'uint256'],
         [question_id, answer_hash, bond_hex]
     );
 }
 
 export function answerHash(answer_plaintext: string, nonce: string): string {
-    return ethers.utils.solidityKeccak256(
+    return ethers.solidityPackedKeccak256(
         ['uint256', 'uint256'],
         [answer_plaintext, nonce]
     );
