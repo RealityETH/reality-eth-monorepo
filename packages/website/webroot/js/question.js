@@ -1570,7 +1570,7 @@ function buildDetailsCard(data, chainId) {
   if (data.minBond?.gt(0)) row('Min bond', `${esc(formatEth(data.minBond))} ${esc(token)}`);
   if (data.bond?.gt(0))    row('Current bond', `${esc(formatEth(data.bond))} ${esc(token)}`);
   row('Arbitrator', addrHtml(data.arbitrator));
-  row('Contract', addrHtml(CONTRACT));
+  row('Contract', `<a href="contract.html#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
   row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
 
   const card = el('div', 'card');
