@@ -814,6 +814,11 @@ function buildAnswerForm(data, walletAddr) {
   bondWrap.appendChild(minEl);
   form.appendChild(bondWrap);
 
+  // ── Submit button ──
+  const btn = el('button', 'post-answer-button btn-post', 'Post answer');
+  btn.type = 'button';
+  form.appendChild(btn);
+
   // ── Commit-reveal toggle ──
   const crLabel = el('label', 'cr-toggle');
   const crCb    = document.createElement('input');
@@ -821,11 +826,6 @@ function buildAnswerForm(data, walletAddr) {
   crLabel.appendChild(crCb);
   crLabel.appendChild(document.createTextNode(' Use commit-reveal'));
   form.appendChild(crLabel);
-
-  // ── Submit button ──
-  const btn = el('button', 'post-answer-button btn-post', 'Post answer');
-  btn.type = 'button';
-  form.appendChild(btn);
 
   crCb.addEventListener('change', () => {
     btn.textContent = crCb.checked ? 'Commit then reveal' : 'Post answer';
