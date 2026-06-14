@@ -258,7 +258,8 @@
   .dot-other { background: var(--accent-subtle);color: var(--accent);   border: 1.5px solid rgba(88,166,255,0.3); }
 
   .bond-main { grid-column: 2; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  .bond-answer-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .bond-answer-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 0; flex-wrap: wrap; overflow-wrap: break-word; word-break: break-all; min-width: 0; }
+  .bond-answer-label.hex { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; }
   .bond-answer-label.yes   { color: var(--green); }
   .bond-answer-label.no    { color: var(--red); }
   .bond-answer-label.inv   { color: var(--text-muted); }
@@ -283,21 +284,24 @@
   .bar-inv   { background: var(--text-dim); }
   .bar-other { background: var(--accent); }
 
-  /* ── Status card ── */
-  .status-answer {
-    display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+  /* ── Current answer banner (col-main) ── */
+  .answer-banner-value {
+    font-size: 28px; font-weight: 700; letter-spacing: 0.01em;
+    padding: 12px 20px; border-radius: var(--radius);
+    display: block; word-break: break-all; overflow-wrap: break-word;
+    margin-bottom: 10px;
   }
-  .status-answer-label { font-size: 11px; color: var(--text-dim); margin-bottom: 5px; }
-  .answer-pill-large {
-    padding: 6px 20px; border-radius: var(--radius);
-    font-size: 20px; font-weight: 700; letter-spacing: 0.01em; display: inline-block;
+  .answer-banner-value.hex {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 15px; letter-spacing: 0;
   }
-  .answer-yes-lg { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
-  .answer-no-lg  { background: var(--red-subtle);   color: var(--red);   border: 1px solid rgba(248,81,73,0.3); }
-  .answer-inv-lg { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
+  .answer-banner-yes { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .answer-banner-no  { background: var(--red-subtle);   color: var(--red);   border: 1px solid rgba(248,81,73,0.3); }
+  .answer-banner-inv { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
+  .answer-banner-meta { font-size: 13px; color: var(--text-muted); }
+  .answer-banner-meta strong { color: var(--text); }
 
-  .status-bond-label { font-size: 11px; color: var(--text-dim); text-align: right; margin-bottom: 2px; }
-  .status-bond-val   { font-size: 17px; font-weight: 700; color: var(--text); text-align: right; }
+  /* ── Status card (sidebar — timer + stats only) ── */
 
   .timer-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .timer-label { font-size: 12px; color: var(--text-dim); }
@@ -574,6 +578,9 @@
 
     <!-- ── Left column ── -->
     <div class="col-main">
+
+      <!-- Current answer banner — populated by renderStatusCard when answers exist -->
+      <div id="answer-banner" class="card" style="display:none"></div>
 
       <!-- Answer form — replaced by question.js with the type-specific form -->
       <div id="answer-form-container" class="card">

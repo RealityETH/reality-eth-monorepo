@@ -1191,7 +1191,8 @@ function renderHistory(data) {
 
     // Main: label + submeta
     const main      = el('div', 'bond-main');
-    const labelEl   = el('div', `bond-answer-label ${color} current-answer`);
+    const isHex = /^0x[0-9a-f]{20,}$/i.test(label);
+    const labelEl   = el('div', `bond-answer-label ${color} current-answer${isHex ? ' hex' : ''}`);
     labelEl.appendChild(document.createTextNode(label));
     if (tag) labelEl.appendChild(el('span', `bond-tag tag-${tag}`, tag));
     main.appendChild(labelEl);
@@ -1443,7 +1444,8 @@ async function renderArbitrationSection(data, walletAddr) {
 }
 
 function renderStatusCard(data) {
-  const card = qPage.querySelector('#status-card');
+  const card   = qPage.querySelector('#status-card');
+  const banner = qPage.querySelector('#answer-banner');
   if (!card) return;
 
   const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator } = data;
@@ -1453,28 +1455,23 @@ function renderStatusCard(data) {
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  let html = '<div class="card-title">Current status</div>';
-
-  // Answer pill + top bond
-  if (n > 0) {
-    const latest   = answerEvents[n - 1];
-    const label    = bytes32ToLabel(latest.args.answer, qjson) || '?';
-    const color    = answerColorClass(latest.args.answer, qjson);
-    const pillCls  = color === 'yes' ? 'answer-yes-lg' : color === 'no' ? 'answer-no-lg' : 'answer-inv-lg';
-    const topBond  = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
-    const bondStr  = `${formatEth(topBond)} ${token}`;
-    html += `
-      <div class="status-answer">
-        <div>
-          <div class="status-answer-label">Best answer</div>
-          <span class="answer-pill-large ${pillCls}">${esc(label)}</span>
-        </div>
-        <div>
-          <div class="status-bond-label">Top bond</div>
-          <div class="status-bond-val">${esc(bondStr)}</div>
-        </div>
-      </div>`;
+  // Current answer banner in col-main
+  if (banner && n > 0) {
+    const latest  = answerEvents[n - 1];
+    const label   = bytes32ToLabel(latest.args.answer, qjson) || '?';
+    const color   = answerColorClass(latest.args.answer, qjson);
+    const bgCls   = color === 'yes' ? 'answer-banner-yes' : color === 'no' ? 'answer-banner-no' : 'answer-banner-inv';
+    const isHex   = /^0x[0-9a-f]{20,}$/i.test(label);
+    const topBond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
+    const bondStr = `${formatEth(topBond)} ${token}`;
+    banner.innerHTML = `
+      <div class="card-title">${finalized ? 'Final answer' : 'Current answer'}</div>
+      <span class="answer-banner-value ${bgCls}${isHex ? ' hex' : ''}">${esc(label)}</span>
+      <div class="answer-banner-meta">Top bond: <strong>${esc(bondStr)}</strong></div>`;
+    banner.style.display = '';
   }
+
+  let html = '<div class="card-title">Status</div>';
 
   // Timer
   const now = Math.floor(Date.now() / 1000);
