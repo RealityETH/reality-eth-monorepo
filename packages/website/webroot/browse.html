@@ -1254,7 +1254,9 @@
     }
 
     // Sort
-    document.getElementById('sort-select').addEventListener('change', function () {
+    const sortEl = document.getElementById('sort-select');
+    sortOpt = sortEl.value;
+    sortEl.addEventListener('change', function () {
       sortOpt = this.value;
       fetchQuestions(true);
     });
