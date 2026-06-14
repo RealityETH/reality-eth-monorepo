@@ -364,21 +364,7 @@ function adaptPonderData(ponderData, BN0) {
 
 // ── Template parsing ──────────────────────────────────────────────────────────
 function populateTemplate(templateStr, questionStr) {
-  const DELIM = '␟';
-  const parts = questionStr ? questionStr.split(DELIM) : [];
-  let idx = 0;
-  const interpolated = templateStr.replace(/%s/g, () => parts[idx++] || '');
-  try {
-    const j = JSON.parse(interpolated);
-    if (typeof j.outcomes === 'string') {
-      try { j.outcomes = JSON.parse('[' + j.outcomes + ']'); } catch {}
-    }
-    return j;
-  } catch {
-    // Template has invalid JSON (e.g. unquoted key). Salvage type via regex; title = first ␟-delimited field.
-    const typeMatch = /"type"\s*:\s*"([^"]+)"/.exec(interpolated);
-    return { type: typeMatch?.[1] ?? 'bool', title: parts[0] || questionStr || '' };
-  }
+  return RealityLib.populatedJSONForTemplate(templateStr, questionStr);
 }
 
 // ── State detection ───────────────────────────────────────────────────────────
@@ -396,58 +382,22 @@ function answerToBytes32(raw, qjson) {
   if (norm === TOO_SOON || norm === TOO_SOON.toLowerCase()) return TOO_SOON;
 
   const type = qjson?.type || 'bool';
-  if (type === 'bool' || type === 'single-select') {
-    return ethers.utils.hexZeroPad(ethers.BigNumber.from(raw).toHexString(), 32);
+  if (type === 'datetime') {
+    // UI passes a date string; convert to unix timestamp before encoding.
+    const ts = Math.floor(new Date(raw).getTime() / 1000);
+    return '0x' + BigInt(ts).toString(16).padStart(64, '0');
   }
   if (type === 'multiple-select') {
-    return ethers.utils.hexZeroPad(ethers.BigNumber.from(raw).toHexString(), 32);
+    // UI passes a numeric bitmask, not boolean[]; encode directly.
+    return '0x' + BigInt(raw).toString(16).padStart(64, '0');
   }
-  if (type === 'uint' || type === 'int') {
-    const decimals = parseInt(qjson.decimals) || 0;
-    if (decimals > 0) {
-      const scaled = ethers.utils.parseUnits(String(raw), decimals);
-      return ethers.utils.hexZeroPad(scaled.toHexString(), 32);
-    }
-    return ethers.utils.hexZeroPad(ethers.BigNumber.from(raw).toHexString(), 32);
-  }
-  if (type === 'datetime') {
-    const ts = Math.floor(new Date(raw).getTime() / 1000);
-    return ethers.utils.hexZeroPad(ethers.BigNumber.from(ts).toHexString(), 32);
-  }
-  return ZERO_HASH;
+  return RealityLib.answerToBytes32(raw, qjson);
 }
 
 function bytes32ToLabel(bytes32, qjson) {
   if (bytes32 === null || bytes32 === undefined || bytes32 === '') return null;
-  const lo = bytes32.toLowerCase();
-  if (lo === INVALID.toLowerCase()) return 'Invalid';
-  if (lo === TOO_SOON.toLowerCase()) return 'Answered too soon';
-  const type = qjson?.type || 'bool';
-  if (type === 'bool') {
-    const n = ethers.BigNumber.from(bytes32);
-    if (n.eq(1)) return 'Yes';
-    if (n.eq(0)) return 'No';
-    return null;
-  }
-  if (type === 'single-select') {
-    const idx = ethers.BigNumber.from(bytes32).toNumber();
-    return (qjson.outcomes || [])[idx] || String(idx);
-  }
-  if (type === 'multiple-select') {
-    const mask = ethers.BigNumber.from(bytes32).toNumber();
-    const outcomes = qjson.outcomes || [];
-    return outcomes.filter((_, i) => mask & (1 << i)).join(' / ') || String(mask);
-  }
-  if (type === 'uint' || type === 'int') {
-    const decimals = parseInt(qjson.decimals) || 0;
-    if (decimals > 0) return ethers.utils.formatUnits(bytes32, decimals);
-    return ethers.BigNumber.from(bytes32).toString();
-  }
-  if (type === 'datetime') {
-    const ts = ethers.BigNumber.from(bytes32).toNumber();
-    return new Date(ts * 1000).toISOString().split('T')[0];
-  }
-  return bytes32;
+  const label = RealityLib.getAnswerString(qjson, bytes32);
+  return label === '' ? null : label;
 }
 
 function answerColorClass(bytes32, qjson) {
