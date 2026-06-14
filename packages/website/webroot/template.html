@@ -1126,9 +1126,18 @@ function highlightPlaceholders(text) {
   return div;
 }
 
+const BUILTIN_TEMPLATES = {
+  0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
+  1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}',
+  2: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+  3: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+  4: '{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}',
+};
+
 function renderTemplateView(t) {
+  const rawText = t.questionText || BUILTIN_TEMPLATES[t.templateId] || '{}';
   let tmpl = {};
-  try { tmpl = JSON.parse(t.questionText || '{}'); } catch {}
+  try { tmpl = JSON.parse(rawText); } catch {}
 
   document.getElementById('header-title').textContent = `Template #${t.templateId}`;
   document.title = `reality.eth — Template #${t.templateId}`;
@@ -1180,15 +1189,18 @@ function renderTemplateView(t) {
   document.getElementById('view-creator').textContent = t.user;
   document.getElementById('view-contract').textContent =
     `${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`} · ${t.contract.slice(0,10)}…`;
-  document.getElementById('view-txhash').textContent = t.createdTxHash.slice(0, 14) + '…';
+  document.getElementById('view-txhash').textContent =
+    t.createdTxHash ? t.createdTxHash.slice(0, 14) + '…' : '(built-in)';
 
-  document.getElementById('view-json').textContent = JSON.stringify(tmpl, null, 2);
+  document.getElementById('view-json').textContent = rawText;
 
   document.getElementById('view-browse-link').href =
     `browse.html#!/network/${t.chainId}/template/${t.templateId}`;
 
   document.getElementById('clone-btn').onclick = () => {
-    window.location.hash = '!/raw/' + b64urlEncode(JSON.stringify(tmpl, null, 2));
+    let cloneJson;
+    try { cloneJson = JSON.stringify(JSON.parse(rawText), null, 2); } catch { cloneJson = rawText; }
+    window.location.hash = '!/raw/' + b64urlEncode(cloneJson);
   };
 
   document.getElementById('view-loading').style.display = 'none';

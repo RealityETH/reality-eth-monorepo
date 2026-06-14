@@ -489,6 +489,32 @@
   .meta-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 11px; }
   .meta-val a:hover { text-decoration: underline; }
   .meta-val.mono { font-family: monospace; font-size: 11px; }
+
+  /* ── Raw data disclosure ── */
+  .raw-data-section {
+    margin-top: 28px; border-top: 1px solid var(--border-subtle); padding-top: 16px;
+  }
+  .raw-data-toggle {
+    font-size: 12px; color: var(--text-dim); cursor: pointer;
+    user-select: none; list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  .raw-data-toggle::-webkit-details-marker { display: none; }
+  .raw-data-toggle::before {
+    content: '▶'; font-size: 9px; transition: transform 0.15s; display: inline-block;
+  }
+  details[open] .raw-data-toggle::before { transform: rotate(90deg); }
+  .raw-data-toggle:hover { color: var(--text-muted); }
+  .raw-data-body {
+    margin-top: 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .raw-row { display: flex; flex-direction: column; gap: 4px; }
+  .raw-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .raw-value {
+    font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;
+    color: var(--text-muted); background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: 4px; padding: 8px 10px; word-break: break-all; white-space: pre-wrap;
+    max-height: 160px; overflow-y: auto;
+  }
 </style>
 </head>
 <body>
@@ -596,6 +622,11 @@
 
     </div>
   </div>
+
+  <details id="raw-data-section" class="raw-data-section" style="display:none">
+    <summary class="raw-data-toggle">Raw question data</summary>
+    <div class="raw-data-body" id="raw-data-body"></div>
+  </details>
 
 </div>
 

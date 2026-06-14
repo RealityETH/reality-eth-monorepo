@@ -1936,6 +1936,33 @@ async function main() {
   const sideCol = qPage.querySelector('.col-side');
   if (sideCol) sideCol.appendChild(buildDetailsCard(data, CHAIN_ID));
 
+  // 7b. Raw data disclosure
+  const rawSection = qPage.querySelector('#raw-data-section');
+  const rawBody    = qPage.querySelector('#raw-data-body');
+  if (rawSection && rawBody) {
+    function rawRow(label, text) {
+      return `<div class="raw-row"><div class="raw-label">${label}</div><div class="raw-value">${text}</div></div>`;
+    }
+    const esc2 = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let contentHash = '';
+    try {
+      contentHash = ethers.utils.solidityKeccak256(
+        ['uint256', 'uint32', 'string'],
+        [data.templateId, data.openingTS, data.questionStr]
+      );
+    } catch {}
+    const templateUrl = `template.html#!/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId}`;
+    const templateLink = `<a href="${esc2(templateUrl)}" style="color:var(--accent);text-decoration:none">${esc2(data.templateId)}</a>`;
+    rawBody.innerHTML = [
+      rawRow('Question ID',   esc2(QUESTION_ID)),
+      rawRow('Template ID',   templateLink),
+      rawRow('Question data', esc2(data.questionStr || '')),
+      data.templateStr ? rawRow('Template',     esc2(data.templateStr)) : '',
+      contentHash      ? rawRow('Content hash', esc2(contentHash))      : '',
+    ].join('');
+    rawSection.style.display = '';
+  }
+
   // 8. Reopen containers
   const reopenContainer  = qPage.querySelector('.reopen-container');
   const reopenedContainer = qPage.querySelector('.reopened-container');
