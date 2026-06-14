@@ -56,7 +56,23 @@
     color: var(--text-dim); cursor: default; transition: color 0.2s, background 0.2s; }
   .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
   .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-cache.active  { color: #e6edf3; background: rgba(230,237,243,0.1); animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-cache.hit     { color: #e6edf3 !important; background: rgba(230,237,243,0.1) !important; }
   @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .data-ind-group { display: inline-flex; align-items: center; gap: 1px; }
+  .data-ind.fail    { color: var(--amber) !important; }
+  .data-ind.offline { color: var(--amber) !important; background: var(--amber-subtle) !important; }
+  .data-ind-connector {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; flex-shrink: 0; opacity: 0;
+    transition: opacity 0.2s ease, color 0.2s ease; color: var(--text-muted);
+  }
+  .data-ind-connector .icon-check { display: none; }
+  .data-ind-connector .icon-arrow { display: block; }
+  .data-ind-group.verifying .data-ind-connector { opacity: 1; animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-group.verified .data-ind-connector  { opacity: 1; color: var(--green); }
+  .data-ind-group.verified .data-ind-connector .icon-check { display: block; }
+  .data-ind-group.verified .data-ind-connector .icon-arrow { display: none; }
   .header-sep { color: var(--border); font-size: 18px; }
   .header-title { color: var(--text-muted); font-size: 14px; }
   .header-spacer { flex: 1; }
@@ -309,12 +325,21 @@
       <a class="nav-link" href="browse.html">Browse</a>
       <a class="nav-link" href="templates.html">Templates</a>
     </nav>
-    <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
-    </span>
-    <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </span>
+    <div class="data-ind-group" id="data-ind-group">
+      <span class="data-ind data-ind-ponder" id="ind-ponder" title="Ponder (indexed data)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+      </span>
+      <span class="data-ind-connector" id="ind-connector" aria-hidden="true">
+        <svg class="icon-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <svg class="icon-check" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      </span>
+      <span class="data-ind data-ind-rpc" id="ind-rpc" title="RPC (live chain data)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </span>
+      <span class="data-ind data-ind-cache" id="ind-cache" title="Local event cache">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
+      </span>
+    </div>
     <button id="wallet-btn">Connect wallet</button>
   </div>
 </header>
