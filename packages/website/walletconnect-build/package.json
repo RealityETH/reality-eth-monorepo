@@ -1,0 +1,16 @@
+{
+  "name": "@reality.eth/walletconnect-build",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "@walletconnect/ethereum-provider": "^2.17.0",
+    "buffer": "^6.0.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}

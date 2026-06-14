@@ -1,0 +1,28 @@
+export declare const ConstantsUtil: {
+    METMASK_CONNECTOR_NAME: string;
+    TRUST_CONNECTOR_NAME: string;
+    SOLFLARE_CONNECTOR_NAME: string;
+    PHANTOM_CONNECTOR_NAME: string;
+    COIN98_CONNECTOR_NAME: string;
+    MAGIC_EDEN_CONNECTOR_NAME: string;
+    BACKPACK_CONNECTOR_NAME: string;
+    BITGET_CONNECTOR_NAME: string;
+    FRONTIER_CONNECTOR_NAME: string;
+    XVERSE_CONNECTOR_NAME: string;
+    LEATHER_CONNECTOR_NAME: string;
+    OKX_CONNECTOR_NAME: string;
+    BINANCE_CONNECTOR_NAME: string;
+    EIP155: "eip155";
+    ADD_CHAIN_METHOD: string;
+    EIP6963_ANNOUNCE_EVENT: string;
+    EIP6963_REQUEST_EVENT: string;
+    CONNECTOR_RDNS_MAP: Record<string, string>;
+    CONNECTOR_TYPE_EXTERNAL: string;
+    CONNECTOR_TYPE_WALLET_CONNECT: string;
+    CONNECTOR_TYPE_INJECTED: string;
+    CONNECTOR_TYPE_ANNOUNCED: string;
+    CONNECTOR_TYPE_AUTH: string;
+    CONNECTOR_TYPE_MULTI_CHAIN: string;
+    CONNECTOR_TYPE_W3M_AUTH: string;
+    getSDKVersionWarningMessage(currentVersion: string, latestVersion: string): string;
+};

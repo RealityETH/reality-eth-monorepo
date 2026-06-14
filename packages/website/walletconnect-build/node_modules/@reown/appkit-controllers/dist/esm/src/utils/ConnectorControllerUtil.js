@@ -1,0 +1,270 @@
+/* eslint-disable max-depth */
+import { ParseUtil } from '@reown/appkit-common';
+import { ConstantsUtil as CommonConstantsUtil } from '@reown/appkit-common';
+import { W3mFrameRpcConstants } from '@reown/appkit-wallet/utils';
+import { ChainController } from '../controllers/ChainController.js';
+import { ConnectionController } from '../controllers/ConnectionController.js';
+import { ConnectorController } from '../controllers/ConnectorController.js';
+import { EventsController } from '../controllers/EventsController.js';
+import { ModalController } from '../controllers/ModalController.js';
+import { RouterController } from '../controllers/RouterController.js';
+import { getPreferredAccountType } from './ChainControllerUtil.js';
+import { ConstantsUtil } from './ConstantsUtil.js';
+import { CoreHelperUtil } from './CoreHelperUtil.js';
+import { StorageUtil } from './StorageUtil.js';
+// -- Constants ------------------------------------------ //
+const UPDATE_EMAIL_INTERVAL_MS = 1_000;
+export const ConnectorControllerUtil = {
+    checkNamespaceConnectorId(namespace, connectorId) {
+        return ConnectorController.getConnectorId(namespace) === connectorId;
+    },
+    isSocialProvider(socialProvider) {
+        return ConstantsUtil.DEFAULT_REMOTE_FEATURES.socials.includes(socialProvider);
+    },
+    connectWalletConnect({ walletConnect, connector, closeModalOnConnect = true, redirectViewOnModalClose = 'Connect', onOpen, onConnect }) {
+        return new Promise((resolve, reject) => {
+            if (walletConnect) {
+                ConnectorController.setActiveConnector(connector);
+            }
+            onOpen?.(CoreHelperUtil.isMobile() && walletConnect);
+            if (redirectViewOnModalClose) {
+                const unsubscribeModalController = ModalController.subscribeKey('open', val => {
+                    if (!val) {
+                        if (RouterController.state.view !== redirectViewOnModalClose) {
+                            RouterController.replace(redirectViewOnModalClose);
+                        }
+                        unsubscribeModalController();
+                        reject(new Error('Modal closed'));
+                    }
+                });
+            }
+            const unsubscribeChainController = ChainController.subscribeKey('activeCaipAddress', val => {
+                if (val) {
+                    onConnect?.();
+                    if (closeModalOnConnect) {
+                        ModalController.close();
+                    }
+                    unsubscribeChainController();
+                    resolve(ParseUtil.parseCaipAddress(val));
+                }
+            });
+        });
+    },
+    connectExternal(connector) {
+        return new Promise((resolve, reject) => {
+            const unsubscribeChainController = ChainController.subscribeKey('activeCaipAddress', val => {
+                if (val) {
+                    ModalController.close();
+                    unsubscribeChainController();
+                    resolve(ParseUtil.parseCaipAddress(val));
+                }
+            });
+            ConnectionController.connectExternal(connector, connector.chain).catch(() => {
+                unsubscribeChainController();
+                reject(new Error('Connection rejected'));
+            });
+        });
+    },
+    connectSocial({ social: socialProvider, namespace, closeModalOnConnect = true, onOpenFarcaster, onConnect }) {
+        let socialWindow = undefined;
+        let isConnectingSocial = false;
+        let popupWindow = null;
+        const namespaceToUse = namespace || ChainController.state.activeChain;
+        const unsubscribeChainController = ChainController.subscribeKey('activeCaipAddress', val => {
+            if (val) {
+                if (closeModalOnConnect) {
+                    ModalController.close();
+                }
+                unsubscribeChainController();
+            }
+        });
+        return new Promise((resolve, reject) => {
+            async function handleSocialConnection(event) {
+                if (event.data?.resultUri) {
+                    if (event.origin === CommonConstantsUtil.SECURE_SITE_SDK_ORIGIN) {
+                        window.removeEventListener('message', handleSocialConnection, false);
+                        try {
+                            const authConnector = ConnectorController.getAuthConnector(namespaceToUse);
+                            if (authConnector && !isConnectingSocial) {
+                                if (socialWindow) {
+                                    socialWindow.close();
+                                }
+                                isConnectingSocial = true;
+                                const uri = event.data.resultUri;
+                                EventsController.sendEvent({
+                                    type: 'track',
+                                    event: 'SOCIAL_LOGIN_REQUEST_USER_DATA',
+                                    properties: { provider: socialProvider }
+                                });
+                                StorageUtil.setConnectedSocialProvider(socialProvider);
+                                await ConnectionController.connectExternal({
+                                    id: authConnector.id,
+                                    type: authConnector.type,
+                                    socialUri: uri
+                                }, authConnector.chain);
+                                const caipAddress = ChainController.state.activeCaipAddress;
+                                if (!caipAddress) {
+                                    reject(new Error('Failed to connect'));
+                                    return;
+                                }
+                                resolve(ParseUtil.parseCaipAddress(caipAddress));
+                                EventsController.sendEvent({
+                                    type: 'track',
+                                    event: 'SOCIAL_LOGIN_SUCCESS',
+                                    properties: { provider: socialProvider }
+                                });
+                            }
+                        }
+                        catch (err) {
+                            EventsController.sendEvent({
+                                type: 'track',
+                                event: 'SOCIAL_LOGIN_ERROR',
+                                properties: { provider: socialProvider, message: CoreHelperUtil.parseError(err) }
+                            });
+                            reject(new Error('Failed to connect'));
+                        }
+                    }
+                    else {
+                        EventsController.sendEvent({
+                            type: 'track',
+                            event: 'SOCIAL_LOGIN_ERROR',
+                            properties: { provider: socialProvider, message: 'Untrusted Origin' }
+                        });
+                    }
+                }
+            }
+            async function connectSocial() {
+                EventsController.sendEvent({
+                    type: 'track',
+                    event: 'SOCIAL_LOGIN_STARTED',
+                    properties: { provider: socialProvider }
+                });
+                if (socialProvider === 'farcaster') {
+                    onOpenFarcaster?.();
+                    const unsubscribeModalController = ModalController.subscribeKey('open', val => {
+                        if (!val && socialProvider === 'farcaster') {
+                            reject(new Error('Popup closed'));
+                            onConnect?.();
+                            unsubscribeModalController();
+                        }
+                    });
+                    const authConnector = ConnectorController.getAuthConnector();
+                    if (authConnector) {
+                        const _accountData = ChainController.getAccountData(namespaceToUse);
+                        if (!_accountData?.farcasterUrl) {
+                            try {
+                                const { url } = await authConnector.provider.getFarcasterUri();
+                                ChainController.setAccountProp('farcasterUrl', url, namespaceToUse);
+                            }
+                            catch {
+                                reject(new Error('Failed to connect to farcaster'));
+                            }
+                        }
+                    }
+                }
+                else {
+                    const authConnector = ConnectorController.getAuthConnector();
+                    popupWindow = CoreHelperUtil.returnOpenHref(`${CommonConstantsUtil.SECURE_SITE_SDK_ORIGIN}/loading`, 'popupWindow', 'width=600,height=800,scrollbars=yes');
+                    try {
+                        if (authConnector) {
+                            const { uri } = await authConnector.provider.getSocialRedirectUri({
+                                provider: socialProvider
+                            });
+                            if (popupWindow && uri) {
+                                popupWindow.location.href = uri;
+                                socialWindow = popupWindow;
+                                const interval = setInterval(() => {
+                                    if (socialWindow?.closed && !isConnectingSocial) {
+                                        reject(new Error('Popup closed'));
+                                        clearInterval(interval);
+                                    }
+                                }, 1000);
+                                window.addEventListener('message', handleSocialConnection, false);
+                            }
+                            else {
+                                popupWindow?.close();
+                                reject(new Error('Failed to initiate social connection'));
+                            }
+                        }
+                    }
+                    catch {
+                        reject(new Error('Failed to initiate social connection'));
+                        popupWindow?.close();
+                    }
+                }
+            }
+            connectSocial();
+        });
+    },
+    connectEmail({ closeModalOnConnect = true, redirectViewOnModalClose = 'Connect', onOpen, onConnect }) {
+        return new Promise((resolve, reject) => {
+            onOpen?.();
+            if (redirectViewOnModalClose) {
+                const unsubscribeModalController = ModalController.subscribeKey('open', val => {
+                    if (!val) {
+                        if (RouterController.state.view !== redirectViewOnModalClose) {
+                            RouterController.replace(redirectViewOnModalClose);
+                        }
+                        unsubscribeModalController();
+                        reject(new Error('Modal closed'));
+                    }
+                });
+            }
+            const unsubscribeChainController = ChainController.subscribeKey('activeCaipAddress', val => {
+                if (val) {
+                    onConnect?.();
+                    if (closeModalOnConnect) {
+                        ModalController.close();
+                    }
+                    unsubscribeChainController();
+                    resolve(ParseUtil.parseCaipAddress(val));
+                }
+            });
+        });
+    },
+    async updateEmail() {
+        const connectorId = StorageUtil.getConnectedConnectorId(ChainController.state.activeChain);
+        const authConnector = ConnectorController.getAuthConnector();
+        if (!authConnector) {
+            throw new Error('No auth connector found');
+        }
+        if (connectorId !== CommonConstantsUtil.CONNECTOR_ID.AUTH) {
+            throw new Error('Not connected to email or social');
+        }
+        const initialEmail = authConnector.provider.getEmail() ?? '';
+        await ModalController.open({
+            view: 'UpdateEmailWallet',
+            data: {
+                email: initialEmail,
+                redirectView: undefined
+            }
+        });
+        return new Promise((resolve, reject) => {
+            const interval = setInterval(() => {
+                const newEmail = authConnector.provider.getEmail() ?? '';
+                if (newEmail !== initialEmail) {
+                    ModalController.close();
+                    clearInterval(interval);
+                    unsubscribeModalController();
+                    resolve({ email: newEmail });
+                }
+            }, UPDATE_EMAIL_INTERVAL_MS);
+            const unsubscribeModalController = ModalController.subscribeKey('open', val => {
+                if (!val) {
+                    if (RouterController.state.view !== 'Connect') {
+                        RouterController.push('Connect');
+                    }
+                    clearInterval(interval);
+                    unsubscribeModalController();
+                    reject(new Error('Modal closed'));
+                }
+            });
+        });
+    },
+    canSwitchToSmartAccount(namespace) {
+        const isSmartAccountEnabled = ChainController.checkIfSmartAccountEnabled();
+        return (isSmartAccountEnabled &&
+            getPreferredAccountType(namespace) === W3mFrameRpcConstants.ACCOUNT_TYPES.EOA);
+    }
+};
+//# sourceMappingURL=ConnectorControllerUtil.js.map

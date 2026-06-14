@@ -1,0 +1,10 @@
+import { css } from 'lit';
+export default css `
+  :host {
+    display: flex;
+    width: inherit;
+    height: inherit;
+    box-sizing: border-box;
+  }
+`;
+//# sourceMappingURL=styles.js.map

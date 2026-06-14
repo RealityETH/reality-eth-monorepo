@@ -1,0 +1,12 @@
+export declare const LOGGER = "error";
+export declare const RELAY_URL = "wss://relay.walletconnect.org";
+export declare const PROTOCOL = "wc";
+export declare const WC_VERSION = 2;
+export declare const CONTEXT = "universal_provider";
+export declare const STORAGE = "wc@2:universal_provider:";
+export declare const RPC_URL = "https://rpc.walletconnect.org/v1/";
+export declare const GENERIC_SUBPROVIDER_NAME = "generic";
+export declare const BUNDLER_URL = "https://rpc.walletconnect.org/v1/bundler";
+export declare const CALL_STATUS_STORAGE_KEY = "call_status";
+export declare const CALL_STATUS_RESULT_EXPIRY = 86400;
+//# sourceMappingURL=values.d.ts.map

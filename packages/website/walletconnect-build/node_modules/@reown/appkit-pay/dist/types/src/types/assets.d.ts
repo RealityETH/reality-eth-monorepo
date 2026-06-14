@@ -1,0 +1,15 @@
+import type { PaymentAsset } from '../types/options.js';
+export declare const baseETH: PaymentAsset;
+export declare const baseUSDC: PaymentAsset;
+export declare const baseSepoliaETH: PaymentAsset;
+export declare const ethereumUSDC: PaymentAsset;
+export declare const optimismUSDC: PaymentAsset;
+export declare const arbitrumUSDC: PaymentAsset;
+export declare const polygonUSDC: PaymentAsset;
+export declare const solanaUSDC: PaymentAsset;
+export declare const ethereumUSDT: PaymentAsset;
+export declare const optimismUSDT: PaymentAsset;
+export declare const arbitrumUSDT: PaymentAsset;
+export declare const polygonUSDT: PaymentAsset;
+export declare const solanaUSDT: PaymentAsset;
+export declare const solanaSOL: PaymentAsset;

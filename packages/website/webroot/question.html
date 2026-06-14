@@ -670,10 +670,13 @@
       btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
     }
   }
-  document.addEventListener('DOMContentLoaded', () => {
-    RealityWallet.initWallet(onWalletChange);
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Await wallet init so window.ethereum is set (injected or WC session restore)
+    // before main() checks it — otherwise WalletConnect users see locked state.
+    await RealityWallet.initWallet(onWalletChange);
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
+    window._initQuestion();
   });
 </script>
 </body>

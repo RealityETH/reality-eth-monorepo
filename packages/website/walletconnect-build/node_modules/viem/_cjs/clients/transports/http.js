@@ -1,0 +1,87 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.http = http;
+const request_js_1 = require("../../errors/request.js");
+const transport_js_1 = require("../../errors/transport.js");
+const createBatchScheduler_js_1 = require("../../utils/promise/createBatchScheduler.js");
+const http_js_1 = require("../../utils/rpc/http.js");
+const createTransport_js_1 = require("./createTransport.js");
+let signalId = 0;
+const signalIds = new WeakMap();
+function getSignalId(signal) {
+    if (!signal)
+        return 'default';
+    const id = signalIds.get(signal);
+    if (id !== undefined)
+        return id;
+    const nextId = signalId++;
+    signalIds.set(signal, nextId);
+    return nextId;
+}
+function http(url, config = {}) {
+    const { batch, fetchFn, fetchOptions, key = 'http', methods, name = 'HTTP JSON-RPC', onFetchRequest, onFetchResponse, retryDelay, raw, } = config;
+    return ({ chain, retryCount: retryCount_, timeout: timeout_ }) => {
+        const { batchSize = 1000, wait = 0 } = typeof batch === 'object' ? batch : {};
+        const retryCount = config.retryCount ?? retryCount_;
+        const timeout = timeout_ ?? config.timeout ?? 10_000;
+        const url_ = url || chain?.rpcUrls.default.http[0];
+        if (!url_)
+            throw new transport_js_1.UrlRequiredError();
+        const rpcClient = (0, http_js_1.getHttpRpcClient)(url_, {
+            fetchFn,
+            fetchOptions,
+            onRequest: onFetchRequest,
+            onResponse: onFetchResponse,
+            timeout,
+        });
+        return (0, createTransport_js_1.createTransport)({
+            key,
+            methods,
+            name,
+            async request({ method, params }, options) {
+                const body = { method, params };
+                const fetchOptions = options?.signal
+                    ? { signal: options.signal }
+                    : undefined;
+                const { schedule } = (0, createBatchScheduler_js_1.createBatchScheduler)({
+                    id: `${url_}.${getSignalId(options?.signal)}`,
+                    wait,
+                    shouldSplitBatch(requests) {
+                        return requests.length > batchSize;
+                    },
+                    fn: (body) => rpcClient.request({
+                        body,
+                        fetchOptions,
+                    }),
+                    sort: (a, b) => a.id - b.id,
+                });
+                const fn = async (body) => batch
+                    ? schedule(body)
+                    : [
+                        await rpcClient.request({
+                            body,
+                            fetchOptions,
+                        }),
+                    ];
+                const [{ error, result }] = await fn(body);
+                if (raw)
+                    return { error, result };
+                if (error)
+                    throw new request_js_1.RpcRequestError({
+                        body,
+                        error,
+                        url: url_,
+                    });
+                return result;
+            },
+            retryCount,
+            retryDelay,
+            timeout,
+            type: 'http',
+        }, {
+            fetchOptions,
+            url: url_,
+        });
+    };
+}
+//# sourceMappingURL=http.js.map

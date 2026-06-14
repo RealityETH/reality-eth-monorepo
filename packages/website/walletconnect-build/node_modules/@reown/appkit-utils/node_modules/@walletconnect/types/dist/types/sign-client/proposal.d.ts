@@ -1,0 +1,40 @@
+import { AuthTypes } from "./auth.js";
+import { EngineTypes } from "./engine.js";
+import { SignClientTypes } from "./client.js";
+import { RelayerTypes } from "../core/relayer.js";
+import { IStore } from "../core/store.js";
+export declare namespace ProposalTypes {
+    interface BaseRequiredNamespace {
+        chains?: string[];
+        methods: string[];
+        events: string[];
+    }
+    type RequiredNamespace = BaseRequiredNamespace;
+    type RequiredNamespaces = Record<string, RequiredNamespace>;
+    type OptionalNamespaces = Record<string, RequiredNamespace>;
+    type SessionProperties = Record<string, string>;
+    type ScopedProperties = Record<string, unknown>;
+    interface Struct {
+        id: number;
+        expiry?: number;
+        expiryTimestamp: number;
+        relays: RelayerTypes.ProtocolOptions[];
+        proposer: {
+            publicKey: string;
+            metadata: SignClientTypes.Metadata;
+        };
+        requiredNamespaces: RequiredNamespaces;
+        optionalNamespaces: OptionalNamespaces;
+        sessionProperties?: SessionProperties;
+        scopedProperties?: ScopedProperties;
+        pairingTopic: string;
+        attestation?: string;
+        encryptedId?: string;
+        requests?: {
+            authentication?: AuthTypes.AuthenticateParams[];
+            walletPay?: EngineTypes.WalletPayParams;
+        };
+    }
+}
+export type IProposal = IStore<number, ProposalTypes.Struct>;
+//# sourceMappingURL=proposal.d.ts.map

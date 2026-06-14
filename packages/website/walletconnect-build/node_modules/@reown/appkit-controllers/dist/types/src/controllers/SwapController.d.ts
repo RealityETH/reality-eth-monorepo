@@ -1,0 +1,136 @@
+import { type Address, type CaipNetworkId, type Hex } from '@reown/appkit-common';
+import type { SwapTokenWithBalance } from '../utils/TypeUtil.js';
+export declare const INITIAL_GAS_LIMIT = 150000;
+export declare const TO_AMOUNT_DECIMALS = 6;
+export type SwapInputTarget = 'sourceToken' | 'toToken';
+export type SwapInputArguments = Partial<{
+    fromToken: string;
+    toToken: string;
+    amount: string;
+}>;
+type TransactionParams = {
+    data: Hex;
+    to: Address;
+    gas?: bigint;
+    gasPrice?: bigint;
+    value: bigint;
+    toAmount: string;
+};
+export interface SwapControllerState {
+    initializing: boolean;
+    initialized: boolean;
+    loadingPrices: boolean;
+    loadingQuote?: boolean;
+    loadingApprovalTransaction?: boolean;
+    loadingBuildTransaction?: boolean;
+    loadingTransaction?: boolean;
+    switchingTokens: boolean;
+    fetchError: boolean;
+    approvalTransaction: TransactionParams | undefined;
+    swapTransaction: TransactionParams | undefined;
+    transactionError?: string;
+    sourceToken?: SwapTokenWithBalance;
+    sourceTokenAmount: string;
+    sourceTokenPriceInUSD: number;
+    toToken?: SwapTokenWithBalance;
+    toTokenAmount: string;
+    toTokenPriceInUSD: number;
+    networkPrice: string;
+    networkBalanceInUSD: string;
+    networkTokenSymbol: string;
+    inputError: string | undefined;
+    slippage: number;
+    caipNetworkId?: CaipNetworkId;
+    tokens?: SwapTokenWithBalance[];
+    tokensLoading?: boolean;
+    suggestedTokens?: SwapTokenWithBalance[];
+    popularTokens?: SwapTokenWithBalance[];
+    foundTokens?: SwapTokenWithBalance[];
+    myTokensWithBalance?: SwapTokenWithBalance[];
+    tokensPriceMap: Record<string, number>;
+    gasFee: string;
+    gasPriceInUSD?: number;
+    priceImpact: number | undefined;
+    maxSlippage: number | undefined;
+    providerFee: string | undefined;
+}
+export interface TokenInfo {
+    address: `0x${string}`;
+    symbol: string;
+    name: string;
+    decimals: number;
+    logoURI: string;
+    domainVersion?: string;
+    eip2612?: boolean;
+    isFoT?: boolean;
+    tags?: string[];
+}
+type StateKey = keyof SwapControllerState;
+export declare const SwapController: {
+    state: SwapControllerState;
+    subscribe(callback: (newState: SwapControllerState) => void): () => void;
+    subscribeKey<K extends StateKey>(key: K, callback: (value: SwapControllerState[K]) => void): () => void;
+    getParams(): {
+        networkAddress: string;
+        fromAddress: `0x${string}`;
+        fromCaipAddress: `eip155:${string}:${string}` | `solana:${string}:${string}` | `polkadot:${string}:${string}` | `bip122:${string}:${string}` | `cosmos:${string}:${string}` | `sui:${string}:${string}` | `stacks:${string}:${string}` | `ton:${string}:${string}` | undefined;
+        sourceTokenAddress: `eip155:${string}:${string}` | `eip155:${number}:${string}` | `solana:${string}:${string}` | `solana:${number}:${string}` | `polkadot:${string}:${string}` | `polkadot:${number}:${string}` | `bip122:${string}:${string}` | `bip122:${number}:${string}` | `cosmos:${string}:${string}` | `cosmos:${number}:${string}` | `sui:${string}:${string}` | `sui:${number}:${string}` | `stacks:${string}:${string}` | `stacks:${number}:${string}` | `ton:${string}:${string}` | `ton:${number}:${string}` | undefined;
+        toTokenAddress: `eip155:${string}:${string}` | `eip155:${number}:${string}` | `solana:${string}:${string}` | `solana:${number}:${string}` | `polkadot:${string}:${string}` | `polkadot:${number}:${string}` | `bip122:${string}:${string}` | `bip122:${number}:${string}` | `cosmos:${string}:${string}` | `cosmos:${number}:${string}` | `sui:${string}:${string}` | `sui:${number}:${string}` | `stacks:${string}:${string}` | `stacks:${number}:${string}` | `ton:${string}:${string}` | `ton:${number}:${string}` | undefined;
+        toTokenAmount: string;
+        toTokenDecimals: number | undefined;
+        sourceTokenAmount: string;
+        sourceTokenDecimals: number | undefined;
+        invalidToToken: boolean;
+        invalidSourceToken: boolean;
+        invalidSourceTokenAmount: boolean;
+        availableToSwap: boolean | undefined;
+        isAuthConnector: boolean;
+    };
+    setSourceToken(sourceToken: SwapTokenWithBalance | undefined): Promise<void>;
+    setSourceTokenAmount(amount: string): void;
+    setToToken(toToken: SwapTokenWithBalance | undefined): Promise<void>;
+    setToTokenAmount(amount: string): void;
+    setTokenPrice(address: string, target: SwapInputTarget): Promise<void>;
+    switchTokens(): Promise<void>;
+    resetState(): void;
+    resetValues(): void;
+    getApprovalLoadingState(): boolean | undefined;
+    clearError(): void;
+    initializeState(): Promise<void>;
+    fetchTokens(): Promise<void>;
+    getTokenList(): Promise<void>;
+    getAddressPrice(address: string): Promise<number>;
+    getNetworkTokenPrice(): Promise<void>;
+    getMyTokensWithBalance(forceUpdate?: string): Promise<void>;
+    setBalances(balances: SwapTokenWithBalance[]): void;
+    getInitialGasPrice(): Promise<{
+        gasPrice: null;
+        gasPriceInUSD: null;
+    } | {
+        gasPrice: bigint;
+        gasPriceInUSD: number;
+    }>;
+    swapTokens(): Promise<void>;
+    getTransaction(): Promise<TransactionParams | undefined>;
+    createAllowanceTransaction(): Promise<{
+        data: `0x${string}`;
+        to: `0x${string}`;
+        gasPrice: bigint;
+        value: bigint;
+        toAmount: string;
+    } | undefined>;
+    createSwapTransaction(): Promise<{
+        data: `0x${string}`;
+        to: `0x${string}`;
+        gas: bigint;
+        gasPrice: bigint;
+        value: bigint;
+        toAmount: string;
+    } | undefined>;
+    onEmbeddedWalletApprovalSuccess(): void;
+    sendTransactionForApproval(data: TransactionParams): Promise<void>;
+    sendTransactionForSwap(data: TransactionParams | undefined): Promise<string | null | undefined>;
+    hasInsufficientToken(sourceTokenAmount: string, sourceTokenAddress: string): boolean;
+    setTransactionDetails(): void;
+};
+export {};

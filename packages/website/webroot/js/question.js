@@ -2136,7 +2136,9 @@ async function main() {
   if (data.fromPonder) verifyWithRpc(data).catch(() => {});
 }
 
-main().catch(err => {
+// Called by question.html after initWallet() resolves, so window.ethereum is
+// already set (injected wallet or WC session restore) before main() checks it.
+window._initQuestion = () => main().catch(err => {
   console.error('question page error', err);
   if (qPage) qPage.dataset.error = err.message;
 });
