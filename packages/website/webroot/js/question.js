@@ -121,10 +121,6 @@ const ponderInd = document.getElementById('ind-ponder');
 const rpcInd    = document.getElementById('ind-rpc');
 const indGroup  = document.getElementById('data-ind-group');
 
-if (window.RealitySettings) {
-  RealitySettings.attachPonderPanel(ponderInd);
-  RealitySettings.attachRpcPanel(rpcInd, CHAIN_ID);
-}
 
 async function withIndicator(el, fn) {
   el?.classList.add('active');

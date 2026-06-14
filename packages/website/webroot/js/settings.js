@@ -224,13 +224,20 @@ function injectStyles() {
   document.head.appendChild(s);
 }
 
-// Call immediately if DOM is already ready (scripts at bottom of body often
-// find readyState 'interactive'), otherwise wait for DOMContentLoaded.
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectStyles);
-} else {
+// Attach panels immediately — indicator elements are in the <header> above
+// this script, so they are already in the DOM regardless of readyState.
+function init() {
   injectStyles();
+  const ponderInd = document.getElementById('ind-ponder');
+  const rpcInd    = document.getElementById('ind-rpc');
+  if (ponderInd) attachPonderPanel(ponderInd);
+  if (rpcInd) {
+    // Parse current chain from the URL hash (format: #!/network/{id}/...)
+    const m = location.hash.match(/\/network\/(\d+)\//);
+    attachRpcPanel(rpcInd, m ? parseInt(m[1], 10) : null);
+  }
 }
+init();
 
 window.RealitySettings = {
   getPonderUrl, setPonderUrl,
