@@ -1786,6 +1786,7 @@ async function verifyWithRpc(data) {
 
         await withIndicator(cacheInd, () => QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, answers, currentBlock));
         cacheInd?.classList.add('hit');
+        setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
       } catch { /* best-effort — never block the UI */ }
     })();
     if (connEl) {
@@ -1922,6 +1923,7 @@ async function main() {
           QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
         });
         cacheInd?.classList.add('hit');
+        setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
       } else {
         const found = await findLogNewQuestion(
           reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);
