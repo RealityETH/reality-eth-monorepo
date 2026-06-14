@@ -220,6 +220,7 @@ function injectStyles() {
       font-weight: 600; cursor: pointer; transition: opacity 0.15s;
     }
     .sp-save:hover { opacity: 0.85; }
+    .sp-body { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 0; }
   `;
   document.head.appendChild(s);
 }
@@ -244,6 +245,7 @@ window.RealitySettings = {
   getRpcUrl, setRpcUrl,
   getUseBrowserRpc, setUseBrowserRpc,
   attachPonderPanel, attachRpcPanel,
+  openPanel, closePanel,
 };
 
 })();

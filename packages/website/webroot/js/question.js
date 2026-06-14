@@ -1611,7 +1611,12 @@ async function verifyWithRpc(data) {
 
   const errors = [];
 
+  const connEl = document.getElementById('ind-connector');
   indGroup?.classList.add('verifying');
+  if (connEl) {
+    connEl.removeAttribute('aria-hidden');
+    connEl.title = 'Verifying Ponder data against RPC…';
+  }
   await withIndicator(rpcInd, async () => {
     const calls = [
       safeCall(() => reality.getBestAnswer(QUESTION_ID), null),
@@ -1689,6 +1694,20 @@ async function verifyWithRpc(data) {
     indGroup?.classList.add('verified');
     ind.classList.add('ok');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
+    if (connEl) {
+      connEl.title = 'Ponder data verified against RPC — click for details';
+      connEl.style.cursor = 'pointer';
+      connEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!window.RealitySettings) return;
+        RealitySettings.openPanel(connEl, 300, (panel) => {
+          panel.innerHTML = `
+            <div class="sp-title">RPC Verification ✓</div>
+            <p class="sp-body">The indexed data from Ponder was cross-checked directly against the blockchain RPC. Content hash, answer history, current answer, bond, and finalization timestamp all match on-chain state — the index is consistent.</p>
+          `;
+        });
+      });
+    }
   } else {
     ind.classList.add('fail');
     ind.title = `Ponder — WARNING: ${errors.join('; ')}`;
