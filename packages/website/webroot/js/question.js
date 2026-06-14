@@ -1785,7 +1785,8 @@ async function verifyWithRpc(data) {
         const answers = answerChunks.flat()
           .sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
-        await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, answers, currentBlock);
+        await withIndicator(cacheInd, () => QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, answers, currentBlock));
+        cacheInd?.classList.add('hit');
       } catch { /* best-effort — never block the UI */ }
     })();
     if (connEl) {
