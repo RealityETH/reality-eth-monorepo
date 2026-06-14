@@ -1752,6 +1752,25 @@ async function verifyWithRpc(data) {
     indGroup?.classList.add('verified');
     ind.classList.add('ok');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
+    // Warm the events cache in the background so future RPC-only loads skip
+    // the full log scan.  Only runs if the cache is empty — if the user has
+    // already visited via RPC, the cache is already populated.
+    (async () => {
+      try {
+        const existing = await QCache.get(CHAIN_ID, CONTRACT, QUESTION_ID);
+        if (existing.qEvent) return; // already cached
+        await contractsMetaPromise;
+        const sb = metaStartBlock ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
+        const currentBlock = await safeCall(() => reality.provider.getBlockNumber(), null);
+        if (!currentBlock) return;
+        const { events: qEvs } = await findLogNewQuestion(
+          reality, reality.filters.LogNewQuestion(QUESTION_ID), sb, data.openingTS);
+        if (!qEvs[0]) return;
+        const answers = await queryFilterRobust(
+          reality, reality.filters.LogNewAnswer(null, QUESTION_ID), qEvs[0].blockNumber, currentBlock);
+        await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEvs[0], answers, currentBlock);
+      } catch { /* best-effort — never block the UI */ }
+    })();
     if (connEl) {
       connEl.title = 'Ponder data verified against RPC — click for details';
       connEl.style.cursor = 'pointer';
