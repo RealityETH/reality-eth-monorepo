@@ -7,7 +7,7 @@
   const WC_CACHE_KEY = 'reality-eth-wc-session';
 
   // WalletConnect project ID — obtain one at https://cloud.walletconnect.com
-  const WC_PROJECT_ID = 'YOUR_WALLETCONNECT_PROJECT_ID';
+  const WC_PROJECT_ID = 'b96a6c05f714b99168f6d0eb5c422215';
 
   // All chains the app supports; WC needs to know upfront.
   const WC_CHAINS          = [1];
