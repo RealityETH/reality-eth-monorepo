@@ -119,7 +119,9 @@ const readProvider = publicRpcUrl
 // ── Data-source indicators ────────────────────────────────────────────────────
 const ponderInd = document.getElementById('ind-ponder');
 const rpcInd    = document.getElementById('ind-rpc');
+const cacheInd  = document.getElementById('ind-cache');
 const indGroup  = document.getElementById('data-ind-group');
+QCache.attachPanel(cacheInd);
 
 
 async function withIndicator(el, fn) {
@@ -1873,14 +1875,17 @@ async function main() {
       let qEv, currentBlock, rawAnswerEvents;
 
       if (cached.qEvent && cached.lastBlock !== null) {
-        currentBlock    = await safeCall(() => reality.provider.getBlockNumber(), cached.lastBlock);
-        qEv             = cached.qEvent;
-        const fromBlock = cached.lastBlock + 1;
-        const newAnswers = (fromBlock <= currentBlock)
-          ? await queryFilterRobust(reality, reality.filters.LogNewAnswer(null, QUESTION_ID), fromBlock, currentBlock)
-          : [];
-        rawAnswerEvents = [...cached.answerEvents, ...newAnswers];
-        QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
+        await withIndicator(cacheInd, async () => {
+          currentBlock    = await safeCall(() => reality.provider.getBlockNumber(), cached.lastBlock);
+          qEv             = cached.qEvent;
+          const fromBlock = cached.lastBlock + 1;
+          const newAnswers = (fromBlock <= currentBlock)
+            ? await queryFilterRobust(reality, reality.filters.LogNewAnswer(null, QUESTION_ID), fromBlock, currentBlock)
+            : [];
+          rawAnswerEvents = [...cached.answerEvents, ...newAnswers];
+          QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
+        });
+        cacheInd?.classList.add('hit');
       } else {
         const found = await findLogNewQuestion(
           reality, reality.filters.LogNewQuestion(QUESTION_ID), startBlock, upperBoundTs);

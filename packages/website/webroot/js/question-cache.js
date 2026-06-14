@@ -159,6 +159,52 @@ window.QCache = {
     }
   },
 
+  async clear() {
+    try {
+      const db = await openDb();
+      const tx = db.transaction(['events', 'sync'], 'readwrite');
+      tx.objectStore('events').clear();
+      tx.objectStore('sync').clear();
+      await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = e => rej(e.target.error); });
+    } catch (err) {
+      console.warn('[QCache] clear failed:', err);
+    }
+  },
+
+  attachPanel(el) {
+    if (!el) return;
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', async e => {
+      e.stopPropagation();
+      const RS = window.RealitySettings;
+      if (!RS) return;
+      if (RS.activeAnchor === el) { RS.closePanel(); return; }
+
+      let eventCount = 0, questionCount = 0;
+      try {
+        const db = await openDb();
+        const tx = db.transaction(['events', 'sync'], 'readonly');
+        [eventCount, questionCount] = await Promise.all([
+          new Promise(res => { tx.objectStore('events').count().onsuccess = e => res(e.target.result); }),
+          new Promise(res => { tx.objectStore('sync').count().onsuccess  = e => res(e.target.result); }),
+        ]);
+      } catch { /* DB not yet initialised */ }
+
+      RS.openPanel(el, 270, panel => {
+        panel.innerHTML = `
+          <div class="sp-title">Local event cache</div>
+          <p class="sp-body">${questionCount} question${questionCount !== 1 ? 's' : ''} cached &mdash; ${eventCount} events total. Only RPC-sourced events are stored here.</p>
+          <div class="sp-actions"><button class="sp-save sp-cache-clear-btn">Clear cache</button></div>
+        `;
+        panel.querySelector('.sp-cache-clear-btn').addEventListener('click', async () => {
+          await QCache.clear();
+          RS.closePanel();
+          el.classList.remove('hit');
+        });
+      });
+    });
+  },
+
   // Stores events and advances the high-water mark.
   // qEvent: raw ethers event or null (null = incremental update, qEvent already stored).
   // newAnswerEvents: raw ethers events from the RPC (NOT previously-cached events).
