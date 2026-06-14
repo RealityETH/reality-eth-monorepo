@@ -563,7 +563,7 @@ async function populateArbitrators(chain, rcAddr, arbsObj) {
   // "No arbitrator" option
   const selfOpt = document.createElement('option');
   selfOpt.value = 'self';
-  selfOpt.textContent = 'No arbitrator (contract itself) — free';
+  selfOpt.textContent = 'No arbitrator — free';
   selfOpt.dataset.fee = '0';
   arbSelect.appendChild(selfOpt);
   // "Other" option

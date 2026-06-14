@@ -1012,6 +1012,11 @@ const contractsMetaPromise = (async () => {
   }
 })();
 
+function isSelfArbitrator(arbitrator) {
+  if (!arbitrator || /^0x0+$/.test(arbitrator)) return true;
+  return arbitrator.toLowerCase() === CONTRACT.toLowerCase();
+}
+
 function renderWarnings(data) {
   const container = document.getElementById('warnings-container');
   if (!container) return;
@@ -1021,7 +1026,7 @@ function renderWarnings(data) {
 
   // Unknown arbitrator — only warn if we successfully loaded the list for this chain
   if (knownArbitrators && knownArbitrators.size > 0 &&
-      data.arbitrator && !/^0x0+$/.test(data.arbitrator) &&
+      !isSelfArbitrator(data.arbitrator) &&
       !knownArbitrators.has(data.arbitrator.toLowerCase())) {
     warnings.push({ level: 'danger', title: 'Unrecognised arbitrator',
       body: 'We do not recognise this arbitrator. Do not rely on this information unless you trust them.' });
@@ -1320,7 +1325,7 @@ async function renderArbitrationSection(data, walletAddr) {
   const { arbitrator, bond, isPendingArbitration } = data;
   const finalized  = isFinalized(data.finalizeTS);
   const beforeOpen = isBeforeOpening(data.openingTS);
-  const hasArbitrator = arbitrator && !/^0x0+$/.test(arbitrator);
+  const hasArbitrator = !isSelfArbitrator(arbitrator);
 
   if (!hasArbitrator) return;
 
@@ -1550,9 +1555,9 @@ function renderStatusCard(data) {
   const totalBond = answerEvents.reduce(
     (sum, ev) => sum.add(ev.args.bond), ethers.BigNumber.from(0)
   );
-  const arbHtml = (arbitrator && !/^0x0+$/.test(arbitrator))
-    ? (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`)
-    : '—';
+  const arbHtml = isSelfArbitrator(arbitrator)
+    ? 'No arbitrator'
+    : (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`);
   const minBondStr = minBond?.gt(0) ? `${formatEth(minBond)} ${token}` : '—';
   const totalStr   = totalBond.gt(0) ? `${formatEth(totalBond)} ${token}` : '—';
 
@@ -1620,7 +1625,7 @@ function buildDetailsCard(data, chainId) {
   if (data.timeout > 0) row('Resolution window', esc(dur(data.timeout)));
   if (data.minBond?.gt(0)) row('Min bond', `${esc(formatEth(data.minBond))} ${esc(token)}`);
   if (data.bond?.gt(0))    row('Current bond', `${esc(formatEth(data.bond))} ${esc(token)}`);
-  row('Arbitrator', addrHtml(data.arbitrator));
+  row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
   row('Contract', `<a href="contract.html#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
   row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
 
