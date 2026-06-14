@@ -157,9 +157,9 @@
     border-top: 1px solid var(--border-subtle);
   }
   .app-card-guide {
-    display: inline-block; margin-top: 10px; align-self: flex-end;
     font-size: 11px; color: var(--accent); text-decoration: none;
-    opacity: 0.7; transition: opacity 0.15s;
+    opacity: 0.6; transition: opacity 0.15s; align-self: flex-start;
+    white-space: nowrap;
   }
   .app-card-guide:hover { opacity: 1; }
   .stat { display: flex; flex-direction: column; gap: 1px; }
@@ -1086,6 +1086,7 @@
       return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer" onclick="selectIntegration('${id}')">
         <div class="app-card-top">
           <div class="app-icon" style="background:${color}">${initial}</div>
+          ${guideLink}
         </div>
         <div class="app-card-name">${info.name}</div>
         <div class="app-card-desc">${info.description || ''}</div>
@@ -1099,7 +1100,6 @@
             <span class="stat-label">Total</span>
           </div>
         </div>
-        ${guideLink}
       </div>`;
     }).join('');
 
