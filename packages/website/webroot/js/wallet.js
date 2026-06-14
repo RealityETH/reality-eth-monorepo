@@ -54,8 +54,13 @@
     // If there's an existing session (page reload after WC connect), restore it
     // silently without showing the modal.
     if (provider.session) {
-      const accs = await provider.request({ method: 'eth_accounts' });
-      const addr = (accs[0] || '').toLowerCase() || null;
+      let addr = (provider.accounts?.[0] || '').toLowerCase() || null;
+      if (!addr) {
+        try {
+          const accs = await provider.request({ method: 'eth_accounts' });
+          addr = (accs[0] || '').toLowerCase() || null;
+        } catch {}
+      }
       if (addr) {
         window.ethereum = provider;
         setCached(addr);
@@ -75,9 +80,16 @@
       optionalChains: WC_OPTIONAL_CHAINS,
       showQrModal:    true,
     });
-    await provider.connect(); // shows QR modal
-    const accs = await provider.request({ method: 'eth_accounts' });
-    const addr = (accs[0] || '').toLowerCase() || null;
+    await provider.connect(); // shows QR modal; resolves after user approves
+    // provider.accounts is populated synchronously when connect() resolves.
+    // Avoid a separate eth_accounts RPC which can race before the session is ready.
+    let addr = (provider.accounts?.[0] || '').toLowerCase() || null;
+    if (!addr) {
+      try {
+        const accs = await provider.request({ method: 'eth_accounts' });
+        addr = (accs[0] || '').toLowerCase() || null;
+      } catch {}
+    }
     window.ethereum = provider; // make existing eth code use WC provider
     setCached(addr);
     attachWCListeners(provider, onChange);

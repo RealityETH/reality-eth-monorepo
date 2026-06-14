@@ -43,10 +43,12 @@ function wcMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, hasSession = false
   const _handlers = {};
 
   const mockProvider = {
+    accounts: hasExistingSession ? [${JSON.stringify(TEST_ACCOUNT.address)}] : [],
     session: hasExistingSession ? { topic: 'mock-session' } : null,
     connect: async function() {
       _connectCalled = true;
       this.session = { topic: 'mock-session' };
+      this.accounts = [${JSON.stringify(TEST_ACCOUNT.address)}];
       localStorage.setItem(SESSION_KEY, '1');
     },
     disconnect: async function() {

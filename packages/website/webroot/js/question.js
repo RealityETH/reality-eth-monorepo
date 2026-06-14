@@ -2040,6 +2040,7 @@ async function main() {
 
   // 6. Answer form (or locked state if no wallet and question is open)
   const formSlot = qPage.querySelector('#answer-form-container');
+  let currentAnswerEl = null;
   if (formSlot) {
     let replacement;
     if (!walletAddr && !finalized && !beforeOpen) {
@@ -2047,7 +2048,7 @@ async function main() {
     } else {
       replacement = buildAnswerForm(data, walletAddr);
     }
-    if (replacement) formSlot.replaceWith(replacement);
+    if (replacement) { formSlot.replaceWith(replacement); currentAnswerEl = replacement; }
     else             formSlot.remove();
   }
 
@@ -2134,6 +2135,23 @@ async function main() {
 
   // 12. Background RPC verification (only when data came from Ponder)
   if (data.fromPonder) verifyWithRpc(data).catch(() => {});
+
+  // Let onWalletChange in question.html swap the answer form live when the
+  // user connects via the header button, without a full page reload.
+  if (!finalized && !beforeOpen) {
+    window._setQuestionWallet = function(addr) {
+      if (!currentAnswerEl?.isConnected) return;
+      walletAddr = addr;
+      if (addr && window.ethereum) {
+        const _wp = new ethers.providers.Web3Provider(window.ethereum);
+        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
+      } else {
+        realityRW = null;
+      }
+      const newEl = walletAddr ? buildAnswerForm(data, walletAddr) : buildLockedState(data);
+      if (newEl) { currentAnswerEl.replaceWith(newEl); currentAnswerEl = newEl; }
+    };
+  }
 }
 
 // Called by question.html after initWallet() resolves, so window.ethereum is

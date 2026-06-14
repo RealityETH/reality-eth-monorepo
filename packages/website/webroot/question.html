@@ -669,6 +669,8 @@
       btn.classList.remove('connected');
       btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
     }
+    // Live-swap the answer form if main() has already run (no page reload needed).
+    window._setQuestionWallet?.(addr);
   }
   document.addEventListener('DOMContentLoaded', async () => {
     // Await wallet init so window.ethereum is set (injected or WC session restore)
