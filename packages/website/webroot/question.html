@@ -76,10 +76,9 @@
   }
   .data-ind-ponder.active { color: var(--accent); background: var(--accent-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
   .data-ind-rpc.active    { color: var(--green);  background: var(--green-subtle);  animation: ind-pulse 0.9s ease-in-out infinite; }
-  .data-ind-cache.active  { color: var(--purple); background: var(--purple-subtle); animation: ind-pulse 0.9s ease-in-out infinite; }
-  .data-ind-cache.hit     { color: var(--purple) !important; background: var(--purple-subtle) !important; }
+  .data-ind-cache.active  { color: #e6edf3; background: rgba(230,237,243,0.1); animation: ind-pulse 0.9s ease-in-out infinite; }
+  .data-ind-cache.hit     { color: #e6edf3 !important; background: rgba(230,237,243,0.1) !important; }
   @keyframes ind-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-  .data-ind.ok      { color: var(--green) !important; }
   .data-ind.fail    { color: var(--amber) !important; }
   .data-ind.offline { color: var(--amber) !important; background: var(--amber-subtle) !important; }
   /* Connector between ponder and RPC icons — always 20px wide so RPC icon never shifts */

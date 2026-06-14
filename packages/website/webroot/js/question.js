@@ -1755,7 +1755,6 @@ async function verifyWithRpc(data) {
   if (!ind) return;
   if (errors.length === 0) {
     indGroup?.classList.add('verified');
-    ind.classList.add('ok');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
     // Warm the events cache in the background using pinpoint single-block fetches.
     // Ponder tells us the exact createdBlock for each event, so we don't need
