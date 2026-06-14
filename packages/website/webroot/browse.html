@@ -156,6 +156,12 @@
     padding-top: 12px;
     border-top: 1px solid var(--border-subtle);
   }
+  .app-card-guide {
+    display: inline-block; margin-top: 10px;
+    font-size: 11px; color: var(--accent); text-decoration: none;
+    opacity: 0.7; transition: opacity 0.15s;
+  }
+  .app-card-guide:hover { opacity: 1; }
   .stat { display: flex; flex-direction: column; gap: 1px; }
   .stat-val { font-size: 15px; font-weight: 600; }
   .stat-val.open { color: var(--green); }
@@ -1074,6 +1080,9 @@
 
       const fmt = n => isLoading ? '…' : n.toLocaleString();
 
+      const guideLink = info.guideId
+        ? `<a class="app-card-guide" href="guide.html#!/${info.guideId}" onclick="event.stopPropagation()">Dev guide →</a>`
+        : '';
       return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer" onclick="selectIntegration('${id}')">
         <div class="app-card-top">
           <div class="app-icon" style="background:${color}">${initial}</div>
@@ -1090,6 +1099,7 @@
             <span class="stat-label">Total</span>
           </div>
         </div>
+        ${guideLink}
       </div>`;
     }).join('');
 

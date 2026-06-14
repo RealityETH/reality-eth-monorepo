@@ -6,43 +6,50 @@
       "name": "Snapshot",
       "icon": "S",
       "color": "linear-gradient(135deg,#58a6ff,#bc8cff)",
-      "description": "Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address."
+      "description": "Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.",
+      "guideId": "snapshot"
     },
     "kleros-moderate": {
       "name": "Kleros · Moderate",
       "icon": "K",
       "color": "linear-gradient(135deg,#d29922,#b08800)",
-      "description": "Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution."
+      "description": "Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.",
+      "guideId": "content-moderation"
     },
     "sports-oracle": {
       "name": "Sports Oracle",
       "icon": "⚽",
       "color": "linear-gradient(135deg,#3fb950,#1a7f37)",
-      "description": "Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1."
+      "description": "Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1.",
+      "guideId": "event-oracle"
     },
     "fantasy-sports": {
       "name": "Fantasy Sports",
       "icon": "🏆",
       "color": "linear-gradient(135deg,#bc8cff,#8957e5)",
-      "description": "Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120."
+      "description": "Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120.",
+      "guideId": "hash-commit-oracle"
     },
     "seer": {
       "name": "Seer",
       "icon": "S",
       "color": "linear-gradient(135deg,#3fb950,#1a7f37)",
-      "description": "AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond."
+      "description": "AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.",
+      "guideId": "prediction-market"
     },
     "hermes-agent": {
       "name": "Nous Hermes",
       "icon": "H",
       "color": "linear-gradient(135deg,#f78166,#b04040)",
-      "description": "AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged."
+      "description": "AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged.",
+      "guideId": "ai-agent"
     },
     "dao-governance": {
       "name": "DAO Governance",
       "icon": "G",
       "color": "linear-gradient(135deg,#58a6ff,#1158cc)",
-      "description": "Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes."
+      "description": "Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes.",
+      "guideId": "dao-governance"
     },
     "other": {
       "name": "Other",
