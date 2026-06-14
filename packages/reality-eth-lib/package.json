@@ -9,10 +9,12 @@
   "exports": {
     "./formatters/question.js": {
       "require": "./dist/cjs/formatters/question.js",
+      "default": "./dist/cjs/formatters/question.js",
       "types": "./dist/cjs/formatters/question.d.ts"
     },
     "./formatters/template.js": {
       "require": "./dist/cjs/formatters/template.js",
+      "default": "./dist/cjs/formatters/template.js",
       "types": "./dist/cjs/formatters/template.d.ts"
     }
   },
