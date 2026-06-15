@@ -603,6 +603,64 @@
 
   const ponderInd = document.getElementById('ind-ponder');
   const rpcInd    = document.getElementById('ind-rpc');
+  const cacheInd  = document.getElementById('ind-cache');
+
+  const BROWSE_CACHE_KEY = 'reality-eth-browse-q';
+  const BROWSE_CACHE_TTL = 5 * 60 * 1000; // 5 min
+
+  function readBrowseCache() {
+    try {
+      const raw = localStorage.getItem(BROWSE_CACHE_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (Date.now() - d.ts > BROWSE_CACHE_TTL) return null;
+      return d;
+    } catch { return null; }
+  }
+
+  function writeBrowseCache(items, cur, more) {
+    try {
+      localStorage.setItem(BROWSE_CACHE_KEY, JSON.stringify({ ts: Date.now(), items, cur, more }));
+    } catch {}
+    cacheInd?.classList.add('hit');
+    setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
+  }
+
+  function attachBrowseCachePanel() {
+    if (!cacheInd) return;
+    cacheInd.style.cursor = 'pointer';
+    cacheInd.addEventListener('click', e => {
+      e.stopPropagation();
+      const RS = window.RealitySettings;
+      if (!RS) return;
+      if (RS.activeAnchor === cacheInd) { RS.closePanel(); return; }
+
+      let body = 'No data cached.';
+      try {
+        const raw = localStorage.getItem(BROWSE_CACHE_KEY);
+        if (raw) {
+          const d = JSON.parse(raw);
+          const age = Math.round((Date.now() - d.ts) / 1000);
+          const ageStr = age < 60 ? `${age}s ago` : `${Math.round(age / 60)}m ago`;
+          body = `${d.items?.length ?? 0} questions cached &mdash; updated ${ageStr}.`;
+        }
+      } catch {}
+
+      RS.openPanel(cacheInd, 260, panel => {
+        panel.innerHTML = `
+          <div class="sp-title">Browse cache</div>
+          <p class="sp-body">${body}</p>
+          <div class="sp-actions"><button class="sp-save sp-cache-clear-btn">Clear cache</button></div>
+        `;
+        panel.querySelector('.sp-cache-clear-btn').addEventListener('click', () => {
+          try { localStorage.removeItem(BROWSE_CACHE_KEY); } catch {}
+          cacheInd.classList.remove('hit');
+          RS.closePanel();
+        });
+      });
+    });
+  }
+
   async function withIndicator(el, fn) {
     el?.classList.add('active');
     const start = Date.now();
@@ -784,7 +842,7 @@
   let fetching = false;
   let integCounts = {};  // id -> { total, open }
 
-  async function fetchQuestions(reset = true) {
+  async function fetchQuestions(reset = true, skipSkeleton = false) {
     if (fetching && !reset) return;
     fetching = true;
 
@@ -792,7 +850,7 @@
       allQuestions = [];
       cursor = null;
       hasNextPage = false;
-      showSkeleton();
+      if (!skipSkeleton) showSkeleton();
     }
 
     try {
@@ -806,6 +864,7 @@
       allQuestions = reset ? result.items : [...allQuestions, ...result.items];
       cursor = result.pageInfo.endCursor;
       hasNextPage = result.pageInfo.hasNextPage;
+      if (reset) writeBrowseCache(allQuestions, cursor, hasNextPage);
     } catch (e) {
       console.error('GraphQL error:', e);
     }
@@ -1348,10 +1407,22 @@
 
     renderStarred();
     initControls();
+    attachBrowseCachePanel();
     showSkeleton();
+
     loadTokenMeta().then(() => {
+      // Restore cache after token metadata is ready so formatting is correct.
+      const _cached = readBrowseCache();
+      if (_cached) {
+        allQuestions = _cached.items;
+        cursor = _cached.cur;
+        hasNextPage = _cached.more;
+        cacheInd?.classList.add('hit');
+        setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
+        renderList();
+      }
       fetchIntegrationCounts();
-      fetchQuestions(true);
+      fetchQuestions(true, !!_cached);
     });
   });
 </script>
