@@ -1526,9 +1526,10 @@ function renderStatusCard(data) {
 
   // Current answer banner in col-main
   if (banner && n > 0) {
-    const latest  = answerEvents[n - 1];
-    const label   = bytes32ToLabel(latest.args.answer, qjson) || '?';
-    const color   = answerColorClass(latest.args.answer, qjson);
+    const latest     = answerEvents[n - 1];
+    const displayAns = latest.args.is_unrevealed ? null : (latest.args.display_answer || latest.args.answer);
+    const label   = (displayAns && bytes32ToLabel(displayAns, qjson)) || '?';
+    const color   = displayAns ? answerColorClass(displayAns, qjson) : 'other';
     const bgCls   = color === 'yes' ? 'answer-banner-yes' : color === 'no' ? 'answer-banner-no' : 'answer-banner-inv';
     const isHex   = /^0x[0-9a-f]{20,}$/i.test(label);
     const topBond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
