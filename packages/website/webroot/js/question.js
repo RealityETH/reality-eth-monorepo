@@ -1553,9 +1553,9 @@ function renderStatusCard(data) {
     html += `
       <div class="timer-row">
         <span class="timer-label">Finalizes in</span>
-        <span class="timer-val">${esc(formatDuration(remaining))}</span>
+        <span class="timer-val" id="timer-val">${esc(formatDuration(remaining))}</span>
       </div>
-      <div class="timer-bar-wrap"><div class="timer-bar" style="width:${barPct}%"></div></div>`;
+      <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar" style="width:${barPct}%"></div></div>`;
   }
 
   // Stats grid
@@ -1593,6 +1593,74 @@ function renderStatusCard(data) {
 }
 
 // ── Details card ─────────────────────────────────────────────────────────────
+// ── Live countdown + new-answer detection ──────────────────────────────────
+
+function showUpdateBanner(msg) {
+  if (document.getElementById('q-update-banner')) return;
+  const b = document.createElement('div');
+  b.id = 'q-update-banner';
+  b.style.cssText = [
+    'position:fixed;bottom:20px;left:50%;transform:translateX(-50%)',
+    'background:#1c2330;border:1px solid #30363d;border-radius:8px',
+    'padding:11px 16px;display:flex;align-items:center;gap:12px',
+    'font-size:13px;color:#e6edf3;z-index:9000;white-space:nowrap',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.6)',
+  ].join(';');
+  const span = document.createElement('span');
+  span.textContent = msg;
+  const reload = document.createElement('button');
+  reload.textContent = 'Reload';
+  reload.style.cssText = 'padding:4px 11px;background:#58a6ff;border:none;border-radius:5px;color:#0d1117;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit';
+  reload.onclick = () => location.reload();
+  const dismiss = document.createElement('button');
+  dismiss.textContent = '×';
+  dismiss.style.cssText = 'background:none;border:none;color:#8b949e;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;font-family:inherit';
+  dismiss.onclick = () => b.remove();
+  b.appendChild(span); b.appendChild(reload); b.appendChild(dismiss);
+  document.body.appendChild(b);
+}
+
+function startCountdown(finalizeTS, timeout) {
+  const valEl = document.getElementById('timer-val');
+  const barEl = document.getElementById('timer-bar');
+  if (!valEl) return;
+  const id = setInterval(() => {
+    if (isFinalized(finalizeTS)) {
+      clearInterval(id);
+      valEl.textContent = 'Finalized';
+      valEl.classList.add('finalized');
+      if (barEl) barEl.style.width = '100%';
+      showUpdateBanner('This question has finalized.');
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const rem = Math.max(0, finalizeTS - now);
+    valEl.textContent = formatDuration(rem);
+    if (barEl && timeout > 0) {
+      barEl.style.width = `${Math.max(0, Math.min(100, Math.round((1 - rem / timeout) * 100)))}%`;
+    }
+  }, 1000);
+}
+
+function startPoll(initialFinalizeTS) {
+  if (isFinalized(initialFinalizeTS)) return;
+  const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
+  const qid   = JSON.stringify(PONDER_QUESTION_ID);
+  const query  = `{ question(id: ${qid}) { scheduledFinalizationTimestamp } }`;
+  const id = setInterval(async () => {
+    try {
+      const resp = await ponderFetch(ponderUrl, { query });
+      if (!resp.ok) return;
+      const json = await resp.json();
+      const newFinTS = Number(json.data?.question?.scheduledFinalizationTimestamp || 0);
+      if (newFinTS !== initialFinalizeTS) {
+        clearInterval(id);
+        showUpdateBanner('A new answer has been posted.');
+      }
+    } catch {}
+  }, 30_000);
+}
+
 function buildDetailsCard(data, chainId) {
   const token = CHAIN_TOKEN[chainId] || 'ETH';
 
@@ -2135,6 +2203,12 @@ async function main() {
 
   // 12. Background RPC verification (only when data came from Ponder)
   if (data.fromPonder) verifyWithRpc(data).catch(() => {});
+
+  // 13. Live countdown + new-answer poll
+  if (!finalized) {
+    if (data.finalizeTS > 0) startCountdown(data.finalizeTS, data.timeout);
+    startPoll(data.finalizeTS);
+  }
 
   // Let onWalletChange in question.html swap the answer form live when the
   // user connects via the header button, without a full page reload.
