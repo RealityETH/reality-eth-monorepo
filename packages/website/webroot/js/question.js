@@ -1313,6 +1313,7 @@ function renderHistory(data) {
   qPage.classList.add('has-history');
   const histContainer = qPage.querySelector('.answered-history-container');
   if (!histContainer) return;
+  histContainer.innerHTML = '';
 
   // History: show from second-latest down to oldest (newest at top)
   for (let i = n - 2; i >= 0; i--) {
