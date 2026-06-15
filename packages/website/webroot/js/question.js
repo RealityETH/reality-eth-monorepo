@@ -2186,7 +2186,7 @@ async function main() {
   if (data.reopensQuestionId && reopensContainer) {
     reopensContainer.style.display = '';
     const a = reopensContainer.querySelector('.reopens-link');
-    if (a) reloadLink(a, baseUrl + data.reopensQuestionId, 'the original question');
+    if (a) reloadLink(a, baseUrl + data.reopensQuestionId, 'previously answered too soon');
   }
 
   // 9. Reopen button
