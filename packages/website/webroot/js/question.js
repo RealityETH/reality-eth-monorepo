@@ -2174,14 +2174,19 @@ async function main() {
   if (reopenedContainer) reopenedContainer.style.display  = isReopened   ? '' : 'none';
 
   const baseUrl = `question.html#!/network/${CHAIN_ID}/question/`;
+  function reloadLink(a, url, text) {
+    a.href = url;
+    a.textContent = text;
+    a.addEventListener('click', e => { e.preventDefault(); location.href = url; location.reload(); });
+  }
   if (isReopened && data.reopenerQuestionId && reopenedContainer) {
     const a = reopenedContainer.querySelector('.reopener-link');
-    if (a) { a.href = baseUrl + data.reopenerQuestionId; a.textContent = 'View new question'; }
+    if (a) reloadLink(a, baseUrl + data.reopenerQuestionId, 'View new question');
   }
   if (data.reopensQuestionId && reopensContainer) {
     reopensContainer.style.display = '';
     const a = reopensContainer.querySelector('.reopens-link');
-    if (a) { a.href = baseUrl + data.reopensQuestionId; a.textContent = 'the original question'; }
+    if (a) reloadLink(a, baseUrl + data.reopensQuestionId, 'the original question');
   }
 
   // 9. Reopen button
