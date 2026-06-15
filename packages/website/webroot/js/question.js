@@ -85,6 +85,7 @@ const REALITY_ABI = [
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
   'event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
   'event LogAnswerReveal(bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond)',
+  'function commitments(bytes32) view returns (uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer)',
   'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
 ];
 
@@ -1827,21 +1828,24 @@ async function verifyWithRpc(data) {
       }
     }
 
-    // History entries: scan for reveals that Ponder missed on non-latest commitments
+    // History entries: check on-chain commitment state for non-latest unrevealed commits.
+    // Ponder's LogAnswerReveal handler should update isUnrevealed/answer in-place, but
+    // appears to have a matching bug, so we fall back to the commitments() view function.
     const unrevealedHistory = data.answerEvents.filter(
-      (ev, i) => i < data.answerEvents.length - 1 && ev.args.is_commitment && ev.args.is_unrevealed
+      (ev, i) => i < data.answerEvents.length - 1
+        && ev.args.is_commitment && ev.args.is_unrevealed
+        && ev.args.answer && ev.args.answer !== ZERO_HASH
     );
     if (unrevealedHistory.length > 0) {
-      const startBlock = data.createdBlock || 0;
-      const revealEvents = await safeCall(
-        () => reality.queryFilter(reality.filters.LogAnswerReveal(QUESTION_ID), startBlock), []);
+      const commitmentResults = await Promise.all(
+        unrevealedHistory.map(ev => safeCall(() => reality.commitments(ev.args.answer), null))
+      );
       let histPatched = false;
-      for (const rev of revealEvents) {
-        const ansHash = rev.args.answer_hash?.toLowerCase();
-        const entry = unrevealedHistory.find(ev => ev.args.answer.toLowerCase() === ansHash);
-        if (entry) {
-          entry.args.display_answer = rev.args.answer;
-          entry.args.is_unrevealed  = false;
+      for (let i = 0; i < unrevealedHistory.length; i++) {
+        const c = commitmentResults[i];
+        if (c?.is_revealed) {
+          unrevealedHistory[i].args.display_answer = c.revealed_answer;
+          unrevealedHistory[i].args.is_unrevealed  = false;
           histPatched = true;
         }
       }
