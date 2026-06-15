@@ -1800,19 +1800,33 @@ async function verifyWithRpc(data) {
     }
 
     // Current best answer — catches a concealed commitment reveal
+    let concealedReveal = false;
     if (bestAnswer !== null && data.answerEvents.length > 0) {
       const latest = data.answerEvents[data.answerEvents.length - 1];
-      // For an unrevealed commitment, on-chain best_answer is the commitment hash
-      const expected = (latest.args.is_commitment && latest.args.is_unrevealed)
-        ? latest.args.answer          // commitment hash stored in args.answer
-        : (latest.args.display_answer || ZERO_HASH);
-      if (bestAnswer.toLowerCase() !== expected.toLowerCase())
-        errors.push('current answer mismatch (possible concealed reveal)');
+      if (latest.args.is_commitment && latest.args.is_unrevealed
+          && bestAnswer.toLowerCase() !== latest.args.answer.toLowerCase()) {
+        // Ponder hasn't indexed LogAnswerReveal yet. Patch in-place and re-render
+        // so the user sees the revealed answer without waiting for Ponder to catch up.
+        // Also update finalizeTS: the contract resets it to reveal_ts + timeout.
+        latest.args.display_answer = bestAnswer;
+        latest.args.is_unrevealed  = false;
+        if (finalizeTS !== null) data.finalizeTS = Number(finalizeTS);
+        renderStatusCard(data);
+        renderHistory(data);
+        qPage.querySelector('.pending-reveal-notice')?.remove();
+        concealedReveal = true;
+      } else {
+        const expected = latest.args.is_commitment && latest.args.is_unrevealed
+          ? latest.args.answer
+          : (latest.args.display_answer || ZERO_HASH);
+        if (bestAnswer.toLowerCase() !== expected.toLowerCase())
+          errors.push('current answer mismatch');
+      }
     }
 
     if (bond !== null && !bond.eq(data.bond))
       errors.push('bond mismatch');
-    if (finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
+    if (!concealedReveal && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
       errors.push('finalization timestamp mismatch');
     if (timeout !== null && Number(timeout) !== data.timeout)
       errors.push('timeout mismatch');
