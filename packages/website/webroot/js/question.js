@@ -2217,19 +2217,26 @@ async function main() {
       ev => ev.args.user.toLowerCase() === walletAddr.toLowerCase()
     );
     if (userEvents.length > 0) {
-      claimSection.style.display = '';
-      const claimBtn = claimSection.querySelector('button.claim-button');
-      if (claimBtn) {
-        claimBtn.addEventListener('click', () => {
-          const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
-          runTx(claimBtn, claimBtn.textContent, () =>
-            realityRW.claimMultipleAndWithdrawBalance(
-              args.question_ids, args.lengths, args.hist_hashes,
-              args.addrs, args.bonds, args.answers
-            )
-          );
-        });
-      }
+      // getHistoryHash returns ZERO_HASH on-chain once all bonds have been claimed.
+      // Ponder's historyHash is only updated by answer events so can't detect this.
+      safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(onChainHash => {
+        const alreadyClaimed = onChainHash !== null
+          && onChainHash.toLowerCase() === ZERO_HASH.toLowerCase();
+        if (alreadyClaimed) return;
+        claimSection.style.display = '';
+        const claimBtn = claimSection.querySelector('button.claim-button');
+        if (claimBtn) {
+          claimBtn.addEventListener('click', () => {
+            const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
+            runTx(claimBtn, claimBtn.textContent, () =>
+              realityRW.claimMultipleAndWithdrawBalance(
+                args.question_ids, args.lengths, args.hist_hashes,
+                args.addrs, args.bonds, args.answers
+              )
+            );
+          });
+        }
+      });
     }
   }
 
