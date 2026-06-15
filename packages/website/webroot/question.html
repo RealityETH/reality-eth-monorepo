@@ -423,7 +423,7 @@
     padding: 7px 16px; background: var(--amber); border: none;
     border-radius: var(--radius-sm); color: var(--bg); font-size: 13px; font-weight: 600; cursor: pointer;
   }
-  .reopened-container {
+  .reopened-container, .reopens-container {
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     border-radius: var(--radius); padding: 14px 16px; font-size: 13px; color: var(--text-muted);
   }
@@ -623,7 +623,10 @@
         <button class="reopen-question-submit">Reopen question</button>
       </div>
       <div class="reopened-container" style="display:none">
-        <p>This question has been reopened for further answers.</p>
+        <p>This question has been reopened for further answers. <a class="reopener-link" href="#"></a></p>
+      </div>
+      <div class="reopens-container" style="display:none">
+        <p>This question reopens <a class="reopens-link" href="#"></a></p>
       </div>
 
     </div>

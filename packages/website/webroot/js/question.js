@@ -214,6 +214,7 @@ async function fetchPonderData() {
       minBond bounty scheduledFinalizationTimestamp
       arbitrationOccurred isPendingArbitration
       createdBlock createdLogIndex createdTxHash
+      reopensQuestionId
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
       items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp createdBlock createdLogIndex createdTxHash }
@@ -377,6 +378,8 @@ function adaptPonderData(ponderData, BN0) {
     bounty:        ethers.BigNumber.from((pq.bounty  || '0').toString()),
     settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
     reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
+    reopenerQuestionId:   reopeners?.items?.[0]?.id || null,
+    reopensQuestionId:    pq.reopensQuestionId || null,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
     answerEvents,
@@ -2047,6 +2050,8 @@ async function main() {
         templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
         minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
         isPendingArbitration: false, // not available from events alone; Ponder path is authoritative
+        reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
+        reopensQuestionId: null, // not available from RPC without parsing tx calldata
         answerEvents,
       };
     });
@@ -2152,10 +2157,22 @@ async function main() {
   }
 
   // 8. Reopen containers
-  const reopenContainer  = qPage.querySelector('.reopen-container');
+  const reopenContainer   = qPage.querySelector('.reopen-container');
   const reopenedContainer = qPage.querySelector('.reopened-container');
+  const reopensContainer  = qPage.querySelector('.reopens-container');
   if (reopenContainer)   reopenContainer.style.display   = isReopenable ? '' : 'none';
   if (reopenedContainer) reopenedContainer.style.display  = isReopened   ? '' : 'none';
+
+  const baseUrl = `question.html#!/network/${CHAIN_ID}/question/`;
+  if (isReopened && data.reopenerQuestionId && reopenedContainer) {
+    const a = reopenedContainer.querySelector('.reopener-link');
+    if (a) { a.href = baseUrl + data.reopenerQuestionId; a.textContent = 'View new question'; }
+  }
+  if (data.reopensQuestionId && reopensContainer) {
+    reopensContainer.style.display = '';
+    const a = reopensContainer.querySelector('.reopens-link');
+    if (a) { a.href = baseUrl + data.reopensQuestionId; a.textContent = 'the original question'; }
+  }
 
   // 9. Reopen button
   if (isReopenable && reopenContainer && realityRW) {
