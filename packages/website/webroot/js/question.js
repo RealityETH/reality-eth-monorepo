@@ -777,7 +777,7 @@ function buildAnswerForm(data, walletAddr) {
   } else if (isUint) {
     const input = document.createElement('input');
     input.type = 'number'; input.name = 'input-answer';
-    input.step = 'any'; input.placeholder = '0'; input.className = 'uint-input';
+    input.step = 'any'; input.min = '0'; input.placeholder = '0'; input.className = 'uint-input';
     inputWrap.appendChild(input);
     const inv = el('div', 'invalid-switch-container');
     if (!hasInvalid) inv.style.display = 'none';
@@ -807,7 +807,7 @@ function buildAnswerForm(data, walletAddr) {
   const bondWrap = el('div', 'input-container--bond');
   const bondInput = document.createElement('input');
   bondInput.type = 'number'; bondInput.name = 'questionBond';
-  bondInput.className = 'bond-input-field'; bondInput.step = 'any';
+  bondInput.className = 'bond-input-field'; bondInput.step = 'any'; bondInput.min = '0';
   bondInput.value = prefill;
   const minEl = el('span', 'min-amount', formatEth(minRequired));
   bondWrap.appendChild(bondInput);
