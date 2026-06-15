@@ -2023,12 +2023,22 @@ async function main() {
         rpcTemplateStr = rpcTemplateStr || '{"type":"bool","title":"%s"}';
       }
       const minBond      = q?.min_bond ?? BN0;
-      let settledTooSoon = false, reopenedBy = ZERO_HASH;
+      let settledTooSoon = false, reopenedBy = ZERO_HASH, reopensQuestionId = null;
       if (effectiveMajor >= 3) {
         [settledTooSoon, reopenedBy] = await Promise.all([
           safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
           safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
         ]);
+        // If this question's nonce is itself a question ID, check whether it's the
+        // reopener of that question (i.e. reopened_questions(nonce) === QUESTION_ID).
+        // The reopenQuestion() function sets nonce = reopens_question_id.
+        const nonceHex = ethers.utils.hexZeroPad(nonce.toHexString(), 32);
+        if (nonceHex !== ZERO_HASH) {
+          const check = await safeCall(() => reality.reopened_questions(nonceHex), ZERO_HASH);
+          if (check && check.toLowerCase() === QUESTION_ID.toLowerCase()) {
+            reopensQuestionId = `${CONTRACT.toLowerCase()}-${nonceHex}`;
+          }
+        }
       }
       // Normalise raw ethers events to the same shape as adaptPonderData output
       const answerEvents = rawAnswerEvents.map(ev => ({
@@ -2051,7 +2061,7 @@ async function main() {
         minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
         isPendingArbitration: false, // not available from events alone; Ponder path is authoritative
         reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
-        reopensQuestionId: null, // not available from RPC without parsing tx calldata
+        reopensQuestionId,
         answerEvents,
       };
     });
