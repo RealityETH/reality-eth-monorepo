@@ -84,6 +84,7 @@ const REALITY_ABI = [
   'function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) payable',
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
   'event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
+  'event LogAnswerReveal(bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond)',
   'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
 ];
 
@@ -1824,6 +1825,27 @@ async function verifyWithRpc(data) {
         if (bestAnswer.toLowerCase() !== expected.toLowerCase())
           errors.push('current answer mismatch');
       }
+    }
+
+    // History entries: scan for reveals that Ponder missed on non-latest commitments
+    const unrevealedHistory = data.answerEvents.filter(
+      (ev, i) => i < data.answerEvents.length - 1 && ev.args.is_commitment && ev.args.is_unrevealed
+    );
+    if (unrevealedHistory.length > 0) {
+      const startBlock = data.createdBlock || 0;
+      const revealEvents = await safeCall(
+        () => reality.queryFilter(reality.filters.LogAnswerReveal(QUESTION_ID), startBlock), []);
+      let histPatched = false;
+      for (const rev of revealEvents) {
+        const ansHash = rev.args.answer_hash?.toLowerCase();
+        const entry = unrevealedHistory.find(ev => ev.args.answer.toLowerCase() === ansHash);
+        if (entry) {
+          entry.args.display_answer = rev.args.answer;
+          entry.args.is_unrevealed  = false;
+          histPatched = true;
+        }
+      }
+      if (histPatched) renderHistory(data);
     }
 
     if (bond !== null && !bond.eq(data.bond))
