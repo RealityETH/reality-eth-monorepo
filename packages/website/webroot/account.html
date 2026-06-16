@@ -369,8 +369,8 @@ function canClaim() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatEth(bn) {
-  if (!bn || ethers.BigNumber.from(bn.toString()).isZero()) return '0';
-  return ethers.utils.formatEther(bn).replace(/\.0+$/, '');
+  if (!bn || BigInt(bn.toString()) === 0n) return '0';
+  return ethers.formatEther(bn).replace(/\.0+$/, '');
 }
 
 function shortAddr(a) { return a ? `${a.slice(0,6)}…${a.slice(-4)}` : ''; }
@@ -472,36 +472,36 @@ function answerClass(hex) {
 
 // ── Claim calculation ─────────────────────────────────────────────────────────
 function computeClaimable(question, responses, userAddr) {
-  const BN0 = ethers.BigNumber.from(0);
+  const BN0 = 0n;
   if (!isFinalized(question)) return { total: BN0 };
   const finalAnswer = question.currentAnswer;
   if (!finalAnswer) return { total: BN0 };
   if (!question.historyHash || question.historyHash === ZERO_HASH) return { total: BN0 };
 
-  const bounty = ethers.BigNumber.from(question.bounty || '0');
+  const bounty = BigInt(question.bounty || '0');
   const user = userAddr.toLowerCase();
   let ttl = BN0, is_yours = false, is_first = true;
 
   for (let i = responses.length - 1; i >= 0; i--) {
     const r = responses[i];
     const answer = r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH);
-    const bond = ethers.BigNumber.from(r.bond.toString());
+    const bond = BigInt(r.bond);
     const isYou = r.user.toLowerCase() === user;
 
     if (is_yours) {
       if (!isYou && finalAnswer.toLowerCase() === answer.toLowerCase()) {
-        is_yours = false; ttl = ttl.sub(bond);
+        is_yours = false; ttl = ttl - bond;
       } else {
-        ttl = ttl.add(bond);
+        ttl = ttl + bond;
       }
     } else if (isYou && finalAnswer.toLowerCase() === answer.toLowerCase()) {
-      is_yours = true; ttl = ttl.add(bond);
+      is_yours = true; ttl = ttl + bond;
     }
-    if (is_first && is_yours) ttl = ttl.add(bounty);
+    if (is_first && is_yours) ttl = ttl + bounty;
     is_first = false;
   }
 
-  if (!ttl.gt(BN0)) return { total: BN0 };
+  if (ttl <= BN0) return { total: BN0 };
 
   // Build claim args (newest → oldest)
   const n = responses.length;
@@ -511,7 +511,7 @@ function computeClaimable(question, responses, userAddr) {
     const r = responses[idx];
     answers.push(r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH));
     addrs.push(r.user);
-    bonds.push(ethers.BigNumber.from(r.bond.toString()));
+    bonds.push(BigInt(r.bond));
     hist_hashes.push(idx > 0 ? (responses[idx - 1].historyHash || ZERO_HASH) : ZERO_HASH);
   }
 
@@ -564,7 +564,7 @@ async function loadAccountData(addr) {
   const claimables = [];
   for (const q of claimCandidates) {
     const result = computeClaimable(q, fullRespMap[q.id] || [], addr);
-    if (result.total.gt(0)) claimables.push(result);
+    if (result.total > 0n) claimables.push(result);
   }
 
   const arbitratorQuestions = arbData.questions?.items || [];
@@ -574,8 +574,8 @@ async function loadAccountData(addr) {
 
 // ── RPC balances ──────────────────────────────────────────────────────────────
 async function loadBalances(addr, chainId) {
-  const BN0 = ethers.BigNumber.from(0);
-  const prov = provider || new ethers.providers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId);
+  const BN0 = 0n;
+  const prov = provider || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
   const contracts = await loadContracts();
   const rcList = getRcContracts(contracts, chainId);
 
@@ -587,8 +587,8 @@ async function loadBalances(addr, chainId) {
   ]);
 
   // Only sum native-token contract balances for the chip — ERC20 amounts are in different units
-  const contractBal = rcList.reduce((sum, r, i) => !r.tokenAddress ? sum.add(rcBals[i] || BN0) : sum, BN0);
-  const withdrawableContracts = rcList.filter((_, i) => rcBals[i]?.gt(0)).map(r => r.address);
+  const contractBal = rcList.reduce((sum, r, i) => !r.tokenAddress ? sum + (rcBals[i] || BN0) : sum, BN0);
+  const withdrawableContracts = rcList.filter((_, i) => (rcBals[i] || 0n) > 0n).map(r => r.address);
   return { walletBal, contractBal, withdrawableContracts };
 }
 
@@ -628,7 +628,7 @@ function renderAsked(questions) {
   for (const q of questions) {
     const fin  = isFinalized(q);
     const token = tokenForQuestion(q);
-    const bond  = ethers.BigNumber.from(q.currentAnswerBond || '0');
+    const bond  = BigInt(q.currentAnswerBond || '0');
     const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
     const title = q.title || q.id;
 
@@ -637,13 +637,13 @@ function renderAsked(questions) {
       const label = answerLabel(q.currentAnswer);
       const cls   = answerClass(q.currentAnswer);
       rightHtml = `<span class="ans-pill ${cls}">${label}</span>`;
-    } else if (bond.gt(0)) {
+    } else if (bond > 0n) {
       rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`;
     }
 
     const answers = q.currentAnswer ? 1 : 0; // approximate; ponder doesn't expose count cheaply
-    const bounty  = ethers.BigNumber.from(q.bounty || '0');
-    const bountyStr = bounty.gt(0) ? ` · reward ${formatEth(bounty)} ${token}` : '';
+    const bounty  = BigInt(q.bounty || '0');
+    const bountyStr = bounty > 0n ? ` · reward ${formatEth(bounty)} ${token}` : '';
 
     const item = document.createElement('div');
     item.className = 'q-item';
@@ -734,8 +734,8 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
     } else if (alreadyClaimed) {
       rightHtml = `<div class="q-item-amount claimed">Claimed</div>`;
     } else if (myResp) {
-      const bond = ethers.BigNumber.from(myResp.bond || '0');
-      if (bond.gt(0)) rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">your bond</div>`;
+      const bond = BigInt(myResp.bond || '0');
+      if (bond > 0n) rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">your bond</div>`;
     }
 
     const item = document.createElement('div');
@@ -793,10 +793,10 @@ function renderArbitrator(questions) {
 
     for (const q of items) {
       const token = tokenForQuestion(q);
-      const bond  = ethers.BigNumber.from(q.currentAnswerBond || '0');
+      const bond  = BigInt(q.currentAnswerBond || '0');
       const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
       const title = q.title || q.id;
-      const rightHtml = bond.gt(0)
+      const rightHtml = bond > 0n
         ? `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`
         : '';
       const item = document.createElement('div');
@@ -895,7 +895,7 @@ function renderBalances({ walletBal, contractBal, withdrawableContracts }, chain
 
 function renderClaimBanner(claimables, chainId) {
   const banner = document.getElementById('claim-banner');
-  const BN0    = ethers.BigNumber.from(0);
+  const BN0    = 0n;
 
   const chainClaimables = claimables.filter(c => Number(c.chainId) === Number(chainId));
   const otherClaimables = claimables.filter(c => Number(c.chainId) !== Number(chainId));
@@ -915,7 +915,7 @@ function renderClaimBanner(claimables, chainId) {
     const byToken = {};
     for (const c of chainClaimables) {
       const sym = contractTokenMap[c.contract]?.tokenSym || CHAIN_NATIVE_TOKEN[chainId] || 'ETH';
-      byToken[sym] = (byToken[sym] || BN0).add(c.total);
+      byToken[sym] = (byToken[sym] || BN0) + c.total;
     }
     const amountText = Object.entries(byToken).map(([sym, amt]) => `${formatEth(amt)} ${sym}`).join(' + ');
     banner.style.display = '';
@@ -1166,10 +1166,10 @@ function onWalletChange(addr) {
     btn.textContent = RealityWallet.shortAddr(walletAddr);
     btn.classList.add('connected');
     btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer   = provider.getSigner();
-    provider.getNetwork().then(net => {
-      walletChainId = net.chainId;
+    provider = new ethers.BrowserProvider(window.ethereum);
+    Promise.all([provider.getSigner(), provider.getNetwork()]).then(([s, net]) => {
+      signer = s;
+      walletChainId = Number(net.chainId);
       if (!viewAddr) {
         // Nothing loaded yet — use the wallet address
         setViewAddr(walletAddr);
@@ -1179,10 +1179,10 @@ function onWalletChange(addr) {
       }
     });
     window.ethereum.removeAllListeners?.('chainChanged');
-    window.ethereum.on('chainChanged', hex => {
+    window.ethereum.on('chainChanged', async hex => {
       walletChainId = parseInt(hex, 16);
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer   = provider.getSigner();
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
       updateWalletUI();
     });
   } else {
