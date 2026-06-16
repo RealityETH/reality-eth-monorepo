@@ -346,25 +346,30 @@ function adaptPonderData(ponderData, BN0) {
   const { question: pq, responses: responsePage, reopeners } = ponderData;
   const responses = (responsePage?.items || [])
     .sort((a, b) => (Number(a.timestamp) < Number(b.timestamp) ? -1 : 1));
-  const answerEvents = responses.map(r => ({
-    blockNumber:     r.createdBlock     ? Number(r.createdBlock)     : undefined,
-    logIndex:        r.createdLogIndex  ? Number(r.createdLogIndex)  : undefined,
-    transactionHash: r.createdTxHash    ?? undefined,
-    args: {
-      // For history-hash computation: use the commitment hash for commitments
-      // (that's the value actually hashed on-chain), actual answer otherwise
-      answer:          r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH),
-      // For display: the revealed answer (null while still unrevealed)
-      display_answer:  r.answer,
-      question_id:     QUESTION_ID,
-      history_hash:    r.historyHash,
-      user:            r.user,
-      bond:            ethers.BigNumber.from(r.bond.toString()),
-      ts:              Number(r.timestamp),
-      is_commitment:   r.isCommitment,
-      is_unrevealed:   r.isUnrevealed ?? false,
+  // revealMap: commitmentHash (lowercase) → revealed answer bytes32
+  // Populated from Ponder when its LogAnswerReveal handler works; verifyWithRpc fills gaps.
+  const revealMap = {};
+  const answerEvents = responses.map(r => {
+    if (r.isCommitment && r.commitmentHash && r.answer) {
+      revealMap[r.commitmentHash.toLowerCase()] = r.answer;
     }
-  }));
+    return {
+      blockNumber:     r.createdBlock     ? Number(r.createdBlock)     : undefined,
+      logIndex:        r.createdLogIndex  ? Number(r.createdLogIndex)  : undefined,
+      transactionHash: r.createdTxHash    ?? undefined,
+      args: {
+        // For history-hash computation: use the commitment hash for commitments
+        // (that's the value actually hashed on-chain), actual answer otherwise
+        answer:          r.isCommitment ? (r.commitmentHash || ZERO_HASH) : (r.answer || ZERO_HASH),
+        question_id:     QUESTION_ID,
+        history_hash:    r.historyHash,
+        user:            r.user,
+        bond:            ethers.BigNumber.from(r.bond.toString()),
+        ts:              Number(r.timestamp),
+        is_commitment:   r.isCommitment,
+      }
+    };
+  });
   return {
     bond:          ethers.BigNumber.from((pq.currentAnswerBond || '0').toString()),
     finalizeTS:    Number(pq.scheduledFinalizationTimestamp || 0),
@@ -385,6 +390,8 @@ function adaptPonderData(ponderData, BN0) {
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
     answerEvents,
+    revealMap,
+    currentAnswer: pq.currentAnswer || null,
   };
 }
 
@@ -666,16 +673,14 @@ function buildAnswerForm(data, walletAddr) {
     return card;
   }
 
-  // Finalized select/multi: show a read-only options list with the winner marked
-  if (finalized && (isSelectType || isMulti)) {
+  // Finalized select/multi with named outcomes: show read-only options list with winner marked.
+  if (finalized && (type === 'single-select' || isMulti)) {
     const n = answerEvents.length;
     const winnerBytes = n > 0 ? answerEvents[n - 1].args.answer : null;
     const lo = winnerBytes ? winnerBytes.toLowerCase() : null;
     const isSpecial = lo && (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase());
 
-    const outcomes = isSelectType && type === 'bool'
-      ? [{ label: 'No', idx: 0 }, { label: 'Yes', idx: 1 }]
-      : (qjson.outcomes || []).map((o, i) => ({ label: o, idx: i }));
+    const outcomes = (qjson.outcomes || []).map((o, i) => ({ label: o, idx: i }));
 
     let winIdx = null, winMask = null;
     if (!isSpecial && winnerBytes) {
@@ -707,7 +712,7 @@ function buildAnswerForm(data, walletAddr) {
     return card;
   }
 
-  // Finalized non-select: return nothing (answer shown in status card only)
+  // Finalized bool/uint/int/datetime: answer shown in status card, nothing to add.
   if (finalized) return null;
 
   // Compute minimum required bond
@@ -946,8 +951,10 @@ function buildAnswerForm(data, walletAddr) {
   if (walletAddr) {
     const pending = loadPendingReveal(walletAddr);
     const lastEv  = data.answerEvents[data.answerEvents.length - 1];
-    if (pending && lastEv?.args.is_unrevealed &&
-        lastEv.args.user.toLowerCase() === walletAddr.toLowerCase()) {
+    const lastIsUnrevealedCommit = lastEv?.args.is_commitment
+      && !(data.revealMap || {})[lastEv.args.answer?.toLowerCase()];
+    if (pending && lastIsUnrevealedCommit &&
+        lastEv.args.user?.toLowerCase() === walletAddr.toLowerCase()) {
       const expiryTs  = lastEv.args.ts + Math.floor(data.timeout / 8);
       const remaining = expiryTs - Math.floor(Date.now() / 1000);
       const expiryStr = remaining > 0 ? `Expires in ${formatDuration(remaining)}.` : 'Commitment has expired.';
@@ -1108,6 +1115,14 @@ function formatRelTime(ts) {
   return dt.toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
+// Returns "in Xh Ym" if the reveal deadline is in the future, or "deadline passed".
+// reveal_ts = commitment submission timestamp + timeout/8
+function formatRevealDeadline(revealTs) {
+  const remaining = Number(revealTs) - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) return 'deadline passed';
+  return `in ${formatDuration(remaining)}`;
+}
+
 // ── Snapshot panel ────────────────────────────────────────────────────────────
 function parseSnapshotRef(title) {
   // Matches both "with the id X" and "with id X" (SafeSnap template variants)
@@ -1237,8 +1252,21 @@ function formatDuration(secs) {
   return h > 0 ? `${d}d ${h}h` : `${d}d`;
 }
 
+// Walk answerEvents + revealMap to find the last meaningful (non-commitment or revealed) answer.
+// Used for the banner when the latest event is an unrevealed commitment.
+function updateCurrentAnswer(data) {
+  const revealMap = data.revealMap || {};
+  for (let i = data.answerEvents.length - 1; i >= 0; i--) {
+    const ev = data.answerEvents[i];
+    if (!ev.args.is_commitment) { data.currentAnswer = ev.args.answer; return; }
+    const r = revealMap[ev.args.answer?.toLowerCase()];
+    if (r) { data.currentAnswer = r; return; }
+  }
+}
+
 function renderHistory(data) {
   const { answerEvents, qjson, arbitrationOccurred } = data;
+  const revealMap = data.revealMap || {};
   const n        = answerEvents.length;
   const token    = metaToken;
 
@@ -1248,13 +1276,37 @@ function renderHistory(data) {
     return b > mx ? b : mx;
   }, BigInt(0));
 
+  // Build a reveal-only entry (no bond) to show below the corresponding commit
+  function buildRevealItem(revealedAnswer) {
+    const color  = answerColorClass(revealedAnswer, qjson);
+    const label  = bytes32ToLabel(revealedAnswer, qjson) || '?';
+    const letter = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
+    const item   = el('div', 'answered-history-item');
+    const conn   = el('div', 'bond-connector');
+    conn.appendChild(el('div', `answer-dot dot-${color}`, letter));
+    const main = el('div', 'bond-main');
+    const labelEl = el('div', `bond-answer-label ${color} current-answer`);
+    labelEl.appendChild(document.createTextNode(label));
+    labelEl.appendChild(el('span', 'bond-tag tag-reveal', 'reveal'));
+    main.appendChild(labelEl);
+    item.appendChild(conn);
+    item.appendChild(main);
+    item.appendChild(el('div', 'bond-right'));  // empty — reveals have no bond
+    return item;
+  }
+
   function buildEntryContents(ev, tag, isCurrent) {
-    const isUnrevealed = ev.args.is_unrevealed;
-    const displayAns   = isUnrevealed ? null : (ev.args.display_answer || ev.args.answer);
-    const color   = isUnrevealed ? 'other' : answerColorClass(displayAns, qjson);
-    const label   = isUnrevealed ? 'Commitment' : (bytes32ToLabel(displayAns, qjson) || '?');
+    const isCommitment = ev.args.is_commitment;
+    const commitHash   = isCommitment ? ev.args.answer?.toLowerCase() : null;
+    const revealedAns  = commitHash ? (revealMap[commitHash] || null) : null;
+    // Current entry: show revealed answer when available; history entries always show "Commitment"
+    const showLabel    = isCommitment && (!isCurrent || !revealedAns) ? 'Commitment'
+      : bytes32ToLabel(isCommitment ? revealedAns : ev.args.answer, qjson) || '?';
+    const displayAns   = isCommitment ? revealedAns : ev.args.answer;
+    const color   = (!isCommitment || displayAns) ? answerColorClass(displayAns, qjson) : 'other';
+    const label   = showLabel;
     const bondStr = `${formatEth(ev.args.bond)} ${token}`;
-    const letter  = isUnrevealed ? '?' : ({ yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·');
+    const letter  = color === 'other' ? '?' : ({ yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·');
 
     // Connector + dot
     const connector = el('div', 'bond-connector');
@@ -1279,6 +1331,11 @@ function renderHistory(data) {
       submeta.appendChild(document.createTextNode(' · '));
     }
     if (ev.args.ts) submeta.appendChild(document.createTextNode(formatRelTime(ev.args.ts)));
+    // For unrevealed commitments, append the reveal deadline to the submeta line
+    if (isCommitment && !revealedAns && ev.args.ts && data.timeout) {
+      const revealTs = ev.args.ts + Math.floor(data.timeout / 8);
+      submeta.appendChild(document.createTextNode(` · reveal ${formatRevealDeadline(revealTs)}`));
+    }
     main.appendChild(submeta);
 
     // Right: bond amount + bar (omitted for arbitrated answers where bond is meaningless)
@@ -1317,11 +1374,17 @@ function renderHistory(data) {
   if (!histContainer) return;
   histContainer.innerHTML = '';
 
-  // History: show from second-latest down to oldest (newest at top)
+  // History: show from second-latest down to oldest (newest at top).
+  // For each commitment that has been revealed, show the reveal as a separate entry
+  // above the commitment (reveals are newer than the commits they follow).
   for (let i = n - 2; i >= 0; i--) {
-    const isArbitrated = arbitrationOccurred && answerEvents[i].args.bond.isZero();
+    const ev = answerEvents[i];
+    const isArbitrated = arbitrationOccurred && ev.args.bond.isZero();
     const tag  = isArbitrated ? 'arbitrated' : (i === n - 2 ? 'disputed' : null);
-    const { connector, main, right } = buildEntryContents(answerEvents[i], tag, false);
+    const commitHash = ev.args.is_commitment ? ev.args.answer?.toLowerCase() : null;
+    const revealedAns = commitHash ? (revealMap[commitHash] || null) : null;
+    if (revealedAns) histContainer.appendChild(buildRevealItem(revealedAns));
+    const { connector, main, right } = buildEntryContents(ev, tag, false);
     const item = el('div', 'answered-history-item');
     item.appendChild(connector);
     item.appendChild(main);
@@ -1530,16 +1593,37 @@ function renderStatusCard(data) {
   // Current answer banner in col-main
   if (banner && n > 0) {
     const latest     = answerEvents[n - 1];
-    const displayAns = latest.args.is_unrevealed ? null : (latest.args.display_answer || latest.args.answer);
+    const revealMap  = data.revealMap || {};
+    const commitHash = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
+    const latestReveal = commitHash ? (revealMap[commitHash] || null) : null;
+
+    let displayAns = null, pendingReveal = false;
+    if (commitHash && !latestReveal) {
+      // Unrevealed commitment: show the answer the contract currently holds (set before the commit).
+      pendingReveal = true;
+      displayAns = data.currentAnswer || null;
+    } else {
+      displayAns = latestReveal ?? latest.args.answer ?? null;
+    }
+
     const label   = (displayAns && bytes32ToLabel(displayAns, qjson)) || '?';
     const color   = displayAns ? answerColorClass(displayAns, qjson) : 'other';
     const bgCls   = color === 'yes' ? 'answer-banner-yes' : color === 'no' ? 'answer-banner-no' : 'answer-banner-inv';
     const isHex   = /^0x[0-9a-f]{20,}$/i.test(label);
     const topBond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
     const bondStr = `${formatEth(topBond)} ${token}`;
+    let pendingBadge = '';
+    if (pendingReveal) {
+      const revealTs = latest.args.ts && timeout ? latest.args.ts + Math.floor(timeout / 8) : 0;
+      const dlStr = revealTs ? formatRevealDeadline(revealTs) : null;
+      if (dlStr !== 'deadline passed') {
+        const badgeText = dlStr ? `pending reveal · ${dlStr}` : 'pending reveal';
+        pendingBadge = `<span class="bond-tag tag-pending">${esc(badgeText)}</span>`;
+      }
+    }
     banner.innerHTML = `
       <div class="card-title">${finalized ? 'Final answer' : 'Current answer'}</div>
-      <span class="answer-banner-value ${bgCls}${isHex ? ' hex' : ''}">${esc(label)}</span>
+      <span class="answer-banner-value ${bgCls}${isHex ? ' hex' : ''}">${esc(label)}${pendingBadge}</span>
       <div class="answer-banner-meta">Top bond: <strong>${esc(bondStr)}</strong></div>`;
     banner.style.display = '';
   }
@@ -1803,58 +1887,81 @@ async function verifyWithRpc(data) {
         errors.push('history hash mismatch');
     }
 
-    // Current best answer — catches a concealed commitment reveal
-    let concealedReveal = false;
-    if (bestAnswer !== null && data.answerEvents.length > 0) {
-      const latest = data.answerEvents[data.answerEvents.length - 1];
-      if (latest.args.is_commitment && latest.args.is_unrevealed
-          && bestAnswer.toLowerCase() !== latest.args.answer.toLowerCase()) {
-        // Ponder hasn't indexed LogAnswerReveal yet. Patch in-place and re-render
-        // so the user sees the revealed answer without waiting for Ponder to catch up.
-        // Also update finalizeTS: the contract resets it to reveal_ts + timeout.
-        latest.args.display_answer = bestAnswer;
-        latest.args.is_unrevealed  = false;
-        if (finalizeTS !== null) data.finalizeTS = Number(finalizeTS);
+    // Fill revealMap from on-chain commitments() for any commitment entries missing from Ponder
+    // (e.g. indexing lag, or commitment submitted after Ponder last synced).
+    if (!data.revealMap) data.revealMap = {};
+    const allCommitEntries = data.answerEvents.filter(
+      ev => ev.args.is_commitment && ev.args.answer && ev.args.answer !== ZERO_HASH
+    );
+    if (allCommitEntries.length > 0) {
+      const commitmentResults = await Promise.all(
+        allCommitEntries.map(ev => safeCall(() => reality.commitments(ev.args.answer), null))
+      );
+      let mapChanged = false;
+      for (let i = 0; i < allCommitEntries.length; i++) {
+        const c = commitmentResults[i];
+        if (c?.is_revealed) {
+          const key = allCommitEntries[i].args.answer.toLowerCase();
+          if (!data.revealMap[key]) {
+            data.revealMap[key] = c.revealed_answer;
+            mapChanged = true;
+          }
+        }
+      }
+      if (mapChanged) {
+        const latest = data.answerEvents[data.answerEvents.length - 1];
+        const latestKey = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
+        if (latestKey && data.revealMap[latestKey]) {
+          // Latest commitment has now been revealed — update finalizeTS and clear pending notice
+          if (finalizeTS !== null) data.finalizeTS = Number(finalizeTS);
+          qPage.querySelector('.pending-reveal-notice')?.remove();
+        }
+        // Recompute currentAnswer now that revealMap is fuller
+        updateCurrentAnswer(data);
         renderStatusCard(data);
         renderHistory(data);
-        qPage.querySelector('.pending-reveal-notice')?.remove();
-        concealedReveal = true;
-      } else {
-        const expected = latest.args.is_commitment && latest.args.is_unrevealed
-          ? latest.args.answer
-          : (latest.args.display_answer || ZERO_HASH);
-        if (bestAnswer.toLowerCase() !== expected.toLowerCase())
-          errors.push('current answer mismatch');
       }
     }
 
-    // History entries: check on-chain commitment state for non-latest unrevealed commits.
-    // Ponder's LogAnswerReveal handler should update isUnrevealed/answer in-place, but
-    // appears to have a matching bug, so we fall back to the commitments() view function.
-    const unrevealedHistory = data.answerEvents.filter(
-      (ev, i) => i < data.answerEvents.length - 1
-        && ev.args.is_commitment && ev.args.is_unrevealed
-        && ev.args.answer && ev.args.answer !== ZERO_HASH
-    );
-    if (unrevealedHistory.length > 0) {
-      const commitmentResults = await Promise.all(
-        unrevealedHistory.map(ev => safeCall(() => reality.commitments(ev.args.answer), null))
-      );
-      let histPatched = false;
-      for (let i = 0; i < unrevealedHistory.length; i++) {
-        const c = commitmentResults[i];
-        if (c?.is_revealed) {
-          unrevealedHistory[i].args.display_answer = c.revealed_answer;
-          unrevealedHistory[i].args.is_unrevealed  = false;
-          histPatched = true;
+    // For the RPC path, data.currentAnswer starts null; derive it now from events + revealMap.
+    if (data.currentAnswer === null) updateCurrentAnswer(data);
+
+    // Detect on-chain answer that Ponder hasn't indexed yet.
+    // Compare getBestAnswer() to what we'd expect from Ponder's data + revealMap.
+    let newEntryPushed = false;
+    if (bestAnswer !== null && data.answerEvents.length > 0) {
+      const latest = data.answerEvents[data.answerEvents.length - 1];
+      const latestKey = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
+      const latestReveal = latestKey ? (data.revealMap[latestKey] || null) : null;
+      // What we expect getBestAnswer() to return:
+      //   - unrevealed commitment: the commitment hash
+      //   - revealed commitment: the revealed answer
+      //   - direct answer: the answer bytes32
+      const expected = (latestKey && !latestReveal)
+        ? latestKey
+        : (latestReveal || latest.args.answer || ZERO_HASH);
+      if (bestAnswer.toLowerCase() !== expected.toLowerCase()) {
+        // Mismatch: check if bestAnswer is a new unrevealed commitment not in Ponder yet
+        const newCommit = await safeCall(() => reality.commitments(bestAnswer), null);
+        if (newCommit !== null && Number(newCommit.reveal_ts) > 0 && !newCommit.is_revealed) {
+          const synthBond = bond || ethers.BigNumber.from(0);
+          data.answerEvents.push({
+            args: { is_commitment: true, answer: bestAnswer, bond: synthBond, user: null, ts: 0 }
+          });
+          data.bond = synthBond;
+          if (finalizeTS !== null) data.finalizeTS = Number(finalizeTS);
+          renderStatusCard(data);
+          renderHistory(data);
+          newEntryPushed = true;
+        } else {
+          errors.push('current answer mismatch');
         }
       }
-      if (histPatched) renderHistory(data);
     }
 
     if (bond !== null && !bond.eq(data.bond))
       errors.push('bond mismatch');
-    if (!concealedReveal && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
+    if (!newEntryPushed && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
       errors.push('finalization timestamp mismatch');
     if (timeout !== null && Number(timeout) !== data.timeout)
       errors.push('timeout mismatch');
@@ -2086,14 +2193,12 @@ async function main() {
       const answerEvents = rawAnswerEvents.map(ev => ({
         args: {
           answer:         ev.args.answer,
-          display_answer: ev.args.is_commitment ? null : ev.args.answer,
           question_id:    ev.args.question_id,
           history_hash:   ev.args.history_hash,
           user:           ev.args.user,
           bond:           ev.args.bond,
           ts:             ev.args.ts.toNumber(),
           is_commitment:  ev.args.is_commitment,
-          is_unrevealed:  ev.args.is_commitment, // RPC can't confirm reveals
         },
       }));
       const arbitrationOccurred = answerEvents.some(ev => ev.args.bond.isZero());
@@ -2105,6 +2210,8 @@ async function main() {
         reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
         reopensQuestionId,
         answerEvents,
+        revealMap: {},
+        currentAnswer: null,
       };
     });
   }
@@ -2282,8 +2389,8 @@ async function main() {
     }
   }
 
-  // 12. Background RPC verification (only when data came from Ponder)
-  if (data.fromPonder) verifyWithRpc(data).catch(() => {});
+  // 12. Background RPC verification + reveal-map population
+  if (reality) verifyWithRpc(data).catch(() => {});
 
   // 13. Live countdown + new-answer poll
   if (!finalized) {

@@ -2,6 +2,7 @@ import { ponder } from "@/generated";
 import { question, response, template, claim } from "../ponder.schema";
 import { populatedJSONForTemplate, resolveTemplateText, stripNullBytes } from "./lib/parseQuestion";
 import { eq, sql, and } from "drizzle-orm";
+import { keccak256, encodePacked } from "viem";
 
 function cqId(contract: `0x${string}`, questionId: `0x${string}`): string {
   return `${contract.toLowerCase()}-${questionId}`;
@@ -129,7 +130,11 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
     await db
       .insert(response)
       .values({
-        id: `${qId}-${event.log.transactionHash}-${event.log.logIndex}`,
+        // Commitments use the commitment hash in the ID so the reveal handler
+        // can look up by id (text) rather than by the hex commitmentHash column.
+        id: is_commitment
+          ? `${qId}-${answer}`
+          : `${qId}-${event.log.transactionHash}-${event.log.logIndex}`,
         questionId: qId,
         answer: is_commitment ? undefined : answer,
         commitmentHash: is_commitment ? answer : undefined,
@@ -161,15 +166,21 @@ for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
   // ── Answer reveals ────────────────────────────────────────────────────────
 
   ponder.on(`${name}:LogAnswerReveal`, async ({ event, context }) => {
-    const { question_id, answer_hash, answer } = event.args;
+    const { question_id, answer_hash, answer, bond } = event.args;
     const { db } = context;
     const qId = cqId(event.log.address, question_id);
 
-    // Update the matching commitment response with the revealed answer
+    // The commitment record ID uses the commitment_id, which the contract derives as
+    // keccak256(question_id, answer_hash, bond). LogAnswerReveal.answer_hash is only
+    // keccak256(answer, nonce) — we must recompute commitment_id to look up the record.
+    const commitment_id = keccak256(encodePacked(
+      ['bytes32', 'bytes32', 'uint256'],
+      [question_id, answer_hash, bond],
+    ));
     await db.sql
       .update(response)
       .set({ answer, isUnrevealed: false })
-      .where(and(eq(response.questionId, qId), eq(response.commitmentHash, answer_hash)));
+      .where(eq(response.id, `${qId}-${commitment_id}`));
 
     await qUpdate(db, qId, {
       currentAnswer: answer,
