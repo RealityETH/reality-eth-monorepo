@@ -1976,6 +1976,20 @@ async function verifyWithRpc(data) {
   if (errors.length === 0) {
     indGroup?.classList.add('verified');
     ind.title = 'Ponder (indexed data) — RPC verified ✓';
+    if (connEl) {
+      connEl.title = 'Ponder data verified against RPC — click for details';
+      connEl.style.cursor = 'pointer';
+      connEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!window.RealitySettings) return;
+        RealitySettings.openPanel(connEl, 300, (panel) => {
+          panel.innerHTML = `
+            <div class="sp-title">RPC Verification ✓</div>
+            <p class="sp-body">The indexed data from Ponder was cross-checked directly against the blockchain RPC. Content hash, answer history, current answer, bond, and finalization timestamp all match on-chain state — the index is consistent.</p>
+          `;
+        });
+      });
+    }
     // Warm the events cache in the background using pinpoint single-block fetches.
     // Ponder tells us the exact createdBlock for each event, so we don't need
     // a range scan at all — just one eth_getLogs call per unique block.
@@ -2009,20 +2023,6 @@ async function verifyWithRpc(data) {
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
       } catch { /* best-effort — never block the UI */ }
     })();
-    if (connEl) {
-      connEl.title = 'Ponder data verified against RPC — click for details';
-      connEl.style.cursor = 'pointer';
-      connEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!window.RealitySettings) return;
-        RealitySettings.openPanel(connEl, 300, (panel) => {
-          panel.innerHTML = `
-            <div class="sp-title">RPC Verification ✓</div>
-            <p class="sp-body">The indexed data from Ponder was cross-checked directly against the blockchain RPC. Content hash, answer history, current answer, bond, and finalization timestamp all match on-chain state — the index is consistent.</p>
-          `;
-        });
-      });
-    }
   } else {
     ind.classList.add('fail');
     ind.title = `Ponder — WARNING: ${errors.join('; ')}`;

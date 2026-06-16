@@ -201,12 +201,20 @@
   .snapshot-body-content.expanded { display: block; }
 
   /* ── Layout ── */
-  .layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
-  .col-main { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-  .col-side  { display: flex; flex-direction: column; gap: 14px; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    grid-template-areas: "banner side" "main side";
+    gap: 20px; align-items: start;
+  }
+  #answer-banner { grid-area: banner; }
+  .col-main { grid-area: main; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .col-side { grid-area: side; display: flex; flex-direction: column; gap: 14px; }
   @media (max-width: 700px) {
-    .layout { grid-template-columns: 1fr; }
-    .col-side { order: -1; }
+    .layout {
+      grid-template-columns: 1fr;
+      grid-template-areas: "banner" "side" "main";
+    }
     .q-text-large { font-size: 18px; }
   }
 
@@ -595,11 +603,11 @@
 
   <div class="layout">
 
+    <!-- Current answer banner — direct grid child so it sits above both columns on mobile -->
+    <div id="answer-banner" class="card" style="display:none"></div>
+
     <!-- ── Left column ── -->
     <div class="col-main">
-
-      <!-- Current answer banner — populated by renderStatusCard when answers exist -->
-      <div id="answer-banner" class="card" style="display:none"></div>
 
       <!-- Answer form — replaced by question.js with the type-specific form -->
       <div id="answer-form-container" class="card">
