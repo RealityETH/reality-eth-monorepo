@@ -2169,8 +2169,9 @@ async function main() {
       if (!rpcTemplateStr) {
         const templateBlock = await safeCall(() => reality.templates(templateId), null);
         if (templateBlock) {
+          const tBlockNum = templateBlock.toNumber ? templateBlock.toNumber() : Number(templateBlock);
           const tevents = await safeCall(
-            () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), templateBlock, templateBlock), []);
+            () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), tBlockNum, tBlockNum), []);
           rpcTemplateStr = tevents[0]?.args.question_text;
         }
         rpcTemplateStr = rpcTemplateStr || '{"type":"bool","title":"%s"}';

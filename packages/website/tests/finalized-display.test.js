@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { snapshot, revert } from './setup/anvil.js';
 import { setupPage } from './setup/wallet-mock.js';
-import { createClaimFixtures, createFinalizedSelectFixtures, CONTRACTS } from './setup/fixtures.js';
+import { createClaimFixtures, createFinalizedSelectFixtures, createFinalizedMultiSelectFixtures, CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
 // Wait for the question page to finish rendering RPC data for a finalized question.
@@ -62,5 +62,51 @@ test.describe('finalized single-select: options list shown', () => {
     const unchosen = page.locator('.finalized-option:not(.finalized-option-chosen)');
     await expect(unchosen.filter({ hasText: 'Cat' })).toBeVisible();
     await expect(unchosen.filter({ hasText: 'Fish' })).toBeVisible();
+  });
+});
+
+// The multiple-select winner is a bitmask: bit N set means outcome N was chosen.
+// The code uses `winMask & (1 << idx)` — if the bit direction were reversed the
+// wrong outcomes would be highlighted and the bug would be silent.
+test.describe('finalized multiple-select: bitmask winner marking', () => {
+  let snap;
+  let fixtures;
+
+  test.beforeAll(async () => {
+    fixtures = await createFinalizedMultiSelectFixtures();
+  });
+
+  test.beforeEach(async () => { snap = await snapshot(); });
+  test.afterEach(async () => { await revert(snap); snap = await snapshot(); });
+
+  async function loadQuestion(page) {
+    await loadFinalizedQuestion(page, fixtures.questionId);
+    await page.waitForSelector('.finalized-options', { timeout: 5000 });
+  }
+
+  test('finalized-options list is shown', async ({ page }) => {
+    await loadQuestion(page);
+    await expect(page.locator('.finalized-options')).toBeVisible();
+  });
+
+  test('Cat (bit 0) is marked as chosen', async ({ page }) => {
+    await loadQuestion(page);
+    await expect(page.locator('.finalized-option-chosen').filter({ hasText: 'Cat' })).toBeVisible();
+  });
+
+  test('Fish (bit 2) is marked as chosen', async ({ page }) => {
+    await loadQuestion(page);
+    await expect(page.locator('.finalized-option-chosen').filter({ hasText: 'Fish' })).toBeVisible();
+  });
+
+  test('Dog (bit 1, not selected) is not marked as chosen', async ({ page }) => {
+    await loadQuestion(page);
+    const unchosen = page.locator('.finalized-option:not(.finalized-option-chosen)');
+    await expect(unchosen.filter({ hasText: 'Dog' })).toBeVisible();
+  });
+
+  test('exactly two outcomes are marked chosen', async ({ page }) => {
+    await loadQuestion(page);
+    await expect(page.locator('.finalized-option-chosen')).toHaveCount(2);
   });
 });

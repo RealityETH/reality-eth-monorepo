@@ -553,6 +553,43 @@ export async function createFinalizedSelectFixtures() {
   return { questionId, answer: DOG };
 }
 
+// Creates a finalized multiple-select question with outcomes "Cat", "Dog", "Fish"
+// where Cat (index 0) and Fish (index 2) are selected (bitmask = 0b101 = 5).
+// Used to verify the bitmask-based winner marking in the finalized options list.
+// nonce=18 — nonces 0-17 on v3.0 are taken by other fixture functions.
+export async function createFinalizedMultiSelectFixtures() {
+  const DELIMITER = '␟'; // U+241F
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const timeout = 60;
+  const OUTCOMES = '"Cat","Dog","Fish"';
+  const questionText = `Finalized multi-select test: multiple-select${DELIMITER}${OUTCOMES}`;
+  // Bitmask: bit 0 (Cat) + bit 2 (Fish) = 0b101 = 5
+  const CAT_AND_FISH = '0x0000000000000000000000000000000000000000000000000000000000000005';
+
+  const questionId = computeQuestionId(
+    3, 0, questionText,
+    ethers.ZeroAddress, timeout, 18,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      3, questionText, ethers.ZeroAddress, timeout, 0, 18, { value: bounty }
+    )).wait();
+    await (await reality.submitAnswer(questionId, CAT_AND_FISH, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  }
+
+  return { questionId, answer: CAT_AND_FISH };
+}
+
 // Creates a bool question (21-day timeout) with a single unrevealed commitment.
 // The reveal deadline is timeout/8 ≈ 2.6 days after the fork block (Jun 9 2026),
 // which is already past relative to the browser clock (~Jun 16 2026).  The question
