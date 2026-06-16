@@ -2081,15 +2081,21 @@ async function main() {
         ...(pq.type === 'uint' && { decimals: 18 }),
         ...(outcomes != null && { outcomes }),
       };
-      // If Ponder couldn't parse the type (malformed template JSON), extract it via regex from the raw template.
-      if (data.qjson.type == null) {
-        try {
-          const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
-          data.templateStr = templateStr;
+      // Fetch template for format/title_html (markdown rendering) and type fallback.
+      try {
+        const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
+        data.templateStr = templateStr;
+        if (data.qjson.type == null) {
           const typeMatch = /"type"\s*:\s*"([^"]+)"/.exec(templateStr);
           if (typeMatch) data.qjson.type = typeMatch[1];
-        } catch {}
-      }
+        }
+        const full = populateTemplate(templateStr, pq.data);
+        data.qjson.format = full.format;
+        if (full.title_html) {
+          data.qjson.title_html = full.title_html;
+          data.qjson.title_text = full.title_text;
+        }
+      } catch {}
     } else {
       const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
       data.qjson = populateTemplate(templateStr, pq.data);
@@ -2225,13 +2231,11 @@ async function main() {
   document.getElementById('rpc-loading-note')?.style.setProperty('display', 'none');
   const titleEl = document.getElementById('question-title');
   if (titleEl) {
-    const rawTitle = data.qjson?.title || '';
-    if (data.qjson?.format === 'text/markdown' && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-      const safeSource = DOMPurify.sanitize(rawTitle, {USE_PROFILES: {html: false}});
-      titleEl.innerHTML = DOMPurify.sanitize(marked.parse(safeSource));
+    if (data.qjson?.title_html) {
+      titleEl.innerHTML = data.qjson.title_html;
       titleEl.classList.add('q-text-md');
     } else {
-      titleEl.textContent = rawTitle;
+      titleEl.textContent = data.qjson?.title || '';
     }
   }
 
