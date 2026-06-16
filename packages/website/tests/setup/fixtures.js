@@ -590,6 +590,58 @@ export async function createFinalizedMultiSelectFixtures() {
   return { questionId, answer: CAT_AND_FISH };
 }
 
+// Creates a custom markdown-format bool question.  The title contains **bold**
+// syntax so tests can assert that <strong> is present (rendered) rather than
+// raw ** asterisks (not rendered).
+// nonce=19 — nonces 0-18 on v3.0 are taken by other fixture functions.
+export async function createMarkdownFixtures() {
+  const DELIMITER = '␟';
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const timeout = 60;
+  const openingTs = 0;
+
+  const MARKDOWN_TEMPLATE =
+    '{"title": "%s", "type": "bool", "format": "text/markdown", "category": "%s", "lang": "%s"}';
+
+  // Find or create the markdown template (idempotent across test runs)
+  let templateId;
+  const existingTemplates = await reality.queryFilter(
+    reality.filters.LogNewTemplate(null, TEST_ACCOUNT.address),
+    FORK_BLOCK
+  );
+  const existingTpl = existingTemplates.find(e => e.args.question_text === MARKDOWN_TEMPLATE);
+  if (existingTpl) {
+    templateId = Number(existingTpl.args.template_id);
+  } else {
+    const tx = await reality.createTemplate(MARKDOWN_TEMPLATE);
+    const receipt = await tx.wait();
+    const logTopic = reality.interface.getEvent('LogNewTemplate').topicHash;
+    const log = receipt.logs.find(l => l.topics[0] === logTopic);
+    templateId = Number(reality.interface.parseLog(log).args.template_id);
+  }
+
+  const questionText = `Will **bold text** render correctly?${DELIMITER}misc${DELIMITER}en_US`;
+  const questionId = computeQuestionId(
+    templateId, openingTs, questionText,
+    ethers.ZeroAddress, timeout, 19,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existingQ = await reality.questions(questionId);
+  if (BigInt(existingQ[0]) === 0n) {
+    await (await reality.askQuestion(
+      templateId, questionText, ethers.ZeroAddress,
+      timeout, openingTs, 19, { value: bounty }
+    )).wait();
+  }
+
+  return { questionId, templateId, questionText, markdownTemplate: MARKDOWN_TEMPLATE };
+}
+
 // Creates a bool question (21-day timeout) with a single unrevealed commitment.
 // The reveal deadline is timeout/8 ≈ 2.6 days after the fork block (Jun 9 2026),
 // which is already past relative to the browser clock (~Jun 16 2026).  The question
