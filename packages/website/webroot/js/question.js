@@ -676,7 +676,14 @@ function buildAnswerForm(data, walletAddr) {
   // Finalized select/multi with named outcomes: show read-only options list with winner marked.
   if (finalized && (type === 'single-select' || isMulti)) {
     const n = answerEvents.length;
-    const winnerBytes = n > 0 ? answerEvents[n - 1].args.answer : null;
+    const latest = n > 0 ? answerEvents[n - 1] : null;
+    const revealMap = data.revealMap || {};
+    const commitHash = latest?.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
+    const latestReveal = commitHash ? (revealMap[commitHash] || null) : null;
+    // Commitment hash is not a valid option index — use the effective on-chain answer instead.
+    const winnerBytes = (commitHash && !latestReveal)
+      ? (data.currentAnswer || null)
+      : (latest?.args.answer ?? null);
     const lo = winnerBytes ? winnerBytes.toLowerCase() : null;
     const isSpecial = lo && (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase());
 
@@ -2284,11 +2291,13 @@ async function main() {
   let currentAnswerEl = null;
   if (formSlot) {
     let replacement;
-    if (!walletAddr && !finalized && !beforeOpen) {
-      replacement = buildLockedState(data);
-    } else {
-      replacement = buildAnswerForm(data, walletAddr);
-    }
+    try {
+      if (!walletAddr && !finalized && !beforeOpen) {
+        replacement = buildLockedState(data);
+      } else {
+        replacement = buildAnswerForm(data, walletAddr);
+      }
+    } catch { /* fall through — replacement stays undefined, formSlot is removed below */ }
     if (replacement) { formSlot.replaceWith(replacement); currentAnswerEl = replacement; }
     else             formSlot.remove();
   }
