@@ -115,7 +115,7 @@ let reality = null, realityRW = null;
 
 const publicRpcUrl = window.RealitySettings?.getRpcUrl(CHAIN_ID) || PUBLIC_RPC[CHAIN_ID];
 const readProvider = publicRpcUrl
-  ? new ethers.providers.JsonRpcProvider(publicRpcUrl, CHAIN_ID)
+  ? new ethers.JsonRpcProvider(publicRpcUrl, CHAIN_ID, { staticNetwork: true })
   : null;
 
 // ── Data-source indicators ────────────────────────────────────────────────────
@@ -144,17 +144,17 @@ async function safeCall(fn, fallback) {
 // Fetch the full question struct in one eth_call. Handles v2 (10 fields, no min_bond)
 // and v3 (11 fields) by trying the longer decode first, falling back to the shorter one.
 async function questionsStruct(provider, contractAddr, questionId) {
-  const selector = ethers.utils.id('questions(bytes32)').slice(0, 10);
+  const selector = ethers.id('questions(bytes32)').slice(0, 10);
   const raw = await safeCall(() => provider.call({
     to: contractAddr,
-    data: selector + ethers.utils.hexZeroPad(questionId, 32).slice(2),
+    data: selector + ethers.zeroPadValue(ethers.toBeHex(questionId), 32).slice(2),
   }), null);
   if (!raw || raw === '0x') return null;
   const T11 = ['bytes32','address','uint32','uint32','uint32','bool','uint256','bytes32','bytes32','uint256','uint256'];
   const T10 = T11.slice(0, 10);
   let d;
-  try       { d = ethers.utils.defaultAbiCoder.decode(T11, raw); }
-  catch     { d = await safeCall(() => ethers.utils.defaultAbiCoder.decode(T10, raw), null); }
+  try       { d = ethers.AbiCoder.defaultAbiCoder().decode(T11, raw); }
+  catch     { d = await safeCall(() => ethers.AbiCoder.defaultAbiCoder().decode(T10, raw), null); }
   if (!d) return null;
   return {
     content_hash:        d[0],
@@ -167,7 +167,7 @@ async function questionsStruct(provider, contractAddr, questionId) {
     best_answer:         d[7],
     history_hash:        d[8],
     bond:                d[9],
-    min_bond:            d[10] ?? ethers.BigNumber.from(0),
+    min_bond:            d.length > 10 ? d[10] : 0n,
   };
 }
 
@@ -189,8 +189,8 @@ function el(tag, cls, text) {
 }
 
 function formatEth(bn) {
-  if (!bn || ethers.BigNumber.from(bn).eq(0)) return '0';
-  return ethers.utils.formatEther(bn).replace(/\.0+$/, '');
+  if (!bn) return '0';
+  return ethers.formatEther(bn).replace(/\.0+$/, '');
 }
 
 // ── Ponder data loading ───────────────────────────────────────────────────────
@@ -298,7 +298,7 @@ async function blockAfterTimestamp(provider, ts, lo, hi) {
 //  3. Full chunked scan from startBlock to currentBlock as last resort.
 // Returns { events, currentBlock } so callers can reuse currentBlock.
 async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
-  const tip = await safeCall(() => reality.provider.getBlock('latest'), null);
+  const tip = await safeCall(() => reality.runner.getBlock('latest'), null);
   const currentBlock = tip?.number ?? startBlock + 5_000_000;
   console.log(`[reality] findLogNewQuestion: startBlock=${startBlock} currentBlock=${currentBlock} upperBoundTs=${upperBoundTs}`);
 
@@ -312,7 +312,7 @@ async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
 
   if (tip && upperBoundTs > 0 && upperBoundTs < tip.timestamp) {
     // Stage 2: binary-search timestamps → refBlock is the first block after upperBoundTs.
-    const refBlock = await blockAfterTimestamp(reality.provider, upperBoundTs, startBlock, currentBlock);
+    const refBlock = await blockAfterTimestamp(reality.runner, upperBoundTs, startBlock, currentBlock);
     console.log(`[reality] findLogNewQuestion: stage 2 — refBlock=${refBlock}, scanning window [${Math.max(startBlock, refBlock - 200_000)}, ${refBlock}]`);
 
     // Try a 200k-block window backwards from refBlock first.
@@ -342,7 +342,7 @@ async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
   return { events, currentBlock };
 }
 
-function adaptPonderData(ponderData, BN0) {
+function adaptPonderData(ponderData) {
   const { question: pq, responses: responsePage, reopeners } = ponderData;
   const responses = (responsePage?.items || [])
     .sort((a, b) => (Number(a.timestamp) < Number(b.timestamp) ? -1 : 1));
@@ -364,25 +364,25 @@ function adaptPonderData(ponderData, BN0) {
         question_id:     QUESTION_ID,
         history_hash:    r.historyHash,
         user:            r.user,
-        bond:            ethers.BigNumber.from(r.bond.toString()),
+        bond:            BigInt(r.bond.toString()),
         ts:              Number(r.timestamp),
         is_commitment:   r.isCommitment,
       }
     };
   });
   return {
-    bond:          ethers.BigNumber.from((pq.currentAnswerBond || '0').toString()),
+    bond:          BigInt((pq.currentAnswerBond || '0').toString()),
     finalizeTS:    Number(pq.scheduledFinalizationTimestamp || 0),
     openingTS:     Number(pq.openingTimestamp || 0),
     timeout:       Number(pq.timeout || 0),
     arbitrator:    pq.arbitrator,
-    nonce:         BN0,
+    nonce:         0n,
     templateId:    Number(pq.templateId || 0),
     questionStr:   pq.data,
     createdBlock:  pq.createdBlock ? Number(pq.createdBlock) : undefined,
     qjson:         null,
-    minBond:       ethers.BigNumber.from((pq.minBond || '0').toString()),
-    bounty:        ethers.BigNumber.from((pq.bounty  || '0').toString()),
+    minBond:       BigInt((pq.minBond || '0').toString()),
+    bounty:        BigInt((pq.bounty  || '0').toString()),
     settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
     reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
     reopenerQuestionId:   reopeners?.items?.[0]?.id || null,
@@ -487,20 +487,20 @@ async function ensureCorrectChain() {
     }
   }
   // Refresh write contract on the now-correct chain
-  const wp = new ethers.providers.Web3Provider(window.ethereum);
-  realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+  const wp = new ethers.BrowserProvider(window.ethereum);
+  realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
 }
 
 async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, spender, amountWei, txFn, onSubmitted) {
   btn.disabled = true;
   try {
     await ensureCorrectChain();
-    const wp = new ethers.providers.Web3Provider(window.ethereum);
+    const wp = new ethers.BrowserProvider(window.ethereum);
     const tokenRead = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, wp);
     const allowance = await tokenRead.allowance(walletAddr, spender);
-    if (allowance.lt(amountWei)) {
+    if (allowance < amountWei) {
       btn.textContent = `Approve ${metaToken} in wallet…`;
-      const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, wp.getSigner());
+      const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, await wp.getSigner());
       const approveTx = await tokenRW.approve(spender, amountWei);
       btn.textContent = `Approving ${metaToken}…`;
       await approveTx.wait();
@@ -540,7 +540,7 @@ async function runTx(btn, originalText, txFn, onSubmitted) {
 // ── Bond validation ───────────────────────────────────────────────────────────
 function validateBond(bondWrap, bondInput, minRequired) {
   const val = parseFloat(bondInput.value);
-  const minF = minRequired.gt(0) ? parseFloat(ethers.utils.formatEther(minRequired)) : 0;
+  const minF = minRequired > 0n ? parseFloat(ethers.formatEther(minRequired)) : 0;
   const minAmountEl = bondWrap.querySelector('.min-amount');
   if (isNaN(val) || val < minF) {
     bondWrap.classList.add('is-error');
@@ -568,12 +568,12 @@ function buildClaimArgs(questionId, answerEvents) {
 
 // ── Commit-reveal helpers ─────────────────────────────────────────────────────
 function makeRevealNonce() {
-  return ethers.utils.hexlify(ethers.utils.randomBytes(32));
+  return ethers.hexlify(ethers.randomBytes(32));
 }
 
 function computeCommitHash(ansBytes, nonce) {
   // Matches soliditySHA3(["uint256","uint256"], [answer, nonce]) in the contracts lib
-  return ethers.utils.solidityKeccak256(['uint256', 'uint256'], [ansBytes, nonce]);
+  return ethers.solidityPackedKeccak256(['uint256', 'uint256'], [ansBytes, nonce]);
 }
 
 const PENDING_REVEAL_KEY = `cr-${CHAIN_ID}-${CONTRACT.toLowerCase()}-${QUESTION_ID}`;
@@ -581,7 +581,7 @@ const PENDING_REVEAL_KEY = `cr-${CHAIN_ID}-${CONTRACT.toLowerCase()}-${QUESTION_
 function storePendingReveal(walletAddr, ansBytes, nonce, bondWei) {
   try {
     localStorage.setItem(PENDING_REVEAL_KEY, JSON.stringify({
-      wallet: walletAddr.toLowerCase(), answer: ansBytes, nonce, bond: bondWei.toHexString(),
+      wallet: walletAddr.toLowerCase(), answer: ansBytes, nonce, bond: '0x' + bondWei.toString(16),
     }));
   } catch {}
 }
@@ -607,15 +607,15 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
   btn.disabled = true;
   try {
     await ensureCorrectChain();
-    const wp = new ethers.providers.Web3Provider(window.ethereum);
-    const rc = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+    const wp = new ethers.BrowserProvider(window.ethereum);
+    const rc = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
 
     if (metaTokenAddress) {
       btn.textContent = `Approve ${metaToken} in wallet…`;
       const tokenRead = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, wp);
       const allowance = await tokenRead.allowance(walletAddr, CONTRACT);
-      if (allowance.lt(bondWei)) {
-        const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, wp.getSigner());
+      if (allowance < bondWei) {
+        const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, await wp.getSigner());
         const approveTx = await tokenRW.approve(CONTRACT, bondWei);
         btn.textContent = `Approving ${metaToken}…`;
         await approveTx.wait();
@@ -649,7 +649,7 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
   const { qjson, minBond, openingTS, finalizeTS, answerEvents } = data;
-  const bond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
+  const bond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
   const finalized    = isFinalized(finalizeTS);
   const beforeOpen   = isBeforeOpening(openingTS);
   const type         = qjson.type || 'bool';
@@ -691,9 +691,9 @@ function buildAnswerForm(data, walletAddr) {
 
     let winIdx = null, winMask = null;
     if (!isSpecial && winnerBytes) {
-      const bn = ethers.BigNumber.from(winnerBytes);
-      if (isMulti) winMask = bn.toNumber();
-      else         winIdx  = bn.toNumber();
+      const bn = BigInt(winnerBytes);
+      if (isMulti) winMask = Number(bn);
+      else         winIdx  = Number(bn);
     }
 
     const card = el('div', 'card');
@@ -723,12 +723,12 @@ function buildAnswerForm(data, walletAddr) {
   if (finalized) return null;
 
   // Compute minimum required bond
-  const minRequired = minBond.gt(0) && bond.eq(0)
+  const minRequired = minBond > 0n && bond === 0n
     ? minBond
-    : bond.gt(0) ? bond.mul(2) : (minBond.gt(0) ? minBond : ethers.BigNumber.from(0));
+    : bond > 0n ? bond * 2n : (minBond > 0n ? minBond : 0n);
 
-  const prefill = minRequired.gt(0)
-    ? ethers.utils.formatEther(minRequired).replace(/\.0+$/, '')
+  const prefill = minRequired > 0n
+    ? ethers.formatEther(minRequired).replace(/\.0+$/, '')
     : '0.001';
 
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
@@ -930,7 +930,7 @@ function buildAnswerForm(data, walletAddr) {
     if (!realityRW) { console.error('No wallet connected'); return; }
 
     const ansBytes = answerToBytes32(rawAnswer, qjson);
-    const bondWei  = ethers.utils.parseEther(bondInput.value);
+    const bondWei  = ethers.parseEther(bondInput.value);
     const maxPrev  = data.bond;
 
     if (crCb.checked) {
@@ -978,11 +978,11 @@ function buildAnswerForm(data, walletAddr) {
         revealBtn.textContent = 'Waiting for wallet…';
         try {
           await ensureCorrectChain();
-          const wp = new ethers.providers.Web3Provider(window.ethereum);
-          const rc = new ethers.Contract(CONTRACT, REALITY_ABI, wp.getSigner());
+          const wp = new ethers.BrowserProvider(window.ethereum);
+          const rc = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
           const ansBytes = pending.answer;
           const nonce    = pending.nonce;
-          const bondWei  = ethers.BigNumber.from(pending.bond);
+          const bondWei  = BigInt(pending.bond);
           const tx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
           revealBtn.textContent = 'Revealing…';
           await tx.wait();
@@ -1067,10 +1067,10 @@ function renderWarnings(data) {
   // Low reward — only meaningful once the question is finalized
   if (isFinalized(data.finalizeTS)) {
     const topBond = (data.answerEvents || []).reduce(
-      (mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
-    const totalStake = (data.bounty || ethers.BigNumber.from(0)).add(topBond);
-    const ONE_ETH = ethers.utils.parseEther('1');
-    if (totalStake.lt(ONE_ETH)) {
+      (mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
+    const totalStake = (data.bounty ?? 0n) + topBond;
+    const ONE_ETH = ethers.parseEther('1');
+    if (totalStake < ONE_ETH) {
       warnings.push({ level: 'warn', title: 'Low reward and bond',
         body: 'The reward was very low and no substantial bond was posted. There may not have been enough incentive to post accurate information.' });
     }
@@ -1278,10 +1278,7 @@ function renderHistory(data) {
   const token    = metaToken;
 
   // Max bond across all answers — used to scale bar widths
-  const maxBond = answerEvents.reduce((mx, ev) => {
-    const b = BigInt(ev.args.bond.toString());
-    return b > mx ? b : mx;
-  }, BigInt(0));
+  const maxBond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
 
   // Build a reveal-only entry (no bond) to show below the corresponding commit
   function buildRevealItem(revealedAnswer) {
@@ -1351,8 +1348,8 @@ function renderHistory(data) {
       right.appendChild(el('div', `bond-amount answer-bond-value`, bondStr));
       const barWrap = el('div', 'bond-bar-wrap');
       const bar     = el('div', `bond-bar bar-${color}`);
-      if (maxBond > BigInt(0)) {
-        bar.style.width = Math.round(Number(BigInt(ev.args.bond.toString()) * BigInt(100) / maxBond)) + '%';
+      if (maxBond > 0n) {
+        bar.style.width = Math.round(Number(ev.args.bond * 100n / maxBond)) + '%';
       }
       barWrap.appendChild(bar);
       right.appendChild(barWrap);
@@ -1367,7 +1364,7 @@ function renderHistory(data) {
   if (n === 0) return;
 
   // Build current answer entry (latest)
-  const latestIsArbitrated = arbitrationOccurred && answerEvents[n - 1].args.bond.isZero();
+  const latestIsArbitrated = arbitrationOccurred && answerEvents[n - 1].args.bond === 0n;
   const currentTag = latestIsArbitrated ? 'arbitrated' : 'current';
   const { connector, main, right } = buildEntryContents(answerEvents[n - 1], currentTag, true);
   curContainer.innerHTML = '';
@@ -1386,7 +1383,7 @@ function renderHistory(data) {
   // above the commitment (reveals are newer than the commits they follow).
   for (let i = n - 2; i >= 0; i--) {
     const ev = answerEvents[i];
-    const isArbitrated = arbitrationOccurred && ev.args.bond.isZero();
+    const isArbitrated = arbitrationOccurred && ev.args.bond === 0n;
     const tag  = isArbitrated ? 'arbitrated' : (i === n - 2 ? 'disputed' : null);
     const commitHash = ev.args.is_commitment ? ev.args.answer?.toLowerCase() : null;
     const revealedAns = commitHash ? (revealMap[commitHash] || null) : null;
@@ -1433,10 +1430,10 @@ async function renderArbitrationSection(data, walletAddr) {
         if (!meta.foreignProxy) return;
 
         const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
-        const fpChainId = fpChainBN.toNumber();
+        const fpChainId = Number(fpChainBN);
         const fpRpcUrl = PUBLIC_RPC[fpChainId];
         if (!fpRpcUrl) return;
-        const fpProv = new ethers.providers.JsonRpcProvider(fpRpcUrl, fpChainId);
+        const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, fpChainId, { staticNetwork: true });
         const chainName = CHAIN_NAME[fpChainId] || `chain ${fpChainId}`;
 
         // Check whether a Kleros dispute already exists (new API, then old API fallback).
@@ -1444,7 +1441,7 @@ async function renderArbitrationSection(data, walletAddr) {
         try {
           disputeExists = await new ethers.Contract(fpAddr,
             ['function arbitrationIDToDisputeExists(uint256) view returns (bool)'], fpProv)
-            .arbitrationIDToDisputeExists(ethers.BigNumber.from(QUESTION_ID));
+            .arbitrationIDToDisputeExists(BigInt(QUESTION_ID));
         } catch {
           try {
             disputeExists = await new ethers.Contract(fpAddr,
@@ -1464,7 +1461,7 @@ async function renderArbitrationSection(data, walletAddr) {
               try {
                 [status] = await new ethers.Contract(fpAddr,
                   ['function arbitrationRequests(uint256, address) view returns (uint8, uint248, uint256, uint256)'], fpProv)
-                  .arbitrationRequests(ethers.BigNumber.from(QUESTION_ID), evt.args._requester);
+                  .arbitrationRequests(BigInt(QUESTION_ID), evt.args._requester);
               } catch {
                 try {
                   [status] = await new ethers.Contract(fpAddr,
@@ -1492,7 +1489,7 @@ async function renderArbitrationSection(data, walletAddr) {
     return;
   }
 
-  if (finalized || beforeOpen || bond.isZero() || !walletAddr) return;
+  if (finalized || beforeOpen || bond === 0n || !walletAddr) return;
 
   section.innerHTML = `
     <div class="card-title">Arbitration</div>
@@ -1526,11 +1523,11 @@ async function renderArbitrationSection(data, walletAddr) {
       if (!meta.foreignProxy) throw new Error('unknown arbitrator');
 
       const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
-      txChainId = fpChainBN.toNumber();
+      txChainId = Number(fpChainBN);
 
       const fpRpcUrl = PUBLIC_RPC[txChainId];
       if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
-      const fpProv = new ethers.providers.JsonRpcProvider(fpRpcUrl, txChainId);
+      const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, txChainId, { staticNetwork: true });
       fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);
       arbContractAddr = fpAddr;
 
@@ -1542,7 +1539,7 @@ async function renderArbitrationSection(data, walletAddr) {
   }
 
   const nativeToken = CHAIN_TOKEN[txChainId] || 'ETH';
-  const btnLabel = fee.isZero()
+  const btnLabel = fee === 0n
     ? 'Request arbitration (free)'
     : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
   btn.textContent = btnLabel;
@@ -1570,8 +1567,8 @@ async function renderArbitrationSection(data, walletAddr) {
       }
 
       btn.textContent = 'Waiting for wallet…';
-      const wp = new ethers.providers.Web3Provider(window.ethereum);
-      const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, wp.getSigner())
+      const wp = new ethers.BrowserProvider(window.ethereum);
+      const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, await wp.getSigner())
         .requestArbitration(QUESTION_ID, bond, { value: fee });
       btn.textContent = 'Pending…';
       await tx.wait();
@@ -1617,7 +1614,7 @@ function renderStatusCard(data) {
     const color   = displayAns ? answerColorClass(displayAns, qjson) : 'other';
     const bgCls   = color === 'yes' ? 'answer-banner-yes' : color === 'no' ? 'answer-banner-no' : 'answer-banner-inv';
     const isHex   = /^0x[0-9a-f]{20,}$/i.test(label);
-    const topBond = answerEvents.reduce((mx, ev) => ev.args.bond.gt(mx) ? ev.args.bond : mx, ethers.BigNumber.from(0));
+    const topBond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
     const bondStr = `${formatEth(topBond)} ${token}`;
     let pendingBadge = '';
     if (pendingReveal) {
@@ -1657,14 +1654,12 @@ function renderStatusCard(data) {
   }
 
   // Stats grid
-  const totalBond = answerEvents.reduce(
-    (sum, ev) => sum.add(ev.args.bond), ethers.BigNumber.from(0)
-  );
+  const totalBond = answerEvents.reduce((sum, ev) => sum + ev.args.bond, 0n);
   const arbHtml = isSelfArbitrator(arbitrator)
     ? 'No arbitrator'
     : (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`);
-  const minBondStr = minBond?.gt(0) ? `${formatEth(minBond)} ${token}` : '—';
-  const totalStr   = totalBond.gt(0) ? `${formatEth(totalBond)} ${token}` : '—';
+  const minBondStr = (minBond ?? 0n) > 0n ? `${formatEth(minBond)} ${token}` : '—';
+  const totalStr   = totalBond > 0n ? `${formatEth(totalBond)} ${token}` : '—';
 
   html += `
     <div class="status-grid">
@@ -1796,8 +1791,8 @@ function buildDetailsCard(data, chainId) {
     row(past ? 'Opened' : 'Opens', esc(date(data.openingTS)));
   }
   if (data.timeout > 0) row('Resolution window', esc(dur(data.timeout)));
-  if (data.minBond?.gt(0)) row('Min bond', `${esc(formatEth(data.minBond))} ${esc(token)}`);
-  if (data.bond?.gt(0))    row('Current bond', `${esc(formatEth(data.bond))} ${esc(token)}`);
+  if ((data.minBond ?? 0n) > 0n) row('Min bond', `${esc(formatEth(data.minBond))} ${esc(token)}`);
+  if ((data.bond ?? 0n) > 0n)    row('Current bond', `${esc(formatEth(data.bond))} ${esc(token)}`);
   row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
   row('Contract', `<a href="contract.html#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
   row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
@@ -1811,10 +1806,12 @@ function buildDetailsCard(data, chainId) {
 function buildLockedState(data) {
   const { bond, minBond } = data;
   const token = metaToken;
-  const minRequired = minBond?.gt(0) && bond?.eq(0)
-    ? minBond
-    : bond?.gt(0) ? bond.mul(2) : (minBond?.gt(0) ? minBond : ethers.BigNumber.from(0));
-  const nextBondStr = minRequired?.gt(0) ? `${formatEth(minRequired)} ${token}` : null;
+  const b = bond ?? 0n;
+  const mb = minBond ?? 0n;
+  const minRequired = mb > 0n && b === 0n
+    ? mb
+    : b > 0n ? b * 2n : (mb > 0n ? mb : 0n);
+  const nextBondStr = minRequired > 0n ? `${formatEth(minRequired)} ${token}` : null;
 
   const card = el('div', 'card');
   card.innerHTML = `
@@ -1864,7 +1861,7 @@ async function verifyWithRpc(data) {
 
     // Content hash covers templateId + openingTs + question data in one shot
     if (contentHash) {
-      const computed = ethers.utils.solidityKeccak256(
+      const computed = ethers.solidityPackedKeccak256(
         ['uint256', 'uint32', 'string'],
         [data.templateId, data.openingTS, data.questionStr]
       );
@@ -1874,7 +1871,7 @@ async function verifyWithRpc(data) {
 
     // Template text (custom templates only)
     if (templateHash && data.templateStr) {
-      const computed = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(data.templateStr));
+      const computed = ethers.keccak256(ethers.toUtf8Bytes(data.templateStr));
       if (computed.toLowerCase() !== templateHash.toLowerCase())
         errors.push('template hash mismatch');
     }
@@ -1885,7 +1882,7 @@ async function verifyWithRpc(data) {
     if (historyHash !== null && !isFinalized(data.finalizeTS)) {
       let computed = ZERO_HASH;
       for (const ev of data.answerEvents) {
-        computed = ethers.utils.solidityKeccak256(
+        computed = ethers.solidityPackedKeccak256(
           ['bytes32', 'bytes32', 'uint256', 'address', 'bool'],
           [computed, ev.args.answer, ev.args.bond, ev.args.user, ev.args.is_commitment]
         );
@@ -1951,7 +1948,7 @@ async function verifyWithRpc(data) {
         // Mismatch: check if bestAnswer is a new unrevealed commitment not in Ponder yet
         const newCommit = await safeCall(() => reality.commitments(bestAnswer), null);
         if (newCommit !== null && Number(newCommit.reveal_ts) > 0 && !newCommit.is_revealed) {
-          const synthBond = bond || ethers.BigNumber.from(0);
+          const synthBond = bond ?? 0n;
           data.answerEvents.push({
             args: { is_commitment: true, answer: bestAnswer, bond: synthBond, user: null, ts: 0 }
           });
@@ -1966,7 +1963,7 @@ async function verifyWithRpc(data) {
       }
     }
 
-    if (bond !== null && !bond.eq(data.bond))
+    if (bond !== null && bond !== data.bond)
       errors.push('bond mismatch');
     if (!newEntryPushed && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
       errors.push('finalization timestamp mismatch');
@@ -2005,7 +2002,7 @@ async function verifyWithRpc(data) {
       try {
         const existing = await QCache.get(CHAIN_ID, CONTRACT, QUESTION_ID);
         if (existing.qEvent) return;
-        const currentBlock = await safeCall(() => reality.provider.getBlockNumber(), null);
+        const currentBlock = await safeCall(() => reality.runner.getBlockNumber(), null);
         if (!currentBlock) return;
 
         // LogNewQuestion — fetch from its exact block
@@ -2039,7 +2036,7 @@ async function verifyWithRpc(data) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const BN0 = ethers.BigNumber.from(0);
+  const BN0 = 0n;
 
   // contractsMetaPromise already started at module load; awaited before renderWarnings
   // (and also awaited in the RPC fallback path to get the deployment block)
@@ -2054,13 +2051,13 @@ async function main() {
       ]);
       walletAddr = (accounts && accounts[0]) || null;
       const walletChainId = parseInt(chainHex, 16);
-      const _wp = new ethers.providers.Web3Provider(window.ethereum);
+      const _wp = new ethers.BrowserProvider(window.ethereum);
       // Use wallet for reads when on the right chain and user hasn't disabled it
       if (walletChainId === CHAIN_ID && (window.RealitySettings?.getUseBrowserRpc() ?? true)) {
         reality = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
       }
       // Wallet is always the write provider (user must switch chain themselves)
-      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
+      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
     } catch {}
   }
   // Fall back to public RPC for reads if wallet is absent or on wrong chain
@@ -2073,7 +2070,7 @@ async function main() {
   try {
     const ponderResult = await fetchPonderData();
     const pq = ponderResult.question;
-    data = adaptPonderData(ponderResult, BN0);
+    data = adaptPonderData(ponderResult);
     // Use Ponder's pre-parsed fields (indexed at event time) to avoid client-side
     // JSON parse failures when question content contains special characters.
     if (pq.title != null || pq.type != null) {
@@ -2123,7 +2120,7 @@ async function main() {
 
     data = await withIndicator(rpcInd, async () => {
       // One call for all question struct fields; fall back to individual getters if it fails.
-      const q = await questionsStruct(reality.provider, CONTRACT, QUESTION_ID);
+      const q = await questionsStruct(reality.runner, CONTRACT, QUESTION_ID);
       let bond, finalizeTS, upperBoundTs, bounty, isPendingArbitration;
       if (q) {
         bond                 = q.bond;
@@ -2150,7 +2147,7 @@ async function main() {
 
       if (cached.qEvent && cached.lastBlock !== null) {
         await withIndicator(cacheInd, async () => {
-          currentBlock    = await safeCall(() => reality.provider.getBlockNumber(), cached.lastBlock);
+          currentBlock    = await safeCall(() => reality.runner.getBlockNumber(), cached.lastBlock);
           qEv             = cached.qEvent;
           const fromBlock = cached.lastBlock + 1;
           const newAnswers = (fromBlock <= currentBlock)
@@ -2172,17 +2169,17 @@ async function main() {
         QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, rawAnswerEvents, currentBlock);
       }
 
-      const templateId  = qEv ? qEv.args.template_id.toNumber() : 0;
+      const templateId  = qEv ? Number(qEv.args.template_id) : 0;
       const questionStr = qEv ? qEv.args.question : '';
-      const openingTS   = qEv?.args.opening_ts  ?? q?.opening_ts  ?? 0;
-      const qTimeout    = qEv?.args.timeout      ?? q?.timeout     ?? 0;
-      const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.constants.AddressZero;
+      const openingTS   = Number(qEv?.args.opening_ts  ?? q?.opening_ts  ?? 0);
+      const qTimeout    = Number(qEv?.args.timeout      ?? q?.timeout     ?? 0);
+      const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.ZeroAddress;
       const nonce       = qEv?.args.nonce ?? BN0;
       let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
       if (!rpcTemplateStr) {
         const templateBlock = await safeCall(() => reality.templates(templateId), null);
         if (templateBlock) {
-          const tBlockNum = templateBlock.toNumber ? templateBlock.toNumber() : Number(templateBlock);
+          const tBlockNum = Number(templateBlock);
           const tevents = await safeCall(
             () => reality.queryFilter(reality.filters.LogNewTemplate(templateId), tBlockNum, tBlockNum), []);
           rpcTemplateStr = tevents[0]?.args.question_text;
@@ -2199,7 +2196,7 @@ async function main() {
         // If this question's nonce is itself a question ID, check whether it's the
         // reopener of that question (i.e. reopened_questions(nonce) === QUESTION_ID).
         // The reopenQuestion() function sets nonce = reopens_question_id.
-        const nonceHex = ethers.utils.hexZeroPad(nonce.toHexString(), 32);
+        const nonceHex = ethers.zeroPadValue(ethers.toBeHex(nonce), 32);
         if (nonceHex !== ZERO_HASH) {
           const check = await safeCall(() => reality.reopened_questions(nonceHex), ZERO_HASH);
           if (check && check.toLowerCase() === QUESTION_ID.toLowerCase()) {
@@ -2215,11 +2212,11 @@ async function main() {
           history_hash:   ev.args.history_hash,
           user:           ev.args.user,
           bond:           ev.args.bond,
-          ts:             ev.args.ts.toNumber(),
+          ts:             Number(ev.args.ts),
           is_commitment:  ev.args.is_commitment,
         },
       }));
-      const arbitrationOccurred = answerEvents.some(ev => ev.args.bond.isZero());
+      const arbitrationOccurred = answerEvents.some(ev => ev.args.bond === 0n);
       return {
         bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
         templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
@@ -2316,7 +2313,7 @@ async function main() {
     const esc2 = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     let contentHash = '';
     try {
-      contentHash = ethers.utils.solidityKeccak256(
+      contentHash = ethers.solidityPackedKeccak256(
         ['uint256', 'uint32', 'string'],
         [data.templateId, data.openingTS, data.questionStr]
       );
@@ -2362,7 +2359,7 @@ async function main() {
     if (btn) {
       btn.addEventListener('click', () => {
         // Use the original question_id as the nonce — always unique (256-bit hash)
-        const reopenNonce = ethers.BigNumber.from(QUESTION_ID);
+        const reopenNonce = BigInt(QUESTION_ID);
         runTx(btn, btn.textContent, () =>
           realityRW.reopenQuestion(
             data.templateId, data.questionStr, data.arbitrator,
@@ -2419,12 +2416,12 @@ async function main() {
   // Let onWalletChange in question.html swap the answer form live when the
   // user connects via the header button, without a full page reload.
   if (!finalized && !beforeOpen) {
-    window._setQuestionWallet = function(addr) {
+    window._setQuestionWallet = async function(addr) {
       if (!currentAnswerEl?.isConnected) return;
       walletAddr = addr;
       if (addr && window.ethereum) {
-        const _wp = new ethers.providers.Web3Provider(window.ethereum);
-        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, _wp.getSigner());
+        const _wp = new ethers.BrowserProvider(window.ethereum);
+        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
       } else {
         realityRW = null;
       }
