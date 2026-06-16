@@ -2,8 +2,10 @@
 'use strict';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const INVALID  = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-const TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+const INVALID   = RealityLib.getInvalidValue();
+const TOO_SOON  = RealityLib.getAnsweredTooSoonValue();
+const INVALID_LC  = INVALID.toLowerCase();
+const TOO_SOON_LC = TOO_SOON.toLowerCase();
 const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const FORK_BLOCK = 46600000;
 
@@ -191,6 +193,12 @@ function el(tag, cls, text) {
 function formatEth(bn) {
   if (!bn) return '0';
   return ethers.formatEther(bn).replace(/\.0+$/, '');
+}
+
+const LETTER_MAP = { yes: 'Y', no: 'N', inv: '?', other: '·' };
+
+function formatBond(wei, tok = metaToken) {
+  return `${formatEth(wei)} ${tok}`;
 }
 
 // ── Ponder data loading ───────────────────────────────────────────────────────
@@ -383,7 +391,7 @@ function adaptPonderData(ponderData) {
     qjson:         null,
     minBond:       BigInt((pq.minBond || '0').toString()),
     bounty:        BigInt((pq.bounty  || '0').toString()),
-    settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON.toLowerCase(),
+    settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON_LC,
     reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
     reopenerQuestionId:   reopeners?.items?.[0]?.id || null,
     reopensQuestionId:    pq.reopensQuestionId || null,
@@ -411,8 +419,8 @@ function isBeforeOpening(openingTS) {
 // ── Answer encoding ───────────────────────────────────────────────────────────
 function answerToBytes32(raw, qjson) {
   const norm = typeof raw === 'string' ? raw.toLowerCase() : String(raw);
-  if (norm === INVALID || norm === INVALID.toLowerCase()) return INVALID;
-  if (norm === TOO_SOON || norm === TOO_SOON.toLowerCase()) return TOO_SOON;
+  if (norm === INVALID_LC) return INVALID;
+  if (norm === TOO_SOON_LC) return TOO_SOON;
 
   const type = qjson?.type || 'bool';
   if (type === 'datetime') {
@@ -434,8 +442,8 @@ function bytes32ToLabel(bytes32, qjson) {
 }
 
 function answerColorClass(bytes32, qjson) {
-  if (!bytes32 || bytes32.toLowerCase() === INVALID.toLowerCase()) return 'inv';
-  if (bytes32.toLowerCase() === TOO_SOON.toLowerCase()) return 'inv';
+  if (!bytes32 || bytes32.toLowerCase() === INVALID_LC) return 'inv';
+  if (bytes32.toLowerCase() === TOO_SOON_LC) return 'inv';
   const label = bytes32ToLabel(bytes32, qjson);
   if (!label) return 'other';
   const l = label.toLowerCase();
@@ -646,6 +654,19 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
   }
 }
 
+// ── Form builder helpers ──────────────────────────────────────────────────────
+function getRevealedAnswer(commitHash, revealMap) {
+  return commitHash ? (revealMap[commitHash.toLowerCase()] || null) : null;
+}
+
+function buildSpecialAnswerLinks() {
+  const inv = el('div', 'invalid-switch-container');
+  inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
+  const ts = el('div', 'too-soon-switch-container');
+  ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
+  return { inv, ts };
+}
+
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
   const { qjson, minBond, openingTS, finalizeTS, answerEvents } = data;
@@ -679,13 +700,13 @@ function buildAnswerForm(data, walletAddr) {
     const latest = n > 0 ? answerEvents[n - 1] : null;
     const revealMap = data.revealMap || {};
     const commitHash = latest?.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
-    const latestReveal = commitHash ? (revealMap[commitHash] || null) : null;
+    const latestReveal = getRevealedAnswer(commitHash, revealMap);
     // Commitment hash is not a valid option index — use the effective on-chain answer instead.
     const winnerBytes = (commitHash && !latestReveal)
       ? (data.currentAnswer || null)
       : (latest?.args.answer ?? null);
     const lo = winnerBytes ? winnerBytes.toLowerCase() : null;
-    const isSpecial = lo && (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase());
+    const isSpecial = lo && (lo === INVALID_LC || lo === TOO_SOON_LC);
 
     const outcomes = (qjson.outcomes || []).map((o, i) => ({ label: o, idx: i }));
 
@@ -709,7 +730,7 @@ function buildAnswerForm(data, walletAddr) {
       list.appendChild(row);
     }
     if (isSpecial) {
-      const specialLabel = lo === INVALID.toLowerCase() ? 'Invalid' : 'Answered too soon';
+      const specialLabel = lo === INVALID_LC ? 'Invalid' : 'Answered too soon';
       const row = el('div', 'finalized-option finalized-option-chosen');
       row.appendChild(el('span', 'finalized-option-mark', '✓'));
       row.appendChild(document.createTextNode(specialLabel));
@@ -782,13 +803,10 @@ function buildAnswerForm(data, walletAddr) {
       lbl.appendChild(document.createTextNode(' ' + o));
       inputWrap.appendChild(lbl);
     });
-    const inv = el('div', 'invalid-switch-container');
+    const { inv, ts } = buildSpecialAnswerLinks();
     if (!hasInvalid) inv.style.display = 'none';
-    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
     inputWrap.appendChild(inv);
-    const ts = el('div', 'too-soon-switch-container');
     if (!hasTooSoon) ts.style.display = 'none';
-    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
     inputWrap.appendChild(ts);
 
   } else if (isUint) {
@@ -796,13 +814,10 @@ function buildAnswerForm(data, walletAddr) {
     input.type = 'number'; input.name = 'input-answer';
     input.step = 'any'; input.min = '0'; input.placeholder = '0'; input.className = 'uint-input';
     inputWrap.appendChild(input);
-    const inv = el('div', 'invalid-switch-container');
+    const { inv, ts } = buildSpecialAnswerLinks();
     if (!hasInvalid) inv.style.display = 'none';
-    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
     inputWrap.appendChild(inv);
-    const ts = el('div', 'too-soon-switch-container');
     if (!hasTooSoon) ts.style.display = 'none';
-    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
     inputWrap.appendChild(ts);
 
   } else if (isDatetime) {
@@ -810,13 +825,10 @@ function buildAnswerForm(data, walletAddr) {
     input.type = 'date'; input.className = 'datetime-input-date';
     input.name = 'input-answer';
     inputWrap.appendChild(input);
-    const inv = el('div', 'invalid-switch-container');
+    const { inv, ts } = buildSpecialAnswerLinks();
     if (!hasInvalid) inv.style.display = 'none';
-    inv.innerHTML = `<a class="invalid-text-link" href="#" data-special="${INVALID}" data-label="Mark as Invalid" data-active-label="✓ Invalid — undo">Mark as Invalid</a>`;
     inputWrap.appendChild(inv);
-    const ts = el('div', 'too-soon-switch-container');
     if (!hasTooSoon) ts.style.display = 'none';
-    ts.innerHTML = `<a class="too-soon-text-link" href="#" data-special="${TOO_SOON}" data-label="Mark as Answered Too Soon" data-active-label="✓ Answered too soon — undo">Mark as Answered Too Soon</a>`;
     inputWrap.appendChild(ts);
   }
 
@@ -959,7 +971,7 @@ function buildAnswerForm(data, walletAddr) {
     const pending = loadPendingReveal(walletAddr);
     const lastEv  = data.answerEvents[data.answerEvents.length - 1];
     const lastIsUnrevealedCommit = lastEv?.args.is_commitment
-      && !(data.revealMap || {})[lastEv.args.answer?.toLowerCase()];
+      && !getRevealedAnswer(lastEv.args.answer, data.revealMap || {});
     if (pending && lastIsUnrevealedCommit &&
         lastEv.args.user?.toLowerCase() === walletAddr.toLowerCase()) {
       const expiryTs  = lastEv.args.ts + Math.floor(data.timeout / 8);
@@ -1086,16 +1098,21 @@ function renderWarnings(data) {
   }
 }
 
+// ── Answer display ────────────────────────────────────────────────────────────
+function getAnswerDisplay(bytes32, qjson) {
+  const label = bytes32ToLabel(bytes32, qjson) || '?';
+  const color = answerColorClass(bytes32, qjson);
+  return { label, color };
+}
+
 // ── Optimistic answer entry ───────────────────────────────────────────────────
 function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
   const bondList = qPage.querySelector('.bond-list');
   if (!bondList) return;
 
-  const token    = metaToken;
-  const color    = answerColorClass(ansBytes, qjson);
-  const label    = bytes32ToLabel(ansBytes, qjson) || '?';
-  const bondStr  = `${formatEth(bondWei)} ${token}`;
-  const letter   = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
+  const { label, color } = getAnswerDisplay(ansBytes, qjson);
+  const bondStr  = formatBond(bondWei);
+  const letter   = LETTER_MAP[color] || '·';
   const addrHtml = walletAddr ? (addrLinks(walletAddr) || '') : '';
 
   const entry = document.createElement('div');
@@ -1275,16 +1292,14 @@ function renderHistory(data) {
   const { answerEvents, qjson, arbitrationOccurred } = data;
   const revealMap = data.revealMap || {};
   const n        = answerEvents.length;
-  const token    = metaToken;
 
   // Max bond across all answers — used to scale bar widths
   const maxBond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
 
   // Build a reveal-only entry (no bond) to show below the corresponding commit
   function buildRevealItem(revealedAnswer) {
-    const color  = answerColorClass(revealedAnswer, qjson);
-    const label  = bytes32ToLabel(revealedAnswer, qjson) || '?';
-    const letter = { yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·';
+    const { label, color } = getAnswerDisplay(revealedAnswer, qjson);
+    const letter = LETTER_MAP[color] || '·';
     const item   = el('div', 'answered-history-item');
     const conn   = el('div', 'bond-connector');
     conn.appendChild(el('div', `answer-dot dot-${color}`, letter));
@@ -1302,15 +1317,15 @@ function renderHistory(data) {
   function buildEntryContents(ev, tag, isCurrent) {
     const isCommitment = ev.args.is_commitment;
     const commitHash   = isCommitment ? ev.args.answer?.toLowerCase() : null;
-    const revealedAns  = commitHash ? (revealMap[commitHash] || null) : null;
+    const revealedAns  = getRevealedAnswer(commitHash, revealMap);
     // Current entry: show revealed answer when available; history entries always show "Commitment"
     const showLabel    = isCommitment && (!isCurrent || !revealedAns) ? 'Commitment'
       : bytes32ToLabel(isCommitment ? revealedAns : ev.args.answer, qjson) || '?';
     const displayAns   = isCommitment ? revealedAns : ev.args.answer;
     const color   = (!isCommitment || displayAns) ? answerColorClass(displayAns, qjson) : 'other';
     const label   = showLabel;
-    const bondStr = `${formatEth(ev.args.bond)} ${token}`;
-    const letter  = color === 'other' ? '?' : ({ yes:'Y', no:'N', inv:'?', other:'·' }[color] || '·');
+    const bondStr = formatBond(ev.args.bond);
+    const letter  = color === 'other' ? '?' : (LETTER_MAP[color] || '·');
 
     // Connector + dot
     const connector = el('div', 'bond-connector');
@@ -1386,7 +1401,7 @@ function renderHistory(data) {
     const isArbitrated = arbitrationOccurred && ev.args.bond === 0n;
     const tag  = isArbitrated ? 'arbitrated' : (i === n - 2 ? 'disputed' : null);
     const commitHash = ev.args.is_commitment ? ev.args.answer?.toLowerCase() : null;
-    const revealedAns = commitHash ? (revealMap[commitHash] || null) : null;
+    const revealedAns = getRevealedAnswer(commitHash, revealMap);
     if (revealedAns) histContainer.appendChild(buildRevealItem(revealedAns));
     const { connector, main, right } = buildEntryContents(ev, tag, false);
     const item = el('div', 'answered-history-item');
@@ -1589,7 +1604,6 @@ function renderStatusCard(data) {
 
   const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator } = data;
   const n        = answerEvents.length;
-  const token    = metaToken;
   const finalized = isFinalized(finalizeTS);
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1599,7 +1613,7 @@ function renderStatusCard(data) {
     const latest     = answerEvents[n - 1];
     const revealMap  = data.revealMap || {};
     const commitHash = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
-    const latestReveal = commitHash ? (revealMap[commitHash] || null) : null;
+    const latestReveal = getRevealedAnswer(commitHash, revealMap);
 
     let displayAns = null, pendingReveal = false;
     if (commitHash && !latestReveal) {
@@ -1615,7 +1629,7 @@ function renderStatusCard(data) {
     const bgCls   = color === 'yes' ? 'answer-banner-yes' : color === 'no' ? 'answer-banner-no' : 'answer-banner-inv';
     const isHex   = /^0x[0-9a-f]{20,}$/i.test(label);
     const topBond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
-    const bondStr = `${formatEth(topBond)} ${token}`;
+    const bondStr = formatBond(topBond);
     let pendingBadge = '';
     if (pendingReveal) {
       const revealTs = latest.args.ts && timeout ? latest.args.ts + Math.floor(timeout / 8) : 0;
@@ -1658,8 +1672,8 @@ function renderStatusCard(data) {
   const arbHtml = isSelfArbitrator(arbitrator)
     ? 'No arbitrator'
     : (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`);
-  const minBondStr = (minBond ?? 0n) > 0n ? `${formatEth(minBond)} ${token}` : '—';
-  const totalStr   = totalBond > 0n ? `${formatEth(totalBond)} ${token}` : '—';
+  const minBondStr = (minBond ?? 0n) > 0n ? formatBond(minBond) : '—';
+  const totalStr   = totalBond > 0n ? formatBond(totalBond) : '—';
 
   html += `
     <div class="status-grid">
@@ -1791,8 +1805,8 @@ function buildDetailsCard(data, chainId) {
     row(past ? 'Opened' : 'Opens', esc(date(data.openingTS)));
   }
   if (data.timeout > 0) row('Resolution window', esc(dur(data.timeout)));
-  if ((data.minBond ?? 0n) > 0n) row('Min bond', `${esc(formatEth(data.minBond))} ${esc(token)}`);
-  if ((data.bond ?? 0n) > 0n)    row('Current bond', `${esc(formatEth(data.bond))} ${esc(token)}`);
+  if ((data.minBond ?? 0n) > 0n) row('Min bond', esc(formatBond(data.minBond, token)));
+  if ((data.bond ?? 0n) > 0n)    row('Current bond', esc(formatBond(data.bond, token)));
   row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
   row('Contract', `<a href="contract.html#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
   row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
@@ -1805,13 +1819,12 @@ function buildDetailsCard(data, chainId) {
 // ── Locked interact state ─────────────────────────────────────────────────────
 function buildLockedState(data) {
   const { bond, minBond } = data;
-  const token = metaToken;
   const b = bond ?? 0n;
   const mb = minBond ?? 0n;
   const minRequired = mb > 0n && b === 0n
     ? mb
     : b > 0n ? b * 2n : (mb > 0n ? mb : 0n);
-  const nextBondStr = minRequired > 0n ? `${formatEth(minRequired)} ${token}` : null;
+  const nextBondStr = minRequired > 0n ? formatBond(minRequired) : null;
 
   const card = el('div', 'card');
   card.innerHTML = `
