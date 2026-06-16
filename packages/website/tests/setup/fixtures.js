@@ -515,3 +515,80 @@ export async function createVisibilityFixtures() {
 
   return { v21BoolId, v21UintId, noInvalidBoolId };
 }
+
+// Creates a finalized single-select question with outcomes "Cat", "Dog", "Fish"
+// where the submitted answer is "Dog" (index 1).  Used to verify the finalized
+// options list is displayed with the winning outcome marked.
+// nonce=16 — nonces 0-15 on v3.0 are taken by other fixture functions.
+export async function createFinalizedSelectFixtures() {
+  const DELIMITER = '␟'; // U+241F
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const timeout = 60;
+  const OUTCOMES = '"Cat","Dog","Fish"';
+  const questionText = `Finalized select test: single-select${DELIMITER}${OUTCOMES}`;
+  // bytes32(1) = index 1 = "Dog"
+  const DOG = '0x0000000000000000000000000000000000000000000000000000000000000001';
+
+  const questionId = computeQuestionId(
+    2, 0, questionText,
+    ethers.ZeroAddress, timeout, 16,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      2, questionText, ethers.ZeroAddress, timeout, 0, 16, { value: bounty }
+    )).wait();
+    await (await reality.submitAnswer(questionId, DOG, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  }
+
+  return { questionId, answer: DOG };
+}
+
+// Creates a bool question (21-day timeout) with a single unrevealed commitment.
+// The reveal deadline is timeout/8 ≈ 2.6 days after the fork block (Jun 9 2026),
+// which is already past relative to the browser clock (~Jun 16 2026).  The question
+// itself appears open because finalization_ts = fork_ts + 21 days ≈ Jun 30.
+// Used to verify "pending reveal · deadline passed" is suppressed from the banner.
+// nonce=17 — nonces 0-16 on v3.0 are taken by other fixture functions.
+export async function createExpiredCommitFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const TIMEOUT_21_DAYS = 21 * 24 * 3600;
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const commitNonce = 99999n;
+  const commitmentHash = ethers.solidityPackedKeccak256(
+    ['uint256', 'uint256'], [YES, commitNonce]
+  );
+
+  const questionId = computeQuestionId(
+    0, 0, 'Commit-reveal display test: expired commit',
+    ethers.ZeroAddress, TIMEOUT_21_DAYS, 17,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      0, 'Commit-reveal display test: expired commit',
+      ethers.ZeroAddress, TIMEOUT_21_DAYS, 0, 17,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+    await (await reality.submitAnswerCommitment(
+      questionId, commitmentHash, 0, ethers.ZeroAddress,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+  }
+
+  return { questionId };
+}

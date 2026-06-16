@@ -2111,16 +2111,20 @@ async function main() {
     data = await withIndicator(rpcInd, async () => {
       // One call for all question struct fields; fall back to individual getters if it fails.
       const q = await questionsStruct(reality.provider, CONTRACT, QUESTION_ID);
-      let bond, finalizeTS, upperBoundTs;
+      let bond, finalizeTS, upperBoundTs, bounty, isPendingArbitration;
       if (q) {
-        bond         = q.bond;
-        finalizeTS   = q.finalize_ts;
-        upperBoundTs = q.opening_ts || q.finalize_ts;
+        bond                 = q.bond;
+        finalizeTS           = q.finalize_ts;
+        upperBoundTs         = q.opening_ts || q.finalize_ts;
+        bounty               = q.bounty;
+        isPendingArbitration = q.is_pending_arbitration;
       } else {
-        [bond, finalizeTS, upperBoundTs] = await Promise.all([
+        [bond, finalizeTS, upperBoundTs, bounty, isPendingArbitration] = await Promise.all([
           safeCall(() => reality.getBond(QUESTION_ID), BN0),
           safeCall(() => reality.getFinalizeTS(QUESTION_ID), 0),
           safeCall(() => reality.getOpeningTS(QUESTION_ID), 0),
+          safeCall(() => reality.getBounty(QUESTION_ID), BN0),
+          safeCall(() => reality.isPendingArbitration(QUESTION_ID), false),
         ]);
         upperBoundTs = Number(upperBoundTs) || Number(finalizeTS);
       }
@@ -2205,8 +2209,8 @@ async function main() {
       return {
         bond, finalizeTS, openingTS, timeout: qTimeout, arbitrator, nonce,
         templateId, questionStr, qjson: populateTemplate(rpcTemplateStr, questionStr),
-        minBond, bounty: BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
-        isPendingArbitration: false, // not available from events alone; Ponder path is authoritative
+        minBond, bounty: bounty ?? BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
+        isPendingArbitration: isPendingArbitration ?? false,
         reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
         reopensQuestionId,
         answerEvents,
