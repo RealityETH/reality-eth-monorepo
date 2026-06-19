@@ -1,29 +1,95 @@
 import { createConfig } from "@ponder/core";
-import { http, fallback } from "viem";
+import { http, fallback, type Transport } from "viem";
 
 // v3.2 ABI is a superset of all earlier versions; events are identical across
 // v2.0, v2.1, v3.0, v3.2, and the ERC20 variants, so one ABI covers everything.
 import abi from "../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json";
 
+// Backoff delays (ms) for eth_getLogs / eth_getBlockByNumber failures.
+// After the last value is reached it repeats; after ALERT_STREAK consecutive
+// max-delay failures a log alert is emitted (and a recovery log on success).
+const BACKOFF_MS = [3, 6, 12, 24, 48, 96, 192].map(s => s * 1000);
+const ALERT_STREAK = 10;
+
+// Wraps a transport so that eth_getLogs and eth_getBlockByNumber failures back
+// off and retry rather than crashing the whole Ponder process. Other RPC methods
+// pass through unchanged. Per-chain state lives in a closure.
+function resilient(chain: string, inner: Transport): Transport {
+  let errors   = 0; // consecutive failures across both watched methods
+  let maxCount = 0; // consecutive failures at the max backoff delay
+  let notified = false;
+
+  return ((params: any) => {
+    const t = (inner as any)(params);
+    return {
+      ...t,
+      request: async (args: any) => {
+        if (args.method !== 'eth_getLogs' && args.method !== 'eth_getBlockByNumber') {
+          return t.request(args);
+        }
+        for (;;) {
+          try {
+            const result = await t.request(args);
+            if (errors > 0) {
+              const msg = `[${chain}] RPC recovered after ${errors} consecutive failures`;
+              if (notified) {
+                console.error(`[RECOVERY] ${msg}`);
+              } else {
+                console.warn(msg);
+              }
+              errors = 0; maxCount = 0; notified = false;
+            }
+            return result;
+          } catch (err: any) {
+            const atMax = errors >= BACKOFF_MS.length - 1;
+            const delayMs = BACKOFF_MS[Math.min(errors, BACKOFF_MS.length - 1)];
+            errors++;
+            if (atMax) {
+              maxCount++;
+              if (maxCount === ALERT_STREAK && !notified) {
+                console.error(`[ALERT] [${chain}] ${args.method} has been failing for ${errors} consecutive attempts with no recovery — manual intervention may be required`);
+                notified = true;
+              }
+            }
+            console.warn(`[${chain}] ${args.method} failed (attempt ${errors}, retry in ${delayMs / 1000}s): ${err?.shortMessage ?? err?.message ?? err}`);
+            await new Promise(r => setTimeout(r, delayMs));
+          }
+        }
+      },
+    };
+  }) as unknown as Transport;
+}
+
 // Build a network transport. Only include the private RPC in the fallback when
 // it's explicitly configured — http(undefined) generates a wall of errors.
-function net(chainId: number, envUrl: string | undefined, publicUrl: string, maxRequestsPerSecond = 5) {
+function net(chain: string, chainId: number, envUrl: string | undefined, publicUrl: string, maxRequestsPerSecond = 5) {
   const opts = { timeout: 30_000, retryCount: 2, retryDelay: 2000 };
+  const inner = envUrl
+    ? fallback([http(envUrl, opts), http(publicUrl, opts)], { retryCount: 1 })
+    : http(publicUrl, opts);
   return {
     chainId,
     maxRequestsPerSecond,
-    transport: envUrl
-      ? fallback([http(envUrl, opts), http(publicUrl, opts)], { retryCount: 1 })
-      : http(publicUrl, opts),
+    transport: resilient(chain, inner),
   };
 }
 
+// Chains listed in PONDER_DISABLE (comma-separated) are excluded at startup.
+// Example: PONDER_DISABLE=mainnet,sepolia
+const DISABLED = new Set(
+  (process.env.PONDER_DISABLE || '').split(',').map(s => s.trim()).filter(Boolean)
+);
+const on = (name: string) => !DISABLED.has(name);
+
+// Optional Infura key for fallback transports — set INFURA_API_KEY in your env.
+const INFURA = process.env.INFURA_API_KEY;
+
 export default createConfig({
   networks: {
-    mainnet:   net(1,         process.env.PONDER_RPC_URL_1,         "https://ethereum-rpc.publicnode.com"),
-    gnosis:    net(100,       process.env.PONDER_RPC_URL_100,       "https://rpc.gnosischain.com"),
+    ...(on('gnosis')  && { gnosis:  net('gnosis',  100,       process.env.PONDER_RPC_URL_100,      "https://rpc.gnosischain.com") }),
+    ...(on('mainnet') && { mainnet: net('mainnet', 1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com") }),
     // arbitrum: disabled — ~2s block time causes high CPU load during sync
-    sepolia:   net(11155111,  process.env.PONDER_RPC_URL_11155111,  "https://ethereum-sepolia-rpc.publicnode.com"),
+    ...(on('sepolia') && { sepolia: net('sepolia', 11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com") }),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
     // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
     //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
@@ -38,9 +104,9 @@ export default createConfig({
     RealityETH_v3_2: {
       abi,
       network: {
-        mainnet: { address: "0x6a2155613b68eFB38D5c6074921F3F4281c8c177", startBlock: 22100226 },
-        gnosis:  { address: "0xEb51d9d9717906c981C57af09C4a3449eF30705b", startBlock: 39142627 },
-        sepolia: { address: "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1", startBlock: 7898415 },
+        ...(on('mainnet') && { mainnet: { address: "0x6a2155613b68eFB38D5c6074921F3F4281c8c177", startBlock: 22100226 } }),
+        ...(on('gnosis')  && { gnosis:  { address: "0xEb51d9d9717906c981C57af09C4a3449eF30705b", startBlock: 39142627 } }),
+        ...(on('sepolia') && { sepolia: { address: "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1", startBlock: 7898415  } }),
       },
     },
 
@@ -48,37 +114,37 @@ export default createConfig({
     RealityETH_v3_0: {
       abi,
       network: {
-        mainnet:   { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 },
-        gnosis:    { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 },
+        ...(on('mainnet') && { mainnet: { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 } }),
+        ...(on('gnosis')  && { gnosis:  { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 } }),
         // arbitrum: disabled (see network comment)
-        sepolia:   { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431 },
+        ...(on('sepolia') && { sepolia: { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431  } }),
         // optimism disabled
         // base disabled (see network comment above)
         // base:      { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
         // celo:      { address: "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3", startBlock: 31954377 },
-        // avalanche: { address: "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502", startBlock: 4090592 },
+        // avalanche: { address: "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502", startBlock: 4090592  },
       },
     },
 
     // v2.1 — Gnosis only, predates v3.0.
-    RealityETH_v2_1: {
+    ...(on('gnosis') && { RealityETH_v2_1: {
       abi,
       network: {
         gnosis: { address: "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57", startBlock: 14005802 },
       },
-    },
+    }}),
 
     // v2.0 — Snapshot used this heavily on mainnet. Long history from block ~6.5M (2019).
-    RealityETH_v2_0: {
+    ...(on('mainnet') && { RealityETH_v2_0: {
       abi,
       network: {
         mainnet: { address: "0x325a2e0F3CCA2ddbaeBB4DfC38Df8D19ca165b47", startBlock: 6531265 },
       },
-    },
+    }}),
 
     // ERC20 token-denominated variants — same events, grouped per chain.
     // Mainnet: TRST/GNO/FOX (v2.0), GNO/SWISE (v3.0)
-    RealityETH_ERC20_mainnet: {
+    ...(on('mainnet') && { RealityETH_ERC20_mainnet: {
       abi,
       network: {
         mainnet: {
@@ -92,10 +158,10 @@ export default createConfig({
           startBlock: 8050824,
         },
       },
-    },
+    }}),
 
     // Gnosis: GNO/SWISE/POLK (v3.0)
-    RealityETH_ERC20_gnosis: {
+    ...(on('gnosis') && { RealityETH_ERC20_gnosis: {
       abi,
       network: {
         gnosis: {
@@ -107,10 +173,10 @@ export default createConfig({
           startBlock: 20882108,
         },
       },
-    },
+    }}),
 
     // Sepolia: BOND token (v3.2 ERC20)
-    RealityETH_ERC20_sepolia: {
+    ...(on('sepolia') && { RealityETH_ERC20_sepolia: {
       abi,
       network: {
         sepolia: {
@@ -118,7 +184,7 @@ export default createConfig({
           startBlock: 8526475,
         },
       },
-    },
+    }}),
 
   },
 });
