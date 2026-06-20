@@ -62,7 +62,7 @@ function resilient(chain: string, inner: Transport): Transport {
 
 // Build a network transport. Only include the private RPC in the fallback when
 // it's explicitly configured — http(undefined) generates a wall of errors.
-function net(chain: string, chainId: number, envUrl: string | undefined, publicUrl: string, maxRequestsPerSecond = 5) {
+function net(chain: string, chainId: number, envUrl: string | undefined, publicUrl: string, maxRequestsPerSecond = 5, pollingInterval = 1_000) {
   const opts = { timeout: 30_000, retryCount: 2, retryDelay: 2000 };
   const inner = envUrl
     ? fallback([http(envUrl, opts), http(publicUrl, opts)], { retryCount: 1 })
@@ -70,6 +70,7 @@ function net(chain: string, chainId: number, envUrl: string | undefined, publicU
   return {
     chainId,
     maxRequestsPerSecond,
+    pollingInterval,
     transport: resilient(chain, inner),
   };
 }
@@ -89,7 +90,7 @@ export default createConfig({
     ...(on('gnosis')  && { gnosis:  net('gnosis',  100,       process.env.PONDER_RPC_URL_100,      "https://rpc.gnosischain.com") }),
     ...(on('mainnet') && { mainnet: net('mainnet', 1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com") }),
     // arbitrum: disabled — ~2s block time causes high CPU load during sync
-    ...(on('sepolia') && { sepolia: net('sepolia', 11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com") }),
+    ...(on('sepolia') && { sepolia: net('sepolia', 11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com", 5, 30_000) }),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
     // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
     //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
