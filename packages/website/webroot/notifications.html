@@ -187,7 +187,6 @@ async function render() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await RealityWatches.markAllSeen();
   await render();
   RealityWatches.updateBellBadge();
 
