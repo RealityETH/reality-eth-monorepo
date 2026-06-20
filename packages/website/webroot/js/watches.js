@@ -252,7 +252,7 @@ async function checkForUpdates(ponderUrl) {
 
     // New answers
     const respData = await gql(`{
-      responses(where:{questionId_in:[${ids}],timestamp_gt:${afterTs}},orderBy:"timestamp",orderDirection:"desc",limit:50) {
+      responses(where:{questionId_in:[${ids}],timestamp_gt:"${afterTs}"},orderBy:"timestamp",orderDirection:"desc",limit:50) {
         items { id questionId answer bond user timestamp }
       }
     }`);
@@ -270,7 +270,7 @@ async function checkForUpdates(ponderUrl) {
 
     // Newly finalized
     const finalData = await gql(`{
-      questions(where:{id_in:[${ids}],scheduledFinalizationTimestamp_lt:${now},scheduledFinalizationTimestamp_gt:${afterTs}},limit:50) {
+      questions(where:{id_in:[${ids}],scheduledFinalizationTimestamp_lt:"${now}",scheduledFinalizationTimestamp_gt:"${afterTs}"},limit:50) {
         items { id title scheduledFinalizationTimestamp }
       }
     }`);
@@ -343,7 +343,7 @@ async function checkForUpdates(ponderUrl) {
     if (c.contract != null) {
       filters.push(`contract:"${c.contract}"`);
     }
-    const whereClause = `where:{${[...filters, `createdTimestamp_gt:${lastChecked}`].join(',')}}`;
+    const whereClause = `where:{${[...filters, `createdTimestamp_gt:"${lastChecked}"`].join(',')}}`;
     const newQData = await gql(`{
       questions(${whereClause},orderBy:"createdTimestamp",orderDirection:"desc",limit:20) {
         items { id title chainId templateId category data creator contract createdTimestamp }
