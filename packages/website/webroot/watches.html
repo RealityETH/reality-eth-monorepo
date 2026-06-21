@@ -53,8 +53,8 @@
   .watch-row-info { flex: 1; min-width: 0; }
   .watch-row-label { font-size: 13px; color: var(--text); }
   .watch-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .watch-row-edit { font-size: 12px; color: var(--accent); text-decoration: none; }
-  .watch-row-edit:hover { text-decoration: underline; }
+  .watch-row-label a { color: var(--text); text-decoration: none; }
+  .watch-row-label a:hover { color: var(--accent); }
   .watch-row-delete { padding: 3px 10px; background: none; border: 1px solid var(--red);
     border-radius: var(--radius-sm); color: var(--red); font-size: 12px; cursor: pointer;
     transition: background 0.15s; }
@@ -140,10 +140,9 @@ async function render() {
   listEl.innerHTML = all.map(cw => `
     <div class="watch-row">
       <div class="watch-row-info">
-        <div class="watch-row-label">${esc(describeWatch(cw))}</div>
+        <div class="watch-row-label"><a href="watch-configure.html#id=${esc(cw.id)}">${esc(describeWatch(cw))}</a></div>
       </div>
       <div class="watch-row-actions">
-        <a class="watch-row-edit" href="watch-configure.html#id=${esc(cw.id)}">Edit →</a>
         <button class="watch-row-delete" data-id="${esc(cw.id)}">Delete</button>
       </div>
     </div>`).join('');
