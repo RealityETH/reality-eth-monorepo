@@ -594,7 +594,6 @@ async function loadExistingWatch() {
   const cw  = all.find(c => c.id === editId);
   if (!cw) return;
 
-  document.getElementById('page-title').textContent = 'Edit watch';
   document.getElementById('btn-delete').style.display = '';
 
   const c = cw.conditions;
@@ -677,6 +676,15 @@ async function renderAllWatches() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (editId != null) {
+    document.getElementById('page-title').textContent = 'Edit watch';
+    document.title = 'reality.eth — Edit Watch';
+  } else if (initQuestionId == null) {
+    document.getElementById('page-title').textContent = 'Watches';
+    document.title = 'reality.eth — Watches';
+  }
+  // initQuestionId present: keep default "Watch similar questions"
+
   renderChainPills();
   RealityWatches.updateBellBadge();
   await loadSourceQuestion();
