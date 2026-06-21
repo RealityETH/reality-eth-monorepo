@@ -1159,7 +1159,7 @@
       } else {
         const matchingConds = RealityWatches.getMatchingConditionsSync(q);
         if (matchingConds.length > 0) {
-          watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='watch-configure.html?id=${matchingConds[0].id}'">★ Watched</span>`;
+          watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='watch-configure.html#id=${matchingConds[0].id}'">★ Watched</span>`;
         }
       }
     }

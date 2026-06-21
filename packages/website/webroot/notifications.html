@@ -170,7 +170,7 @@ async function render() {
     const icon       = TYPE_ICON[n.type] || TYPE_ICON.new_answer;
     const url        = `question.html#!/network/unknown/question/${esc(n.questionId)}`;
     const condLink   = n.conditionId
-      ? `<a class="notif-cond-link" href="watch-configure.html?id=${esc(n.conditionId)}">View watch →</a>`
+      ? `<a class="notif-cond-link" href="watch-configure.html#id=${esc(n.conditionId)}">View watch →</a>`
       : '';
     return `<div class="notif-item${n.seen ? '' : ' unseen'}" data-id="${esc(n.id)}">
       <div class="notif-icon ${esc(n.type)}">${icon}</div>

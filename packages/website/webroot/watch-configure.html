@@ -245,7 +245,7 @@ function shortAddr(addr) {
   return String(addr).slice(0, 6) + '…' + String(addr).slice(-4);
 }
 
-const params         = new URLSearchParams(location.search);
+const params         = new URLSearchParams(location.hash.slice(1));
 const editId         = params.get('id')         ? Number(params.get('id')) : null;
 const initChainId    = params.get('chainId')    ? Number(params.get('chainId')) : null;
 const initTplId      = params.get('templateId') || null;
@@ -571,7 +571,7 @@ document.getElementById('btn-save').addEventListener('click', async () => {
       await RealityWatches.updateConditionWatch(editId, conditions);
     } else {
       const newId = await RealityWatches.addConditionWatch(conditions);
-      history.replaceState(null, '', `?id=${newId}`);
+      history.replaceState(null, '', `#id=${newId}`);
       document.getElementById('btn-delete').style.display = '';
     }
     status.style.display = '';
@@ -661,7 +661,7 @@ async function renderAllWatches() {
       <div class="watch-row-info">
         <div class="watch-row-label">${esc(parts.join(' · ') || 'All questions')}</div>
       </div>
-      <a class="watch-row-edit" href="watch-configure.html?id=${esc(cw.id)}">Edit →</a>
+      <a class="watch-row-edit" href="watch-configure.html#id=${esc(cw.id)}">Edit →</a>
       <button class="watch-row-delete" data-id="${esc(cw.id)}">Delete</button>
     </div>`;
   }).join('');

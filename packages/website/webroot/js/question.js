@@ -94,6 +94,7 @@ const REALITY_ABI = [
 // ── URL parsing ───────────────────────────────────────────────────────────────
 // Hash format: #!/network/{chainId}/question/{contract}-{questionId}
 let CONTRACT, QUESTION_ID, CHAIN_ID;
+let _autoStarFn = null; // set in main() once question data is loaded
 const hashMatch = location.hash.match(/\/network\/(\d+)\/question\/(0x[0-9a-fA-F]+)-(0x[0-9a-fA-F]+)/);
 CHAIN_ID    = hashMatch ? parseInt(hashMatch[1], 10) : 100;
 CONTRACT    = hashMatch?.[2];
@@ -218,7 +219,7 @@ async function fetchPonderData() {
   // responses and reopeners are separate top-level queries (no nested relations in Ponder)
   const query = `{
     question(id: ${qid}) {
-      templateId data title type category lang outcomes
+      templateId data title type category lang outcomes creator
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
@@ -397,6 +398,7 @@ function adaptPonderData(ponderData) {
     reopensQuestionId:    pq.reopensQuestionId || null,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
+    creator:              (pq.creator || '').toLowerCase(),
     answerEvents,
     revealMap,
     currentAnswer: pq.currentAnswer || null,
@@ -518,6 +520,7 @@ async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, 
     btn.textContent = 'Pending…';
     if (onSubmitted) onSubmitted();
     await tx.wait();
+    _autoStarFn?.();
     btn.textContent = '✓ Done';
     setTimeout(() => location.reload(), 1500);
   } catch (err) {
@@ -536,6 +539,7 @@ async function runTx(btn, originalText, txFn, onSubmitted) {
     btn.textContent = 'Pending…';
     if (onSubmitted) onSubmitted();
     await tx.wait();
+    _autoStarFn?.();
     btn.textContent = '✓ Done';
     setTimeout(() => location.reload(), 1500);
   } catch (err) {
@@ -998,6 +1002,7 @@ function buildAnswerForm(data, walletAddr) {
           const tx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
           revealBtn.textContent = 'Revealing…';
           await tx.wait();
+          _autoStarFn?.();
           clearPendingReveal();
           revealBtn.textContent = '✓ Done';
           setTimeout(() => location.reload(), 1500);
@@ -1587,6 +1592,7 @@ async function renderArbitrationSection(data, walletAddr) {
         .requestArbitration(QUESTION_ID, bond, { value: fee });
       btn.textContent = 'Pending…';
       await tx.wait();
+      _autoStarFn?.();
       btn.textContent = '✓ Done';
       setTimeout(() => location.reload(), 1500);
     } catch (err) {
@@ -2281,6 +2287,48 @@ async function main() {
     const typeLbl = TYPE_SHORT[data.qjson.type] || data.qjson.type;
     badgesEl.appendChild(el('span', 'badge badge-type', typeLbl));
     if (data.qjson.category) badgesEl.appendChild(el('span', 'badge badge-app', data.qjson.category));
+  }
+
+  // Star / watch UI
+  const starBtn = qPage.querySelector('#star-btn');
+  if (starBtn && window.RealityWatches) {
+    const ponderQId = `${CONTRACT.toLowerCase()}-${QUESTION_ID}`;
+    const questionMeta = {
+      id:         ponderQId,
+      chainId:    CHAIN_ID,
+      templateId: String(data.templateId || ''),
+      title:      data.qjson?.title_text || data.qjson?.title || '',
+    };
+    _autoStarFn = () => RealityWatches.starQuestion(questionMeta);
+
+    const updateStarUI = async () => {
+      const starred = await RealityWatches.isStarred(ponderQId);
+      const svg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (starred ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+      starBtn.innerHTML = svg + (starred ? ' Watching' : ' Watch');
+      starBtn.classList.toggle('starred', starred);
+      const prompt  = qPage.querySelector('#watch-similar-prompt');
+      const simLink = qPage.querySelector('#watch-similar-link');
+      if (prompt && simLink) {
+        if (starred) {
+          simLink.href = `watch-configure.html#chainId=${CHAIN_ID}&templateId=${encodeURIComponent(String(data.templateId || ''))}&questionId=${encodeURIComponent(ponderQId)}&contract=${CONTRACT.toLowerCase()}`;
+          prompt.style.display = '';
+        } else {
+          prompt.style.display = 'none';
+        }
+      }
+    };
+
+    starBtn.style.display = '';
+    updateStarUI();
+    starBtn.addEventListener('click', async () => {
+      const starred = await RealityWatches.isStarred(ponderQId);
+      if (starred) {
+        await RealityWatches.unstarQuestion(ponderQId);
+      } else {
+        await RealityWatches.starQuestion(questionMeta);
+      }
+      updateStarUI();
+    });
   }
 
   // 4. State classes
