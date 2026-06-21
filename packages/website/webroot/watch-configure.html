@@ -149,21 +149,24 @@
     </div>
   </div>
 
-  <!-- Category filter (shown when source question has a category) -->
-  <div class="card" id="category-card" style="display:none">
+  <!-- Category filter -->
+  <div class="card" id="category-card">
     <div class="card-title">Category</div>
     <label class="toggle-row">
       <div class="toggle-switch">
-        <input type="checkbox" id="category-toggle" checked>
+        <input type="checkbox" id="category-toggle">
         <div class="toggle-track"></div>
         <div class="toggle-knob"></div>
       </div>
-      <span class="toggle-label">Same category (<strong id="category-label">—</strong>)</span>
+      <span class="toggle-label">Filter by category</span>
     </label>
+    <div id="category-value-row" style="display:none; margin-top:12px">
+      <input class="keyword-input" id="category-input" type="text" placeholder="e.g. sports">
+    </div>
   </div>
 
-  <!-- Creator filter (shown when a source question is provided) -->
-  <div class="card" id="creator-card" style="display:none">
+  <!-- Creator filter -->
+  <div class="card" id="creator-card">
     <div class="card-title">Question creator</div>
     <label class="toggle-row">
       <div class="toggle-switch">
@@ -171,8 +174,12 @@
         <div class="toggle-track"></div>
         <div class="toggle-knob"></div>
       </div>
-      <span class="toggle-label">Same creator (<strong id="creator-label">—</strong>)</span>
+      <span class="toggle-label">Filter by creator</span>
     </label>
+    <div id="creator-value-row" style="display:none; margin-top:12px">
+      <input class="keyword-input" id="creator-input" type="text" placeholder="0x… address">
+      <p id="creator-name" style="display:none" class="keyword-hint"></p>
+    </div>
   </div>
 
   <!-- Keyword filter -->
@@ -355,17 +362,21 @@ document.getElementById('template-toggle').addEventListener('change', e => {
   buildVersionSelect().then(() => schedulePreview());
 });
 
-// ── Category toggle ───────────────────────────────────────────────────────────
+// ── Category toggle + input ───────────────────────────────────────────────────
 document.getElementById('category-toggle').addEventListener('change', e => {
   useCategory = e.target.checked;
+  document.getElementById('category-value-row').style.display = useCategory ? '' : 'none';
   schedulePreview();
 });
+document.getElementById('category-input').addEventListener('input', () => schedulePreview());
 
-// ── Creator toggle ────────────────────────────────────────────────────────────
+// ── Creator toggle + input ────────────────────────────────────────────────────
 document.getElementById('creator-toggle').addEventListener('change', e => {
   useCreator = e.target.checked;
+  document.getElementById('creator-value-row').style.display = useCreator ? '' : 'none';
   schedulePreview();
 });
+document.getElementById('creator-input').addEventListener('input', () => schedulePreview());
 
 document.getElementById('version-select').addEventListener('change', e => {
   selectedContract = e.target.value || null;
@@ -428,22 +439,25 @@ async function loadSourceQuestion() {
 
     renderSuggestions(suggestions);
 
-    // Category — its own toggle card
+    // Category
     const cat = (q.category || '').trim();
     if (cat.length >= 2) {
-      categoryValue = cat;
-      useCategory   = true;
-      document.getElementById('category-label').textContent = cat;
-      document.getElementById('category-card').style.display = '';
+      useCategory = true;
+      document.getElementById('category-input').value = cat;
+      document.getElementById('category-value-row').style.display = '';
       document.getElementById('category-toggle').checked = true;
     }
 
-    // Creator
+    // Creator — pre-fill but leave toggle off; creator filter is often too narrow
     if (q.creator) {
       creatorAddress = q.creator.toLowerCase();
+      document.getElementById('creator-input').value = creatorAddress;
       const label = await getCreatorLabel(creatorAddress);
-      document.getElementById('creator-label').textContent = label;
-      document.getElementById('creator-card').style.display = '';
+      if (label !== shortAddr(creatorAddress)) {
+        const nameEl = document.getElementById('creator-name');
+        nameEl.textContent = label;
+        nameEl.style.display = '';
+      }
     }
   } catch {}
 }
@@ -465,11 +479,13 @@ function buildConditions() {
   if (useTemplate && templateId) {
     c.templateId = templateId;
   }
-  if (useCategory && categoryValue) {
-    c.category = categoryValue;
+  if (useCategory) {
+    const cat = document.getElementById('category-input').value.trim();
+    if (cat) c.category = cat;
   }
-  if (useCreator && creatorAddress) {
-    c.creator = creatorAddress;
+  if (useCreator) {
+    const creator = document.getElementById('creator-input').value.trim().toLowerCase();
+    if (creator) c.creator = creator;
   }
   if (useTemplate && selectedContract) {
     c.contract = selectedContract;
@@ -588,19 +604,23 @@ async function loadExistingWatch() {
     document.getElementById('template-toggle').checked     = true;
   }
   if (c.category != null) {
-    categoryValue = c.category;
-    useCategory   = true;
-    document.getElementById('category-label').textContent = c.category;
-    document.getElementById('category-card').style.display = '';
-    document.getElementById('category-toggle').checked    = true;
+    useCategory = true;
+    document.getElementById('category-input').value = c.category;
+    document.getElementById('category-value-row').style.display = '';
+    document.getElementById('category-toggle').checked = true;
   }
   if (c.creator != null) {
     creatorAddress = c.creator;
     useCreator     = true;
-    const label = await getCreatorLabel(creatorAddress);
-    document.getElementById('creator-label').textContent = label;
-    document.getElementById('creator-card').style.display = '';
-    document.getElementById('creator-toggle').checked    = true;
+    document.getElementById('creator-input').value = c.creator;
+    document.getElementById('creator-value-row').style.display = '';
+    document.getElementById('creator-toggle').checked = true;
+    const label = await getCreatorLabel(c.creator);
+    if (label !== shortAddr(c.creator)) {
+      const nameEl = document.getElementById('creator-name');
+      nameEl.textContent = label;
+      nameEl.style.display = '';
+    }
   }
   if (c.keywords?.length) {
     document.getElementById('keyword-input').value = c.keywords.join(', ');
@@ -618,6 +638,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (editId != null) {
     document.getElementById('page-title').textContent = 'Edit watch';
     document.title = 'reality.eth — Edit Watch';
+  } else if (initQuestionId == null) {
+    document.getElementById('page-title').textContent = 'Watch Questions';
+    document.title = 'reality.eth — Watch Questions';
   }
 
   renderChainPills();
@@ -625,7 +648,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSourceQuestion();
   await loadExistingWatch();
   await buildVersionSelect();
-  await renderAllWatches();
   updatePreview();
 });
 
