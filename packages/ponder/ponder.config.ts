@@ -88,7 +88,7 @@ const INFURA = process.env.INFURA_API_KEY;
 export default createConfig({
   networks: {
     ...(on('gnosis')  && { gnosis:  net('gnosis',  100,       process.env.PONDER_RPC_URL_100,      "https://rpc.gnosischain.com") }),
-    ...(on('mainnet') && { mainnet: net('mainnet', 1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com") }),
+    ...(on('mainnet') && { mainnet: net('mainnet', 1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com", 5, 12_000) }),
     // arbitrum: disabled — ~2s block time causes high CPU load during sync
     ...(on('sepolia') && { sepolia: net('sepolia', 11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com", 5, 30_000) }),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
