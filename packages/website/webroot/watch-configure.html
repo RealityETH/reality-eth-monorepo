@@ -114,6 +114,10 @@
   .watch-row-conds { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
   .watch-row-edit { font-size: 12px; color: var(--accent); text-decoration: none; flex-shrink: 0; }
   .watch-row-edit:hover { text-decoration: underline; }
+  .watch-row-delete { padding: 3px 10px; background: none; border: 1px solid var(--red);
+    border-radius: var(--radius-sm); color: var(--red); font-size: 12px; cursor: pointer;
+    transition: background 0.15s; flex-shrink: 0; }
+  .watch-row-delete:hover { background: var(--red-subtle); }
   .empty-watches { color: var(--text-muted); font-size: 13px; padding: 8px 0; }
 </style>
 </head>
@@ -630,12 +634,12 @@ async function loadExistingWatch() {
   updatePreview();
 }
 
-// ── Show all watches (root page with no ?id param) ────────────────────────────
+// ── Show all watches (root page only — not in edit or create-from-question mode) ──
 async function renderAllWatches() {
+  if (editId != null || initQuestionId != null) return;
   const section = document.getElementById('all-watches-section');
   const listEl  = document.getElementById('watches-list');
   const all     = await RealityWatches.getConditionWatches();
-  if (all.length === 0 && editId != null) return;
   section.style.display = '';
 
   if (all.length === 0) {
@@ -659,8 +663,17 @@ async function renderAllWatches() {
         <div class="watch-row-label">${esc(parts.join(' · ') || 'All questions')}</div>
       </div>
       <a class="watch-row-edit" href="watch-configure.html?id=${esc(cw.id)}">Edit →</a>
+      <button class="watch-row-delete" data-id="${esc(cw.id)}">Delete</button>
     </div>`;
   }).join('');
+
+  listEl.querySelectorAll('.watch-row-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this watch?')) return;
+      await RealityWatches.removeConditionWatch(Number(btn.dataset.id));
+      await renderAllWatches();
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
