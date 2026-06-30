@@ -426,7 +426,7 @@ async function gql(query) {
 // ── Contracts.json ─────────────────────────────────────────────────────────────
 async function loadContracts() {
   if (contractsData) return contractsData;
-  const r = await fetch('/packages/contracts/generated/contracts.json');
+  const r = await fetch('generated/contracts.json');
   contractsData = await r.json();
   contractTokenMap = buildContractTokenMap(contractsData);
   return contractsData;

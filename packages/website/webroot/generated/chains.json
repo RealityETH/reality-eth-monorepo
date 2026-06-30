@@ -1,0 +1,835 @@
+{
+    "1": {
+        "chainId": "0x1",
+        "chainName": "Ethereum Mainnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "mainnet",
+        "rpcUrls": [
+            "https://api.mycryptoapi.com/eth",
+            "https://cloudflare-eth.com",
+            "https://ethereum-rpc.publicnode.com",
+            "wss://ethereum-rpc.publicnode.com",
+            "https://mainnet.gateway.tenderly.co",
+            "wss://mainnet.gateway.tenderly.co",
+            "https://rpc.blocknative.com/boost",
+            "https://rpc.flashbots.net",
+            "https://rpc.flashbots.net/fast",
+            "https://rpc.mevblocker.io",
+            "https://rpc.mevblocker.io/fast",
+            "https://rpc.mevblocker.io/noreverts",
+            "https://rpc.mevblocker.io/fullprivacy",
+            "https://eth.drpc.org",
+            "wss://eth.drpc.org",
+            "https://api.securerpc.com/v1"
+        ],
+        "hostedRPC": "https://eth-mainnet.g.alchemy.com/v2/c9uS--nIxEOjVjh0AJlNttMaqUXQy8gR",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/deployments/id/QmaugeofXNk2tCN3U3LaEi8vRq99zZ6pbKYJDWbbVF1Z9E",
+        "blockExplorerUrls": [
+            "https://etherscan.io",
+            "https://eth.blockscout.com",
+            "https://ethereum.dex.guru",
+            "https://ethereum.routescan.io"
+        ]
+    },
+    "3": {
+        "chainId": "0x3",
+        "chainName": "Ropsten",
+        "nativeCurrency": {
+            "name": "Ropsten Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "ropsten",
+        "rpcUrls": [],
+        "hostedRPC": "https://ropsten.infura.io/tSrhlXUe1sNEO5ZWhpUK",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-ropsten",
+        "deprecated": true,
+        "blockExplorerUrls": [
+            "https://ropsten.etherscan.io"
+        ]
+    },
+    "4": {
+        "chainId": "0x4",
+        "chainName": "Rinkeby",
+        "nativeCurrency": {
+            "name": "Rinkeby Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "rinkeby",
+        "rpcUrls": [],
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-rinkeby",
+        "blockExplorerUrls": [
+            "https://rinkeby.etherscan.io"
+        ]
+    },
+    "5": {
+        "chainId": "0x5",
+        "chainName": "Goerli",
+        "nativeCurrency": {
+            "name": "Goerli Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "goerli",
+        "rpcUrls": [
+            "https://rpc.goerli.mudit.blog/",
+            "https://ethereum-goerli-rpc.publicnode.com",
+            "wss://ethereum-goerli-rpc.publicnode.com",
+            "https://goerli.gateway.tenderly.co",
+            "wss://goerli.gateway.tenderly.co"
+        ],
+        "hostedRPC": "https://rpc.goerli.mudit.blog/",
+        "graphURL": "https://gateway.testnet.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
+        "blockExplorerUrls": [
+            "https://goerli.etherscan.io",
+            "https://eth-goerli.blockscout.com"
+        ]
+    },
+    "8": {
+        "chainId": "0x8",
+        "chainName": "Ubiq",
+        "nativeCurrency": {
+            "name": "Ubiq Ether",
+            "symbol": "UBQ",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://rpc.octano.dev",
+            "https://pyrus2.ubiqscan.io"
+        ],
+        "hostedRPC": "https://rpc.octano.dev",
+        "blockExplorerUrls": [
+            "https://ubiqscan.io",
+            "https://ubqblockexplorer.com/"
+        ]
+    },
+    "10": {
+        "chainId": "0xa",
+        "chainName": "OP Mainnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://mainnet.optimism.io",
+            "https://optimism-rpc.publicnode.com",
+            "wss://optimism-rpc.publicnode.com",
+            "https://optimism.gateway.tenderly.co",
+            "wss://optimism.gateway.tenderly.co",
+            "https://optimism.drpc.org",
+            "wss://optimism.drpc.org"
+        ],
+        "hostedRPC": "https://mainnet.optimism.io",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL",
+        "blockExplorerUrls": [
+            "https://optimistic.etherscan.io",
+            "https://optimism.blockscout.com",
+            "https://optimism.dex.guru",
+            "https://mainnet.superscan.network"
+        ]
+    },
+    "40": {
+        "chainId": "0x28",
+        "chainName": "Telos EVM Mainnet",
+        "nativeCurrency": {
+            "name": "Telos",
+            "symbol": "TLOS",
+            "decimals": 18
+        },
+        "network_name": "TelosEVM",
+        "rpcUrls": [
+            "https://rpc.telos.net",
+            "https://telos.drpc.org",
+            "wss://telos.drpc.org"
+        ],
+        "hostedRPC": "https://rpc.telos.net",
+        "blockExplorerUrls": [
+            "https://teloscan.io"
+        ]
+    },
+    "56": {
+        "chainId": "0x38",
+        "chainName": "BNB Smart Chain Mainnet",
+        "nativeCurrency": {
+            "name": "BNB Chain Native Token",
+            "symbol": "BNB",
+            "decimals": 18
+        },
+        "network_name": "bsc",
+        "rpcUrls": [
+            "https://bsc-dataseed1.bnbchain.org",
+            "https://bsc-dataseed2.bnbchain.org",
+            "https://bsc-dataseed3.bnbchain.org",
+            "https://bsc-dataseed4.bnbchain.org",
+            "https://bsc-dataseed1.defibit.io",
+            "https://bsc-dataseed2.defibit.io",
+            "https://bsc-dataseed3.defibit.io",
+            "https://bsc-dataseed4.defibit.io",
+            "https://bsc-dataseed1.ninicoin.io",
+            "https://bsc-dataseed2.ninicoin.io",
+            "https://bsc-dataseed3.ninicoin.io",
+            "https://bsc-dataseed4.ninicoin.io",
+            "https://bsc-rpc.publicnode.com",
+            "wss://bsc-rpc.publicnode.com",
+            "wss://bsc-ws-node.nariox.org"
+        ],
+        "hostedRPC": "https://bsc-dataseed1.bnbchain.org",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5KjMLU6mx7RrjJJK9XKrM7i6oeB7C6gpnsi3CTWqpYpm",
+        "blockExplorerUrls": [
+            "https://bscscan.com",
+            "https://bnb.dex.guru",
+            "https://www.bscscan.com"
+        ]
+    },
+    "69": {
+        "chainId": "0x45",
+        "chainName": "Optimism Kovan",
+        "nativeCurrency": {
+            "name": "Kovan Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "kovan",
+        "rpcUrls": [
+            "https://kovan.optimism.io/"
+        ],
+        "hostedRPC": "https://kovan.optimism.io",
+        "blockExplorerUrls": [
+            "https://kovan-optimistic.etherscan.io"
+        ]
+    },
+    "77": {
+        "chainId": "0x4d",
+        "chainName": "POA Network Sokol",
+        "nativeCurrency": {
+            "name": "POA Sokol Ether",
+            "symbol": "SPOA",
+            "decimals": 18
+        },
+        "network_name": "poa-sokol",
+        "rpcUrls": [
+            "https://sokol.poa.network",
+            "wss://sokol.poa.network/wss",
+            "ws://sokol.poa.network:8546"
+        ],
+        "hostedRPC": "https://sokol.poa.network",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
+        "blockExplorerUrls": [
+            "https://blockscout.com/poa/sokol"
+        ]
+    },
+    "97": {
+        "chainId": "0x61",
+        "chainName": "BNB Smart Chain Testnet",
+        "nativeCurrency": {
+            "name": "BNB Chain Native Token",
+            "symbol": "tBNB",
+            "decimals": 18
+        },
+        "network_name": "chapel",
+        "rpcUrls": [
+            "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s1.bnbchain.org:8545",
+            "https://data-seed-prebsc-1-s2.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s2.bnbchain.org:8545",
+            "https://data-seed-prebsc-1-s3.bnbchain.org:8545",
+            "https://data-seed-prebsc-2-s3.bnbchain.org:8545",
+            "https://bsc-testnet-rpc.publicnode.com",
+            "wss://bsc-testnet-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
+        "blockExplorerUrls": [
+            "https://testnet.bscscan.com"
+        ]
+    },
+    "100": {
+        "chainId": "0x64",
+        "chainName": "Gnosis",
+        "nativeCurrency": {
+            "name": "xDAI",
+            "symbol": "XDAI",
+            "decimals": 18
+        },
+        "network_name": "gnosis",
+        "rpcUrls": [
+            "https://rpc.gnosischain.com",
+            "https://rpc.gnosis.gateway.fm",
+            "https://rpc.ankr.com/gnosis",
+            "https://gnosischain-rpc.gateway.pokt.network",
+            "https://gnosis-mainnet.public.blastapi.io",
+            "https://gnosis.api.onfinality.io/public",
+            "https://gnosis.blockpi.network/v1/rpc/public",
+            "https://web3endpoints.com/gnosischain-mainnet",
+            "https://gnosis.oat.farm",
+            "wss://rpc.gnosischain.com/wss",
+            "https://gnosis-rpc.publicnode.com",
+            "wss://gnosis-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://rpc.gnosischain.com",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/E7ymrCnNcQdAAgLbdFWzGE5mvr5Mb5T9VfT43FqA7bNh",
+        "blockExplorerUrls": [
+            "https://gnosisscan.io",
+            "https://gnosis.blockscout.com",
+            "https://gnosis.dex.guru"
+        ]
+    },
+    "130": {
+        "chainId": "0x82",
+        "chainName": "Unichain",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain",
+        "rpcUrls": [
+            "https://mainnet.unichain.org",
+            "https://unichain-rpc.publicnode.com",
+            "wss://unichain-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://mainnet.unichain.org",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/ChZUYehW8ionezxqgM1UQsrjuZpcBbNkiTjQX5jBauEi",
+        "blockExplorerUrls": [
+            "https://uniscan.xyz",
+            "https://unichain.blockscout.com",
+            "https://unichain.blockscout.com/"
+        ]
+    },
+    "137": {
+        "chainId": "0x89",
+        "chainName": "Polygon Mainnet",
+        "nativeCurrency": {
+            "name": "POL",
+            "symbol": "POL",
+            "decimals": 18
+        },
+        "network_name": "matic",
+        "rpcUrls": [
+            "https://polygon-rpc.com/",
+            "https://rpc-mainnet.matic.network",
+            "https://matic-mainnet.chainstacklabs.com",
+            "https://rpc-mainnet.maticvigil.com",
+            "https://rpc-mainnet.matic.quiknode.pro",
+            "https://matic-mainnet-full-rpc.bwarelabs.com",
+            "https://polygon-bor-rpc.publicnode.com",
+            "wss://polygon-bor-rpc.publicnode.com",
+            "https://polygon.gateway.tenderly.co",
+            "wss://polygon.gateway.tenderly.co",
+            "https://polygon.drpc.org",
+            "wss://polygon.drpc.org"
+        ],
+        "hostedRPC": "https://polygon-rpc.com/",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
+        "blockExplorerUrls": [
+            "https://polygonscan.com",
+            "https://polygon.dex.guru",
+            "https://polygonscan.com/"
+        ]
+    },
+    "143": {
+        "chainId": "0x8f",
+        "chainName": "Monad",
+        "nativeCurrency": {
+            "name": "Monad",
+            "symbol": "MON",
+            "decimals": 18
+        },
+        "network_name": "monad",
+        "rpcUrls": [
+            "https://rpc.monad.xyz"
+        ],
+        "hostedRPC": "https://rpc.monad.xyz",
+        "blockExplorerUrls": [
+            "https://monadvision.com",
+            "https://monadscan.com",
+            "https://monad.socialscan.io/"
+        ]
+    },
+    "280": {
+        "chainId": "0x118",
+        "chainName": "ZKSync Goerli",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "WETH",
+            "decimals": 18
+        },
+        "network_name": "zkSync2-testnet",
+        "rpcUrls": [
+            "https://zksync2-testnet.zksync.dev"
+        ],
+        "hostedRPC": "https://zksync2-testnet.zksync.dev",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
+        "blockExplorerUrls": [
+            "https://goerli.explorer.zksync.io/",
+            "https://zksync2-testnet.zkscan.io"
+        ]
+    },
+    "300": {
+        "chainId": "0x12c",
+        "chainName": "zkSync Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "zksync-sepolia",
+        "rpcUrls": [
+            "https://sepolia.era.zksync.dev",
+            "https://zksync-sepolia.drpc.org",
+            "wss://zksync-sepolia.drpc.org"
+        ],
+        "hostedRPC": "https://sepolia.era.zksync.dev",
+        "blockExplorerUrls": [
+            "https://sepolia.explorer.zksync.io"
+        ]
+    },
+    "324": {
+        "chainId": "0x144",
+        "chainName": "zkSync Mainnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "zksync-era",
+        "rpcUrls": [
+            "https://mainnet.era.zksync.io",
+            "https://zksync.drpc.org",
+            "wss://zksync.drpc.org"
+        ],
+        "hostedRPC": "https://mainnet.era.zksync.io",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
+        "blockExplorerUrls": [
+            "https://explorer.zksync.io",
+            "https://explorer.zksync.io/"
+        ]
+    },
+    "690": {
+        "chainId": "0x2b2",
+        "chainName": "Redstone",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "redstone",
+        "rpcUrls": [
+            "https://rpc.redstonechain.com",
+            "wss://rpc.redstonechain.com"
+        ],
+        "hostedRPC": "https://rpc.redstonechain.com",
+        "blockExplorerUrls": [
+            "https://explorer.redstone.xyz",
+            "https://explorer.redstone.xyz/"
+        ]
+    },
+    "777": {
+        "chainId": "0x309",
+        "chainName": "cheapETH",
+        "nativeCurrency": {
+            "name": "cTH",
+            "symbol": "cTH",
+            "decimals": 18
+        },
+        "network_name": "cheapeth",
+        "rpcUrls": [
+            "https://node.cheapeth.org/rpc"
+        ],
+        "hostedRPC": "https://node.cheapeth.org/rpc",
+        "blockExplorerUrls": [
+            "https://explore.cheapswap.io/"
+        ]
+    },
+    "1101": {
+        "chainId": "0x44d",
+        "chainName": "Polygon zkEVM",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "polygon-zkevm",
+        "rpcUrls": [
+            "https://zkevm-rpc.com",
+            "https://polygon-zkevm.drpc.org",
+            "wss://polygon-zkevm.drpc.org"
+        ],
+        "hostedRPC": "https://zkevm-rpc.com",
+        "blockExplorerUrls": [
+            "https://zkevm.polygonscan.com",
+            "https://zkevm.polygonscan.com/"
+        ]
+    },
+    "1301": {
+        "chainId": "0x515",
+        "chainName": "Unichain Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "unichain-sepolia",
+        "rpcUrls": [
+            "https://sepolia.unichain.org",
+            "https://unichain-sepolia-rpc.publicnode.com",
+            "wss://unichain-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia.unichain.org",
+        "blockExplorerUrls": [
+            "https://unichain-sepolia.blockscout.com",
+            "https://sepolia.uniscan.xyz",
+            "https://unichain-sepolia.blockscout.com/"
+        ]
+    },
+    "8453": {
+        "chainId": "0x2105",
+        "chainName": "Base",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "base",
+        "rpcUrls": [
+            "https://mainnet.base.org/",
+            "https://developer-access-mainnet.base.org/",
+            "https://base.gateway.tenderly.co",
+            "wss://base.gateway.tenderly.co",
+            "https://base-rpc.publicnode.com",
+            "wss://base-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://mainnet.base.org",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/8Gtjsx3LGtN3Jfxx1YEbLWNLEd2ntrq3dsyzXgGHov1i",
+        "blockExplorerUrls": [
+            "https://basescan.org",
+            "https://base.blockscout.com",
+            "https://base.dex.guru",
+            "https://base.superscan.network",
+            "https://basescan.org/"
+        ]
+    },
+    "10200": {
+        "chainId": "0x27d8",
+        "chainName": "Gnosis Chiado Testnet",
+        "nativeCurrency": {
+            "name": "Chiado xDAI",
+            "symbol": "XDAI",
+            "decimals": 18
+        },
+        "network_name": "chiado",
+        "rpcUrls": [
+            "https://rpc.chiadochain.net",
+            "https://rpc.chiado.gnosis.gateway.fm",
+            "wss://rpc.chiadochain.net/wss",
+            "https://gnosis-chiado-rpc.publicnode.com",
+            "wss://gnosis-chiado-rpc.publicnode.com",
+            "https://gnosis-chiado.drpc.org",
+            "wss://gnosis-chiado.drpc.org"
+        ],
+        "hostedRPC": "https://rpc.chiadochain.net",
+        "blockExplorerUrls": [
+            "https://blockscout.chiadochain.net",
+            "https://gnosis-chiado.blockscout.com",
+            "https://gnosis-chiado.blockscout.com/"
+        ]
+    },
+    "17000": {
+        "chainId": "0x4268",
+        "chainName": "Holesky",
+        "nativeCurrency": {
+            "name": "Testnet ETH",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "holesky",
+        "rpcUrls": [
+            "https://rpc.holesky.ethpandaops.io",
+            "https://ethereum-holesky-rpc.publicnode.com",
+            "wss://ethereum-holesky-rpc.publicnode.com",
+            "https://holesky.drpc.org",
+            "wss://holesky.drpc.org",
+            "https://rpc-holesky.rockx.com"
+        ],
+        "hostedRPC": "https://ethereum-holesky.publicnode.com",
+        "deprecated": true,
+        "blockExplorerUrls": [
+            "https://holesky.beaconcha.in",
+            "https://holesky.otterscan.io",
+            "https://holesky.etherscan.io",
+            "https://holesky.etherscan.io/"
+        ]
+    },
+    "42161": {
+        "chainId": "0xa4b1",
+        "chainName": "Arbitrum One",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-one",
+        "rpcUrls": [
+            "https://arb1.arbitrum.io/rpc",
+            "wss://arb1.arbitrum.io/ws"
+        ],
+        "hostedRPC": "https://arb1.arbitrum.io/rpc",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
+        "blockExplorerUrls": [
+            "https://explorer.arbitrum.io"
+        ]
+    },
+    "42220": {
+        "chainId": "0xa4ec",
+        "chainName": "Celo Mainnet",
+        "nativeCurrency": {
+            "name": "CELO",
+            "symbol": "CELO",
+            "decimals": 18
+        },
+        "network_name": "celo",
+        "rpcUrls": [
+            "https://forno.celo.org",
+            "wss://forno.celo.org/ws"
+        ],
+        "hostedRPC": "https://forno.celo.org",
+        "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
+        "blockExplorerUrls": [
+            "https://celoscan.io",
+            "https://celo.blockscout.com"
+        ]
+    },
+    "43114": {
+        "chainId": "0xa86a",
+        "chainName": "Avalanche C-Chain",
+        "nativeCurrency": {
+            "name": "Avalanche",
+            "symbol": "AVAX",
+            "decimals": 18
+        },
+        "network_name": "avalanche",
+        "rpcUrls": [
+            "https://api.avax.network/ext/bc/C/rpc",
+            "https://avalanche-c-chain-rpc.publicnode.com",
+            "wss://avalanche-c-chain-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
+        "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
+        "blockExplorerUrls": [
+            "https://snowscan.xyz",
+            "https://snowtrace.io",
+            "https://avascan.info",
+            "https://cchain.explorer.avax.network/"
+        ]
+    },
+    "80001": {
+        "chainId": "0x13881",
+        "chainName": "Mumbai",
+        "nativeCurrency": {
+            "name": "MATIC",
+            "symbol": "MATIC",
+            "decimals": 18
+        },
+        "network_name": "mumbai",
+        "rpcUrls": [
+            "https://rpc-mumbai.maticvigil.com",
+            "https://polygon-mumbai-bor-rpc.publicnode.com",
+            "wss://polygon-mumbai-bor-rpc.publicnode.com",
+            "https://polygon-mumbai.gateway.tenderly.co",
+            "wss://polygon-mumbai.gateway.tenderly.co"
+        ],
+        "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
+        "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-mumbai",
+        "blockExplorerUrls": [
+            "https://mumbai.polygonscan.com"
+        ]
+    },
+    "84532": {
+        "chainId": "0x14a34",
+        "chainName": "Base Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "base-sepolia",
+        "rpcUrls": [
+            "https://sepolia.base.org",
+            "https://base-sepolia-rpc.publicnode.com",
+            "wss://base-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia.base.org",
+        "blockExplorerUrls": [
+            "https://sepolia.basescan.org",
+            "https://base-sepolia.blockscout.com"
+        ]
+    },
+    "421611": {
+        "chainId": "0x66eeb",
+        "chainName": "Arbitrum Rinkeby",
+        "nativeCurrency": {
+            "name": "Arbitrum Rinkeby Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-rinkeby",
+        "rpcUrls": [
+            "https://rinkeby.arbitrum.io/rpc"
+        ],
+        "hostedRPC": "https://rinkeby.arbitrum.io/rpc",
+        "blockExplorerUrls": [
+            "https://testnet.arbiscan.io",
+            "https://rinkeby-explorer.arbitrum.io"
+        ]
+    },
+    "421613": {
+        "chainId": "0x66eed",
+        "chainName": "Arbitrum Goerli",
+        "nativeCurrency": {
+            "name": "Arbitrum Goerli Ether",
+            "symbol": "AGOR",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-goerli",
+        "rpcUrls": [
+            "https://goerli-rollup.arbitrum.io/rpc",
+            "https://arbitrum-goerli.publicnode.com",
+            "wss://arbitrum-goerli.publicnode.com"
+        ],
+        "hostedRPC": "https://goerli-rollup.arbitrum.io/rpc",
+        "blockExplorerUrls": [
+            "https://goerli.arbiscan.io"
+        ]
+    },
+    "421614": {
+        "chainId": "0x66eee",
+        "chainName": "Arbitrum Sepolia",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "arbitrum-sepolia",
+        "rpcUrls": [
+            "https://sepolia-rollup.arbitrum.io/rpc",
+            "https://arbitrum-sepolia-rpc.publicnode.com",
+            "wss://arbitrum-sepolia-rpc.publicnode.com"
+        ],
+        "hostedRPC": "https://sepolia-rollup.arbitrum.io/rpc",
+        "blockExplorerUrls": [
+            "https://sepolia.arbiscan.io",
+            "https://sepolia-explorer.arbitrum.io"
+        ]
+    },
+    "534353": {
+        "chainId": "0x82751",
+        "chainName": "Scroll Alpha Testnet",
+        "nativeCurrency": {
+            "name": "Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "rpcUrls": [
+            "https://alpha-rpc.scroll.io/l2"
+        ],
+        "hostedRPC": "https://alpha-rpc.scroll.io/l2",
+        "blockExplorerUrls": [
+            "https://alpha-blockscout.scroll.io"
+        ]
+    },
+    "1337702": {
+        "chainId": "0x146966",
+        "chainName": "Kintsugi",
+        "nativeCurrency": {
+            "name": "kintsugi Ethere",
+            "symbol": "kiETH",
+            "decimals": 18
+        },
+        "network_name": "kintsugi",
+        "rpcUrls": [
+            "https://rpc.kintsugi.themerge.dev"
+        ],
+        "hostedRPC": "https://rpc.kintsugi.themerge.dev",
+        "deprecated": true,
+        "blockExplorerUrls": [
+            "https://explorer.kintsugi.themerge.dev"
+        ]
+    },
+    "11155111": {
+        "chainId": "0xaa36a7",
+        "chainName": "Ethereum Sepolia",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "sepolia",
+        "rpcUrls": [
+            "https://rpc.sepolia.org",
+            "https://rpc2.sepolia.org",
+            "https://rpc.sepolia.ethpandaops.io",
+            "https://sepolia.gateway.tenderly.co",
+            "wss://sepolia.gateway.tenderly.co",
+            "https://ethereum-sepolia-rpc.publicnode.com",
+            "wss://ethereum-sepolia-rpc.publicnode.com",
+            "https://sepolia.drpc.org",
+            "wss://sepolia.drpc.org",
+            "https://eth-sepolia.g.alchemy.com/v2/WddzdzI2o9S3COdT73d5w6AIogbKq4X-"
+        ],
+        "hostedRPC": "https://rpc.sepolia.org",
+        "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
+        "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
+        "blockExplorerUrls": [
+            "https://sepolia.etherscan.io",
+            "https://sepolia.otterscan.io",
+            "https://11155111.testnet.routescan.io"
+        ]
+    },
+    "11155420": {
+        "chainId": "0xaa37dc",
+        "chainName": "OP Sepolia Testnet",
+        "nativeCurrency": {
+            "name": "Sepolia Ether",
+            "symbol": "ETH",
+            "decimals": 18
+        },
+        "network_name": "optimism-sepolia",
+        "rpcUrls": [
+            "https://sepolia.optimism.io",
+            "https://optimism-sepolia.drpc.org",
+            "wss://optimism-sepolia.drpc.org"
+        ],
+        "hostedRPC": "https://sepolia.optimism.io",
+        "blockExplorerUrls": [
+            "https://sepolia-optimism.etherscan.io",
+            "https://optimism-sepolia.blockscout.com"
+        ]
+    },
+    "88558801": {
+        "chainId": "0x5474cd1",
+        "chainName": "Backstop Testnet 1",
+        "nativeCurrency": {
+            "name": "Backstop Tokens",
+            "symbol": "ZBS",
+            "decimals": 18
+        },
+        "network_name": "backstopTestnet1",
+        "rpcUrls": [
+            "https://testnet.rpc.backstop.technology"
+        ],
+        "hostedRPC": "https://testnet.rpc.backstop.technology",
+        "graphURL": "https://testnet.graph.backstop.technology/subgraphs/name/realityeth-backstop",
+        "blockExplorerUrls": [
+            "https://testnet.explorer.backstop.technology/"
+        ]
+    }
+}

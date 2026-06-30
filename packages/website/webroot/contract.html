@@ -190,9 +190,9 @@ async function run(chainId, address) {
   let contracts, tokens, chains;
   try {
     [contracts, tokens, chains] = await Promise.all([
-      fetch('/packages/contracts/generated/contracts.json').then(r => r.json()),
-      fetch('/packages/contracts/generated/tokens.json').then(r => r.json()),
-      fetch('/packages/contracts/generated/chains.json').then(r => r.json()),
+      fetch('generated/contracts.json').then(r => r.json()),
+      fetch('generated/tokens.json').then(r => r.json()),
+      fetch('generated/chains.json').then(r => r.json()),
     ]);
   } catch (e) {
     showError('Failed to load contract data.'); return;

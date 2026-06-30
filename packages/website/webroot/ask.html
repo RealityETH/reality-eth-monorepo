@@ -548,7 +548,7 @@ const timeoutSel   = document.getElementById('question-timeout');
 
 async function loadContracts() {
   if (contractsData) return contractsData;
-  const res = await fetch('/packages/contracts/generated/contracts.json');
+  const res = await fetch('generated/contracts.json');
   contractsData = await res.json();
   return contractsData;
 }

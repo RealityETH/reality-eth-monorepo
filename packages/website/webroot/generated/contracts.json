@@ -1,0 +1,752 @@
+{
+    "1": {
+        "ETH": {
+            "RealityETH-2.0": {
+                "address": "0x325a2e0F3CCA2ddbaeBB4DfC38Df8D19ca165b47",
+                "block": 6531265,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xdc0a2185031ecf89f091a39c63c2857a7d5c301a": "Reality.eth Team",
+                    "0xd47f72a2d1d0E91b0Ec5e5f5d02B2dc26d00A14D": "Kleros",
+                    "0x4072cadf953ad0a1bbacbbb50ac513411ae620db": "Gnosis Corona Information Arbitrator"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c",
+                "block": 13194676,
+                "notes": null,
+                "arbitrators": {
+                    "0xFf32eff53459485074b4Db14633252C9dcA3791A": "Kleros General Court",
+                    "0xf72cfd1b34a91a64f9a98537fe63fbab7530adca": "Kleros DAO Governance (Technical Court)",
+                    "0x7837638B3b1546c70dfCbFBd1ce55AC88758D517": "Kleros (Precog)",
+                    "0x728cba71a3723caab33ea416cb46e2cc9215a596": "Kleros (Old General Court, deprecated)"
+                }
+            },
+            "RealityETH-3.2": {
+                "address": "0x6a2155613b68eFB38D5c6074921F3F4281c8c177",
+                "block": 22100226,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "FOX": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0xf4585A9944A390615E7cec6756C1c082173B93eB",
+                "block": 12821080,
+                "token_address": "0xc770EEfAd204B5180dF6a14Ee197D99d808ee52d",
+                "notes": null,
+                "arbitrators": {
+                    "0x90A48D5CF7343B08dA12E067680B4C6dbfE551Be": "ShapeShift DAO"
+                }
+            }
+        },
+        "GNO": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0x8f1CC53bf34932591177CDA24723486205CA7510",
+                "block": 12654677,
+                "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9",
+                "block": 13201169,
+                "token_address": "0x6810e776880c02933d47db1b9fc05908e5386b96",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "SWISE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x867092A32bC16816F12Fb326EfF7A2865E1ec138",
+                "block": 14485577,
+                "token_address": "0x48C3399719B582dD63eB5AADf12A40B4C3f52FA2",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "TRST": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d",
+                "block": 8050824,
+                "token_address": "0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b",
+                "notes": null,
+                "arbitrators": {
+                    "0xB403D7440a70b60aee93178E2F11110f1EFAC8D0": "Realitio Team",
+                    "0xcE9B84c5612Beaa234ad0d9fa7d283293479510E": "Kleros"
+                }
+            }
+        }
+    },
+    "4": {
+        "DAOOS": {
+            "RealityETH_ERC20-2.0": {
+                "address": "0x3B3ab861Deb4ED756e39f2f6A2634DEdfC182d38",
+                "block": 8903097,
+                "token_address": "0x56AE5fd086823d1892BACE27034Eb5531Fcdc3f8",
+                "notes": null,
+                "arbitrators": {
+                    "0x8368d613059dcbdBF909081Bb00190a01b0d5F9D": "daoOS DAO team (rinkeby main)"
+                }
+            },
+            "RealityETH_ERC20-3.0": {
+                "address": "0x5e97Dd72812B59cB3166B0D907a9B360493b9971",
+                "block": 11107270,
+                "token_address": "0x56AE5fd086823d1892BACE27034Eb5531Fcdc3f8",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "ETH": {
+            "Arbitrator_RealityETH-2.1": {
+                "address": "0xA63Db03F2706a6DFFccE58B8B567872104d7B48f",
+                "block": 8886242,
+                "reality_eth_address": "0xa09CE5E7943f281A782A0dC021c4029F9088BEC4"
+            },
+            "RealityETH-2.0": {
+                "address": "0x3D00D77ee771405628a4bA4913175EcC095538da",
+                "block": 3175028,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0x02321745bE4a141E78db6C39834396f8df00e2a0": "Reality.eth Team (rinkeby main)"
+                }
+            },
+            "RealityETH-2.1": {
+                "address": "0xa09CE5E7943f281A782A0dC021c4029F9088BEC4",
+                "block": 8886224,
+                "notes": null,
+                "arbitrators": {
+                    "0xA63Db03F2706a6DFFccE58B8B567872104d7B48f": "Reality.eth Team (rinkeby main)"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0xDf33060F476F8cff7511F806C72719394da1Ad64",
+                "block": 9106451,
+                "notes": null,
+                "arbitrators": {
+                    "0xe27768bdb76a9b742b7ddcfe1539fadaf3b89bc7": "Kleros (General Court)"
+                }
+            }
+        },
+        "TRST": {
+            "Arbitrator": {
+                "address": "0xa682C58333F4959cbF728c2a871548E3D8978Fa2",
+                "block": 8743912,
+                "reality_eth_address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288"
+            },
+            "RealityETH_ERC20-2.0": {
+                "address": "0xa4dA771Bbd6e93bB8e714Fe97b388fe88eec8288",
+                "block": 4643634,
+                "token_address": "0x21036C54e16521B8809553956123E44054120226",
+                "notes": null,
+                "arbitrators": {
+                    "0x1184313B3690A4B4cF2436924C2d09dAC730628A": "Realitio Team (rinkeby main)"
+                }
+            }
+        }
+    },
+    "5": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x6F80C5cBCF9FbC2dA2F0675E56A5900BB70Df72f",
+                "block": 7313546,
+                "notes": null,
+                "arbitrators": {
+                    "0xaa5681047a16f163391377fd9f78e84355cc9696": "Kleros"
+                }
+            }
+        }
+    },
+    "8": {
+        "UBQ": {
+            "Arbitrator": {
+                "address": "0xD31566493ac99fCa63BF17E62724b41010b4AFB6",
+                "block": 1635513,
+                "reality_eth_address": "0x0dE8A0B6d37FBfD704090245F517e52D7Ad9a903"
+            },
+            "RealityETH-2.1": {
+                "address": "0x0dE8A0B6d37FBfD704090245F517e52D7Ad9a903",
+                "block": 1621781,
+                "notes": null,
+                "arbitrators": {
+                    "0xD31566493ac99fCa63BF17E62724b41010b4AFB6": "Ubiq Core Dev Team"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0x23C7eE4F42e473AEf51C3f59D7D58E33a63Ab348",
+                "block": 1670257,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "10": {
+        "OETH": {
+            "RealityETH-3.0": {
+                "address": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
+                "block": 2462149,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "40": {
+        "TLOS": {
+            "RealityETH-3.0": {
+                "address": "0xfd6f6A4181B7df7cd539Ac5ea7b6533869AE9BF1",
+                "block": 299104399,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "56": {
+        "BNB": {
+            "Arbitrator": {
+                "address": "0xec634BD4c5766e96dbDC3cf89D15B4D340690118",
+                "block": 8215956,
+                "reality_eth_address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716"
+            },
+            "RealityETH-2.1": {
+                "address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716",
+                "block": 7962044,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (for testing only)"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0xa925646Cae3721731F9a8C886E5D1A7B123151B9",
+                "block": 10751380,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "DEXE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x95f8fc16C7Bd5a5b24CaE629471c6cCC3916826A",
+                "block": 13749748,
+                "token_address": "0x039cb485212f996a9dbb85a9a75d898f94d38da6",
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "69": {
+        "OETH": {
+            "RealityETH-3.0": {
+                "address": "0x327543eaf65FE0D68333d4D092282cDBA0Bc37a6",
+                "block": 28282,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "77": {
+        "XDAI": {
+            "RealityETH-2.1-rc1": {
+                "address": "0x63975d9e7CF434dCd04bD808d8c79d03EF69100B",
+                "block": 17307142,
+                "token_address": null,
+                "notes": "Same as 2.1 except missing an empty address check",
+                "arbitrators": {}
+            },
+            "RealityETH-2.1": {
+                "address": "0x90a617ed516ab7fAaBA56CcEDA0C5D952f294d03",
+                "block": 18849434,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0x37Fcdb26F12f3FC76F2424EC6B94D434a959A0f7": "Kleros (testing)"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0xC3324405793B9F1C29e97b29cB084C9541aD4d9B",
+                "block": 22647153,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "97": {
+        "BNB": {
+            "RealityETH-3.0": {
+                "address": "0x16E0a06b00020764F3f50bd2E03D73Da0253A6eA",
+                "block": 25029439,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "100": {
+        "GNO": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x95b2b2b4b66A5a47Df79bF07BEBe72E9870fceb2",
+                "block": 20882108,
+                "token_address": "0x9C58BAcC331c9aa871AFD802DB6379a98e80CEdb",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "POLK": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x934326a86A99DaB25bB8329089ce73ed9c7c0E4a",
+                "block": 34578493,
+                "token_address": "0x9a2A80c38AbB1FDC3Cb0fbf94FEFe88BEf828E00",
+                "notes": null,
+                "arbitrators": {
+                    "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros"
+                }
+            }
+        },
+        "SWISE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0xC9FbdF0df8dE06Ad8d2193F7FA28bdA78c13a102",
+                "block": 21371853,
+                "token_address": "0xfdA94F056346d2320d4B5E468D6Ad099b2277746",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "XDAI": {
+            "RealityETH-2.1": {
+                "address": "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57",
+                "block": 14005802,
+                "token_address": null,
+                "notes": null,
+                "arbitrators": {
+                    "0xe40DD83a262da3f56976038F1554Fe541Fa75ecd": "Kleros",
+                    "0x7202deD6f13525A8298Ea53fBFD4395fDCc8d5f1": "Reality.eth team - testing only",
+                    "0x34a8B97bd8Ac4AfBe91C71E961C3f9c1F064717F": "DXdao - Test",
+                    "0x5562ac605764dc4039fb6ab56a74f7321396cdf2": "Kleros with appeal support"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0xE78996A233895bE74a66F451f1019cA9734205cc",
+                "block": 17997262,
+                "notes": null,
+                "arbitrators": {
+                    "0x29f39de98d750eb77b5fafb31b2837f079fce222": "Kleros"
+                }
+            },
+            "RealityETH-3.2": {
+                "address": "0xEb51d9d9717906c981C57af09C4a3449eF30705b",
+                "block": 39142627,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "130": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xB920dBedE88B42aA77eE55ebcE3671132ee856fC",
+                "block": 8561869,
+                "notes": null,
+                "arbitrators": {
+                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
+                    "0x1301d3C29A8723fae7Ee1343203eA16bd7845996": "CFM arbitrator"
+                }
+            }
+        }
+    },
+    "137": {
+        "MATIC": {
+            "Arbitrator": {
+                "address": "0xec634BD4c5766e96dbDC3cf89D15B4D340690118",
+                "block": 15610148,
+                "reality_eth_address": "0xA75AE6D61Dd9d55e8153A393E2fc859c6a0FC716"
+            },
+            "RealityETH-2.1": {
+                "address": "0xA75AE6D61Dd9d55e8153A393E2fc859c6a0FC716",
+                "block": 15610082,
+                "notes": null,
+                "arbitrators": {
+                    "0xec634BD4c5766e96dbDC3cf89D15B4D340690118": "Reality.eth team (testing only)"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0x60573B8DcE539aE5bF9aD7932310668997ef0428",
+                "block": 18901674,
+                "notes": null,
+                "arbitrators": {
+                    "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros"
+                }
+            }
+        },
+        "POLK": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x83d3f4769a19f1b43337888b0290f5473cf508b2",
+                "block": 42899867,
+                "token_address": "0x996F19d4b1cE6D5AD72CEaaa53152CEB1B187fD0",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "SUKU": {
+            "RealityETH_ERC20-3.2": {
+                "address": "0x3155836D28C0845c37791808287FaFC811742C5a",
+                "block": 73217319,
+                "token_address": "0x60Ea918FC64360269Da4efBDA11d8fC6514617C6",
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "143": {
+        "MONAD": {
+            "RealityETH-3.2": {
+                "address": "0xa317A7B24d72e3C6cD55c8F244AE01398A8D97e1",
+                "block": 48537242,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "280": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xFAD6e5e3a9421B9de71A517122D3Bb39A57D6FF5",
+                "block": 2902645,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "300": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x4E346436e99fb7d6567A2bd024d8806Fc10d84D2",
+                "block": 255658,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "324": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xA8AC760332770FcF2056040B1f964750e4bEf808",
+                "block": 9691,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "690": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xc716c23D75f523eF0C511456528F2A1980256a87",
+                "block": 3034954,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "777": {
+        "CTH": {
+            "RealityETH-3.0": {
+                "address": "0xF935d11116fA0103Bd340B663879d325673106f0",
+                "block": 13539397,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "1101": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x569Dcc6d797265Da700926fe8D10c0DA01717386",
+                "block": 1281264,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "1301": {
+        "ETH": {
+            "Arbitrator": {
+                "address": "0x2642BFBfe5d8dfc53276c3D510484644dDb20276",
+                "block": 10756151,
+                "reality_eth_address": "0x8bF08aE62cbC9a48aaeB473a82DAE2e6D2628517"
+            },
+            "RealityETH-3.0": {
+                "address": "0x8bF08aE62cbC9a48aaeB473a82DAE2e6D2628517",
+                "block": 10747559,
+                "notes": null,
+                "arbitrators": {
+                    "0x2642BFBfe5d8dfc53276c3D510484644dDb20276": "Butter dev arbitrator",
+                    "0x8FeAB350A304140b1593A38a13607d122BEC44b6": "Kleros (Oracle court)"
+                }
+            }
+        }
+    },
+    "8453": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8",
+                "block": 26260675,
+                "notes": null,
+                "arbitrators": {
+                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)"
+                }
+            }
+        }
+    },
+    "10200": {
+        "XDAI": {
+            "RealityETH-2.1": {
+                "address": "0xC68755Ba891A31b969764eB46C0bC7A5127A0854",
+                "block": 12569806,
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH-3.0": {
+                "address": "0x1E732a1C5e9181622DD5A931Ec6801889ce66185",
+                "block": 10438389,
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH-3.2": {
+                "address": "0x012fb3aDce7D60672cF634e730927Fa5822b3cAb",
+                "block": 14880291,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "17000": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xd3575b215EC1c3875ad7890982f95EA729DF9537",
+                "block": 62519,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "42161": {
+        "ARETH": {
+            "Arbitrator": {
+                "address": "0xba1f68fC8283051C0BCeB8770673d5af14081731",
+                "block": 112029,
+                "reality_eth_address": "0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691"
+            },
+            "RealityETH-2.1": {
+                "address": "0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691",
+                "block": 112029,
+                "notes": null,
+                "arbitrators": {
+                    "0xba1f68fC8283051C0BCeB8770673d5af14081731": "Reality.eth Team"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9",
+                "block": 459975,
+                "notes": null,
+                "arbitrators": {
+                    "0x6B6BD5224bB20d22D81f9BEE8aFb652AcE0a9276": "Kleros (Precog)"
+                }
+            }
+        }
+    },
+    "42220": {
+        "CELO": {
+            "RealityETH-3.0": {
+                "address": "0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3",
+                "block": 31954377,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "43114": {
+        "AVAX": {
+            "RealityETH-3.0": {
+                "address": "0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502",
+                "block": 4090592,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "80001": {
+        "MATIC": {
+            "RealityETH-3.0": {
+                "address": "0x92115220C28e78312cCe86f3d1dE652CFBD0357A",
+                "block": 27425354,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "POLK": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x895b09919250f81505c089651d3cb61d284531d3",
+                "block": 35623862,
+                "token_address": "0x935f82d011ee37e8870c435417ac58407a9863f7",
+                "notes": null,
+                "arbitrators": {
+                    "0x39cd45615e20847fc50cff6bbcde45198f8f46d9": "Kleros"
+                }
+            }
+        }
+    },
+    "84532": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x86b653Dc9aa6d7311109276925927087573f91CB",
+                "block": 34619265,
+                "notes": null,
+                "arbitrators": {
+                    "0xd919c6Edfb458C15c12b921Cbc9F6eEf06F0E9c5": "Kleros arbitrator (Precog)"
+                }
+            }
+        }
+    },
+    "421611": {
+        "ARETH": {
+            "Arbitrator": {
+                "address": "0x0442820A55bA71b8e67e035CD10eAec3fFAa66b1",
+                "block": 838745,
+                "reality_eth_address": "0x592D5cdF8464E3a71C7d5e4C8A549a386B625534"
+            },
+            "RealityETH-2.1": {
+                "address": "0x592D5cdF8464E3a71C7d5e4C8A549a386B625534",
+                "block": 838745,
+                "notes": null,
+                "arbitrators": {
+                    "0x0442820A55bA71b8e67e035CD10eAec3fFAa66b1": "Reality.eth Team"
+                }
+            },
+            "RealityETH-3.0": {
+                "address": "0xd3312B4e9225626F8e9a483e2A87bB3966a89f3a",
+                "block": 4012956,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "421613": {
+        "ARETH": {
+            "RealityETH-3.0": {
+                "address": "0x14a6748192aBC6E10CA694Ae07bDd4327D6c7A51",
+                "block": 19181142,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "421614": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xB78396EFaF0a177d125e9d45B2C6398Ac5f803B9",
+                "block": 41977012,
+                "notes": null,
+                "arbitrators": {
+                    "0x12dCf80cfa60b905bbCF4873a7D1EA0F70554AdE": "Kleros (testing)",
+                    "0x8C521BD71B0bdAfF6d6bc69B64a309097DaA54ca": "Kleros (Precog)"
+                }
+            }
+        }
+    },
+    "534353": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xF2D17C08B6A3A60b5A32b95bC9621D292831446b",
+                "block": 2416829,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "SETH": {
+            "RealityETH-3.0": {
+                "address": "0x4300d4C410f87c7c1824Cbc2eF67431030106604",
+                "block": 2364219,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "1337702": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0x45fF90518c92C0AcF5C58784435852B5F0CBD4Be",
+                "block": 47012,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "11155111": {
+        "BOND": {
+            "RealityETH_ERC20-3.2": {
+                "address": "0x8A5f1C6361E280348a59daC10160A88428FFBd51",
+                "block": 8526475,
+                "token_address": "0x88498CE124778cB92b0b4c1ab9244D38c3aA7df3",
+                "notes": null,
+                "arbitrators": {
+                    "0x95d49BD18Bdd60e6E087DaceD9800e0FC3BB2E7a": "Kleros"
+                }
+            }
+        },
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA",
+                "block": 3044431,
+                "notes": null,
+                "arbitrators": {
+                    "0x05b942faecfb3924970e3a28e0f230910cedff45": "Kleros",
+                    "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA": "Kleros (Precog)"
+                }
+            },
+            "RealityETH-3.2": {
+                "address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1",
+                "block": 7898415,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "11155420": {
+        "ETH": {
+            "RealityETH-3.0": {
+                "address": "0xeAD0ca922390a5E383A9D5Ba4366F7cfdc6f0dbA",
+                "block": 14341474,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
+    "88558801": {
+        "ZBS": {
+            "Arbitrator": {
+                "address": "0x7dEEa9D38d429081a6761Ca1EF828A0C12c1d7bc",
+                "block": 42,
+                "reality_eth_address": "0xd05Af7EAB843aA2A04f623c18d2a1C8bB4F301a9"
+            },
+            "RealityETH-3.0": {
+                "address": "0xd05Af7EAB843aA2A04f623c18d2a1C8bB4F301a9",
+                "block": 24,
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH-3.2": {
+                "address": "0x3a9Ef99956021d545214B7021D449ACb20fCF2b3",
+                "block": 240,
+                "notes": null,
+                "arbitrators": {}
+            },
+            "RealityETH-4.0": {
+                "address": "0x74549fdf4e00C7c564bB193a911887d8C291b13C",
+                "block": 2,
+                "notes": null,
+                "arbitrators": {
+                    "0xa6F3d82f7aEF02f3f24c3fBcfD814a74fE612D85": "Fork-backed adjudication framework"
+                }
+            }
+        }
+    }
+}

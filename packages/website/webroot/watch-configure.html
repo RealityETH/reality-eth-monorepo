@@ -272,7 +272,7 @@ async function getCreatorLabel(addr) {
 async function loadContracts() {
   if (contractsData) return contractsData;
   try {
-    const r = await fetch('/packages/contracts/generated/contracts.json');
+    const r = await fetch('generated/contracts.json');
     contractsData = await r.json();
   } catch { contractsData = {}; }
   return contractsData;

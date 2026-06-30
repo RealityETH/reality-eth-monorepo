@@ -1030,7 +1030,7 @@ let metaTokenAddress = null; // ERC20 token address, or null for native-token co
 // Kick off immediately so it loads in parallel with Ponder
 const contractsMetaPromise = (async () => {
   try {
-    const res = await fetch('/packages/contracts/generated/contracts.json');
+    const res = await fetch('generated/contracts.json');
     const data = await res.json();
     const chainData = data[String(CHAIN_ID)] || {};
     const addrs = new Set();
