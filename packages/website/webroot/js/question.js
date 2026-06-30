@@ -2317,7 +2317,7 @@ async function main() {
       const simLink = qPage.querySelector('#watch-similar-link');
       if (prompt && simLink) {
         if (starred) {
-          simLink.href = `watch-configure.html#chainId=${CHAIN_ID}&templateId=${encodeURIComponent(String(data.templateId || ''))}&questionId=${encodeURIComponent(ponderQId)}&contract=${CONTRACT.toLowerCase()}`;
+          simLink.href = `#!/watch-configure?chainId=${CHAIN_ID}&templateId=${encodeURIComponent(String(data.templateId || ''))}&questionId=${encodeURIComponent(ponderQId)}&contract=${CONTRACT.toLowerCase()}`;
           prompt.style.display = '';
         } else {
           prompt.style.display = 'none';

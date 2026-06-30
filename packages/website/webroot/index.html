@@ -877,6 +877,52 @@
     border-radius: var(--radius-sm); color: var(--red); font-size: 12px; cursor: pointer;
     transition: background 0.15s; }
   .watch-row-delete:hover { background: var(--red-subtle); }
+  /* ── Watch-configure view ───────────────────────────────── */
+  .page-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 10px; transition: background 0.2s; }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+  .toggle-knob { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px;
+    background: var(--text); border-radius: 50%; transition: transform 0.2s; }
+  .toggle-switch input:checked ~ .toggle-knob { transform: translateX(16px); }
+  .toggle-label { font-size: 13px; color: var(--text-muted); }
+  .toggle-label strong { color: var(--text); }
+  .suggestions-wrap { margin-bottom: 12px; }
+  .suggestions-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+  .suggestion-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .suggestion-chip { padding: 3px 11px; border-radius: 999px; border: 1px solid var(--border);
+    background: none; color: var(--text-muted); font-size: 12px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s; }
+  .suggestion-chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--accent-subtle); }
+  .suggestion-chip:disabled { opacity: 0.38; cursor: default; text-decoration: line-through; }
+  .keyword-input { width: 100%; padding: 8px 12px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; }
+  .keyword-input:focus { border-color: var(--accent); }
+  .version-select { width: auto !important; font-size: 12px !important; padding: 4px 24px 4px 8px !important;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 4px; cursor: pointer; }
+  .keyword-hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+  .preview-count { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  .preview-count strong { color: var(--accent); }
+  .preview-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+  .preview-item { padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); }
+  .preview-item a { color: var(--accent); text-decoration: none; font-size: 13px; display: block; margin-bottom: 3px; }
+  .preview-item a:hover { text-decoration: underline; }
+  .preview-item .pi-meta { font-size: 11px; color: var(--text-dim); }
+  .action-row { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+  .btn-save { padding: 9px 22px; background: var(--accent); border: none;
+    border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s; }
+  .btn-save:hover:not(:disabled) { opacity: 0.85; }
+  .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-delete { padding: 9px 16px; background: none; border: 1px solid var(--red);
+    border-radius: var(--radius-sm); color: var(--red); font-size: 13px; cursor: pointer;
+    transition: background 0.15s; }
+  .btn-delete:hover { background: var(--red-subtle); }
+  .save-status { font-size: 12px; color: var(--green); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -890,6 +936,7 @@
 <script src="js/account.js"></script>
 <script src="js/notifications-view.js"></script>
 <script src="js/watches-view.js"></script>
+<script src="js/watch-configure-view.js"></script>
 </head>
 <body>
 
@@ -1155,6 +1202,86 @@
       <div id="arbitrator-list"></div>
     </div>
 
+  </div>
+</div>
+</div>
+
+<div id="watch-configure-view" style="display:none">
+<div class="page">
+  <h1 class="page-title" id="page-title">Watch similar questions</h1>
+  <p class="page-subtitle">Get notified when new questions matching these conditions are posted.</p>
+
+  <div class="card">
+    <div class="card-title">Chains</div>
+    <div class="chain-pills" id="wc-chain-pills"></div>
+  </div>
+
+  <div class="card" id="template-card" style="display:none">
+    <div class="card-title">Question type</div>
+    <label class="toggle-row">
+      <div class="toggle-switch">
+        <input type="checkbox" id="template-toggle" checked>
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="toggle-label">Same template (<strong id="template-label">—</strong>)</span>
+    </label>
+    <div id="version-row" style="display:none; margin-top:12px; font-size:12px; color:var(--text-muted);">
+      Contract: <select id="version-select" class="version-select"></select>
+    </div>
+  </div>
+
+  <div class="card" id="category-card">
+    <div class="card-title">Category</div>
+    <label class="toggle-row">
+      <div class="toggle-switch">
+        <input type="checkbox" id="category-toggle">
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="toggle-label">Filter by category</span>
+    </label>
+    <div id="category-value-row" style="display:none; margin-top:12px">
+      <input class="keyword-input" id="category-input" type="text" placeholder="e.g. sports">
+    </div>
+  </div>
+
+  <div class="card" id="creator-card">
+    <div class="card-title">Question creator</div>
+    <label class="toggle-row">
+      <div class="toggle-switch">
+        <input type="checkbox" id="creator-toggle">
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="toggle-label">Filter by creator</span>
+    </label>
+    <div id="creator-value-row" style="display:none; margin-top:12px">
+      <input class="keyword-input" id="creator-input" type="text" placeholder="0x… address">
+      <p id="creator-name" style="display:none" class="keyword-hint"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Keywords <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;color:var(--text-dim)">(optional)</span></div>
+    <div class="suggestions-wrap" id="suggestions-wrap" style="display:none">
+      <div class="suggestions-label">Click to add from this question:</div>
+      <div class="suggestion-chips" id="suggestion-chips"></div>
+    </div>
+    <input class="keyword-input" id="keyword-input" type="text" placeholder="e.g. gnosis, climate">
+    <p class="keyword-hint">Comma-separated. Question title must contain all listed keywords.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Matching questions</div>
+    <div class="preview-count" id="preview-count">—</div>
+    <div class="preview-list" id="preview-list"></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-save" id="btn-save">Save watch</button>
+    <button class="btn-delete" id="btn-delete" style="display:none">Delete watch</button>
+    <span class="save-status" id="save-status" style="display:none">✓ Saved</span>
   </div>
 </div>
 </div>
@@ -2075,15 +2202,26 @@
     return /^#!?\/watches(\/|$)/.test(hash);
   }
 
+  function isWatchConfigureHash(hash) {
+    return /^#!?\/watch-configure(\/|$|\?)/.test(hash);
+  }
+
+  function getWatchConfigureParamsFromHash(hash) {
+    const m = hash.match(/\?(.+)$/);
+    if (!m) return {};
+    return Object.fromEntries(new URLSearchParams(m[1]));
+  }
+
   function getAccountAddressFromHash(hash) {
     const m = hash.match(/[?&]address=(0x[0-9a-fA-F]{40})/i);
     return m ? m[1].toLowerCase() : null;
   }
 
-  let _questionViewTemplate      = null;
-  let _accountViewTemplate       = null;
-  let _notificationsViewTemplate = null;
-  let _watchesViewTemplate       = null;
+  let _questionViewTemplate        = null;
+  let _accountViewTemplate         = null;
+  let _notificationsViewTemplate   = null;
+  let _watchesViewTemplate         = null;
+  let _watchConfigureViewTemplate  = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2092,6 +2230,7 @@
     document.getElementById('account-view').style.display = 'none';
     document.getElementById('notifications-view').style.display = 'none';
     document.getElementById('watches-view').style.display = 'none';
+    document.getElementById('watch-configure-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -2139,6 +2278,17 @@
     await window.RealityWatchesView.mount();
   }
 
+  async function showWatchConfigureView() {
+    const wcv = document.getElementById('watch-configure-view');
+    if (!_watchConfigureViewTemplate) _watchConfigureViewTemplate = wcv.innerHTML;
+    wcv.innerHTML = _watchConfigureViewTemplate;
+    _hideAllViews();
+    wcv.style.display = '';
+    document.title = 'reality.eth — Watch Similar Questions';
+    const params = getWatchConfigureParamsFromHash(window.location.hash);
+    await window.RealityWatchConfigure.mount(params);
+  }
+
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
@@ -2161,6 +2311,10 @@
     }
     if (isWatchesHash(hash)) {
       await showWatchesView();
+      return;
+    }
+    if (isWatchConfigureHash(hash)) {
+      await showWatchConfigureView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -2194,6 +2348,8 @@
       await showNotificationsView();
     } else if (isWatchesHash(window.location.hash)) {
       await showWatchesView();
+    } else if (isWatchConfigureHash(window.location.hash)) {
+      await showWatchConfigureView();
     } else {
       showSkeleton();
     }
@@ -2209,7 +2365,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
