@@ -820,6 +820,43 @@
     letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
   .arb-section-header:first-child { padding-top: 4px; }
   .arb-empty { font-size: 13px; color: var(--text-dim); padding: 6px 0 10px; }
+  /* ── Notifications view ─────────────────────────────── */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-size: 20px; font-weight: 700; }
+  .btn-mark-all { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-muted); font-size: 12px; padding: 5px 12px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s; }
+  .btn-mark-all:hover { border-color: var(--accent); color: var(--accent); }
+  .notif-list { display: flex; flex-direction: column; gap: 1px; }
+  .notif-item { display: flex; align-items: flex-start; gap: 12px;
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 14px 16px; transition: border-color 0.15s; }
+  .notif-item:hover { border-color: var(--border); }
+  .notif-item.unseen { border-left: 3px solid var(--accent); }
+  .notif-icon { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .notif-icon.new_answer    { background: var(--accent-subtle); color: var(--accent); }
+  .notif-icon.finalized     { background: var(--green-subtle);  color: var(--green); }
+  .notif-icon.arb_requested { background: var(--amber-subtle);  color: var(--amber); }
+  .notif-icon.arb_resolved  { background: var(--green-subtle);  color: var(--green); }
+  .notif-icon.new_question  { background: var(--accent-subtle); color: var(--accent); }
+  .notif-body { flex: 1; min-width: 0; }
+  .notif-detail { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .notif-title { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .notif-title a { color: var(--accent); text-decoration: none; }
+  .notif-title a:hover { text-decoration: underline; }
+  .notif-meta { font-size: 11px; color: var(--text-dim); margin-top: 4px; display: flex; gap: 10px; }
+  .notif-cond-link { font-size: 11px; color: var(--text-muted); text-decoration: none; }
+  .notif-cond-link:hover { color: var(--accent); text-decoration: underline; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-state svg { margin-bottom: 16px; opacity: 0.3; }
+  .empty-state p { font-size: 15px; }
+  .empty-state small { font-size: 12px; color: var(--text-dim); display: block; margin-top: 6px; }
+  .watches-link { display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-muted); text-decoration: none;
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    transition: border-color 0.15s, color 0.15s; }
+  .watches-link:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -831,6 +868,7 @@
 <script src="js/watches.js"></script>
 <script src="js/question.js"></script>
 <script src="js/account.js"></script>
+<script src="js/notifications-view.js"></script>
 </head>
 <body>
 
@@ -1096,6 +1134,30 @@
       <div id="arbitrator-list"></div>
     </div>
 
+  </div>
+</div>
+</div>
+
+<div id="notifications-view" style="display:none">
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Notifications</h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a class="watches-link" href="#!/watches">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Manage watches
+      </a>
+      <button class="btn-mark-all" id="mark-all-btn">Mark all read</button>
+    </div>
+  </div>
+  <div id="notif-list" class="notif-list">
+    <div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <p>Loading…</p>
+    </div>
   </div>
 </div>
 </div>
@@ -1657,11 +1719,11 @@
     let watchedBadge = '';
     if (window.RealityWatches) {
       if (RealityWatches.isStarredSync(q.id)) {
-        watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='notifications.html'">★ Watching</span>`;
+        watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='#!/notifications'">★ Watching</span>`;
       } else {
         const matchingConds = RealityWatches.getMatchingConditionsSync(q);
         if (matchingConds.length > 0) {
-          watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='watch-configure.html#id=${matchingConds[0].id}'">★ Watched</span>`;
+          watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='#!/watch-configure?id=${matchingConds[0].id}'">★ Watched</span>`;
         }
       }
     }
@@ -1974,21 +2036,32 @@
     return /^#!?\/account(\/|$|\?)/.test(hash);
   }
 
+  function isNotificationsHash(hash) {
+    return /^#!?\/notifications(\/|$)/.test(hash);
+  }
+
   function getAccountAddressFromHash(hash) {
     const m = hash.match(/[?&]address=(0x[0-9a-fA-F]{40})/i);
     return m ? m[1].toLowerCase() : null;
   }
 
-  let _questionViewTemplate = null;
-  let _accountViewTemplate  = null;
-  let _connectedWalletAddr  = undefined; // undefined = not yet initialized; null = no wallet
+  let _questionViewTemplate      = null;
+  let _accountViewTemplate       = null;
+  let _notificationsViewTemplate = null;
+  let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
+
+  function _hideAllViews() {
+    document.getElementById('view-content').style.display = 'none';
+    document.getElementById('question-view').style.display = 'none';
+    document.getElementById('account-view').style.display = 'none';
+    document.getElementById('notifications-view').style.display = 'none';
+  }
 
   async function showQuestionView() {
     const qv = document.getElementById('question-view');
     if (!_questionViewTemplate) _questionViewTemplate = qv.innerHTML;
     qv.innerHTML = _questionViewTemplate;
-    document.getElementById('view-content').style.display = 'none';
-    document.getElementById('account-view').style.display = 'none';
+    _hideAllViews();
     qv.style.display = '';
     document.title = 'reality.eth — Question';
     await window.RealityQuestion.mount();
@@ -1999,8 +2072,7 @@
     const av = document.getElementById('account-view');
     if (!_accountViewTemplate) _accountViewTemplate = av.innerHTML;
     av.innerHTML = _accountViewTemplate;
-    document.getElementById('view-content').style.display = 'none';
-    document.getElementById('question-view').style.display = 'none';
+    _hideAllViews();
     av.style.display = '';
     document.title = 'reality.eth — Account';
     const addr = getAccountAddressFromHash(window.location.hash);
@@ -2010,9 +2082,18 @@
     }
   }
 
+  async function showNotificationsView() {
+    const nv = document.getElementById('notifications-view');
+    if (!_notificationsViewTemplate) _notificationsViewTemplate = nv.innerHTML;
+    nv.innerHTML = _notificationsViewTemplate;
+    _hideAllViews();
+    nv.style.display = '';
+    document.title = 'reality.eth — Notifications';
+    await window.RealityNotifications.mount();
+  }
+
   function showBrowseView() {
-    document.getElementById('question-view').style.display = 'none';
-    document.getElementById('account-view').style.display = 'none';
+    _hideAllViews();
     document.getElementById('view-content').style.display = '';
     document.title = 'reality.eth';
   }
@@ -2025,6 +2106,10 @@
     }
     if (isAccountHash(hash)) {
       await showAccountView();
+      return;
+    }
+    if (isNotificationsHash(hash)) {
+      await showNotificationsView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -2054,6 +2139,8 @@
       await showQuestionView();
     } else if (isAccountHash(window.location.hash)) {
       await showAccountView();
+    } else if (isNotificationsHash(window.location.hash)) {
+      await showNotificationsView();
     } else {
       showSkeleton();
     }
@@ -2069,7 +2156,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
