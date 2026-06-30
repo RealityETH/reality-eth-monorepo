@@ -188,6 +188,18 @@
     letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
   .arb-section-header:first-child { padding-top: 4px; }
   .arb-empty { font-size: 13px; color: var(--text-dim); padding: 6px 0 10px; }
+
+  /* ── Bell ── */
+  .bell-btn { display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 6px;
+    color: var(--text-dim); text-decoration: none;
+    position: relative; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+  .bell-btn:hover { color: var(--text); background: var(--bg-card); }
+  .bell-badge { position: absolute; top: 2px; right: 2px;
+    min-width: 16px; height: 16px; background: var(--red); color: #fff;
+    font-size: 10px; font-weight: 700; border-radius: 8px; padding: 0 4px;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; pointer-events: none; }
 </style>
 <script>
 // Show account skeleton before ethers.js loads to avoid blank-screen wait.
@@ -232,6 +244,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
       </span>
     </div>
+    <a class="bell-btn" id="bell-btn" href="notifications.html" title="Notifications">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="bell-badge" id="bell-badge" style="display:none"></span>
+    </a>
     <button id="wallet-btn">Connect wallet</button>
   </div>
 </header>
@@ -319,6 +335,7 @@
 <script src="js/ethers.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/watches.js"></script>
 <script>
 'use strict';
 
@@ -1202,6 +1219,9 @@ function onWalletChange(addr) {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('wallet-btn').onclick =
     () => RealityWallet.connectWallet(onWalletChange);
+  if (window.RealityWatches) {
+    RealityWatches.checkForUpdates().then(() => RealityWatches.updateBellBadge());
+  }
   document.getElementById('connect-btn').onclick =
     () => RealityWallet.connectWallet(onWalletChange);
 

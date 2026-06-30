@@ -104,6 +104,29 @@
     header { padding: 0 16px; }
   }
 
+  /* ── Bell ── */
+  .bell-btn { display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 6px;
+    color: var(--text-dim); text-decoration: none;
+    position: relative; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+  .bell-btn:hover { color: var(--text); background: var(--bg-card); }
+  .bell-badge { position: absolute; top: 2px; right: 2px;
+    min-width: 16px; height: 16px; background: var(--red); color: #fff;
+    font-size: 10px; font-weight: 700; border-radius: 8px; padding: 0 4px;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; pointer-events: none; }
+
+  /* ── Star / watch ── */
+  .star-btn { background: none; border: none; cursor: pointer; flex-shrink: 0;
+    color: var(--text-dim); padding: 4px 6px; border-radius: 4px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; transition: color 0.15s; }
+  .star-btn:hover { color: var(--amber); }
+  .star-btn.starred { color: var(--amber); }
+  .watch-similar-prompt { font-size: 12px; margin-bottom: 10px; text-align: right; }
+  .watch-similar-link { color: var(--accent); text-decoration: none; }
+  .watch-similar-link:hover { text-decoration: underline; }
+
   /* ── Page ── */
   .page { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
 
@@ -118,7 +141,8 @@
 
   /* ── Question header ── */
   .q-header { margin-bottom: 28px; }
-  .q-badges { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .q-badges-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .q-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
   .badge {
     display: inline-flex; align-items: center; gap: 4px;
     padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
@@ -571,6 +595,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>
       </span>
     </div>
+    <a class="bell-btn" id="bell-btn" href="notifications.html" title="Notifications">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="bell-badge" id="bell-badge" style="display:none"></span>
+    </a>
     <button id="wallet-btn" class="btn-outline">Connect wallet</button>
   </div>
 </header>
@@ -585,9 +613,18 @@
   </div>
 
   <div class="q-header">
-    <div class="q-badges">
-      <span class="badge badge-open" id="status-badge">Loading…</span>
-      <span class="badge badge-chain" id="chain-badge" style="display:none"></span>
+    <div class="q-badges-row">
+      <div class="q-badges">
+        <span class="badge badge-open" id="status-badge">Loading…</span>
+        <span class="badge badge-chain" id="chain-badge" style="display:none"></span>
+      </div>
+      <button class="star-btn" id="star-btn" title="Watch this question" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Watch
+      </button>
+    </div>
+    <div id="watch-similar-prompt" class="watch-similar-prompt" style="display:none">
+      <a class="watch-similar-link" id="watch-similar-link" href="watch-configure.html">Watch similar questions →</a>
     </div>
     <div class="q-text-large" id="question-title">Loading question…</div>
     <div class="rpc-loading-note" id="rpc-loading-note" style="display:none">
@@ -671,6 +708,7 @@
 <script src="js/wallet.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/question-cache.js"></script>
+<script src="js/watches.js"></script>
 <script src="js/question.js"></script>
 <script>
   function onWalletChange(addr) {
@@ -695,6 +733,9 @@
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
     window._initQuestion();
+    if (window.RealityWatches) {
+      RealityWatches.checkForUpdates().then(() => RealityWatches.updateBellBadge());
+    }
   });
 </script>
 </body>
