@@ -26,7 +26,7 @@ test.describe('markdown title rendering', () => {
   test.afterEach(async () => { await revert(snap); });
 
   function questionUrl() {
-    return `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`;
+    return `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`;
   }
 
   async function loadViaRpc(page) {

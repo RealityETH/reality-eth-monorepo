@@ -25,7 +25,7 @@ test.describe('min_bond enforcement', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
     );
     await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });
   }

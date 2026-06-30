@@ -136,7 +136,7 @@ test.describe('WalletConnect flow', () => {
   async function loadQuestion(page) {
     await setupWCPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
     );
   }
 
@@ -183,7 +183,7 @@ test.describe('WalletConnect flow', () => {
     // meaning walletAddr is set when the answer form is built.
     await setupWCPage(page, { hasSession: true });
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
     );
 
     // With an active WC session, initWallet restores window.ethereum before main()

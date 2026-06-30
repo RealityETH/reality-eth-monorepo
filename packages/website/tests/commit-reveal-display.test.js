@@ -22,7 +22,7 @@ test.describe('commit-reveal display: expired reveal deadline', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
     );
     // Wait until renderHistory has populated the current-answer-container
     await page.waitForFunction(() => {

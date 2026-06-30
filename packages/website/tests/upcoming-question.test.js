@@ -21,7 +21,7 @@ test.describe('upcoming question: before opening date', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
     );
     await page.waitForSelector('.question-state-open', { timeout: 30000 });
   }

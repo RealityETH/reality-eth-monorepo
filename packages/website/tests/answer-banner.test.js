@@ -25,7 +25,7 @@ test.describe('answer banner: visibility and content', () => {
   async function loadQuestion(page, questionId) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${questionId}`
     );
     await page.waitForSelector('.question-state-open', { timeout: 30000 });
   }

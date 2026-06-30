@@ -44,7 +44,7 @@ test.describe('answer calldata: single-select and multiple-select', () => {
   async function loadQuestion(page, questionId) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${questionId}`
     );
     await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });
   }

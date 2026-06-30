@@ -25,7 +25,7 @@ test.describe('reopen flow', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
     );
     // Wait for the reopen container to become visible (question is finalized + reopenable)
     await page.waitForSelector('.reopen-container', { state: 'visible', timeout: 30000 });
@@ -95,7 +95,7 @@ test.describe('reopen flow', () => {
 
     // Navigate back so the page fetches fresh chain data
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.questionId}`
     );
     // After reopen TX, the contract sets reopened_questions[original] = new_id,
     // so the page should show the reopened container instead of reopen button

@@ -34,7 +34,7 @@ test.describe('commit-reveal', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
     );
     await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });
   }

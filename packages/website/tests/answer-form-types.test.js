@@ -7,7 +7,7 @@ import { WEBSITE_URL } from './setup/website-server.js';
 async function loadQuestion(page, contract, questionId) {
   await setupPage(page);
   await page.goto(
-    `${WEBSITE_URL}/question.html#!/network/100/question/${contract}-${questionId}`
+    `${WEBSITE_URL}/index.html#!/network/100/question/${contract}-${questionId}`
   );
   await page.waitForSelector('.question-state-open', { timeout: 30000 });
 }

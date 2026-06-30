@@ -294,7 +294,7 @@ export async function createAnswerHistoryFixtures() {
     )).wait();
     for (const { answer, bond, maxPrev } of submits) {
       await (await reality.submitAnswer(
-        questionId, answer, maxPrev, { value: bond }
+        questionId, answer, maxPrev, { value: bond, gasLimit: 300000n }
       )).wait();
     }
     return questionId;

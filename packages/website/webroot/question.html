@@ -732,6 +732,7 @@
     await RealityWallet.initWallet(onWalletChange);
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
+    await window.RealityQuestion.mount();
     window._initQuestion();
     if (window.RealityWatches) {
       RealityWatches.checkForUpdates().then(() => RealityWatches.updateBellBadge());

@@ -1,4 +1,4 @@
-(async function () {
+(function () {
 'use strict';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -91,6 +91,9 @@ const REALITY_ABI = [
   'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
 ];
 
+window.RealityQuestion = window.RealityQuestion || {};
+window.RealityQuestion.mount = async function () {
+
 // ── URL parsing ───────────────────────────────────────────────────────────────
 // Hash format: #!/network/{chainId}/question/{contract}-{questionId}
 let CONTRACT, QUESTION_ID, CHAIN_ID;
@@ -126,7 +129,10 @@ const ponderInd = document.getElementById('ind-ponder');
 const rpcInd    = document.getElementById('ind-rpc');
 const cacheInd  = document.getElementById('ind-cache');
 const indGroup  = document.getElementById('data-ind-group');
-QCache.attachPanel(cacheInd);
+if (cacheInd && !cacheInd._qPanelAttached) {
+  cacheInd._qPanelAttached = true;
+  QCache.attachPanel(cacheInd);
+}
 
 
 async function withIndicator(el, fn) {
@@ -2499,5 +2505,7 @@ window._initQuestion = () => main().catch(err => {
   console.error('question page error', err);
   if (qPage) qPage.dataset.error = err.message;
 });
+
+}; // end window.RealityQuestion.mount
 
 })();

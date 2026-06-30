@@ -23,7 +23,7 @@ test.describe('arbitration section: Kleros arbitrator', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
     );
     // renderArbitrationSection fires after contractsMetaPromise resolves — wait
     // for the button itself rather than question-state-open to avoid a race.

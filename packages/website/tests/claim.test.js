@@ -9,7 +9,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const REALITY_ETH_ABI = require('../../contracts/abi/solc-0.8.6/RealityETH-3.0.abi.json');
 
-// The claim test uses question.html rather than account.html.
+// The claim test uses the question view rather than account.html.
 // A finalized question shows a "Claim & withdraw" button in the right column
 // when the connected wallet has a winning answer — using RPC event data, no Ponder needed.
 test.describe('claim winnings', () => {
@@ -32,7 +32,7 @@ test.describe('claim winnings', () => {
   async function loadQuestion(page) {
     await setupPage(page);
     await page.goto(
-      `${WEBSITE_URL}/question.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.claimQuestionId}`
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.claimQuestionId}`
     );
     // Wait for the claim button to appear in the finalized question's right column
     await page.waitForSelector('.claim-section .claim-button', { state: 'visible', timeout: 30000 });
