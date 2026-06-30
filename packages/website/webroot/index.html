@@ -956,6 +956,76 @@
   .arb-name { font-size: 13px; color: var(--text); font-weight: 500; }
   .arb-addr { font-family: monospace; font-size: 11px; color: var(--text-dim); }
   .none-note { font-size: 13px; color: var(--text-dim); }
+  /* ── Guide view ──────────────────────────────────── */
+  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 16px 80px;
+    display: grid; grid-template-columns: 220px 1fr; gap: 40px; align-items: start; }
+  @media (max-width: 720px) { .page-wrap { grid-template-columns: 1fr; } }
+  .sidebar { position: sticky; top: 72px; }
+  .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-dim); margin-bottom: 10px; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { padding: 6px 10px; border-radius: 5px; font-size: 13px; color: var(--text-muted);
+    text-decoration: none; cursor: pointer; transition: background 0.12s, color 0.12s; border: none;
+    background: none; display: block; text-align: left; width: 100%; }
+  .nav-item:hover { background: var(--bg-card); color: var(--text); }
+  .nav-item.active { background: var(--accent-subtle); color: var(--accent); font-weight: 500; }
+  .guide-index-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .guide-index-sub { font-size: 15px; color: var(--text-muted); margin-bottom: 32px; line-height: 1.5; }
+  .guide-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .guide-card { background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 16px 18px; cursor: pointer;
+    text-decoration: none; display: block; transition: border-color 0.15s, background 0.15s; }
+  .guide-card:hover { border-color: var(--border); background: var(--bg-card-hover); }
+  .guide-card-icon { font-size: 22px; margin-bottom: 8px; }
+  .guide-card-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .guide-card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .article-breadcrumb { font-size: 12px; color: var(--text-dim); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 6px; }
+  .article-breadcrumb a { color: var(--text-dim); text-decoration: none; }
+  .article-breadcrumb a:hover { color: var(--accent); }
+  .article-title { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .article-subtitle { font-size: 15px; color: var(--text-muted); margin-bottom: 28px; }
+  .article-section { margin-bottom: 36px; }
+  .article-section h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle); }
+  .article-section p { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.65; }
+  .article-section p:last-child { margin-bottom: 0; }
+  .article-section a { color: var(--accent); text-decoration: none; }
+  .article-section a:hover { text-decoration: underline; }
+  .article-section ul, .article-section ol { padding-left: 20px; color: var(--text-muted);
+    font-size: 14px; line-height: 1.65; display: flex; flex-direction: column; gap: 4px; }
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: grid; grid-template-columns: 36px 1fr; gap: 0 14px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-subtle);
+    color: var(--accent); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    margin-top: 2px; position: relative; z-index: 1; }
+  .step-connector { grid-column: 1; width: 1px; background: var(--border-subtle);
+    margin: 4px auto 0; height: 100%; min-height: 12px; }
+  .step:last-child .step-connector { display: none; }
+  .step-body { grid-column: 2; padding-bottom: 24px; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .step-desc p { margin-bottom: 6px; }
+  .step-desc p:last-child { margin-bottom: 0; }
+  .code-block { background: #0d1117; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); margin: 10px 0; overflow-x: auto; }
+  .code-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-dim); padding: 8px 14px 0; }
+  #guide-view pre { padding: 10px 14px 14px; font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre; }
+  .kw  { color: #ff7b72; }
+  .fn  { color: #d2a8ff; }
+  .str { color: #a5d6ff; }
+  .cm  { color: var(--text-dim); }
+  .num { color: #79c0ff; }
+  .ty  { color: #ffa657; }
+  .callout { border-radius: var(--radius-sm); padding: 12px 14px; margin: 12px 0;
+    font-size: 13px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start; }
+  .callout-info  { background: var(--accent-subtle); border: 1px solid rgba(88,166,255,0.2); color: #a0c4ff; }
+  .callout-tip   { background: var(--green-subtle);  border: 1px solid rgba(63,185,80,0.2);  color: #8de0a0; }
+  .callout-warn  { background: var(--amber-subtle);  border: 1px solid rgba(210,153,34,0.2); color: #e8c46a; }
+  .callout svg   { flex-shrink: 0; margin-top: 1px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -971,6 +1041,7 @@
 <script src="js/watches-view.js"></script>
 <script src="js/watch-configure-view.js"></script>
 <script src="js/contract-view.js"></script>
+<script src="js/guide-view.js"></script>
 </head>
 <body>
 
@@ -1263,6 +1334,16 @@
     </div>
     <div class="cards" id="cv-cards"></div>
   </div>
+</div>
+</div>
+
+<div id="guide-view" style="display:none">
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-title">Integration guides</div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+  </aside>
+  <main id="guide-main"></main>
 </div>
 </div>
 
@@ -1987,7 +2068,7 @@
       const fmt = n => isLoading ? '…' : n.toLocaleString();
 
       const guideLink = info.guideId
-        ? `<a class="app-card-guide" href="guide.html#!/${info.guideId}" onclick="event.stopPropagation()">Dev guide →</a>`
+        ? `<a class="app-card-guide" href="#!/guide/${info.guideId}" onclick="event.stopPropagation()">Dev guide →</a>`
         : '';
       return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer" onclick="selectIntegration('${id}')">
         <div class="app-card-top">
@@ -2266,6 +2347,15 @@
     return /^#!?\/watch-configure(\/|$|\?)/.test(hash);
   }
 
+  function isGuideHash(hash) {
+    return /^#!?\/guide(\/|$)/.test(hash);
+  }
+
+  function getGuideIdFromHash(hash) {
+    const m = hash.match(/\/guide\/([^/?#]+)/);
+    return m ? m[1] : null;
+  }
+
   function isContractHash(hash) {
     return /^#!?\/network\/\d+\/contract\/0x[0-9a-fA-F]+/.test(hash);
   }
@@ -2293,6 +2383,7 @@
   let _watchesViewTemplate         = null;
   let _watchConfigureViewTemplate  = null;
   let _contractViewTemplate        = null;
+  let _guideViewTemplate           = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2303,6 +2394,7 @@
     document.getElementById('watches-view').style.display = 'none';
     document.getElementById('watch-configure-view').style.display = 'none';
     document.getElementById('contract-view').style.display = 'none';
+    document.getElementById('guide-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -2372,6 +2464,17 @@
     await window.RealityContract.mount(chainId, address);
   }
 
+  function showGuideView() {
+    const gv = document.getElementById('guide-view');
+    if (!_guideViewTemplate) _guideViewTemplate = gv.innerHTML;
+    gv.innerHTML = _guideViewTemplate;
+    _hideAllViews();
+    gv.style.display = '';
+    document.title = 'reality.eth — Integration guides';
+    const guideId = getGuideIdFromHash(window.location.hash);
+    window.RealityGuide.mount(guideId);
+  }
+
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
@@ -2402,6 +2505,10 @@
     }
     if (isContractHash(hash)) {
       await showContractView();
+      return;
+    }
+    if (isGuideHash(hash)) {
+      showGuideView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -2439,6 +2546,8 @@
       await showWatchConfigureView();
     } else if (isContractHash(window.location.hash)) {
       await showContractView();
+    } else if (isGuideHash(window.location.hash)) {
+      showGuideView();
     } else {
       showSkeleton();
     }
@@ -2454,7 +2563,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
