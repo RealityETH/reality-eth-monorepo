@@ -703,6 +703,7 @@
   let typeFilters   = new Set(); // empty = show all types
   let sortOpt = 'recent';
   let chainFilters = new Set(); // empty = all chains
+  let templateFilter = null;    // raw templateId number, or null
   let searchQuery = '';
   let integrationFilter = null;
 
@@ -800,6 +801,9 @@
       whereParts.push(`chainId: ${c}`);
     } else if (chainFilters.size > 1) {
       whereParts.push(`chainId_in: [${[...chainFilters].join(', ')}]`);
+    }
+    if (templateFilter !== null) {
+      whereParts.push(`templateId: "${templateFilter}"`);
     }
     if (searchQuery) {
       // Ponder 0.7 title_contains is case-sensitive; capitalise the first character
@@ -967,6 +971,9 @@
       });
     }
 
+    if (templateFilter !== null) {
+      out = out.filter(q => String(q.templateId) === String(templateFilter));
+    }
     if (integrationFilter === 'other') {
       out = out.filter(q => classifyQuestion(q) === null);
     } else if (integrationFilter) {
@@ -1294,6 +1301,21 @@
   }
 
   // ── Event wiring ───────────────────────────────────────
+  function parseHashRoute() {
+    const hash = window.location.hash.replace(/^#!?\/?/, '');
+    const parts = hash.split('/');
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (parts[i] === 'network') {
+        const cid = parseInt(parts[i + 1], 10);
+        if (!isNaN(cid)) chainFilters.add(cid);
+      }
+      if (parts[i] === 'template') {
+        const tid = parseInt(parts[i + 1], 10);
+        if (!isNaN(tid)) templateFilter = tid;
+      }
+    }
+  }
+
   function initControls() {
     // Status + type filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1454,6 +1476,7 @@
     }
 
     loadTokenMeta().then(() => {
+      parseHashRoute();
       // Restore cache after token metadata is ready so formatting is correct.
       const _cached = readBrowseCache();
       if (_cached) {
