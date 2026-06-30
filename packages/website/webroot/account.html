@@ -545,15 +545,16 @@ async function loadAccountData(addr) {
 
   // Phase 1: parallel
   const [askedData, respData, claimData, arbData] = await Promise.all([
-    gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:100) { items{${qFields}} } }`),
+    gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:1000) { items{${qFields}} pageInfo{hasNextPage} } }`),
     gql(`{ responses(where:{user:"${a}"},orderBy:"timestamp",orderDirection:"asc",limit:500) { items{id questionId answer commitmentHash bond user historyHash isCommitment timestamp} } }`),
     gql(`{ claims(where:{user:"${a}"},limit:500) { items{questionId amount} } }`),
-    gql(`{ questions(where:{arbitrator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:200) { items{${qFields}} } }`),
+    gql(`{ questions(where:{arbitrator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:1000) { items{${qFields}} pageInfo{hasNextPage} } }`),
   ]);
 
-  const askedQuestions = askedData.questions?.items || [];
-  const userResponses  = respData.responses?.items  || [];
-  const claimedSet     = new Set((claimData.claims?.items || []).map(c => c.questionId));
+  const askedQuestions    = askedData.questions?.items || [];
+  const askedHasMore      = askedData.questions?.pageInfo?.hasNextPage || false;
+  const userResponses     = respData.responses?.items  || [];
+  const claimedSet        = new Set((claimData.claims?.items || []).map(c => c.questionId));
 
   // Phase 2: fetch all answered questions in one batch query
   const answeredIds = [...new Set(userResponses.map(r => r.questionId))];
@@ -585,8 +586,9 @@ async function loadAccountData(addr) {
   }
 
   const arbitratorQuestions = arbData.questions?.items || [];
+  const arbHasMore          = arbData.questions?.pageInfo?.hasNextPage || false;
 
-  return { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables, arbitratorQuestions };
+  return { askedQuestions, askedHasMore, answeredQuestions, userResponses, claimedSet, claimables, arbitratorQuestions, arbHasMore };
 }
 
 // ── RPC balances ──────────────────────────────────────────────────────────────
@@ -628,7 +630,7 @@ function statusBadge(q) {
 }
 
 // ── Render: asked tab ─────────────────────────────────────────────────────────
-function renderAsked(questions) {
+function renderAsked(questions, hasMore) {
   const loading = document.getElementById('asked-loading');
   const list    = document.getElementById('asked-list');
   loading.style.display = 'none';
@@ -640,7 +642,7 @@ function renderAsked(questions) {
     return;
   }
 
-  document.getElementById('asked-count').textContent = questions.length;
+  document.getElementById('asked-count').textContent = hasMore ? `${questions.length}+` : questions.length;
 
   for (const q of questions) {
     const fin  = isFinalized(q);
@@ -777,7 +779,7 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
 }
 
 // ── Render: arbitrator tab ────────────────────────────────────────────────────
-function renderArbitrator(questions) {
+function renderArbitrator(questions, hasMore) {
   const btn  = document.getElementById('tab-btn-arbitrator');
   const list = document.getElementById('arbitrator-list');
 
@@ -788,7 +790,7 @@ function renderArbitrator(questions) {
   }
 
   btn.style.display = '';
-  document.getElementById('arbitrator-count').textContent = questions.length;
+  document.getElementById('arbitrator-count').textContent = hasMore ? `${questions.length}+` : questions.length;
 
   const open      = questions.filter(q => !q.isPendingArbitration && !q.arbitrationOccurred);
   const requested = questions.filter(q => q.isPendingArbitration);
@@ -887,10 +889,10 @@ function toggleViewChain(chainId) {
   else                 { link.style.display = 'none'; }
 
   if (!allData) return;
-  const { askedQuestions, answeredQuestions, userResponses, claimedSet, claimables } = allData;
+  const { askedQuestions, askedHasMore, answeredQuestions, userResponses, claimedSet, claimables } = allData;
 
   const inView = q => selectedViewChains.size === 0 || selectedViewChains.has(Number(q.chainId));
-  renderAsked(askedQuestions.filter(inView));
+  renderAsked(askedQuestions.filter(inView), askedHasMore && selectedViewChains.size === 0);
   renderAnswered(answeredQuestions.filter(inView), userResponses, claimedSet, claimables);
   renderClaimBanner(claimables, effectiveClaimChain(claimables));
 }
@@ -1160,9 +1162,9 @@ async function runAccount(addr) {
     // Find which chains actually have activity
     buildChainPills();
     // selectedViewChains is empty (reset above) so render all chains
-    renderAsked(data.askedQuestions);
+    renderAsked(data.askedQuestions, data.askedHasMore);
     renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables);
-    renderArbitrator(data.arbitratorQuestions);
+    renderArbitrator(data.arbitratorQuestions, data.arbHasMore);
     renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
   } catch (err) {
     if (gen !== accountLoadGen) return;
