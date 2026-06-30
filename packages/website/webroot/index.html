@@ -725,6 +725,101 @@
   .raw-row { display: flex; flex-direction: column; gap: 4px; }
   .raw-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
   .raw-value { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: var(--text-muted); background: var(--bg); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 8px 10px; word-break: break-all; white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
+
+  /* ── Account view ── */
+  .connect-prompt { text-align: center; padding: 60px 20px; }
+  .connect-prompt p { color: var(--text-muted); margin-bottom: 20px; }
+  .addr-input-row { display: flex; gap: 8px; justify-content: center; max-width: 420px; margin: 0 auto 14px; }
+  .addr-input { flex: 1; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: monospace; outline: none; }
+  .addr-input:focus { border-color: var(--accent); }
+  .addr-input::placeholder { color: var(--text-dim); font-family: -apple-system, sans-serif; }
+  .btn-addr-go { padding: 8px 16px; background: var(--border-subtle); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-addr-go:hover { border-color: var(--accent); color: var(--accent); }
+  .connect-sep { color: var(--text-dim); font-size: 12px; margin: 14px 0; }
+  .btn-connect-lg { padding: 10px 28px; background: var(--accent); border: none;
+    border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn-connect-lg:hover { opacity: 0.88; }
+  .account-hero { background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .hero-addr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .hero-addr-text { font-family: monospace; font-size: 14px; color: var(--text); }
+  .hero-addr-link { color: var(--text-dim); text-decoration: none; font-size: 12px; padding: 3px 7px;
+    border: 1px solid var(--border); border-radius: 4px; transition: color 0.15s, border-color 0.15s; }
+  .hero-addr-link:hover { color: var(--accent); border-color: var(--accent); }
+  .hero-wallet-note { font-size: 11px; color: var(--amber); }
+  .hero-balances { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .balance-chip { display: flex; flex-direction: column; align-items: flex-end; }
+  .balance-chip-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .balance-chip-val { font-size: 16px; font-weight: 700; color: var(--text); }
+  .balance-sep { width: 1px; height: 30px; background: var(--border-subtle); }
+  .btn-sm { padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s; border: none; }
+  .btn-sm:hover:not(:disabled) { opacity: 0.85; }
+  .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-withdraw { background: var(--border-subtle); color: var(--text-muted); }
+  .claim-banner { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .claim-banner-text strong { display: block; font-size: 15px; font-weight: 600; color: var(--green); }
+  .claim-banner-text span { font-size: 12px; color: var(--text-muted); }
+  .btn-claim { background: var(--green); color: var(--bg); padding: 8px 18px;
+    border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: opacity 0.15s; white-space: nowrap; }
+  .btn-claim:hover:not(:disabled) { opacity: 0.88; }
+  .btn-claim:disabled { opacity: 0.45; cursor: not-allowed; }
+  .other-chain-note { font-size: 12px; color: var(--amber); margin-top: 4px; }
+  .chain-pills-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chain-pill { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: transparent; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; }
+  .chain-pill:hover { border-color: var(--accent); color: var(--text); }
+  .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .tabs-row { display: flex; gap: 2px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
+  .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted);
+    background: none; border: none; border-bottom: 2px solid transparent;
+    cursor: pointer; transition: color 0.15s; margin-bottom: -1px; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-count { font-size: 11px; background: var(--border-subtle); color: var(--text-dim);
+    padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+  .state-msg { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 13px; }
+  .state-error { color: var(--amber); }
+  .q-item {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); padding: 12px 16px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 8px 16px; align-items: start;
+    transition: border-color 0.15s;
+  }
+  .q-item:hover { border-color: var(--border); }
+  .q-item + .q-item { margin-top: 6px; }
+  .q-item-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+  .q-item-title { font-size: 13px; font-weight: 500; color: var(--text); text-decoration: none; line-height: 1.4; }
+  .q-item-title:hover { color: var(--accent); }
+  .q-item-meta { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .q-item-meta-sep { color: var(--border); }
+  .ans-pill { display: inline-flex; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .ans-yes  { background: var(--green-subtle); color: var(--green); }
+  .ans-no   { background: var(--red-subtle); color: var(--red); }
+  .ans-inv  { background: var(--border-subtle); color: var(--text-dim); }
+  .ans-other { background: var(--accent-subtle); color: var(--accent); }
+  .win-mark  { color: var(--green); font-size: 11px; font-weight: 700; }
+  .loss-mark { color: var(--red); font-size: 11px; }
+  .q-item-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+  .q-item-amount { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .q-item-amount.claimable { color: var(--green); }
+  .q-item-amount.claimed { color: var(--text-dim); font-weight: 400; font-style: italic; }
+  .q-item-chain { font-size: 10px; color: var(--text-dim); }
+  #account-view .tx-error { display: none; }
+  #account-view .tx-error.visible { display: block; }
+  .arb-section-header { font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
+  .arb-section-header:first-child { padding-top: 4px; }
+  .arb-empty { font-size: 13px; color: var(--text-dim); padding: 6px 0 10px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -735,6 +830,7 @@
 <script src="js/question-cache.js"></script>
 <script src="js/watches.js"></script>
 <script src="js/question.js"></script>
+<script src="js/account.js"></script>
 </head>
 <body>
 
@@ -923,6 +1019,84 @@
     <div class="raw-data-body" id="raw-data-body"></div>
   </details>
 
+</div>
+</div>
+
+<!-- ── Account view ── -->
+<div id="account-view" style="display:none">
+<div class="page">
+
+  <div id="connect-prompt" class="connect-prompt">
+    <p>Enter an address to browse activity, or connect your wallet.</p>
+    <div class="addr-input-row">
+      <input class="addr-input" id="addr-input" type="text" placeholder="0x… Ethereum address" autocomplete="off" spellcheck="false">
+      <button class="btn-addr-go" id="addr-go-btn">View</button>
+    </div>
+    <div class="connect-sep">or</div>
+    <button class="btn-connect-lg" id="connect-btn">Connect wallet</button>
+  </div>
+
+  <div id="account-content" style="display:none">
+
+    <div class="account-hero">
+      <div class="hero-addr">
+        <span class="hero-addr-text" id="hero-addr">—</span>
+        <a class="hero-addr-link" id="hero-explorer-link" href="#" target="_blank" rel="noopener" style="display:none">↗</a>
+        <span class="hero-wallet-note" id="hero-wallet-note" style="display:none"></span>
+      </div>
+      <div class="hero-balances">
+        <div class="balance-chip">
+          <span class="balance-chip-label">Wallet</span>
+          <span class="balance-chip-val" id="wallet-balance">—</span>
+        </div>
+        <div class="balance-sep"></div>
+        <div class="balance-chip">
+          <span class="balance-chip-label">Contract</span>
+          <span class="balance-chip-val" id="contract-balance">—</span>
+        </div>
+        <button class="btn-sm btn-withdraw" id="withdraw-btn" style="display:none">Withdraw</button>
+      </div>
+    </div>
+
+    <div class="claim-banner" id="claim-banner" style="display:none">
+      <div class="claim-banner-text">
+        <strong id="claim-amount">0 ETH claimable</strong>
+        <span id="claim-desc">from finalized questions on this chain</span>
+        <div class="other-chain-note" id="other-chain-note" style="display:none"></div>
+      </div>
+      <div>
+        <button class="btn-claim" id="claim-btn">Claim all &amp; withdraw</button>
+        <div class="tx-error" id="claim-error"></div>
+      </div>
+    </div>
+
+    <div id="chain-pills" class="chain-pills-row" style="display:none"></div>
+
+    <div class="tabs-row">
+      <button class="tab-btn active" data-tab="asked">
+        Asked <span class="tab-count" id="asked-count">0</span>
+      </button>
+      <button class="tab-btn" data-tab="answered">
+        Answered <span class="tab-count" id="answered-count">0</span>
+      </button>
+      <button class="tab-btn" data-tab="arbitrator" id="tab-btn-arbitrator" style="display:none">
+        Arbitrator <span class="tab-count" id="arbitrator-count">0</span>
+      </button>
+    </div>
+
+    <div id="tab-asked">
+      <div class="state-msg" id="asked-loading">Loading…</div>
+      <div class="q-list" id="asked-list"></div>
+    </div>
+    <div id="tab-answered" style="display:none">
+      <div class="state-msg" id="answered-loading">Loading…</div>
+      <div class="q-list" id="answered-list"></div>
+    </div>
+    <div id="tab-arbitrator" style="display:none">
+      <div id="arbitrator-list"></div>
+    </div>
+
+  </div>
 </div>
 </div>
 
@@ -1767,6 +1941,7 @@
 
   // ── Wallet ─────────────────────────────────────────────
   function onWalletChange(addr) {
+    _connectedWalletAddr = addr || null;
     const btn = document.getElementById('wallet-btn');
     if (!btn) return;
     if (addr) {
@@ -1779,6 +1954,7 @@
       btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
     }
     window._setQuestionWallet?.(addr);
+    window._setAccountWallet?.(addr);
   }
 
   // ── Router ────────────────────────────────────────────────────────────────────
@@ -1794,21 +1970,49 @@
     return /^#!?\/network\/\d+\/question\/0x[0-9a-fA-F]+-0x[0-9a-fA-F]+/.test(hash);
   }
 
+  function isAccountHash(hash) {
+    return /^#!?\/account(\/|$|\?)/.test(hash);
+  }
+
+  function getAccountAddressFromHash(hash) {
+    const m = hash.match(/[?&]address=(0x[0-9a-fA-F]{40})/i);
+    return m ? m[1].toLowerCase() : null;
+  }
+
   let _questionViewTemplate = null;
+  let _accountViewTemplate  = null;
+  let _connectedWalletAddr  = undefined; // undefined = not yet initialized; null = no wallet
 
   async function showQuestionView() {
     const qv = document.getElementById('question-view');
     if (!_questionViewTemplate) _questionViewTemplate = qv.innerHTML;
     qv.innerHTML = _questionViewTemplate;
     document.getElementById('view-content').style.display = 'none';
+    document.getElementById('account-view').style.display = 'none';
     qv.style.display = '';
     document.title = 'reality.eth — Question';
     await window.RealityQuestion.mount();
     window._initQuestion();
   }
 
+  async function showAccountView() {
+    const av = document.getElementById('account-view');
+    if (!_accountViewTemplate) _accountViewTemplate = av.innerHTML;
+    av.innerHTML = _accountViewTemplate;
+    document.getElementById('view-content').style.display = 'none';
+    document.getElementById('question-view').style.display = 'none';
+    av.style.display = '';
+    document.title = 'reality.eth — Account';
+    const addr = getAccountAddressFromHash(window.location.hash);
+    await window.RealityAccount.mount(addr);
+    if (_connectedWalletAddr !== undefined) {
+      window._setAccountWallet?.(_connectedWalletAddr);
+    }
+  }
+
   function showBrowseView() {
     document.getElementById('question-view').style.display = 'none';
+    document.getElementById('account-view').style.display = 'none';
     document.getElementById('view-content').style.display = '';
     document.title = 'reality.eth';
   }
@@ -1817,6 +2021,10 @@
     const hash = window.location.hash || '#/browse';
     if (isQuestionHash(hash)) {
       await showQuestionView();
+      return;
+    }
+    if (isAccountHash(hash)) {
+      await showAccountView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -1844,6 +2052,8 @@
 
     if (isQuestionHash(window.location.hash)) {
       await showQuestionView();
+    } else if (isAccountHash(window.location.hash)) {
+      await showAccountView();
     } else {
       showSkeleton();
     }
@@ -1859,7 +2069,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();

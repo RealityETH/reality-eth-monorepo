@@ -185,7 +185,7 @@ function addrLinks(addr, chainId = CHAIN_ID) {
   if (!addr || /^0x0+$/.test(addr)) return null;
   const short = addr.slice(0, 6) + '…' + addr.slice(-4);
   const exp   = EXPLORER[chainId] || '';
-  const acct  = `<a class="bond-addr-link" href="account.html?address=${addr}">${short}</a>`;
+  const acct  = `<a class="bond-addr-link" href="#!/account?address=${addr}">${short}</a>`;
   const extLk = exp ? ` <a class="bond-addr-ext" href="${exp}/address/${addr}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
   return acct + extLk;
 }
