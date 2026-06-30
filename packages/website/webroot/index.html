@@ -1276,6 +1276,45 @@
   .callout-tip   { background: var(--green-subtle);  border: 1px solid rgba(63,185,80,0.2);  color: #8de0a0; }
   .callout-warn  { background: var(--amber-subtle);  border: 1px solid rgba(210,153,34,0.2); color: #e8c46a; }
   .callout svg   { flex-shrink: 0; margin-top: 1px; }
+  /* ── Ask view ────────────────────────────────────── */
+  #ask-view label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  #ask-view input[type="text"],
+  #ask-view input[type="number"],
+  #ask-view input[type="date"],
+  #ask-view select,
+  #ask-view textarea {
+    width: 100%; padding: 8px 11px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  #ask-view input:focus, #ask-view select:focus, #ask-view textarea:focus { border-color: var(--accent); }
+  #ask-view textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  #ask-view select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  #ask-view select option, #ask-view select optgroup { background: #1c2330; }
+  #ask-view .is-error input, #ask-view .is-error select, #ask-view .is-error textarea { border-color: var(--red); }
+  #ask-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
+  #ask-view .tx-error {
+    margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--red-subtle); border: 1px solid rgba(248,81,73,0.3);
+    color: var(--red); font-size: 12px; display: none;
+  }
+  #ask-view .tx-error.visible { display: block; }
+  .arb-tos { font-size: 11px; margin-top: 6px; color: var(--text-dim); }
+  .arb-tos a { color: var(--accent); text-decoration: none; }
+  .arb-tos a:hover { text-decoration: underline; }
+  .arb-other { margin-top: 8px; display: none; }
+  .arb-other.visible { display: block; }
+  .cost-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+  .cost-row:last-of-type { border-bottom: none; }
+  .cost-label { color: var(--text-muted); }
+  .cost-val { font-weight: 600; color: var(--text); }
+  .cost-total .cost-label { color: var(--text); font-weight: 600; }
+  .cost-total .cost-val { color: var(--accent); font-size: 15px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -1294,6 +1333,7 @@
 <script src="js/guide-view.js"></script>
 <script src="js/templates-view.js"></script>
 <script src="js/template-view.js"></script>
+<script src="js/ask-view.js"></script>
 </head>
 <body>
 
@@ -1886,6 +1926,199 @@
     <nav class="sidebar-nav" id="sidebar-nav"></nav>
   </aside>
   <main id="guide-main"></main>
+</div>
+</div>
+
+<div id="ask-view" style="display:none">
+<div class="page">
+  <h1>Ask a question</h1>
+  <p class="page-intro">Create a new question on-chain. Anyone can bond ETH on an answer. The final unchallenged answer after the dispute window closes becomes the result.</p>
+
+  <form id="ask-form" novalidate>
+  <div class="ask-layout">
+
+    <!-- ── Left column ── -->
+    <div class="col-main">
+
+      <div class="card">
+        <div class="card-title">Question</div>
+
+        <div class="field" id="field-body">
+          <label for="question-body">Question text</label>
+          <textarea id="question-body" name="question-body" rows="4"
+            placeholder="e.g. Will ETH be above $5000 at the end of 2025?"></textarea>
+          <div class="field-error">Please enter your question.</div>
+        </div>
+
+        <div class="field" id="field-category">
+          <label for="question-category">Category</label>
+          <select id="question-category" name="question-category">
+            <option value="">Select category…</option>
+            <option value="arts">Arts</option>
+            <option value="business-finance">Business &amp; Finance</option>
+            <option value="cryptocurrency">Cryptocurrency</option>
+            <option value="news-politics">News &amp; Politics</option>
+            <option value="science-tech">Science &amp; Technology</option>
+            <option value="sports">Sports</option>
+            <option value="weather">Weather</option>
+            <option value="misc">Misc</option>
+          </select>
+          <div class="field-error">Please select a category.</div>
+          <div class="field-help">Helps others find and classify the question.</div>
+        </div>
+
+        <div class="field" id="field-opening">
+          <label for="opening-date">Opening date <span class="label-note">(optional)</span></label>
+          <input type="date" id="opening-date" name="opening-date">
+          <div class="field-help">When answers can first be posted. Leave blank to open immediately. Set this to after the event takes place so answers can be verified before they are submitted.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Answer type</div>
+
+        <div class="field" id="field-type">
+          <label for="question-type">Type</label>
+          <select id="question-type" name="question-type">
+            <option value="bool" selected>Yes / No</option>
+            <option value="single-select">Multiple choice — one correct answer</option>
+            <option value="multiple-select">Multiple choice — multiple correct answers</option>
+            <option value="uint">Number (positive integer)</option>
+            <option value="datetime">Date / time</option>
+          </select>
+          <div class="field-help">For prediction markets and DAO votes, Yes / No is usually right.</div>
+        </div>
+
+        <div class="answer-options" id="answer-options">
+          <label>Answer options</label>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option A" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option B" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <button type="button" class="add-option-btn" id="add-option">+ Add another option</button>
+          <div class="field-error" id="options-error" style="display:none">Please enter at least two options.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Dispute settings</div>
+
+        <div class="field" id="field-timeout">
+          <label for="question-timeout">Dispute window</label>
+          <select id="question-timeout" name="question-timeout">
+            <option value="30">30 seconds — testing only</option>
+            <option value="180">3 minutes — testing / bots only</option>
+            <option value="900">15 minutes</option>
+            <option value="3600">1 hour</option>
+            <option value="10800">3 hours</option>
+            <option value="43200">12 hours</option>
+            <option value="86400" selected>1 day</option>
+            <option value="172800">2 days</option>
+            <option value="259200">3 days</option>
+            <option value="345600">4 days</option>
+            <option value="432000">5 days</option>
+            <option value="604800">1 week</option>
+          </select>
+          <div class="field-help">After each new answer, this window resets. The last unchallenged answer when the window expires is the result. Longer windows give more time to correct mistakes.</div>
+        </div>
+
+        <div class="field" id="field-minbond">
+          <label for="question-minbond">Minimum bond <span class="label-note" id="token-label">(ETH, optional)</span></label>
+          <input type="number" id="question-minbond" name="question-minbond" min="0" step="any" placeholder="0">
+          <div class="field-error">Please enter a valid amount.</div>
+          <div class="field-help">The smallest bond allowed for the first answer. Higher minimum bonds raise the cost of a wrong answer.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Right column ── -->
+    <div class="col-side">
+
+      <div class="card">
+        <div class="card-title">Network</div>
+        <div class="network-row">
+          <div class="network-dot unknown" id="ask-network-dot"></div>
+          <span class="network-name" id="ask-network-name">Not connected</span>
+        </div>
+        <div class="chain-pills" id="ask-chain-pills">
+          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
+          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
+          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
+          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
+          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
+          <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
+        </div>
+        <div id="ask-token-pills" class="token-pills" style="display:none"></div>
+        <div id="ask-version-row" style="display:none; margin-top:10px;">
+          <select id="ask-version-select" class="version-select"></select>
+        </div>
+        <div class="info-box" id="erc20-note" style="display:none; margin-top:10px;">
+          Reward is paid in the ERC20 token. If a non-zero reward is set, you will be asked to approve the token before the question is posted.
+        </div>
+        <div class="warn-box" id="timeout-warning" style="display:none; margin-top:10px;">
+          ⚠ Dispute window under 24 hours. There may not be enough time for people to correct wrong answers.
+        </div>
+        <div class="warn-box" id="ask-network-unsupported" style="display:none; margin-top:10px;">
+          ⚠ This network is not supported. Switch to Ethereum, Gnosis, Polygon, Arbitrum, Optimism, or Base.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Reward</div>
+        <div class="field" id="field-reward">
+          <label for="question-reward">Reward <span class="label-note" id="reward-token-label">(ETH)</span></label>
+          <input type="number" id="question-reward" name="question-reward" min="0" step="any" value="0" placeholder="0">
+          <div class="field-error">Please enter a valid amount.</div>
+          <div class="field-help">Paid to whoever provides the final answer. Zero is fine — the answerer still earns the disputed bond.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Arbitrator</div>
+        <div class="field" id="field-arbitrator">
+          <label for="question-arbitrator">Arbitrator</label>
+          <select id="question-arbitrator" name="question-arbitrator">
+            <option value="">Loading…</option>
+          </select>
+          <div class="field-error">Please select an arbitrator.</div>
+          <div class="arb-tos" id="arb-tos" style="display:none">
+            Terms of service: <a href="#" id="arb-tos-link" target="_blank" rel="noopener">View</a>
+          </div>
+          <div class="arb-other" id="arb-other">
+            <input type="text" id="arbitrator-address" placeholder="0x… arbitrator address">
+          </div>
+          <div class="field-help">Resolves disputes when challengers disagree. The arbitrator fee is added to your total cost.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cost summary</div>
+        <div class="cost-row">
+          <span class="cost-label">Reward</span>
+          <span class="cost-val" id="summary-reward">0 ETH</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Arbitrator fee</span>
+          <span class="cost-val" id="summary-arb-fee">—</span>
+        </div>
+        <div class="cost-row cost-total">
+          <span class="cost-label">Total</span>
+          <span class="cost-val" id="summary-total">—</span>
+        </div>
+        <button type="submit" class="submit-btn" id="ask-submit-btn" disabled>Ask question</button>
+        <div class="tx-error" id="ask-tx-error"></div>
+        <div class="info-box" id="ask-wallet-notice">Connect your wallet to ask a question.</div>
+      </div>
+
+    </div>
+  </div>
+  </form>
 </div>
 </div>
 
@@ -2860,6 +3093,7 @@
     window._setAccountWallet?.(addr);
     window._setTemplatesWallet?.(addr);
     window._setTemplateWallet?.(addr);
+    window._setAskWallet?.(addr);
   }
 
   // ── Router ────────────────────────────────────────────────────────────────────
@@ -2919,6 +3153,10 @@
     return m ? m[1] : null;
   }
 
+  function isAskHash(hash) {
+    return /^#!?\/ask(\/|$|\?)/.test(hash);
+  }
+
   function isContractHash(hash) {
     return /^#!?\/network\/\d+\/contract\/0x[0-9a-fA-F]+/.test(hash);
   }
@@ -2949,6 +3187,7 @@
   let _guideViewTemplate           = null;
   let _templatesViewTemplate       = null;
   let _templateViewTemplate        = null;
+  let _askViewTemplate             = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2962,6 +3201,7 @@
     document.getElementById('guide-view').style.display = 'none';
     document.getElementById('templates-view').style.display = 'none';
     document.getElementById('template-view').style.display = 'none';
+    document.getElementById('ask-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -3070,6 +3310,19 @@
     window.RealityGuide.mount(guideId);
   }
 
+  async function showAskView() {
+    const av = document.getElementById('ask-view');
+    if (!_askViewTemplate) _askViewTemplate = av.innerHTML;
+    av.innerHTML = _askViewTemplate;
+    _hideAllViews();
+    av.style.display = '';
+    document.title = 'reality.eth — Ask a question';
+    await window.RealityAsk.mount();
+    if (_connectedWalletAddr !== undefined) {
+      window._setAskWallet?.(_connectedWalletAddr);
+    }
+  }
+
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
@@ -3104,6 +3357,10 @@
     }
     if (isGuideHash(hash)) {
       showGuideView();
+      return;
+    }
+    if (isAskHash(hash)) {
+      await showAskView();
       return;
     }
     if (isTemplateHash(hash)) {
@@ -3151,6 +3408,8 @@
       await showContractView();
     } else if (isGuideHash(window.location.hash)) {
       showGuideView();
+    } else if (isAskHash(window.location.hash)) {
+      await showAskView();
     } else if (isTemplateHash(window.location.hash)) {
       await showTemplateView();
     } else if (isTemplatesHash(window.location.hash)) {
@@ -3170,7 +3429,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isTemplatesHash(window.location.hash) && !isTemplateHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isAskHash(window.location.hash) && !isTemplatesHash(window.location.hash) && !isTemplateHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
