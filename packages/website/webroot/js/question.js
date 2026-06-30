@@ -2386,7 +2386,7 @@ async function main() {
         [data.templateId, data.openingTS, data.questionStr]
       );
     } catch {}
-    const templateUrl = `template.html#!/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId}`;
+    const templateUrl = `#!/template/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId}`;
     const templateLink = `<a href="${esc2(templateUrl)}" style="color:var(--accent);text-decoration:none">${esc2(data.templateId)}</a>`;
     rawBody.innerHTML = [
       rawRow('Question ID',   esc2(QUESTION_ID)),
