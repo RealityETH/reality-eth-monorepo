@@ -2405,7 +2405,7 @@ async function main() {
   if (reopenContainer)   reopenContainer.style.display   = isReopenable ? '' : 'none';
   if (reopenedContainer) reopenedContainer.style.display  = isReopened   ? '' : 'none';
 
-  const baseUrl = `question.html#!/network/${CHAIN_ID}/question/`;
+  const baseUrl = `#!/network/${CHAIN_ID}/question/`;
   function reloadLink(a, url, text) {
     a.href = url;
     a.textContent = text;
