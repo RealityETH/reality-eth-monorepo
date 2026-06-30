@@ -857,6 +857,26 @@
     padding: 5px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     transition: border-color 0.15s, color 0.15s; }
   .watches-link:hover { border-color: var(--accent); color: var(--accent); }
+  /* ── Watches view ───────────────────────────────────── */
+  .btn-new { display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; background: var(--accent); border: none;
+    border-radius: var(--radius-sm); color: #fff; font-size: 13px; font-weight: 600;
+    text-decoration: none; cursor: pointer; transition: opacity 0.15s; }
+  .btn-new:hover { opacity: 0.85; }
+  .watches-list { display: flex; flex-direction: column; gap: 8px; }
+  .watch-row { display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius); gap: 12px; transition: border-color 0.15s; }
+  .watch-row:hover { border-color: var(--border); }
+  .watch-row-info { flex: 1; min-width: 0; }
+  .watch-row-label { font-size: 13px; color: var(--text); }
+  .watch-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .watch-row-label a { color: var(--accent); text-decoration: none; }
+  .watch-row-label a:hover { text-decoration: underline; }
+  .watch-row-delete { padding: 3px 10px; background: none; border: 1px solid var(--red);
+    border-radius: var(--radius-sm); color: var(--red); font-size: 12px; cursor: pointer;
+    transition: background 0.15s; }
+  .watch-row-delete:hover { background: var(--red-subtle); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -869,6 +889,7 @@
 <script src="js/question.js"></script>
 <script src="js/account.js"></script>
 <script src="js/notifications-view.js"></script>
+<script src="js/watches-view.js"></script>
 </head>
 <body>
 
@@ -1135,6 +1156,16 @@
     </div>
 
   </div>
+</div>
+</div>
+
+<div id="watches-view" style="display:none">
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Watches</h1>
+    <a class="btn-new" href="#!/watch-configure">+ New watch</a>
+  </div>
+  <div id="watches-list" class="watches-list"></div>
 </div>
 </div>
 
@@ -2040,6 +2071,10 @@
     return /^#!?\/notifications(\/|$)/.test(hash);
   }
 
+  function isWatchesHash(hash) {
+    return /^#!?\/watches(\/|$)/.test(hash);
+  }
+
   function getAccountAddressFromHash(hash) {
     const m = hash.match(/[?&]address=(0x[0-9a-fA-F]{40})/i);
     return m ? m[1].toLowerCase() : null;
@@ -2048,6 +2083,7 @@
   let _questionViewTemplate      = null;
   let _accountViewTemplate       = null;
   let _notificationsViewTemplate = null;
+  let _watchesViewTemplate       = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2055,6 +2091,7 @@
     document.getElementById('question-view').style.display = 'none';
     document.getElementById('account-view').style.display = 'none';
     document.getElementById('notifications-view').style.display = 'none';
+    document.getElementById('watches-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -2092,6 +2129,16 @@
     await window.RealityNotifications.mount();
   }
 
+  async function showWatchesView() {
+    const wv = document.getElementById('watches-view');
+    if (!_watchesViewTemplate) _watchesViewTemplate = wv.innerHTML;
+    wv.innerHTML = _watchesViewTemplate;
+    _hideAllViews();
+    wv.style.display = '';
+    document.title = 'reality.eth — Watches';
+    await window.RealityWatchesView.mount();
+  }
+
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
@@ -2110,6 +2157,10 @@
     }
     if (isNotificationsHash(hash)) {
       await showNotificationsView();
+      return;
+    }
+    if (isWatchesHash(hash)) {
+      await showWatchesView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -2141,6 +2192,8 @@
       await showAccountView();
     } else if (isNotificationsHash(window.location.hash)) {
       await showNotificationsView();
+    } else if (isWatchesHash(window.location.hash)) {
+      await showWatchesView();
     } else {
       showSkeleton();
     }
@@ -2156,7 +2209,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
