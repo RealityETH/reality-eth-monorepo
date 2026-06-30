@@ -923,6 +923,39 @@
     transition: background 0.15s; }
   .btn-delete:hover { background: var(--red-subtle); }
   .save-status { font-size: 12px; color: var(--green); }
+  /* ── Contract view ──────────────────────────────────── */
+  .badge-version { background: var(--border-subtle); color: var(--text-muted); }
+  .badge-erc20   { background: var(--purple-subtle); color: var(--purple); }
+  .badge-native  { background: var(--green-subtle);  color: var(--green); }
+  #contract-view .badge-chain { background: var(--accent-subtle); color: var(--accent); }
+  .contract-hero { margin-bottom: 28px; }
+  .contract-badges { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .contract-address-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .contract-address { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 18px;
+    font-weight: 600; color: var(--text); word-break: break-all; }
+  .ext-link { display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--text-dim); text-decoration: none;
+    padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px;
+    transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .ext-link:hover { color: var(--accent); border-color: var(--accent); }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+  .card-full { grid-column: 1 / -1; }
+  .cv-meta-list { display: flex; flex-direction: column; gap: 10px; }
+  .cv-meta-row  { display: flex; gap: 12px; align-items: baseline; }
+  .cv-meta-key  { font-size: 12px; color: var(--text-dim); min-width: 110px; flex-shrink: 0; }
+  .cv-meta-val  { font-size: 13px; color: var(--text-muted); }
+  .cv-meta-val a { color: var(--accent); text-decoration: none; }
+  .cv-meta-val a:hover { text-decoration: underline; }
+  .cv-meta-val.mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; }
+  .feature-list { display: flex; flex-direction: column; gap: 8px; }
+  .feature-row  { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .feature-icon { color: var(--green); flex-shrink: 0; margin-top: 1px; }
+  .arb-list { display: flex; flex-direction: column; gap: 8px; }
+  .arb-row  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .arb-name { font-size: 13px; color: var(--text); font-weight: 500; }
+  .arb-addr { font-family: monospace; font-size: 11px; color: var(--text-dim); }
+  .none-note { font-size: 13px; color: var(--text-dim); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
@@ -937,6 +970,7 @@
 <script src="js/notifications-view.js"></script>
 <script src="js/watches-view.js"></script>
 <script src="js/watch-configure-view.js"></script>
+<script src="js/contract-view.js"></script>
 </head>
 <body>
 
@@ -1202,6 +1236,32 @@
       <div id="arbitrator-list"></div>
     </div>
 
+  </div>
+</div>
+</div>
+
+<div id="contract-view" style="display:none">
+<div class="page">
+  <div class="breadcrumb">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="#!/browse">Browse</a>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <span>Contract</span>
+  </div>
+  <div id="cv-loading" class="state-msg">Loading contract info…</div>
+  <div id="cv-error"   class="state-msg" style="display:none"></div>
+  <div id="cv-content" style="display:none">
+    <div class="contract-hero">
+      <div class="contract-badges" id="cv-badges"></div>
+      <div class="contract-address-row">
+        <div class="contract-address" id="cv-hero-address"></div>
+        <a id="cv-explorer-link" class="ext-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
+          View on explorer
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="cards" id="cv-cards"></div>
   </div>
 </div>
 </div>
@@ -2206,6 +2266,16 @@
     return /^#!?\/watch-configure(\/|$|\?)/.test(hash);
   }
 
+  function isContractHash(hash) {
+    return /^#!?\/network\/\d+\/contract\/0x[0-9a-fA-F]+/.test(hash);
+  }
+
+  function getContractParamsFromHash(hash) {
+    const m = hash.match(/\/network\/(\d+)\/contract\/(0x[0-9a-fA-F]+)/i);
+    if (!m) return [null, null];
+    return [parseInt(m[1]), m[2].toLowerCase()];
+  }
+
   function getWatchConfigureParamsFromHash(hash) {
     const m = hash.match(/\?(.+)$/);
     if (!m) return {};
@@ -2222,6 +2292,7 @@
   let _notificationsViewTemplate   = null;
   let _watchesViewTemplate         = null;
   let _watchConfigureViewTemplate  = null;
+  let _contractViewTemplate        = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2231,6 +2302,7 @@
     document.getElementById('notifications-view').style.display = 'none';
     document.getElementById('watches-view').style.display = 'none';
     document.getElementById('watch-configure-view').style.display = 'none';
+    document.getElementById('contract-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -2289,6 +2361,17 @@
     await window.RealityWatchConfigure.mount(params);
   }
 
+  async function showContractView() {
+    const cv = document.getElementById('contract-view');
+    if (!_contractViewTemplate) _contractViewTemplate = cv.innerHTML;
+    cv.innerHTML = _contractViewTemplate;
+    _hideAllViews();
+    cv.style.display = '';
+    document.title = 'reality.eth — Contract';
+    const [chainId, address] = getContractParamsFromHash(window.location.hash);
+    await window.RealityContract.mount(chainId, address);
+  }
+
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
@@ -2315,6 +2398,10 @@
     }
     if (isWatchConfigureHash(hash)) {
       await showWatchConfigureView();
+      return;
+    }
+    if (isContractHash(hash)) {
+      await showContractView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -2350,6 +2437,8 @@
       await showWatchesView();
     } else if (isWatchConfigureHash(window.location.hash)) {
       await showWatchConfigureView();
+    } else if (isContractHash(window.location.hash)) {
+      await showContractView();
     } else {
       showSkeleton();
     }
@@ -2365,7 +2454,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();

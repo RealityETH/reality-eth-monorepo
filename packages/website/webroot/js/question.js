@@ -1821,7 +1821,7 @@ function buildDetailsCard(data, chainId) {
   if ((data.minBond ?? 0n) > 0n) row('Min bond', esc(formatBond(data.minBond, token)));
   if ((data.bond ?? 0n) > 0n)    row('Current bond', esc(formatBond(data.bond, token)));
   row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
-  row('Contract', `<a href="contract.html#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
+  row('Contract', `<a href="#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
   row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
 
   const card = el('div', 'card');
