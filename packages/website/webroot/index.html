@@ -956,6 +956,170 @@
   .arb-name { font-size: 13px; color: var(--text); font-weight: 500; }
   .arb-addr { font-family: monospace; font-size: 11px; color: var(--text-dim); }
   .none-note { font-size: 13px; color: var(--text-dim); }
+  /* ── Template / Ask shared ──────────────────────── */
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .ask-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start; }
+  .ask-layout > * { min-width: 0; }
+  @media (max-width: 680px) { .ask-layout { grid-template-columns: 1fr; } .col-side { order: -1; } }
+  .label-note { font-weight: 400; color: var(--text-dim); }
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-help { font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.5; }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .is-error .field-error { display: block; }
+  #template-view label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+  #template-view input[type="text"],
+  #template-view input[type="number"],
+  #template-view select,
+  #template-view textarea {
+    width: 100%; padding: 8px 11px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 13px;
+    font-family: inherit; outline: none; transition: border-color 0.15s;
+    appearance: none; -webkit-appearance: none;
+  }
+  #template-view input:focus, #template-view select:focus, #template-view textarea:focus { border-color: var(--accent); }
+  #template-view textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  #template-view select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  #template-view select option { background: #1c2330; }
+  #template-view .is-error input, #template-view .is-error select, #template-view .is-error textarea { border-color: var(--red); }
+  #template-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
+  .type-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .type-toggle-btn {
+    flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 500;
+    background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .type-toggle-btn + .type-toggle-btn { border-left: 1px solid var(--border); }
+  .type-toggle-btn.active { background: var(--accent-subtle); color: var(--accent); }
+  .type-toggle-btn:hover:not(.active) { background: var(--bg-raised); color: var(--text); }
+  .answer-options { display: none; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .answer-options.visible { display: flex; }
+  .answer-option-row { display: flex; gap: 6px; align-items: center; }
+  .answer-option-row input { flex: 1; }
+  .remove-option {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    padding: 4px 6px; border-radius: 4px; font-size: 16px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .remove-option:hover:not(:disabled) { color: var(--red); }
+  .remove-option:disabled { opacity: 0.3; cursor: default; }
+  .add-option-btn {
+    background: none; border: 1px dashed var(--border); border-radius: var(--radius-sm);
+    color: var(--text-dim); cursor: pointer; padding: 6px 12px;
+    font-size: 12px; width: 100%; margin-top: 2px; transition: border-color 0.15s, color 0.15s;
+  }
+  .add-option-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .field-decimals, .field-outcomes { display: none; }
+  .field-decimals.visible, .field-outcomes.visible { display: block; margin-bottom: 20px; }
+  .generated-title {
+    display: none; margin-top: 12px; padding: 10px 12px;
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted); line-height: 1.5;
+  }
+  .generated-title.visible { display: block; }
+  .network-row { display: flex; align-items: center; gap: 8px; }
+  .network-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .network-dot.unknown { background: var(--text-dim); }
+  .network-name { font-size: 13px; color: var(--text-muted); }
+  .chain-pills { display: none; flex-wrap: wrap; gap: 5px; margin-top: 12px; }
+  .chain-pills.visible { display: flex; }
+  .token-pills { flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .token-pill {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px; cursor: pointer;
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .token-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .token-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .json-preview {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+    font-size: 11px; line-height: 1.6; color: var(--text-muted);
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); padding: 12px;
+    white-space: pre-wrap; overflow-wrap: anywhere; min-height: 80px;
+  }
+  .json-preview.empty { color: var(--text-dim); font-family: inherit; font-size: 12px; }
+  .submit-btn {
+    width: 100%; padding: 10px 20px; margin-top: 16px;
+    background: var(--accent); border: none; border-radius: var(--radius-sm);
+    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .submit-btn:hover:not(:disabled) { opacity: 0.88; }
+  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #template-view .tx-error {
+    margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
+    background: var(--red-subtle); border: 1px solid rgba(248,81,73,0.3);
+    color: var(--red); font-size: 12px; display: none;
+  }
+  #template-view .tx-error.visible { display: block; }
+  .result-box {
+    display: none; margin-top: 14px; padding: 14px;
+    background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.3);
+    border-radius: var(--radius-sm);
+  }
+  .result-box.visible { display: block; }
+  .result-id-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .result-id { font-size: 28px; font-weight: 700; color: var(--green); font-family: ui-monospace, monospace; margin-bottom: 10px; }
+  .result-copy {
+    background: none; border: 1px solid rgba(63,185,80,0.4); color: var(--green);
+    border-radius: var(--radius-sm); padding: 4px 10px; font-size: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .result-copy:hover { background: rgba(63,185,80,0.1); }
+  .info-box {
+    background: var(--accent-subtle); border: 1px solid rgba(88,166,255,0.2);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--accent); line-height: 1.5; margin-top: 14px;
+  }
+  .warn-box {
+    background: var(--amber-subtle); border: 1px solid rgba(210,153,34,0.25);
+    border-radius: var(--radius-sm); padding: 10px 13px;
+    font-size: 12px; color: var(--amber); line-height: 1.5;
+  }
+  .view-id-line { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .view-id-num  { font-size: 22px; font-weight: 700; color: var(--text); font-family: ui-monospace, monospace; }
+  .view-title-text {
+    font-size: 15px; line-height: 1.6; color: var(--text); margin: 0 0 6px;
+    overflow-wrap: anywhere;
+  }
+  .view-title-text .ph { color: var(--accent); font-style: italic; }
+  .view-outcomes { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .view-outcome {
+    padding: 6px 11px; border-radius: var(--radius-sm);
+    background: var(--bg); border: 1px solid var(--border-subtle);
+    font-size: 13px; color: var(--text-muted);
+  }
+  .view-meta-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .view-meta-item { font-size: 12px; }
+  .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
+  .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+  .view-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .view-nav-link { font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; padding-top: 2px; }
+  .view-nav-link:hover { text-decoration: underline; }
+  .view-action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .view-action-btn {
+    display: inline-block; text-align: center; text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
+  }
+  .view-action-btn:hover { opacity: 0.85; }
+  .view-action-primary { background: var(--accent); color: #fff; border: none; }
+  .view-action-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .view-loading { color: var(--text-dim); font-size: 13px; padding: 32px 0; text-align: center; }
+  .view-error { color: var(--red); font-size: 13px; padding: 24px 0; }
+  .multi-results-note { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; }
+  .multi-result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 6px;
+    background: var(--bg); border: 1px solid var(--border-subtle); cursor: pointer;
+  }
+  .multi-result-row:hover { border-color: var(--accent); }
+  .multi-result-row .chain-info { font-size: 12px; color: var(--text-muted); }
+  .multi-result-row .contract-info { font-size: 11px; color: var(--text-dim); font-family: monospace; }
   /* ── Templates view ─────────────────────────────── */
   .search-panel {
     background: var(--bg-card); border: 1px solid var(--border);
@@ -1129,6 +1293,7 @@
 <script src="js/contract-view.js"></script>
 <script src="js/guide-view.js"></script>
 <script src="js/templates-view.js"></script>
+<script src="js/template-view.js"></script>
 </head>
 <body>
 
@@ -1421,6 +1586,230 @@
     </div>
     <div class="cards" id="cv-cards"></div>
   </div>
+</div>
+</div>
+
+<div id="template-view" style="display:none">
+<div class="page">
+
+  <!-- ── View mode ── -->
+  <div id="view-section" style="display:none">
+    <div id="view-loading" class="view-loading">Loading template…</div>
+    <div id="view-error" class="view-error" style="display:none"></div>
+
+    <div id="view-multi" style="display:none">
+      <p class="multi-results-note">This template ID exists on multiple chains/contracts. Select one:</p>
+      <div id="view-multi-list"></div>
+    </div>
+
+    <div id="view-single" style="display:none">
+      <div class="card" id="view-detail-card">
+        <div class="view-top-row">
+          <div>
+            <div class="view-id-line">Template #<span class="view-id-num" id="view-id-num"></span></div>
+            <div id="view-badges"></div>
+          </div>
+          <a id="view-browse-link" href="#" class="view-nav-link">Browse questions using this template →</a>
+        </div>
+        <div class="json-preview" id="view-json" style="margin-top:14px;"></div>
+        <div class="view-title-text" id="view-title-text" style="margin-top:14px;"></div>
+        <div class="view-outcomes" id="view-outcomes"></div>
+        <div class="view-meta-row" id="view-meta-row" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle);">
+          <div class="view-meta-item">
+            <div class="view-meta-label">Creator</div>
+            <div class="view-meta-val" id="view-creator"></div>
+          </div>
+          <div class="view-meta-item">
+            <div class="view-meta-label">Contract</div>
+            <div class="view-meta-val" id="view-contract"></div>
+          </div>
+          <div class="view-meta-item">
+            <div class="view-meta-label">Transaction</div>
+            <div class="view-meta-val" id="view-txhash"></div>
+          </div>
+        </div>
+        <div class="view-action-btns" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border-subtle);">
+          <button type="button" class="view-action-btn view-action-secondary" id="clone-btn">Clone this template</button>
+          <a class="view-action-btn view-action-secondary" href="#!/template">Create a new template</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Create mode ── -->
+  <div id="create-section">
+  <h1>Create a question template</h1>
+  <p class="page-intro">Templates define the structure of questions on Reality.eth. Create a template once, then reference it by ID when asking questions. The template is stored on-chain as a JSON string.</p>
+
+  <div class="ask-layout">
+
+    <!-- Left column -->
+    <div class="col-main">
+
+      <div class="card">
+        <div class="card-title">Template type</div>
+        <div class="type-toggle">
+          <button type="button" class="type-toggle-btn" id="toggle-zodiac">Zodiac</button>
+          <button type="button" class="type-toggle-btn active" id="toggle-custom">Custom</button>
+          <button type="button" class="type-toggle-btn" id="toggle-raw">Raw JSON</button>
+        </div>
+        <div class="info-box" id="zodiac-info" style="display:none; margin-top:14px;">
+          Generates the standard SafeSnap template for on-chain execution of Snapshot DAO proposals. The ENS name is embedded in the question text so voters know which space's requirements apply.
+        </div>
+      </div>
+
+      <!-- Custom form -->
+      <div class="card" id="form-custom">
+        <div class="card-title">Template details</div>
+
+        <div class="field" id="field-category">
+          <label for="tmpl-category">Category</label>
+          <input type="text" id="tmpl-category" placeholder="e.g. sports, crypto, DAO proposal">
+          <div class="field-error">Please enter a category.</div>
+        </div>
+
+        <div class="field" id="field-type">
+          <label for="tmpl-type">Answer type</label>
+          <select id="tmpl-type">
+            <option value="bool">Yes / No</option>
+            <option value="single-select">Multiple choice — one correct answer</option>
+            <option value="multiple-select">Multiple choice — multiple correct answers</option>
+            <option value="uint">Number (positive integer)</option>
+            <option value="datetime">Date / time</option>
+          </select>
+        </div>
+
+        <div class="field-decimals" id="field-decimals">
+          <label for="tmpl-decimals">Decimals</label>
+          <input type="number" id="tmpl-decimals" min="0" max="18" step="1" value="18" placeholder="18">
+          <div class="field-help">Number of decimal places for the numeric answer.</div>
+          <div class="field-error" id="decimals-error">Please enter a valid number of decimals.</div>
+        </div>
+
+        <div class="answer-options field-outcomes" id="field-outcomes">
+          <label>Answer options</label>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option A" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <div class="answer-option-row">
+            <input type="text" placeholder="Option B" class="answer-option-input">
+            <button type="button" class="remove-option" disabled>×</button>
+          </div>
+          <button type="button" class="add-option-btn" id="add-option">+ Add another option</button>
+          <div class="field-error" id="outcomes-error" style="display:none">Please enter at least two options.</div>
+        </div>
+
+        <div class="field" id="field-title">
+          <label for="tmpl-title">Question template</label>
+          <textarea id="tmpl-title" rows="4" placeholder="e.g. Will the price of %s exceed $%s on %s?"></textarea>
+          <div class="field-help">Use <code>%s</code> as a placeholder for values filled in when asking each question.</div>
+          <div class="field-error">Please enter the template text.</div>
+        </div>
+
+        <div class="field" id="field-lang">
+          <label for="tmpl-lang">Language</label>
+          <select id="tmpl-lang">
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="ar">Arabic</option>
+            <option value="ru">Russian</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="tr">Turkish</option>
+            <option value="vi">Vietnamese</option>
+            <option value="th">Thai</option>
+            <option value="hi">Hindi</option>
+            <option value="id">Indonesian</option>
+            <option value="sv">Swedish</option>
+            <option value="da">Danish</option>
+            <option value="fi">Finnish</option>
+            <option value="no">Norwegian</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Raw JSON form -->
+      <div class="card" id="form-raw" style="display:none">
+        <div class="card-title">Template JSON</div>
+        <div class="field">
+          <textarea id="raw-json" rows="14"
+            style="font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace; font-size: 12px; line-height: 1.6;"
+            placeholder='{"title": "...", "type": "bool", "category": "...", "lang": "en"}'></textarea>
+          <div class="field-help">Edit the JSON directly. Required: <code>title</code>, <code>type</code>, <code>category</code>.</div>
+          <div class="field-error" id="raw-error" style="display:none">Invalid JSON or missing required fields (title, type, category).</div>
+        </div>
+      </div>
+
+      <!-- Zodiac form -->
+      <div class="card" id="form-zodiac" style="display:none">
+        <div class="card-title">DAO space</div>
+        <div class="field" id="field-ens">
+          <label for="tmpl-ens">ENS name</label>
+          <input type="text" id="tmpl-ens" placeholder="e.g. myprotocol.eth">
+          <div class="field-error">Please enter a valid ENS name.</div>
+          <div class="field-help">The Snapshot space ENS name for your DAO. This is embedded in the template text.</div>
+        </div>
+        <div class="generated-title" id="generated-title"></div>
+      </div>
+
+    </div>
+
+    <!-- Right column -->
+    <div class="col-side">
+
+      <div class="card">
+        <div class="card-title">Network</div>
+        <div class="network-row">
+          <div class="network-dot unknown" id="network-dot"></div>
+          <span class="network-name" id="network-name">Not connected</span>
+        </div>
+        <div class="chain-pills" id="tc-chain-pills">
+          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
+          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
+          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
+          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
+          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
+          <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
+        </div>
+        <div id="token-pills" class="token-pills" style="display:none"></div>
+        <div id="tc-version-row" style="display:none; margin-top:10px;">
+          <select id="tc-version-select" class="version-select"></select>
+        </div>
+        <div class="warn-box" id="network-unsupported" style="display:none; margin-top:10px;">
+          ⚠ This network is not supported.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">JSON preview</div>
+        <div class="json-preview empty" id="json-preview">Fill in the form to preview the template JSON.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Create</div>
+        <button type="button" class="submit-btn" id="submit-btn" disabled>Create template</button>
+        <div class="tx-error" id="tx-error"></div>
+        <div class="info-box" id="wallet-notice">Connect your wallet to create a template.</div>
+        <div class="result-box" id="result-box">
+          <div class="result-id-label">Template ID</div>
+          <div class="result-id" id="result-id">—</div>
+          <button type="button" class="result-copy" id="result-copy">Copy ID</button>
+          <a id="result-view-link" href="#" style="display:block; margin-top:8px; font-size:12px; color:var(--accent); text-align:center;">View template →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div><!-- /create-section -->
 </div>
 </div>
 
@@ -2470,6 +2859,7 @@
     window._setQuestionWallet?.(addr);
     window._setAccountWallet?.(addr);
     window._setTemplatesWallet?.(addr);
+    window._setTemplateWallet?.(addr);
   }
 
   // ── Router ────────────────────────────────────────────────────────────────────
@@ -2499,6 +2889,15 @@
 
   function isWatchConfigureHash(hash) {
     return /^#!?\/watch-configure(\/|$|\?)/.test(hash);
+  }
+
+  function isTemplateHash(hash) {
+    return /^#!?\/template(\/|$)/.test(hash);
+  }
+
+  function getTemplateRouteIdFromHash(hash) {
+    const m = hash.match(/\/template\/(.+)/);
+    return m ? m[1] : null;
   }
 
   function isTemplatesHash(hash) {
@@ -2549,6 +2948,7 @@
   let _contractViewTemplate        = null;
   let _guideViewTemplate           = null;
   let _templatesViewTemplate       = null;
+  let _templateViewTemplate        = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -2561,6 +2961,7 @@
     document.getElementById('contract-view').style.display = 'none';
     document.getElementById('guide-view').style.display = 'none';
     document.getElementById('templates-view').style.display = 'none';
+    document.getElementById('template-view').style.display = 'none';
   }
 
   async function showQuestionView() {
@@ -2630,6 +3031,20 @@
     await window.RealityContract.mount(chainId, address);
   }
 
+  async function showTemplateView() {
+    const tv = document.getElementById('template-view');
+    if (!_templateViewTemplate) _templateViewTemplate = tv.innerHTML;
+    tv.innerHTML = _templateViewTemplate;
+    _hideAllViews();
+    tv.style.display = '';
+    document.title = 'reality.eth — Create template';
+    const routeId = getTemplateRouteIdFromHash(window.location.hash);
+    await window.RealityTemplate.mount(routeId);
+    if (_connectedWalletAddr !== undefined) {
+      window._setTemplateWallet?.(_connectedWalletAddr);
+    }
+  }
+
   async function showTemplatesView() {
     const tv = document.getElementById('templates-view');
     if (!_templatesViewTemplate) _templatesViewTemplate = tv.innerHTML;
@@ -2691,6 +3106,10 @@
       showGuideView();
       return;
     }
+    if (isTemplateHash(hash)) {
+      await showTemplateView();
+      return;
+    }
     if (isTemplatesHash(hash)) {
       await showTemplatesView();
       return;
@@ -2732,6 +3151,8 @@
       await showContractView();
     } else if (isGuideHash(window.location.hash)) {
       showGuideView();
+    } else if (isTemplateHash(window.location.hash)) {
+      await showTemplateView();
     } else if (isTemplatesHash(window.location.hash)) {
       await showTemplatesView();
     } else {
@@ -2749,7 +3170,7 @@
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isTemplatesHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isTemplatesHash(window.location.hash) && !isTemplateHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();
