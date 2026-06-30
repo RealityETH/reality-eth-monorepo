@@ -24,6 +24,33 @@ window.RealityNotifications.mount = async function () {
     return `${Math.floor(diff / 86400000)}d ago`;
   }
 
+  // Load contracts.json once to resolve chainId from contract address for
+  // older notifications that were stored before chainId was persisted.
+  let _contractsCache = null;
+  async function loadContracts() {
+    if (_contractsCache) return _contractsCache;
+    try {
+      const r = await fetch('generated/contracts.json');
+      _contractsCache = await r.json();
+    } catch { _contractsCache = {}; }
+    return _contractsCache;
+  }
+
+  function resolveChainId(n, contractsData) {
+    if (n.chainId) return n.chainId;
+    const contractAddr = typeof n.questionId === 'string'
+      ? n.questionId.slice(0, 42).toLowerCase() : null;
+    if (!contractAddr?.startsWith('0x')) return null;
+    for (const [chainId, tokens] of Object.entries(contractsData || {})) {
+      for (const versions of Object.values(tokens)) {
+        for (const info of Object.values(versions)) {
+          if (info?.address?.toLowerCase() === contractAddr) return parseInt(chainId);
+        }
+      }
+    }
+    return null;
+  }
+
   async function render() {
     const list = document.getElementById('notif-list');
     const notifications = await RealityWatches.getNotifications(200);
@@ -40,9 +67,12 @@ window.RealityNotifications.mount = async function () {
       return;
     }
 
+    const contractsData = await loadContracts();
+
     list.innerHTML = notifications.map(n => {
       const icon     = TYPE_ICON[n.type] || TYPE_ICON.new_answer;
-      const url      = `#!/network/unknown/question/${esc(n.questionId)}`;
+      const chainId  = resolveChainId(n, contractsData);
+      const url      = `#!/network/${chainId ?? 'unknown'}/question/${esc(n.questionId)}`;
       const condLink = n.conditionId
         ? `<a class="notif-cond-link" href="#!/watch-configure?id=${esc(n.conditionId)}">View watch →</a>`
         : '';

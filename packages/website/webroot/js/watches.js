@@ -261,6 +261,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `resp-${r.id}`,
         questionId: r.questionId,
+        chainId:    sq?.chainId,
         type:       'new_answer',
         title:      sq?.title || r.questionId,
         detail:     'New answer posted',
@@ -278,6 +279,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `final-${q.id}`,
         questionId: q.id,
+        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
         type:       'finalized',
         title:      q.title || q.id,
         detail:     'Question finalized',
@@ -295,6 +297,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `arbreq-${q.id}`,
         questionId: q.id,
+        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
         type:       'arb_requested',
         title:      q.title || q.id,
         detail:     'Arbitration requested',
@@ -312,6 +315,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `arbres-${q.id}`,
         questionId: q.id,
+        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
         type:       'arb_resolved',
         title:      q.title || q.id,
         detail:     'Arbitration resolved',
@@ -354,6 +358,7 @@ async function checkForUpdates(ponderUrl) {
         await addNotification({
           id:          `newq-${cw.id}-${q.id}`,
           questionId:  q.id,
+          chainId:     q.chainId,
           type:        'new_question',
           title:       q.title || q.data || q.id,
           detail:      'New matching question',
