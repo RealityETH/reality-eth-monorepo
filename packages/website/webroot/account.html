@@ -633,6 +633,7 @@ function renderAsked(questions) {
   const list    = document.getElementById('asked-list');
   loading.style.display = 'none';
 
+  list.innerHTML = '';
   if (!questions.length) {
     loading.textContent = 'No questions asked yet.';
     loading.style.display = 'block';
@@ -640,7 +641,6 @@ function renderAsked(questions) {
   }
 
   document.getElementById('asked-count').textContent = questions.length;
-  list.innerHTML = '';
 
   for (const q of questions) {
     const fin  = isFinalized(q);
@@ -688,6 +688,7 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
   const list    = document.getElementById('answered-list');
   loading.style.display = 'none';
 
+  list.innerHTML = '';
   if (!questions.length) {
     loading.textContent = 'No questions answered yet.';
     loading.style.display = 'block';
@@ -695,7 +696,6 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
   }
 
   document.getElementById('answered-count').textContent = questions.length;
-  list.innerHTML = '';
 
   // Index user's responses by questionId (take last = most recent answer)
   const myLastResp = {};
@@ -781,6 +781,7 @@ function renderArbitrator(questions) {
   const btn  = document.getElementById('tab-btn-arbitrator');
   const list = document.getElementById('arbitrator-list');
 
+  list.innerHTML = '';
   if (!questions.length) {
     btn.style.display = 'none';
     return;
@@ -788,7 +789,6 @@ function renderArbitrator(questions) {
 
   btn.style.display = '';
   document.getElementById('arbitrator-count').textContent = questions.length;
-  list.innerHTML = '';
 
   const open      = questions.filter(q => !q.isPendingArbitration && !q.arbitrationOccurred);
   const requested = questions.filter(q => q.isPendingArbitration);
