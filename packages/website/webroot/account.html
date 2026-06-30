@@ -546,7 +546,7 @@ async function loadAccountData(addr) {
   // Phase 1: parallel
   const [askedData, respData, claimData, arbData] = await Promise.all([
     gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:1000) { items{${qFields}} pageInfo{hasNextPage} } }`),
-    gql(`{ responses(where:{user:"${a}"},orderBy:"timestamp",orderDirection:"asc",limit:500) { items{id questionId answer commitmentHash bond user historyHash isCommitment timestamp} } }`),
+    gql(`{ responses(where:{user:"${a}"},orderBy:"timestamp",orderDirection:"asc",limit:1000) { items{id questionId answer commitmentHash bond user historyHash isCommitment timestamp} pageInfo{hasNextPage} } }`),
     gql(`{ claims(where:{user:"${a}"},limit:500) { items{questionId amount} } }`),
     gql(`{ questions(where:{arbitrator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:1000) { items{${qFields}} pageInfo{hasNextPage} } }`),
   ]);
@@ -554,6 +554,7 @@ async function loadAccountData(addr) {
   const askedQuestions    = askedData.questions?.items || [];
   const askedHasMore      = askedData.questions?.pageInfo?.hasNextPage || false;
   const userResponses     = respData.responses?.items  || [];
+  const responsesHasMore  = respData.responses?.pageInfo?.hasNextPage || false;
   const claimedSet        = new Set((claimData.claims?.items || []).map(c => c.questionId));
 
   // Phase 2: fetch all answered questions in one batch query
@@ -588,7 +589,7 @@ async function loadAccountData(addr) {
   const arbitratorQuestions = arbData.questions?.items || [];
   const arbHasMore          = arbData.questions?.pageInfo?.hasNextPage || false;
 
-  return { askedQuestions, askedHasMore, answeredQuestions, userResponses, claimedSet, claimables, arbitratorQuestions, arbHasMore };
+  return { askedQuestions, askedHasMore, answeredQuestions, responsesHasMore, userResponses, claimedSet, claimables, arbitratorQuestions, arbHasMore };
 }
 
 // ── RPC balances ──────────────────────────────────────────────────────────────
@@ -685,7 +686,7 @@ function renderAsked(questions, hasMore) {
 }
 
 // ── Render: answered tab ──────────────────────────────────────────────────────
-function renderAnswered(questions, userResponses, claimedSet, claimables) {
+function renderAnswered(questions, userResponses, claimedSet, claimables, hasMore) {
   const loading = document.getElementById('answered-loading');
   const list    = document.getElementById('answered-list');
   loading.style.display = 'none';
@@ -697,7 +698,7 @@ function renderAnswered(questions, userResponses, claimedSet, claimables) {
     return;
   }
 
-  document.getElementById('answered-count').textContent = questions.length;
+  document.getElementById('answered-count').textContent = hasMore ? `${questions.length}+` : questions.length;
 
   // Index user's responses by questionId (take last = most recent answer)
   const myLastResp = {};
@@ -889,11 +890,11 @@ function toggleViewChain(chainId) {
   else                 { link.style.display = 'none'; }
 
   if (!allData) return;
-  const { askedQuestions, askedHasMore, answeredQuestions, userResponses, claimedSet, claimables } = allData;
+  const { askedQuestions, askedHasMore, answeredQuestions, responsesHasMore, userResponses, claimedSet, claimables } = allData;
 
   const inView = q => selectedViewChains.size === 0 || selectedViewChains.has(Number(q.chainId));
   renderAsked(askedQuestions.filter(inView), askedHasMore && selectedViewChains.size === 0);
-  renderAnswered(answeredQuestions.filter(inView), userResponses, claimedSet, claimables);
+  renderAnswered(answeredQuestions.filter(inView), userResponses, claimedSet, claimables, responsesHasMore && selectedViewChains.size === 0);
   renderClaimBanner(claimables, effectiveClaimChain(claimables));
 }
 
@@ -1163,7 +1164,7 @@ async function runAccount(addr) {
     buildChainPills();
     // selectedViewChains is empty (reset above) so render all chains
     renderAsked(data.askedQuestions, data.askedHasMore);
-    renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables);
+    renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables, data.responsesHasMore);
     renderArbitrator(data.arbitratorQuestions, data.arbHasMore);
     renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
   } catch (err) {
