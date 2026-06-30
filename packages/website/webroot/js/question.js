@@ -1806,6 +1806,7 @@ function buildDetailsCard(data, chainId) {
   row('Type', esc(TYPE_LABEL[data.qjson?.type] || data.qjson?.type || ''));
   if (data.qjson?.category) row('Category', esc(data.qjson.category));
   if (data.qjson?.lang && data.qjson.lang !== 'en') row('Language', esc(data.qjson.lang));
+  if (data.creator) row('Creator', addrHtml(data.creator));
   if (data.openingTS > 0) {
     const past = data.openingTS * 1000 < Date.now();
     row(past ? 'Opened' : 'Opens', esc(date(data.openingTS)));
