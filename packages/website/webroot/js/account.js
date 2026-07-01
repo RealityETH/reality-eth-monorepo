@@ -389,8 +389,7 @@ window.RealityAccount.mount = async function (addr) {
       renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
     }
 
-    const chainName = chainName(chainId);
-    renderScanStatus(`Scanned ${chainName} (last 3 weeks).`, true);
+    renderScanStatus(`Scanned ${chainName(chainId)} (last 3 weeks).`, true);
   }
 
   async function scanFurtherBack() {
@@ -401,8 +400,8 @@ window.RealityAccount.mount = async function (addr) {
     const oldFrom   = _scanFromBlock;
     _scanFromBlock  = newFrom;
 
-    const chainName = chainName(chainId);
-    renderScanStatus(`Scanning ${chainName} further back…`);
+    const cName = chainName(chainId);
+    renderScanStatus(`Scanning ${cName} further back…`);
 
     const rpcData = await scanRpcForAccount(viewAddr, chainId, newFrom, oldFrom - 1, gen, msg => {
       if (gen === _accountLoadGen) renderScanStatus(msg);
@@ -424,7 +423,7 @@ window.RealityAccount.mount = async function (addr) {
       renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
     }
 
-    renderScanStatus(`Scanned ${chainName} further back.`, true);
+    renderScanStatus(`Scanned ${cName} further back.`, true);
   }
 
   // ── GraphQL ──────────────────────────────────────────────────────────────────
@@ -1167,7 +1166,7 @@ window.RealityAccount.mount = async function (addr) {
     // Phase 2b: RPC scan — current chain, last 3 weeks
     const chainId   = walletChainId || 1;
     _scanChainId    = chainId;
-    const chainName = chainName(chainId);
+    const cName     = chainName(chainId);
     const weeksBack = 3;
 
     let toBlock;
@@ -1185,7 +1184,7 @@ window.RealityAccount.mount = async function (addr) {
     _scanFromBlock   = fromBlock;
     _scanToBlock     = toBlock;
 
-    renderScanStatus(`Scanning ${chainName} (last ${weeksBack} weeks)…`);
+    renderScanStatus(`Scanning ${cName} (last ${weeksBack} weeks)…`);
 
     const rpcData = await scanRpcForAccount(a, chainId, fromBlock, toBlock, gen, msg => {
       if (gen === _accountLoadGen) renderScanStatus(msg);
@@ -1206,7 +1205,7 @@ window.RealityAccount.mount = async function (addr) {
     renderAsked(mergedAsked, false);
     renderAnswered(mergedAnswered, rpcData.userResponses, rpcData.claimedSet, rpcData.claimables, false);
     renderClaimBanner(rpcData.claimables, effectiveClaimChain(rpcData.claimables));
-    renderScanStatus(`${chainName}: last ${weeksBack} weeks scanned.`, true);
+    renderScanStatus(`${cName}: last ${weeksBack} weeks scanned.`, true);
   }
 
   // ── Wallet callback (called by index.html via window._setAccountWallet) ────────
