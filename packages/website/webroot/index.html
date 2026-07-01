@@ -122,7 +122,7 @@
     display: flex; align-items: center; gap: 8px;
   }
   .logo-mark {
-    width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px;
+    width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px; color: transparent;
   }
   .search-wrap { flex: 1; max-width: 440px; position: relative; }
   .search-wrap svg {
@@ -1467,7 +1467,103 @@
     <span class="sub">Apps using reality.eth as their oracle</span>
   </div>
 
-  <div id="integrations-grid" class="app-grid" style="margin-bottom:48px"></div>
+  <div id="integrations-grid" class="app-grid" style="margin-bottom:48px">
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('snapshot')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
+        <a class="app-card-guide" href="#!/guide/snapshot" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Snapshot</div>
+      <div class="app-card-desc">Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('kleros-moderate')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#d29922,#b08800)">K</div>
+        <a class="app-card-guide" href="#!/guide/content-moderation" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Kleros · Moderate</div>
+      <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('seer')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">S</div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Seer</div>
+      <div class="app-card-desc">AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('hermes-agent')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#f78166,#b04040)">H</div>
+        <a class="app-card-guide" href="#!/guide/ai-agent" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Nous Hermes</div>
+      <div class="app-card-desc">AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('dao-governance')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#1158cc)">G</div>
+        <a class="app-card-guide" href="#!/guide/dao-governance" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">DAO Governance</div>
+      <div class="app-card-desc">Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('sports-oracle')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">⚽</div>
+        <a class="app-card-guide" href="#!/guide/event-oracle" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Sports Oracle</div>
+      <div class="app-card-desc">Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('fantasy-sports')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#bc8cff,#8957e5)">🏆</div>
+        <a class="app-card-guide" href="#!/guide/hash-commit-oracle" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+      <div class="app-card-name">Fantasy Sports</div>
+      <div class="app-card-desc">Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('other')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:#6e7681">…</div>
+      </div>
+      <div class="app-card-name">Other</div>
+      <div class="app-card-desc">Questions from addresses not associated with a known integration — prediction markets, DAO governance, testing, and more.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Recent questions ──────────────────────────────── -->
   <div class="recent-header">
