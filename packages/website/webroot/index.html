@@ -2334,6 +2334,7 @@
   let allQuestions = [];
   let cursor = null;
   let hasNextPage = false;
+  let ponderFailed = false;
   let statusFilters = new Set(); // empty = show all
   let typeFilters   = new Set(); // empty = show all types
   let sortOpt = 'recent';
@@ -2530,6 +2531,8 @@
       if (reset) writeBrowseCache(allQuestions, cursor, hasNextPage);
     } catch (e) {
       console.error('GraphQL error:', e);
+      ponderInd?.classList.add('offline');
+      ponderFailed = true;
     }
 
     fetching = false;
@@ -2566,6 +2569,8 @@
       integCounts = Object.fromEntries(results.filter(([, v]) => v !== null));
     } catch (e) {
       console.error('Count query error:', e);
+      ponderInd?.classList.add('offline');
+      ponderFailed = true;
     }
 
     renderIntegrationCards();
@@ -2901,7 +2906,9 @@
     const filtered = applyFilters(allQuestions);
 
     if (filtered.length === 0 && allQuestions.length === 0) {
-      list.innerHTML = '<div class="q-empty">Loading…</div>';
+      list.innerHTML = ponderFailed
+        ? '<div class="q-empty">Indexer unavailable — results cannot be loaded.</div>'
+        : '<div class="q-empty">Loading…</div>';
       btn.style.display = 'none';
       return;
     }

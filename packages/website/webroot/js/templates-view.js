@@ -204,6 +204,7 @@ window.RealityTemplates.mount = async function (params) {
       errorState.style.display = 'none';
 
     } catch (err) {
+      ponderInd?.classList.add('offline');
       errorState.textContent = `Error: ${err.message}`;
       errorState.style.display = '';
     } finally {
