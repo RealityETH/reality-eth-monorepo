@@ -1997,17 +1997,21 @@ async function verifyWithRpc(data) {
     // Detect on-chain answer that Ponder hasn't indexed yet.
     // Compare getBestAnswer() to what we'd expect from Ponder's data + revealMap.
     let newEntryPushed = false;
+    let hasUnrevealedTopCommit = false;
     if (bestAnswer !== null && data.answerEvents.length > 0) {
       const latest = data.answerEvents[data.answerEvents.length - 1];
       const latestKey = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
       const latestReveal = latestKey ? (data.revealMap[latestKey] || null) : null;
+      hasUnrevealedTopCommit = !!(latestKey && !latestReveal);
       // What we expect getBestAnswer() to return:
-      //   - unrevealed commitment: the commitment hash
+      //   - unrevealed commitment: the PREVIOUS effective answer, not the commitment hash.
+      //     reality.eth only updates best_answer on reveal (not on commit submission), so
+      //     getBestAnswer() reflects the last confirmed answer until the reveal happens.
       //   - revealed commitment: the revealed answer
       //   - direct answer: the answer bytes32
-      const expected = (latestKey && !latestReveal)
-        ? latestKey
-        : (latestReveal || latest.args.answer || ZERO_HASH);
+      const expected = hasUnrevealedTopCommit
+        ? (data.currentAnswer?.toLowerCase() || ZERO_HASH)
+        : (latestReveal?.toLowerCase() || latest.args.answer?.toLowerCase() || ZERO_HASH);
       if (bestAnswer.toLowerCase() !== expected.toLowerCase()) {
         // Mismatch: check if bestAnswer is a new unrevealed commitment not in Ponder yet
         const newCommit = await safeCall(() => reality.commitments(bestAnswer), null);
@@ -2029,7 +2033,10 @@ async function verifyWithRpc(data) {
 
     if (bond !== null && bond !== data.bond)
       errors.push('bond mismatch');
-    if (!newEntryPushed && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
+    // Skip finalizeTS check when there's an unrevealed top commitment: Ponder may have
+    // advanced scheduledFinalizationTimestamp on the commit submission, but reality.eth
+    // only extends finalize_ts on reveal, so a mismatch here is a known Ponder limitation.
+    if (!newEntryPushed && !hasUnrevealedTopCommit && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
       errors.push('finalization timestamp mismatch');
     if (timeout !== null && Number(timeout) !== data.timeout)
       errors.push('timeout mismatch');
