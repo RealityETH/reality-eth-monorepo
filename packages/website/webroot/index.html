@@ -5,27 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>reality.eth</title>
 <script>
-// Route-detect before first paint so the correct view is visible immediately.
+// Route-detect before first paint: correct view visibility + selective script loading.
 // Runs synchronously in <head>, no external deps.
 (function () {
   var h = location.hash;
+  var M  = 'https://cdn.jsdelivr.net/npm/marked@14/marked.min.js';
+  var DP = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+
+  // CSS: show the right view immediately without a browse-page flash
   var view =
-    /^#!?\/network\/\d+\/question\//.test(h)  ? 'question-view'      :
-    /^#!?\/account(\/|$|\?)/.test(h)           ? 'account-view'       :
-    /^#!?\/network\/\d+\/contract\//.test(h)   ? 'contract-view'      :
-    /^#!?\/template(\/|$)/.test(h)             ? 'template-view'      :
-    /^#!?\/templates(\/|$|\?)/.test(h)         ? 'templates-view'     :
-    /^#!?\/guide(\/|$)/.test(h)                ? 'guide-view'         :
-    /^#!?\/ask(\/|$|\?)/.test(h)               ? 'ask-view'           :
+    /^#!?\/network\/\d+\/question\//.test(h)  ? 'question-view'        :
+    /^#!?\/account(\/|$|\?)/.test(h)           ? 'account-view'         :
+    /^#!?\/network\/\d+\/contract\//.test(h)   ? 'contract-view'        :
+    /^#!?\/template(\/|$)/.test(h)             ? 'template-view'        :
+    /^#!?\/templates(\/|$|\?)/.test(h)         ? 'templates-view'       :
+    /^#!?\/guide(\/|$)/.test(h)                ? 'guide-view'           :
+    /^#!?\/ask(\/|$|\?)/.test(h)               ? 'ask-view'             :
     /^#!?\/watch-configure(\/|$|\?)/.test(h)   ? 'watch-configure-view' :
-    /^#!?\/watches(\/|$)/.test(h)              ? 'watches-view'       :
-    /^#!?\/notifications(\/|$)/.test(h)        ? 'notifications-view' :
+    /^#!?\/watches(\/|$)/.test(h)              ? 'watches-view'         :
+    /^#!?\/notifications(\/|$)/.test(h)        ? 'notifications-view'   :
     null;
   if (view) {
     var s = document.createElement('style');
     s.textContent = '#view-content{display:none!important}#' + view + '{display:block!important}';
     document.head.appendChild(s);
   }
+
+  // Script lists: route-specific scripts are preloaded & executed first;
+  // background scripts are loaded after boot for subsequent navigation.
+  var all = [M, DP,
+    'js/question.js', 'js/account.js', 'js/notifications-view.js',
+    'js/watches-view.js', 'js/watch-configure-view.js', 'js/contract-view.js',
+    'js/guide-view.js', 'js/templates-view.js', 'js/template-view.js', 'js/ask-view.js'];
+
+  var route =
+    /^#!?\/network\/\d+\/question\//.test(h)  ? [M, DP, 'js/question.js'] :
+    /^#!?\/account(\/|$|\?)/.test(h)          ? ['js/account.js'] :
+    /^#!?\/network\/\d+\/contract\//.test(h)  ? ['js/contract-view.js'] :
+    /^#!?\/template(\/|$)/.test(h)            ? [M, DP, 'js/template-view.js'] :
+    /^#!?\/templates(\/|$|\?)/.test(h)        ? ['js/templates-view.js'] :
+    /^#!?\/guide(\/|$)/.test(h)               ? [M, DP, 'js/guide-view.js'] :
+    /^#!?\/ask(\/|$|\?)/.test(h)              ? [M, DP, 'js/ask-view.js'] :
+    /^#!?\/watch-configure(\/|$|\?)/.test(h)  ? ['js/watch-configure-view.js'] :
+    /^#!?\/watches(\/|$)/.test(h)             ? ['js/watches-view.js'] :
+    /^#!?\/notifications(\/|$)/.test(h)       ? ['js/notifications-view.js'] :
+    [];
+
+  // Preload route scripts immediately (download in parallel with core, execute later)
+  var routeSet = {};
+  for (var i = 0; i < route.length; i++) {
+    routeSet[route[i]] = true;
+    var lnk = document.createElement('link');
+    lnk.rel = 'preload'; lnk.as = 'script';
+    lnk.href = route[i];
+    if (/^https?:\/\//.test(route[i])) lnk.crossOrigin = 'anonymous';
+    document.head.appendChild(lnk);
+  }
+
+  window.__routeScripts = route;
+  window.__bgScripts    = all.filter(function(s) { return !routeSet[s]; });
 })();
 </script>
 <style>
@@ -1353,8 +1391,6 @@
   .cost-total .cost-label { color: var(--text); font-weight: 600; }
   .cost-total .cost-val { color: var(--accent); font-size: 15px; }
 </style>
-<script defer src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script defer src="js/chains.js"></script>
 <script defer src="js/reality-eth-lib.js"></script>
 <script defer src="js/ethers.js"></script>
@@ -1362,16 +1398,6 @@
 <script defer src="js/settings.js"></script>
 <script defer src="js/question-cache.js"></script>
 <script defer src="js/watches.js"></script>
-<script defer src="js/question.js"></script>
-<script defer src="js/account.js"></script>
-<script defer src="js/notifications-view.js"></script>
-<script defer src="js/watches-view.js"></script>
-<script defer src="js/watch-configure-view.js"></script>
-<script defer src="js/contract-view.js"></script>
-<script defer src="js/guide-view.js"></script>
-<script defer src="js/templates-view.js"></script>
-<script defer src="js/template-view.js"></script>
-<script defer src="js/ask-view.js"></script>
 </head>
 <body>
 
@@ -2295,6 +2321,38 @@
   const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+
+  // ── Dynamic script loader ─────────────────────────────────────────────────────
+  const _CDN_MARKED = 'https://cdn.jsdelivr.net/npm/marked@14/marked.min.js';
+  const _CDN_PURIFY = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+  const _scriptLoads = new Map();
+  function loadScript(src) {
+    if (!_scriptLoads.has(src)) {
+      _scriptLoads.set(src, new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load: ' + src));
+        document.head.appendChild(s);
+      }));
+    }
+    return _scriptLoads.get(src);
+  }
+  async function loadViewScripts(srcs) {
+    for (const src of srcs) await loadScript(src);
+  }
+  const VIEW_SCRIPTS = {
+    question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'],
+    account:           ['js/account.js'],
+    notifications:     ['js/notifications-view.js'],
+    watches:           ['js/watches-view.js'],
+    'watch-configure': ['js/watch-configure-view.js'],
+    contract:          ['js/contract-view.js'],
+    guide:             [_CDN_MARKED, _CDN_PURIFY, 'js/guide-view.js'],
+    templates:         ['js/templates-view.js'],
+    template:          [_CDN_MARKED, _CDN_PURIFY, 'js/template-view.js'],
+    ask:               [_CDN_MARKED, _CDN_PURIFY, 'js/ask-view.js'],
+  };
 
   const ponderInd = document.getElementById('ind-ponder');
   const rpcInd    = document.getElementById('ind-rpc');
@@ -3252,6 +3310,7 @@
   }
 
   async function showQuestionView() {
+    await loadViewScripts(VIEW_SCRIPTS.question);
     const qv = document.getElementById('question-view');
     if (!_questionViewTemplate) _questionViewTemplate = qv.innerHTML;
     qv.innerHTML = _questionViewTemplate;
@@ -3263,6 +3322,7 @@
   }
 
   async function showAccountView() {
+    await loadViewScripts(VIEW_SCRIPTS.account);
     const av = document.getElementById('account-view');
     if (!_accountViewTemplate) _accountViewTemplate = av.innerHTML;
     av.innerHTML = _accountViewTemplate;
@@ -3277,6 +3337,7 @@
   }
 
   async function showNotificationsView() {
+    await loadViewScripts(VIEW_SCRIPTS.notifications);
     const nv = document.getElementById('notifications-view');
     if (!_notificationsViewTemplate) _notificationsViewTemplate = nv.innerHTML;
     nv.innerHTML = _notificationsViewTemplate;
@@ -3287,6 +3348,7 @@
   }
 
   async function showWatchesView() {
+    await loadViewScripts(VIEW_SCRIPTS.watches);
     const wv = document.getElementById('watches-view');
     if (!_watchesViewTemplate) _watchesViewTemplate = wv.innerHTML;
     wv.innerHTML = _watchesViewTemplate;
@@ -3297,6 +3359,7 @@
   }
 
   async function showWatchConfigureView() {
+    await loadViewScripts(VIEW_SCRIPTS['watch-configure']);
     const wcv = document.getElementById('watch-configure-view');
     if (!_watchConfigureViewTemplate) _watchConfigureViewTemplate = wcv.innerHTML;
     wcv.innerHTML = _watchConfigureViewTemplate;
@@ -3308,6 +3371,7 @@
   }
 
   async function showContractView() {
+    await loadViewScripts(VIEW_SCRIPTS.contract);
     const cv = document.getElementById('contract-view');
     if (!_contractViewTemplate) _contractViewTemplate = cv.innerHTML;
     cv.innerHTML = _contractViewTemplate;
@@ -3319,6 +3383,7 @@
   }
 
   async function showTemplateView() {
+    await loadViewScripts(VIEW_SCRIPTS.template);
     const tv = document.getElementById('template-view');
     if (!_templateViewTemplate) _templateViewTemplate = tv.innerHTML;
     tv.innerHTML = _templateViewTemplate;
@@ -3333,6 +3398,7 @@
   }
 
   async function showTemplatesView() {
+    await loadViewScripts(VIEW_SCRIPTS.templates);
     const tv = document.getElementById('templates-view');
     if (!_templatesViewTemplate) _templatesViewTemplate = tv.innerHTML;
     tv.innerHTML = _templatesViewTemplate;
@@ -3346,7 +3412,8 @@
     }
   }
 
-  function showGuideView() {
+  async function showGuideView() {
+    await loadViewScripts(VIEW_SCRIPTS.guide);
     const gv = document.getElementById('guide-view');
     if (!_guideViewTemplate) _guideViewTemplate = gv.innerHTML;
     gv.innerHTML = _guideViewTemplate;
@@ -3358,6 +3425,7 @@
   }
 
   async function showAskView() {
+    await loadViewScripts(VIEW_SCRIPTS.ask);
     const av = document.getElementById('ask-view');
     if (!_askViewTemplate) _askViewTemplate = av.innerHTML;
     av.innerHTML = _askViewTemplate;
@@ -3403,7 +3471,7 @@
       return;
     }
     if (isGuideHash(hash)) {
-      showGuideView();
+      await showGuideView();
       return;
     }
     if (isAskHash(hash)) {
@@ -3454,7 +3522,7 @@
     } else if (isContractHash(window.location.hash)) {
       await showContractView();
     } else if (isGuideHash(window.location.hash)) {
-      showGuideView();
+      await showGuideView();
     } else if (isAskHash(window.location.hash)) {
       await showAskView();
     } else if (isTemplateHash(window.location.hash)) {
@@ -3464,6 +3532,9 @@
     } else {
       showSkeleton();
     }
+
+    // Load all remaining view scripts in background for fast subsequent navigation
+    for (const src of (window.__bgScripts || [])) loadScript(src);
 
     loadTokenMeta().then(() => {
       parseHashRoute();
