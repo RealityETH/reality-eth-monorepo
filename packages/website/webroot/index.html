@@ -2416,7 +2416,7 @@
 </footer>
 
 <script>
-  const GRAPHQL = window.RealitySettings?.getPonderUrl() || '/graphql';
+  const GRAPHQL = () => window.RealitySettings?.getPonderUrl() || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
@@ -2710,7 +2710,7 @@
     }
 
     try {
-      const res = await withIndicator(ponderInd, () => fetch(GRAPHQL, {
+      const res = await withIndicator(ponderInd, () => fetch(GRAPHQL(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: buildQuery(50, reset ? null : cursor) }),
@@ -2751,7 +2751,7 @@
       }
       const query = `{ cnt: questions(limit:1, where:{${base}}) { totalCount }
                        open: questions(limit:1, where:{${base}, ${openSuffix}}) { totalCount } }`;
-      const res  = await withIndicator(ponderInd, () => fetch(GRAPHQL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) }));
+      const res  = await withIndicator(ponderInd, () => fetch(GRAPHQL(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) }));
       const data = (await res.json()).data;
       return [id, { total: data.cnt?.totalCount ?? null, open: data.open?.totalCount ?? null }];
     };
