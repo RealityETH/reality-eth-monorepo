@@ -35,7 +35,7 @@ const CONTRACT_START_BLOCK = {
   '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502':  4090592,  // v3.0
 };
 
-const CHAIN_NAME    = { 1:'Ethereum', 10:'Optimism', 100:'Gnosis', 137:'Polygon', 42161:'Arbitrum', 8453:'Base', 43114:'Avalanche', 42220:'Celo', 11155111:'Sepolia' };
+function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
 const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
 const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
 const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
@@ -108,7 +108,7 @@ if (!CONTRACT || !QUESTION_ID || !qPage) return;
 // Chain badge — known from URL, no async needed
 const chainBadge = document.getElementById('chain-badge');
 if (chainBadge) {
-  const label = CHAIN_NAME[CHAIN_ID] || `Chain ${CHAIN_ID}`;
+  const label = chainName(CHAIN_ID);
   chainBadge.textContent = label;
   chainBadge.style.display = '';
 }
@@ -1460,7 +1460,7 @@ async function renderArbitrationSection(data, walletAddr) {
         const fpRpcUrl = PUBLIC_RPC[fpChainId];
         if (!fpRpcUrl) return;
         const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, fpChainId, { staticNetwork: true });
-        const chainName = CHAIN_NAME[fpChainId] || `chain ${fpChainId}`;
+        const chainName = chainName(fpChainId);
 
         // Check whether a Kleros dispute already exists (new API, then old API fallback).
         let disputeExists = false;
@@ -1557,7 +1557,7 @@ async function renderArbitrationSection(data, walletAddr) {
       fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);
       arbContractAddr = fpAddr;
 
-      noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${CHAIN_NAME[txChainId] || `chain ${txChainId}`} to pay the arbitration fee.`;
+      noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${chainName(txChainId)} to pay the arbitration fee.`;
     } catch {
       btn.textContent = 'Fee unavailable — arbitrator may not be responding';
       return;
@@ -1580,7 +1580,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const targetHex = '0x' + txChainId.toString(16);
       const currentHex = await window.ethereum.request({ method: 'eth_chainId' });
       if (parseInt(currentHex, 16) !== txChainId) {
-        btn.textContent = `Switching to ${CHAIN_NAME[txChainId] || `chain ${txChainId}`}…`;
+        btn.textContent = `Switching to ${chainName(txChainId)}…`;
         try {
           await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
         } catch (switchErr) {

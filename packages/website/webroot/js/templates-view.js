@@ -6,10 +6,7 @@ window.RealityTemplates.mount = async function (params) {
   const GRAPHQL   = window.RealitySettings?.getPonderUrl() || '/graphql';
   const PAGE_SIZE = 25;
 
-  const CHAIN_NAME = {
-    1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 42161: 'Arbitrum',
-    10: 'Optimism', 8453: 'Base', 130: 'Unichain', 11155111: 'Sepolia',
-  };
+  const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
   const TYPE_LABELS = {
     'bool': 'Yes / No', 'uint': 'Number', 'datetime': 'Date / Time',
     'single-select': 'Single choice', 'multiple-select': 'Multiple choice',
@@ -249,7 +246,7 @@ window.RealityTemplates.mount = async function (params) {
       top.appendChild(b);
     }
 
-    const chainName = CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`;
+    const chainName = window.RealityChains?.name(t.chainId) || `Chain ${t.chainId}`;
     const chainB = document.createElement('span');
     chainB.style.cssText = 'margin-left:auto; font-size:11px; color:var(--text-dim);';
     chainB.textContent = chainName;

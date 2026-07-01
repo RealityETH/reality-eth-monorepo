@@ -12,10 +12,7 @@ window.RealityAsk.mount = async function () {
     1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
     10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
   };
-  const CHAIN_NAME = {
-    1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 42161: 'Arbitrum',
-    10: 'Optimism', 8453: 'Base', 130: 'Unichain', 11155111: 'Sepolia',
-  };
+  const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
   const CHAIN_ADD_PARAMS = {
     100: {
       chainId: '0x64', chainName: 'Gnosis',
@@ -294,7 +291,7 @@ window.RealityAsk.mount = async function () {
   // ── Network setup ─────────────────────────────────────────────────────────────
   async function setupForChain(chain) {
     chainId = chain;
-    const name = CHAIN_NAME[chain] || `Chain ${chain}`;
+    const name = chainName(chain);
     const data = await loadContracts();
     const tokens = getTokensForChain(data, chain);
 

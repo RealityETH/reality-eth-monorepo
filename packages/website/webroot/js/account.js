@@ -5,7 +5,7 @@
 const ZERO_HASH = '0x' + '0'.repeat(64);
 
 const CHAIN_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 11155111:'ETH' };
-const CHAIN_NAME  = { 1:'Ethereum', 10:'Optimism', 100:'Gnosis', 137:'Polygon', 42161:'Arbitrum', 8453:'Base', 11155111:'Sepolia' };
+function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
 const CHAIN_NATIVE_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'MATIC', 42161:'ARETH', 8453:'ETH', 11155111:'ETH' };
 const EXPLORER    = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 11155111:'https://sepolia.etherscan.io' };
 const PUBLIC_RPC  = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
@@ -239,7 +239,7 @@ window.RealityAccount.mount = async function (addr) {
     for (let i = 0; i < rcList.length; i++) {
       if (gen !== _accountLoadGen) return null;
       const { address: rcAddr } = rcList[i];
-      onProgress?.(`Scanning ${CHAIN_NAME[chainId] || `chain ${chainId}`} (${i + 1}/${rcList.length})…`);
+      onProgress?.(`Scanning ${chainName(chainId)} (${i + 1}/${rcList.length})…`);
 
       const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
       const [askedRes, answeredRes] = await Promise.allSettled([
@@ -339,7 +339,7 @@ window.RealityAccount.mount = async function (addr) {
           const btn = document.createElement('button');
           btn.className = 'scan-chain-pill';
           btn.dataset.chain = cid;
-          btn.textContent = CHAIN_NAME[cid] || `chain ${cid}`;
+          btn.textContent = chainName(cid);
           btn.onclick = () => scanMoreChain(cid);
           chainsEl.appendChild(btn);
         }
@@ -367,7 +367,7 @@ window.RealityAccount.mount = async function (addr) {
     if (gen !== _accountLoadGen) return;
 
     const fromBlock = Math.max(0, toBlock - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
-    renderScanStatus(`Scanning ${CHAIN_NAME[chainId] || `chain ${chainId}`}…`);
+    renderScanStatus(`Scanning ${chainName(chainId)}…`);
 
     const rpcData = await scanRpcForAccount(viewAddr, chainId, fromBlock, toBlock, gen, msg => {
       if (gen === _accountLoadGen) renderScanStatus(msg);
@@ -389,7 +389,7 @@ window.RealityAccount.mount = async function (addr) {
       renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
     }
 
-    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    const chainName = chainName(chainId);
     renderScanStatus(`Scanned ${chainName} (last 3 weeks).`, true);
   }
 
@@ -401,7 +401,7 @@ window.RealityAccount.mount = async function (addr) {
     const oldFrom   = _scanFromBlock;
     _scanFromBlock  = newFrom;
 
-    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    const chainName = chainName(chainId);
     renderScanStatus(`Scanning ${chainName} further back…`);
 
     const rpcData = await scanRpcForAccount(viewAddr, chainId, newFrom, oldFrom - 1, gen, msg => {
@@ -663,7 +663,7 @@ window.RealityAccount.mount = async function (addr) {
       const fin  = isFinalized(q);
       const token = tokenForQuestion(q);
       const bond  = BigInt(q.currentAnswerBond || '0');
-      const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
+      const chain = chainName(q.chainId);
       const title = q.title || q.id;
 
       let rightHtml = '';
@@ -731,7 +731,7 @@ window.RealityAccount.mount = async function (addr) {
     for (const q of sorted) {
       const fin   = isFinalized(q);
       const token = tokenForQuestion(q);
-      const chain = CHAIN_NAME[q.chainId]  || `Chain ${q.chainId}`;
+      const chain = chainName(q.chainId);
       const title = q.title || q.id;
       const myResp = myLastResp[q.id];
       const claimItem = claimMap[q.questionId];
@@ -821,7 +821,7 @@ window.RealityAccount.mount = async function (addr) {
       for (const q of items) {
         const token = tokenForQuestion(q);
         const bond  = BigInt(q.currentAnswerBond || '0');
-        const chain = CHAIN_NAME[q.chainId] || `Chain ${q.chainId}`;
+        const chain = chainName(q.chainId);
         const title = q.title || q.id;
         const rightHtml = bond > 0n
           ? `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`
@@ -862,7 +862,7 @@ window.RealityAccount.mount = async function (addr) {
       btn.type = 'button';
       btn.className = 'chain-pill' + (selectedViewChains.has(chainId) ? ' active' : '');
       btn.dataset.chain = String(chainId);
-      btn.textContent = CHAIN_NAME[chainId] || `Chain ${chainId}`;
+      btn.textContent = chainName(chainId);
       btn.addEventListener('click', () => toggleViewChain(chainId));
       container.appendChild(btn);
     }
@@ -941,7 +941,7 @@ window.RealityAccount.mount = async function (addr) {
       banner.style.display = '';
       document.getElementById('claim-amount').textContent = `${amountText} claimable`;
       document.getElementById('claim-desc').textContent =
-        `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${CHAIN_NAME[chainId] || `chain ${chainId}`}`;
+        `from ${chainClaimables.length} finalized question${chainClaimables.length > 1 ? 's' : ''} on ${chainName(chainId)}`;
 
       if (!canClaim()) {
         claimBtn.style.display = 'none';
@@ -953,7 +953,7 @@ window.RealityAccount.mount = async function (addr) {
         pendingClaimData = null;
       } else if (needsSwitch) {
         claimBtn.style.display = 'none';
-        noteEl.textContent = `Switch to ${CHAIN_NAME[chainId] || `chain ${chainId}`} in your wallet to claim`;
+        noteEl.textContent = `Switch to ${chainName(chainId)} in your wallet to claim`;
         noteEl.style.display = 'block';
         pendingClaimData = null;
       } else {
@@ -974,7 +974,7 @@ window.RealityAccount.mount = async function (addr) {
         claimBtn.textContent = 'Claim all & withdraw';
 
         if (otherClaimables.length > 0) {
-          const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[Number(c.chainId)] || `chain ${c.chainId}`))].join(', ');
+          const chains = [...new Set(otherClaimables.map(c => chainName(c.chainId)))].join(', ');
           noteEl.textContent = `Also claimable on: ${chains} (select chain above to claim)`;
           noteEl.style.display = 'block';
         } else {
@@ -988,7 +988,7 @@ window.RealityAccount.mount = async function (addr) {
       claimBtn.style.display = 'none';
       pendingClaimData = null;
 
-      const chains = [...new Set(otherClaimables.map(c => CHAIN_NAME[Number(c.chainId)] || `chain ${c.chainId}`))].join(', ');
+      const chains = [...new Set(otherClaimables.map(c => chainName(c.chainId)))].join(', ');
       noteEl.textContent = `Claimable on: ${chains} (select chain above to claim)`;
       noteEl.style.display = 'block';
     }
@@ -1167,7 +1167,7 @@ window.RealityAccount.mount = async function (addr) {
     // Phase 2b: RPC scan — current chain, last 3 weeks
     const chainId   = walletChainId || 1;
     _scanChainId    = chainId;
-    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    const chainName = chainName(chainId);
     const weeksBack = 3;
 
     let toBlock;

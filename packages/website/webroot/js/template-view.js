@@ -12,10 +12,7 @@ window.RealityTemplate.mount = async function (routeId) {
     1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
     10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
   };
-  const CHAIN_NAME = {
-    1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 42161: 'Arbitrum',
-    10: 'Optimism', 8453: 'Base', 130: 'Unichain', 11155111: 'Sepolia',
-  };
+  const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
   const CHAIN_ADD_PARAMS = {
     100: {
       chainId: '0x64', chainName: 'Gnosis',
@@ -181,7 +178,7 @@ window.RealityTemplate.mount = async function (routeId) {
 
   async function setupForChain(chain) {
     chainId = chain;
-    const name = CHAIN_NAME[chain] || `Chain ${chain}`;
+    const name = chainName(chain);
     const data = await loadContracts();
     const tokens = getTokensForChain(data, chain);
 
@@ -611,7 +608,7 @@ window.RealityTemplate.mount = async function (routeId) {
 
     document.getElementById('view-creator').textContent = t.user;
     document.getElementById('view-contract').textContent =
-      `${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`} · ${t.contract.slice(0,10)}…`;
+      `${chainName(t.chainId)} · ${t.contract.slice(0,10)}…`;
     document.getElementById('view-txhash').textContent =
       t.createdTxHash ? t.createdTxHash.slice(0, 14) + '…' : '(built-in)';
 
@@ -639,7 +636,7 @@ window.RealityTemplate.mount = async function (routeId) {
       const row = document.createElement('div');
       row.className = 'multi-result-row';
       row.innerHTML = `<div>
-        <div class="chain-info">${CHAIN_NAME[t.chainId] || `Chain ${t.chainId}`}</div>
+        <div class="chain-info">${chainName(t.chainId)}</div>
         <div class="contract-info">${t.contract}</div>
       </div>`;
       row.addEventListener('click', () => {
