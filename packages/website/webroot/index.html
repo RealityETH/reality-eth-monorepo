@@ -27,6 +27,8 @@
     null;
   if (view) {
     var s = document.createElement('style');
+    s.id = '__route-style';
+    s.dataset.view = view;
     s.textContent = '#view-content{display:none!important}#' + view + '{display:block!important}';
     document.head.appendChild(s);
   }
@@ -3496,6 +3498,18 @@
 
   // ── Boot ───────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', async () => {
+    // Replace !important route CSS with equivalent inline styles so JS can
+    // take over navigation without the stylesheet fighting _hideAllViews().
+    const _rs = document.getElementById('__route-style');
+    if (_rs) {
+      const _rv = _rs.dataset.view;
+      if (_rv) {
+        document.getElementById('view-content').style.display = 'none';
+        document.getElementById(_rv).style.display = '';
+      }
+      _rs.remove();
+    }
+
     await RealityWallet.initWallet(onWalletChange);
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
