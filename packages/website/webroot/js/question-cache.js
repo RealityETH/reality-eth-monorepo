@@ -159,6 +159,18 @@ window.QCache = {
     }
   },
 
+  async getAllSync() {
+    try {
+      const db = await openDb();
+      return await new Promise((res, rej) => {
+        const tx  = db.transaction('sync', 'readonly');
+        const req = tx.objectStore('sync').getAll();
+        req.onsuccess = e => res(e.target.result ?? []);
+        tx.onerror    = e => rej(e.target.error);
+      });
+    } catch { return []; }
+  },
+
   async clear() {
     try {
       const db = await openDb();

@@ -12,6 +12,13 @@ const PUBLIC_RPC  = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optim
 
 const VERSION_PREF = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
 
+const BLOCKS_PER_DAY = { 1: 7200, 10: 43200, 100: 17280, 137: 43200, 42161: 360000, 8453: 43200, 11155111: 7200 };
+
+const SCAN_ABI = [
+  'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint32 nonce, uint256 created)',
+  'event LogNewAnswer(bytes32 indexed answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
+];
+
 const REALITY_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function withdraw()',
@@ -69,12 +76,355 @@ window.RealityAccount.mount = async function (addr) {
     return `#!/network/${q.chainId}/question/${q.contract}-${q.questionId}`;
   }
 
+  // ── RPC scan state (reset on each mount) ─────────────────────────────────────
+  let _scannedChains = new Set();
+  let _scanFromBlock  = null;
+  let _scanToBlock    = null;
+  let _scanChainId    = null;
+
   // ── Indicators ───────────────────────────────────────────────────────────────
   async function withIndicator(el, fn) {
     el?.classList.add('active');
     const start = Date.now();
     try { return await fn(); }
     finally { setTimeout(() => el?.classList.remove('active'), Math.max(0, 1000 - (Date.now() - start))); }
+  }
+
+  // ── RPC helpers ───────────────────────────────────────────────────────────────
+  async function safeQueryFilter(contract, filter, fromBlock, toBlock) {
+    try {
+      return await contract.queryFilter(filter, fromBlock, toBlock);
+    } catch {
+      const CHUNK = 50000;
+      const results = [];
+      for (let s = fromBlock; s <= toBlock; s += CHUNK) {
+        try {
+          const chunk = await contract.queryFilter(filter, s, Math.min(s + CHUNK - 1, toBlock));
+          results.push(...chunk);
+        } catch { /* skip chunk */ }
+      }
+      return results;
+    }
+  }
+
+  async function questionsStructFallback(prov, contractAddr, questionId) {
+    try {
+      const selector = ethers.id('questions(bytes32)').slice(0, 10);
+      const raw = await prov.call({
+        to: contractAddr,
+        data: selector + ethers.zeroPadValue(ethers.toBeHex(questionId), 32).slice(2),
+      });
+      if (!raw || raw === '0x') return null;
+      const T11 = ['bytes32','address','uint32','uint32','uint32','bool','uint256','bytes32','bytes32','uint256','uint256'];
+      const T10 = T11.slice(0, 10);
+      let d;
+      try       { d = ethers.AbiCoder.defaultAbiCoder().decode(T11, raw); }
+      catch     { d = ethers.AbiCoder.defaultAbiCoder().decode(T10, raw); }
+      return {
+        finalize_ts:            Number(d[4]),
+        is_pending_arbitration: Boolean(d[5]),
+        bounty:                 d[6],
+        best_answer:            d[7],
+        history_hash:           d[8],
+        bond:                   d[9],
+      };
+    } catch { return null; }
+  }
+
+  function parseQuestionTitle(questionStr) {
+    if (!questionStr) return '';
+    try {
+      const obj = JSON.parse(questionStr);
+      if (typeof obj === 'string') return obj;
+      return obj.title || obj.question || questionStr.slice(0, 100);
+    } catch {
+      const sep = questionStr.indexOf('\x1f');
+      return sep > 0 ? questionStr.slice(0, sep) : questionStr.slice(0, 100);
+    }
+  }
+
+  function buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, state) {
+    const args     = qEvent.args;
+    const lastAns  = answerEvents.at(-1);
+    const now      = Math.floor(Date.now() / 1000);
+    const finalTs  = state?.finalize_ts || 0;
+    const finalized = finalTs > 0 && finalTs < now && !state?.is_pending_arbitration;
+    const bestAns  = state?.best_answer;
+    const curAns   = bestAns && bestAns !== ZERO_HASH ? bestAns : (lastAns?.args.answer || null);
+    const toBigStr = v => { try { return BigInt(v.toString()).toString(); } catch { return '0'; } };
+
+    return {
+      id:                          `${String(contract).toLowerCase()}-${questionId}`,
+      questionId,
+      contract:                    String(contract).toLowerCase(),
+      chainId:                     Number(chainId),
+      title:                       parseQuestionTitle(String(args.question || '')),
+      type:                        null,
+      category:                    null,
+      currentAnswer:               curAns,
+      currentAnswerBond:           state ? toBigStr(state.bond) : (lastAns ? toBigStr(lastAns.args.bond) : '0'),
+      bounty:                      state ? toBigStr(state.bounty) : '0',
+      historyHash:                 state?.history_hash || ZERO_HASH,
+      answerFinalizedTimestamp:    finalized ? String(finalTs) : null,
+      scheduledFinalizationTimestamp: String(finalTs || 0),
+      createdTimestamp:            String(Number(args.created || 0)),
+      timeout:                     Number(args.timeout || 0),
+      arbitrator:                  args.arbitrator || ('0x' + '0'.repeat(40)),
+      isPendingArbitration:        Boolean(state?.is_pending_arbitration),
+      arbitrationOccurred:         false,
+    };
+  }
+
+  // Responses in the shape computeClaimable() expects, built from event args.
+  function evToResponse(ev) {
+    return {
+      answer:         ev.args.answer,
+      commitmentHash: null,
+      bond:           ev.args.bond,
+      user:           ev.args.user,
+      historyHash:    ev.args.history_hash,
+      isCommitment:   Boolean(ev.args.is_commitment),
+    };
+  }
+
+  // ── QCache fallback ───────────────────────────────────────────────────────────
+  async function getQCacheQuestions(addr) {
+    const empty = { asked: [], answered: [], userResponses: [], claimedSet: new Set(), claimables: [] };
+    if (!window.QCache?.getAllSync) return empty;
+
+    const syncEntries = await QCache.getAllSync().catch(() => []);
+    const asked = [], answered = [], userResponses = [];
+
+    for (const entry of syncEntries) {
+      const { chainId, contract, questionId } = entry;
+      const cached = await QCache.get(chainId, contract, questionId).catch(() => null);
+      if (!cached?.qEvent) continue;
+
+      const { qEvent, answerEvents } = cached;
+      const creator    = String(qEvent.args?.user || '').toLowerCase();
+      const isAsked    = creator === addr;
+      const isAnswered = answerEvents.some(ev => String(ev.args?.user || '').toLowerCase() === addr);
+      if (!isAsked && !isAnswered) continue;
+
+      const q = buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, null);
+      if (isAsked)    asked.push(q);
+      if (isAnswered) answered.push(q);
+
+      for (const ev of answerEvents) {
+        if (String(ev.args?.user || '').toLowerCase() === addr) {
+          userResponses.push({
+            id: `${ev.transactionHash}-${ev.logIndex}`,
+            questionId, answer: ev.args.answer, commitmentHash: null,
+            bond: ev.args.bond, user: ev.args.user,
+            historyHash: ev.args.history_hash, isCommitment: Boolean(ev.args.is_commitment),
+            timestamp: ev.args.ts,
+          });
+        }
+      }
+    }
+    // Skip claimable calc — no live finalize_ts available from cache alone
+    return { asked, answered, userResponses, claimedSet: new Set(), claimables: [] };
+  }
+
+  // ── RPC account scan ──────────────────────────────────────────────────────────
+  async function scanRpcForAccount(addr, chainId, fromBlock, toBlock, gen, onProgress) {
+    const contracts = await loadContracts();
+    const rcList    = getRcContracts(contracts, chainId);
+    const empty     = { asked: [], answered: [], userResponses: [], claimedSet: new Set(), claimables: [] };
+    if (!rcList.length) return empty;
+
+    const prov = provider || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+    const foundIds = new Map(); // questionId → { contract, isAsked, isAnswered }
+
+    for (let i = 0; i < rcList.length; i++) {
+      if (gen !== _accountLoadGen) return null;
+      const { address: rcAddr } = rcList[i];
+      onProgress?.(`Scanning ${CHAIN_NAME[chainId] || `chain ${chainId}`} (${i + 1}/${rcList.length})…`);
+
+      const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
+      const [askedRes, answeredRes] = await Promise.allSettled([
+        safeQueryFilter(rc, rc.filters.LogNewQuestion(null, addr), fromBlock, toBlock),
+        safeQueryFilter(rc, rc.filters.LogNewAnswer(null, null, null, addr), fromBlock, toBlock),
+      ]);
+
+      for (const ev of (askedRes.value || [])) {
+        const qId = ev.args.question_id;
+        const cur = foundIds.get(qId) || { contract: rcAddr, isAsked: false, isAnswered: false };
+        foundIds.set(qId, { ...cur, contract: rcAddr, isAsked: true });
+      }
+      for (const ev of (answeredRes.value || [])) {
+        const qId = ev.args.question_id;
+        const cur = foundIds.get(qId) || { contract: rcAddr, isAsked: false, isAnswered: false };
+        foundIds.set(qId, { ...cur, contract: rcAddr, isAnswered: true });
+      }
+    }
+
+    const ids = [...foundIds.entries()];
+    if (!ids.length) return empty;
+    onProgress?.(`Fetching ${ids.length} question${ids.length !== 1 ? 's' : ''} from chain…`);
+
+    const asked = [], answered = [], userResponses = [], fullRespMap = {};
+
+    for (const [qId, info] of ids) {
+      if (gen !== _accountLoadGen) return null;
+      const rc = new ethers.Contract(info.contract, SCAN_ABI, prov);
+
+      // Targeted full-history scan for this specific question
+      const qEvents = await safeQueryFilter(rc, rc.filters.LogNewQuestion(qId), 0, toBlock);
+      if (!qEvents.length) continue;
+      const qEvent = qEvents[0];
+
+      const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock);
+      answerEvents.sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
+
+      const state = await questionsStructFallback(prov, info.contract, qId);
+      const q     = buildQuestionFromEvents(qId, info.contract, chainId, qEvent, answerEvents, state);
+
+      if (info.isAsked)    asked.push(q);
+      if (info.isAnswered) answered.push(q);
+
+      fullRespMap[qId] = answerEvents.map(evToResponse);
+
+      for (const ev of answerEvents) {
+        if (String(ev.args?.user || '').toLowerCase() === addr) {
+          userResponses.push({
+            id: `${ev.transactionHash}-${ev.logIndex}`,
+            questionId: qId, answer: ev.args.answer, commitmentHash: null,
+            bond: ev.args.bond, user: ev.args.user,
+            historyHash: ev.args.history_hash, isCommitment: Boolean(ev.args.is_commitment),
+            timestamp: ev.args.ts,
+          });
+        }
+      }
+
+      // Persist to QCache so question view can use it too
+      await QCache.put(Number(chainId), info.contract, qId, qEvent, answerEvents, toBlock).catch(() => {});
+    }
+
+    const claimables = [];
+    for (const q of answered) {
+      if (!fullRespMap[q.questionId]) continue;
+      const result = computeClaimable(q, fullRespMap[q.questionId], addr);
+      if (result.total > 0n) claimables.push(result);
+    }
+
+    return { asked, answered, userResponses, claimedSet: new Set(), claimables };
+  }
+
+  // ── Scan status UI ────────────────────────────────────────────────────────────
+  function renderScanStatus(msg, done) {
+    const statusEl = document.getElementById('rpc-scan-status');
+    const msgEl    = document.getElementById('rpc-scan-msg-text');
+    const moreWrap = document.getElementById('scan-more-wrap');
+    if (!statusEl) return;
+    if (msg === null) { statusEl.style.display = 'none'; return; }
+    statusEl.style.display = '';
+    if (msgEl) msgEl.textContent = msg;
+    if (!done) { moreWrap.style.display = 'none'; return; }
+
+    // Show "scan other chains" pills
+    moreWrap.style.display = '';
+    const chainsEl = document.getElementById('scan-other-chains');
+    if (chainsEl) {
+      chainsEl.innerHTML = '';
+      loadContracts().then(data => {
+        const deployed = Object.keys(data || {}).map(Number)
+          .filter(id => getRcContracts(data, id).length > 0 && !_scannedChains.has(id));
+        if (!deployed.length) return;
+        const label = document.createElement('span');
+        label.textContent = 'Scan other chains: ';
+        label.style.color = 'var(--text-muted)';
+        chainsEl.appendChild(label);
+        for (const cid of deployed) {
+          const btn = document.createElement('button');
+          btn.className = 'scan-chain-pill';
+          btn.dataset.chain = cid;
+          btn.textContent = CHAIN_NAME[cid] || `chain ${cid}`;
+          btn.onclick = () => scanMoreChain(cid);
+          chainsEl.appendChild(btn);
+        }
+      }).catch(() => {});
+    }
+
+    const backBtn = document.getElementById('scan-back-btn');
+    if (backBtn) {
+      backBtn.style.display = '';
+      backBtn.onclick = scanFurtherBack;
+    }
+  }
+
+  async function scanMoreChain(chainId) {
+    if (_scannedChains.has(chainId)) return;
+    _scannedChains.add(chainId);
+    const btn = document.querySelector(`#scan-other-chains .scan-chain-pill[data-chain="${chainId}"]`);
+    if (btn) btn.remove();
+
+    const gen = _accountLoadGen;
+    const prov = new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+    let toBlock;
+    try { toBlock = await withIndicator(rpcInd, () => prov.getBlockNumber()); }
+    catch { return; }
+    if (gen !== _accountLoadGen) return;
+
+    const fromBlock = Math.max(0, toBlock - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
+    renderScanStatus(`Scanning ${CHAIN_NAME[chainId] || `chain ${chainId}`}…`);
+
+    const rpcData = await scanRpcForAccount(viewAddr, chainId, fromBlock, toBlock, gen, msg => {
+      if (gen === _accountLoadGen) renderScanStatus(msg);
+    });
+    if (!rpcData || gen !== _accountLoadGen) return;
+
+    const existingIds = new Set([
+      ...(allData?.askedQuestions || []),
+      ...(allData?.answeredQuestions || []),
+    ].map(q => q.questionId));
+
+    if (allData) {
+      allData.askedQuestions    = [...allData.askedQuestions,    ...rpcData.asked.filter(q => !existingIds.has(q.questionId))];
+      allData.answeredQuestions = [...allData.answeredQuestions, ...rpcData.answered.filter(q => !existingIds.has(q.questionId))];
+      allData.userResponses     = [...allData.userResponses, ...rpcData.userResponses];
+      allData.claimables        = [...allData.claimables, ...rpcData.claimables];
+      renderAsked(allData.askedQuestions, false);
+      renderAnswered(allData.answeredQuestions, allData.userResponses, allData.claimedSet, allData.claimables, false);
+      renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
+    }
+
+    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    renderScanStatus(`Scanned ${chainName} (last 3 weeks).`, true);
+  }
+
+  async function scanFurtherBack() {
+    if (!_scanFromBlock || !_scanToBlock || !viewAddr || !_scanChainId) return;
+    const gen       = _accountLoadGen;
+    const chainId   = _scanChainId;
+    const newFrom   = Math.max(0, _scanFromBlock - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
+    const oldFrom   = _scanFromBlock;
+    _scanFromBlock  = newFrom;
+
+    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    renderScanStatus(`Scanning ${chainName} further back…`);
+
+    const rpcData = await scanRpcForAccount(viewAddr, chainId, newFrom, oldFrom - 1, gen, msg => {
+      if (gen === _accountLoadGen) renderScanStatus(msg);
+    });
+    if (!rpcData || gen !== _accountLoadGen) return;
+
+    const existingIds = new Set([
+      ...(allData?.askedQuestions || []),
+      ...(allData?.answeredQuestions || []),
+    ].map(q => q.questionId));
+
+    if (allData) {
+      allData.askedQuestions    = [...allData.askedQuestions,    ...rpcData.asked.filter(q => !existingIds.has(q.questionId))];
+      allData.answeredQuestions = [...allData.answeredQuestions, ...rpcData.answered.filter(q => !existingIds.has(q.questionId))];
+      allData.userResponses     = [...allData.userResponses, ...rpcData.userResponses];
+      allData.claimables        = [...allData.claimables, ...rpcData.claimables];
+      renderAsked(allData.askedQuestions, false);
+      renderAnswered(allData.answeredQuestions, allData.userResponses, allData.claimedSet, allData.claimables, false);
+      renderClaimBanner(allData.claimables, effectiveClaimChain(allData.claimables));
+    }
+
+    renderScanStatus(`Scanned ${chainName} further back.`, true);
   }
 
   // ── GraphQL ──────────────────────────────────────────────────────────────────
@@ -773,29 +1123,90 @@ window.RealityAccount.mount = async function (addr) {
 
   async function runAccount(a) {
     const gen = ++_accountLoadGen;
+    _scannedChains = new Set();
+    _scanFromBlock  = null;
+    _scanToBlock    = null;
+    _scanChainId    = null;
 
     resetAccountUI();
     updateWalletUI();
+    renderScanStatus(null);
 
+    // Phase 1: Try Ponder indexer
     try {
       const data = await loadAccountData(a);
       if (gen !== _accountLoadGen) return;
-
+      ponderInd?.classList.remove('offline');
       allData = data;
-
       buildChainPills();
       renderAsked(data.askedQuestions, data.askedHasMore);
       renderAnswered(data.answeredQuestions, data.userResponses, data.claimedSet, data.claimables, data.responsesHasMore);
       renderArbitrator(data.arbitratorQuestions, data.arbHasMore);
       renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
-    } catch (err) {
+      return;
+    } catch {
       if (gen !== _accountLoadGen) return;
-      console.error('account load error', err);
-      document.getElementById('asked-loading').textContent   = 'Failed to load data (is the indexer running?)';
-      document.getElementById('asked-loading').className     = 'state-msg state-error';
-      document.getElementById('asked-loading').style.display = 'block';
-      document.getElementById('answered-loading').style.display = 'none';
+      ponderInd?.classList.add('offline');
     }
+
+    // Phase 2a: Show any locally-cached data immediately
+    renderScanStatus('Checking local cache…');
+    const cacheData = await getQCacheQuestions(a);
+    if (gen !== _accountLoadGen) return;
+
+    if (cacheData.asked.length || cacheData.answered.length) {
+      allData = { askedQuestions: cacheData.asked, askedHasMore: false,
+                  answeredQuestions: cacheData.answered, responsesHasMore: false,
+                  userResponses: cacheData.userResponses, claimedSet: cacheData.claimedSet,
+                  claimables: cacheData.claimables, arbitratorQuestions: [], arbHasMore: false };
+      buildChainPills();
+      renderAsked(cacheData.asked, false);
+      renderAnswered(cacheData.answered, cacheData.userResponses, cacheData.claimedSet, cacheData.claimables, false);
+    }
+
+    // Phase 2b: RPC scan — current chain, last 3 weeks
+    const chainId   = walletChainId || 1;
+    _scanChainId    = chainId;
+    const chainName = CHAIN_NAME[chainId] || `chain ${chainId}`;
+    const weeksBack = 3;
+
+    let toBlock;
+    try {
+      const prov = provider || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+      toBlock = await withIndicator(rpcInd, () => prov.getBlockNumber());
+    } catch {
+      renderScanStatus('RPC unavailable.', true);
+      return;
+    }
+    if (gen !== _accountLoadGen) return;
+
+    const fromBlock  = Math.max(0, toBlock - (BLOCKS_PER_DAY[chainId] || 7200) * weeksBack * 7);
+    _scannedChains.add(chainId);
+    _scanFromBlock   = fromBlock;
+    _scanToBlock     = toBlock;
+
+    renderScanStatus(`Scanning ${chainName} (last ${weeksBack} weeks)…`);
+
+    const rpcData = await scanRpcForAccount(a, chainId, fromBlock, toBlock, gen, msg => {
+      if (gen === _accountLoadGen) renderScanStatus(msg);
+    });
+    if (!rpcData || gen !== _accountLoadGen) return;
+
+    // Merge RPC results with any cache data (RPC wins on duplicates)
+    const rpcIds = new Set([...rpcData.asked, ...rpcData.answered].map(q => q.questionId));
+    const mergedAsked    = [...rpcData.asked,    ...cacheData.asked.filter(q => !rpcIds.has(q.questionId))];
+    const mergedAnswered = [...rpcData.answered, ...cacheData.answered.filter(q => !rpcIds.has(q.questionId))];
+
+    allData = { askedQuestions: mergedAsked, askedHasMore: false,
+                answeredQuestions: mergedAnswered, responsesHasMore: false,
+                userResponses: rpcData.userResponses, claimedSet: rpcData.claimedSet,
+                claimables: rpcData.claimables, arbitratorQuestions: [], arbHasMore: false };
+
+    buildChainPills();
+    renderAsked(mergedAsked, false);
+    renderAnswered(mergedAnswered, rpcData.userResponses, rpcData.claimedSet, rpcData.claimables, false);
+    renderClaimBanner(rpcData.claimables, effectiveClaimChain(rpcData.claimables));
+    renderScanStatus(`${chainName}: last ${weeksBack} weeks scanned.`, true);
   }
 
   // ── Wallet callback (called by index.html via window._setAccountWallet) ────────
