@@ -820,6 +820,8 @@
   #account-view .tx-error.visible { display: block; }
   .rpc-scan-status { font-size: 13px; color: var(--amber); margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
   .rpc-scan-msg { display: flex; align-items: center; gap: 6px; }
+  .scan-chain-row { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+  .scan-chain-progress { font-size: 12px; color: var(--text-muted); }
   .scan-more-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--text-muted); }
   .scan-chain-pill { padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: none; font-size: 12px; color: var(--text); cursor: pointer; }
   .scan-chain-pill:hover { border-color: var(--accent); color: var(--accent); }
@@ -1587,16 +1589,7 @@
 
     <div id="chain-pills" class="chain-pills-row" style="display:none"></div>
 
-    <div id="rpc-scan-status" class="rpc-scan-status" style="display:none">
-      <div class="rpc-scan-msg">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Indexer unavailable — <span id="rpc-scan-msg-text">scanning RPC…</span>
-      </div>
-      <div id="scan-more-wrap" class="scan-more-wrap" style="display:none">
-        <span id="scan-other-chains"></span>
-        <button id="scan-back-btn" class="scan-back-btn" style="display:none">Scan further back</button>
-      </div>
-    </div>
+    <div id="rpc-scan-status" class="rpc-scan-status" style="display:none"></div>
 
     <div class="tabs-row">
       <button class="tab-btn active" data-tab="asked">

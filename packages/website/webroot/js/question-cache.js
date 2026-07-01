@@ -74,7 +74,7 @@ function makeQEventRow(chainId, questionId, contract, ev) {
       timeout:      ev.args.timeout,
       opening_ts:   ev.args.opening_ts,
       nonce:        ev.args.nonce,
-      timestamp:    ev.args.timestamp,
+      created:      ev.args.created,
     }),
   };
 }
