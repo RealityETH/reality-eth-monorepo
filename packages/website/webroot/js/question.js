@@ -1831,7 +1831,7 @@ function buildDetailsCard(data, chainId) {
 
 // ── Locked interact state ─────────────────────────────────────────────────────
 function buildLockedState(data) {
-  const { bond, minBond } = data;
+  const { bond, minBond, qjson } = data;
   const b = bond ?? 0n;
   const mb = minBond ?? 0n;
   const minRequired = mb > 0n && b === 0n
@@ -1839,21 +1839,59 @@ function buildLockedState(data) {
     : b > 0n ? b * 2n : (mb > 0n ? mb : 0n);
   const nextBondStr = minRequired > 0n ? formatBond(minRequired) : null;
 
+  const type = qjson?.type || 'bool';
+  const isMulti  = type === 'multiple-select';
+  const isSelect = type === 'single-select' || isMulti;
+  const outcomes = isSelect ? (qjson?.outcomes || []) : [];
+
   const card = el('div', 'card');
-  card.innerHTML = `
-    <div class="card-title">Answer</div>
-    <div class="interact-locked">
-      <div class="lock-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <div class="lock-text">Connect your wallet to answer this question or dispute the current answer.</div>
-    </div>
-    <button class="btn-connect">Connect wallet</button>
-    ${nextBondStr ? `<div class="interact-hint">Next valid bond: <strong>${nextBondStr}</strong></div>` : ''}
-  `;
-  card.querySelector('.btn-connect').addEventListener('click', () => {
+  card.appendChild(el('div', 'card-title', 'Answer'));
+
+  if (outcomes.length) {
+    const inputWrap = el('div', 'answer-input-wrap');
+    if (isMulti) {
+      outcomes.forEach((o, i) => {
+        const lbl = el('label', 'multi-option');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.disabled = true; cb.value = String(i);
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(' ' + o));
+        inputWrap.appendChild(lbl);
+      });
+    } else {
+      const select = document.createElement('select');
+      select.className = 'answer-select'; select.disabled = true;
+      const def = el('option'); def.value = ''; def.textContent = '— Select —'; def.selected = true;
+      select.appendChild(def);
+      outcomes.forEach((o, i) => {
+        const opt = el('option'); opt.value = String(i); opt.textContent = o;
+        select.appendChild(opt);
+      });
+      inputWrap.appendChild(select);
+    }
+    card.appendChild(inputWrap);
+  }
+
+  const locked = el('div', 'interact-locked');
+  const lockIcon = el('div', 'lock-icon');
+  lockIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+  locked.appendChild(lockIcon);
+  locked.appendChild(el('div', 'lock-text', 'Connect your wallet to answer this question or dispute the current answer.'));
+  card.appendChild(locked);
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-connect'; btn.textContent = 'Connect wallet';
+  btn.addEventListener('click', () => {
     if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(() => location.reload());
   });
+  card.appendChild(btn);
+
+  if (nextBondStr) {
+    const hint = el('div', 'interact-hint');
+    hint.innerHTML = `Next valid bond: <strong>${nextBondStr}</strong>`;
+    card.appendChild(hint);
+  }
+
   return card;
 }
 
