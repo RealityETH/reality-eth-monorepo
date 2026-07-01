@@ -4,6 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>reality.eth</title>
+<script>
+// Route-detect before first paint so the correct view is visible immediately.
+// Runs synchronously in <head>, no external deps.
+(function () {
+  var h = location.hash;
+  var view =
+    /^#!?\/network\/\d+\/question\//.test(h)  ? 'question-view'      :
+    /^#!?\/account(\/|$|\?)/.test(h)           ? 'account-view'       :
+    /^#!?\/network\/\d+\/contract\//.test(h)   ? 'contract-view'      :
+    /^#!?\/template(\/|$)/.test(h)             ? 'template-view'      :
+    /^#!?\/templates(\/|$|\?)/.test(h)         ? 'templates-view'     :
+    /^#!?\/guide(\/|$)/.test(h)                ? 'guide-view'         :
+    /^#!?\/ask(\/|$|\?)/.test(h)               ? 'ask-view'           :
+    /^#!?\/watch-configure(\/|$|\?)/.test(h)   ? 'watch-configure-view' :
+    /^#!?\/watches(\/|$)/.test(h)              ? 'watches-view'       :
+    /^#!?\/notifications(\/|$)/.test(h)        ? 'notifications-view' :
+    null;
+  if (view) {
+    var s = document.createElement('style');
+    s.textContent = '#view-content{display:none!important}#' + view + '{display:block!important}';
+    document.head.appendChild(s);
+  }
+})();
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
