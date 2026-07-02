@@ -236,6 +236,9 @@ async function fetchPonderData() {
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
       items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp createdBlock createdLogIndex createdTxHash }
     }
+    claims(where: { questionId: ${qid} }, orderBy: "createdTimestamp", orderDirection: "asc", limit: 100) {
+      items { user amount createdTimestamp }
+    }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
       items { id }
     }
@@ -358,7 +361,7 @@ async function findLogNewQuestion(reality, filter, startBlock, upperBoundTs) {
 }
 
 function adaptPonderData(ponderData) {
-  const { question: pq, responses: responsePage, reopeners } = ponderData;
+  const { question: pq, responses: responsePage, claims: claimsPage, reopeners } = ponderData;
   const responses = (responsePage?.items || [])
     .sort((a, b) => (Number(a.timestamp) < Number(b.timestamp) ? -1 : 1));
   // revealMap: commitmentHash (lowercase) → revealed answer bytes32
@@ -408,6 +411,11 @@ function adaptPonderData(ponderData) {
     answerEvents,
     revealMap,
     currentAnswer: pq.currentAnswer || null,
+    claims: (claimsPage?.items || []).map(c => ({
+      user:   c.user,
+      amount: BigInt(c.amount),
+      ts:     Number(c.createdTimestamp),
+    })),
   };
 }
 
@@ -1609,6 +1617,25 @@ async function renderArbitrationSection(data, walletAddr) {
   });
 }
 
+function renderClaimHistory(data) {
+  const section = qPage.querySelector('#claim-history');
+  if (!section || !data.claims || data.claims.length === 0) return;
+  const list = section.querySelector('.claim-history-list');
+  list.innerHTML = '';
+  data.claims.forEach(c => {
+    const row = el('div', 'claim-history-row');
+    const addr = el('span', 'claim-addr');
+    addr.innerHTML = addrLinks(c.user) || (c.user.slice(0,6) + '…' + c.user.slice(-4));
+    const amt  = el('span', 'claim-amount', formatEth(c.amount) + ' ETH');
+    const date = el('span', 'claim-date', new Date(c.ts * 1000).toLocaleDateString());
+    row.appendChild(addr);
+    row.appendChild(amt);
+    row.appendChild(date);
+    list.appendChild(row);
+  });
+  section.style.display = '';
+}
+
 function renderStatusCard(data) {
   const card   = qPage.querySelector('#status-card');
   const banner = qPage.querySelector('#answer-banner');
@@ -2391,6 +2418,7 @@ async function main() {
 
   // 5. Render history + status card
   renderHistory(data);
+  renderClaimHistory(data);
   renderStatusCard(data);
   await contractsMetaPromise;
   renderWarnings(data);

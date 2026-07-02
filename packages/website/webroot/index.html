@@ -54,12 +54,13 @@
     [];
 
   // Preload route scripts immediately (download in parallel with core, execute later)
+  window.__scriptVer = Date.now();
   var routeSet = {};
   for (var i = 0; i < route.length; i++) {
     routeSet[route[i]] = true;
     var lnk = document.createElement('link');
     lnk.rel = 'preload'; lnk.as = 'script';
-    lnk.href = route[i];
+    lnk.href = /^https?:\/\//.test(route[i]) ? route[i] : route[i] + '?v=' + window.__scriptVer;
     if (/^https?:\/\//.test(route[i])) lnk.crossOrigin = 'anonymous';
     document.head.appendChild(lnk);
   }
@@ -772,6 +773,11 @@
   .arb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .arb-pending-notice { font-size: 13px; color: var(--text-muted); padding: 8px 12px; margin-top: 8px; background: rgba(188,140,255,0.08); border: 1px solid rgba(188,140,255,0.2); border-radius: var(--radius-sm); }
   .claim-section { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25); border-radius: var(--radius); padding: 14px 16px; }
+  .claim-history-list { display: flex; flex-direction: column; gap: 6px; }
+  .claim-history-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .claim-addr { color: var(--text); flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .claim-amount { color: var(--green); font-weight: 600; white-space: nowrap; }
+  .claim-date { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
   .claim-button { width: 100%; padding: 9px; background: var(--green); border: none; border-radius: var(--radius-sm); color: var(--bg); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
   .claim-button:hover { opacity: 0.88; }
   .meta-list { display: flex; flex-direction: column; gap: 10px; }
@@ -1656,6 +1662,10 @@
           <div class="answered-history-container"></div>
         </div>
       </div>
+      <div id="claim-history" class="card" style="display:none">
+        <div class="card-title">Claim history</div>
+        <div class="claim-history-list"></div>
+      </div>
       <div class="reopen-container" style="display:none">
         <p>This question was answered when it was too soon.</p>
         <button class="reopen-question-submit">Reopen question</button>
@@ -2428,7 +2438,7 @@
     if (!_scriptLoads.has(src)) {
       _scriptLoads.set(src, new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = src;
+        s.src = /^https?:\/\//.test(src) ? src : src + '?v=' + (window.__scriptVer || Date.now());
         s.onload = resolve;
         s.onerror = () => reject(new Error('Failed to load: ' + src));
         document.head.appendChild(s);
