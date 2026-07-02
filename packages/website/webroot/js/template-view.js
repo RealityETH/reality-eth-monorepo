@@ -84,8 +84,7 @@ window.RealityTemplate.mount = async function (routeId) {
   // ── Contracts ─────────────────────────────────────────────────────────────────
   async function loadContracts() {
     if (contractsData) return contractsData;
-    const res = await fetch('generated/contracts.json');
-    contractsData = await res.json();
+    contractsData = window.RealityWebsiteData?.contracts || {};
     return contractsData;
   }
 

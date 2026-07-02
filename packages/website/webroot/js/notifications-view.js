@@ -29,10 +29,7 @@ window.RealityNotifications.mount = async function () {
   let _contractsCache = null;
   async function loadContracts() {
     if (_contractsCache) return _contractsCache;
-    try {
-      const r = await fetch('generated/contracts.json');
-      _contractsCache = await r.json();
-    } catch { _contractsCache = {}; }
+    _contractsCache = window.RealityWebsiteData?.contracts || {};
     return _contractsCache;
   }
 

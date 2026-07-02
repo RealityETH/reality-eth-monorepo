@@ -485,8 +485,7 @@ window.RealityAccount.mount = async function (addr) {
   // ── Contracts.json ──────────────────────────────────────────────────────────
   async function loadContracts() {
     if (_contractsData) return _contractsData;
-    const r = await fetch('generated/contracts.json');
-    _contractsData = await r.json();
+    _contractsData = window.RealityWebsiteData?.contracts || {};
     _contractTokenMap = buildContractTokenMap(_contractsData);
     return _contractsData;
   }

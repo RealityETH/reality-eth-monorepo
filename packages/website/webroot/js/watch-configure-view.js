@@ -42,10 +42,7 @@ window.RealityWatchConfigure.mount = async function (rawParams) {
   let _integrations = null;
   async function getCreatorLabel(addr) {
     if (!_integrations) {
-      try {
-        const r = await fetch('integrations.json');
-        _integrations = await r.json();
-      } catch { _integrations = {}; }
+      _integrations = window.RealityWebsiteData?.integrations || {};
     }
     const integId = _integrations?.creatorMap?.[addr.toLowerCase()];
     if (integId && _integrations?.integrations?.[integId]?.name) {
@@ -58,8 +55,7 @@ window.RealityWatchConfigure.mount = async function (rawParams) {
   async function loadContracts() {
     if (contractsData) return contractsData;
     try {
-      const r = await fetch('generated/contracts.json');
-      contractsData = await r.json();
+      contractsData = window.RealityWebsiteData?.contracts || {};
     } catch { contractsData = {}; }
     return contractsData;
   }

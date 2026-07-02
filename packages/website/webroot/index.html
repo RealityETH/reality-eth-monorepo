@@ -1398,6 +1398,7 @@
   .cost-total .cost-label { color: var(--text); font-weight: 600; }
   .cost-total .cost-val { color: var(--accent); font-size: 15px; }
 </style>
+<script defer src="js/website-data.js"></script>
 <script defer src="js/chains.js"></script>
 <script defer src="js/reality-eth-lib.js"></script>
 <script defer src="js/ethers.js"></script>
@@ -2559,14 +2560,11 @@
 
   async function loadTokenMeta() {
     try {
-      const [cRes, tRes, iRes] = await Promise.all([
-        fetch('generated/contracts.json'),
-        fetch('generated/tokens.json'),
-        fetch('integrations.json'),
-      ]);
-      const contracts    = await cRes.json();
-      const tokens       = await tRes.json();
-      const integrData   = await iRes.json();
+      const d = window.RealityWebsiteData;
+      if (!d) return;
+      const contracts  = d.contracts;
+      const tokens     = d.tokens;
+      const integrData = d.integrations;
 
       // Integration registry
       integrations         = integrData.integrations      || {};

@@ -42,16 +42,11 @@ window.RealityContract.mount = async function (chainId, address) {
     return;
   }
 
-  let contracts, tokens, chains;
-  try {
-    [contracts, tokens, chains] = await Promise.all([
-      fetch('generated/contracts.json').then(r => r.json()),
-      fetch('generated/tokens.json').then(r => r.json()),
-      fetch('generated/chains.json').then(r => r.json()),
-    ]);
-  } catch {
-    showError('Failed to load contract data.'); return;
-  }
+  const d = window.RealityWebsiteData;
+  if (!d) { showError('Failed to load contract data.'); return; }
+  const contracts = d.contracts;
+  const tokens    = d.tokens;
+  const chains    = d.chains;
 
   const chainData = contracts[String(chainId)] || {};
   let tokenSym = null, versionKey = null, info = null;
