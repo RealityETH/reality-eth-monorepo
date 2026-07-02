@@ -324,7 +324,7 @@ window.RealityAsk.mount = async function () {
   }
 
   // ── Wallet ────────────────────────────────────────────────────────────────────
-  function applyWallet(addr) {
+  async function applyWallet(addr) {
     walletAddr = addr;
     if (addr) {
       provider = new ethers.BrowserProvider(window.ethereum);
