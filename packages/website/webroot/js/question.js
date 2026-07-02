@@ -697,8 +697,34 @@ function buildAnswerForm(data, walletAddr) {
   const isUint       = type === 'uint' || type === 'int';
   const isDatetime   = type === 'datetime';
 
-  // Before-opening: return a non-interactive notice
+  // Before-opening: show disabled options (if any) and a notice with opening time
   if (beforeOpen) {
+    const card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', 'Answer'));
+    if (isSelectType || isMulti) {
+      const inputWrap = el('div', 'answer-input-wrap');
+      if (isMulti) {
+        (qjson.outcomes || []).forEach((o, i) => {
+          const lbl = el('label', 'multi-option');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.value = String(i);
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(' ' + o));
+          inputWrap.appendChild(lbl);
+        });
+      } else if (type === 'single-select') {
+        const select = document.createElement('select');
+        select.className = 'answer-select';
+        const def = el('option'); def.value = ''; def.textContent = '— Select —'; def.selected = true;
+        select.appendChild(def);
+        (qjson.outcomes || []).forEach((o, i) => {
+          const opt = el('option'); opt.value = String(i); opt.textContent = o;
+          select.appendChild(opt);
+        });
+        inputWrap.appendChild(select);
+      }
+      card.appendChild(inputWrap);
+    }
     const bf = document.createElement('div');
     bf.className = 'answer-form-container before-opening is-open';
     const p = el('p', null, 'This question is not yet open for answers.');
@@ -706,8 +732,6 @@ function buildAnswerForm(data, walletAddr) {
       new Date(openingTS * 1000).toLocaleString());
     bf.appendChild(p);
     bf.appendChild(ot);
-    const card = el('div', 'card');
-    card.appendChild(el('div', 'card-title', 'Answer'));
     card.appendChild(bf);
     return card;
   }
@@ -1879,14 +1903,14 @@ function buildLockedState(data) {
       outcomes.forEach((o, i) => {
         const lbl = el('label', 'multi-option');
         const cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.disabled = true; cb.value = String(i);
+        cb.type = 'checkbox'; cb.value = String(i);
         lbl.appendChild(cb);
         lbl.appendChild(document.createTextNode(' ' + o));
         inputWrap.appendChild(lbl);
       });
     } else {
       const select = document.createElement('select');
-      select.className = 'answer-select'; select.disabled = true;
+      select.className = 'answer-select';
       const def = el('option'); def.value = ''; def.textContent = '— Select —'; def.selected = true;
       select.appendChild(def);
       outcomes.forEach((o, i) => {
