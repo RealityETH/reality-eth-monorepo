@@ -2207,8 +2207,9 @@ async function main() {
         ...(outcomes != null && { outcomes }),
       };
       // Fetch template for format/title_html (markdown rendering) and type fallback.
+      let templateStr;
       try {
-        const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
+        templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
         data.templateStr = templateStr;
         if (data.qjson.type == null) {
           const typeMatch = /"type"\s*:\s*"([^"]+)"/.exec(templateStr);
@@ -2220,7 +2221,26 @@ async function main() {
           data.qjson.title_html = full.title_html;
           data.qjson.title_text = full.title_text;
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[question] template render error:', e);
+      }
+      // Fallback: if format is markdown but title_html wasn't produced (e.g. pq.data is null),
+      // render pq.title directly by embedding it safely in a minimal fake template.
+      if (pq.title && !data.qjson.title_html && templateStr) {
+        const isMd = /"format"\s*:\s*"text\/markdown"/.test(templateStr);
+        if (isMd) {
+          data.qjson.format = 'text/markdown';
+          try {
+            // JSON.stringify safely escapes pq.title; no %s in template so vsprintf is a no-op.
+            const fakeJson = JSON.stringify({ title: pq.title, type: data.qjson.type || 'bool', format: 'text/markdown' });
+            const mdFull = populateTemplate(fakeJson, '');
+            if (mdFull.title_html) {
+              data.qjson.title_html = mdFull.title_html;
+              data.qjson.title_text = mdFull.title_text;
+            }
+          } catch {}
+        }
+      }
     } else {
       const templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
       data.qjson = populateTemplate(templateStr, pq.data);
