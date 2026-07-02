@@ -148,17 +148,17 @@ window.RealityAsk.mount = async function () {
     updateCost();
 
     if (rcAddr) {
-      const prov = provider || new ethers.providers.Web3Provider(window.ethereum);
+      const prov = provider || new ethers.BrowserProvider(window.ethereum);
       for (const { addr, name } of arbs) {
         try {
           const arb = new ethers.Contract(addr, ARB_ABI, prov);
           const fee = await arb.arbitrator_question_fees(rcAddr);
-          const eth = ethers.utils.formatEther(fee);
+          const eth = ethers.formatEther(fee);
           const display = parseFloat(eth) === 0 ? 'free' : `${formatAmount(parseFloat(eth))} ${rcToken}`;
           for (const opt of arbSelect.options) {
             if (opt.value.toLowerCase() === addr.toLowerCase()) {
               opt.textContent = `${name} — ${display}`;
-              opt.dataset.fee = ethers.utils.formatEther(fee);
+              opt.dataset.fee = ethers.formatEther(fee);
               break;
             }
           }
@@ -328,16 +328,16 @@ window.RealityAsk.mount = async function () {
   function applyWallet(addr) {
     walletAddr = addr;
     if (addr) {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer   = provider.getSigner();
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer   = await provider.getSigner();
       walletNotice.style.display = 'none';
 
-      provider.getNetwork().then(net => setupForChain(net.chainId));
+      provider.getNetwork().then(net => setupForChain(Number(net.chainId)));
 
       window.ethereum.removeAllListeners?.('chainChanged');
-      window.ethereum.on('chainChanged', hexChain => {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer   = provider.getSigner();
+      window.ethereum.on('chainChanged', async hexChain => {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer   = await provider.getSigner();
         setupForChain(parseInt(hexChain, 16));
       });
     } else {
@@ -443,7 +443,7 @@ window.RealityAsk.mount = async function () {
     if (!arbSelect.value) { setError('field-arbitrator'); ok = false; } else clearError('field-arbitrator');
     if (arbSelect.value === 'other') {
       const addr = document.getElementById('arbitrator-address').value.trim();
-      if (!ethers.utils.isAddress(addr)) { setError('field-arbitrator', 'Please enter a valid address.'); ok = false; }
+      if (!ethers.isAddress(addr)) { setError('field-arbitrator', 'Please enter a valid address.'); ok = false; }
     }
 
     const minBondVal = document.getElementById('question-minbond').value;
@@ -505,10 +505,10 @@ window.RealityAsk.mount = async function () {
       const qtext = encodeQuestion(type, title, outcomes, category);
       const openingTs = opening
         ? Math.floor(new Date(opening + 'T00:00:00Z').getTime() / 1000) : 0;
-      const rewardWei  = ethers.utils.parseEther(rewardEth);
-      const minBondWei = ethers.utils.parseEther(minBondEth);
+      const rewardWei  = ethers.parseEther(rewardEth);
+      const minBondWei = ethers.parseEther(minBondEth);
 
-      let arbAddr, feeWei = ethers.BigNumber.from(0);
+      let arbAddr, feeWei = 0n;
       const arbVal = arbSelect.value;
       if (arbVal === 'self') {
         arbAddr = rcAddress;
@@ -525,11 +525,11 @@ window.RealityAsk.mount = async function () {
       }
 
       // ERC20 approval step (only when reward > 0)
-      if (isERC20Contract && rcTokenAddress && rewardWei.gt(0)) {
+      if (isERC20Contract && rcTokenAddress && rewardWei > 0n) {
         submitBtn.textContent = `Approve ${rcToken} in wallet…`;
         const tokenRead = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, provider);
         const allowance = await withIndicator(rpcInd, () => tokenRead.allowance(walletAddr, rcAddress));
-        if (allowance.lt(rewardWei)) {
+        if (allowance < rewardWei) {
           const tokenRW = new ethers.Contract(rcTokenAddress, ERC20_TOKEN_ABI, signer);
           const approveTx = await withIndicator(rpcInd, () => tokenRW.approve(rcAddress, rewardWei));
           submitBtn.textContent = `Approving ${rcToken}…`;
@@ -542,7 +542,7 @@ window.RealityAsk.mount = async function () {
       let tx;
       if (isERC20Contract) {
         const rc = new ethers.Contract(rcAddress, [...RC_ABI, ...RC_ERC20_ABI], signer);
-        if (supportsMinBond && minBondWei.gt(0)) {
+        if (supportsMinBond && minBondWei > 0n) {
           tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBondERC20(
             templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei));
         } else {
@@ -550,9 +550,9 @@ window.RealityAsk.mount = async function () {
             templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei));
         }
       } else {
-        const value = rewardWei.add(feeWei);
+        const value = rewardWei + feeWei;
         const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
-        if (minBondWei.gt(0)) {
+        if (minBondWei > 0n) {
           tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBond(
             templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value }));
         } else {
@@ -565,7 +565,7 @@ window.RealityAsk.mount = async function () {
       const receipt = await withIndicator(rpcInd, () => tx.wait());
 
       // Extract question ID from LogNewQuestion event
-      const iface = new ethers.utils.Interface(RC_ABI);
+      const iface = new ethers.Interface(RC_ABI);
       let questionId = null;
       for (const log of receipt.logs) {
         try {
