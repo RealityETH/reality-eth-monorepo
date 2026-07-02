@@ -51,7 +51,7 @@ window.RealityAccount.mount = async function (addr) {
 
   // ── URL helpers ─────────────────────────────────────────────────────────────
   function setUrlAddress(a) {
-    const newHash = a ? `#!/account?address=${a}` : '#!/account';
+    const newHash = a ? `#!/account/${a}` : '#!/account';
     history.replaceState(null, '', newHash);
   }
 
@@ -989,7 +989,7 @@ window.RealityAccount.mount = async function (addr) {
       if (!canClaim()) {
         claimBtn.style.display = 'none';
         const matchNote = walletAddr
-          ? `Connected as <a href="#!/account?address=${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`
+          ? `Connected as <a href="#!/account/${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`
           : 'Connect wallet to claim';
         noteEl.innerHTML = matchNote;
         noteEl.style.display = 'block';
@@ -1091,7 +1091,7 @@ window.RealityAccount.mount = async function (addr) {
   function updateWalletUI() {
     const noteEl = document.getElementById('hero-wallet-note');
     if (walletAddr && viewAddr && walletAddr !== viewAddr) {
-      noteEl.innerHTML = `Connected as <a href="#!/account?address=${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`;
+      noteEl.innerHTML = `Connected as <a href="#!/account/${walletAddr}" class="hero-addr-link">${shortAddr(walletAddr)}</a> — connect the viewing address to claim`;
       noteEl.style.display = '';
     } else {
       noteEl.style.display = 'none';
