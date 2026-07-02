@@ -20,8 +20,6 @@ const SCAN_ABI = [
 ];
 
 const REALITY_ABI = [
-  'function balanceOf(address) view returns (uint256)',
-  'function withdraw()',
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
 ];
 
@@ -645,25 +643,6 @@ window.RealityAccount.mount = async function (addr) {
     return { askedQuestions, askedHasMore, answeredQuestions, responsesHasMore, userResponses, claimedSet, claimables, arbitratorQuestions, arbHasMore };
   }
 
-  // ── RPC balances ──────────────────────────────────────────────────────────────
-  async function loadBalances(a, chainId) {
-    const BN0 = 0n;
-    const prov = provider || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
-    const contracts = await loadContracts();
-    const rcList = getRcContracts(contracts, chainId);
-
-    const [walletBal, ...rcBals] = await Promise.all([
-      prov.getBalance(a).catch(() => BN0),
-      ...rcList.map(({ address }) =>
-        new ethers.Contract(address, REALITY_ABI, prov).balanceOf(a).catch(() => BN0)
-      ),
-    ]);
-
-    const contractBal = rcList.reduce((sum, r, i) => !r.tokenAddress ? sum + (rcBals[i] || BN0) : sum, BN0);
-    const withdrawableContracts = rcList.filter((_, i) => (rcBals[i] || 0n) > 0n).map(r => r.address);
-    return { walletBal, contractBal, withdrawableContracts };
-  }
-
   // ── Render helpers ─────────────────────────────────────────────────────────────
   function relTime(ts) {
     const diff = Math.floor(Date.now() / 1000) - Number(ts);
@@ -941,21 +920,7 @@ window.RealityAccount.mount = async function (addr) {
     renderClaimBanner(claimables, effectiveClaimChain(claimables));
   }
 
-  // ── Render: balances + claim banner ───────────────────────────────────────────
-  function renderBalances({ walletBal, contractBal, withdrawableContracts }, chainId) {
-    const token = CHAIN_TOKEN[chainId] || 'ETH';
-    document.getElementById('wallet-balance').textContent   = `${formatEth(walletBal)} ${token}`;
-    document.getElementById('contract-balance').textContent = `${formatEth(contractBal)} ${token}`;
-
-    const wdBtn = document.getElementById('withdraw-btn');
-    if (canClaim() && withdrawableContracts.length > 0) {
-      wdBtn.style.display = '';
-      wdBtn.onclick = () => handleWithdraw(withdrawableContracts, chainId);
-    } else {
-      wdBtn.style.display = 'none';
-    }
-  }
-
+  // ── Render: claim banner ───────────────────────────────────────────────────────
   function renderClaimBanner(claimables, chainId) {
     const banner = document.getElementById('claim-banner');
     const BN0    = 0n;
@@ -1042,25 +1007,6 @@ window.RealityAccount.mount = async function (addr) {
     return err?.reason || err?.data?.message || err?.message || 'Transaction failed.';
   }
 
-  async function handleWithdraw(contractAddrs, chainId) {
-    if (!signer) return;
-    const btn = document.getElementById('withdraw-btn');
-    btn.disabled = true; btn.textContent = 'Waiting…';
-    try {
-      for (const a of contractAddrs) {
-        const rc = new ethers.Contract(a, REALITY_ABI, signer);
-        const tx = await withIndicator(rpcInd, () => rc.withdraw());
-        btn.textContent = 'Pending…';
-        await withIndicator(rpcInd, () => tx.wait());
-      }
-      btn.textContent = '✓ Done';
-      setTimeout(() => location.reload(), 1500);
-    } catch (err) {
-      btn.disabled = false; btn.textContent = 'Withdraw';
-      alert(txErr(err));
-    }
-  }
-
   async function handleClaimAll() {
     if (!signer || !pendingClaimData) return;
     const btn   = document.getElementById('claim-btn');
@@ -1094,19 +1040,6 @@ window.RealityAccount.mount = async function (addr) {
       noteEl.style.display = '';
     } else {
       noteEl.style.display = 'none';
-    }
-
-    if (canClaim() && walletChainId) {
-      loadBalances(viewAddr, walletChainId)
-        .then(bals => renderBalances(bals, walletChainId))
-        .catch(() => {
-          document.getElementById('wallet-balance').textContent   = '—';
-          document.getElementById('contract-balance').textContent = '—';
-        });
-    } else {
-      document.getElementById('wallet-balance').textContent   = '—';
-      document.getElementById('contract-balance').textContent = '—';
-      document.getElementById('withdraw-btn').style.display   = 'none';
     }
 
     if (allData) {
@@ -1150,9 +1083,6 @@ window.RealityAccount.mount = async function (addr) {
     document.getElementById('answered-loading').className   = 'state-msg';
     document.getElementById('answered-loading').style.display = 'block';
     document.getElementById('claim-banner').style.display  = 'none';
-    document.getElementById('wallet-balance').textContent   = '—';
-    document.getElementById('contract-balance').textContent = '—';
-    document.getElementById('withdraw-btn').style.display   = 'none';
     document.getElementById('chain-pills').innerHTML = '';
     document.getElementById('chain-pills').style.display = 'none';
     document.getElementById('arbitrator-list').innerHTML = '';

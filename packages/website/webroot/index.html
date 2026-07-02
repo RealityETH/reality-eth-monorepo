@@ -821,16 +821,6 @@
     border: 1px solid var(--border); border-radius: 4px; transition: color 0.15s, border-color 0.15s; }
   .hero-addr-link:hover { color: var(--accent); border-color: var(--accent); }
   .hero-wallet-note { font-size: 11px; color: var(--amber); }
-  .hero-balances { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .balance-chip { display: flex; flex-direction: column; align-items: flex-end; }
-  .balance-chip-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-  .balance-chip-val { font-size: 16px; font-weight: 700; color: var(--text); }
-  .balance-sep { width: 1px; height: 30px; background: var(--border-subtle); }
-  .btn-sm { padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: opacity 0.15s; border: none; }
-  .btn-sm:hover:not(:disabled) { opacity: 0.85; }
-  .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-withdraw { background: var(--border-subtle); color: var(--text-muted); }
   .claim-banner { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25);
     border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -1718,18 +1708,6 @@
         <span class="hero-addr-text" id="hero-addr">—</span>
         <a class="hero-addr-link" id="hero-explorer-link" href="#" target="_blank" rel="noopener" style="display:none">↗</a>
         <span class="hero-wallet-note" id="hero-wallet-note" style="display:none"></span>
-      </div>
-      <div class="hero-balances">
-        <div class="balance-chip">
-          <span class="balance-chip-label">Wallet</span>
-          <span class="balance-chip-val" id="wallet-balance">—</span>
-        </div>
-        <div class="balance-sep"></div>
-        <div class="balance-chip">
-          <span class="balance-chip-label">Contract</span>
-          <span class="balance-chip-val" id="contract-balance">—</span>
-        </div>
-        <button class="btn-sm btn-withdraw" id="withdraw-btn" style="display:none">Withdraw</button>
       </div>
     </div>
 
