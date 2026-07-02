@@ -54,13 +54,12 @@
     [];
 
   // Preload route scripts immediately (download in parallel with core, execute later)
-  window.__scriptVer = Date.now();
   var routeSet = {};
   for (var i = 0; i < route.length; i++) {
     routeSet[route[i]] = true;
     var lnk = document.createElement('link');
     lnk.rel = 'preload'; lnk.as = 'script';
-    lnk.href = /^https?:\/\//.test(route[i]) ? route[i] : route[i] + '?v=' + window.__scriptVer;
+    lnk.href = route[i];
     if (/^https?:\/\//.test(route[i])) lnk.crossOrigin = 'anonymous';
     document.head.appendChild(lnk);
   }
@@ -2438,7 +2437,7 @@
     if (!_scriptLoads.has(src)) {
       _scriptLoads.set(src, new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = /^https?:\/\//.test(src) ? src : src + '?v=' + (window.__scriptVer || Date.now());
+        s.src = src;
         s.onload = resolve;
         s.onerror = () => reject(new Error('Failed to load: ' + src));
         document.head.appendChild(s);
