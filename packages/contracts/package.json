@@ -6,7 +6,9 @@
     "generate-chains": "node scripts/generate_chains_json.js",
     "generate-contracts": "node scripts/generate_contract_json.js",
     "generate-tokens": "node scripts/generate_token_json.js",
-    "generate": "node scripts/generate_token_json.js && node scripts/generate_chains_json.js && node scripts/generate_contract_json.js && node scripts/generate_factory_json.js",
+    "generate": "node scripts/generate_token_json.js && node scripts/generate_chains_json.js && node scripts/generate_contract_json.js && node scripts/generate_factory_json.js && node scripts/generate_website_data.js",
+    "generate-website-data": "node scripts/generate_website_data.js",
+    "install-website-data": "node scripts/generate_website_data.js --install",
     "fmt": "prettier 'development/contracts/*.sol' -w",
     "fmt:check": "prettier 'development/contracts/*.sol' -c"
   },
