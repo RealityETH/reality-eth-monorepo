@@ -197,9 +197,6 @@ function el(tag, cls, text) {
   return e;
 }
 
-function escHtml(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 function formatEth(bn) {
   if (!bn) return '0';
@@ -1166,10 +1163,11 @@ function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
   entry.innerHTML = `
     <div class="bond-connector"><div class="answer-dot dot-${color}">${letter}</div></div>
     <div class="bond-main">
-      <div class="bond-answer-label ${color}">${escHtml(label)}<span class="bond-tag tag-pending">Submitting…</span></div>
+      <div class="bond-answer-label ${color}"><span class="label-text"></span><span class="bond-tag tag-pending">Submitting…</span></div>
       <div class="bond-submeta">${addrHtml}${addrHtml ? ' · ' : ''}<span>Unconfirmed</span></div>
     </div>
     <div class="bond-right"><div class="bond-amount">${bondStr}</div></div>`;
+  entry.querySelector('.label-text').textContent = label;
 
   bondList.insertBefore(entry, bondList.firstChild);
   qPage.classList.add('has-history');
