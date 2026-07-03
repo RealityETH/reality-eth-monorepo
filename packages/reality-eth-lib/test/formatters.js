@@ -360,7 +360,7 @@ describe('Markdown questions', function() {
     expect(q.title).to.equal("`Inline code` with backticks\n\n```# code block\nprint '3 backticks or'\nprint 'indent 4 spaces'```");
     expect(q.title_html).to.equal(
 `<p><code>Inline code</code> with backticks</p>
-<p><code># code block print &#39;3 backticks or&#39; print &#39;indent 4 spaces&#39;</code></p>`+ "\n");
+<p><code># code block print '3 backticks or' print 'indent 4 spaces'</code></p>`+ "\n");
   });
 });
 

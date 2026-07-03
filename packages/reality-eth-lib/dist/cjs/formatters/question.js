@@ -295,7 +295,7 @@ function parseQuestionJSON(data, errors_to_title, vsprint_errors) {
                 question_json['errors']['unsafe_markdown'] = true;
             }
             else {
-                question_json['title_html'] = marked_1.marked.parse(safeMarkdown).replace(/<img.*src="(.*?)".*alt="(.*?)".*\/?>/, '<a href="$1">$2</a>');
+                question_json['title_html'] = isomorphic_dompurify_1.default.sanitize(marked_1.marked.parse(safeMarkdown).replace(/<img.*src="(.*?)".*alt="(.*?)".*\/?>/, '<a href="$1">$2</a>'));
                 question_json['title_text'] = htmlToText(String(question_json['title_html']));
             }
         }
