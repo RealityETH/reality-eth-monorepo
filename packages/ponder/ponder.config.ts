@@ -87,10 +87,11 @@ const INFURA = process.env.INFURA_API_KEY;
 
 export default createConfig({
   networks: {
-    ...(on('gnosis')  && { gnosis:  net('gnosis',  100,       process.env.PONDER_RPC_URL_100,      "https://rpc.gnosischain.com") }),
-    ...(on('mainnet') && { mainnet: net('mainnet', 1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com", 5, 12_000) }),
-    // arbitrum: disabled — ~2s block time causes high CPU load during sync
-    ...(on('sepolia') && { sepolia: net('sepolia', 11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com", 5, 30_000) }),
+    ...(on('gnosis')   && { gnosis:   net('gnosis',   100,       process.env.PONDER_RPC_URL_100,      "https://rpc.gnosischain.com") }),
+    ...(on('mainnet')  && { mainnet:  net('mainnet',  1,         process.env.PONDER_RPC_URL_1,        INFURA ? `https://mainnet.infura.io/v3/${INFURA}` : "https://eth.llamarpc.com", 5, 12_000) }),
+    // Arbitrum has sub-second blocks; use a long polling interval to limit CPU load during sync.
+    ...(on('arbitrum') && { arbitrum: net('arbitrum', 42161,     process.env.PONDER_RPC_URL_42161,    "https://arbitrum-one-rpc.publicnode.com", 5, 10_000) }),
+    ...(on('sepolia')  && { sepolia:  net('sepolia',  11155111,  process.env.PONDER_RPC_URL_11155111, INFURA ? `https://sepolia.infura.io/v3/${INFURA}` : "https://ethereum-sepolia-rpc.publicnode.com", 5, 30_000) }),
     // optimism: disabled — public RPCs consistently time out on large eth_getLogs ranges
     // base: disabled — base-rpc.publicnode.com returns inconsistent log/block data, causing
     //   Ponder's consistency check to fire. Re-enable by setting PONDER_RPC_URL_8453 to a
@@ -115,10 +116,10 @@ export default createConfig({
     RealityETH_v3_0: {
       abi,
       network: {
-        ...(on('mainnet') && { mainnet: { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 } }),
-        ...(on('gnosis')  && { gnosis:  { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 } }),
-        // arbitrum: disabled (see network comment)
-        ...(on('sepolia') && { sepolia: { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431  } }),
+        ...(on('mainnet')  && { mainnet:  { address: "0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c", startBlock: 13194676 } }),
+        ...(on('gnosis')   && { gnosis:   { address: "0xE78996A233895bE74a66F451f1019cA9734205cc", startBlock: 17997262 } }),
+        ...(on('arbitrum') && { arbitrum: { address: "0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9", startBlock: 459975   } }),
+        ...(on('sepolia')  && { sepolia:  { address: "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA", startBlock: 3044431  } }),
         // optimism disabled
         // base disabled (see network comment above)
         // base:      { address: "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8", startBlock: 26260675 },
@@ -127,11 +128,12 @@ export default createConfig({
       },
     },
 
-    // v2.1 — Gnosis only, predates v3.0.
-    ...(on('gnosis') && { RealityETH_v2_1: {
+    // v2.1 — Gnosis and Arbitrum, predates v3.0.
+    ...((on('gnosis') || on('arbitrum')) && { RealityETH_v2_1: {
       abi,
       network: {
-        gnosis: { address: "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57", startBlock: 14005802 },
+        ...(on('gnosis')   && { gnosis:   { address: "0x79e32aE03fb27B07C89c0c568F80287C01ca2E57", startBlock: 14005802 } }),
+        ...(on('arbitrum') && { arbitrum: { address: "0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691", startBlock: 112029   } }),
       },
     }}),
 
