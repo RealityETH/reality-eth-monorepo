@@ -6,7 +6,8 @@ After=network.target
 Type=simple
 User=rcdev
 WorkingDirectory=/srv/rcdev/reality-eth-design/packages/ponder
-ExecStart=/home/rcdev/.nvm/versions/node/v23.11.0/bin/node node_modules/.bin/ponder start --log-format json
+Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=node node_modules/.bin/ponder start --log-format json
 Restart=on-failure
 RestartSec=10
 
