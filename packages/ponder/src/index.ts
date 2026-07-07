@@ -26,9 +26,18 @@ function qUpdate(db: any, qId: string, fields: Record<string, unknown>) {
     .where(eq(question.id, qId));
 }
 
-// Contract names active in ponder.config.ts — add "RealityETH_v2" when that contract
-// is enabled in the config.
-for (const name of ["RealityETH_v3_2", "RealityETH_v3_0"] as const) {
+// All contract variants share the same event interface. v3.2-specific events
+// (LogCancelArbitration) are handled separately below.
+for (const name of [
+  "RealityETH_v3_2",
+  "RealityETH_v3_0",
+  "RealityETH_v2_1",
+  "RealityETH_v2_0",
+  "RealityETH_ERC20_mainnet",
+  "RealityETH_ERC20_gnosis",
+  "RealityETH_ERC20_polygon",
+  "RealityETH_ERC20_sepolia",
+] as const) {
 
   // ── Templates ────────────────────────────────────────────────────────────
 

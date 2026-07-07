@@ -1581,8 +1581,13 @@
       </select>
     </div>
     <div class="filter-bar">
-<button class="filter-btn" data-chain="1">Ethereum</button>
+      <button class="filter-btn" data-chain="1">Ethereum</button>
       <button class="filter-btn" data-chain="100">Gnosis</button>
+      <button class="filter-btn" data-chain="137">Polygon</button>
+      <button class="filter-btn" data-chain="42161">Arbitrum</button>
+      <button class="filter-btn" data-chain="10">Optimism</button>
+      <button class="filter-btn" data-chain="8453">Base</button>
+      <button class="filter-btn" data-chain="130">Unichain</button>
       <button class="filter-btn" data-chain="11155111">Sepolia</button>
     </div>
   </div>
@@ -1964,6 +1969,7 @@
           <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
           <button type="button" class="chain-pill" data-chain="10">Optimism</button>
           <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="130">Unichain</button>
           <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
         </div>
         <div id="token-pills" class="token-pills" style="display:none"></div>
@@ -2033,6 +2039,7 @@
           <button type="button" class="chain-chip" data-chain="42161">Arbitrum</button>
           <button type="button" class="chain-chip" data-chain="10">Optimism</button>
           <button type="button" class="chain-chip" data-chain="8453">Base</button>
+          <button type="button" class="chain-chip" data-chain="130">Unichain</button>
           <button type="button" class="chain-chip" data-chain="11155111">Sepolia</button>
         </div>
       </div>
@@ -2198,6 +2205,7 @@
           <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
           <button type="button" class="chain-pill" data-chain="10">Optimism</button>
           <button type="button" class="chain-pill" data-chain="8453">Base</button>
+          <button type="button" class="chain-pill" data-chain="130">Unichain</button>
           <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
         </div>
         <div id="ask-token-pills" class="token-pills" style="display:none"></div>
@@ -2211,7 +2219,7 @@
           ⚠ Dispute window under 24 hours. There may not be enough time for people to correct wrong answers.
         </div>
         <div class="warn-box" id="ask-network-unsupported" style="display:none; margin-top:10px;">
-          ⚠ This network is not supported. Switch to Ethereum, Gnosis, Polygon, Arbitrum, Optimism, or Base.
+          ⚠ This network is not supported. Switch to Ethereum, Gnosis, Polygon, Arbitrum, Optimism, Base, or Unichain.
         </div>
       </div>
 
@@ -2862,7 +2870,7 @@
   }
 
   function chainLabel(chainId) {
-    return { 1: 'Ethereum', 100: 'Gnosis', 137: 'Polygon', 10: 'Optimism', 42161: 'Arbitrum', 11155111: 'Sepolia' }[chainId] || `Chain ${chainId}`;
+    return window.RealityChains?.name(chainId) || `Chain ${chainId}`;
   }
 
   function formatRelTime(ts) {

@@ -36,9 +36,9 @@ const CONTRACT_START_BLOCK = {
 };
 
 function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
-const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
-const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
-const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
+const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 100:'XDAI', 130:'ETH', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
+const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 130:'https://uniscan.xyz', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
+const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 130:'https://mainnet.unichain.org', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
 // Params for chains MetaMask may not know natively (wallet_addEthereumChain fallback)
 const CHAIN_ADD_PARAMS = {
   100: {
@@ -46,6 +46,12 @@ const CHAIN_ADD_PARAMS = {
     nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
     rpcUrls: ['https://rpc.gnosischain.com'],
     blockExplorerUrls: ['https://gnosisscan.io'],
+  },
+  130: {
+    chainId: '0x82', chainName: 'Unichain',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://mainnet.unichain.org'],
+    blockExplorerUrls: ['https://uniscan.xyz'],
   },
   11155111: {
     chainId: '0xaa36a7', chainName: 'Sepolia',

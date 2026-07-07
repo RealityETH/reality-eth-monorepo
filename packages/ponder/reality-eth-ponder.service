@@ -1,6 +1,7 @@
 [Unit]
 Description=reality.eth Ponder indexer
-After=network.target
+After=network.target postgresql.service
+Requires=postgresql.service
 
 [Service]
 Type=simple
@@ -8,6 +9,8 @@ User=rcdev
 WorkingDirectory=/srv/rcdev/reality-eth-design/packages/ponder
 Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=node node_modules/.bin/ponder start --log-format json
+StandardOutput=append:/srv/rcdev/reality-eth-design/packages/ponder/ponder.log
+StandardError=append:/srv/rcdev/reality-eth-design/packages/ponder/ponder-debug.log
 Restart=on-failure
 RestartSec=10
 
