@@ -1,1 +1,0 @@
-{"version":3,"file":"syrupusdc.js","sourceRoot":"","sources":["../../../tokens/definitions/syrupusdc.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,SAAS,GAAiB,IAAA,4BAAW,EAAC;IACjD,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;KACnD;IACD,QAAQ,EAAE,WAAW;IACrB,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,YAAY;IAClB,MAAM,EAAE,WAAW;CACpB,CAAC,CAAA"}

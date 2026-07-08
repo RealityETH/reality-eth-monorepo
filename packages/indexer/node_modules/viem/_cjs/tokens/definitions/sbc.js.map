@@ -1,1 +1,0 @@
-{"version":3,"file":"sbc.js","sourceRoot":"","sources":["../../../tokens/definitions/sbc.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,GAAG,GAAiB,IAAA,4BAAW,EAAC;IAC3C,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;KACnD;IACD,QAAQ,EAAE,KAAK;IACf,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,aAAa;IACnB,MAAM,EAAE,KAAK;CACd,CAAC,CAAA"}

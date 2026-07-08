@@ -1,1 +1,0 @@
-{"version":3,"file":"susde.js","sourceRoot":"","sources":["../../../tokens/definitions/susde.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,KAAK,GAAiB,IAAA,4BAAW,EAAC;IAC7C,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;KACnD;IACD,QAAQ,EAAE,OAAO;IACjB,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,aAAa;IACnB,MAAM,EAAE,OAAO;CAChB,CAAC,CAAA"}

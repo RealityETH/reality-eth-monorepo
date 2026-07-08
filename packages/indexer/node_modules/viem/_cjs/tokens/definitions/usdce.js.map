@@ -1,1 +1,0 @@
-{"version":3,"file":"usdce.js","sourceRoot":"","sources":["../../../tokens/definitions/usdce.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,KAAK,GAAiB,IAAA,4BAAW,EAAC;IAC7C,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;QAClD,KAAK,EAAE,4CAA4C;KACpD;IACD,QAAQ,EAAE,KAAK;IACf,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,yBAAyB;IAC/B,MAAM,EAAE,QAAQ;CACjB,CAAC,CAAA"}

@@ -1,1 +1,0 @@
-{"version":3,"file":"usdb.js","sourceRoot":"","sources":["../../../tokens/definitions/usdb.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,IAAI,GAAiB,IAAA,4BAAW,EAAC;IAC5C,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;KACnD;IACD,QAAQ,EAAE,KAAK;IACf,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,WAAW;IACjB,MAAM,EAAE,MAAM;CACf,CAAC,CAAA"}

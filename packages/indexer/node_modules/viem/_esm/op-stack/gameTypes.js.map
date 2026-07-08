@@ -1,1 +1,0 @@
-{"version":3,"file":"gameTypes.js","sourceRoot":"","sources":["../../op-stack/gameTypes.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,MAAM,CAAC,MAAM,cAAc,GAAG,IAAI,GAAG,CAAC,CAAC,CAAC,EAAE,CAAC,EAAE,CAAC,EAAE,CAAC,CAAC,CAAwB,CAAA;AAE1E,MAAM,UAAU,eAAe,CAAC,QAAgB;IAC9C,OAAO,cAAc,CAAC,GAAG,CAAC,QAAQ,CAAC,CAAA;AACrC,CAAC"}

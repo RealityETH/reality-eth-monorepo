@@ -1,6 +1,0 @@
-{
-  "type": "module",
-  "types": "../../_types/tempo/MultisigConfig.d.ts",
-  "main": "../../_cjs/tempo/MultisigConfig.js",
-  "module": "../../_esm/tempo/MultisigConfig.js"
-}
