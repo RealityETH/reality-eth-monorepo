@@ -1,0 +1,15 @@
+{
+  "name": "@reality.eth/indexer",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "seed": "node seed.js",
+    "sync": "node sync.js"
+  },
+  "dependencies": {
+    "@reality.eth/reality-eth-lib": "file:../reality-eth-lib",
+    "dotenv": "^16.4.5",
+    "pg": "^8.13.1",
+    "viem": "^2.0.0"
+  }
+}

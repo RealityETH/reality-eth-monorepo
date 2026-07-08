@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "types": "../../_types/tempo/Channel.d.ts",
+  "main": "../../_cjs/tempo/Channel.js",
+  "module": "../../_esm/tempo/Channel.js"
+}

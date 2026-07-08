@@ -1,0 +1,1 @@
+{"version":3,"file":"frxusd.js","sourceRoot":"","sources":["../../../tokens/definitions/frxusd.ts"],"names":[],"mappings":";;;AAEA,sDAA+C;AAElC,QAAA,MAAM,GAAiB,IAAA,4BAAW,EAAC;IAC9C,SAAS,EAAE;QACT,IAAI,EAAE,4CAA4C;KACnD;IACD,QAAQ,EAAE,KAAK;IACf,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,UAAU;IAChB,MAAM,EAAE,QAAQ;CACjB,CAAC,CAAA"}

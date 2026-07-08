@@ -1,0 +1,1 @@
+{"version":3,"file":"cirbtc.js","sourceRoot":"","sources":["../../../tokens/definitions/cirbtc.ts"],"names":[],"mappings":";;;AAAA,sDAA+C;AAUlC,QAAA,MAAM,GAAiB,IAAA,4BAAW,EAAC;IAC9C,SAAS,EAAE;QACT,CAAC,EAAE,4CAA4C;QAC/C,OAAO,EAAE,4CAA4C;QACrD,QAAQ,EAAE,4CAA4C;KACvD;IACD,QAAQ,EAAE,KAAK;IACf,QAAQ,EAAE,CAAC;IACX,IAAI,EAAE,wBAAwB;IAC9B,MAAM,EAAE,QAAQ;CACjB,CAAC,CAAA"}
