@@ -194,6 +194,7 @@ const TOPIC0_FILTER = ABI
 // ── RPC helpers ────────────────────────────────────────────────────────────────
 
 async function jsonrpc(url, method, params, retries = 4) {
+  const host = new URL(url).hostname;
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, {
       method: 'POST',
@@ -201,15 +202,15 @@ async function jsonrpc(url, method, params, retries = 4) {
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
     });
     if (res.status === 429) {
-      if (attempt >= retries) throw new Error(`${method}: HTTP 429 (rate limited)`);
+      if (attempt >= retries) throw new Error(`${method} (${host}): HTTP 429 (rate limited, gave up after ${retries} retries)`);
       const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s
-      console.warn(`Rate limited on ${method}, retrying in ${delay}ms...`);
+      console.warn(`Rate limited: ${method} on ${host}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})...`);
       await new Promise(r => setTimeout(r, delay));
       continue;
     }
-    if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`${method} (${host}): HTTP ${res.status}`);
     const body = await res.json();
-    if (body.error) throw new Error(`${method}: ${JSON.stringify(body.error)}`);
+    if (body.error) throw new Error(`${method} (${host}): ${body.error.code} ${body.error.message}`);
     return body.result;
   }
 }
