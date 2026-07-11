@@ -98,14 +98,16 @@ function loadSparseIndex() {
 
 let SPARSE = loadSparseIndex();
 
-// Binary search: returns true if any known event block falls in [from, to].
-function hasKnownBlock(sorted, from, to) {
+// Binary search: returns all known event blocks in [from, to].
+function getKnownBlocksInRange(sorted, from, to) {
   let lo = 0, hi = sorted.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
     if (sorted[mid] < from) lo = mid + 1; else hi = mid;
   }
-  return lo < sorted.length && sorted[lo] <= to;
+  const result = [];
+  for (let i = lo; i < sorted.length && sorted[i] <= to; i++) result.push(sorted[i]);
+  return result;
 }
 
 // ── Chain configuration ────────────────────────────────────────────────────────
@@ -538,18 +540,26 @@ async function syncChain(pool, chain) {
   while (synced <= headBlock) {
     const to = Math.min(synced + chain.batchSize - 1, headBlock);
 
-    // Skip ranges that are fully below the HWM and contain no known event blocks.
-    if (to <= hwm && !hasKnownBlock(knownBlocks, synced, to)) {
-      await pool.query(
-        `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
-         ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block`,
-        [chain.chainId, to]
-      );
-      synced = to + 1;
-      continue;
+    let logs;
+    if (to <= hwm) {
+      // Below HWM: sparse index is complete — only fetch the exact known event blocks.
+      const targets = getKnownBlocksInRange(knownBlocks, synced, to);
+      if (targets.length === 0) {
+        await pool.query(
+          `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
+           ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block`,
+          [chain.chainId, to]
+        );
+        synced = to + 1;
+        continue;
+      }
+      const parts = [];
+      for (const b of targets) parts.push(...await fetchLogs(chain, b, b));
+      logs = parts;
+    } else {
+      // Above HWM: sparse index not yet complete — fetch full range.
+      logs = await fetchLogs(chain, synced, to);
     }
-
-    const logs = await fetchLogs(chain, synced, to);
 
     if (logs.length > 0) {
       // Fetch timestamps only for blocks that have events (reality.eth is sparse).
