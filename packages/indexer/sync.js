@@ -228,10 +228,12 @@ async function getBlockNumber(chain) {
   return parseInt(await jsonrpc(chain.narrowUrl, 'eth_blockNumber', []), 16);
 }
 
-// Fetch timestamps for a set of block numbers, 5 at a time to avoid hammering.
+// Fetch timestamps for a set of block numbers, 5 at a time with a delay between
+// chunks to avoid bursting the shared Alchemy key across many chains at once.
 async function fetchBlockTimestamps(chain, blockNums) {
   const ts = {};
   for (let i = 0; i < blockNums.length; i += 5) {
+    if (i > 0) await new Promise(r => setTimeout(r, 200));
     const chunk = blockNums.slice(i, i + 5);
     const blocks = await Promise.all(
       chunk.map(n => jsonrpc(chain.narrowUrl, 'eth_getBlockByNumber',
