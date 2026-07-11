@@ -217,8 +217,8 @@ async function jsonrpc(url, method, params, retries = 4) {
   }
 }
 
-async function fetchLogs(chain, from, to) {
-  return jsonrpc(chain.wideUrl, 'eth_getLogs', [{
+async function fetchLogs(chain, from, to, url = chain.wideUrl) {
+  return jsonrpc(url, 'eth_getLogs', [{
     fromBlock: '0x' + from.toString(16),
     toBlock:   '0x' + to.toString(16),
     address:   chain.addresses,
@@ -541,9 +541,10 @@ async function syncChain(pool, chain) {
     const to = Math.min(synced + chain.batchSize - 1, headBlock);
 
     let logs;
+    let targets = null; // non-null means sparse fetch; null means full-range
     if (to <= hwm) {
       // Below HWM: sparse index is complete — only fetch the exact known event blocks.
-      const targets = getKnownBlocksInRange(knownBlocks, synced, to);
+      targets = getKnownBlocksInRange(knownBlocks, synced, to);
       if (targets.length === 0) {
         await pool.query(
           `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
@@ -554,12 +555,18 @@ async function syncChain(pool, chain) {
         continue;
       }
       const parts = [];
-      for (const b of targets) parts.push(...await fetchLogs(chain, b, b));
+      // Use narrowUrl (Alchemy) for per-block fetches — wideUrl (Infura) has lower rate limits.
+      for (const b of targets) parts.push(...await fetchLogs(chain, b, b, chain.narrowUrl));
       logs = parts;
     } else {
       // Above HWM: sparse index not yet complete — fetch full range.
       logs = await fetchLogs(chain, synced, to);
     }
+
+    // Build a label describing what was actually fetched.
+    const fetchDesc = targets
+      ? `blocks ${targets.join(', ')}`
+      : `${synced}–${to}`;
 
     if (logs.length > 0) {
       // Fetch timestamps only for blocks that have events (reality.eth is sparse).
@@ -594,7 +601,7 @@ async function syncChain(pool, chain) {
           [chain.chainId, to]
         );
         await client.query('COMMIT');
-        console.log(`[${chain.name}] ${synced}–${to}: ${logs.length} events`);
+        console.log(`[${chain.name}] ${fetchDesc}: ${logs.length} events`);
       } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
         throw e;
@@ -609,7 +616,7 @@ async function syncChain(pool, chain) {
         [chain.chainId, to]
       );
       if (to === headBlock || (to - synced) >= chain.batchSize - 1) {
-        console.log(`[${chain.name}] ${synced}–${to}: 0 events`);
+        console.log(`[${chain.name}] ${fetchDesc}: 0 events`);
       }
     }
     synced = to + 1;
@@ -623,6 +630,12 @@ async function main() {
   process.on('SIGTERM', () => process.exit(0));
   process.on('SIGINT',  () => process.exit(0));
   process.on('SIGHUP',  loadConfig);
+  // Pre-seed all chains as lazy so loadConfig treats any 'active' entry as a
+  // lazy→active transition — queueing a sparse refresh on startup for every
+  // active chain regardless of whether the sparse index already has some data.
+  for (const chain of Object.values(ACTIVE_CHAINS)) {
+    chainModes[chain.chainId] = 'lazy';
+  }
   loadConfig();
 
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
