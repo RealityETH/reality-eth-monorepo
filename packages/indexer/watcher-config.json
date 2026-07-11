@@ -1,0 +1,8 @@
+{
+  "log_path": "/srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log",
+  "always_active_chains": [1, 100],
+  "active_duration_hours": 2,
+  "min_requests_to_activate": 1,
+  "min_distinct_ips": 1,
+  "window_minutes": 60
+}

@@ -250,7 +250,7 @@ async function fetchPonderData() {
       items { id }
     }
   }`;
-  const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
+  const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
   let resp;
   try {
     resp = await withIndicator(ponderInd, () => ponderFetch(ponderUrl, { query }));
@@ -275,7 +275,7 @@ async function fetchTemplateStr(templateId) {
   if (builtin) return builtin;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
-    const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
+    const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
     const resp = await withIndicator(ponderInd, () =>
       ponderFetch(ponderUrl, { query: `{ template(id: ${tid}) { questionText } }` })
     );
@@ -1821,7 +1821,7 @@ function startCountdown(finalizeTS, timeout) {
 
 function startPoll(initialFinalizeTS) {
   if (isFinalized(initialFinalizeTS)) return;
-  const ponderUrl = window.RealitySettings?.getPonderUrl() || '/graphql';
+  const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
   const qid   = JSON.stringify(PONDER_QUESTION_ID);
   const query  = `{ question(id: ${qid}) { scheduledFinalizationTimestamp } }`;
   const id = setInterval(async () => {

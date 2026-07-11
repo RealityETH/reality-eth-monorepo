@@ -20,8 +20,11 @@ const CHAINS = [
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
-function getPonderUrl() {
-  return localStorage.getItem(PONDER_KEY) || DEFAULT_PONDER;
+function getPonderUrl(chainIds) {
+  const base = localStorage.getItem(PONDER_KEY) || DEFAULT_PONDER;
+  if (!chainIds) return base;
+  const ids = (Array.isArray(chainIds) ? chainIds : [chainIds]).filter(Boolean);
+  return ids.length ? `${base}/${ids.join(',')}` : base;
 }
 function setPonderUrl(url) {
   const t = (url || '').trim();
@@ -247,6 +250,7 @@ window.RealitySettings = {
   getUseBrowserRpc, setUseBrowserRpc,
   attachPonderPanel, attachRpcPanel,
   openPanel, closePanel,
+  getChainIds: () => CHAINS.map(c => c.id),
 };
 
 })();

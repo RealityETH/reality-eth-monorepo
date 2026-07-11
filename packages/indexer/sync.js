@@ -3,7 +3,8 @@
 // updates reality.question / response / template / claim tables.
 import { decodeEventLog, keccak256, encodePacked } from 'viem';
 import pg from 'pg';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
@@ -24,7 +25,51 @@ const ABI = JSON.parse(
   readFileSync(join(__dir, '../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json'), 'utf8')
 );
 
-const POLL_MS = Number(process.env.POLL_MS) || 30_000;
+const POLL_MS          = Number(process.env.POLL_MS)          || 30_000;
+const LAZY_INTERVAL_MS = Number(process.env.LAZY_INTERVAL_MS) || 24 * 60 * 60 * 1000;
+const CONFIG_PATH      = join(__dir, 'sync-config.json');
+const PID_PATH         = join(__dir, 'sync.pid');
+
+let chainModes     = {}; // chainId (number) → 'active' | 'lazy'
+let lastLazySyncAt = {}; // chainId → Date.now() of last completed lazy sync
+const pendingRefresh = new Set(); // chainIds needing sparse index refresh before next sync
+
+function loadConfig() {
+  try {
+    const cfg  = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+    const next = {};
+    for (const [id, c] of Object.entries(cfg.chains || {})) {
+      next[Number(id)] = c.mode || 'active';
+    }
+    for (const [id, mode] of Object.entries(next)) {
+      if (mode === 'active' && chainModes[Number(id)] === 'lazy') {
+        lastLazySyncAt[Number(id)] = 0; // force immediate sync on lazy→active transition
+        pendingRefresh.add(Number(id));
+      }
+    }
+    chainModes = next;
+    console.log('Config loaded:', Object.entries(chainModes).map(([id, m]) => `${id}:${m}`).join(' '));
+  } catch {
+    // No config or parse error; all chains default to active.
+  }
+}
+
+const FETCH_EVENT_BLOCKS = join(__dir, '../ponder/scripts/fetch-event-blocks.js');
+
+async function refreshSparseIndex(chain) {
+  console.log(`[${chain.name}] refreshing sparse index...`);
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [FETCH_EVENT_BLOCKS, chain.name], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+    child.on('exit', code =>
+      code === 0 ? resolve() : reject(new Error(`fetch-event-blocks exited ${code}`))
+    );
+  });
+  SPARSE = loadSparseIndex();
+  console.log(`[${chain.name}] sparse index reloaded`);
+}
 
 // ── Sparse block index ─────────────────────────────────────────────────────────
 // Reuses ponder's known-event-blocks.json and known-event-blocks-meta.json.
@@ -51,7 +96,7 @@ function loadSparseIndex() {
   }
 }
 
-const SPARSE = loadSparseIndex();
+let SPARSE = loadSparseIndex();
 
 // Binary search: returns true if any known event block falls in [from, to].
 function hasKnownBlock(sorted, from, to) {
@@ -521,15 +566,37 @@ async function syncChain(pool, chain) {
 }
 
 async function main() {
+  writeFileSync(PID_PATH, String(process.pid));
+  const cleanup = () => { try { unlinkSync(PID_PATH); } catch {} };
+  process.on('exit',   cleanup);
+  process.on('SIGTERM', () => process.exit(0));
+  process.on('SIGINT',  () => process.exit(0));
+  process.on('SIGHUP',  loadConfig);
+  loadConfig();
+
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   console.log('Starting indexer. Poll interval:', POLL_MS, 'ms');
   console.log('Active chains:', Object.values(ACTIVE_CHAINS).map(c => c.name).join(', '));
 
   while (true) {
     for (const chain of Object.values(ACTIVE_CHAINS)) {
+      const mode = chainModes[chain.chainId] ?? 'active';
+      if (mode === 'lazy') {
+        const last = lastLazySyncAt[chain.chainId] ?? 0;
+        if (Date.now() - last < LAZY_INTERVAL_MS) continue;
+      }
+      if (pendingRefresh.has(chain.chainId)) {
+        pendingRefresh.delete(chain.chainId);
+        await refreshSparseIndex(chain).catch(e =>
+          console.error(`[${chain.name}] sparse refresh error:`, e.message)
+        );
+      }
       await syncChain(pool, chain).catch(e =>
         console.error(`[${chain.name}] sync error:`, e.message)
       );
+      if ((chainModes[chain.chainId] ?? 'active') === 'lazy') {
+        lastLazySyncAt[chain.chainId] = Date.now();
+      }
     }
     await new Promise(r => setTimeout(r, POLL_MS));
   }

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "seed": "node seed.js",
-    "sync": "node sync.js"
+    "sync": "node sync.js",
+    "watch": "node log-watcher.js"
   },
   "dependencies": {
     "@reality.eth/reality-eth-lib": "file:../reality-eth-lib",

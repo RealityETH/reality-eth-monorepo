@@ -2406,7 +2406,7 @@
 </footer>
 
 <script>
-  const GRAPHQL = () => window.RealitySettings?.getPonderUrl() || '/graphql';
+  const GRAPHQL = (chainIds) => window.RealitySettings?.getPonderUrl(chainIds) || '/graphql';
   const INVALID_ANS = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
@@ -2697,7 +2697,7 @@
     }
 
     try {
-      const res = await withIndicator(ponderInd, () => fetch(GRAPHQL(), {
+      const res = await withIndicator(ponderInd, () => fetch(GRAPHQL([...chainFilters]), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: buildQuery(50, reset ? null : cursor) }),

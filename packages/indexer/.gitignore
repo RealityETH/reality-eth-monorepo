@@ -1,1 +1,4 @@
 node_modules/
+sync.pid
+sync-config.json
+logs/
