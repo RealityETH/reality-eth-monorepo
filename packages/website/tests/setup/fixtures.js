@@ -681,3 +681,95 @@ export async function createExpiredCommitFixtures() {
 
   return { questionId };
 }
+
+// Creates four uint questions using custom templates with non-standard decimal counts.
+// Two questions have submitted answers (for display tests) and two are unanswered
+// (for calldata/encoding tests, so the form doesn't require a doubled bond).
+//
+// Display tests:
+//   dec2AnsweredId  — decimals=2, answer=350 → display "3.5"  (the bug: was 350/10^18)
+//   dec0AnsweredId  — decimals=0, answer=42  → display "42"
+// Calldata tests (no existing answer, so min bond = question bounty):
+//   dec2OpenId      — decimals=2, no answer  → typing "3.5" encodes as bytes32(350)
+//   dec0OpenId      — decimals=0, no answer  → typing "42"  encodes as bytes32(42)
+//
+// nonces 20–23 — nonces 0–19 on v3.0 are taken by other fixture functions.
+export async function createUintDecimalsFixtures() {
+  const DELIMITER = '␟';
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty  = ethers.parseEther('0.001');
+  const bond    = ethers.parseEther('0.001');
+  // Answered questions need a long timeout so finalize_ts (fork + timeout) is
+  // still in the future relative to the browser clock, matching the pattern used
+  // by createBondEscalationFixtures.  Open (unanswered) questions can use 60s.
+  const TIMEOUT_90_DAYS = 7776000;
+  const timeout = 60;
+  const openingTs = 0;
+
+  const DECIMALS2_TEMPLATE = '{"title": "%s", "type": "uint", "decimals": 2, "category": "%s", "lang": "%s"}';
+  const DECIMALS0_TEMPLATE = '{"title": "%s", "type": "uint", "decimals": 0, "category": "%s", "lang": "%s"}';
+
+  // Find-or-create a template (idempotent across test runs on the same fork).
+  const existingTemplates = await reality.queryFilter(
+    reality.filters.LogNewTemplate(null, TEST_ACCOUNT.address),
+    FORK_BLOCK
+  );
+  async function findOrCreateTemplate(content) {
+    const hit = existingTemplates.find(e => e.args.question_text === content);
+    if (hit) return Number(hit.args.template_id);
+    const tx = await reality.createTemplate(content);
+    const receipt = await tx.wait();
+    const logTopic = reality.interface.getEvent('LogNewTemplate').topicHash;
+    const log = receipt.logs.find(l => l.topics[0] === logTopic);
+    return Number(reality.interface.parseLog(log).args.template_id);
+  }
+
+  const dec2TemplateId = await findOrCreateTemplate(DECIMALS2_TEMPLATE);
+  const dec0TemplateId = await findOrCreateTemplate(DECIMALS0_TEMPLATE);
+
+  // 350 as bytes32 = "3.5" when decimals=2; 42 as bytes32 = "42" when decimals=0.
+  const ANSWER_350 = '0x000000000000000000000000000000000000000000000000000000000000015e';
+  const ANSWER_42  = '0x000000000000000000000000000000000000000000000000000000000000002a';
+
+  function makeId(templateId, questionText, nonce, t) {
+    return computeQuestionId(
+      templateId, openingTs, questionText,
+      ethers.ZeroAddress, t, nonce,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+  }
+
+  const text2Answered = `Decimals display test: 2 decimal places${DELIMITER}misc${DELIMITER}en_US`;
+  const text0Answered = `Decimals display test: 0 decimal places${DELIMITER}misc${DELIMITER}en_US`;
+  const text2Open     = `Decimals calldata test: 2 decimal places${DELIMITER}misc${DELIMITER}en_US`;
+  const text0Open     = `Decimals calldata test: 0 decimal places${DELIMITER}misc${DELIMITER}en_US`;
+
+  // Answered questions use 90-day timeout so finalize_ts (fork_ts + 90 days) is
+  // still in the future relative to the browser clock — same pattern as createBondEscalationFixtures.
+  const dec2AnsweredId = makeId(dec2TemplateId, text2Answered, 20, TIMEOUT_90_DAYS);
+  const dec0AnsweredId = makeId(dec0TemplateId, text0Answered, 21, TIMEOUT_90_DAYS);
+  const dec2OpenId     = makeId(dec2TemplateId, text2Open,     22, timeout);
+  const dec0OpenId     = makeId(dec0TemplateId, text0Open,     23, timeout);
+
+  async function ensureQuestion(templateId, questionText, nonce, questionId, t, answer) {
+    const existing = await reality.questions(questionId);
+    if (BigInt(existing[0]) !== 0n) return; // already on-chain
+    await (await reality.askQuestion(
+      templateId, questionText, ethers.ZeroAddress,
+      t, openingTs, nonce, { value: bounty }
+    )).wait();
+    if (answer) {
+      await (await reality.submitAnswer(questionId, answer, 0, { value: bond })).wait();
+    }
+  }
+
+  await ensureQuestion(dec2TemplateId, text2Answered, 20, dec2AnsweredId, TIMEOUT_90_DAYS, ANSWER_350);
+  await ensureQuestion(dec0TemplateId, text0Answered, 21, dec0AnsweredId, TIMEOUT_90_DAYS, ANSWER_42);
+  await ensureQuestion(dec2TemplateId, text2Open,     22, dec2OpenId,     timeout,         null);
+  await ensureQuestion(dec0TemplateId, text0Open,     23, dec0OpenId,     timeout,         null);
+
+  return { dec2AnsweredId, dec0AnsweredId, dec2OpenId, dec0OpenId };
+}

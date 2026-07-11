@@ -148,6 +148,21 @@ describe('Answer strings', function() {
     expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000001BC16D674EC80000')).to.equal('2');
   });
 
+  it('Handles uints with 2 decimals: fractional, whole number, small fraction, zero', function() {
+    var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
+    q.decimals = 2;
+    // 350 / 100 = 3.5 — the bug case: page was displaying 350 / 10^18
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000000000015e')).to.equal('3.5');
+    // 300 / 100 = 3.0 — whole number, trailing .00 must be stripped
+    expect(rc_question.getAnswerString(q, '0x000000000000000000000000000000000000000000000000000000000000012c')).to.equal('3');
+    // 1 / 100 = 0.01 — small fraction where fracStr must be zero-padded before strip
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000001')).to.equal('0.01');
+    // 0 — zero is a whole number, no decimal point
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000000')).to.equal('0');
+    // 105 / 100 = 1.05 — internal zero in fraction, only trailing zeros stripped
+    expect(rc_question.getAnswerString(q, '0x0000000000000000000000000000000000000000000000000000000000000069')).to.equal('1.05');
+  });
+
   it('Leaves bytes32 strings unchanged except forced to lower case', function() {
     // We don't have a built-in type for this yet so just switch out the uint one
     var q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('uint'), '');
