@@ -2210,11 +2210,10 @@ async function main() {
         type:     pq.type     ?? undefined,
         category: pq.category ?? undefined,
         lang:     pq.lang     ?? undefined,
-        // Ponder doesn't store decimals; the only uint template uses 18.
-        ...(pq.type === 'uint' && { decimals: 18 }),
         ...(outcomes != null && { outcomes }),
       };
-      // Fetch template for format/title_html (markdown rendering) and type fallback.
+      // Fetch template for format/title_html (markdown rendering), type fallback, and decimals.
+      // Ponder doesn't index decimals, so we must read the actual value from the template JSON.
       let templateStr;
       try {
         templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
@@ -2225,6 +2224,7 @@ async function main() {
         }
         const full = populateTemplate(templateStr, pq.data);
         data.qjson.format = full.format;
+        if (full.decimals != null) data.qjson.decimals = full.decimals;
         if (full.title_html) {
           data.qjson.title_html = full.title_html;
           data.qjson.title_text = full.title_text;
