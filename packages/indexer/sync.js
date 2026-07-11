@@ -144,6 +144,35 @@ const ACTIVE_CHAINS = Object.fromEntries(
       '0xc9fbdf0df8de06ad8d2193f7fa28bda78c13a102', // ERC20 SWISE
       '0x934326a86a99dab25bb8329089ce73ed9c7c0e4a', // ERC20 POLK
     ]),
+    mkChain(137, 'polygon', 5_000, 15_610_082, [
+      '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', // v2.1
+      '0x60573b8dce539ae5bf9ad7932310668997ef0428', // v3.0
+      '0x83d3f4769a19f1b43337888b0290f5473cf508b2', // ERC20 POLK
+    ]),
+    mkChain(42161, 'arbitrum', 10_000, 112_029, [
+      '0x0edb4cb0b12523749c56ff24c4a09c0c1417f691', // v2.1
+      '0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9', // v3.0
+    ]),
+    mkChain(10, 'optimism', 10_000, 2_462_149, [
+      '0x0ef940f7f053a2ef5d6578841072488af0c7d89a', // v3.0
+    ]),
+    mkChain(8453, 'base', 10_000, 26_260_675, [
+      '0x2f39f464d16402ca3d8527da89617b73de2f60e8', // v3.0
+    ]),
+    mkChain(130, 'unichain', 10_000, 8_561_869, [
+      '0xb920dbede88b42aa77ee55ebce3671132ee856fc', // v3.0
+    ]),
+    mkChain(43114, 'avalanche', 5_000, 4_090_592, [
+      '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502', // v3.0
+    ]),
+    mkChain(42220, 'celo', 5_000, 31_954_377, [
+      '0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3', // v3.0
+    ]),
+    mkChain(11155111, 'sepolia', 10_000, 3_044_431, [
+      '0xaf33dcb6e8c5c4d9ddf579f53031b514d19449ca', // v3.0
+      '0xb7982f20cc159a40eba4b0ea86fd6cba6ff810e1', // v3.2
+      '0x8a5f1c6361e280348a59dac10160a88428ffbd51', // ERC20 BOND
+    ]),
   ].filter(Boolean).map(c => [c.chainId, c])
 );
 
@@ -580,12 +609,16 @@ async function main() {
 
   while (true) {
     for (const chain of Object.values(ACTIVE_CHAINS)) {
-      const mode = chainModes[chain.chainId] ?? 'active';
+      const mode = chainModes[chain.chainId] ?? 'lazy';
       if (mode === 'lazy') {
         const last = lastLazySyncAt[chain.chainId] ?? 0;
         if (Date.now() - last < LAZY_INTERVAL_MS) continue;
-      }
-      if (pendingRefresh.has(chain.chainId)) {
+        // Refresh sparse index before each lazy sync so we only hit blocks with events.
+        await refreshSparseIndex(chain).catch(e =>
+          console.error(`[${chain.name}] sparse refresh error:`, e.message)
+        );
+      } else if (pendingRefresh.has(chain.chainId)) {
+        // Refresh once on lazy→active transition before catching up.
         pendingRefresh.delete(chain.chainId);
         await refreshSparseIndex(chain).catch(e =>
           console.error(`[${chain.name}] sparse refresh error:`, e.message)
@@ -594,7 +627,7 @@ async function main() {
       await syncChain(pool, chain).catch(e =>
         console.error(`[${chain.name}] sync error:`, e.message)
       );
-      if ((chainModes[chain.chainId] ?? 'active') === 'lazy') {
+      if ((chainModes[chain.chainId] ?? 'lazy') === 'lazy') {
         lastLazySyncAt[chain.chainId] = Date.now();
       }
     }
