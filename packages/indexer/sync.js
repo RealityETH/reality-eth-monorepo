@@ -193,16 +193,25 @@ const TOPIC0_FILTER = ABI
 
 // ── RPC helpers ────────────────────────────────────────────────────────────────
 
-async function jsonrpc(url, method, params) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
-  const body = await res.json();
-  if (body.error) throw new Error(`${method}: ${JSON.stringify(body.error)}`);
-  return body.result;
+async function jsonrpc(url, method, params, retries = 4) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    });
+    if (res.status === 429) {
+      if (attempt >= retries) throw new Error(`${method}: HTTP 429 (rate limited)`);
+      const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s
+      console.warn(`Rate limited on ${method}, retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+      continue;
+    }
+    if (!res.ok) throw new Error(`${method}: HTTP ${res.status}`);
+    const body = await res.json();
+    if (body.error) throw new Error(`${method}: ${JSON.stringify(body.error)}`);
+    return body.result;
+  }
 }
 
 async function fetchLogs(chain, from, to) {
