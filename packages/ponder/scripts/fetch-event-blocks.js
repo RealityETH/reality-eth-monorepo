@@ -230,7 +230,8 @@ async function fetchContractBlocks(apiUrl, chainId, address, startBlock, apiKey)
     }
 
     if (data.status === '0') {
-      if (data.message === 'No records found') { process.stdout.write(' done (no records)\n'); break; }
+      const isEmpty = Array.isArray(data.result) && data.result.length === 0;
+      if (isEmpty) { process.stdout.write(` done (${data.message})\n`); break; }
       throw new Error(`API error: ${data.message} — ${JSON.stringify(data.result)}`);
     }
 
