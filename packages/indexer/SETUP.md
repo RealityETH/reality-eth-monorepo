@@ -1,36 +1,108 @@
 # Indexer setup
 
-## Log watcher nginx log file
+The custom indexer replaces Ponder's built-in event-fetching with a faster, chain-aware sync process. It consists of two Node.js scripts (`sync.js` and `log-watcher.js`) that write to the same PostgreSQL database Ponder reads from.
 
-The log watcher reads a dedicated nginx access log to detect which chains are being queried.
+See `packages/ponder/README.md` for a high-level architecture overview.
 
-### Create the log file
+## Prerequisites
 
-nginx writes as `www-data`. The log-watcher reads as the indexer user (currently `rcdev`).
+- Node.js 18+
+- PostgreSQL 14+ (same instance used by Ponder)
+- RPC URLs for each chain set in `packages/ponder/.env.local`
+- nginx proxying `/graphql` to Ponder's HTTP server (port 42070)
 
-```bash
-# Directory and file are owned by www-data so nginx can write to them.
-# Indexer user gets read access via group membership.
-sudo chown www-data:rcdev /srv/rcdev/reality-eth-design/packages/indexer/logs
-sudo chmod 750 /srv/rcdev/reality-eth-design/packages/indexer/logs
-sudo touch /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
-sudo chown www-data:rcdev /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
-sudo chmod 640 /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
-```
+## 1. Database schema
 
-Replace `rcdev` with the actual indexer user if deploying under a different account.
-
-If a dedicated group is preferred over using the indexer user's primary group:
+If starting from a fresh database, apply the schema:
 
 ```bash
-sudo groupadd reality-logs
-sudo usermod -aG reality-logs <indexer-user>
-# Then substitute reality-logs for rcdev in the chown commands above.
+psql "$DATABASE_URL" -f schema.sql
 ```
 
-### nginx config
+`schema.sql` creates the `reality` schema with tables for questions, responses, templates, claims, and sync state. It is safe to run on an existing database (all statements use `CREATE TABLE IF NOT EXISTS`).
 
-Add a second `access_log` line to the graphql location block in the site config:
+## 2. Seed initial data (optional)
+
+The seed script pre-populates the sparse block index from block explorer APIs before the first sync. This avoids expensive full-range `eth_getLogs` scans on first run.
+
+```bash
+node seed.js <chain_id>
+# e.g. node seed.js 137   (polygon)
+```
+
+You can also run `fetch-event-blocks.js` directly for any chain:
+
+```bash
+node ../ponder/scripts/fetch-event-blocks.js polygon
+```
+
+## 3. Start the indexer
+
+```bash
+node sync.js
+```
+
+`sync.js` reads RPC URLs from `packages/ponder/.env.local`, writes a PID file at `sync.pid`, and starts syncing all configured chains. On startup it refreshes the sparse block index for every currently-active chain before syncing.
+
+Relevant environment variables (set in `.env.local`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `POLL_MS` | 30000 | How often (ms) active chains are polled |
+| `LAZY_INTERVAL_MS` | 86400000 | How often (ms) lazy chains are synced (default 24 h) |
+| `BATCH_SIZE_{chainId}` | per-chain default | Override `eth_getLogs` range size for a specific chain |
+
+## 4. Start the log watcher
+
+```bash
+node log-watcher.js
+```
+
+The log watcher tails the nginx access log, detects which chain IDs are being queried, and writes `sync-config.json` when a chain's mode should change. It then sends `SIGHUP` to `sync.js` so it reloads config without restarting.
+
+### watcher-config.json
+
+```json
+{
+  "log_path": "/path/to/logs/graphql-access.log",
+  "always_active_chains": [1, 100],
+  "active_duration_hours": 2,
+  "min_requests_to_activate": 1,
+  "min_distinct_ips": 1,
+  "window_minutes": 60
+}
+```
+
+| Field | Description |
+|---|---|
+| `always_active_chains` | Chain IDs that are always in active mode (mainnet, Gnosis) |
+| `active_duration_hours` | How long a chain stays active after the last qualifying request |
+| `min_requests_to_activate` | Minimum requests in the window before a chain is promoted to active |
+| `min_distinct_ips` | Minimum distinct source IPs (helps filter automated/griefing traffic) |
+| `window_minutes` | Sliding window for the request count and IP checks |
+
+### sync-config.json
+
+Written at runtime by `log-watcher.js`. Do not edit by hand while the watcher is running. It is gitignored. Example:
+
+```json
+{
+  "chains": {
+    "1":   { "mode": "active" },
+    "100": { "mode": "active" },
+    "137": { "mode": "active", "active_until": 1783771098182 }
+  }
+}
+```
+
+Chains not listed default to lazy mode. `active_until` is a millisecond timestamp; the watcher uses it to revert chains to lazy on expiry, and `sync.js` ignores it (mode is what matters).
+
+## 5. nginx config
+
+The nginx location block must:
+
+1. Strip the optional chain-ID suffix before proxying (Ponder only listens on `/graphql`)
+2. Write to a dedicated access log the watcher can read
 
 ```nginx
 location ~ ^/graphql(?:/([\d,]+))?$ {
@@ -42,22 +114,44 @@ location ~ ^/graphql(?:/([\d,]+))?$ {
 }
 ```
 
-The existing server-level `access_log` is unaffected; this is an additional log containing only GraphQL requests.
+The chain IDs in URLs like `/graphql/1,100` are extracted by the log watcher from this log. The rewrite strips them before they reach Ponder.
 
-No logrotate changes are needed — the file is outside `/var/log/nginx/` so the nginx logrotate stanza ignores it.
+### Log file permissions
 
-### watcher-config.json
-
-`log_path` should match the path above. `always_active_chains` lists chains that are never put into lazy mode regardless of traffic. Tune `active_duration_hours`, `min_requests_to_activate`, and `min_distinct_ips` to taste once you have a feel for real traffic patterns.
-
-### Running
+nginx writes as `www-data`. The log-watcher reads as the indexer user (`rcdev`). Set up permissions once:
 
 ```bash
-# Start the indexer (writes sync.pid)
-node sync.js
-
-# Start the log watcher (reads sync.pid to signal sync.js)
-node log-watcher.js
+sudo chown www-data:rcdev /srv/rcdev/reality-eth-design/packages/indexer/logs
+sudo chmod 750 /srv/rcdev/reality-eth-design/packages/indexer/logs
+sudo touch /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
+sudo chown www-data:rcdev /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
+sudo chmod 640 /srv/rcdev/reality-eth-design/packages/indexer/logs/graphql-access.log
 ```
 
-Both processes should be run as the indexer user and managed by systemd (see `reality-eth-ponder.service` for a template).
+Replace `rcdev` with the actual indexer user. The log is outside `/var/log/nginx/` so it is not subject to nginx's logrotate stanza.
+
+## Systemd
+
+Both processes should be managed by systemd. Use `packages/ponder/reality-eth-ponder.service` as a template. Key points:
+
+- Both scripts read `packages/ponder/.env.local` at startup (dotenv).
+- `sync.js` must start before `log-watcher.js` (the watcher needs `sync.pid` to signal it).
+- `sync.js` handles `SIGHUP` gracefully (reloads `sync-config.json`); `SIGTERM` causes a clean exit.
+
+## Sparse block index
+
+`known-event-blocks.json` and `known-event-blocks-meta.json` (in `packages/ponder/`) list every block that has a reality.eth event per chain, plus a high-water mark per contract. `sync.js` uses these below the HWM to fetch only the specific blocks that had events, instead of scanning full 5000-block ranges.
+
+The index is refreshed automatically:
+- Before each daily lazy sync
+- On each lazy→active transition (so catch-up after activation only hits real event blocks)
+- On startup for every currently-active chain
+
+To rebuild the index manually for a chain:
+
+```bash
+node ../ponder/scripts/fetch-event-blocks.js <chain_name>
+# e.g. node ../ponder/scripts/fetch-event-blocks.js polygon
+```
+
+This queries block explorer APIs (Etherscan, Blockscout, etc.) and requires `ETHERSCAN_API_KEY` to be set in `.env.local`.
