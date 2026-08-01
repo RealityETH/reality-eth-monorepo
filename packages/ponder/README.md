@@ -27,6 +27,7 @@ See `packages/indexer/SETUP.md` for full setup instructions.
 | Optimism | 10 | v3.0 |
 | Base | 8453 | v3.0 |
 | Unichain | 130 | v3.0 |
+| BNB Smart Chain | 56 | v2.1, v3.0, ERC20 (DEXE) |
 | Avalanche | 43114 | v3.0 |
 | Celo | 42220 | v3.0 |
 | Sepolia | 11155111 | v3.0, v3.2, ERC20 (BOND) |
@@ -35,7 +36,7 @@ Avalanche and Celo are indexed by `sync.js` but **not** covered by `ponder.confi
 
 ## Lazy / active sync modes
 
-Chains default to **lazy** mode: sync once a day using the block explorer sparse index (only blocks known to have events are fetched, avoiding wide empty `eth_getLogs` ranges). Mainnet and Gnosis are always **active** (poll every 30 s).
+Chains default to **lazy** mode: sync every 6 hours using the block explorer sparse index (only blocks known to have events are fetched, avoiding wide empty `eth_getLogs` ranges). Mainnet and Gnosis are always **active** (poll every 30 s).
 
 The log-watcher promotes any chain to active for two hours after detecting real traffic to `/graphql/{chain_id}` in the nginx access log. This is configured in `packages/indexer/watcher-config.json`.
 
@@ -89,10 +90,13 @@ Set in `.env.local` (shared by Ponder and sync.js):
 | `DATABASE_URL` | PostgreSQL connection string |
 | `PONDER_RPC_URL_{chainId}` | Narrow (Alchemy) RPC — used for `eth_blockNumber` and per-block fetches |
 | `PONDER_RPC_URL_{chainId}_WIDE` | Wide (Infura) RPC — used for `eth_getLogs` range queries |
+| `PONDER_RPC_URL_{chainId}_LOCAL` | Local node URL (tried first; falls back to Alchemy on network errors) |
 | `PONDER_RPC_MAX_RPS_{chainId}` | Optional RPC rate cap for specific chains |
 | `PONDER_DISABLE` | Comma-separated chain names to exclude from Ponder (e.g. `polygon,unichain`) |
 | `ETHERSCAN_API_KEY` | For `fetch-event-blocks.js` block explorer queries |
 | `INFURA_API_KEY` | Used in wide RPC URLs |
+| `SPARSE_DELAY_{chainId}` | ms delay between per-block sparse fetches (throttle slow/rate-limited endpoints) |
+| `BATCH_DELAY_{chainId}` | ms delay between `eth_getLogs` range batches |
 
 ## Ponder binary patch
 

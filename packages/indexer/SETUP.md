@@ -49,8 +49,12 @@ Relevant environment variables (set in `.env.local`):
 | Variable | Default | Description |
 |---|---|---|
 | `POLL_MS` | 30000 | How often (ms) active chains are polled |
-| `LAZY_INTERVAL_MS` | 86400000 | How often (ms) lazy chains are synced (default 24 h) |
+| `LAZY_INTERVAL_MS` | 21600000 | How often (ms) lazy chains are synced (default 6 h) |
 | `BATCH_SIZE_{chainId}` | per-chain default | Override `eth_getLogs` range size for a specific chain |
+| `PONDER_RPC_URL_{chainId}_LOCAL` | — | Local node URL tried first; fallback on network errors only |
+| `SPARSE_DELAY_{chainId}` | 0 | ms delay between per-block sparse fetches (throttle slow endpoints) |
+| `BATCH_DELAY_{chainId}` | 0 | ms delay between `eth_getLogs` range batches |
+| `LOCAL_TIMEOUT_MS` | 120000 | Abort timeout for localhost RPC requests (handles HDD stalls) |
 
 ## 4. Start the log watcher
 
@@ -143,7 +147,7 @@ Both processes should be managed by systemd. Use `packages/ponder/reality-eth-po
 `known-event-blocks.json` and `known-event-blocks-meta.json` (in `packages/ponder/`) list every block that has a reality.eth event per chain, plus a high-water mark per contract. `sync.js` uses these below the HWM to fetch only the specific blocks that had events, instead of scanning full 5000-block ranges.
 
 The index is refreshed automatically:
-- Before each daily lazy sync
+- Before each 6 h lazy sync
 - On each lazy→active transition (so catch-up after activation only hits real event blocks)
 - On startup for every currently-active chain
 
@@ -155,3 +159,29 @@ node ../ponder/scripts/fetch-event-blocks.js <chain_name>
 ```
 
 This queries block explorer APIs (Etherscan, Blockscout, etc.) and requires `ETHERSCAN_API_KEY` to be set in `.env.local`.
+
+**BNB exception:** BscScan no longer offers a free API key, so `fetch-event-blocks.js` is skipped for `bnb`. The sparse index was seeded manually from CSV exports downloaded from BscScan in a browser. For future re-seeding, export transaction history CSVs for each contract and run:
+
+```bash
+awk -F',' 'FNR>1{gsub(/"/, "", $4); print $4}' *.csv | sort -nu > bsc_blocks.txt
+```
+
+Then add the blocks to `known-event-blocks.json` / `known-event-blocks-meta.json` by hand or via a one-off script.
+
+## One-shot mode
+
+To sync specific chains and exit (without starting the daemon or writing a PID file):
+
+```bash
+node sync.js <chain> [<chain2> ...]
+# e.g. node sync.js sepolia mainnet
+```
+
+To refresh the sparse index first, then sync (recommended when a chain's HWM is far behind the current tip):
+
+```bash
+node sync.js --refresh <chain> [<chain2> ...]
+# e.g. node sync.js --refresh arbitrum optimism
+```
+
+Without `--refresh`, everything above the stored HWM is scanned in full `eth_getLogs` ranges. With `--refresh`, the HWM is advanced to the current tip via the block explorer API first, so only the short tail needs range scanning.

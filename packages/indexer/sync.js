@@ -25,8 +25,9 @@ const ABI = JSON.parse(
   readFileSync(join(__dir, '../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json'), 'utf8')
 );
 
-const POLL_MS          = Number(process.env.POLL_MS)          || 30_000;
-const LAZY_INTERVAL_MS = Number(process.env.LAZY_INTERVAL_MS) || 24 * 60 * 60 * 1000;
+const POLL_MS            = Number(process.env.POLL_MS)            || 30_000;
+const LAZY_INTERVAL_MS   = Number(process.env.LAZY_INTERVAL_MS)   || 6 * 60 * 60 * 1000;
+const LOCAL_TIMEOUT_MS   = Number(process.env.LOCAL_TIMEOUT_MS)   || 120_000;
 const CONFIG_PATH      = join(__dir, 'sync-config.json');
 const PID_PATH         = join(__dir, 'sync.pid');
 
@@ -56,7 +57,14 @@ function loadConfig() {
 
 const FETCH_EVENT_BLOCKS = join(__dir, '../ponder/scripts/fetch-event-blocks.js');
 
+// Chains whose sparse index is manually seeded (no block explorer API available).
+const NO_EXPLORER_REFRESH = new Set(['bnb']);
+
 async function refreshSparseIndex(chain) {
+  if (NO_EXPLORER_REFRESH.has(chain.name)) {
+    console.log(`[${chain.name}] sparse index refresh skipped (no block explorer API)`);
+    return;
+  }
   console.log(`[${chain.name}] refreshing sparse index...`);
   await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [FETCH_EVENT_BLOCKS, chain.name], {
@@ -115,13 +123,17 @@ function getKnownBlocksInRange(sorted, from, to) {
 // Override per chain via BATCH_SIZE_{chainId} env var.
 
 function mkChain(id, name, batchDefault, startBlock, addresses) {
+  const local  = process.env[`PONDER_RPC_URL_${id}_LOCAL`];
   const narrow = process.env[`PONDER_RPC_URL_${id}`];
   const wide   = process.env[`PONDER_RPC_URL_${id}_WIDE`] || narrow;
   if (!narrow) return null;
   return {
     chainId: id, name,
-    narrowUrl: narrow, wideUrl: wide,
-    batchSize: Number(process.env[`BATCH_SIZE_${id}`]) || batchDefault,
+    narrowUrls: [local, narrow].filter(Boolean),
+    wideUrls:   [local, wide].filter(Boolean),
+    batchSize:   Number(process.env[`BATCH_SIZE_${id}`])   || batchDefault,
+    sparseDelay: Number(process.env[`SPARSE_DELAY_${id}`]) || 0,
+    batchDelay:  Number(process.env[`BATCH_DELAY_${id}`])  || 0,
     startBlock, addresses,
   };
 }
@@ -175,6 +187,11 @@ const ACTIVE_CHAINS = Object.fromEntries(
       '0xb7982f20cc159a40eba4b0ea86fd6cba6ff810e1', // v3.2
       '0x8a5f1c6361e280348a59dac10160a88428ffbd51', // ERC20 BOND
     ]),
+    mkChain(56, 'bnb', 10_000, 7_962_044, [
+      '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', // v2.1
+      '0xa925646cae3721731f9a8c886e5d1a7b123151b9', // v3.0
+      '0x95f8fc16c7bd5a5b24cae629471c6ccc3916826a', // ERC20 DEXE
+    ]),
   ].filter(Boolean).map(c => [c.chainId, c])
 );
 
@@ -195,30 +212,101 @@ const TOPIC0_FILTER = ABI
 
 // ── RPC helpers ────────────────────────────────────────────────────────────────
 
-async function jsonrpc(url, method, params, retries = 4) {
+function isNetworkError(e) {
+  const m = e.message;
+  return m.includes('timed out') || m.includes('fetch failed') ||
+         m.includes('ECONNREFUSED') || m.includes('ECONNRESET') || m.includes('ETIMEDOUT');
+}
+
+// Per-host earliest-next-request timestamp. A 429 doubles the minimum gap and
+// sets this forward, so the next call (even a different one) waits it out.
+const hostThrottle = new Map(); // host → { nextAllowedMs, gapMs }
+
+async function waitForHostThrottle(host) {
+  const t = hostThrottle.get(host);
+  if (!t) return;
+  const wait = t.nextAllowedMs - Date.now();
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+}
+
+function onHostSuccess(host) {
+  const t = hostThrottle.get(host);
+  if (!t || t.gapMs <= 1000) return;
+  t.successStreak = (t.successStreak ?? 0) + 1;
+  if (t.successStreak >= 5) {
+    t.gapMs = Math.max(1000, Math.floor(t.gapMs / 2));
+    t.successStreak = 0;
+  }
+}
+
+function onHost429(host) {
+  const t = hostThrottle.get(host) ?? { gapMs: 1000 };
+  t.gapMs = Math.min(t.gapMs * 2, 60_000); // double up to 60s
+  t.nextAllowedMs = Date.now() + t.gapMs;
+  t.successStreak = 0;
+  hostThrottle.set(host, t);
+  console.warn(`[${host}] 429 — backing off ${t.gapMs}ms (persists across calls)`);
+}
+
+// Single-URL jsonrpc call. Respects the per-host throttle state so backoff
+// carries over between successive calls, not just within one retry loop.
+// Applies a hard timeout to localhost requests (HDD may stall on wide ranges).
+async function jsonrpcOne(url, method, params) {
   const host = new URL(url).hostname;
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-    });
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  for (;;) {
+    await waitForHostThrottle(host);
+    const controller = new AbortController();
+    const timer = isLocal ? setTimeout(() => controller.abort(), LOCAL_TIMEOUT_MS) : null;
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      clearTimeout(timer);
+      if (e.name === 'AbortError') throw new Error(`${method} (${host}): timed out after ${LOCAL_TIMEOUT_MS}ms`);
+      throw e;
+    }
+    clearTimeout(timer);
     if (res.status === 429) {
-      if (attempt >= retries) throw new Error(`${method} (${host}): HTTP 429 (rate limited, gave up after ${retries} retries)`);
-      const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s
-      console.warn(`Rate limited: ${method} on ${host}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})...`);
-      await new Promise(r => setTimeout(r, delay));
+      onHost429(host);
       continue;
     }
     if (!res.ok) throw new Error(`${method} (${host}): HTTP ${res.status}`);
     const body = await res.json();
     if (body.error) throw new Error(`${method} (${host}): ${body.error.code} ${body.error.message}`);
+    onHostSuccess(host);
     return body.result;
   }
 }
 
-async function fetchLogs(chain, from, to, url = chain.wideUrl) {
-  return jsonrpc(url, 'eth_getLogs', [{
+// Try each URL in order; fall back on network/timeout errors only.
+// API errors (range too wide, etc.) are thrown immediately — 429s are handled
+// inside jsonrpcOne via the persistent per-host throttle.
+async function jsonrpc(urlOrUrls, method, params) {
+  const urls = Array.isArray(urlOrUrls) ? urlOrUrls : [urlOrUrls];
+  let lastError;
+  for (const url of urls) {
+    try {
+      return await jsonrpcOne(url, method, params);
+    } catch (e) {
+      lastError = e;
+      if (isNetworkError(e) && url !== urls[urls.length - 1]) {
+        console.warn(`[${new URL(url).hostname}] ${e.message.split('\n')[0]} — trying fallback...`);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastError;
+}
+
+async function fetchLogs(chain, from, to, urls = chain.wideUrls) {
+  return jsonrpc(urls, 'eth_getLogs', [{
     fromBlock: '0x' + from.toString(16),
     toBlock:   '0x' + to.toString(16),
     address:   chain.addresses,
@@ -227,7 +315,7 @@ async function fetchLogs(chain, from, to, url = chain.wideUrl) {
 }
 
 async function getBlockNumber(chain) {
-  return parseInt(await jsonrpc(chain.narrowUrl, 'eth_blockNumber', []), 16);
+  return parseInt(await jsonrpc(chain.narrowUrls, 'eth_blockNumber', []), 16);
 }
 
 // Fetch timestamps for a set of block numbers, 5 at a time with a delay between
@@ -238,7 +326,7 @@ async function fetchBlockTimestamps(chain, blockNums) {
     if (i > 0) await new Promise(r => setTimeout(r, 200));
     const chunk = blockNums.slice(i, i + 5);
     const blocks = await Promise.all(
-      chunk.map(n => jsonrpc(chain.narrowUrl, 'eth_getBlockByNumber',
+      chunk.map(n => jsonrpc(chain.narrowUrls, 'eth_getBlockByNumber',
         ['0x' + n.toString(16), false]))
     );
     for (let j = 0; j < chunk.length; j++) {
@@ -537,7 +625,11 @@ async function syncChain(pool, chain) {
   const hwm         = SPARSE.hwm[chain.name]    ?? 0;
 
   let synced = fromBlock;
+  let firstBatch = true;
   while (synced <= headBlock) {
+    if (chain.batchDelay && !firstBatch)
+      await new Promise(r => setTimeout(r, chain.batchDelay));
+    firstBatch = false;
     const to = Math.min(synced + chain.batchSize - 1, headBlock);
 
     let logs;
@@ -555,8 +647,11 @@ async function syncChain(pool, chain) {
         continue;
       }
       const parts = [];
-      // Use narrowUrl (Alchemy) for per-block fetches — wideUrl (Infura) has lower rate limits.
-      for (const b of targets) parts.push(...await fetchLogs(chain, b, b, chain.narrowUrl));
+      for (let i = 0; i < targets.length; i++) {
+        if (chain.sparseDelay && i > 0)
+          await new Promise(r => setTimeout(r, chain.sparseDelay));
+        parts.push(...await fetchLogs(chain, targets[i], targets[i], chain.narrowUrls));
+      }
       logs = parts;
     } else {
       // Above HWM: sparse index not yet complete — fetch full range.
@@ -624,6 +719,34 @@ async function syncChain(pool, chain) {
 }
 
 async function main() {
+  const argv     = process.argv.slice(2);
+  const refresh  = argv.includes('--refresh');
+  const requested = argv.filter(a => !a.startsWith('--'));
+
+  if (requested.length > 0) {
+    // One-shot mode: sync the named chains once and exit.
+    const unknown = requested.filter(n => !Object.values(ACTIVE_CHAINS).some(c => c.name === n));
+    if (unknown.length) {
+      console.error('Unknown chains:', unknown.join(', '));
+      console.error('Available:', Object.values(ACTIVE_CHAINS).map(c => c.name).join(', '));
+      process.exit(1);
+    }
+    const chains = Object.values(ACTIVE_CHAINS).filter(c => requested.includes(c.name));
+    const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+    for (const chain of chains) {
+      if (refresh) {
+        await refreshSparseIndex(chain).catch(e =>
+          console.error(`[${chain.name}] sparse refresh error:`, e.message)
+        );
+      }
+      await syncChain(pool, chain).catch(e =>
+        console.error(`[${chain.name}] sync error:`, e.message)
+      );
+    }
+    await pool.end();
+    return;
+  }
+
   writeFileSync(PID_PATH, String(process.pid));
   const cleanup = () => { try { unlinkSync(PID_PATH); } catch {} };
   process.on('exit',   cleanup);
