@@ -1396,6 +1396,510 @@
 <script defer src="js/settings.js"></script>
 <script defer src="js/question-cache.js"></script>
 <script defer src="js/watches.js"></script>
+<style id="heritage-theme">
+/* ── Heritage theme override ── */
+:root {
+  --bg:           #ffffff;
+  --bg-card:      #f7f9fa;
+  --bg-card-hover:#edf1f4;
+  --border:       #c8d4db;
+  --border-subtle:#e4eaee;
+  --text:         #333333;
+  --text-muted:   #5a6d7a;
+  --text-dim:     #8fa0ad;
+  --accent:       #27b4ee;
+  --accent-subtle:rgba(39,180,238,0.1);
+  --green:        #2e7d32;
+  --green-subtle: rgba(46,125,50,0.12);
+  --amber:        #7a4000;
+  --amber-subtle: rgba(122,64,0,0.1);
+  --red:          #8b0000;
+  --red-subtle:   rgba(139,0,0,0.08);
+  --purple:       #5b21b6;
+  --purple-subtle:rgba(91,33,182,0.1);
+  --navy:         #2c3a49;
+  --navy2:        #1e2b37;
+  --teal:         #27b4ee;
+  --lime:         #b5de27;
+  --radius:       4px;
+  --radius-sm:    3px;
+}
+
+/* ── Header: white shell, navy bar contained within content width ── */
+header { position: static !important; }
+header {
+  background: var(--bg) !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  padding: 0 20px !important;
+}
+.header-inner {
+  background: var(--navy);
+  border-radius: 0;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 1160px !important;
+  padding: 0 20px !important;
+  height: 52px !important;
+  gap: 6px !important;
+}
+.page { max-width: 1160px !important; }
+/* Reorder header items to match mockup: Logo | Nav | [spacer] | Search | Indicators | Bell | Wallet */
+.logo           { order: 1 !important; margin-right: 8px !important; }
+.header-nav     { order: 2 !important; }
+.search-wrap    { order: 3 !important; margin-left: auto !important; flex: none !important; width: 200px !important; }
+#data-ind-group { order: 4 !important; }
+.bell-btn       { order: 5 !important; }
+#wallet-btn     { order: 6 !important; margin-left: 0 !important; }
+@media (max-width: 950px) { .header-nav { display: none !important; } }
+@media (max-width: 750px) { .search-wrap { display: none !important; } }
+
+.logo { color: #fff !important; }
+.nav-link { color: rgba(255,255,255,0.85) !important; }
+.nav-link:hover { color: var(--teal) !important; }
+.search-input {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+}
+.search-input::placeholder { color: rgba(255,255,255,0.4) !important; }
+.search-input:focus { border-color: var(--teal) !important; }
+.search-wrap svg { color: rgba(255,255,255,0.4) !important; }
+.data-ind { color: rgba(255,255,255,0.45) !important; }
+.data-ind-ponder.active { color: var(--teal) !important; background: rgba(39,180,238,0.15) !important; }
+.data-ind-rpc.active    { color: var(--lime) !important; background: rgba(181,222,39,0.15) !important; }
+.data-ind-cache.active, .data-ind-cache.hit { color: rgba(255,255,255,0.8) !important; background: rgba(255,255,255,0.1) !important; }
+.bell-btn { color: rgba(255,255,255,0.6) !important; }
+.bell-btn:hover { color: #fff !important; background: rgba(255,255,255,0.08) !important; }
+#wallet-btn {
+  background: linear-gradient(to bottom, var(--teal), #0aaae8) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+}
+#wallet-btn:hover { opacity: 0.9 !important; }
+#wallet-btn.connected {
+  background: none !important;
+  border-color: rgba(46,125,50,0.5) !important;
+  color: var(--green) !important;
+}
+
+/* ── Footer: white shell, navy bar contained ── */
+.site-footer {
+  border-top: none !important;
+  background: var(--bg) !important;
+  padding: 0 20px !important;
+  margin-top: 24px !important;
+}
+.footer-inner {
+  background: var(--navy2) !important;
+  max-width: 1160px !important;
+  margin: 0 auto !important;
+  height: 52px !important;
+  padding: 0 20px !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+.footer-copy, .footer-copy a,
+.footer-links a { color: rgba(255,255,255,0.7) !important; transition: color 0.1s; }
+.footer-copy a:hover,
+.footer-links a:hover { color: var(--teal) !important; }
+
+/* ── Page intro: plain text, no box or stripe ── */
+.page-intro {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  border-radius: 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  padding: 0 0 12px !important;
+  margin-bottom: 20px !important;
+}
+.page-intro a { color: var(--teal) !important; }
+
+/* ── Section headings ── */
+.section-heading {
+  align-items: center !important;
+  margin-bottom: 10px !important;
+}
+.section-heading h2 {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  color: var(--text-dim) !important;
+  white-space: nowrap !important;
+}
+.section-heading::after {
+  content: '' !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: var(--border) !important;
+  display: block !important;
+}
+.section-heading .sub { display: none !important; }
+.section-heading .see-all {
+  font-size: 11px !important;
+  order: 99 !important;
+  margin-left: 8px !important;
+  white-space: nowrap !important;
+}
+.recent-header {
+  align-items: center !important;
+  margin-bottom: 0 !important;
+}
+.recent-header h2 {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  color: var(--text-dim) !important;
+}
+
+/* ── App grid: flush with gap-as-border technique ── */
+.app-grid {
+  gap: 1px !important;
+  background: var(--border-subtle) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+  margin-bottom: 20px !important;
+}
+.app-card {
+  background: var(--bg) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 10px 12px !important;
+  gap: 2px !important;
+}
+.app-card:hover { background: var(--bg-card) !important; }
+/* Hide icon row entirely */
+.app-card-top { display: none !important; }
+/* Compact name */
+.app-card-name { font-size: 12px !important; font-weight: 600 !important; margin-bottom: 2px !important; color: var(--navy) !important; }
+/* Compact description */
+.app-card-desc { font-size: 11px !important; color: var(--text-muted) !important; line-height: 1.35 !important; margin-bottom: 6px !important; }
+/* Compact stats */
+.app-card-stats { padding-top: 6px !important; border-top-color: var(--border-subtle) !important; gap: 8px !important; align-items: center !important; }
+/* Dev guide link in bottom-right of stats row */
+.app-card-stats .app-card-guide { margin-left: auto !important; align-self: flex-end !important; font-size: 10px !important; opacity: 0.7 !important; }
+.stat-val { font-size: 12px !important; font-weight: 600 !important; }
+.stat-val.open { color: var(--green) !important; }
+.stat-val.total { color: var(--text-dim) !important; }
+.stat-label { font-size: 10px !important; }
+/* More card */
+.app-card.more { background: var(--bg-card) !important; min-height: 80px !important; }
+.app-card.more:hover { background: var(--bg-card-hover) !important; }
+.more-count { font-size: 18px !important; }
+
+/* ── Filter tabs: underline style instead of pills ── */
+.filter-bars { border-bottom: 2px solid var(--border) !important; margin-bottom: 2px !important; }
+.filter-bar { gap: 0 !important; }
+.filter-sep { display: none !important; }
+.sort-select { margin-bottom: 4px !important; }
+.filter-btn {
+  border-radius: 0 !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -2px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  color: var(--text-muted) !important;
+  background: none !important;
+}
+.filter-btn:hover { color: var(--text) !important; background: none !important; }
+.filter-btn.active {
+  color: var(--teal) !important;
+  border-bottom-color: var(--teal) !important;
+  background: none !important;
+  font-weight: 600 !important;
+}
+
+/* ── Question cards: flat rows, consistent height ── */
+.q-list { gap: 0 !important; margin-top: 8px !important; }
+.q-card {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  background: var(--bg) !important;
+  padding: 0 !important;
+}
+.q-card:first-child { border-top: 1px solid var(--border-subtle) !important; }
+.q-card:hover { background: var(--bg-card) !important; }
+
+/* Single-row table: status | chain | question | bond | answer */
+.q-card-main {
+  display: grid !important;
+  grid-template-columns: 58px 84px 1fr 72px 110px !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  gap: 0 !important;
+  min-height: 42px !important;
+}
+
+/* Dissolve q-meta so badges become direct grid children */
+.q-meta { display: contents !important; }
+
+/* App badge: hidden */
+.q-meta .badge-app { display: none !important; }
+
+/* Status chip → col 1; badge element is transparent, chip lives on ::after */
+.q-meta .badge-final,
+.q-meta .badge-open,
+.q-meta .badge-arb,
+.q-meta .badge-upcoming {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
+  font-size: 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+}
+.q-meta .badge-final::after {
+  content: 'Final';
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 6px; border-radius: 2px;
+  background: var(--border-subtle); color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.q-meta .badge-open::after {
+  content: 'Open';
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 6px; border-radius: 2px;
+  background: rgba(181,222,39,0.18); color: #4a6000;
+  border: 1px solid rgba(181,222,39,0.45);
+}
+.q-meta .badge-arb::after {
+  content: 'Arb.';
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 6px; border-radius: 2px;
+  background: var(--amber-subtle); color: var(--amber);
+  border: 1px solid #f5d8b0;
+}
+.q-meta .badge-upcoming::after {
+  content: 'Pend.';
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 6px; border-radius: 2px;
+  background: var(--border-subtle); color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+/* Chain badge → col 2 */
+.q-meta .badge-chain {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  font-size: 11px !important;
+  padding: 0 8px !important;
+  border-radius: 0 !important;
+  background: none !important;
+  border: none !important;
+  color: var(--text-muted) !important;
+  font-weight: 400 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Hide warn icon */
+.q-warn-icon { display: none !important; }
+
+/* Question text */
+.q-text {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin-bottom: 0 !important;
+  padding: 0 10px 0 0 !important;
+  line-height: 1.4 !important;
+}
+.q-text.q-text-md p  { display: inline !important; }
+.q-text.q-text-md h1,
+.q-text.q-text-md h2,
+.q-text.q-text-md hr { display: none !important; }
+
+/* Make footer disappear as a box so bond and time become direct grid children */
+.q-footer { display: contents !important; }
+/* Bond → column 4 */
+.q-bond {
+  grid-column: 4 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  padding-right: 8px !important;
+  color: transparent !important;    /* hides "Bond:" / "Min bond:" text */
+  font-size: 11px !important;
+  white-space: nowrap !important;
+}
+.q-bond-amount { font-size: 11px !important; font-weight: 600 !important; color: var(--text-muted) !important; }
+/* Age column removed — hide all time labels in question cards */
+.q-card .q-time { display: none !important; }
+
+/* Answer column: value only */
+.q-answer-side {
+  grid-column: 5 !important;
+  grid-row: 1 !important;
+  margin: 0 !important;
+  padding: 8px 14px !important;
+  align-self: stretch !important;
+  border-left-color: var(--border-subtle) !important;
+  position: relative !important;
+}
+.answer-val {
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+.q-answer-time { display: none !important; }
+
+/* ── Integration colour stripes on question rows ── */
+.q-card { box-shadow: inset 3px 0 0 var(--integ-color, var(--border-subtle)) !important; }
+
+/* ── Status stripes on account q-items ── */
+.q-item:has(.badge-open)  { box-shadow: inset 3px 0 0 var(--lime) !important; }
+.q-item:has(.badge-arb)   { box-shadow: inset 3px 0 0 #e0a040 !important; }
+.q-item:has(.badge-final) { box-shadow: inset 3px 0 0 var(--border) !important; }
+
+/* ── Load more ── */
+.load-more-btn {
+  border-color: var(--teal) !important;
+  color: var(--teal) !important;
+}
+.load-more-btn:hover { background: var(--accent-subtle) !important; }
+
+/* ── Question page ── */
+
+/* Badges: compact square chips (not pills) */
+#question-page .badge {
+  border-radius: 2px !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+}
+#question-page .badge-open {
+  background: rgba(181,222,39,0.18) !important;
+  color: #4a6000 !important;
+  border: 1px solid rgba(181,222,39,0.45) !important;
+}
+#question-page .badge-final {
+  background: var(--border-subtle) !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border) !important;
+}
+#question-page .badge-upcoming {
+  background: var(--border-subtle) !important;
+  color: var(--text-dim) !important;
+  border: 1px solid var(--border) !important;
+}
+#question-page .badge-chain {
+  background: none !important;
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border) !important;
+  font-weight: 400 !important;
+}
+#question-page .badge-type,
+#question-page .badge-app {
+  background: none !important;
+  color: var(--text-dim) !important;
+  border: 1px solid var(--border-subtle) !important;
+  font-weight: 400 !important;
+}
+
+/* Watch/star button: bordered chip */
+#question-page .star-btn {
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text-muted) !important;
+  padding: 3px 10px !important;
+  font-size: 12px !important;
+  margin-left: auto !important;
+  transform: none !important;
+}
+#question-page .star-btn:hover { border-color: var(--teal) !important; color: var(--teal) !important; }
+#question-page .star-btn.starred { border-color: var(--amber) !important; color: var(--amber) !important; transform: none !important; }
+
+/* Cards: white background */
+#question-page .card { background: var(--bg) !important; }
+
+/* Wallet-locked prompt: horizontal inline bar */
+.interact-locked {
+  flex-direction: row !important;
+  padding: 8px 12px !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 3px !important;
+  text-align: left !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+.lock-icon {
+  width: 16px !important;
+  height: 16px !important;
+  background: none !important;
+  border-radius: 0 !important;
+  color: var(--text-dim) !important;
+  flex-shrink: 0 !important;
+}
+.lock-icon svg { width: 16px !important; height: 16px !important; }
+.lock-text { font-size: 12px !important; text-align: left !important; }
+
+/* Answer banner: large value text on accent-bordered card, no colored bg box */
+#answer-banner { border-left: 4px solid var(--border) !important; }
+#answer-banner:has(.answer-banner-yes) { border-left-color: var(--lime) !important; }
+#answer-banner:has(.answer-banner-no)  { border-left-color: var(--accent) !important; }
+#answer-banner .card-title { margin-bottom: 6px !important; }
+.answer-banner-value {
+  font-size: 26px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  border: none !important;
+  display: block !important;
+  margin-bottom: 6px !important;
+}
+.answer-banner-yes { color: var(--green) !important; }
+.answer-banner-no  { color: var(--red) !important; }
+.answer-banner-inv { color: var(--text-muted) !important; }
+.answer-banner-meta { font-size: 12px !important; color: var(--text-dim) !important; }
+.answer-banner-meta strong { color: var(--text-muted) !important; }
+
+/* Status grid: remove top divider (card-title provides separation) */
+.status-grid {
+  border-top: none !important;
+  padding-top: 0 !important;
+  gap: 8px !important;
+}
+.sg-val { color: var(--text) !important; }
+
+/* Details card: add row dividers */
+.meta-list { gap: 0 !important; }
+.meta-row {
+  padding: 6px 0 !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+.meta-row:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
+.meta-key { color: var(--text-muted) !important; }
+.meta-val { color: var(--text) !important; }
+</style>
 </head>
 <body>
 
@@ -1466,85 +1970,85 @@
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('snapshot')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
-        <a class="app-card-guide" href="#!/guide/snapshot" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Snapshot</div>
       <div class="app-card-desc">Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/snapshot" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('kleros-moderate')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#d29922,#b08800)">K</div>
-        <a class="app-card-guide" href="#!/guide/content-moderation" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Kleros · Moderate</div>
       <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/content-moderation" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('seer')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">S</div>
-        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Seer</div>
       <div class="app-card-desc">AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('hermes-agent')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#f78166,#b04040)">H</div>
-        <a class="app-card-guide" href="#!/guide/ai-agent" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Nous Hermes</div>
       <div class="app-card-desc">AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/ai-agent" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('dao-governance')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#1158cc)">G</div>
-        <a class="app-card-guide" href="#!/guide/dao-governance" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">DAO Governance</div>
       <div class="app-card-desc">Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/dao-governance" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('sports-oracle')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">⚽</div>
-        <a class="app-card-guide" href="#!/guide/event-oracle" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Sports Oracle</div>
       <div class="app-card-desc">Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/event-oracle" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('fantasy-sports')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#bc8cff,#8957e5)">🏆</div>
-        <a class="app-card-guide" href="#!/guide/hash-commit-oracle" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
       <div class="app-card-name">Fantasy Sports</div>
       <div class="app-card-desc">Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/hash-commit-oracle" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('other')">
@@ -1625,7 +2129,7 @@
     <div id="watch-similar-prompt" class="watch-similar-prompt" style="display:none">
       <a class="watch-similar-link" id="watch-similar-link" href="#!/watch-configure">Watch similar questions →</a>
     </div>
-    <div class="q-text-large" id="question-title">Loading question…</div>
+    <div class="q-text-large" id="question-title" style="min-height:2lh"></div>
     <div class="rpc-loading-note" id="rpc-loading-note" style="display:none">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Indexer unavailable — loading from RPC, this may be slow.
@@ -2869,8 +3373,28 @@
     return null;
   }
 
+  const SHORT_CHAIN_NAMES = {
+    'Ethereum Mainnet':        'Ethereum',
+    'Arbitrum One':            'Arbitrum',
+    'Arbitrum Sepolia':        'Arb. Sepolia',
+    'Arbitrum Goerli':         'Arb. Goerli',
+    'BNB Smart Chain Mainnet': 'BNB',
+    'BNB Smart Chain Testnet': 'BNB Testnet',
+    'Avalanche C-Chain':       'Avalanche',
+    'Celo Mainnet':            'Celo',
+    'Polygon Mainnet':         'Polygon',
+    'Polygon zkEVM':           'zkEVM',
+    'OP Mainnet':              'Optimism',
+    'OP Sepolia Testnet':      'OP Sepolia',
+    'Gnosis Chiado Testnet':   'Chiado',
+    'Base Sepolia Testnet':    'Base Sepolia',
+    'Ethereum Sepolia':        'Sepolia',
+    'POA Network Sokol':       'Sokol',
+  };
+
   function chainLabel(chainId) {
-    return window.RealityChains?.name(chainId) || `Chain ${chainId}`;
+    const full = window.RealityChains?.name(chainId) || `Chain ${chainId}`;
+    return SHORT_CHAIN_NAMES[full] || full;
   }
 
   function formatRelTime(ts) {
@@ -2882,6 +3406,11 @@
     const d = Math.floor(diff / 86400);
     const h = Math.floor((diff % 86400) / 3600);
     return h > 0 ? `${d}d ${h}h` : `${d}d`;
+  }
+
+  function flatColor(c) {
+    const m = c && c.match(/#([0-9a-f]{6}|[0-9a-f]{3})\b/i);
+    return m ? m[0] : '#8fa0ad';
   }
 
   function esc(s) {
@@ -2991,7 +3520,7 @@
     }
 
     return `
-      <a class="q-card" href="#!/network/${q.chainId}/question/${q.id}">
+      <a class="q-card" href="#!/network/${q.chainId}/question/${q.id}" style="--integ-color:${integ ? flatColor(integ.color) : 'var(--border-subtle)'}">
         <div class="q-card-main">
           <div class="q-meta">
             ${catBadge}
@@ -3033,10 +3562,9 @@
       const guideLink = info.guideId
         ? `<a class="app-card-guide" href="#!/guide/${info.guideId}" onclick="event.stopPropagation()">Dev guide →</a>`
         : '';
-      return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer" onclick="selectIntegration('${id}')">
+      return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer;box-shadow:inset 0 3px 0 0 ${flatColor(color)}" onclick="selectIntegration('${id}')">
         <div class="app-card-top">
           <div class="app-icon" style="background:${color}">${initial}</div>
-          ${guideLink}
         </div>
         <div class="app-card-name">${info.name}</div>
         <div class="app-card-desc">${info.description || ''}</div>
@@ -3049,6 +3577,7 @@
             <span class="stat-val total">${fmt(totalCount)}</span>
             <span class="stat-label">Total</span>
           </div>
+          ${guideLink}
         </div>
       </div>`;
     }).join('');
@@ -3072,10 +3601,6 @@
       }
     }
 
-    if (integrationFilter) {
-      document.getElementById('q-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
     fetchQuestions(true);
   }
 
@@ -3087,7 +3612,9 @@
     if (filtered.length === 0 && allQuestions.length === 0) {
       list.innerHTML = ponderFailed
         ? '<div class="q-empty">Indexer unavailable — results cannot be loaded.</div>'
-        : '<div class="q-empty">Loading…</div>';
+        : fetching
+          ? '<div class="q-empty">Loading…</div>'
+          : '<div class="q-empty">No questions found.</div>';
       btn.style.display = 'none';
       return;
     }
@@ -3381,6 +3908,7 @@
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
+    window.scrollTo(0, 0);
     document.getElementById('view-content').style.display = 'none';
     document.getElementById('question-view').style.display = 'none';
     document.getElementById('account-view').style.display = 'none';
