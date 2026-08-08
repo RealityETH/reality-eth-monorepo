@@ -3224,12 +3224,13 @@ header {
 
   // ── Integration classification ─────────────────────────
   function classifyQuestion(q) {
-    const creator    = (q.creator || '').toLowerCase();
-    const templateId = String(q.templateId || '');
-    const title      = q.title || q.data || '';
+    const creator      = (q.creator || '').toLowerCase();
+    const templateId   = String(q.templateId || '');
+    const title        = q.title || q.data || '';
+    const contractKey  = `${q.chainId}-${(q.contract || '').toLowerCase()}-${templateId}`;
 
-    if (creator && creatorMap[creator])    return creatorMap[creator];
-    if (templateId && templateIdMap[templateId]) return templateIdMap[templateId];
+    if (creator && creatorMap[creator])           return creatorMap[creator];
+    if (contractKey && templateIdMap[contractKey]) return templateIdMap[contractKey];
     for (const p of titlePatterns) {
       if (p.startsWith && title.startsWith(p.startsWith)) return p.integration;
       if (p.contains && title.includes(p.contains))       return p.integration;
@@ -3273,12 +3274,18 @@ header {
     if (integrationFilter) {
       if (integrationFilter === 'other') {
         const allC = Object.keys(creatorMap).map(a => `"${a}"`).join(',');
-        const allT = Object.keys(templateIdMap).map(t => `"${t}"`).join(',');
+        // templateIdMap keys are compound (chainId-contract-templateId); extract bare IDs for the
+        // server pre-filter. This over-fetches slightly (same bare ID on other chains) but
+        // client-side classifyQuestion corrects using the full compound key.
+        const allT = [...new Set(Object.keys(templateIdMap).map(k => `"${k.split('-').pop()}"`)  )].join(',');
         whereParts.push(`creator_not_in: [${allC}]`);
         if (allT) whereParts.push(`templateId_not_in: [${allT}]`);
       } else {
         const cs = Object.entries(creatorMap).filter(([,v]) => v === integrationFilter).map(([a]) => `"${a}"`);
-        const ts = Object.entries(templateIdMap).filter(([,v]) => v === integrationFilter).map(([t]) => `"${t}"`);
+        // Extract bare template IDs from compound keys for the server-side pre-filter.
+        const ts = [...new Set(
+          Object.entries(templateIdMap).filter(([,v]) => v === integrationFilter).map(([k]) => `"${k.split('-').pop()}"`)
+        )];
         if (cs.length && ts.length) {
           whereParts.push(`OR: [{creator_in: [${cs.join(',')}]}, {templateId_in: [${ts.join(',')}]}]`);
           hasIntegrationOR = true;
@@ -3360,7 +3367,7 @@ header {
   async function fetchIntegrationCounts() {
     const now = String(Math.floor(Date.now() / 1000));
     const allCreators    = Object.keys(creatorMap).map(a => `"${a}"`).join(',');
-    const allTemplateIds = Object.keys(templateIdMap).map(t => `"${t}"`).join(',');
+    const allTemplateIds = [...new Set(Object.keys(templateIdMap).map(k => `"${k.split('-').pop()}"`)  )].join(',');
     const openSuffix     = `isPendingArbitration: false, OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`;
 
     const fetchOne = async id => {
@@ -3562,7 +3569,7 @@ header {
   function renderCard(q) {
     const status      = getStatus(q);
     const rawTitle    = q.title || q.data || '(untitled)';
-    const isMarkdown  = markdownTemplateIds.has(String(q.templateId));
+    const isMarkdown  = markdownTemplateIds.has(`${q.chainId}-${(q.contract||'').toLowerCase()}-${q.templateId}`);
     const title       = rawTitle;
     const chain       = chainLabel(q.chainId);
     const bond        = formatBond(q.lastBond || q.currentAnswerBond, q.chainId, q.contract);

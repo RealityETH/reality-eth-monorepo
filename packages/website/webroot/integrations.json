@@ -299,18 +299,23 @@
     "0xd68b9e3cf980a5671f71cd4f9d9927b52dbecffb": "fantasy-sports"
   },
 
-  "_markdownTemplateIdsNote": "Template IDs whose questionText declares format:text/markdown. Titles for these questions should be rendered as markdown.",
-  "markdownTemplateIds": ["73", "74", "75", "76"],
+  "_markdownTemplateIdsNote": "Compound keys (chainId-contract-templateId) whose questionText declares format:text/markdown.",
+  "markdownTemplateIds": [
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-73",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-74",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-75",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-76"
+  ],
 
-  "_templateIdMapNote": "Template ID → integration. Only add IDs with clear ownership — template IDs are created per-installation so this list is never exhaustive.",
+  "_templateIdMapNote": "Compound key (chainId-contract-templateId) → integration. Template IDs are per-contract so bare IDs are not unique across chains/deployments.",
   "templateIdMap": {
-    "59": "kleros-moderate",
-    "60": "kleros-moderate",
-    "73": "kleros-moderate",
-    "74": "kleros-moderate",
-    "75": "kleros-moderate",
-    "76": "kleros-moderate",
-    "120": "fantasy-sports"
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-59": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-60": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-73": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-74": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-75": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-76": "kleros-moderate",
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-120": "fantasy-sports"
   },
 
   "_titlePatternsNote": "Ordered list — first match wins. Used when creatorMap and templateIdMap both miss.",
