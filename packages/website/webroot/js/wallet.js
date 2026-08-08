@@ -289,8 +289,10 @@
       return;
     }
 
-    // No injected wallet — go straight to WalletConnect.
+    // No injected wallet. If we have a cached WC address, try to silently
+    // restore the session before showing the QR modal.
     try {
+      if (getCached() && await initWC(onChange)) return;
       await connectWC(onChange);
     } catch (e) {
       if (!e.message?.includes('User rejected') && e.code !== 4001) {
