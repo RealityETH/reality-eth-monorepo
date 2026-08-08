@@ -9,8 +9,8 @@
 // Runs synchronously in <head>, no external deps.
 (function () {
   var h = location.hash;
-  var M  = 'https://cdn.jsdelivr.net/npm/marked@14/marked.min.js';
-  var DP = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+  var M  = 'js/marked.js?v=2';
+  var DP = 'js/dompurify.js?v=2';
 
   // CSS: show the right view immediately without a browse-page flash
   var view =
@@ -35,22 +35,23 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
+  var V = '?v=2';
   var all = [M, DP,
-    'js/question.js', 'js/account.js', 'js/notifications-view.js',
-    'js/watches-view.js', 'js/watch-configure-view.js', 'js/contract-view.js',
-    'js/guide-view.js', 'js/templates-view.js', 'js/template-view.js', 'js/ask-view.js'];
+    'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
+    'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
+    'js/guide-view.js'+V, 'js/templates-view.js'+V, 'js/template-view.js'+V, 'js/ask-view.js'+V];
 
   var route =
-    /^#!?\/network\/\d+\/question\//.test(h)  ? [M, DP, 'js/question.js'] :
-    /^#!?\/account(\/|$|\?)/.test(h)          ? ['js/account.js'] :
-    /^#!?\/network\/\d+\/contract\//.test(h)  ? ['js/contract-view.js'] :
-    /^#!?\/template(\/|$)/.test(h)            ? [M, DP, 'js/template-view.js'] :
-    /^#!?\/templates(\/|$|\?)/.test(h)        ? ['js/templates-view.js'] :
-    /^#!?\/guide(\/|$)/.test(h)               ? [M, DP, 'js/guide-view.js'] :
-    /^#!?\/ask(\/|$|\?)/.test(h)              ? [M, DP, 'js/ask-view.js'] :
-    /^#!?\/watch-configure(\/|$|\?)/.test(h)  ? ['js/watch-configure-view.js'] :
-    /^#!?\/watches(\/|$)/.test(h)             ? ['js/watches-view.js'] :
-    /^#!?\/notifications(\/|$)/.test(h)       ? ['js/notifications-view.js'] :
+    /^#!?\/network\/\d+\/question\//.test(h)  ? [M, DP, 'js/question.js'+V] :
+    /^#!?\/account(\/|$|\?)/.test(h)          ? ['js/account.js'+V] :
+    /^#!?\/network\/\d+\/contract\//.test(h)  ? ['js/contract-view.js'+V] :
+    /^#!?\/template(\/|$)/.test(h)            ? [M, DP, 'js/template-view.js'+V] :
+    /^#!?\/templates(\/|$|\?)/.test(h)        ? ['js/templates-view.js'+V] :
+    /^#!?\/guide(\/|$)/.test(h)               ? [M, DP, 'js/guide-view.js'+V] :
+    /^#!?\/ask(\/|$|\?)/.test(h)              ? [M, DP, 'js/ask-view.js'+V] :
+    /^#!?\/watch-configure(\/|$|\?)/.test(h)  ? ['js/watch-configure-view.js'+V] :
+    /^#!?\/watches(\/|$)/.test(h)             ? ['js/watches-view.js'+V] :
+    /^#!?\/notifications(\/|$)/.test(h)       ? ['js/notifications-view.js'+V] :
     [];
 
   // Preload route scripts immediately (download in parallel with core, execute later)
@@ -1388,14 +1389,14 @@
   .cost-total .cost-label { color: var(--text); font-weight: 600; }
   .cost-total .cost-val { color: var(--accent); font-size: 15px; }
 </style>
-<script defer src="js/website-data.js"></script>
-<script defer src="js/chains.js"></script>
-<script defer src="js/reality-eth-lib.js"></script>
-<script defer src="js/ethers.js"></script>
-<script defer src="js/wallet.js"></script>
-<script defer src="js/settings.js"></script>
-<script defer src="js/question-cache.js"></script>
-<script defer src="js/watches.js"></script>
+<script defer src="js/website-data.js?v=2"></script>
+<script defer src="js/chains.js?v=2"></script>
+<script defer src="js/reality-eth-lib.js?v=2"></script>
+<script defer src="js/ethers.js?v=2"></script>
+<script defer src="js/wallet.js?v=2"></script>
+<script defer src="js/settings.js?v=2"></script>
+<script defer src="js/question-cache.js?v=2"></script>
+<script defer src="js/watches.js?v=2"></script>
 <style id="heritage-theme">
 /* ── Heritage theme override ── */
 :root {
@@ -3048,8 +3049,8 @@ header {
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
   // ── Dynamic script loader ─────────────────────────────────────────────────────
-  const _CDN_MARKED = 'https://cdn.jsdelivr.net/npm/marked@14/marked.min.js';
-  const _CDN_PURIFY = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+  const _CDN_MARKED = 'js/marked.js?v=2';
+  const _CDN_PURIFY = 'js/dompurify.js?v=2';
   const _scriptLoads = new Map();
   function loadScript(src) {
     if (!_scriptLoads.has(src)) {
