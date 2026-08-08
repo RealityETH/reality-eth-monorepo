@@ -176,7 +176,7 @@ function injectStyles() {
   s.textContent = `
     .data-ind.sp-clickable { cursor: pointer; }
     .data-ind.sp-clickable:hover:not(.active) {
-      color: var(--text-muted) !important; background: var(--bg-card-hover) !important;
+      color: #fff !important; background: rgba(255,255,255,0.08) !important;
     }
     .sp-panel {
       background: var(--bg-card); border: 1px solid var(--border);

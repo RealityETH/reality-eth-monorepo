@@ -1,18 +1,28 @@
 import { onchainTable, index } from "@ponder/core";
 
-export const template = onchainTable("template", (p) => ({
-  // `${chainId}-${contract}-${templateId}`
-  id: p.text().primaryKey(),
-  templateId: p.bigint().notNull(),
-  contract: p.hex().notNull(),
-  chainId: p.integer().notNull(),
-  user: p.hex().notNull(),
-  questionText: p.text(),
-  createdBlock: p.bigint().notNull(),
-  createdLogIndex: p.bigint().notNull(),
-  createdTxHash: p.hex().notNull(),
-  createdTimestamp: p.bigint().notNull(),
-}));
+export const template = onchainTable(
+  "template",
+  (p) => ({
+    // `${chainId}-${contract}-${templateId}`
+    id: p.text().primaryKey(),
+    templateId: p.bigint().notNull(),
+    contract: p.hex().notNull(),
+    chainId: p.integer().notNull(),
+    user: p.hex().notNull(),
+    questionText: p.text(),
+    createdBlock: p.bigint().notNull(),
+    createdLogIndex: p.bigint().notNull(),
+    createdTxHash: p.hex().notNull(),
+    createdTimestamp: p.bigint().notNull(),
+  }),
+  (table) => ({
+    templateIdIdx:   index().on(table.templateId),
+    chainIdx:        index().on(table.chainId),
+    contractIdx:     index().on(table.contract),
+    userIdx:         index().on(table.user),
+    createdIdx:      index().on(table.createdTimestamp),
+  })
+);
 
 export const question = onchainTable(
   "question",
@@ -73,43 +83,64 @@ export const question = onchainTable(
     updatedTimestamp: p.bigint().notNull(),
   }),
   (table) => ({
-    creatorIdx:    index().on(table.creator),
-    chainIdx:      index().on(table.chainId),
-    updatedIdx:    index().on(table.updatedTimestamp),
-    createdIdx:    index().on(table.createdTimestamp),
-    finalizeIdx:   index().on(table.scheduledFinalizationTimestamp),
+    creatorIdx:      index().on(table.creator),
+    chainIdx:        index().on(table.chainId),
+    templateIdx:     index().on(table.templateId),
+    arbitratorIdx:   index().on(table.arbitrator),
+    categoryIdx:     index().on(table.category),
+    contractIdx:     index().on(table.contract),
+    arbPendingIdx:   index().on(table.isPendingArbitration),
+    reopenerIdx:     index().on(table.reopensQuestionId),
+    updatedIdx:      index().on(table.updatedTimestamp),
+    createdIdx:      index().on(table.createdTimestamp),
+    finalizeIdx:     index().on(table.scheduledFinalizationTimestamp),
   })
 );
 
-export const response = onchainTable("response", (p) => ({
-  // `${contract}-${questionId}-${txHash}-${logIndex}`
-  id: p.text().primaryKey(),
-  // References question.id
-  questionId: p.text().notNull(),
+export const response = onchainTable(
+  "response",
+  (p) => ({
+    // `${contract}-${questionId}-${txHash}-${logIndex}`
+    id: p.text().primaryKey(),
+    // References question.id
+    questionId: p.text().notNull(),
 
-  answer: p.hex(),
-  commitmentHash: p.hex(),
-  bond: p.bigint().notNull(),
-  user: p.hex().notNull(),
-  // Running history hash after this response — lets the client verify
-  // a server-supplied history against a single getQuestion() RPC call
-  historyHash: p.hex().notNull(),
+    answer: p.hex(),
+    commitmentHash: p.hex(),
+    bond: p.bigint().notNull(),
+    user: p.hex().notNull(),
+    // Running history hash after this response — lets the client verify
+    // a server-supplied history against a single getQuestion() RPC call
+    historyHash: p.hex().notNull(),
 
-  isCommitment: p.boolean().notNull(),
-  isUnrevealed: p.boolean().notNull(),
+    isCommitment: p.boolean().notNull(),
+    isUnrevealed: p.boolean().notNull(),
 
-  timestamp: p.bigint().notNull(),
-  createdBlock: p.bigint().notNull(),
-  createdLogIndex: p.bigint().notNull(),
-  createdTxHash: p.hex().notNull(),
-  revealedBlock: p.bigint(),
-}));
+    timestamp: p.bigint().notNull(),
+    createdBlock: p.bigint().notNull(),
+    createdLogIndex: p.bigint().notNull(),
+    createdTxHash: p.hex().notNull(),
+    revealedBlock: p.bigint(),
+  }),
+  (table) => ({
+    userIdx:       index().on(table.user),
+    questionIdx:   index().on(table.questionId),
+    timestampIdx:  index().on(table.timestamp),
+  })
+);
 
-export const claim = onchainTable("claim", (p) => ({
-  id: p.text().primaryKey(),
-  questionId: p.text().notNull(),
-  user: p.hex().notNull(),
-  amount: p.bigint().notNull(),
-  createdBlock: p.bigint().notNull(),
-  createdTimestamp: p.bigint().notNull(),
-}));
+export const claim = onchainTable(
+  "claim",
+  (p) => ({
+    id: p.text().primaryKey(),
+    questionId: p.text().notNull(),
+    user: p.hex().notNull(),
+    amount: p.bigint().notNull(),
+    createdBlock: p.bigint().notNull(),
+    createdTimestamp: p.bigint().notNull(),
+  }),
+  (table) => ({
+    userIdx:       index().on(table.user),
+    questionIdx:   index().on(table.questionId),
+  })
+);

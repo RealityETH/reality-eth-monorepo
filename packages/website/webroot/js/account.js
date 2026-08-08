@@ -525,19 +525,24 @@ window.RealityAccount.mount = async function (addr) {
   const INVALID = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
   const TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
-  function answerLabel(hex) {
+  function answerLabel(hex, q) {
     if (!hex) return null;
     const lo = hex.toLowerCase();
     if (lo === INVALID.toLowerCase()) return 'Invalid';
     if (lo === TOO_SOON.toLowerCase()) return 'Too soon';
+    if (q) {
+      const qjson = window.RealityLib.parseQuestionJSON(q.data);
+      const text = window.RealityLib.getAnswerString(qjson, hex);
+      if (text && text !== 'null') return text;
+    }
     return BOOL_LABEL[lo] || hex.slice(0, 10) + '…';
   }
 
-  function answerClass(hex) {
+  function answerClass(hex, q) {
     if (!hex) return 'ans-inv';
     const lo = hex.toLowerCase();
     if (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase()) return 'ans-inv';
-    const lbl = BOOL_LABEL[lo];
+    const lbl = answerLabel(hex, q);
     if (lbl === 'Yes') return 'ans-yes';
     if (lbl === 'No')  return 'ans-no';
     return 'ans-other';
@@ -689,8 +694,8 @@ window.RealityAccount.mount = async function (addr) {
 
       let rightHtml = '';
       if (fin && q.currentAnswer) {
-        const label = answerLabel(q.currentAnswer);
-        const cls   = answerClass(q.currentAnswer);
+        const label = answerLabel(q.currentAnswer, q);
+        const cls   = answerClass(q.currentAnswer, q);
         rightHtml = `<span class="ans-pill ${cls}">${label}</span>`;
       } else if (bond > 0n) {
         rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`;
@@ -761,8 +766,8 @@ window.RealityAccount.mount = async function (addr) {
       let myAnsHtml = '';
       if (myResp && !myResp.isCommitment) {
         const ans   = myResp.answer;
-        const label = answerLabel(ans);
-        const cls   = answerClass(ans);
+        const label = answerLabel(ans, q);
+        const cls   = answerClass(ans, q);
         myAnsHtml = `<span class="ans-pill ${cls}" title="Your answer">${escHtml(label)}</span>`;
       } else if (myResp?.isCommitment) {
         myAnsHtml = `<span class="ans-pill ans-inv">Commitment</span>`;

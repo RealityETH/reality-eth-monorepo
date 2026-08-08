@@ -1453,6 +1453,30 @@ header {
 #wallet-btn     { order: 6 !important; margin-left: 0 !important; }
 @media (max-width: 950px) { .header-nav { display: none !important; } }
 @media (max-width: 750px) { .search-wrap { display: none !important; } }
+@media (max-width: 750px) { header { padding: 0 !important; } }
+
+/* Mobile search bar in page content */
+.mobile-search-wrap {
+  display: none;
+  position: relative;
+  margin: -16px -16px 16px;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mobile-search-wrap svg {
+  position: absolute; left: 26px; top: 50%; transform: translateY(-50%);
+  color: var(--text-dim); pointer-events: none;
+}
+.mobile-search-wrap .search-input {
+  background: var(--bg-card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+  width: 100%;
+}
+.mobile-search-wrap .search-input::placeholder { color: var(--text-dim) !important; }
+.mobile-search-wrap .search-input:focus { border-color: var(--teal) !important; }
+@media (max-width: 750px) { .mobile-search-wrap { display: block; } }
 
 .logo { color: #fff !important; }
 .nav-link { color: rgba(255,255,255,0.85) !important; }
@@ -1785,6 +1809,9 @@ header {
 }
 .load-more-btn:hover { background: var(--accent-subtle) !important; }
 
+/* Skeleton placeholder values */
+.skel-val { display: inline-block; width: 72px; height: 0.75em; background: var(--border-subtle); border-radius: 2px; vertical-align: middle; }
+
 /* ── Question page ── */
 
 /* Badges: compact square chips (not pills) */
@@ -1889,6 +1916,9 @@ header {
   gap: 8px !important;
 }
 .sg-val { color: var(--text) !important; }
+.timer-row { flex-direction: column !important; align-items: flex-start !important; justify-content: flex-start !important; gap: 2px !important; margin-bottom: 10px !important; }
+.timer-label { font-size: 10px !important; text-transform: uppercase !important; letter-spacing: 0.05em !important; }
+.timer-val { font-size: 13px !important; font-weight: 600 !important; }
 
 /* Details card: add row dividers */
 .meta-list { gap: 0 !important; }
@@ -1899,6 +1929,82 @@ header {
 .meta-row:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
 .meta-key { color: var(--text-muted) !important; }
 .meta-val { color: var(--text) !important; }
+
+/* ── Narrow-mobile card layout (≤480px) ──────────────────────────────────
+   Overrides the 5-column table above. Source-order wins among equal-
+   specificity !important rules, so this @media block must come last.
+   Row 1: question text (full width)
+   Row 2: [answer] [bond] [chain ──1fr──] [status]
+   meta and footer keep display:contents so their children stay as
+   direct grid items and can share row 2 with q-answer-side.
+   ──────────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .q-card-main {
+    grid-template-columns: auto auto 1fr auto auto !important;
+    grid-template-rows: auto auto !important;
+    min-height: unset !important;
+    align-items: center !important;
+  }
+
+  /* Row 1: question text spans all four columns and wraps */
+  .q-text {
+    grid-column: 1 / -1 !important; grid-row: 1 !important;
+    white-space: normal !important;
+    font-size: 13px !important;
+    padding: 10px 10px 6px 10px !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* meta and footer keep display:contents — children are direct grid items */
+  .q-meta   { display: contents !important; }
+  .q-footer { display: contents !important; }
+
+  /* Row 2, col 1: answer value — left-aligned, no divider border */
+  .q-answer-side {
+    grid-column: 1 !important; grid-row: 2 !important;
+    display: flex !important; align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    border-left: none !important;
+    margin: 0 !important;
+    padding: 0 8px 9px 10px !important;
+    position: static !important;
+    align-self: center !important;
+  }
+  .answer-val { font-size: 13px !important; white-space: nowrap !important; }
+
+  /* Row 2, col 2: bond — show label text again */
+  .q-bond {
+    grid-column: 2 !important; grid-row: 2 !important;
+    padding: 0 8px 9px 0 !important;
+    color: var(--text-dim) !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Row 2, col 4 (right of spacer): chain name */
+  .q-meta .badge-chain {
+    grid-column: 4 !important; grid-row: 2 !important;
+    display: flex !important;
+    padding: 0 6px 9px 0 !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: 11px !important; color: var(--text-dim) !important;
+  }
+
+  /* Row 2, col 5: status chip — right-aligned to card edge */
+  .q-meta .badge-final,
+  .q-meta .badge-open,
+  .q-meta .badge-arb,
+  .q-meta .badge-upcoming {
+    grid-column: 5 !important; grid-row: 2 !important;
+    display: inline-flex !important; align-items: center !important;
+    justify-content: flex-end !important;
+    padding: 0 10px 9px 0 !important;
+  }
+
+  /* Any stray grid items (watch badge etc.) get hidden */
+  .q-meta .q-watch-badge { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -1945,6 +2051,13 @@ header {
 </header>
 
 <div id="view-content" class="page">
+
+  <div class="mobile-search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input class="search-input mobile-search-input" type="text" placeholder="Search questions…">
+  </div>
 
 	<p class="page-intro">Reality.eth is an on-chain fact-checking system and smart contract oracle for answering natural-language questions.
 	<br />
@@ -2172,7 +2285,27 @@ header {
     </div>
 
     <div class="col-side">
-      <div id="status-card" class="card" style="display:none"></div>
+      <div id="status-card" class="card">
+        <div class="card-title">Status</div>
+        <div class="status-grid">
+          <div class="sg-item"><span class="sg-label">Finalizes in</span><span class="sg-val skel-val"></span></div>
+          <div class="sg-item"><span class="sg-label">Bond</span><span class="sg-val skel-val"></span></div>
+          <div class="sg-item"><span class="sg-label">Arbitrator</span><span class="sg-val skel-val"></span></div>
+          <div class="sg-item"><span class="sg-label">Min bond</span><span class="sg-val skel-val"></span></div>
+        </div>
+      </div>
+      <div id="details-card" class="card">
+        <div class="card-title">Details</div>
+        <div class="meta-list">
+          <div class="meta-row"><span class="meta-key">Type</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Creator</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Opened</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Resolution window</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Arbitrator</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Contract</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Question ID</span><span class="meta-val skel-val"></span></div>
+        </div>
+      </div>
       <div class="arbitration-section" id="arbitration-section" style="display:none"></div>
       <div class="claim-section" style="display:none">
         <div class="card-title" style="margin-bottom:10px">Claim winnings</div>
@@ -2973,7 +3106,7 @@ header {
 
   function attachBrowseCachePanel() {
     if (!cacheInd) return;
-    cacheInd.style.cursor = 'pointer';
+    cacheInd.classList.add('sp-clickable');
     cacheInd.addEventListener('click', e => {
       e.stopPropagation();
       const RS = window.RealitySettings;
@@ -3340,37 +3473,13 @@ header {
 
   function formatAnswer(q) {
     if (!q.currentAnswer) return null;
-    if (q.currentAnswer === INVALID_ANS) return { text: 'Invalid / N-A', cls: 'answer-invalid' };
-    if (q.currentAnswer.toLowerCase() === TOO_SOON) return { text: 'Answered too soon', cls: 'answer-invalid' };
-    try {
-      const val = BigInt(q.currentAnswer);
-      if (q.type === 'bool') {
-        return val === 1n
-          ? { text: 'Yes', cls: 'answer-yes' }
-          : { text: 'No',  cls: 'answer-no'  };
-      }
-      if (q.type === 'single-select' && q.outcomes) {
-        const outcomes = JSON.parse(q.outcomes);
-        const idx = Number(val);
-        return { text: outcomes[idx] ?? `Option ${idx}`, cls: 'answer-opt' };
-      }
-      if (q.type === 'multiple-select' && q.outcomes) {
-        const outcomes = JSON.parse(q.outcomes);
-        const selected = outcomes.filter((_, i) => (val & (1n << BigInt(i))) !== 0n);
-        return { text: selected.length ? selected.join(', ') : '(none)', cls: 'answer-opt' };
-      }
-      if (q.type === 'uint') {
-        // Standard uint template stores answers scaled by 10^18
-        const D = 10n ** 18n;
-        const whole = val / D;
-        const frac  = val % D;
-        const text  = frac === 0n
-          ? whole.toString()
-          : whole.toString() + '.' + frac.toString().padStart(18, '0').replace(/0+$/, '');
-        return { text, cls: 'answer-opt' };
-      }
-    } catch {}
-    return null;
+    const qjson = window.RealityLib.parseQuestionJSON(q.data);
+    const text = window.RealityLib.getAnswerString(qjson, q.currentAnswer);
+    if (!text || text === 'null') return null;
+    if (text === 'Invalid') return { text: 'Invalid / N-A', cls: 'answer-invalid' };
+    if (text === 'Answered too soon') return { text, cls: 'answer-invalid' };
+    if (q.type === 'bool') return { text, cls: text === 'Yes' ? 'answer-yes' : 'answer-no' };
+    return { text, cls: 'answer-opt' };
   }
 
   const SHORT_CHAIN_NAMES = {
@@ -3731,12 +3840,16 @@ header {
     // Search (debounced) — re-fetches from server so the full database is searched,
     // not just the current page of loaded questions.
     let searchTimer;
-    document.querySelector('.search-input').addEventListener('input', function () {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
-        searchQuery = this.value.trim();
-        fetchQuestions(true);
-      }, 400);
+    document.querySelectorAll('.search-input').forEach(input => {
+      input.addEventListener('input', function () {
+        // Keep both inputs in sync
+        document.querySelectorAll('.search-input').forEach(el => { if (el !== this) el.value = this.value; });
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          searchQuery = this.value.trim();
+          fetchQuestions(true);
+        }, 400);
+      });
     });
 
     // Load more
@@ -4121,7 +4234,7 @@ header {
       _rs.remove();
     }
 
-    await RealityWallet.initWallet(onWalletChange);
+    RealityWallet.initWallet(onWalletChange);
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
 

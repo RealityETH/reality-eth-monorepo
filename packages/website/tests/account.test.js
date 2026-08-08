@@ -25,7 +25,7 @@ test.describe('account page', () => {
       })
     );
 
-    await page.goto(`${WEBSITE_URL}/index.html#!/account?address=${TEST_ADDRESS}`);
+    await page.goto(`${WEBSITE_URL}/index.html#!/account/${TEST_ADDRESS}`);
 
     // "No questions asked yet" confirms the page finished rendering without crashing
     await expect(page.locator('#asked-loading')).toContainText('No questions asked yet', { timeout: 10000 });

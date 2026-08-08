@@ -1723,7 +1723,6 @@ function renderStatusCard(data) {
   if (finalized) {
     html += `
       <div class="timer-row">
-        <span class="timer-label">Status</span>
         <span class="timer-val finalized">Finalized</span>
       </div>`;
   } else if (finalizeTS > 0) {
@@ -2493,7 +2492,12 @@ async function main() {
 
   // 7. Details card
   const sideCol = qPage.querySelector('.col-side');
-  if (sideCol) sideCol.appendChild(buildDetailsCard(data, CHAIN_ID));
+  const detailsPlaceholder = qPage.querySelector('#details-card');
+  if (detailsPlaceholder) {
+    detailsPlaceholder.innerHTML = buildDetailsCard(data, CHAIN_ID).innerHTML;
+  } else if (sideCol) {
+    sideCol.appendChild(buildDetailsCard(data, CHAIN_ID));
+  }
 
   // 7b. Raw data disclosure
   const rawSection = qPage.querySelector('#raw-data-section');

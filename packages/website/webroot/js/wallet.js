@@ -249,16 +249,7 @@
       return;
     }
 
-    // No injected wallet — try to silently restore a WalletConnect session.
-    // Only attempt if we have a cached address (avoids loading the 2 MB bundle
-    // on every page load for users who have never used WC).
-    if (cached) {
-      try {
-        const restored = await initWC(onChange);
-        if (restored) return;
-      } catch { /* WC bundle load failure is non-fatal */ }
-    }
-
+    // No injected wallet and no cached address — clear wallet state.
     if (!cached) onChange(null);
   }
 

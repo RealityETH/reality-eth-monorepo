@@ -6,7 +6,7 @@ const GNOSIS_RPC = 'https://rpc.gnosischain.com';
 export const FORK_BLOCK = 46600000;
 const GNOSIS_CHAIN_ID = 100;
 
-export const ANVIL_PORT = 8545;
+export const ANVIL_PORT = 18545;
 export const ANVIL_URL = `http://127.0.0.1:${ANVIL_PORT}`;
 
 // First default anvil account — pre-funded with 10000 ETH on the fork
