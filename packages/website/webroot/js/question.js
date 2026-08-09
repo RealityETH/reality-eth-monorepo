@@ -1499,7 +1499,7 @@ async function renderArbitrationSection(data, walletAddr) {
         const fpRpcUrl = PUBLIC_RPC[fpChainId];
         if (!fpRpcUrl) return;
         const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, fpChainId, { staticNetwork: true });
-        const chainName = chainName(fpChainId);
+        const fpChainName = chainName(fpChainId);
 
         // Check whether a Kleros dispute already exists (new API, then old API fallback).
         let disputeExists = false;
@@ -1542,9 +1542,9 @@ async function renderArbitrationSection(data, walletAddr) {
         const el = document.getElementById('arb-pending-notice');
         if (!el) return;
         if (disputeExists) {
-          el.textContent = `Dispute submitted to Kleros on ${chainName} and awaiting a ruling.`;
+          el.textContent = `Dispute submitted to Kleros on ${fpChainName} and awaiting a ruling.`;
         } else {
-          el.textContent = `Arbitration requested via Kleros. Waiting for the dispute to be registered on ${chainName}.`;
+          el.textContent = `Arbitration requested via Kleros. Waiting for the dispute to be registered on ${fpChainName}.`;
         }
       } catch {
         // Silently fail — generic notice remains
@@ -1657,7 +1657,7 @@ function renderClaimHistory(data) {
     const row = el('div', 'claim-history-row');
     const addr = el('span', 'claim-addr');
     addr.innerHTML = addrLinks(c.user) || (c.user.slice(0,6) + '…' + c.user.slice(-4));
-    const amt  = el('span', 'claim-amount', formatEth(c.amount) + ' ETH');
+    const amt  = el('span', 'claim-amount', formatEth(c.amount) + ' ' + metaToken);
     const date = el('span', 'claim-date', new Date(c.ts * 1000).toLocaleDateString());
     row.appendChild(addr);
     row.appendChild(amt);
@@ -2120,7 +2120,7 @@ async function verifyWithRpc(data) {
             <p class="sp-body">The indexed data from Ponder was cross-checked directly against the blockchain RPC. Content hash, answer history, current answer, bond, and finalization timestamp all match on-chain state — the index is consistent.</p>
           `;
         });
-      });
+      }, { once: true });
     }
     // Warm the events cache in the background using pinpoint single-block fetches.
     // Ponder tells us the exact createdBlock for each event, so we don't need
@@ -2142,11 +2142,15 @@ async function verifyWithRpc(data) {
         }
         if (!qEv) return;
 
-        // LogNewAnswer — one query per unique block that contains an answer
+        // LogNewAnswer — one query per unique block, fetched 5 at a time to avoid RPC bursts.
         const uniqueBlocks = [...new Set(data.answerEvents.map(ev => ev.blockNumber).filter(Number.isInteger))];
-        const answerChunks = await Promise.all(uniqueBlocks.map(b =>
-          safeCall(() => reality.queryFilter(
-            reality.filters.LogNewAnswer(null, QUESTION_ID), b, b), [])));
+        const answerChunks = [];
+        for (let i = 0; i < uniqueBlocks.length; i += 5) {
+          const chunk = await Promise.all(uniqueBlocks.slice(i, i + 5).map(b =>
+            safeCall(() => reality.queryFilter(
+              reality.filters.LogNewAnswer(null, QUESTION_ID), b, b), [])));
+          answerChunks.push(...chunk);
+        }
         const answers = answerChunks.flat()
           .sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
@@ -2302,7 +2306,7 @@ async function main() {
             ? await queryFilterRobust(reality, reality.filters.LogNewAnswer(null, QUESTION_ID), fromBlock, currentBlock)
             : [];
           rawAnswerEvents = [...cached.answerEvents, ...newAnswers];
-          QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
+          await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, null, newAnswers, currentBlock);
         });
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
@@ -2314,7 +2318,7 @@ async function main() {
         const answerStartBlock = qEv ? qEv.blockNumber : startBlock;
         rawAnswerEvents = await queryFilterRobust(
           reality, reality.filters.LogNewAnswer(null, QUESTION_ID), answerStartBlock, currentBlock);
-        QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, rawAnswerEvents, currentBlock);
+        await QCache.put(CHAIN_ID, CONTRACT, QUESTION_ID, qEv, rawAnswerEvents, currentBlock);
       }
 
       const templateId  = qEv ? Number(qEv.args.template_id) : 0;
@@ -2393,8 +2397,9 @@ async function main() {
 
   const finalized   = isFinalized(data.finalizeTS);
   const beforeOpen  = isBeforeOpening(data.openingTS);
-  const isReopenable = finalized && data.settledTooSoon && majorVersion >= 3 && data.reopenedBy === ZERO_HASH;
-  const isReopened   = finalized && data.settledTooSoon && majorVersion >= 3 && data.reopenedBy !== ZERO_HASH;
+  const effectiveVersion = metaMajorVersion ?? majorVersion;
+  const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3 && data.reopenedBy === ZERO_HASH;
+  const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3 && data.reopenedBy !== ZERO_HASH;
 
   const statusBadge = document.getElementById('status-badge');
   if (statusBadge) {
@@ -2506,7 +2511,6 @@ async function main() {
     function rawRow(label, text) {
       return `<div class="raw-row"><div class="raw-label">${label}</div><div class="raw-value">${text}</div></div>`;
     }
-    const esc2 = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     let contentHash = '';
     try {
       contentHash = ethers.solidityPackedKeccak256(
@@ -2515,13 +2519,13 @@ async function main() {
       );
     } catch {}
     const templateUrl = `#!/template/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId}`;
-    const templateLink = `<a href="${esc2(templateUrl)}" style="color:var(--accent);text-decoration:none">${esc2(data.templateId)}</a>`;
+    const templateLink = `<a href="${esc(templateUrl)}" style="color:var(--accent);text-decoration:none">${esc(data.templateId)}</a>`;
     rawBody.innerHTML = [
-      rawRow('Question ID',   esc2(QUESTION_ID)),
+      rawRow('Question ID',   esc(QUESTION_ID)),
       rawRow('Template ID',   templateLink),
-      rawRow('Question data', esc2(data.questionStr || '')),
-      data.templateStr ? rawRow('Template',     esc2(data.templateStr)) : '',
-      contentHash      ? rawRow('Content hash', esc2(contentHash))      : '',
+      rawRow('Question data', esc(data.questionStr || '')),
+      data.templateStr ? rawRow('Template',     esc(data.templateStr)) : '',
+      contentHash      ? rawRow('Content hash', esc(contentHash))      : '',
     ].join('');
     rawSection.style.display = '';
   }

@@ -44,6 +44,7 @@ window.RealityAccount.mount = async function (addr) {
   let provider      = null;
   let signer        = null;
   let pendingClaimData  = null;
+  let pendingClaimChainId = null;
   let allData           = null;
   let selectedViewChains = new Set();
 
@@ -601,6 +602,7 @@ window.RealityAccount.mount = async function (addr) {
   // ── Ponder data loading ────────────────────────────────────────────────────────
   async function loadAccountData(a) {
     a = a.toLowerCase();
+    if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
     const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator isPendingArbitration arbitrationOccurred`;
 
     const [askedData, respData, claimData, arbData] = await Promise.all([
@@ -962,12 +964,12 @@ window.RealityAccount.mount = async function (addr) {
           : 'Connect wallet to claim';
         noteEl.innerHTML = matchNote;
         noteEl.style.display = 'block';
-        pendingClaimData = null;
+        pendingClaimData = null; pendingClaimChainId = null;
       } else if (needsSwitch) {
         claimBtn.style.display = 'none';
         noteEl.textContent = `Switch to ${chainName(chainId)} in your wallet to claim`;
         noteEl.style.display = 'block';
-        pendingClaimData = null;
+        pendingClaimData = null; pendingClaimChainId = null;
       } else {
         const byContract = {};
         for (const c of chainClaimables) {
@@ -981,6 +983,7 @@ window.RealityAccount.mount = async function (addr) {
           byContract[k].answers.push(...c.answers);
         }
         pendingClaimData = Object.values(byContract);
+        pendingClaimChainId = Number(chainId);
         claimBtn.style.display = '';
         claimBtn.disabled = false;
         claimBtn.textContent = 'Claim all & withdraw';
@@ -1014,6 +1017,11 @@ window.RealityAccount.mount = async function (addr) {
 
   async function handleClaimAll() {
     if (!signer || !pendingClaimData) return;
+    if (walletChainId !== pendingClaimChainId) {
+      document.getElementById('claim-error').textContent = `Please switch your wallet to ${chainName(pendingClaimChainId)} before claiming.`;
+      document.getElementById('claim-error').classList.add('visible');
+      return;
+    }
     const btn   = document.getElementById('claim-btn');
     const errEl = document.getElementById('claim-error');
     errEl.classList.remove('visible');

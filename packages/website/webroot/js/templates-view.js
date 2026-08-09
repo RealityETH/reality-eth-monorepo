@@ -254,8 +254,15 @@ window.RealityTemplates.mount = async function (params) {
     const titleEl = document.createElement('div');
     titleEl.className = 't-title';
     if (tmpl.title) {
-      const escaped = tmpl.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      titleEl.innerHTML = escaped.replace(/%s/g, '<span class="ph">%s</span>');
+      tmpl.title.split('%s').forEach((part, i) => {
+        if (i > 0) {
+          const ph = document.createElement('span');
+          ph.className = 'ph';
+          ph.textContent = '%s';
+          titleEl.appendChild(ph);
+        }
+        if (part) titleEl.appendChild(document.createTextNode(part));
+      });
     } else {
       titleEl.style.color = 'var(--text-dim)';
       titleEl.textContent = '(no title)';
