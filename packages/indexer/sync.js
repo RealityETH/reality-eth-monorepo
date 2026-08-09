@@ -392,6 +392,8 @@ async function recomputeQuestionState(db, questionId) {
         last_bond                        = 0,
         cumulative_bonds                 = 0,
         scheduled_finalization_timestamp = 0,
+        answer_finalized_timestamp       = null,
+        arbitration_occurred             = false,
         updated_block                    = $1,
         updated_timestamp                = $2
       WHERE id = $3
@@ -521,16 +523,29 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
   `, [id, args.bond.toString(), log.transactionHash, chainId]);
 
   if (conflict.rows.length > 0) {
-    const conflictBlock = Number(conflict.rows[0].created_block);
+    // Use the earlier of the two conflicting blocks so re-sync covers whichever
+    // branch placed the event first.
+    const conflictBlock = Math.min(Number(conflict.rows[0].created_block), block);
     console.warn(`[reorg] chain ${chainId}: contradiction at block ${conflictBlock} ` +
                  `(question ${id}, bond ${args.bond}) — rolling back`);
 
-    // Gather affected question IDs before deleting.
+    // Gather affected question IDs before any deletes.
     const affected = await db.query(`
       SELECT DISTINCT r.question_id
       FROM reality.response r
       JOIN reality.question q ON r.question_id = q.id
       WHERE q.chain_id = $1 AND r.created_block >= $2
+    `, [chainId, conflictBlock]);
+
+    // Un-reveal commitment responses whose reveal landed in the reorged range.
+    // The commitment row has created_block < conflictBlock so survives the DELETE
+    // below, but its answer/is_unrevealed fields were set by the reorged reveal.
+    await db.query(`
+      UPDATE reality.response r
+      SET answer = null, is_unrevealed = true, revealed_block = null
+      FROM reality.question q
+      WHERE r.question_id = q.id AND q.chain_id = $1
+        AND r.is_commitment = true AND r.revealed_block >= $2
     `, [chainId, conflictBlock]);
 
     // Purge responses and claims from the conflicting block onwards (chain-scoped).
@@ -545,6 +560,17 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
       USING reality.question q
       WHERE c.question_id = q.id AND q.chain_id = $1 AND c.created_block >= $2
     `, [chainId, conflictBlock]);
+
+    // Delete question and template rows created in the reorged range; re-sync
+    // will re-insert them with canonical data.
+    await db.query(
+      `DELETE FROM reality.question WHERE chain_id = $1 AND created_block >= $2`,
+      [chainId, conflictBlock]
+    );
+    await db.query(
+      `DELETE FROM reality.template WHERE chain_id = $1 AND created_block >= $2`,
+      [chainId, conflictBlock]
+    );
 
     // Recompute question state for every affected question.
     for (const row of affected.rows) {

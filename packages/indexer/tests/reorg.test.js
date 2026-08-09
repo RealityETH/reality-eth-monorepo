@@ -197,6 +197,55 @@ test('rollback only removes responses at or after conflict block, earlier ones s
   }
 });
 
+test('rollback un-reveals commitment responses whose reveal was in the reorged range', async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await insertQuestion(client);
+    await client.query(
+      `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1, $2)
+       ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block`,
+      [CHAIN_ID, 100]
+    );
+
+    // Insert a commitment response at block 50 (pre-reorg), already revealed at block 100
+    const commitId = `${Q_ID}-commit1`;
+    await client.query(`
+      INSERT INTO reality.response
+        (id, question_id, answer, commitment_hash, bond, "user",
+         history_hash, is_commitment, is_unrevealed, timestamp,
+         created_block, created_log_index, created_tx_hash, revealed_block)
+      VALUES ($1,$2,$3,$4,'1000','0xaaaa','${ZERO_HASH}',true,false,'1700000000',50,0,'0xtx-commit',100)
+    `, [commitId, Q_ID, YES, '0x' + 'ab'.repeat(32)]);
+
+    // Also index a plain answer at block 100 (the stale response)
+    const staleLog  = makeLog('0x' + 'a1'.repeat(32), 100);
+    const staleArgs = makeArgs({ bond: 2000n, ts: 1_700_000_100n });
+    await onLogNewAnswer(client, staleLog, staleArgs, CHAIN_ID, 1_700_000_100);
+
+    // Canonical contradicting answer at block 100 triggers reorg
+    const canonLog  = makeLog('0x' + 'b2'.repeat(32), 100);
+    const canonArgs = makeArgs({ bond: 2000n, ts: 1_700_000_101n });
+    await assert.rejects(
+      () => onLogNewAnswer(client, canonLog, canonArgs, CHAIN_ID, 1_700_000_101),
+      ReorgDetected
+    );
+
+    // Commitment row survives (created_block=50 < conflictBlock=100) but must be un-revealed
+    const r = await client.query(
+      `SELECT answer, is_unrevealed, revealed_block FROM reality.response WHERE id = $1`,
+      [commitId]
+    );
+    assert.equal(r.rows.length, 1, 'commitment row must survive');
+    assert.equal(r.rows[0].answer, null,     'answer must be null after un-reveal');
+    assert.equal(r.rows[0].is_unrevealed, true, 'is_unrevealed must be true after un-reveal');
+    assert.equal(r.rows[0].revealed_block, null, 'revealed_block must be null after un-reveal');
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
+});
+
 test('recomputeQuestionState rebuilds cumulative_bonds and scheduled_finalization_timestamp', async () => {
   const client = await pool.connect();
   try {
