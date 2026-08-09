@@ -98,9 +98,14 @@ CREATE TABLE IF NOT EXISTS reality.sync_state (
 
 -- Block hashes for every block that contained at least one indexed event.
 -- Used to detect reorgs of template/question events (not just bond contradictions).
+-- confirmed is set after the block reaches CONFIRM_DEPTH finality and hash re-check passes.
 CREATE TABLE IF NOT EXISTS reality.processed_block (
   chain_id     integer NOT NULL,
   block_number bigint  NOT NULL,
   block_hash   text    NOT NULL,
+  confirmed    boolean NOT NULL DEFAULT false,
   PRIMARY KEY (chain_id, block_number)
 );
+
+CREATE INDEX IF NOT EXISTS reality_pb_unconfirmed
+  ON reality.processed_block (chain_id, block_number) WHERE NOT confirmed;

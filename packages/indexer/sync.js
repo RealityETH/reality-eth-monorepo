@@ -28,6 +28,8 @@ const ABI = JSON.parse(
 const POLL_MS            = Number(process.env.POLL_MS)            || 30_000;
 const LAZY_INTERVAL_MS   = Number(process.env.LAZY_INTERVAL_MS)   || 6 * 60 * 60 * 1000;
 const LOCAL_TIMEOUT_MS   = Number(process.env.LOCAL_TIMEOUT_MS)   || 120_000;
+const CONFIRM_DEPTH      = Number(process.env.CONFIRM_DEPTH)      || 100;
+const CONFIRM_BATCH      = Number(process.env.CONFIRM_BATCH)      || 50;
 const CONFIG_PATH      = join(__dir, 'sync-config.json');
 const PID_PATH         = join(__dir, 'sync.pid');
 
@@ -334,6 +336,65 @@ async function fetchBlockTimestamps(chain, blockNums) {
     }
   }
   return result;
+}
+
+// Re-check block hashes for recently-processed blocks once they reach CONFIRM_DEPTH.
+// Catches reorgs that the bond-contradiction detector and batch pre-check missed —
+// e.g. a reorged template event with no subsequent answer contradiction on-chain.
+async function confirmBlocks(pool, chain) {
+  let headBlock;
+  try {
+    headBlock = await getBlockNumber(chain);
+  } catch (e) {
+    console.warn(`[${chain.name}] confirmBlocks: failed to get head block:`, e.message);
+    return;
+  }
+  const confirmThrough = headBlock - CONFIRM_DEPTH;
+  if (confirmThrough < 0) return;
+
+  const rows = await pool.query(
+    `SELECT block_number, block_hash FROM reality.processed_block
+     WHERE chain_id = $1 AND NOT confirmed AND block_number <= $2
+     ORDER BY block_number ASC LIMIT $3`,
+    [chain.chainId, confirmThrough, CONFIRM_BATCH]
+  );
+  if (rows.rows.length === 0) return;
+
+  const blockNums = rows.rows.map(r => Number(r.block_number));
+  const blockData = await fetchBlockTimestamps(chain, blockNums);
+
+  let mismatchBlock = null;
+  for (const row of rows.rows) {
+    const num = Number(row.block_number);
+    if (blockData[num].hash !== row.block_hash) {
+      console.warn(`[reorg] chain ${chain.chainId}: confirmation check: block ${num} hash changed — rolling back`);
+      mismatchBlock = num;
+      break;
+    }
+  }
+
+  if (mismatchBlock !== null) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await performReorgRollback(client, chain.chainId, mismatchBlock);
+      await client.query('COMMIT');
+      console.log(`[${chain.name}] Reorg committed via confirmation check — will re-sync from block ${mismatchBlock}`);
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
+    return;
+  }
+
+  await pool.query(
+    `UPDATE reality.processed_block SET confirmed = true
+     WHERE chain_id = $1 AND block_number = ANY($2::bigint[])`,
+    [chain.chainId, blockNums]
+  );
+  console.log(`[${chain.name}] Confirmed ${blockNums.length} blocks up to ${blockNums[blockNums.length - 1]}`);
 }
 
 // ── Question text parsing ──────────────────────────────────────────────────────
@@ -946,6 +1007,9 @@ async function main() {
       await syncChain(pool, chain).catch(e =>
         console.error(`[${chain.name}] sync error:`, e.message)
       );
+      await confirmBlocks(pool, chain).catch(e =>
+        console.error(`[${chain.name}] confirmBlocks error:`, e.message)
+      );
     }
     await pool.end();
     return;
@@ -988,6 +1052,9 @@ async function main() {
       }
       await syncChain(pool, chain).catch(e =>
         console.error(`[${chain.name}] sync error:`, e.message)
+      );
+      await confirmBlocks(pool, chain).catch(e =>
+        console.error(`[${chain.name}] confirmBlocks error:`, e.message)
       );
       if ((chainModes[chain.chainId] ?? 'lazy') === 'lazy') {
         lastLazySyncAt[chain.chainId] = Date.now();
