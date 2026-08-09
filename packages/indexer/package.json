@@ -5,7 +5,9 @@
   "scripts": {
     "seed": "node seed.js",
     "sync": "node sync.js",
-    "watch": "node log-watcher.js"
+    "watch": "node log-watcher.js",
+    "test": "node --test tests/reorg.test.js",
+    "test:integration": "node tests/reorg-integration.js"
   },
   "dependencies": {
     "@reality.eth/reality-eth-lib": "file:../reality-eth-lib",

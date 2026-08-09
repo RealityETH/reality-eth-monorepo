@@ -1676,7 +1676,7 @@ function renderStatusCard(data) {
   const n        = answerEvents.length;
   const finalized = isFinalized(finalizeTS);
 
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   // Current answer banner in col-main
   if (banner && n > 0) {
@@ -1840,7 +1840,7 @@ function startPoll(initialFinalizeTS) {
 function buildDetailsCard(data, chainId) {
   const token = CHAIN_TOKEN[chainId] || 'ETH';
 
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function addrHtml(a) {
     return addrLinks(a, chainId);
@@ -2506,7 +2506,7 @@ async function main() {
     function rawRow(label, text) {
       return `<div class="raw-row"><div class="raw-label">${label}</div><div class="raw-value">${text}</div></div>`;
     }
-    const esc2 = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const esc2 = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     let contentHash = '';
     try {
       contentHash = ethers.solidityPackedKeccak256(

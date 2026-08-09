@@ -355,6 +355,81 @@ function parseQuestion(tmplText, rawData) {
   }
 }
 
+// ── Reorg detection ────────────────────────────────────────────────────────────
+
+class ReorgDetected extends Error {
+  constructor(block, chainId) {
+    super(`Reorg: contradiction at block ${block} on chain ${chainId}`);
+    this.block   = block;
+    this.chainId = chainId;
+  }
+}
+
+// After rolling back responses from a reorged block, rebuild the question row
+// from whatever responses remain in the DB.
+async function recomputeQuestionState(db, questionId) {
+  const qRow = await db.query(
+    `SELECT timeout, created_block, created_timestamp FROM reality.question WHERE id = $1`,
+    [questionId]
+  );
+  if (!qRow.rows.length) return;
+  const { timeout, created_block, created_timestamp } = qRow.rows[0];
+
+  const rRows = await db.query(`
+    SELECT answer, bond, timestamp, history_hash, is_commitment, created_block, created_log_index
+    FROM reality.response
+    WHERE question_id = $1
+    ORDER BY timestamp::numeric ASC, created_block::numeric ASC, created_log_index::numeric ASC
+  `, [questionId]);
+
+  if (rRows.rows.length === 0) {
+    await db.query(`
+      UPDATE reality.question SET
+        current_answer                   = null,
+        current_answer_bond              = 0,
+        current_answer_timestamp         = null,
+        history_hash                     = null,
+        last_bond                        = 0,
+        cumulative_bonds                 = 0,
+        scheduled_finalization_timestamp = 0,
+        updated_block                    = $1,
+        updated_timestamp                = $2
+      WHERE id = $3
+    `, [created_block, created_timestamp, questionId]);
+    return;
+  }
+
+  const responses = rRows.rows;
+  const last = responses[responses.length - 1];
+  const cumBonds = responses.reduce((s, r) => s + BigInt(r.bond), 0n).toString();
+
+  // Last non-commitment answer becomes current_answer
+  let currentAnswer = null;
+  for (let i = responses.length - 1; i >= 0; i--) {
+    if (!responses[i].is_commitment && responses[i].answer != null) {
+      currentAnswer = responses[i].answer;
+      break;
+    }
+  }
+
+  const schedFinal = (BigInt(last.timestamp) + BigInt(timeout)).toString();
+
+  await db.query(`
+    UPDATE reality.question SET
+      current_answer                   = $1,
+      current_answer_bond              = $2,
+      current_answer_timestamp         = $3,
+      history_hash                     = $4,
+      last_bond                        = $2,
+      cumulative_bonds                 = $5,
+      scheduled_finalization_timestamp = $6,
+      updated_block                    = $7,
+      updated_timestamp                = $3
+    WHERE id = $8
+  `, [currentAnswer, last.bond, last.timestamp, last.history_hash,
+      cumBonds, schedFinal, last.created_block, questionId]);
+}
+
 // ── ID helpers ─────────────────────────────────────────────────────────────────
 
 const qId       = (addr, qid)          => `${addr.toLowerCase()}-${qid}`;
@@ -431,6 +506,59 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
   const block = parseInt(log.blockNumber, 16);
   const id    = qId(addr, args.question_id);
   const logIdx = parseInt(log.logIndex, 16);
+
+  // Contradiction check: reality.eth requires strictly increasing bonds (each ≥ 2×
+  // previous), so two responses on the same question at the same bond level is
+  // impossible without a reorg. If we see one, roll back all data from the
+  // conflicting block onwards and let syncChain re-fetch from there.
+  const conflict = await db.query(`
+    SELECT r.created_block
+    FROM reality.response r
+    JOIN reality.question q ON r.question_id = q.id
+    WHERE r.question_id = $1 AND r.bond = $2 AND r.created_tx_hash != $3
+      AND q.chain_id = $4
+    LIMIT 1
+  `, [id, args.bond.toString(), log.transactionHash, chainId]);
+
+  if (conflict.rows.length > 0) {
+    const conflictBlock = Number(conflict.rows[0].created_block);
+    console.warn(`[reorg] chain ${chainId}: contradiction at block ${conflictBlock} ` +
+                 `(question ${id}, bond ${args.bond}) — rolling back`);
+
+    // Gather affected question IDs before deleting.
+    const affected = await db.query(`
+      SELECT DISTINCT r.question_id
+      FROM reality.response r
+      JOIN reality.question q ON r.question_id = q.id
+      WHERE q.chain_id = $1 AND r.created_block >= $2
+    `, [chainId, conflictBlock]);
+
+    // Purge responses and claims from the conflicting block onwards (chain-scoped).
+    await db.query(`
+      DELETE FROM reality.response r
+      USING reality.question q
+      WHERE r.question_id = q.id AND q.chain_id = $1 AND r.created_block >= $2
+    `, [chainId, conflictBlock]);
+
+    await db.query(`
+      DELETE FROM reality.claim c
+      USING reality.question q
+      WHERE c.question_id = q.id AND q.chain_id = $1 AND c.created_block >= $2
+    `, [chainId, conflictBlock]);
+
+    // Recompute question state for every affected question.
+    for (const row of affected.rows) {
+      await recomputeQuestionState(db, row.question_id);
+    }
+
+    // Reset sync position so syncChain re-fetches from the conflict block.
+    await db.query(`
+      INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1, $2)
+      ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block
+    `, [chainId, conflictBlock - 1]);
+
+    throw new ReorgDetected(conflictBlock, chainId);
+  }
 
   const responseId = args.is_commitment
     ? `${id}-${args.answer}`
@@ -677,6 +805,7 @@ async function syncChain(pool, chain) {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
+        let reorgBlock = null;
         for (const log of logs) {
           let decoded;
           try {
@@ -688,14 +817,28 @@ async function syncChain(pool, chain) {
           const handler = HANDLERS[decoded.eventName];
           if (!handler) continue;
           const blockTs = timestamps[parseInt(log.blockNumber, 16)];
-          await handler(client, log, decoded.args, chain.chainId, blockTs);
+          try {
+            await handler(client, log, decoded.args, chain.chainId, blockTs);
+          } catch (e) {
+            if (e instanceof ReorgDetected) { reorgBlock = e.block; break; }
+            throw e;
+          }
         }
-        await client.query(
-          `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
-           ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block`,
-          [chain.chainId, to]
-        );
+        if (reorgBlock === null) {
+          // Normal path: advance sync state to end of batch.
+          await client.query(
+            `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
+             ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block`,
+            [chain.chainId, to]
+          );
+        }
+        // Reorg path: handler already reset sync_state to conflictBlock-1 inside
+        // the transaction; committing here persists the rollback atomically.
         await client.query('COMMIT');
+        if (reorgBlock !== null) {
+          console.log(`[${chain.name}] Reorg committed — will re-sync from block ${reorgBlock}`);
+          break; // exit the while loop; next syncChain call reads the updated last_block
+        }
         console.log(`[${chain.name}] ${fetchDesc}: ${logs.length} events`);
       } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
@@ -793,4 +936,9 @@ async function main() {
   }
 }
 
-main().catch(e => { console.error('Fatal:', e); process.exit(1); });
+// Run as a script; skip when imported by tests.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(e => { console.error('Fatal:', e); process.exit(1); });
+}
+
+export { onLogNewAnswer, recomputeQuestionState, ReorgDetected };

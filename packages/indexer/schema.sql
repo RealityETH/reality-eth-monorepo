@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS reality.response (
   revealed_block    numeric(78,0)
 );
 
-CREATE INDEX IF NOT EXISTS reality_r_qid ON reality.response (question_id);
+CREATE INDEX IF NOT EXISTS reality_r_qid    ON reality.response (question_id);
+CREATE INDEX IF NOT EXISTS reality_r_q_bond ON reality.response (question_id, bond);
 
 CREATE TABLE IF NOT EXISTS reality.template (
   id                text          PRIMARY KEY,
