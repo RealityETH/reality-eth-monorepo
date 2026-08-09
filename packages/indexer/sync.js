@@ -1102,4 +1102,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch(e => { console.error('Fatal:', e); process.exit(1); });
 }
 
-export { onLogNewAnswer, recomputeQuestionState, performReorgRollback, ReorgDetected };
+export { onLogNewAnswer, recomputeQuestionState, performReorgRollback, ReorgDetected, confirmBlocks };
