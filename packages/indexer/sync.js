@@ -321,7 +321,7 @@ async function getBlockNumber(chain) {
 // Fetch timestamps for a set of block numbers, 5 at a time with a delay between
 // chunks to avoid bursting the shared Alchemy key across many chains at once.
 async function fetchBlockTimestamps(chain, blockNums) {
-  const ts = {};
+  const result = {};
   for (let i = 0; i < blockNums.length; i += 5) {
     if (i > 0) await new Promise(r => setTimeout(r, 200));
     const chunk = blockNums.slice(i, i + 5);
@@ -330,10 +330,10 @@ async function fetchBlockTimestamps(chain, blockNums) {
         ['0x' + n.toString(16), false]))
     );
     for (let j = 0; j < chunk.length; j++) {
-      ts[chunk[j]] = parseInt(blocks[j].timestamp, 16);
+      result[chunk[j]] = { ts: parseInt(blocks[j].timestamp, 16), hash: blocks[j].hash };
     }
   }
-  return ts;
+  return result;
 }
 
 // ── Question text parsing ──────────────────────────────────────────────────────
@@ -432,6 +432,61 @@ async function recomputeQuestionState(db, questionId) {
       cumBonds, schedFinal, last.created_block, questionId]);
 }
 
+async function performReorgRollback(db, chainId, conflictBlock) {
+  // Gather affected question IDs before any deletes.
+  const affected = await db.query(`
+    SELECT DISTINCT r.question_id
+    FROM reality.response r
+    JOIN reality.question q ON r.question_id = q.id
+    WHERE q.chain_id = $1 AND r.created_block >= $2
+  `, [chainId, conflictBlock]);
+
+  // Un-reveal commitment responses whose reveal landed in the reorged range.
+  await db.query(`
+    UPDATE reality.response r
+    SET answer = null, is_unrevealed = true, revealed_block = null
+    FROM reality.question q
+    WHERE r.question_id = q.id AND q.chain_id = $1
+      AND r.is_commitment = true AND r.revealed_block >= $2
+  `, [chainId, conflictBlock]);
+
+  await db.query(`
+    DELETE FROM reality.response r
+    USING reality.question q
+    WHERE r.question_id = q.id AND q.chain_id = $1 AND r.created_block >= $2
+  `, [chainId, conflictBlock]);
+
+  await db.query(`
+    DELETE FROM reality.claim c
+    USING reality.question q
+    WHERE c.question_id = q.id AND q.chain_id = $1 AND c.created_block >= $2
+  `, [chainId, conflictBlock]);
+
+  await db.query(
+    `DELETE FROM reality.question WHERE chain_id = $1 AND created_block >= $2`,
+    [chainId, conflictBlock]
+  );
+  await db.query(
+    `DELETE FROM reality.template WHERE chain_id = $1 AND created_block >= $2`,
+    [chainId, conflictBlock]
+  );
+
+  // Remove stored block hashes for the reorged range so re-sync stores canonical ones.
+  await db.query(
+    `DELETE FROM reality.processed_block WHERE chain_id = $1 AND block_number >= $2`,
+    [chainId, conflictBlock]
+  );
+
+  for (const row of affected.rows) {
+    await recomputeQuestionState(db, row.question_id);
+  }
+
+  await db.query(`
+    INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1, $2)
+    ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block
+  `, [chainId, conflictBlock - 1]);
+}
+
 // ── ID helpers ─────────────────────────────────────────────────────────────────
 
 const qId       = (addr, qid)          => `${addr.toLowerCase()}-${qid}`;
@@ -528,61 +583,7 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
     const conflictBlock = Math.min(Number(conflict.rows[0].created_block), block);
     console.warn(`[reorg] chain ${chainId}: contradiction at block ${conflictBlock} ` +
                  `(question ${id}, bond ${args.bond}) — rolling back`);
-
-    // Gather affected question IDs before any deletes.
-    const affected = await db.query(`
-      SELECT DISTINCT r.question_id
-      FROM reality.response r
-      JOIN reality.question q ON r.question_id = q.id
-      WHERE q.chain_id = $1 AND r.created_block >= $2
-    `, [chainId, conflictBlock]);
-
-    // Un-reveal commitment responses whose reveal landed in the reorged range.
-    // The commitment row has created_block < conflictBlock so survives the DELETE
-    // below, but its answer/is_unrevealed fields were set by the reorged reveal.
-    await db.query(`
-      UPDATE reality.response r
-      SET answer = null, is_unrevealed = true, revealed_block = null
-      FROM reality.question q
-      WHERE r.question_id = q.id AND q.chain_id = $1
-        AND r.is_commitment = true AND r.revealed_block >= $2
-    `, [chainId, conflictBlock]);
-
-    // Purge responses and claims from the conflicting block onwards (chain-scoped).
-    await db.query(`
-      DELETE FROM reality.response r
-      USING reality.question q
-      WHERE r.question_id = q.id AND q.chain_id = $1 AND r.created_block >= $2
-    `, [chainId, conflictBlock]);
-
-    await db.query(`
-      DELETE FROM reality.claim c
-      USING reality.question q
-      WHERE c.question_id = q.id AND q.chain_id = $1 AND c.created_block >= $2
-    `, [chainId, conflictBlock]);
-
-    // Delete question and template rows created in the reorged range; re-sync
-    // will re-insert them with canonical data.
-    await db.query(
-      `DELETE FROM reality.question WHERE chain_id = $1 AND created_block >= $2`,
-      [chainId, conflictBlock]
-    );
-    await db.query(
-      `DELETE FROM reality.template WHERE chain_id = $1 AND created_block >= $2`,
-      [chainId, conflictBlock]
-    );
-
-    // Recompute question state for every affected question.
-    for (const row of affected.rows) {
-      await recomputeQuestionState(db, row.question_id);
-    }
-
-    // Reset sync position so syncChain re-fetches from the conflict block.
-    await db.query(`
-      INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1, $2)
-      ON CONFLICT (chain_id) DO UPDATE SET last_block = EXCLUDED.last_block
-    `, [chainId, conflictBlock - 1]);
-
+    await performReorgRollback(db, chainId, conflictBlock);
     throw new ReorgDetected(conflictBlock, chainId);
   }
 
@@ -818,9 +819,9 @@ async function syncChain(pool, chain) {
       : `${synced}–${to}`;
 
     if (logs.length > 0) {
-      // Fetch timestamps only for blocks that have events (reality.eth is sparse).
+      // Fetch timestamps+hashes for blocks with events (already fetching these blocks).
       const blockNums = [...new Set(logs.map(l => parseInt(l.blockNumber, 16)))];
-      const timestamps = await fetchBlockTimestamps(chain, blockNums);
+      const blockData = await fetchBlockTimestamps(chain, blockNums);
 
       // Sort by block then log index for correct state application order.
       logs.sort((a, b) => {
@@ -832,25 +833,59 @@ async function syncChain(pool, chain) {
       try {
         await client.query('BEGIN');
         let reorgBlock = null;
-        for (const log of logs) {
-          let decoded;
-          try {
-            decoded = decodeEventLog({ abi: ABI, data: log.data, topics: log.topics });
-          } catch (e) {
-            console.warn(`Failed to decode log at ${log.blockNumber}:${log.logIndex}:`, e.message);
-            continue;
-          }
-          const handler = HANDLERS[decoded.eventName];
-          if (!handler) continue;
-          const blockTs = timestamps[parseInt(log.blockNumber, 16)];
-          try {
-            await handler(client, log, decoded.args, chain.chainId, blockTs);
-          } catch (e) {
-            if (e instanceof ReorgDetected) { reorgBlock = e.block; break; }
-            throw e;
+
+        // Pre-check block hashes against previously stored ones. Catches reorgs of
+        // template/question events before any handler mutations are applied.
+        // Zero extra RPC calls: blockData was already fetched above.
+        const hashRows = await client.query(
+          `SELECT block_number, block_hash FROM reality.processed_block
+           WHERE chain_id = $1 AND block_number = ANY($2::bigint[])`,
+          [chain.chainId, blockNums]
+        );
+        const storedHashes = Object.fromEntries(
+          hashRows.rows.map(r => [Number(r.block_number), r.block_hash])
+        );
+        for (const blockNum of blockNums.slice().sort((a, b) => a - b)) {
+          const stored = storedHashes[blockNum];
+          if (stored && stored !== blockData[blockNum].hash) {
+            console.warn(`[reorg] chain ${chain.chainId}: block ${blockNum} hash changed — rolling back`);
+            await performReorgRollback(client, chain.chainId, blockNum);
+            reorgBlock = blockNum;
+            break;
           }
         }
+
         if (reorgBlock === null) {
+          for (const log of logs) {
+            let decoded;
+            try {
+              decoded = decodeEventLog({ abi: ABI, data: log.data, topics: log.topics });
+            } catch (e) {
+              console.warn(`Failed to decode log at ${log.blockNumber}:${log.logIndex}:`, e.message);
+              continue;
+            }
+            const handler = HANDLERS[decoded.eventName];
+            if (!handler) continue;
+            const blockTs = blockData[parseInt(log.blockNumber, 16)].ts;
+            try {
+              await handler(client, log, decoded.args, chain.chainId, blockTs);
+            } catch (e) {
+              if (e instanceof ReorgDetected) { reorgBlock = e.block; break; }
+              throw e;
+            }
+          }
+        }
+
+        if (reorgBlock === null) {
+          // Store block hashes so future batches can detect hash changes on re-sync.
+          for (const blockNum of blockNums) {
+            await client.query(
+              `INSERT INTO reality.processed_block (chain_id, block_number, block_hash)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (chain_id, block_number) DO UPDATE SET block_hash = EXCLUDED.block_hash`,
+              [chain.chainId, blockNum, blockData[blockNum].hash]
+            );
+          }
           // Normal path: advance sync state to end of batch.
           await client.query(
             `INSERT INTO reality.sync_state (chain_id, last_block) VALUES ($1,$2)
@@ -858,8 +893,8 @@ async function syncChain(pool, chain) {
             [chain.chainId, to]
           );
         }
-        // Reorg path: handler already reset sync_state to conflictBlock-1 inside
-        // the transaction; committing here persists the rollback atomically.
+        // Reorg path: performReorgRollback already reset sync_state; committing
+        // here persists the rollback and the block-hash cleanup atomically.
         await client.query('COMMIT');
         if (reorgBlock !== null) {
           console.log(`[${chain.name}] Reorg committed — will re-sync from block ${reorgBlock}`);
@@ -967,4 +1002,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch(e => { console.error('Fatal:', e); process.exit(1); });
 }
 
-export { onLogNewAnswer, recomputeQuestionState, ReorgDetected };
+export { onLogNewAnswer, recomputeQuestionState, performReorgRollback, ReorgDetected };

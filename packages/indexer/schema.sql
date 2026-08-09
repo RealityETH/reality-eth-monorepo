@@ -95,3 +95,12 @@ CREATE TABLE IF NOT EXISTS reality.sync_state (
   chain_id   integer PRIMARY KEY,
   last_block bigint  NOT NULL
 );
+
+-- Block hashes for every block that contained at least one indexed event.
+-- Used to detect reorgs of template/question events (not just bond contradictions).
+CREATE TABLE IF NOT EXISTS reality.processed_block (
+  chain_id     integer NOT NULL,
+  block_number bigint  NOT NULL,
+  block_hash   text    NOT NULL,
+  PRIMARY KEY (chain_id, block_number)
+);
