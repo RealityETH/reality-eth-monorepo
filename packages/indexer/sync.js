@@ -338,6 +338,26 @@ async function fetchBlockTimestamps(chain, blockNums) {
   return result;
 }
 
+// One-shot startup sweep: mark all unconfirmed processed_block rows that are already
+// beyond CONFIRM_DEPTH as confirmed without any RPC calls. Handles rows that were
+// inserted before the confirmed flag existed, and blocks from a long stopped period.
+async function bulkConfirmOldBlocks(pool, chain) {
+  let headBlock;
+  try {
+    headBlock = await getBlockNumber(chain);
+  } catch (e) {
+    console.warn(`[${chain.name}] bulkConfirmOldBlocks: failed to get head block:`, e.message);
+    return;
+  }
+  const res = await pool.query(
+    `UPDATE reality.processed_block SET confirmed = true
+     WHERE chain_id = $1 AND NOT confirmed AND block_number <= $2`,
+    [chain.chainId, headBlock - CONFIRM_DEPTH]
+  );
+  if (res.rowCount > 0)
+    console.log(`[${chain.name}] Bulk-confirmed ${res.rowCount} old processed blocks`);
+}
+
 // Re-check block hashes for recently-processed blocks once they reach CONFIRM_DEPTH.
 // Catches reorgs that the bond-contradiction detector and batch pre-check missed —
 // e.g. a reorged template event with no subsequent answer contradiction on-chain.
@@ -939,12 +959,14 @@ async function syncChain(pool, chain) {
 
         if (reorgBlock === null) {
           // Store block hashes so future batches can detect hash changes on re-sync.
+          // Blocks already beyond CONFIRM_DEPTH are confirmed immediately — no need to
+          // re-verify them later (catchup sync, fresh install, indexer was stopped).
           for (const blockNum of blockNums) {
             await client.query(
-              `INSERT INTO reality.processed_block (chain_id, block_number, block_hash)
-               VALUES ($1, $2, $3)
+              `INSERT INTO reality.processed_block (chain_id, block_number, block_hash, confirmed)
+               VALUES ($1, $2, $3, $4)
                ON CONFLICT (chain_id, block_number) DO UPDATE SET block_hash = EXCLUDED.block_hash`,
-              [chain.chainId, blockNum, blockData[blockNum].hash]
+              [chain.chainId, blockNum, blockData[blockNum].hash, blockNum <= headBlock - CONFIRM_DEPTH]
             );
           }
           // Normal path: advance sync state to end of batch.
@@ -999,6 +1021,9 @@ async function main() {
     const chains = Object.values(ACTIVE_CHAINS).filter(c => requested.includes(c.name));
     const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
     for (const chain of chains) {
+      await bulkConfirmOldBlocks(pool, chain).catch(e =>
+        console.error(`[${chain.name}] bulkConfirmOldBlocks error:`, e.message)
+      );
       if (refresh) {
         await refreshSparseIndex(chain).catch(e =>
           console.error(`[${chain.name}] sparse refresh error:`, e.message)
@@ -1032,6 +1057,14 @@ async function main() {
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   console.log('Starting indexer. Poll interval:', POLL_MS, 'ms');
   console.log('Active chains:', Object.values(ACTIVE_CHAINS).map(c => c.name).join(', '));
+
+  // One-time startup pass: bulk-confirm old blocks without RPC. Catches rows that
+  // predate the confirmed flag and blocks from a long gap where the indexer was stopped.
+  for (const chain of Object.values(ACTIVE_CHAINS)) {
+    await bulkConfirmOldBlocks(pool, chain).catch(e =>
+      console.error(`[${chain.name}] bulkConfirmOldBlocks error:`, e.message)
+    );
+  }
 
   while (true) {
     for (const chain of Object.values(ACTIVE_CHAINS)) {
