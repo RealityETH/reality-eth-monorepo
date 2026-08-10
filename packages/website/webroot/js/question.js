@@ -36,7 +36,10 @@ const CONTRACT_START_BLOCK = {
 };
 
 function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
-const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 100:'XDAI', 130:'ETH', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
+const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 56:'BNB', 100:'XDAI', 130:'ETH', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
+// Minimum stake below which the "low reward" warning fires, in wei (native-chain values).
+// ERC20 contracts use 1 token (10^metaDecimals) as the threshold instead.
+const SMALL_BOND    = { 1:10n**16n, 10:10n**16n, 56:10n**16n, 100:10n**18n, 130:10n**16n, 137:10n**18n, 42161:10n**16n, 8453:10n**16n, 43114:10n**16n, 42220:10n**18n, 11155111:10n**16n };
 const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 130:'https://uniscan.xyz', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
 const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 130:'https://mainnet.unichain.org', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
 // Params for chains MetaMask may not know natively (wallet_addEthereumChain fallback)
@@ -206,7 +209,7 @@ function el(tag, cls, text) {
 
 function formatEth(bn) {
   if (!bn) return '0';
-  return ethers.formatEther(bn).replace(/\.0+$/, '');
+  return ethers.formatUnits(bn, metaDecimals).replace(/\.0+$/, '');
 }
 
 const LETTER_MAP = { yes: 'Y', no: 'N', inv: '?', other: '·' };
@@ -247,7 +250,7 @@ async function fetchPonderData() {
       items { user amount createdTimestamp }
     }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
-      items { id }
+      items { id currentAnswer }
     }
   }`;
   const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
@@ -409,9 +412,10 @@ function adaptPonderData(ponderData) {
     minBond:       BigInt((pq.minBond || '0').toString()),
     bounty:        BigInt((pq.bounty  || '0').toString()),
     settledTooSoon:       (pq.currentAnswer || '').toLowerCase() === TOO_SOON_LC,
-    reopenedBy:           (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
-    reopenerQuestionId:   reopeners?.items?.[0]?.id || null,
-    reopensQuestionId:    pq.reopensQuestionId || null,
+    reopenedBy:              (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
+    reopenerQuestionId:      reopeners?.items?.[0]?.id || null,
+    reopenerAnsweredTooSoon: (reopeners?.items?.[0]?.currentAnswer || '').toLowerCase() === TOO_SOON_LC,
+    reopensQuestionId:       pq.reopensQuestionId || null,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
     creator:              (pq.creator || '').toLowerCase(),
@@ -433,7 +437,8 @@ function populateTemplate(templateStr, questionStr) {
 
 // ── State detection ───────────────────────────────────────────────────────────
 function isFinalized(finalizeTS) {
-  return finalizeTS > 0 && finalizeTS * 1000 < Date.now();
+  // finalizeTS=1 is a sentinel meaning "answered but countdown not yet started"; treat as not finalized.
+  return finalizeTS > 1 && finalizeTS * 1000 < Date.now();
 }
 function isBeforeOpening(openingTS) {
   return openingTS > 0 && openingTS * 1000 > Date.now();
@@ -495,6 +500,7 @@ function showTxError(btn, msg) {
 const ERC20_TOKEN_ABI = [
   'function allowance(address owner, address spender) view returns (uint256)',
   'function approve(address spender, uint256 amount) returns (bool)',
+  'function decimals() view returns (uint8)',
 ];
 
 const ARBITRATOR_ABI = [
@@ -573,7 +579,7 @@ async function runTx(btn, originalText, txFn, onSubmitted) {
 // ── Bond validation ───────────────────────────────────────────────────────────
 function validateBond(bondWrap, bondInput, minRequired) {
   const val = parseFloat(bondInput.value);
-  const minF = minRequired > 0n ? parseFloat(ethers.formatEther(minRequired)) : 0;
+  const minF = minRequired > 0n ? parseFloat(ethers.formatUnits(minRequired, metaDecimals)) : 0;
   const minAmountEl = bondWrap.querySelector('.min-amount');
   if (isNaN(val) || val < minF) {
     bondWrap.classList.add('is-error');
@@ -750,9 +756,10 @@ function buildAnswerForm(data, walletAddr) {
     const revealMap = data.revealMap || {};
     const commitHash = latest?.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
     const latestReveal = getRevealedAnswer(commitHash, revealMap);
-    // Commitment hash is not a valid option index — use the effective on-chain answer instead.
-    const winnerBytes = (commitHash && !latestReveal)
-      ? (data.currentAnswer || null)
+    // When the winning answer was a commit-reveal, prefer the revealed answer; fall back to
+    // currentAnswer (on-chain finalized value) if the reveal event isn't in our local log.
+    const winnerBytes = commitHash
+      ? (latestReveal || data.currentAnswer || null)
       : (latest?.args.answer ?? null);
     const lo = winnerBytes ? winnerBytes.toLowerCase() : null;
     const isSpecial = lo && (lo === INVALID_LC || lo === TOO_SOON_LC);
@@ -798,8 +805,8 @@ function buildAnswerForm(data, walletAddr) {
     : bond > 0n ? bond * 2n : (minBond > 0n ? minBond : 0n);
 
   const prefill = minRequired > 0n
-    ? ethers.formatEther(minRequired).replace(/\.0+$/, '')
-    : '0.001';
+    ? ethers.formatUnits(minRequired, metaDecimals).replace(/\.0+$/, '')
+    : ethers.formatUnits(10n ** BigInt(Math.max(0, metaDecimals - 3)), metaDecimals);
 
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
   const hasTooSoon = majorVersion >= 3;
@@ -991,7 +998,7 @@ function buildAnswerForm(data, walletAddr) {
     if (!realityRW) { console.error('No wallet connected'); return; }
 
     const ansBytes = answerToBytes32(rawAnswer, qjson);
-    const bondWei  = ethers.parseEther(bondInput.value);
+    const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
     const maxPrev  = data.bond;
 
     if (crCb.checked) {
@@ -1070,6 +1077,7 @@ let knownArbitrators = null; // Set of lowercase addresses, or null if not yet l
 let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
 let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
 let metaToken        = CHAIN_TOKEN[CHAIN_ID] || 'ETH'; // Bond/reward token symbol
+let metaDecimals     = 18;                             // Token decimal places (18 for all native tokens)
 let metaTokenAddress = null; // ERC20 token address, or null for native-token contracts
 
 // Kick off immediately so it loads in parallel with Ponder
@@ -1089,7 +1097,15 @@ const contractsMetaPromise = (async () => {
           const major = ver.match(/[-_](\d+)\./)?.[1];
           metaMajorVersion = major ? parseInt(major) : null;
           metaTokenAddress = info.token_address || null;
-          if (metaTokenAddress) metaToken = tokenSym;
+          if (metaTokenAddress) {
+            metaToken = tokenSym;
+            if (readProvider) {
+              const dec = await new ethers.Contract(
+                metaTokenAddress, ERC20_TOKEN_ABI, readProvider
+              ).decimals().catch(() => 18);
+              metaDecimals = Number(dec);
+            }
+          }
         }
       }
     }
@@ -1130,8 +1146,10 @@ function renderWarnings(data) {
     const topBond = (data.answerEvents || []).reduce(
       (mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
     const totalStake = (data.bounty ?? 0n) + topBond;
-    const ONE_ETH = ethers.parseEther('1');
-    if (totalStake < ONE_ETH) {
+    const smallBond = metaTokenAddress
+      ? 10n ** BigInt(metaDecimals)
+      : (SMALL_BOND[CHAIN_ID] ?? 10n ** 16n);
+    if (totalStake < smallBond) {
       warnings.push({ level: 'warn', title: 'Low reward and bond',
         body: 'The reward was very low and no substantial bond was posted. There may not have been enough incentive to post accurate information.' });
     }
@@ -2375,10 +2393,11 @@ async function main() {
         minBond, bounty: bounty ?? BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
         isPendingArbitration: isPendingArbitration ?? false,
         reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
+        reopenerAnsweredTooSoon: false,
         reopensQuestionId,
         answerEvents,
         revealMap: {},
-        currentAnswer: null,
+        currentAnswer: (q?.best_answer && q.best_answer !== ZERO_HASH) ? q.best_answer : null,
       };
     });
   }
@@ -2395,15 +2414,24 @@ async function main() {
     }
   }
 
-  const finalized   = isFinalized(data.finalizeTS);
+  // Pending arbitration overrides the finalized state: the question is not settled yet.
+  const finalized   = isFinalized(data.finalizeTS) && !data.isPendingArbitration;
   const beforeOpen  = isBeforeOpening(data.openingTS);
   const effectiveVersion = metaMajorVersion ?? majorVersion;
-  const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3 && data.reopenedBy === ZERO_HASH;
-  const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3 && data.reopenedBy !== ZERO_HASH;
+  // A question that is itself a reopener (!data.reopensQuestionId) should not offer another reopen.
+  // When the reopener was also answered too soon, allow re-reopen (reopenerAnsweredTooSoon).
+  const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3
+    && (data.reopenedBy === ZERO_HASH || data.reopenerAnsweredTooSoon)
+    && !data.reopensQuestionId;
+  const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3
+    && data.reopenedBy !== ZERO_HASH && !data.reopenerAnsweredTooSoon;
 
   const statusBadge = document.getElementById('status-badge');
   if (statusBadge) {
-    if (finalized) {
+    if (data.isPendingArbitration) {
+      statusBadge.textContent = 'Pending Arbitration';
+      statusBadge.className = 'badge badge-arb';
+    } else if (finalized) {
       statusBadge.textContent = '✓ Finalized';
       statusBadge.className = 'badge badge-final';
     } else if (beforeOpen) {
@@ -2466,8 +2494,9 @@ async function main() {
   }
 
   // 4. State classes
-  if (finalized) qPage.classList.add('question-state-finalized');
-  else           qPage.classList.add('question-state-open');
+  if (data.isPendingArbitration) qPage.classList.add('question-state-pending-arbitration');
+  else if (finalized)            qPage.classList.add('question-state-finalized');
+  else                           qPage.classList.add('question-state-open');
   if (isReopenable) qPage.classList.add('reopenable');
   if (isReopened)   qPage.classList.add('reopened');
 

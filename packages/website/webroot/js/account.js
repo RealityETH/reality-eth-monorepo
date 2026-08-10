@@ -4,9 +4,9 @@
 // ── Constants ──────────────────────────────────────────────────────────────────
 const ZERO_HASH = '0x' + '0'.repeat(64);
 
-const CHAIN_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 11155111:'ETH' };
 function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
-const CHAIN_NATIVE_TOKEN = { 1:'ETH', 10:'OETH', 100:'XDAI', 137:'MATIC', 42161:'ARETH', 8453:'ETH', 11155111:'ETH' };
+// Canonical token symbol per chain — used for display whenever a contract-specific token is not found.
+const CHAIN_NATIVE_TOKEN = { 1:'ETH', 10:'OETH', 56:'BNB', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
 const EXPLORER    = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 11155111:'https://sepolia.etherscan.io' };
 const PUBLIC_RPC  = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
 
@@ -68,7 +68,8 @@ window.RealityAccount.mount = async function (addr) {
 
   function isFinalized(q) {
     const ts = Number(q.answerFinalizedTimestamp || 0);
-    return ts > 0 && ts * 1000 < Date.now();
+    // ts=1 is an on-chain sentinel meaning "answered but countdown not yet started"; not finalized.
+    return ts > 1 && ts * 1000 < Date.now() && !q.isPendingArbitration;
   }
 
   function questionUrl(q) {
@@ -661,10 +662,11 @@ window.RealityAccount.mount = async function (addr) {
   }
 
   function statusBadge(q) {
+    if (q.isPendingArbitration) return '<span class="badge badge-arb">Pending Arbitration</span>';
     if (isFinalized(q)) return '<span class="badge badge-final">Finalized</span>';
     const now = Date.now() / 1000;
     const schedTS = Number(q.scheduledFinalizationTimestamp || 0);
-    if (schedTS > 0 && schedTS > now) return '<span class="badge badge-open">Open</span>';
+    if (schedTS > 1 && schedTS > now) return '<span class="badge badge-open">Open</span>';
     return '<span class="badge badge-upcoming">Upcoming</span>';
   }
 

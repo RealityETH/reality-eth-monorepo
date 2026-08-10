@@ -773,3 +773,49 @@ export async function createUintDecimalsFixtures() {
 
   return { dec2AnsweredId, dec0AnsweredId, dec2OpenId, dec0OpenId };
 }
+
+// Creates a finalized single-select question where the winning answer ("Dog", index 1)
+// was submitted via commit-reveal rather than a plain submitAnswer.
+// Used to verify the winnerBytes fix: the revealed answer (not the commitment hash)
+// must be used to identify the winning option in the finalized options list.
+// nonce=24 — nonces 0–23 on v3.0 are taken by other fixture functions.
+export async function createCommitRevealSelectFixtures() {
+  const DELIMITER = '␟';
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const timeout = 60;
+  const OUTCOMES = '"Cat","Dog","Fish"';
+  const questionText = `Finalized commit-reveal select test: single-select${DELIMITER}${OUTCOMES}`;
+
+  // Answer: index 1 = "Dog" = bytes32(1)
+  const DOG = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const commitNonce = 42424242n;
+  const commitmentHash = ethers.solidityPackedKeccak256(
+    ['uint256', 'uint256'], [BigInt(DOG), commitNonce]
+  );
+
+  const questionId = computeQuestionId(
+    2, 0, questionText,
+    ethers.ZeroAddress, timeout, 24,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      2, questionText, ethers.ZeroAddress, timeout, 0, 24, { value: bounty }
+    )).wait();
+    await (await reality.submitAnswerCommitment(
+      questionId, commitmentHash, 0, ethers.ZeroAddress, { value: bond }
+    )).wait();
+    await (await reality.submitAnswerReveal(questionId, DOG, commitNonce, bond)).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  }
+
+  return { questionId, answer: DOG };
+}
