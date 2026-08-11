@@ -258,16 +258,16 @@ async function fetchPonderData() {
   try {
     resp = await withIndicator(ponderInd, () => ponderFetch(ponderUrl, { query }));
   } catch {
-    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder unreachable'; }
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder unreachable'; ponderInd.dataset.lastError = 'Ponder unreachable'; ponderInd.dataset.ponderUrl = ponderUrl; }
     throw new Error('Ponder unreachable');
   }
   if (!resp.ok) {
-    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder server error'; }
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Ponder server error'; ponderInd.dataset.lastError = 'Ponder server error'; ponderInd.dataset.ponderUrl = ponderUrl; }
     throw new Error('GraphQL unavailable');
   }
   const json = await resp.json();
   if (!json.data?.question) {
-    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Question not in Ponder index'; }
+    if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.title = 'Question not in Ponder index'; ponderInd.dataset.lastError = 'Question not in Ponder index'; ponderInd.dataset.ponderUrl = ponderUrl; }
     throw new Error('Question not in Ponder');
   }
   return json.data;
@@ -2106,12 +2106,13 @@ async function verifyWithRpc(data) {
       }
     }
 
-    if (bond !== null && bond !== data.bond)
+    // Skip bond and finalizeTS checks for finalized questions: claimWinnings decrements
+    // the on-chain bond as it pays out, and arbitration sets finalize_ts=1 (sentinel).
+    // Neither is tracked by Ponder, so mismatches here are expected after finalization.
+    const alreadyFinalized = isFinalized(data.finalizeTS);
+    if (!alreadyFinalized && bond !== null && bond !== data.bond)
       errors.push('bond mismatch');
-    // Skip finalizeTS check when there's an unrevealed top commitment: Ponder may have
-    // advanced scheduledFinalizationTimestamp on the commit submission, but reality.eth
-    // only extends finalize_ts on reveal, so a mismatch here is a known Ponder limitation.
-    if (!newEntryPushed && !hasUnrevealedTopCommit && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
+    if (!alreadyFinalized && !newEntryPushed && !hasUnrevealedTopCommit && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
       errors.push('finalization timestamp mismatch');
     if (timeout !== null && Number(timeout) !== data.timeout)
       errors.push('timeout mismatch');
@@ -2179,7 +2180,10 @@ async function verifyWithRpc(data) {
     })();
   } else {
     ind.classList.add('fail');
-    ind.title = `Ponder — WARNING: ${errors.join('; ')}`;
+    const failMsg = `Inconsistency: ${errors.join('; ')}`;
+    ind.title = `Ponder — WARNING: ${failMsg}`;
+    ind.dataset.lastError = failMsg;
+    ind.dataset.ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
     console.warn('[reality.eth] RPC verification discrepancies:', errors);
   }
 }

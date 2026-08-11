@@ -200,7 +200,7 @@ window.RealityTemplates.mount = async function (params) {
       errorState.style.display = 'none';
 
     } catch (err) {
-      ponderInd?.classList.add('offline');
+      if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.dataset.lastError = err.message || 'GraphQL error'; ponderInd.dataset.ponderUrl = GRAPHQL; }
       errorState.textContent = `Error: ${err.message}`;
       errorState.style.display = '';
     } finally {

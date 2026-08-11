@@ -1130,9 +1130,9 @@ window.RealityAccount.mount = async function (addr) {
       renderArbitrator(data.arbitratorQuestions, data.arbHasMore);
       renderClaimBanner(data.claimables, effectiveClaimChain(data.claimables));
       return;
-    } catch {
+    } catch (e) {
       if (gen !== _accountLoadGen) return;
-      ponderInd?.classList.add('offline');
+      if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.dataset.lastError = e?.message || 'Ponder unavailable'; ponderInd.dataset.ponderUrl = (window.RealitySettings?.getPonderUrl?.()) || '/graphql'; }
     }
 
     // Phase 2a: Show any locally-cached data immediately

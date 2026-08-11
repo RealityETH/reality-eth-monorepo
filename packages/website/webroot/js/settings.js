@@ -92,8 +92,17 @@ function attachPonderPanel(el) {
     if (activeAnchor === el) { closePanel(); return; }
     openPanel(el, 300, (panel) => {
       const isCustom = localStorage.getItem(PONDER_KEY) !== null;
+      const isOffline = el.classList.contains('offline') || el.classList.contains('fail');
+      const lastError = el.dataset.lastError || (isOffline ? 'Indexer error' : '');
+      const errUrl    = el.dataset.ponderUrl  || '';
+      const errHtml   = lastError ? `
+        <div class="sp-error-block">
+          <div class="sp-error-msg"></div>
+          ${errUrl ? '<div class="sp-error-url"></div>' : ''}
+        </div>` : '';
       panel.innerHTML = `
         <div class="sp-title">Ponder Indexer</div>
+        ${errHtml}
         <label class="sp-label" for="sp-ponder-url">GraphQL endpoint</label>
         <input id="sp-ponder-url" class="sp-input" type="text"
           placeholder="${DEFAULT_PONDER}"
@@ -101,6 +110,10 @@ function attachPonderPanel(el) {
         <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>)</div>
         <div class="sp-actions"><button class="sp-save">Save &amp; reload</button></div>
       `;
+      if (lastError) {
+        panel.querySelector('.sp-error-msg').textContent = lastError;
+        if (errUrl) panel.querySelector('.sp-error-url').textContent = errUrl;
+      }
       const inp = panel.querySelector('#sp-ponder-url');
       inp.focus();
       const save = () => { setPonderUrl(inp.value); closePanel(); location.reload(); };
@@ -196,6 +209,9 @@ function injectStyles() {
     }
     .sp-input:focus { border-color: var(--accent); }
     .sp-hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.4; }
+    .sp-error-block { background: var(--amber-subtle); border: 1px solid var(--amber); border-radius: 5px; padding: 8px 10px; margin-bottom: 12px; }
+    .sp-error-msg { font-size: 12px; color: var(--amber); font-weight: 500; }
+    .sp-error-url { font-size: 11px; color: var(--text-muted); margin-top: 4px; word-break: break-all; font-family: monospace; }
     .sp-hint code { font-family: monospace; color: var(--text-muted); }
     .sp-check-row {
       display: flex; align-items: center; gap: 8px; cursor: pointer;

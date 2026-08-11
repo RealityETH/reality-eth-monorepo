@@ -9,8 +9,8 @@
 // Runs synchronously in <head>, no external deps.
 (function () {
   var h = location.hash;
-  var M  = 'js/marked.js?v=2';
-  var DP = 'js/dompurify.js?v=2';
+  var M  = 'js/marked.js?v=3';
+  var DP = 'js/dompurify.js?v=3';
 
   // CSS: show the right view immediately without a browse-page flash
   var view =
@@ -20,6 +20,7 @@
     /^#!?\/template(\/|$)/.test(h)             ? 'template-view'        :
     /^#!?\/templates(\/|$|\?)/.test(h)         ? 'templates-view'       :
     /^#!?\/guide(\/|$)/.test(h)                ? 'guide-view'           :
+    /^#!?\/docs(\/|$)/.test(h)                 ? 'docs-view'            :
     /^#!?\/ask(\/|$|\?)/.test(h)               ? 'ask-view'             :
     /^#!?\/watch-configure(\/|$|\?)/.test(h)   ? 'watch-configure-view' :
     /^#!?\/watches(\/|$)/.test(h)              ? 'watches-view'         :
@@ -35,11 +36,11 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=2';
+  var V = '?v=6';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
-    'js/guide-view.js'+V, 'js/templates-view.js'+V, 'js/template-view.js'+V, 'js/ask-view.js'+V];
+    'js/guide-view.js'+V, 'js/docs-view.js'+V, 'js/templates-view.js'+V, 'js/template-view.js'+V, 'js/ask-view.js'+V];
 
   var route =
     /^#!?\/network\/\d+\/question\//.test(h)  ? [M, DP, 'js/question.js'+V] :
@@ -48,6 +49,7 @@
     /^#!?\/template(\/|$)/.test(h)            ? [M, DP, 'js/template-view.js'+V] :
     /^#!?\/templates(\/|$|\?)/.test(h)        ? ['js/templates-view.js'+V] :
     /^#!?\/guide(\/|$)/.test(h)               ? [M, DP, 'js/guide-view.js'+V] :
+    /^#!?\/docs(\/|$)/.test(h)                ? [M, DP, 'js/docs-view.js'+V]  :
     /^#!?\/ask(\/|$|\?)/.test(h)              ? [M, DP, 'js/ask-view.js'+V] :
     /^#!?\/watch-configure(\/|$|\?)/.test(h)  ? ['js/watch-configure-view.js'+V] :
     /^#!?\/watches(\/|$)/.test(h)             ? ['js/watches-view.js'+V] :
@@ -95,6 +97,7 @@
     --radius-sm: 5px;
   }
 
+  html { scrollbar-gutter: stable; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background: var(--bg);
@@ -1337,6 +1340,34 @@
     letter-spacing: 0.06em; color: var(--text-dim); padding: 8px 14px 0; }
   #guide-view pre { padding: 10px 14px 14px; font-family: 'SFMono-Regular', Consolas, monospace;
     font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre; }
+  /* ── Docs view ──────────────────────────────────── */
+  .docs-body h1 { font-size: 26px; font-weight: 700; margin: 0 0 8px; }
+  .docs-body h2 { font-size: 18px; font-weight: 600; margin: 28px 0 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle); }
+  .docs-body h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: var(--text); }
+  .docs-body h4 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; color: var(--text-muted); }
+  .docs-body p  { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.7; }
+  .docs-body a  { color: var(--accent); text-decoration: none; }
+  .docs-body a:hover { text-decoration: underline; }
+  .docs-body ul, .docs-body ol { padding-left: 22px; color: var(--text-muted);
+    font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+  .docs-body li { margin-bottom: 4px; }
+  .docs-body code { font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12px; background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: 3px; padding: 1px 5px; color: var(--text-muted); }
+  .docs-body pre { background: #0d1117; border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm); padding: 14px 16px; overflow-x: auto; margin-bottom: 14px; }
+  .docs-body pre code { background: none; border: none; padding: 0;
+    font-size: 12px; line-height: 1.6; color: var(--text-muted); }
+  .docs-body blockquote { border-left: 3px solid var(--accent-subtle);
+    padding: 8px 14px; margin: 12px 0; color: var(--text-muted); font-size: 14px; }
+  .docs-body table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 13px; }
+  .docs-body th { text-align: left; padding: 8px 12px; font-weight: 600;
+    background: var(--bg-card); border-bottom: 2px solid var(--border); color: var(--text); }
+  .docs-body td { padding: 7px 12px; border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); }
+  .docs-body hr { border: none; border-top: 1px solid var(--border-subtle); margin: 24px 0; }
+  .docs-loading { color: var(--text-dim); font-size: 14px; padding: 20px 0; }
+  .docs-error   { color: var(--amber); font-size: 14px; }
   .kw  { color: #ff7b72; }
   .fn  { color: #d2a8ff; }
   .str { color: #a5d6ff; }
@@ -1389,14 +1420,14 @@
   .cost-total .cost-label { color: var(--text); font-weight: 600; }
   .cost-total .cost-val { color: var(--accent); font-size: 15px; }
 </style>
-<script defer src="js/website-data.js?v=2"></script>
-<script defer src="js/chains.js?v=2"></script>
-<script defer src="js/reality-eth-lib.js?v=2"></script>
-<script defer src="js/ethers.js?v=2"></script>
-<script defer src="js/wallet.js?v=2"></script>
-<script defer src="js/settings.js?v=2"></script>
-<script defer src="js/question-cache.js?v=2"></script>
-<script defer src="js/watches.js?v=2"></script>
+<script defer src="js/website-data.js?v=3"></script>
+<script defer src="js/chains.js?v=3"></script>
+<script defer src="js/reality-eth-lib.js?v=3"></script>
+<script defer src="js/ethers.js?v=3"></script>
+<script defer src="js/wallet.js?v=3"></script>
+<script defer src="js/settings.js?v=8"></script>
+<script defer src="js/question-cache.js?v=3"></script>
+<script defer src="js/watches.js?v=3"></script>
 <style id="heritage-theme">
 /* ── Heritage theme override ── */
 :root {
@@ -2025,7 +2056,7 @@ header {
     <nav class="header-nav">
       <a class="nav-link" href="#/ask">Ask a question</a>
       <a class="nav-link" href="#/account">My account</a>
-      <a class="nav-link" href="app/docs/html/">Docs</a>
+      <a class="nav-link" href="#!/docs">Docs</a>
       <a class="nav-link" href="https://github.com/RealityETH/monorepo">GitHub</a>
     </nav>
     <div class="data-ind-group" id="data-ind-group">
@@ -2063,7 +2094,7 @@ header {
 	<p class="page-intro">Reality.eth is an on-chain fact-checking system and smart contract oracle for answering natural-language questions.
 	<br />
 	<br />
-	<a href="#!/ask">Ask a question</a> or learn <a href="app/docs/html/">how to integrate it into your project</a>.
+	<a href="#!/ask">Ask a question</a> or learn <a href="#!/docs">how to integrate it into your project</a>.
 	</p>
 
   <!-- ── Starred integrations ────────────────────────── -->
@@ -2720,6 +2751,16 @@ header {
 </div>
 </div>
 
+<div id="docs-view" style="display:none">
+<div class="page-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-title">Documentation</div>
+    <nav class="sidebar-nav" id="docs-sidebar-nav"></nav>
+  </aside>
+  <main id="docs-main"></main>
+</div>
+</div>
+
 <div id="ask-view" style="display:none">
 <div class="page">
   <h1>Ask a question</h1>
@@ -3033,8 +3074,8 @@ header {
     <span class="footer-copy">reality.eth — built by <a href="http://www.socialminds.jp/">Social Minds Inc</a></span>
     <nav class="footer-links">
       <a href="app/">dApp</a>
-      <a href="app/docs/html/">Docs</a>
-      <a href="app/docs/html/whitepaper.html">White paper</a>
+      <a href="#!/docs">Docs</a>
+      <a href="#!/docs/whitepaper">White paper</a>
       <a href="https://github.com/RealityETH/monorepo">GitHub</a>
       <a href="https://discord.gg/EtMkj8Z">Discord</a>
       <a href="https://twitter.com/RealityEth">Twitter</a>
@@ -3049,8 +3090,8 @@ header {
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
   // ── Dynamic script loader ─────────────────────────────────────────────────────
-  const _CDN_MARKED = 'js/marked.js?v=2';
-  const _CDN_PURIFY = 'js/dompurify.js?v=2';
+  const _CDN_MARKED = 'js/marked.js?v=3';
+  const _CDN_PURIFY = 'js/dompurify.js?v=3';
   const _scriptLoads = new Map();
   function loadScript(src) {
     if (!_scriptLoads.has(src)) {
@@ -3075,14 +3116,15 @@ header {
     'watch-configure': ['js/watch-configure-view.js'],
     contract:          ['js/contract-view.js'],
     guide:             [_CDN_MARKED, _CDN_PURIFY, 'js/guide-view.js'],
+    docs:              [_CDN_MARKED, _CDN_PURIFY, 'js/docs-view.js'],
     templates:         ['js/templates-view.js'],
     template:          [_CDN_MARKED, _CDN_PURIFY, 'js/template-view.js'],
     ask:               [_CDN_MARKED, _CDN_PURIFY, 'js/ask-view.js'],
   };
 
-  const ponderInd = document.getElementById('ind-ponder');
-  const rpcInd    = document.getElementById('ind-rpc');
-  const cacheInd  = document.getElementById('ind-cache');
+  const ponderInd     = document.getElementById('ind-ponder');
+  const rpcInd        = document.getElementById('ind-rpc');
+  const cacheInd      = document.getElementById('ind-cache');
 
   const BROWSE_CACHE_KEY = 'reality-eth-browse-q';
   const BROWSE_CACHE_TTL = 5 * 60 * 1000; // 5 min
@@ -3355,7 +3397,7 @@ header {
       if (reset) writeBrowseCache(allQuestions, cursor, hasNextPage);
     } catch (e) {
       console.error('GraphQL error:', e);
-      ponderInd?.classList.add('offline');
+      if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.dataset.lastError = e?.message || 'GraphQL error'; ponderInd.dataset.ponderUrl = GRAPHQL(); }
       ponderFailed = true;
     }
 
@@ -3393,7 +3435,7 @@ header {
       integCounts = Object.fromEntries(results.filter(([, v]) => v !== null));
     } catch (e) {
       console.error('Count query error:', e);
-      ponderInd?.classList.add('offline');
+      if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.dataset.lastError = e?.message || 'Count query error'; ponderInd.dataset.ponderUrl = GRAPHQL(); }
       ponderFailed = true;
     }
 
@@ -3990,6 +4032,15 @@ header {
     return m ? m[1] : null;
   }
 
+  function isDocsHash(hash) {
+    return /^#!?\/docs(\/|$)/.test(hash);
+  }
+
+  function getDocIdFromHash(hash) {
+    const m = hash.match(/\/docs\/([^/?#]+)/);
+    return m ? m[1] : null;
+  }
+
   function isAskHash(hash) {
     return /^#!?\/ask(\/|$|\?)/.test(hash);
   }
@@ -4022,6 +4073,7 @@ header {
   let _watchConfigureViewTemplate  = null;
   let _contractViewTemplate        = null;
   let _guideViewTemplate           = null;
+  let _docsViewTemplate            = null;
   let _templatesViewTemplate       = null;
   let _templateViewTemplate        = null;
   let _askViewTemplate             = null;
@@ -4037,6 +4089,7 @@ header {
     document.getElementById('watch-configure-view').style.display = 'none';
     document.getElementById('contract-view').style.display = 'none';
     document.getElementById('guide-view').style.display = 'none';
+    document.getElementById('docs-view').style.display = 'none';
     document.getElementById('templates-view').style.display = 'none';
     document.getElementById('template-view').style.display = 'none';
     document.getElementById('ask-view').style.display = 'none';
@@ -4157,6 +4210,18 @@ header {
     window.RealityGuide.mount(guideId);
   }
 
+  async function showDocsView() {
+    await loadViewScripts(VIEW_SCRIPTS.docs);
+    const dv = document.getElementById('docs-view');
+    if (!_docsViewTemplate) _docsViewTemplate = dv.innerHTML;
+    dv.innerHTML = _docsViewTemplate;
+    _hideAllViews();
+    dv.style.display = '';
+    document.title = 'reality.eth — Docs';
+    const docId = getDocIdFromHash(window.location.hash);
+    await window.RealityDocs.mount(docId);
+  }
+
   async function showAskView() {
     await loadViewScripts(VIEW_SCRIPTS.ask);
     const av = document.getElementById('ask-view');
@@ -4205,6 +4270,10 @@ header {
     }
     if (isGuideHash(hash)) {
       await showGuideView();
+      return;
+    }
+    if (isDocsHash(hash)) {
+      await showDocsView();
       return;
     }
     if (isAskHash(hash)) {
@@ -4268,6 +4337,8 @@ header {
       await showContractView();
     } else if (isGuideHash(window.location.hash)) {
       await showGuideView();
+    } else if (isDocsHash(window.location.hash)) {
+      await showDocsView();
     } else if (isAskHash(window.location.hash)) {
       await showAskView();
     } else if (isTemplateHash(window.location.hash)) {

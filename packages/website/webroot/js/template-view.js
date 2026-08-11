@@ -686,7 +686,7 @@ window.RealityTemplate.mount = async function (routeId) {
         }
       }
     } catch (err) {
-      ponderInd?.classList.add('offline');
+      if (ponderInd) { ponderInd.classList.add('offline'); ponderInd.dataset.lastError = err.message || 'GraphQL error'; ponderInd.dataset.ponderUrl = GRAPHQL; }
       document.getElementById('view-loading').style.display = 'none';
       document.getElementById('view-error').textContent = `Error: ${err.message}`;
       document.getElementById('view-error').style.display = '';
