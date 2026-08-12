@@ -235,7 +235,7 @@ async function fetchPonderData() {
   // responses and reopeners are separate top-level queries (no nested relations in Ponder)
   const query = `{
     question(id: ${qid}) {
-      templateId data title type category lang outcomes creator
+      templateId data title type category lang outcomes questionJson creator
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
@@ -2351,9 +2351,40 @@ async function main() {
     const ponderResult = await fetchPonderData();
     const pq = ponderResult.question;
     data = adaptPonderData(ponderResult);
-    // Use Ponder's pre-parsed fields (indexed at event time) to avoid client-side
-    // JSON parse failures when question content contains special characters.
-    if (pq.title != null || pq.type != null) {
+    if (pq.questionJson) {
+      // Fast-path: indexer pre-computed the full qjson including has_invalid, decimals, precision.
+      data.qjson = RealityLib.parseQuestionJSON(pq.questionJson);
+      // Still fetch template for markdown title rendering (title_html).
+      let templateStr;
+      try {
+        templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
+        data.templateStr = templateStr;
+        const full = populateTemplate(templateStr, pq.data);
+        if (full.title_html) {
+          data.qjson.title_html = full.title_html;
+          data.qjson.title_text = full.title_text;
+        }
+      } catch (e) {
+        console.warn('[question] template render error:', e);
+      }
+      // Fallback markdown render when title_html wasn't produced (e.g. pq.data is null).
+      if (pq.title && !data.qjson.title_html && templateStr) {
+        const isMd = /"format"\s*:\s*"text\/markdown"/.test(templateStr);
+        if (isMd) {
+          try {
+            const fakeJson = JSON.stringify({ title: pq.title, type: data.qjson.type || 'bool', format: 'text/markdown' });
+            const mdFull = populateTemplate(fakeJson, '');
+            if (mdFull.title_html) {
+              data.qjson.title_html = mdFull.title_html;
+              data.qjson.title_text = mdFull.title_text;
+            }
+          } catch {}
+        }
+      }
+    } else if (pq.title != null || pq.type != null) {
+      // Legacy fallback: Ponder supplied pre-parsed fields but no questionJson.
+      // Missing has_invalid and decimals here, but this path is only hit for old
+      // index data before the questionJson column existed.
       let outcomes;
       try { outcomes = pq.outcomes ? JSON.parse(pq.outcomes) : undefined; } catch {}
       data.qjson = {
@@ -2363,8 +2394,6 @@ async function main() {
         lang:     pq.lang     ?? undefined,
         ...(outcomes != null && { outcomes }),
       };
-      // Fetch template for format/title_html (markdown rendering), type fallback, and decimals.
-      // Ponder doesn't index decimals, so we must read the actual value from the template JSON.
       let templateStr;
       try {
         templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
@@ -2383,14 +2412,11 @@ async function main() {
       } catch (e) {
         console.warn('[question] template render error:', e);
       }
-      // Fallback: if format is markdown but title_html wasn't produced (e.g. pq.data is null),
-      // render pq.title directly by embedding it safely in a minimal fake template.
       if (pq.title && !data.qjson.title_html && templateStr) {
         const isMd = /"format"\s*:\s*"text\/markdown"/.test(templateStr);
         if (isMd) {
           data.qjson.format = 'text/markdown';
           try {
-            // JSON.stringify safely escapes pq.title; no %s in template so vsprintf is a no-op.
             const fakeJson = JSON.stringify({ title: pq.title, type: data.qjson.type || 'bool', format: 'text/markdown' });
             const mdFull = populateTemplate(fakeJson, '');
             if (mdFull.title_html) {

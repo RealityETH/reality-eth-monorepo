@@ -533,7 +533,7 @@ window.RealityAccount.mount = async function (addr) {
     if (lo === INVALID.toLowerCase()) return 'Invalid';
     if (lo === TOO_SOON.toLowerCase()) return 'Too soon';
     if (q) {
-      const qjson = window.RealityLib.parseQuestionJSON(q.data);
+      const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
       const text = window.RealityLib.getAnswerString(qjson, hex);
       if (text && text !== 'null') return text;
     }
@@ -604,7 +604,7 @@ window.RealityAccount.mount = async function (addr) {
   async function loadAccountData(a) {
     a = a.toLowerCase();
     if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
-    const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator isPendingArbitration arbitrationOccurred`;
+    const qFields = `id questionId contract chainId title type category currentAnswer currentAnswerBond bounty historyHash answerFinalizedTimestamp scheduledFinalizationTimestamp createdTimestamp timeout arbitrator isPendingArbitration arbitrationOccurred questionJson`;
 
     const [askedData, respData, claimData, arbData] = await Promise.all([
       gql(`{ questions(where:{creator:"${a}"},orderBy:"createdTimestamp",orderDirection:"desc",limit:1000) { items{${qFields}} pageInfo{hasNextPage} } }`),

@@ -425,11 +425,12 @@ function parseQuestion(tmplText, rawData) {
   try {
     const result = populatedJSONForTemplate(tmplText, data);
     return {
-      title:    result.title    ?? null,
-      type:     result.type     ?? null,
-      category: result.category ?? null,
-      lang:     result.lang     ?? null,
-      outcomes: Array.isArray(result.outcomes) ? JSON.stringify(result.outcomes) : null,
+      title:        result.title    ?? null,
+      type:         result.type     ?? null,
+      category:     result.category ?? null,
+      lang:         result.lang     ?? null,
+      outcomes:     Array.isArray(result.outcomes) ? JSON.stringify(result.outcomes) : null,
+      questionJson: JSON.stringify(result),
     };
   } catch {
     return { title: data.split('␟')[0] || null };
@@ -610,7 +611,7 @@ async function onLogNewQuestion(db, log, args, chainId, blockTs) {
   await db.query(`
     INSERT INTO reality.question (
       id, question_id, contract, chain_id, template_id, nonce, data,
-      title, type, category, lang, outcomes,
+      title, type, category, lang, outcomes, question_json,
       creator, arbitrator, opening_timestamp, timeout, content_hash,
       current_answer_bond, min_bond, last_bond, cumulative_bonds, bounty,
       is_pending_arbitration, arbitration_occurred, scheduled_finalization_timestamp,
@@ -618,19 +619,19 @@ async function onLogNewQuestion(db, log, args, chainId, blockTs) {
       updated_block, updated_timestamp
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,
-      $8,$9,$10,$11,$12,
-      $13,$14,$15,$16,$17,
+      $8,$9,$10,$11,$12,$13,
+      $14,$15,$16,$17,$18,
       0,0,0,0,0,
       false,false,0,
-      $18,$19,$20,$21,
-      $18,$22
+      $19,$20,$21,$22,
+      $19,$23
     )
     ON CONFLICT (id) DO NOTHING
   `, [
     id, args.question_id, addr, chainId,
     args.template_id.toString(), args.nonce.toString(),
     args.question.replace(/\x00/g, ''),
-    p.title, p.type, p.category, p.lang, p.outcomes,
+    p.title, p.type, p.category, p.lang, p.outcomes, p.questionJson ?? null,
     args.user.toLowerCase(), args.arbitrator.toLowerCase(),
     args.opening_ts.toString(), args.timeout.toString(), args.content_hash,
     block, parseInt(log.logIndex, 16), log.transactionHash,

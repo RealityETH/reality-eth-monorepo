@@ -7,6 +7,7 @@ export interface ParsedQuestion {
   category?: string;
   lang?: string;
   outcomes?: string; // JSON-stringified array for choice questions
+  questionJson?: string; // Full JSON from populatedJSONForTemplate
 }
 
 // Built-in templates 0–4 sourced from reality-eth-lib.
@@ -46,6 +47,7 @@ export function populatedJSONForTemplate(
     outcomes: Array.isArray(parsed.outcomes)
       ? JSON.stringify(parsed.outcomes)
       : undefined,
+    questionJson: JSON.stringify(parsed),
   };
 }
 

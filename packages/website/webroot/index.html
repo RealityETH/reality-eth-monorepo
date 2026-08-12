@@ -3362,7 +3362,7 @@ header {
           isPendingArbitration answerFinalizedTimestamp
           scheduledFinalizationTimestamp openingTimestamp
           updatedTimestamp createdTimestamp
-          lastBond minBond bounty timeout arbitrator outcomes
+          lastBond minBond bounty timeout arbitrator outcomes questionJson
         }
         pageInfo { hasNextPage endCursor }
       }
@@ -3523,7 +3523,7 @@ header {
 
   function formatAnswer(q) {
     if (!q.currentAnswer) return null;
-    const qjson = window.RealityLib.parseQuestionJSON(q.data);
+    const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
     const text = window.RealityLib.getAnswerString(qjson, q.currentAnswer);
     if (!text || text === 'null') return null;
     if (text === 'Invalid') return { text: 'Invalid / N-A', cls: 'answer-invalid' };

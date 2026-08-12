@@ -105,6 +105,7 @@ for (const name of [
         category: parsed.category,
         lang: parsed.lang,
         outcomes: parsed.outcomes,
+        questionJson: parsed.questionJson,
         creator: user,
         arbitrator,
         openingTimestamp: BigInt(opening_ts),

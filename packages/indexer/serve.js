@@ -69,6 +69,7 @@ const question = s.table(
     category:                        text(),
     lang:                            text(),
     outcomes:                        text(),
+    questionJson:                    text(),
     creator:                         hex().notNull(),
     arbitrator:                      hex().notNull(),
     openingTimestamp:                bigint().notNull(),

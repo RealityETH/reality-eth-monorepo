@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS reality.question (
   category                         text,
   lang                             text,
   outcomes                         text,
+  question_json                    text,
   creator                          text           NOT NULL,
   arbitrator                       text           NOT NULL,
   opening_timestamp                numeric(78,0)  NOT NULL,

@@ -18,7 +18,7 @@ User=rcdev
 WorkingDirectory=/srv/rcdev/reality-eth-design/packages/indexer
 Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=PORT=42070
-ExecStart=node serve.js
+ExecStart=/home/rcdev/.nvm/versions/node/v23.11.0/bin/node serve.js
 StandardOutput=append:/srv/rcdev/reality-eth-design/packages/indexer/serve.log
 StandardError=append:/srv/rcdev/reality-eth-design/packages/indexer/serve.log
 Restart=on-failure

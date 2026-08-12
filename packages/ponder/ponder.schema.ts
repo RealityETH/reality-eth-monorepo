@@ -44,6 +44,7 @@ export const question = onchainTable(
     category: p.text(),
     lang: p.text(),
     outcomes: p.text(),   // JSON-stringified array for choice questions
+    questionJson: p.text(), // Full JSON from populatedJSONForTemplate — used by clients to avoid re-parsing
 
     // Address that called askQuestion — indexed for grouping by integration
     creator: p.hex().notNull(),

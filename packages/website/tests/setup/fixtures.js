@@ -513,7 +513,7 @@ export async function createVisibilityFixtures() {
     return questionId;
   })();
 
-  return { v21BoolId, v21UintId, noInvalidBoolId };
+  return { v21BoolId, v21UintId, noInvalidBoolId, noInvalidTemplateId };
 }
 
 // Creates a finalized single-select question with outcomes "Cat", "Dog", "Fish"
