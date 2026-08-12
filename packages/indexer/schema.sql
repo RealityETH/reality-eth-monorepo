@@ -42,11 +42,17 @@ CREATE TABLE IF NOT EXISTS reality.question (
   updated_timestamp                numeric(78,0)  NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS reality_q_chain   ON reality.question (chain_id);
-CREATE INDEX IF NOT EXISTS reality_q_creator ON reality.question (creator);
-CREATE INDEX IF NOT EXISTS reality_q_updated ON reality.question (updated_timestamp);
-CREATE INDEX IF NOT EXISTS reality_q_created ON reality.question (created_timestamp);
-CREATE INDEX IF NOT EXISTS reality_q_sft     ON reality.question (scheduled_finalization_timestamp);
+CREATE INDEX IF NOT EXISTS reality_q_chain      ON reality.question (chain_id);
+CREATE INDEX IF NOT EXISTS reality_q_creator    ON reality.question (creator);
+CREATE INDEX IF NOT EXISTS reality_q_updated    ON reality.question (updated_timestamp);
+CREATE INDEX IF NOT EXISTS reality_q_created    ON reality.question (created_timestamp);
+CREATE INDEX IF NOT EXISTS reality_q_sft        ON reality.question (scheduled_finalization_timestamp);
+CREATE INDEX IF NOT EXISTS reality_q_template   ON reality.question (template_id);
+CREATE INDEX IF NOT EXISTS reality_q_arbitrator ON reality.question (arbitrator);
+CREATE INDEX IF NOT EXISTS reality_q_category   ON reality.question (category);
+CREATE INDEX IF NOT EXISTS reality_q_contract   ON reality.question (contract);
+CREATE INDEX IF NOT EXISTS reality_q_arb_pend   ON reality.question (is_pending_arbitration);
+CREATE INDEX IF NOT EXISTS reality_q_reopener   ON reality.question (reopens_question_id);
 
 CREATE TABLE IF NOT EXISTS reality.response (
   id                text          PRIMARY KEY,
@@ -65,8 +71,10 @@ CREATE TABLE IF NOT EXISTS reality.response (
   revealed_block    numeric(78,0)
 );
 
-CREATE INDEX IF NOT EXISTS reality_r_qid    ON reality.response (question_id);
-CREATE INDEX IF NOT EXISTS reality_r_q_bond ON reality.response (question_id, bond);
+CREATE INDEX IF NOT EXISTS reality_r_qid       ON reality.response (question_id);
+CREATE INDEX IF NOT EXISTS reality_r_q_bond    ON reality.response (question_id, bond);
+CREATE INDEX IF NOT EXISTS reality_r_user      ON reality.response (user);
+CREATE INDEX IF NOT EXISTS reality_r_timestamp ON reality.response (timestamp);
 
 CREATE TABLE IF NOT EXISTS reality.template (
   id                text          PRIMARY KEY,
@@ -81,6 +89,12 @@ CREATE TABLE IF NOT EXISTS reality.template (
   created_timestamp numeric(78,0) NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS reality_t_template  ON reality.template (template_id);
+CREATE INDEX IF NOT EXISTS reality_t_chain     ON reality.template (chain_id);
+CREATE INDEX IF NOT EXISTS reality_t_contract  ON reality.template (contract);
+CREATE INDEX IF NOT EXISTS reality_t_user      ON reality.template (user);
+CREATE INDEX IF NOT EXISTS reality_t_created   ON reality.template (created_timestamp);
+
 CREATE TABLE IF NOT EXISTS reality.claim (
   id                text          PRIMARY KEY,
   question_id       text          NOT NULL,
@@ -89,6 +103,9 @@ CREATE TABLE IF NOT EXISTS reality.claim (
   created_block     numeric(78,0) NOT NULL,
   created_timestamp numeric(78,0) NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS reality_c_user     ON reality.claim (user);
+CREATE INDEX IF NOT EXISTS reality_c_question ON reality.claim (question_id);
 
 -- One row per chain; last_block is the highest block fully processed.
 CREATE TABLE IF NOT EXISTS reality.sync_state (

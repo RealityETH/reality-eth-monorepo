@@ -1821,10 +1821,8 @@ function startCountdown(finalizeTS, timeout) {
   const id = setInterval(() => {
     if (isFinalized(finalizeTS)) {
       clearInterval(id);
-      valEl.textContent = 'Finalized';
-      valEl.classList.add('finalized');
-      if (barEl) barEl.style.width = '100%';
       showUpdateBanner('This question has finalized.');
+      _renderDynamic?.();
       return;
     }
     const now = Math.floor(Date.now() / 1000);
@@ -1974,7 +1972,12 @@ function buildLockedState(data) {
 async function verifyWithRpc(data) {
   if (!reality) return;
 
+  console.log(`[reality.eth] verifyWithRpc: ponder events=${data.answerEvents.length} currentAnswer=${data.currentAnswer} finalizeTS=${data.finalizeTS}`);
+
   const errors = [];
+  let liveStateUpdated = false;
+  let newEntryPushed = false;
+  let needsEventFetch = false;
 
   const connEl = document.getElementById('ind-connector');
   indGroup?.classList.add('verifying');
@@ -1983,20 +1986,22 @@ async function verifyWithRpc(data) {
     connEl.title = 'Verifying Ponder data against RPC…';
   }
   await withIndicator(rpcInd, async () => {
-    const calls = [
-      safeCall(() => reality.getBestAnswer(QUESTION_ID), null),
-      safeCall(() => reality.getHistoryHash(QUESTION_ID), null),
-      safeCall(() => reality.getBond(QUESTION_ID), null),
-      safeCall(() => reality.getFinalizeTS(QUESTION_ID), null),
-      safeCall(() => reality.getTimeout(QUESTION_ID), null),
-      safeCall(() => reality.getArbitrator(QUESTION_ID), null),
-      safeCall(() => reality.getContentHash(QUESTION_ID), null),
-    ];
-    if (data.templateId > 4) {
-      calls.push(safeCall(() => reality.template_hashes(data.templateId), null));
-    }
-    const [bestAnswer, historyHash, bond, finalizeTS, timeout, arbitrator, contentHash, templateHash]
-      = await Promise.all(calls);
+    // questionsStruct reads the public questions() mapping directly — works on v2 and v3.
+    // Individual getter functions (getBestAnswer, getFinalizeTS, etc.) were only added in v3
+    // and revert on v2.x contracts, so we avoid them here.
+    const [q, templateHash] = await Promise.all([
+      questionsStruct(reality.runner, CONTRACT, QUESTION_ID),
+      data.templateId > 4 ? safeCall(() => reality.template_hashes(data.templateId), null) : Promise.resolve(null),
+    ]);
+
+    const bestAnswer  = q?.best_answer  ?? null;
+    const historyHash = q?.history_hash ?? null;
+    const bond        = q?.bond         ?? null;
+    const finalizeTS  = q !== null ? q.finalize_ts : null;
+    const timeout     = q !== null ? q.timeout     : null;
+    const arbitrator  = q?.arbitrator   ?? null;
+    const contentHash = q?.content_hash ?? null;
+    console.log(`[reality.eth] verifyWithRpc: struct bestAnswer=${bestAnswer} finalizeTS=${finalizeTS} bond=${bond} q=${q ? 'ok' : 'null'}`);
 
     // Content hash covers templateId + openingTs + question data in one shot
     if (contentHash) {
@@ -2018,7 +2023,13 @@ async function verifyWithRpc(data) {
     // Reconstruct history hash from the answer list.
     // Skip for finalized questions: claiming rewinds the on-chain hash, so a
     // mismatch is expected and tells us nothing useful once settled.
-    if (historyHash !== null && !isFinalized(data.finalizeTS)) {
+    const histHashFinalized = isFinalized(data.finalizeTS) || isFinalized(Number(finalizeTS ?? 0n));
+    // Skip for finalized questions that already have Ponder events: claiming rewinds the
+    // on-chain hash, so a mismatch against indexed events would be a false positive.
+    // When Ponder has zero events, a non-zero on-chain hash unambiguously means indexer lag —
+    // run the check regardless of finalization.
+    const skipHistCheck = histHashFinalized && data.answerEvents.length > 0;
+    if (historyHash !== null && !skipHistCheck) {
       let computed = ZERO_HASH;
       for (const ev of data.answerEvents) {
         computed = ethers.solidityPackedKeccak256(
@@ -2026,8 +2037,12 @@ async function verifyWithRpc(data) {
           [computed, ev.args.answer, ev.args.bond, ev.args.user, ev.args.is_commitment]
         );
       }
-      if (computed.toLowerCase() !== historyHash.toLowerCase())
-        errors.push('history hash mismatch');
+      const histMatch = computed.toLowerCase() === historyHash.toLowerCase();
+      console.log(`[reality.eth] verifyWithRpc: historyHash check — computed=${computed.slice(0,10)} onchain=${historyHash.slice(0,10)} match=${histMatch}`);
+      if (!histMatch)
+        needsEventFetch = true; // Ponder history is incomplete; repair from RPC
+    } else {
+      console.log(`[reality.eth] verifyWithRpc: historyHash check skipped — finalized=${histHashFinalized} ponderEvents=${data.answerEvents.length} historyHash=${historyHash ? 'present' : 'null'}`);
     }
 
     // Fill revealMap from on-chain commitments() for any commitment entries missing from Ponder
@@ -2061,64 +2076,88 @@ async function verifyWithRpc(data) {
         }
         // Recompute currentAnswer now that revealMap is fuller
         updateCurrentAnswer(data);
-        renderStatusCard(data);
-        renderHistory(data);
+        _renderDynamic?.();
       }
     }
 
     // For the RPC path, data.currentAnswer starts null; derive it now from events + revealMap.
     if (data.currentAnswer === null) updateCurrentAnswer(data);
 
+    // Apply live state from RPC — always authoritative regardless of Ponder sync status.
+    if (bond !== null && bond !== data.bond) { data.bond = bond; liveStateUpdated = true; }
+    if (finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS) { data.finalizeTS = Number(finalizeTS); liveStateUpdated = true; }
+
     // Detect on-chain answer that Ponder hasn't indexed yet.
-    // Compare getBestAnswer() to what we'd expect from Ponder's data + revealMap.
-    let newEntryPushed = false;
     let hasUnrevealedTopCommit = false;
-    if (bestAnswer !== null && data.answerEvents.length > 0) {
-      const latest = data.answerEvents[data.answerEvents.length - 1];
-      const latestKey = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
-      const latestReveal = latestKey ? (data.revealMap[latestKey] || null) : null;
-      hasUnrevealedTopCommit = !!(latestKey && !latestReveal);
-      // What we expect getBestAnswer() to return:
-      //   - unrevealed commitment: the PREVIOUS effective answer, not the commitment hash.
-      //     reality.eth only updates best_answer on reveal (not on commit submission), so
-      //     getBestAnswer() reflects the last confirmed answer until the reveal happens.
-      //   - revealed commitment: the revealed answer
-      //   - direct answer: the answer bytes32
-      const expected = hasUnrevealedTopCommit
-        ? (data.currentAnswer?.toLowerCase() || ZERO_HASH)
-        : (latestReveal?.toLowerCase() || latest.args.answer?.toLowerCase() || ZERO_HASH);
-      if (bestAnswer.toLowerCase() !== expected.toLowerCase()) {
-        // Mismatch: check if bestAnswer is a new unrevealed commitment not in Ponder yet
+    if (bestAnswer !== null && bestAnswer !== ZERO_HASH) {
+      const n = data.answerEvents.length;
+      let expectedAnswer = ZERO_HASH;
+      if (n > 0) {
+        const latest = data.answerEvents[n - 1];
+        const latestKey = latest.args.is_commitment ? latest.args.answer?.toLowerCase() : null;
+        const latestReveal = latestKey ? (data.revealMap[latestKey] || null) : null;
+        hasUnrevealedTopCommit = !!(latestKey && !latestReveal);
+        console.log(`[reality.eth] verifyWithRpc: bestAnswer check — n=${n} latestAnswer=${latest.args.answer?.slice(0,10)} hasUnrevealedTop=${hasUnrevealedTopCommit}`);
+        // reality.eth only updates best_answer on reveal (not on commit), so an unrevealed
+        // commitment at the top means getBestAnswer() still reflects the prior confirmed answer.
+        expectedAnswer = hasUnrevealedTopCommit
+          ? (data.currentAnswer?.toLowerCase() || ZERO_HASH)
+          : (latestReveal?.toLowerCase() || latest.args.answer?.toLowerCase() || ZERO_HASH);
+      }
+      console.log(`[reality.eth] verifyWithRpc: bestAnswer=${bestAnswer.slice(0,10)} expectedAnswer=${expectedAnswer.slice(0,10)} match=${bestAnswer.toLowerCase() === expectedAnswer.toLowerCase()}`);
+      if (bestAnswer.toLowerCase() !== expectedAnswer.toLowerCase()) {
         const newCommit = await safeCall(() => reality.commitments(bestAnswer), null);
         if (newCommit !== null && Number(newCommit.reveal_ts) > 0 && !newCommit.is_revealed) {
-          const synthBond = bond ?? 0n;
+          // New unrevealed commitment not yet in Ponder
           data.answerEvents.push({
-            args: { is_commitment: true, answer: bestAnswer, bond: synthBond, user: null, ts: 0 }
+            args: { is_commitment: true, answer: bestAnswer, bond: data.bond, user: null, ts: 0 }
           });
-          data.bond = synthBond;
-          if (finalizeTS !== null) data.finalizeTS = Number(finalizeTS);
-          renderStatusCard(data);
-          renderHistory(data);
           newEntryPushed = true;
         } else {
-          errors.push('current answer mismatch');
+          // Direct answer not yet in Ponder — synthesize for immediate display;
+          // a background log fetch below will replace this with the real event(s).
+          // _synthetic marks this so the fetch knows to replace rather than merge.
+          const synthTs = data.finalizeTS > data.timeout ? data.finalizeTS - data.timeout : 0;
+          data.answerEvents.push({
+            _synthetic: true,
+            args: { is_commitment: false, answer: bestAnswer, bond: data.bond, user: null, ts: synthTs }
+          });
+          data.currentAnswer = bestAnswer;
+          newEntryPushed = true;
+          needsEventFetch = true;
         }
       }
     }
 
-    // Skip bond and finalizeTS checks for finalized questions: claimWinnings decrements
-    // the on-chain bond as it pays out, and arbitration sets finalize_ts=1 (sentinel).
-    // Neither is tracked by Ponder, so mismatches here are expected after finalization.
-    const alreadyFinalized = isFinalized(data.finalizeTS);
-    if (!alreadyFinalized && bond !== null && bond !== data.bond)
-      errors.push('bond mismatch');
-    if (!alreadyFinalized && !newEntryPushed && !hasUnrevealedTopCommit && finalizeTS !== null && Number(finalizeTS) !== data.finalizeTS)
-      errors.push('finalization timestamp mismatch');
+    // bond > 0 with no Ponder events = the question was answered but history is missing from
+    // the index.  This catches three cases:
+    //   • historyHash mismatch already set needsEventFetch (unclaimed, hash mismatch)
+    //   • bestAnswer mismatch already set needsEventFetch (non-zero missed answer)
+    //   • Fully claimed: claimWinnings rewinds history_hash to ZERO_HASH, so it matches
+    //     our computed ZERO_HASH — neither earlier check fires.  bond is the only survivor
+    //     that proves an answer exists.
+    if (data.answerEvents.length === 0 && bond !== null && BigInt(bond) > 0n) {
+      needsEventFetch = true;
+      if (!newEntryPushed) {
+        const synthTs = data.finalizeTS > data.timeout ? data.finalizeTS - data.timeout : 0;
+        data.answerEvents.push({
+          _synthetic: true,
+          args: { is_commitment: false, answer: bestAnswer ?? ZERO_HASH, bond, user: null, ts: synthTs }
+        });
+        data.currentAnswer = bestAnswer ?? ZERO_HASH;
+        newEntryPushed = true;
+      }
+    }
+
     if (timeout !== null && Number(timeout) !== data.timeout)
       errors.push('timeout mismatch');
     if (arbitrator !== null && data.arbitrator &&
         arbitrator.toLowerCase() !== data.arbitrator.toLowerCase())
       errors.push('arbitrator mismatch');
+
+    if (liveStateUpdated || newEntryPushed) {
+      _renderDynamic?.();
+    }
   });
 
   indGroup?.classList.remove('verifying');
@@ -2126,15 +2165,23 @@ async function verifyWithRpc(data) {
   if (!ind) return;
   if (errors.length === 0) {
     indGroup?.classList.add('verified');
-    ind.title = 'Ponder (indexed data) — RPC verified ✓';
+    const rpcSupplemented = liveStateUpdated || newEntryPushed || needsEventFetch;
+    ind.title = rpcSupplemented
+      ? 'Ponder (indexed data) — display updated from live RPC'
+      : 'Ponder (indexed data) — RPC verified ✓';
     if (connEl) {
-      connEl.title = 'Ponder data verified against RPC — click for details';
+      connEl.title = rpcSupplemented
+        ? 'Ponder index is behind — display updated from live RPC — click for details'
+        : 'Ponder data verified against RPC — click for details';
       connEl.style.cursor = 'pointer';
       connEl.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!window.RealitySettings) return;
         RealitySettings.openPanel(connEl, 300, (panel) => {
-          panel.innerHTML = `
+          panel.innerHTML = rpcSupplemented ? `
+            <div class="sp-title">Live RPC Data</div>
+            <p class="sp-body">The Ponder index has not yet caught up with this chain. The answer, bond, and finalization status shown are fetched directly from the blockchain.</p>
+          ` : `
             <div class="sp-title">RPC Verification ✓</div>
             <p class="sp-body">The indexed data from Ponder was cross-checked directly against the blockchain RPC. Content hash, answer history, current answer, bond, and finalization timestamp all match on-chain state — the index is consistent.</p>
           `;
@@ -2186,9 +2233,85 @@ async function verifyWithRpc(data) {
     ind.dataset.ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
     console.warn('[reality.eth] RPC verification discrepancies:', errors);
   }
+
+  console.log(`[reality.eth] verifyWithRpc: done — needsEventFetch=${needsEventFetch} liveStateUpdated=${liveStateUpdated} newEntryPushed=${newEntryPushed}`);
+
+  // Background: fetch real LogNewAnswer events when Ponder missed them.
+  // Scans from the question creation block up to the finalization block — all answers
+  // must fall within that window, so we never need to scan beyond it.
+  if (needsEventFetch && reality) {
+    (async () => {
+      try {
+        const currentBlock = await safeCall(() => reality.runner.getBlockNumber(), null);
+        if (currentBlock === null) return;
+
+        const startBlock = data.createdBlock || CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] || 0;
+
+        // For finalized questions, limit the scan to the approximate finalization block
+        // to avoid scanning months of irrelevant chain history beyond the answer window.
+        // Approximate block times (seconds/block) keyed by chain ID.
+        const BT = { 1:12, 10:2, 56:3, 100:5, 137:2, 42161:2, 8453:2, 43114:2, 42220:5, 11155111:12 };
+        const blockTime = BT[CHAIN_ID] || 5;
+        let endBlock = currentBlock;
+        if (isFinalized(data.finalizeTS)) {
+          const secondsSinceFinalize = Math.floor(Date.now() / 1000) - data.finalizeTS;
+          const blocksAgo = Math.ceil(secondsSinceFinalize / blockTime);
+          const estimatedFinalizeBlock = currentBlock - blocksAgo;
+          if (estimatedFinalizeBlock > startBlock) {
+            // 500-block buffer accounts for block time estimation variance
+            endBlock = Math.min(currentBlock, estimatedFinalizeBlock + 500);
+          }
+          // else: estimate is before startBlock (e.g. test env) — fall back to currentBlock
+        }
+
+        console.log(`[reality.eth] eventFetch: scanning LogNewAnswer from block ${startBlock} to ${endBlock} (currentBlock=${currentBlock} finalizeTS=${data.finalizeTS})`);
+        const rawEvents = await queryFilterRobust(
+          reality, reality.filters.LogNewAnswer(null, QUESTION_ID), startBlock, endBlock);
+        console.log(`[reality.eth] eventFetch: found ${rawEvents.length} events`);
+        if (rawEvents.length === 0) return;
+        data.answerEvents = rawEvents.map(ev => ({
+          blockNumber:     ev.blockNumber,
+          logIndex:        ev.logIndex,
+          transactionHash: ev.transactionHash,
+          args: {
+            answer:        ev.args.answer,
+            question_id:   ev.args.question_id,
+            history_hash:  ev.args.history_hash,
+            user:          ev.args.user,
+            bond:          ev.args.bond,
+            ts:            Number(ev.args.ts),
+            is_commitment: ev.args.is_commitment,
+          },
+        }));
+        // Resolve any commit entries so revealMap has the actual answer before rendering.
+        // Without this, commit events set currentAnswer to the commitment hash, not the
+        // revealed answer (e.g. "No" = ZERO_HASH would show as the raw commitment id).
+        const bgCommitEvs = data.answerEvents.filter(
+          ev => ev.args.is_commitment && ev.args.answer && ev.args.answer !== ZERO_HASH
+        );
+        if (bgCommitEvs.length > 0) {
+          if (!data.revealMap) data.revealMap = {};
+          const bgCommitResults = await Promise.all(
+            bgCommitEvs.map(ev => safeCall(() => reality.commitments(ev.args.answer), null))
+          );
+          for (let i = 0; i < bgCommitEvs.length; i++) {
+            const c = bgCommitResults[i];
+            if (c?.is_revealed)
+              data.revealMap[bgCommitEvs[i].args.answer.toLowerCase()] = c.revealed_answer;
+          }
+        }
+        updateCurrentAnswer(data);
+        _renderDynamic?.();
+      } catch {}
+    })();
+  }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+// Set by main() once data is loaded; called by verifyWithRpc and startCountdown
+// whenever data changes so all state-dependent UI stays in sync.
+let _renderDynamic = null;
+
 async function main() {
   const BN0 = 0n;
 
@@ -2401,7 +2524,7 @@ async function main() {
         reopensQuestionId,
         answerEvents,
         revealMap: {},
-        currentAnswer: (q?.best_answer && q.best_answer !== ZERO_HASH) ? q.best_answer : null,
+        currentAnswer: bond > 0n ? q.best_answer : null,
       };
     });
   }
@@ -2415,35 +2538,6 @@ async function main() {
       titleEl.classList.add('q-text-md');
     } else {
       titleEl.textContent = data.qjson?.title || '';
-    }
-  }
-
-  // Pending arbitration overrides the finalized state: the question is not settled yet.
-  const finalized   = isFinalized(data.finalizeTS) && !data.isPendingArbitration;
-  const beforeOpen  = isBeforeOpening(data.openingTS);
-  const effectiveVersion = metaMajorVersion ?? majorVersion;
-  // A question that is itself a reopener (!data.reopensQuestionId) should not offer another reopen.
-  // When the reopener was also answered too soon, allow re-reopen (reopenerAnsweredTooSoon).
-  const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3
-    && (data.reopenedBy === ZERO_HASH || data.reopenerAnsweredTooSoon)
-    && !data.reopensQuestionId;
-  const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3
-    && data.reopenedBy !== ZERO_HASH && !data.reopenerAnsweredTooSoon;
-
-  const statusBadge = document.getElementById('status-badge');
-  if (statusBadge) {
-    if (data.isPendingArbitration) {
-      statusBadge.textContent = 'Pending Arbitration';
-      statusBadge.className = 'badge badge-arb';
-    } else if (finalized) {
-      statusBadge.textContent = '✓ Finalized';
-      statusBadge.className = 'badge badge-final';
-    } else if (beforeOpen) {
-      statusBadge.textContent = 'Upcoming';
-      statusBadge.className = 'badge badge-upcoming';
-    } else {
-      statusBadge.textContent = '● Open';
-      statusBadge.className = 'badge badge-open';
     }
   }
 
@@ -2497,38 +2591,7 @@ async function main() {
     });
   }
 
-  // 4. State classes
-  if (data.isPendingArbitration) qPage.classList.add('question-state-pending-arbitration');
-  else if (finalized)            qPage.classList.add('question-state-finalized');
-  else                           qPage.classList.add('question-state-open');
-  if (isReopenable) qPage.classList.add('reopenable');
-  if (isReopened)   qPage.classList.add('reopened');
-
-  // 5. Render history + status card
-  renderHistory(data);
-  renderClaimHistory(data);
-  renderStatusCard(data);
-  await contractsMetaPromise;
-  renderWarnings(data);
-  renderSnapshotPanel(data.qjson?.title || ''); // async, non-blocking
-
-  // 6. Answer form (or locked state if no wallet and question is open)
-  const formSlot = qPage.querySelector('#answer-form-container');
-  let currentAnswerEl = null;
-  if (formSlot) {
-    let replacement;
-    try {
-      if (!walletAddr && !finalized && !beforeOpen) {
-        replacement = buildLockedState(data);
-      } else {
-        replacement = buildAnswerForm(data, walletAddr);
-      }
-    } catch { /* fall through — replacement stays undefined, formSlot is removed below */ }
-    if (replacement) { formSlot.replaceWith(replacement); currentAnswerEl = replacement; }
-    else             formSlot.remove();
-  }
-
-  // 7. Details card
+  // 4. One-time stable setup: details card, raw data disclosure
   const sideCol = qPage.querySelector('.col-side');
   const detailsPlaceholder = qPage.querySelector('#details-card');
   if (detailsPlaceholder) {
@@ -2537,7 +2600,6 @@ async function main() {
     sideCol.appendChild(buildDetailsCard(data, CHAIN_ID));
   }
 
-  // 7b. Raw data disclosure
   const rawSection = qPage.querySelector('#raw-data-section');
   const rawBody    = qPage.querySelector('#raw-data-body');
   if (rawSection && rawBody) {
@@ -2563,105 +2625,182 @@ async function main() {
     rawSection.style.display = '';
   }
 
-  // 8. Reopen containers
-  const reopenContainer   = qPage.querySelector('.reopen-container');
-  const reopenedContainer = qPage.querySelector('.reopened-container');
-  const reopensContainer  = qPage.querySelector('.reopens-container');
-  if (reopenContainer)   reopenContainer.style.display   = isReopenable ? '' : 'none';
-  if (reopenedContainer) reopenedContainer.style.display  = isReopened   ? '' : 'none';
+  // 5. Dynamic rendering — all state-dependent UI, re-called whenever data changes.
+  // Tracks per-call state in the closure so each piece is safe to call repeatedly.
+  let formAreaEl    = qPage.querySelector('#answer-form-container');
+  let lastFormState = null;   // tracks what state the form was last built for
+  let claimWired    = false;
+  let countdownPollStarted = false;
+  let walletHookSet = false;
 
-  const baseUrl = `#!/network/${CHAIN_ID}/question/`;
-  function reloadLink(a, url, text) {
-    a.href = url;
-    a.textContent = text;
-    a.addEventListener('click', e => { e.preventDefault(); location.href = url; location.reload(); });
-  }
-  if (isReopened && data.reopenerQuestionId && reopenedContainer) {
-    const a = reopenedContainer.querySelector('.reopener-link');
-    if (a) reloadLink(a, baseUrl + data.reopenerQuestionId, 'View new question');
-  }
-  if (data.reopensQuestionId && reopensContainer) {
-    reopensContainer.style.display = '';
-    const a = reopensContainer.querySelector('.reopens-link');
-    if (a) reloadLink(a, baseUrl + data.reopensQuestionId, 'previously answered too soon');
-  }
+  _renderDynamic = function() {
+    const finalized  = isFinalized(data.finalizeTS) && !data.isPendingArbitration;
+    const beforeOpen = isBeforeOpening(data.openingTS);
+    const effectiveVersion = metaMajorVersion ?? majorVersion;
+    const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3
+      && (data.reopenedBy === ZERO_HASH || data.reopenerAnsweredTooSoon)
+      && !data.reopensQuestionId;
+    const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3
+      && data.reopenedBy !== ZERO_HASH && !data.reopenerAnsweredTooSoon;
 
-  // 9. Reopen button
-  if (isReopenable && reopenContainer && realityRW) {
-    const btn = reopenContainer.querySelector('.reopen-question-submit');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        // Use the original question_id as the nonce — always unique (256-bit hash)
-        const reopenNonce = BigInt(QUESTION_ID);
-        runTx(btn, btn.textContent, () =>
-          realityRW.reopenQuestion(
-            data.templateId, data.questionStr, data.arbitrator,
-            data.timeout, data.openingTS, reopenNonce, data.minBond,
-            QUESTION_ID, { value: 0 }
-          )
-        );
-      });
+    // Status badge
+    const statusBadge = document.getElementById('status-badge');
+    if (statusBadge) {
+      if (data.isPendingArbitration)      { statusBadge.textContent = 'Pending Arbitration'; statusBadge.className = 'badge badge-arb'; }
+      else if (finalized)                 { statusBadge.textContent = '✓ Finalized';          statusBadge.className = 'badge badge-final'; }
+      else if (beforeOpen)                { statusBadge.textContent = 'Upcoming';             statusBadge.className = 'badge badge-upcoming'; }
+      else                                { statusBadge.textContent = '● Open';               statusBadge.className = 'badge badge-open'; }
     }
-  }
 
-  // 10. Arbitration section
-  renderArbitrationSection(data, walletAddr).catch(() => {});
+    // State classes — toggle so repeated calls reconcile correctly
+    qPage.classList.toggle('question-state-finalized',           finalized && !data.isPendingArbitration);
+    qPage.classList.toggle('question-state-open',                !finalized && !data.isPendingArbitration);
+    qPage.classList.toggle('question-state-pending-arbitration', !!data.isPendingArbitration);
+    qPage.classList.toggle('reopenable', isReopenable);
+    qPage.classList.toggle('reopened',   isReopened);
 
-  // 11. Claim section
-  const claimSection = qPage.querySelector('.claim-section');
-  if (claimSection && finalized && walletAddr && realityRW) {
-    const userEvents = data.answerEvents.filter(
-      ev => ev.args.user.toLowerCase() === walletAddr.toLowerCase()
-    );
-    if (userEvents.length > 0) {
-      // getHistoryHash returns ZERO_HASH on-chain once all bonds have been claimed.
-      // Ponder's historyHash is only updated by answer events so can't detect this.
-      safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(onChainHash => {
-        const alreadyClaimed = onChainHash !== null
-          && onChainHash.toLowerCase() === ZERO_HASH.toLowerCase();
-        if (alreadyClaimed) return;
-        claimSection.style.display = '';
-        const claimBtn = claimSection.querySelector('button.claim-button');
-        if (claimBtn) {
-          claimBtn.addEventListener('click', () => {
-            const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
-            runTx(claimBtn, claimBtn.textContent, () =>
-              realityRW.claimMultipleAndWithdrawBalance(
-                args.question_ids, args.lengths, args.hist_hashes,
-                args.addrs, args.bonds, args.answers
-              )
-            );
+    // Core re-renders
+    renderHistory(data);
+    renderClaimHistory(data);
+    renderStatusCard(data);
+
+    // Answer form — rebuild only when the question state changes so in-progress
+    // user input isn't wiped on routine updates (e.g. background event fetches).
+    const formState = data.isPendingArbitration ? 'pending-arb'
+      : finalized ? 'finalized' : beforeOpen ? 'before-open' : 'open';
+    if (formState !== lastFormState) {
+      lastFormState = formState;
+      let replacement;
+      try {
+        replacement = (!walletAddr && !finalized && !beforeOpen)
+          ? buildLockedState(data)
+          : buildAnswerForm(data, walletAddr);
+      } catch {}
+      if (formAreaEl?.isConnected) {
+        if (replacement) { formAreaEl.replaceWith(replacement); formAreaEl = replacement; }
+        else             { formAreaEl.remove(); formAreaEl = null; }
+      }
+    }
+
+    // Reopen section visibility
+    const reopenContainer   = qPage.querySelector('.reopen-container');
+    const reopenedContainer = qPage.querySelector('.reopened-container');
+    const reopensContainer  = qPage.querySelector('.reopens-container');
+    if (reopenContainer)   reopenContainer.style.display   = isReopenable ? '' : 'none';
+    if (reopenedContainer) reopenedContainer.style.display = isReopened   ? '' : 'none';
+
+    // Reopen links — wire once when the IDs are known (may be absent with stale Ponder)
+    const baseUrl = `#!/network/${CHAIN_ID}/question/`;
+    if (isReopened && data.reopenerQuestionId && reopenedContainer && !reopenedContainer.dataset.wired) {
+      reopenedContainer.dataset.wired = '1';
+      const a = reopenedContainer.querySelector('.reopener-link');
+      if (a) {
+        a.href = baseUrl + data.reopenerQuestionId;
+        a.textContent = 'View new question';
+        a.addEventListener('click', e => { e.preventDefault(); location.href = a.href; location.reload(); });
+      }
+    }
+    if (data.reopensQuestionId && reopensContainer && !reopensContainer.dataset.wired) {
+      reopensContainer.dataset.wired = '1';
+      reopensContainer.style.display = '';
+      const a = reopensContainer.querySelector('.reopens-link');
+      if (a) {
+        a.href = baseUrl + data.reopensQuestionId;
+        a.textContent = 'previously answered too soon';
+        a.addEventListener('click', e => { e.preventDefault(); location.href = a.href; location.reload(); });
+      }
+    }
+
+    // Reopen button — wire once when the question is confirmed reopenable
+    if (isReopenable && realityRW && reopenContainer && !reopenContainer.dataset.btnWired) {
+      reopenContainer.dataset.btnWired = '1';
+      const btn = reopenContainer.querySelector('.reopen-question-submit');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const reopenNonce = BigInt(QUESTION_ID);
+          runTx(btn, btn.textContent, () =>
+            realityRW.reopenQuestion(
+              data.templateId, data.questionStr, data.arbitrator,
+              data.timeout, data.openingTS, reopenNonce, data.minBond,
+              QUESTION_ID, { value: 0 }
+            )
+          );
+        });
+      }
+    }
+
+    // Claim section — wire once when the question is confirmed finalized with user answers
+    if (!claimWired) {
+      const claimSection = qPage.querySelector('.claim-section');
+      if (claimSection && finalized && walletAddr && realityRW) {
+        claimWired = true;
+        const userEvents = data.answerEvents.filter(
+          ev => ev.args.user?.toLowerCase() === walletAddr.toLowerCase()
+        );
+        if (userEvents.length > 0) {
+          safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(onChainHash => {
+            if (onChainHash?.toLowerCase() === ZERO_HASH.toLowerCase()) return;
+            claimSection.style.display = '';
+            const claimBtn = claimSection.querySelector('button.claim-button');
+            if (claimBtn) {
+              claimBtn.addEventListener('click', () => {
+                const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
+                runTx(claimBtn, claimBtn.textContent, () =>
+                  realityRW.claimMultipleAndWithdrawBalance(
+                    args.question_ids, args.lengths, args.hist_hashes,
+                    args.addrs, args.bonds, args.answers
+                  )
+                );
+              });
+            }
           });
         }
-      });
-    }
-  }
-
-  // 12. Background RPC verification + reveal-map population
-  if (reality) verifyWithRpc(data).catch(() => {});
-
-  // 13. Live countdown + new-answer poll
-  if (!finalized) {
-    if (data.finalizeTS > 0) startCountdown(data.finalizeTS, data.timeout);
-    startPoll(data.finalizeTS);
-  }
-
-  // Let onWalletChange in question.html swap the answer form live when the
-  // user connects via the header button, without a full page reload.
-  if (!finalized && !beforeOpen) {
-    window._setQuestionWallet = async function(addr) {
-      if (!currentAnswerEl?.isConnected) return;
-      walletAddr = addr;
-      if (addr && window.ethereum) {
-        const _wp = new ethers.BrowserProvider(window.ethereum);
-        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
-      } else {
-        realityRW = null;
       }
-      const newEl = walletAddr ? buildAnswerForm(data, walletAddr) : buildLockedState(data);
-      if (newEl) { currentAnswerEl.replaceWith(newEl); currentAnswerEl = newEl; }
-    };
-  }
+    }
+
+    // Countdown + poll — start once for open questions
+    if (!countdownPollStarted && !finalized) {
+      countdownPollStarted = true;
+      if (data.finalizeTS > 0) startCountdown(data.finalizeTS, data.timeout);
+      startPoll(data.finalizeTS);
+    }
+
+    // Wallet hook — set once for open, post-opening questions
+    if (!walletHookSet && !finalized && !beforeOpen) {
+      walletHookSet = true;
+      window._setQuestionWallet = async function(addr) {
+        if (!formAreaEl?.isConnected) return;
+        walletAddr = addr;
+        if (addr && window.ethereum) {
+          const _wp = new ethers.BrowserProvider(window.ethereum);
+          realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+        } else {
+          realityRW = null;
+        }
+        lastFormState = null; // force form rebuild with the new wallet address
+        _renderDynamic();
+      };
+    }
+  };
+
+  // Initial render — happens immediately so status badge, state classes, and history
+  // appear without waiting for the contract meta fetch.  Some form options (e.g.
+  // "Answered too soon") depend on metaMajorVersion, so we force a form rebuild
+  // below once the meta resolves.
+  _renderDynamic();
+
+  // 6. Contract warnings need meta; rebuild form afterwards with correct metaMajorVersion.
+  await contractsMetaPromise;
+  renderWarnings(data);
+  renderSnapshotPanel(data.qjson?.title || ''); // async, non-blocking
+  lastFormState = null; // force form rebuild now that metaMajorVersion is available
+  _renderDynamic();
+
+  // 7. Arbitration section (async, one-time)
+  renderArbitrationSection(data, walletAddr).catch(() => {});
+
+  // 8. Background RPC verification + reveal-map population
+  if (reality) verifyWithRpc(data).catch(() => {});
 }
 
 // Called by question.html after initWallet() resolves, so window.ethereum is

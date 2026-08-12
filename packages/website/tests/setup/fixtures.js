@@ -774,6 +774,448 @@ export async function createUintDecimalsFixtures() {
   return { dec2AnsweredId, dec0AnsweredId, dec2OpenId, dec0OpenId };
 }
 
+// Creates a bool question that is answered YES and finalized on-chain, but returns
+// stale Ponder data (question creation known, answer events not indexed).
+// Used to test that verifyWithRpc fills the gap when the indexer lags.
+// nonce=25 — nonces 0–24 on v3.0 are taken by other fixture functions.
+export async function createPonderLagFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const timeout = 60;
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Indexer lag test: answered but not indexed',
+    ethers.ZeroAddress, timeout, 25,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  let createdBlock;
+  if (!alreadyExists) {
+    const receipt1 = await (await reality.askQuestion(
+      TEMPLATE.bool, 'Indexer lag test: answered but not indexed',
+      ethers.ZeroAddress, timeout, 0, 25,
+      { value: bounty }
+    )).wait();
+    createdBlock = receipt1.blockNumber;
+    await (await reality.submitAnswer(questionId, YES, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  } else {
+    const creationEvents = await reality.queryFilter(
+      reality.filters.LogNewQuestion(questionId), FORK_BLOCK
+    );
+    createdBlock = creationEvents[0]?.blockNumber ?? FORK_BLOCK + 1;
+  }
+
+  const stalePonderData = {
+    question: {
+      templateId: '0',
+      data: 'Indexer lag test: answered but not indexed',
+      title: 'Indexer lag test: answered but not indexed',
+      type: 'bool',
+      category: '',
+      lang: 'en_US',
+      outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: ethers.ZeroAddress.toLowerCase(),
+      openingTimestamp: '0',
+      timeout: String(timeout),
+      currentAnswer: null,
+      currentAnswerBond: '0',
+      minBond: '0',
+      bounty: bounty.toString(),
+      scheduledFinalizationTimestamp: '0',
+      arbitrationOccurred: false,
+      isPendingArbitration: false,
+      createdBlock: String(createdBlock),
+      createdLogIndex: '0',
+      createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      reopensQuestionId: null,
+    },
+    responses: { items: [] },
+    claims:    { items: [] },
+    reopeners: { items: [] },
+  };
+
+  return { questionId, stalePonderData };
+}
+
+// Creates an open bool question with 2 YES answers at escalating bonds (0.001 then 0.002)
+// where Ponder's stale data only has the first answer indexed.
+// The best_answer is the same bytes32 value in both Ponder and on-chain, so the
+// bestAnswer comparison in verifyWithRpc won't trigger — only the historyHash mismatch
+// (which now sets needsEventFetch) will catch the discrepancy.
+// nonce=26 — nonces 0–25 on v3.0 are taken by other fixture functions.
+export async function createPartialIndexerLagFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty    = ethers.parseEther('0.001');
+  const bond1     = ethers.parseEther('0.001');
+  const bond2     = ethers.parseEther('0.002');
+  const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  // 90-day timeout keeps the question open from the browser clock so the
+  // historyHash check runs (it skips finalized questions).
+  const TIMEOUT_90_DAYS = 7776000;
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Partial indexer lag test: same answer re-escalated',
+    ethers.ZeroAddress, TIMEOUT_90_DAYS, 26,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  let createdBlock, firstAnswerBlock, firstAnswerTs;
+  if (!alreadyExists) {
+    const receipt1 = await (await reality.askQuestion(
+      TEMPLATE.bool, 'Partial indexer lag test: same answer re-escalated',
+      ethers.ZeroAddress, TIMEOUT_90_DAYS, 0, 26,
+      { value: bounty }
+    )).wait();
+    createdBlock = receipt1.blockNumber;
+
+    const receipt2 = await (await reality.submitAnswer(questionId, YES, 0, { value: bond1 })).wait();
+    firstAnswerBlock = receipt2.blockNumber;
+    const block2 = await provider.getBlock(receipt2.blockNumber);
+    firstAnswerTs = block2.timestamp;
+
+    await (await reality.submitAnswer(questionId, YES, bond1, { value: bond2 })).wait();
+  } else {
+    const creationEvents = await reality.queryFilter(
+      reality.filters.LogNewQuestion(questionId), FORK_BLOCK
+    );
+    createdBlock = creationEvents[0]?.blockNumber ?? FORK_BLOCK + 1;
+    const answerEvents = await reality.queryFilter(
+      reality.filters.LogNewAnswer(null, questionId), FORK_BLOCK
+    );
+    firstAnswerBlock = answerEvents[0]?.blockNumber ?? createdBlock + 1;
+    const blk = await provider.getBlock(firstAnswerBlock);
+    firstAnswerTs = blk?.timestamp ?? 0;
+  }
+
+  // historyHash for a single YES answer — what the stale Ponder would have computed
+  const firstHistoryHash = ethers.solidityPackedKeccak256(
+    ['bytes32', 'bytes32', 'uint256', 'address', 'bool'],
+    [ethers.ZeroHash, YES, bond1, TEST_ACCOUNT.address, false]
+  );
+
+  // Stale Ponder: knows about question and first answer, but not the second.
+  const stalePonderData = {
+    question: {
+      templateId: '0',
+      data: 'Partial indexer lag test: same answer re-escalated',
+      title: 'Partial indexer lag test: same answer re-escalated',
+      type: 'bool',
+      category: '',
+      lang: 'en_US',
+      outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: ethers.ZeroAddress.toLowerCase(),
+      openingTimestamp: '0',
+      timeout: String(TIMEOUT_90_DAYS),
+      currentAnswer: YES,
+      currentAnswerBond: bond1.toString(),
+      minBond: '0',
+      bounty: bounty.toString(),
+      scheduledFinalizationTimestamp: String(firstAnswerTs + TIMEOUT_90_DAYS),
+      arbitrationOccurred: false,
+      isPendingArbitration: false,
+      createdBlock: String(createdBlock),
+      createdLogIndex: '0',
+      createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      reopensQuestionId: null,
+    },
+    responses: {
+      items: [{
+        answer: YES,
+        commitmentHash: null,
+        bond: bond1.toString(),
+        user: TEST_ACCOUNT.address.toLowerCase(),
+        historyHash: firstHistoryHash,
+        isCommitment: false,
+        isUnrevealed: false,
+        timestamp: String(firstAnswerTs),
+        createdBlock: String(firstAnswerBlock),
+        createdLogIndex: '0',
+        createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      }],
+    },
+    claims:    { items: [] },
+    reopeners: { items: [] },
+  };
+
+  return { questionId, stalePonderData, bond1, bond2 };
+}
+
+// Creates a finalized bool question answered "No" (bytes32(0) = ZERO_HASH) where
+// Ponder's stale data has 0 response events.  This is the hardest indexer-lag case:
+// best_answer === ZERO_HASH is indistinguishable from "unanswered" by value alone,
+// so the standard bestAnswer mismatch check won't fire — only historyHash catches it.
+// nonce=27 — nonces 0–26 on v3.0 are taken by other fixture functions.
+export async function createNoAnswerLagFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const NO     = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  const timeout = 60;
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Indexer lag test: No answer not indexed',
+    ethers.ZeroAddress, timeout, 27,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  let createdBlock;
+  if (!alreadyExists) {
+    const receipt1 = await (await reality.askQuestion(
+      TEMPLATE.bool, 'Indexer lag test: No answer not indexed',
+      ethers.ZeroAddress, timeout, 0, 27,
+      { value: bounty }
+    )).wait();
+    createdBlock = receipt1.blockNumber;
+    await (await reality.submitAnswer(questionId, NO, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+  } else {
+    const creationEvents = await reality.queryFilter(
+      reality.filters.LogNewQuestion(questionId), FORK_BLOCK
+    );
+    createdBlock = creationEvents[0]?.blockNumber ?? FORK_BLOCK + 1;
+  }
+
+  const stalePonderData = {
+    question: {
+      templateId: '0',
+      data: 'Indexer lag test: No answer not indexed',
+      title: 'Indexer lag test: No answer not indexed',
+      type: 'bool',
+      category: '',
+      lang: 'en_US',
+      outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: ethers.ZeroAddress.toLowerCase(),
+      openingTimestamp: '0',
+      timeout: String(timeout),
+      currentAnswer: null,
+      currentAnswerBond: '0',
+      minBond: '0',
+      bounty: bounty.toString(),
+      scheduledFinalizationTimestamp: '0',
+      arbitrationOccurred: false,
+      isPendingArbitration: false,
+      createdBlock: String(createdBlock),
+      createdLogIndex: '0',
+      createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      reopensQuestionId: null,
+    },
+    responses: { items: [] },
+    claims:    { items: [] },
+    reopeners: { items: [] },
+  };
+
+  return { questionId, stalePonderData };
+}
+
+// Creates a bool question answered "No" (bytes32(0)) that has been FULLY CLAIMED,
+// so history_hash is rewound to ZERO_HASH by claimWinnings.  With Ponder returning
+// 0 events, the historyHash check sees computed=ZERO_HASH vs onchain=ZERO_HASH → match,
+// so it can't detect the lag.  Only bond > 0 reveals that an answer exists.
+// nonce=28 — nonces 0–27 on v3.0 are taken by other fixture functions.
+export async function createClaimedNoAnswerLagFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const NO     = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  const timeout = 60;
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Indexer lag test: claimed No answer not indexed',
+    ethers.ZeroAddress, timeout, 28,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  let createdBlock;
+  if (!alreadyExists) {
+    const receipt1 = await (await reality.askQuestion(
+      TEMPLATE.bool, 'Indexer lag test: claimed No answer not indexed',
+      ethers.ZeroAddress, timeout, 0, 28,
+      { value: bounty }
+    )).wait();
+    createdBlock = receipt1.blockNumber;
+
+    await (await reality.submitAnswer(questionId, NO, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+
+    // Call claimWinnings to rewind history_hash to ZERO_HASH.
+    // For a single answer, the array has one entry: the history before it (ZERO_HASH = empty chain).
+    await (await reality.claimWinnings(
+      questionId,
+      [ethers.ZeroHash],           // history_hash before the only answer = initial = ZERO_HASH
+      [TEST_ACCOUNT.address],      // the answerer
+      [bond],                       // the bond submitted
+      [NO]                         // the answer = "No" = bytes32(0)
+    )).wait();
+  } else {
+    const creationEvents = await reality.queryFilter(
+      reality.filters.LogNewQuestion(questionId), FORK_BLOCK
+    );
+    createdBlock = creationEvents[0]?.blockNumber ?? FORK_BLOCK + 1;
+  }
+
+  const stalePonderData = {
+    question: {
+      templateId: '0',
+      data: 'Indexer lag test: claimed No answer not indexed',
+      title: 'Indexer lag test: claimed No answer not indexed',
+      type: 'bool',
+      category: '',
+      lang: 'en_US',
+      outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: ethers.ZeroAddress.toLowerCase(),
+      openingTimestamp: '0',
+      timeout: String(timeout),
+      currentAnswer: null,
+      currentAnswerBond: '0',
+      minBond: '0',
+      bounty: bounty.toString(),
+      scheduledFinalizationTimestamp: '0',
+      arbitrationOccurred: false,
+      isPendingArbitration: false,
+      createdBlock: String(createdBlock),
+      createdLogIndex: '0',
+      createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      reopensQuestionId: null,
+    },
+    responses: { items: [] },
+    claims:    { items: [] },
+    reopeners: { items: [] },
+  };
+
+  return { questionId, stalePonderData };
+}
+
+// Creates a bool question answered "No" (bytes32(0)) via commit-reveal that has been FULLY CLAIMED.
+// Like createClaimedNoAnswerLagFixtures, but the answer was submitted as a commitment rather than
+// a plain submitAnswer.  After claiming, history_hash = ZERO_HASH and bond > 0, but the only
+// LogNewAnswer event has is_commitment=true and answer=commitment_id (not the revealed "No").
+// Verifies that the background fetch resolves commits via commitments() before rendering.
+// nonce=29 — nonces 0–28 on v3.0 are taken by other fixture functions.
+export async function createClaimedCommitRevealNoAnswerLagFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const NO         = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  const commitNonce = 54321n;
+  const timeout = 60;
+
+  // answer_hash = keccak256(answer, nonce) — passed to submitAnswerCommitment
+  const answerHash = ethers.solidityPackedKeccak256(['bytes32', 'uint256'], [NO, commitNonce]);
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Indexer lag test: claimed commit-reveal No answer not indexed',
+    ethers.ZeroAddress, timeout, 29,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  // commitment_id = keccak256(question_id, answer_hash, bond) — stored in history, emitted in LogNewAnswer
+  const commitmentId = ethers.solidityPackedKeccak256(
+    ['bytes32', 'bytes32', 'uint256'],
+    [questionId, answerHash, bond]
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  let createdBlock;
+  if (!alreadyExists) {
+    const receipt1 = await (await reality.askQuestion(
+      TEMPLATE.bool, 'Indexer lag test: claimed commit-reveal No answer not indexed',
+      ethers.ZeroAddress, timeout, 0, 29,
+      { value: bounty }
+    )).wait();
+    createdBlock = receipt1.blockNumber;
+
+    await (await reality.submitAnswerCommitment(questionId, answerHash, 0, ethers.ZeroAddress, { value: bond })).wait();
+    await (await reality.submitAnswerReveal(questionId, NO, commitNonce, bond)).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+
+    // claimWinnings: answers array for a commit entry must contain the commitment_id, not the revealed answer
+    await (await reality.claimWinnings(
+      questionId,
+      [ethers.ZeroHash],          // history_hash before the only entry = ZERO_HASH (empty chain)
+      [TEST_ACCOUNT.address],     // the answerer
+      [bond],                      // the bond submitted
+      [commitmentId]              // the commitment_id stored in history (not the revealed answer)
+    )).wait();
+  } else {
+    const creationEvents = await reality.queryFilter(
+      reality.filters.LogNewQuestion(questionId), FORK_BLOCK
+    );
+    createdBlock = creationEvents[0]?.blockNumber ?? FORK_BLOCK + 1;
+  }
+
+  const stalePonderData = {
+    question: {
+      templateId: '0',
+      data: 'Indexer lag test: claimed commit-reveal No answer not indexed',
+      title: 'Indexer lag test: claimed commit-reveal No answer not indexed',
+      type: 'bool',
+      category: '',
+      lang: 'en_US',
+      outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: ethers.ZeroAddress.toLowerCase(),
+      openingTimestamp: '0',
+      timeout: String(timeout),
+      currentAnswer: null,
+      currentAnswerBond: '0',
+      minBond: '0',
+      bounty: bounty.toString(),
+      scheduledFinalizationTimestamp: '0',
+      arbitrationOccurred: false,
+      isPendingArbitration: false,
+      createdBlock: String(createdBlock),
+      createdLogIndex: '0',
+      createdTxHash: '0x0000000000000000000000000000000000000000000000000000000000000000',
+      reopensQuestionId: null,
+    },
+    responses: { items: [] },
+    claims:    { items: [] },
+    reopeners: { items: [] },
+  };
+
+  return { questionId, stalePonderData };
+}
+
 // Creates a finalized single-select question where the winning answer ("Dog", index 1)
 // was submitted via commit-reveal rather than a plain submitAnswer.
 // Used to verify the winnerBytes fix: the revealed answer (not the commitment hash)

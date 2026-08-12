@@ -15,6 +15,20 @@ export async function setupPage(page) {
   );
 }
 
+// Variant of setupPage that returns a known question from Ponder but with no
+// response events — simulating an indexer that has the creation block but not
+// the answer events (indexer lag).
+export async function setupPageWithStalePonder(page, ponderData) {
+  await page.addInitScript(walletMockScript());
+  await page.route('**/graphql**', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: ponderData }),
+    })
+  );
+}
+
 // Returns a script string injected via page.addInitScript().
 // EIP-1193 mock backed by the local anvil node.
 export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) {

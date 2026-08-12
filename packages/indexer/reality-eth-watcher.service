@@ -1,0 +1,26 @@
+# nginx log watcher — promotes chains from lazy to active sync on real traffic.
+# Requires reality-eth-indexer to be running first (needs sync.pid to signal it).
+#
+# Install:
+#   sudo cp reality-eth-watcher.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now reality-eth-watcher
+
+[Unit]
+Description=reality.eth nginx log watcher
+After=network.target reality-eth-indexer.service
+Requires=reality-eth-indexer.service
+
+[Service]
+Type=simple
+User=rcdev
+WorkingDirectory=/srv/rcdev/reality-eth-design/packages/indexer
+Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=node log-watcher.js
+StandardOutput=append:/srv/rcdev/reality-eth-design/packages/indexer/watcher.log
+StandardError=append:/srv/rcdev/reality-eth-design/packages/indexer/watcher.log
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

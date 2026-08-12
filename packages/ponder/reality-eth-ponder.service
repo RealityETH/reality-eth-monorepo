@@ -1,5 +1,14 @@
+# Native Ponder GraphQL server — alternative to packages/indexer/reality-eth-serve.service.
+# Use this if running stock ponder (ponder start) as the indexer instead of sync.js.
+# Do NOT run both ponder serve and indexer serve simultaneously on the same port.
+#
+# Install:
+#   sudo cp reality-eth-ponder.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now reality-eth-ponder
+
 [Unit]
-Description=reality.eth Ponder indexer
+Description=reality.eth Ponder GraphQL server
 After=network.target postgresql.service
 Requires=postgresql.service
 
@@ -8,7 +17,7 @@ Type=simple
 User=rcdev
 WorkingDirectory=/srv/rcdev/reality-eth-design/packages/ponder
 Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=node node_modules/.bin/ponder start --log-format json
+ExecStart=node node_modules/.bin/ponder serve --port 42070 --log-format json
 StandardOutput=append:/srv/rcdev/reality-eth-design/packages/ponder/ponder.log
 StandardError=append:/srv/rcdev/reality-eth-design/packages/ponder/ponder-debug.log
 Restart=on-failure

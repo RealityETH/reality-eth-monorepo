@@ -30,9 +30,11 @@ function wcMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, hasSession = false
   const realEth = window.ethereum;
   delete window.ethereum;                    // remove it; WC path must set it
 
+  const _hasSession = ${hasSession};
+
   const SESSION_KEY = ${JSON.stringify(WC_SESSION_KEY)};
   // Session persists across location.reload() via localStorage (mirrors real WC behaviour)
-  const hasExistingSession = ${hasSession} || !!localStorage.getItem(SESSION_KEY);
+  const hasExistingSession = _hasSession || !!localStorage.getItem(SESSION_KEY);
   // wallet.js only tries initWC if there is a cached address; pre-seed it here.
   if (hasExistingSession && !localStorage.getItem('reality-eth-wallet')) {
     localStorage.setItem('reality-eth-wallet', ${JSON.stringify(TEST_ACCOUNT.address.toLowerCase())});
@@ -72,6 +74,15 @@ function wcMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, hasSession = false
       },
     },
   };
+
+  // For an existing session, expose window.ethereum as the WC provider immediately.
+  // wallet.js no longer silently restores WC on page load (removed to avoid blocking
+  // browse page renders), so the test simulates what happens after reconnection: the
+  // WC provider is already set when main() runs, so walletAddr is read from it and
+  // the answer form renders without requiring a manual connect click.
+  if (hasExistingSession) {
+    window.ethereum = mockProvider;
+  }
 
   window.__wcMock = {
     get initCalled()    { return _initCalled; },
@@ -179,15 +190,16 @@ test.describe('WalletConnect flow', () => {
   });
 
   test('answer form appears and submits via WalletConnect provider', async ({ page }) => {
-    // Use hasSession=true so wallet.js restores the WC session before main() runs,
-    // meaning walletAddr is set when the answer form is built.
+    // Use hasSession=true so the mock pre-sets window.ethereum to the WC provider,
+    // simulating a reconnected session.  main() finds window.ethereum set and reads
+    // walletAddr from it, so the answer form renders without a manual connect click.
     await setupWCPage(page, { hasSession: true });
     await page.goto(
       `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
     );
 
-    // With an active WC session, initWallet restores window.ethereum before main()
-    // so the answer form (not locked state) should render.
+    // window.ethereum is already the WC provider, so main() sets walletAddr and
+    // renders the answer form (not the locked state).
     await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });
 
     // Intercept the transaction sent through the WC-backed provider

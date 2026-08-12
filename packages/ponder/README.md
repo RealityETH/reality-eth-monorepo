@@ -8,11 +8,11 @@ Three processes share a single PostgreSQL database:
 
 | Process | Command | Role |
 |---|---|---|
-| **sync.js** | `node ../indexer/sync.js` | Fetches events via `eth_getLogs`, decodes them, writes to PostgreSQL |
+| **sync.js** | `node ../indexer/sync.js` | Fetches events via `eth_getLogs`, decodes them, writes to `reality.*` in PostgreSQL |
+| **serve.js** | `node ../indexer/serve.js` | HTTP server (port 42070) serving the GraphQL API from `reality.*` — no indexing |
 | **log-watcher.js** | `node ../indexer/log-watcher.js` | Watches nginx access logs, promotes chains from lazy→active sync on real traffic |
-| **Ponder (serve)** | `npm run serve` | HTTP server (port 42070) serving the GraphQL API from PostgreSQL — no indexing |
 
-`sync.js` replaced Ponder's own indexer because Ponder is too slow for historical catch-up on large chains (mainnet v2.0 history goes back to block 6.5M in 2019). Ponder is kept purely for its GraphQL server; its event handlers in `src/index.ts` are not used for live indexing.
+`sync.js` replaced Ponder's own indexer because Ponder is too slow for historical catch-up on large chains (mainnet v2.0 history goes back to block 6.5M in 2019). `serve.js` replaced `ponder serve` so that the GraphQL API reads from the `reality.*` tables that `sync.js` maintains, rather than Ponder's internal `public.{hash}__*` tables. `serve.js` borrows Ponder's GraphQL schema builder and middleware from `node_modules/@ponder/core` — no extra dependencies.
 
 See `packages/indexer/SETUP.md` for full setup instructions.
 
@@ -46,14 +46,14 @@ The log-watcher promotes any chain to active for two hours after detecting real 
 
 The index is refreshed automatically before each daily lazy sync and on each lazy→active transition.
 
-## Running Ponder as the sole indexer
+## Running native Ponder as the sole indexer
 
-If you want to run standard Ponder instead of sync.js (e.g. to avoid running the custom indexer):
+If you want to run standard Ponder instead of sync.js (e.g. to avoid the custom indexer):
 
-1. All eight chains except Avalanche and Celo are covered by `ponder.config.ts`.
-2. Uncomment the Celo/Avalanche entries in `ponder.config.ts` if you add Infura/Alchemy support for them.
-3. Run `npm run start` (indexer) and `npm run serve` (GraphQL server) instead of the three-process setup above.
-4. Historical catch-up from a cold database will be significantly slower than sync.js for mainnet.
+1. All chains except Avalanche and Celo are covered by `ponder.config.ts`.
+2. Run `npm run start` (indexes into `public.{hash}__*`) and `npm run serve` (GraphQL server on port 42070).
+3. Historical catch-up from a cold database will be significantly slower than sync.js for mainnet.
+4. Use `reality-eth-ponder.service` for the serve process — do **not** enable `reality-eth-serve.service` at the same time.
 
 ## Prerequisites
 
@@ -74,12 +74,17 @@ psql "$DATABASE_URL" -f ../indexer/schema.sql
 
 # 4. Seed known question data (optional but speeds up first sync)
 node ../indexer/seed.js <chain_id>
-
-# 5. Start Ponder (GraphQL server only)
-npm run serve
 ```
 
-Then start `sync.js` and `log-watcher.js` from `packages/indexer/` — see `packages/indexer/SETUP.md`.
+Then start `sync.js`, `serve.js`, and `log-watcher.js` from `packages/indexer/` — see `packages/indexer/SETUP.md`.
+
+For systemd, install and enable the three service files from `packages/indexer/`:
+
+```bash
+sudo cp ../indexer/reality-eth-{indexer,serve,watcher}.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now reality-eth-indexer reality-eth-serve reality-eth-watcher
+```
 
 ## Environment variables
 

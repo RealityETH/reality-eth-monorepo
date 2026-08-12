@@ -200,13 +200,18 @@ async function getCurrentBlock(apiUrl, chainId, apiKey) {
   return parseInt(data.result, 16);
 }
 
-async function fetchPage(apiUrl, chainId, address, fromBlock, apiKey) {
+// Maximum block range per Etherscan query. The API times out when queried over a
+// very large range on active contracts (e.g. gnosis v2.1). Chunking keeps each
+// request small enough to complete while still accumulating all event blocks.
+const MAX_RANGE = 200_000;
+
+async function fetchPage(apiUrl, chainId, address, fromBlock, apiKey, toBlock = 'latest') {
   const params = new URLSearchParams({
     module:    'logs',
     action:    'getLogs',
     address,
     fromBlock: String(fromBlock),
-    toBlock:   'latest',
+    toBlock:   typeof toBlock === 'number' ? String(toBlock) : toBlock,
     ...(chainId ? { chainid: String(chainId) } : {}),
     ...(apiKey  ? { apikey: apiKey }           : {}),
   });
@@ -215,34 +220,52 @@ async function fetchPage(apiUrl, chainId, address, fromBlock, apiKey) {
   return resp.json();
 }
 
-async function fetchContractBlocks(apiUrl, chainId, address, startBlock, apiKey) {
+async function fetchContractBlocks(apiUrl, chainId, address, startBlock, apiKey, endBlock) {
   const blocks = new Set();
-  let fromBlock = startBlock;
+  const useChunks = endBlock != null;
+
+  let rangeStart = startBlock;
+  const rangeEnd   = endBlock ?? Infinity; // sentinel when unknown (toBlock='latest')
 
   for (;;) {
-    process.stdout.write(`    from block ${fromBlock.toLocaleString()}...`);
-    let data;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      data = await fetchPage(apiUrl, chainId, address, fromBlock, apiKey);
-      if (!data.result?.includes?.('rate limit')) break;
-      process.stdout.write(` rate limited, waiting 6s...`);
-      await sleep(6000);
+    const chunkEnd = useChunks
+      ? Math.min(rangeStart + MAX_RANGE - 1, endBlock)
+      : null; // null → toBlock='latest'
+
+    let fromBlock = rangeStart;
+
+    for (;;) {
+      process.stdout.write(`    from block ${fromBlock.toLocaleString()}...`);
+      let data;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        data = await fetchPage(apiUrl, chainId, address, fromBlock, apiKey, chunkEnd ?? 'latest');
+        if (!data.result?.includes?.('rate limit')) break;
+        process.stdout.write(` rate limited, waiting 6s...`);
+        await sleep(6000);
+      }
+
+      if (data.status === '0') {
+        const isEmpty = Array.isArray(data.result) && data.result.length === 0;
+        if (isEmpty) { process.stdout.write(` done (${data.message})\n`); break; }
+        throw new Error(`API error: ${data.message} — ${JSON.stringify(data.result)}`);
+      }
+
+      const logs = data.result;
+      for (const log of logs) blocks.add(parseInt(log.blockNumber, 16));
+      process.stdout.write(` ${logs.length} logs\n`);
+
+      if (logs.length < 1000) break;
+
+      // Paginate within the current chunk from the block after the last result.
+      fromBlock = parseInt(logs[logs.length - 1].blockNumber, 16) + 1;
+      if (chunkEnd != null && fromBlock > chunkEnd) break;
+      await sleep(apiKey ? 250 : 5500);
     }
 
-    if (data.status === '0') {
-      const isEmpty = Array.isArray(data.result) && data.result.length === 0;
-      if (isEmpty) { process.stdout.write(` done (${data.message})\n`); break; }
-      throw new Error(`API error: ${data.message} — ${JSON.stringify(data.result)}`);
-    }
+    if (!useChunks) break; // single toBlock='latest' query — done
 
-    const logs = data.result;
-    for (const log of logs) blocks.add(parseInt(log.blockNumber, 16));
-    process.stdout.write(` ${logs.length} logs\n`);
-
-    if (logs.length < 1000) break;
-
-    // Paginate from block after the last result
-    fromBlock = parseInt(logs[logs.length - 1].blockNumber, 16) + 1;
+    rangeStart = chunkEnd + 1;
+    if (rangeStart > endBlock) break;
     await sleep(apiKey ? 250 : 5500);
   }
 
@@ -298,7 +321,7 @@ async function main() {
         : `${contract.name} (${contract.address})`;
       console.log(`  ${label}`);
 
-      const blocks = await fetchContractBlocks(config.apiUrl, config.chainId, contract.address, fetchFrom, config.apiKey);
+      const blocks = await fetchContractBlocks(config.apiUrl, config.chainId, contract.address, fetchFrom, config.apiKey, currentBlock ?? undefined);
       console.log(`  → ${blocks.length} new event blocks`);
       blocks.forEach(b => allBlocks.add(b));
 

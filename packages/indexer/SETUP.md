@@ -1,6 +1,6 @@
 # Indexer setup
 
-The custom indexer replaces Ponder's built-in event-fetching with a faster, chain-aware sync process. It consists of two Node.js scripts (`sync.js` and `log-watcher.js`) that write to the same PostgreSQL database Ponder reads from.
+The custom indexer replaces Ponder's built-in event-fetching with a faster, chain-aware sync process. It consists of three Node.js scripts (`sync.js`, `serve.js`, `log-watcher.js`) that together form the full indexing and serving stack.
 
 See `packages/ponder/README.md` for a high-level architecture overview.
 
@@ -9,7 +9,7 @@ See `packages/ponder/README.md` for a high-level architecture overview.
 - Node.js 18+
 - PostgreSQL 14+ (same instance used by Ponder)
 - RPC URLs for each chain set in `packages/ponder/.env.local`
-- nginx proxying `/graphql` to Ponder's HTTP server (port 42070)
+- nginx proxying `/graphql` to the GraphQL server (port 42070)
 
 ## 1. Database schema
 
@@ -43,6 +43,17 @@ node sync.js
 ```
 
 `sync.js` reads RPC URLs from `packages/ponder/.env.local`, writes a PID file at `sync.pid`, and starts syncing all configured chains. On startup it refreshes the sparse block index for every currently-active chain before syncing.
+
+## 3b. Start the GraphQL server
+
+```bash
+node serve.js          # default port 42070
+PORT=42071 node serve.js  # custom port
+```
+
+`serve.js` exposes the same GraphQL API as native `ponder serve`, but reads from the `reality.*` tables written by `sync.js` instead of ponder's internal `public.{hash}__*` tables. It imports ponder's schema builder and GraphQL middleware from `packages/ponder/node_modules/@ponder/core`, so no extra dependencies are needed.
+
+This is the recommended GraphQL server for production. The native ponder alternative (`packages/ponder/reality-eth-ponder.service`) reads from ponder's own tables and should not be run at the same time as `serve.js` on the same port.
 
 Relevant environment variables (set in `.env.local`):
 
@@ -136,11 +147,26 @@ Replace `rcdev` with the actual indexer user. The log is outside `/var/log/nginx
 
 ## Systemd
 
-Both processes should be managed by systemd. Use `packages/ponder/reality-eth-ponder.service` as a template. Key points:
+Three service files live in this directory. Install them all:
 
-- Both scripts read `packages/ponder/.env.local` at startup (dotenv).
-- `sync.js` must start before `log-watcher.js` (the watcher needs `sync.pid` to signal it).
+```bash
+sudo cp reality-eth-indexer.service reality-eth-serve.service reality-eth-watcher.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now reality-eth-indexer reality-eth-serve reality-eth-watcher
+```
+
+| Service file | Process | Role |
+|---|---|---|
+| `reality-eth-indexer.service` | `sync.js` | Fetches events, writes to `reality.*` |
+| `reality-eth-serve.service` | `serve.js` | GraphQL API on port 42070 |
+| `reality-eth-watcher.service` | `log-watcher.js` | Watches nginx logs, signals sync.js |
+
+Key notes:
+
+- All three scripts read `packages/ponder/.env.local` at startup (dotenv).
+- `reality-eth-watcher` declares `Requires=reality-eth-indexer` so systemd starts them in order.
 - `sync.js` handles `SIGHUP` gracefully (reloads `sync-config.json`); `SIGTERM` causes a clean exit.
+- `reality-eth-serve` and `packages/ponder/reality-eth-ponder` both bind port 42070 — enable only one.
 
 ## Sparse block index
 

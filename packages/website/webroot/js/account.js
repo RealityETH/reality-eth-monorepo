@@ -151,7 +151,7 @@ window.RealityAccount.mount = async function (addr) {
     const finalTs  = state?.finalize_ts || 0;
     const finalized = finalTs > 0 && finalTs < now && !state?.is_pending_arbitration;
     const bestAns  = state?.best_answer;
-    const curAns   = bestAns && bestAns !== ZERO_HASH ? bestAns : (lastAns?.args.answer || null);
+    const curAns   = bestAns != null ? bestAns : (lastAns?.args.answer ?? null);
     const toBigStr = v => { try { return BigInt(v.toString()).toString(); } catch { return '0'; } };
 
     return {
