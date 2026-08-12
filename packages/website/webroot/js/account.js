@@ -532,7 +532,7 @@ window.RealityAccount.mount = async function (addr) {
     const lo = hex.toLowerCase();
     if (lo === INVALID.toLowerCase()) return 'Invalid';
     if (lo === TOO_SOON.toLowerCase()) return 'Too soon';
-    if (q) {
+    if (q && q.questionJson) {
       const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
       const text = window.RealityLib.getAnswerString(qjson, hex);
       if (text && text !== 'null') return text;

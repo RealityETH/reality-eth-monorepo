@@ -3523,6 +3523,7 @@ header {
 
   function formatAnswer(q) {
     if (!q.currentAnswer) return null;
+    if (!q.questionJson) return null;
     const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
     const text = window.RealityLib.getAnswerString(qjson, q.currentAnswer);
     if (!text || text === 'null') return null;
