@@ -700,8 +700,10 @@ function buildSpecialAnswerLinks() {
 
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
-  const { qjson, minBond, openingTS, finalizeTS, answerEvents } = data;
+  const { qjson, minBond, openingTS, finalizeTS, answerEvents, isPendingArbitration } = data;
   const bond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
+  // Pending arbitration blocks new answers; the arbitration section covers the display.
+  if (isPendingArbitration) return null;
   const finalized    = isFinalized(finalizeTS);
   const beforeOpen   = isBeforeOpening(openingTS);
   const type         = qjson.type || 'bool';
@@ -1690,9 +1692,10 @@ function renderStatusCard(data) {
   const banner = qPage.querySelector('#answer-banner');
   if (!card) return;
 
-  const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator } = data;
+  const { answerEvents, qjson, bond, finalizeTS, timeout, minBond, arbitrator, isPendingArbitration } = data;
   const n        = answerEvents.length;
-  const finalized = isFinalized(finalizeTS);
+  // Pending arbitration blocks on-chain finalization regardless of elapsed time.
+  const finalized = isFinalized(finalizeTS) && !isPendingArbitration;
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -1736,14 +1739,14 @@ function renderStatusCard(data) {
 
   let html = '<div class="card-title">Status</div>';
 
-  // Timer
+  // Timer — suppressed while arbitration is pending (finalization is blocked on-chain).
   const now = Math.floor(Date.now() / 1000);
   if (finalized) {
     html += `
       <div class="timer-row">
         <span class="timer-val finalized">Finalized</span>
       </div>`;
-  } else if (finalizeTS > 0) {
+  } else if (!isPendingArbitration && finalizeTS > 0) {
     const remaining = Math.max(0, finalizeTS - now);
     const barPct = timeout > 0 ? Math.max(0, Math.min(100, Math.round((1 - remaining / timeout) * 100))) : 0;
     html += `
