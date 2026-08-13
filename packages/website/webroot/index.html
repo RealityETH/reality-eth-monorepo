@@ -1726,26 +1726,24 @@ header {
 .more-count { font-size: 18px !important; }
 
 /* ── Filter tabs: underline style instead of pills ── */
-.filter-bars { border-bottom: 2px solid var(--border) !important; margin-bottom: 2px !important; }
-.filter-bar { gap: 0 !important; }
+.filter-bars { margin-bottom: 8px !important; }
+.filter-bar { gap: 6px !important; flex-wrap: wrap !important; }
 .filter-sep { display: none !important; }
 .sort-select { margin-bottom: 4px !important; }
 .filter-btn {
-  border-radius: 0 !important;
-  border: none !important;
-  border-bottom: 2px solid transparent !important;
-  margin-bottom: -2px !important;
-  padding: 6px 12px !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--border) !important;
+  padding: 4px 10px !important;
   font-size: 12px !important;
   color: var(--text-muted) !important;
-  background: none !important;
+  background: transparent !important;
 }
-.filter-btn:hover { color: var(--text) !important; background: none !important; }
+.filter-btn:hover { border-color: var(--text-muted) !important; color: var(--text) !important; background: transparent !important; }
 .filter-btn.active {
   color: var(--teal) !important;
-  border-bottom-color: var(--teal) !important;
-  background: none !important;
-  font-weight: 600 !important;
+  border-color: var(--teal) !important;
+  background: rgba(39,180,238,0.12) !important;
+  font-weight: normal !important;
 }
 
 /* ── Question cards: flat rows, consistent height ── */
