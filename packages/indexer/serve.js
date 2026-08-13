@@ -105,6 +105,7 @@ const question = s.table(
     categoryIdx:    index().on(table.category),
     contractIdx:    index().on(table.contract),
     arbPendingIdx:  index().on(table.isPendingArbitration),
+    aftIdx:         index().on(table.answerFinalizedTimestamp),
     reopenerIdx:    index().on(table.reopensQuestionId),
     updatedIdx:     index().on(table.updatedTimestamp),
     createdIdx:     index().on(table.createdTimestamp),

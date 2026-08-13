@@ -53,6 +53,7 @@ CREATE INDEX IF NOT EXISTS reality_q_arbitrator ON reality.question (arbitrator)
 CREATE INDEX IF NOT EXISTS reality_q_category   ON reality.question (category);
 CREATE INDEX IF NOT EXISTS reality_q_contract   ON reality.question (contract);
 CREATE INDEX IF NOT EXISTS reality_q_arb_pend   ON reality.question (is_pending_arbitration);
+CREATE INDEX IF NOT EXISTS reality_q_aft        ON reality.question (answer_finalized_timestamp);
 CREATE INDEX IF NOT EXISTS reality_q_reopener   ON reality.question (reopens_question_id);
 
 CREATE TABLE IF NOT EXISTS reality.response (

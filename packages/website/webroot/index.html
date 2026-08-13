@@ -3414,6 +3414,13 @@ header {
         const now = String(Math.floor(Date.now() / 1000));
         whereParts.push(`isPendingArbitration: false`);
         whereParts.push(`OR: [{scheduledFinalizationTimestamp_gt: "${now}"}, {scheduledFinalizationTimestamp: "0"}]`);
+      } else if (f === 'finalized' && !hasIntegrationOR) {
+        // Finalized = answered (sft > 0) and timeout expired. In practice arbitration
+        // always takes longer than the timeout, so sft_lt:now covers both cases.
+        const now = String(Math.floor(Date.now() / 1000));
+        whereParts.push(`isPendingArbitration: false`);
+        whereParts.push(`scheduledFinalizationTimestamp_gt: "0"`);
+        whereParts.push(`scheduledFinalizationTimestamp_lt: "${now}"`);
       }
     }
 
