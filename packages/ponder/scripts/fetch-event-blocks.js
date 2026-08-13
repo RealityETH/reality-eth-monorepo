@@ -47,10 +47,10 @@ const CHAINS = {
       { address: '0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c', startBlock: 13194676, name: 'v3.0' },
       { address: '0x6a2155613b68eFB38D5c6074921F3F4281c8c177', startBlock: 22100226, name: 'v3.2' },
       { address: '0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d', startBlock: 8050824,  name: 'ERC20-TRST' },
-      { address: '0x8f1CC53bf34932591177CDA24723486205CA7510', startBlock: 12654677, name: 'ERC20-GNO-v2' },
+      { address: '0x8f1CC53bf34932591177CDA24723486205CA7510', startBlock: 12654676, name: 'ERC20-GNO-v2' },
       { address: '0xf4585A9944A390615E7cec6756C1c082173B93eB', startBlock: 12821080, name: 'ERC20-FOX' },
       { address: '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9', startBlock: 13201169, name: 'ERC20-GNO-v3' },
-      { address: '0x867092A32bC16816F12Fb326EfF7A2865E1ec138', startBlock: 14485577, name: 'ERC20-SWISE' },
+      { address: '0x867092A32bC16816F12Fb326EfF7A2865E1ec138', startBlock: 14485576, name: 'ERC20-SWISE' },
     ],
   },
   gnosis: {
@@ -72,7 +72,7 @@ const CHAINS = {
     apiKey:  ETHERSCAN_KEY,
     contracts: [
       { address: '0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691', startBlock: 112029,  name: 'v2.1' },
-      { address: '0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9', startBlock: 459975,  name: 'v3.0' },
+      { address: '0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9', startBlock: 459973,  name: 'v3.0' },
     ],
   },
   sepolia: {
@@ -108,7 +108,7 @@ const CHAINS = {
     chainId: null,
     apiKey:  null,
     contracts: [
-      { address: '0x0eF940F7f053a2eF5D6578841072488aF0c7d89A', startBlock: 2462149, name: 'v3.0' },
+      { address: '0x0eF940F7f053a2eF5D6578841072488aF0c7d89A', startBlock: 2462148, name: 'v3.0' },
     ],
   },
   unichain: {

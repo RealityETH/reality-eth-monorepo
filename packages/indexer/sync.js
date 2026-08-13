@@ -169,7 +169,7 @@ const ACTIVE_CHAINS = Object.fromEntries(
       '0x0edb4cb0b12523749c56ff24c4a09c0c1417f691', // v2.1
       '0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9', // v3.0
     ]),
-    mkChain(10, 'optimism', 10_000, 2_462_149, [
+    mkChain(10, 'optimism', 10_000, 2_462_148, [
       '0x0ef940f7f053a2ef5d6578841072488af0c7d89a', // v3.0
     ]),
     mkChain(8453, 'base', 10_000, 26_260_675, [

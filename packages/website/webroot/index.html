@@ -200,7 +200,83 @@
     margin-bottom: 48px;
   }
   @media (max-width: 800px) { .app-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 400px) { .app-grid { grid-template-columns: 1fr; } }
+  .carousel-nav { display: none; }
+  @media (max-width: 600px) {
+    .section-heading.has-carousel { position: relative; }
+    .section-heading.has-carousel::after { display: none !important; }
+    .section-heading .carousel-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .section-heading .carousel-arrow {
+      width: 24px;
+      height: 24px;
+      font-size: 16px;
+    }
+    .section-heading .carousel-dot {
+      width: 5px;
+      height: 5px;
+    }
+    .app-grid {
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: visible;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .app-grid::-webkit-scrollbar { display: none; }
+    .app-grid .app-card {
+      flex: 0 0 calc(50% - 5px);
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+    .carousel-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .carousel-arrow {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+      color: var(--text);
+      padding: 0;
+      transition: background 0.15s;
+    }
+    .carousel-arrow:hover:not(:disabled) { background: var(--bg-card-hover); }
+    .carousel-arrow:disabled { opacity: 0.3; cursor: default; }
+    .carousel-dots { display: flex; gap: 6px; align-items: center; }
+    .carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .carousel-dot.active { background: var(--accent); transform: scale(1.4); }
+  }
 
   .app-card {
     background: var(--bg-card);
@@ -2106,12 +2182,17 @@ header {
   </div>
 
   <!-- ── Known integrations ──────────────────────────── -->
-  <div class="section-heading">
+  <div class="section-heading has-carousel">
     <h2>Integrations</h2>
     <span class="sub">Apps using reality.eth as their oracle</span>
+    <div class="carousel-nav" id="carousel-nav">
+      <button class="carousel-arrow" id="carousel-prev" aria-label="Previous">&#8249;</button>
+      <div class="carousel-dots" id="carousel-dots"></div>
+      <button class="carousel-arrow" id="carousel-next" aria-label="Next">&#8250;</button>
+    </div>
   </div>
 
-  <div id="integrations-grid" class="app-grid" style="margin-bottom:48px">
+  <div id="integrations-grid" class="app-grid">
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('snapshot')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
@@ -3069,20 +3150,6 @@ header {
 </div>
 </div>
 
-<footer class="site-footer">
-  <div class="footer-inner">
-    <span class="footer-copy">reality.eth — built by <a href="http://www.socialminds.jp/">Social Minds Inc</a></span>
-    <nav class="footer-links">
-      <a href="app/">dApp</a>
-      <a href="#!/docs">Docs</a>
-      <a href="#!/docs/whitepaper">White paper</a>
-      <a href="https://github.com/RealityETH/monorepo">GitHub</a>
-      <a href="https://discord.gg/EtMkj8Z">Discord</a>
-      <a href="https://twitter.com/RealityEth">Twitter</a>
-      <a href="https://medium.com/@edmundedgar">Medium</a>
-    </nav>
-  </div>
-</footer>
 
 <script>
   const GRAPHQL = (chainIds) => window.RealitySettings?.getPonderUrl(chainIds) || '/graphql';
@@ -4371,6 +4438,63 @@ header {
       fetchQuestions(true, !!_cached);
     });
   });
+</script>
+<script>
+(function () {
+  const grid   = document.getElementById('integrations-grid');
+  const nav    = document.getElementById('carousel-nav');
+  const prev   = document.getElementById('carousel-prev');
+  const next   = document.getElementById('carousel-next');
+  const dotsEl = document.getElementById('carousel-dots');
+  if (!grid || !nav || !prev || !next || !dotsEl) return;
+
+  function allCards() { return [...grid.querySelectorAll('.app-card')]; }
+
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    allCards().forEach((_, i) => {
+      const d = document.createElement('button');
+      d.className = 'carousel-dot';
+      d.setAttribute('aria-label', 'Go to card ' + (i + 1));
+      d.addEventListener('click', () => scrollToIdx(i));
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function cardScrollLeft(card) {
+    return card.getBoundingClientRect().left - grid.getBoundingClientRect().left + grid.scrollLeft;
+  }
+
+  function scrollToIdx(i) {
+    const card = allCards()[i];
+    if (!card) return;
+    grid.scrollTo({ left: cardScrollLeft(card), behavior: 'smooth' });
+  }
+
+  function activeIdx() {
+    let best = 0, minD = Infinity;
+    allCards().forEach((c, i) => {
+      const d = Math.abs(cardScrollLeft(c) - grid.scrollLeft);
+      if (d < minD) { minD = d; best = i; }
+    });
+    return best;
+  }
+
+  function updateNav() {
+    const i = activeIdx();
+    const count = allCards().length;
+    [...dotsEl.querySelectorAll('.carousel-dot')].forEach((d, j) => d.classList.toggle('active', j === i));
+    prev.disabled = i === 0;
+    next.disabled = i === count - 1;
+  }
+
+  prev.addEventListener('click', () => scrollToIdx(activeIdx() - 1));
+  next.addEventListener('click', () => scrollToIdx(activeIdx() + 1));
+  grid.addEventListener('scroll', updateNav, { passive: true });
+
+  buildDots();
+  updateNav();
+})();
 </script>
 </body>
 </html>
