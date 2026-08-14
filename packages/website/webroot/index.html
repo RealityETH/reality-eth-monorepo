@@ -2159,10 +2159,14 @@ header {
     <input class="search-input mobile-search-input" type="text" placeholder="Search questions…">
   </div>
 
-	<p class="page-intro">Reality.eth is an on-chain fact-checking system and smart contract oracle for answering natural-language questions.
+  <p class="page-intro">Reality.eth is an on-chain fact-checking system and smart contract oracle for answering natural-language questions. Any person or contract can ask a question, and it uses an escalation game to incentivize people and agents to answer truthfully. It can be backstopped by any arbitration system you choose, but a common choice is <a href="https://kleros.io">Kleros</a>.
 	<br />
 	<br />
-	<a href="#!/ask">Ask a question</a> or learn <a href="#!/docs">how to integrate it into your project</a>.
+	<a href="#!/ask">Ask a question now</a> or learn <a href="#!/docs">how to integrate it into your project</a>.
+	<br />
+	<br />
+
+	<a href="https://discord.gg/EtMkj8Z">Join our discord</a> if you still have questions or you want to keep up-to-date with announcements.
 	</p>
 
   <!-- ── Starred integrations ────────────────────────── -->
@@ -2331,12 +2335,12 @@ header {
     </div>
   </div>
   <div class="integ-show-all-bar">
-    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show all integrations</button>
+    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more integrations</button>
   </div>
 
   <!-- ── Recent questions ──────────────────────────────── -->
   <div class="recent-header">
-    <h2>Recent questions</h2>
+    <h2>Questions</h2>
   </div>
   <div class="filter-bars">
     <div class="filter-bar">
@@ -3912,7 +3916,7 @@ header {
       const n = Object.keys(integrations).length;
       btn.textContent = integGridExpanded
         ? 'Show fewer'
-        : `Show all ${n} integrations`;
+        : `Show more integrations`;
     }
 
     const nav = document.getElementById('carousel-nav');
