@@ -3472,6 +3472,16 @@ header {
       }
     }
 
+    // Closing sort: only show answered questions still counting down to finalization.
+    // scheduledFinalizationTimestamp is 0 for unanswered questions; filter those out.
+    if (sortOpt === 'closing') {
+      const now = String(Math.floor(Date.now() / 1000));
+      whereParts.push(`scheduledFinalizationTimestamp_gt: "${now}"`);
+      if (!whereParts.some(p => p.startsWith('isPendingArbitration'))) {
+        whereParts.push('isPendingArbitration: false');
+      }
+    }
+
     const whereClause = whereParts.length ? `, where: { ${whereParts.join(', ')} }` : '';
 
     return `{
