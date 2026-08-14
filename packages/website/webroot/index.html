@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=15';
+  var V = '?v=17';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -193,89 +193,82 @@
   }
 
   /* ── Integration cards ───────────────────────────────── */
+  /* ── Integrations grid — horizontal scroll row by default ── */
   .app-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding-bottom: 2px; /* prevent box-shadow clip */
+  }
+  .app-grid::-webkit-scrollbar { display: none; }
+  .app-grid .app-card {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  /* Expanded = full grid */
+  .app-grid.expanded {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 48px;
+    overflow: visible;
+    margin-bottom: 36px;
   }
-  @media (max-width: 800px) { .app-grid { grid-template-columns: repeat(2, 1fr); } }
-  .carousel-nav { display: none; }
+  .app-grid.expanded .app-card { flex: unset; }
+  @media (max-width: 800px) { .app-grid.expanded { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Show all bar */
+  .integ-show-all-bar {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .integ-show-all-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.15s;
+    letter-spacing: 0.01em;
+  }
+  .integ-show-all-btn:hover { color: var(--text); }
+
+  /* Carousel nav — in section heading, right-aligned */
+  .section-heading.has-carousel { position: relative; }
+  .section-heading.has-carousel::after { display: none !important; }
+  .carousel-nav {
+    display: flex; align-items: center; gap: 8px;
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  }
+  .carousel-arrow {
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: 50%; width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; line-height: 1; color: var(--text);
+    padding: 0; transition: background 0.15s;
+  }
+  .carousel-arrow:hover:not(:disabled) { background: var(--bg-card-hover); }
+  .carousel-arrow:disabled { opacity: 0.3; cursor: default; }
+  .carousel-dots { display: flex; gap: 5px; align-items: center; }
+  .carousel-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--border); border: none; cursor: pointer; padding: 0;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .carousel-dot.active { background: var(--accent); transform: scale(1.4); }
+
+  /* Desktop: 4 cards per page */
+  .app-grid .app-card { flex: 0 0 calc(25% - 9px); }
+  /* Mobile: 2 cards per page */
   @media (max-width: 600px) {
-    .section-heading.has-carousel { position: relative; }
-    .section-heading.has-carousel::after { display: none !important; }
-    .section-heading .carousel-nav {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    .section-heading .carousel-arrow {
-      width: 24px;
-      height: 24px;
-      font-size: 16px;
-    }
-    .section-heading .carousel-dot {
-      width: 5px;
-      height: 5px;
-    }
-    .app-grid {
-      display: flex;
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: visible;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .app-grid::-webkit-scrollbar { display: none; }
-    .app-grid .app-card {
-      flex: 0 0 calc(50% - 5px);
-      scroll-snap-align: start;
-      scroll-snap-stop: always;
-    }
-    .carousel-nav {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    .carousel-arrow {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 20px;
-      line-height: 1;
-      color: var(--text);
-      padding: 0;
-      transition: background 0.15s;
-    }
-    .carousel-arrow:hover:not(:disabled) { background: var(--bg-card-hover); }
-    .carousel-arrow:disabled { opacity: 0.3; cursor: default; }
-    .carousel-dots { display: flex; gap: 6px; align-items: center; }
-    .carousel-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--border);
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      transition: background 0.2s, transform 0.2s;
-    }
-    .carousel-dot.active { background: var(--accent); transform: scale(1.4); }
+    .app-grid .app-card { flex: 0 0 calc(50% - 6px); }
+    .app-grid.expanded .app-card { flex: unset; }
   }
 
   .app-card {
@@ -393,7 +386,7 @@
     background: var(--bg-card); border: 1px solid var(--border-subtle);
     border-radius: var(--radius); padding: 15px 18px;
     cursor: pointer; transition: border-color 0.15s, background 0.15s;
-    text-decoration: none; color: inherit; display: block;
+    text-decoration: none; color: inherit; display: block; position: relative;
   }
   .q-card-main {
     display: grid;
@@ -628,12 +621,15 @@
     display: flex; align-items: center; justify-content: center;
     line-height: 1; pointer-events: none; }
 
-  /* ── Question card watched badge ── */
-  .q-watch-badge { display: inline-flex; align-items: center; gap: 3px;
-    padding: 2px 7px; border-radius: 10px; font-size: 11px;
-    background: var(--amber-subtle); color: var(--amber);
-    white-space: nowrap; cursor: pointer; }
-  .q-watch-badge:hover { text-decoration: underline; }
+  /* ── Question card watched star (left gutter) ── */
+  .q-watch-star {
+    position: absolute; left: -36px; top: 50%; transform: translateY(-50%);
+    color: var(--text-dim); font-size: 14px; line-height: 1; cursor: pointer;
+    opacity: 0; transition: opacity 0.15s;
+    padding: 8px 4px 8px 14px;
+  }
+  .q-card:hover .q-watch-star { opacity: 1; }
+  .q-watch-star.watched { color: var(--amber); opacity: 1; }
 
   /* ── Question view ── */
   .star-btn { background: none; border: none; cursor: pointer; flex-shrink: 0;
@@ -1689,19 +1685,17 @@ header {
   color: var(--text-dim) !important;
 }
 
-/* ── App grid: flush with gap-as-border technique ── */
+/* ── App grid carousel (heritage) ── */
 .app-grid {
-  gap: 1px !important;
-  background: var(--border-subtle) !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-top: none !important;
+  background: none !important;
+  border: none !important;
   border-radius: 0 !important;
-  margin-bottom: 20px !important;
+  margin-bottom: 8px !important;
 }
 .app-card {
   background: var(--bg) !important;
-  border: none !important;
-  border-radius: 0 !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-sm) !important;
   padding: 10px 12px !important;
   gap: 2px !important;
 }
@@ -2109,7 +2103,7 @@ header {
   }
 
   /* Any stray grid items (watch badge etc.) get hidden */
-  .q-meta .q-watch-badge { display: none !important; }
+  .q-watch-star { display: none !important; }
 }
 </style>
 </head>
@@ -2191,52 +2185,16 @@ header {
   </div>
 
   <div id="integrations-grid" class="app-grid">
-    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('snapshot')">
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('cryptopond')">
       <div class="app-card-top">
-        <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
+        <div class="app-icon" style="background:linear-gradient(135deg,#1565c0,#0d47a1)">C</div>
       </div>
-      <div class="app-card-name">Snapshot</div>
-      <div class="app-card-desc">Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.</div>
-      <div class="app-card-stats">
-        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
-        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
-        <a class="app-card-guide" href="#!/guide/snapshot" onclick="event.stopPropagation()">Dev guide →</a>
-      </div>
-    </div>
-    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('kleros-moderate')">
-      <div class="app-card-top">
-        <div class="app-icon" style="background:linear-gradient(135deg,#d29922,#b08800)">K</div>
-      </div>
-      <div class="app-card-name">Kleros · Moderate</div>
-      <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.</div>
-      <div class="app-card-stats">
-        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
-        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
-        <a class="app-card-guide" href="#!/guide/content-moderation" onclick="event.stopPropagation()">Dev guide →</a>
-      </div>
-    </div>
-    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('seer')">
-      <div class="app-card-top">
-        <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">S</div>
-      </div>
-      <div class="app-card-name">Seer</div>
-      <div class="app-card-desc">AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.</div>
+      <div class="app-card-name">CryptoPond</div>
+      <div class="app-card-desc">AI model evaluation marketplace on Optimism and Base. Questions assess whether AI-generated predictions or outputs meet defined criteria.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
         <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
-      </div>
-    </div>
-    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('hermes-agent')">
-      <div class="app-card-top">
-        <div class="app-icon" style="background:linear-gradient(135deg,#f78166,#b04040)">H</div>
-      </div>
-      <div class="app-card-name">Nous Hermes</div>
-      <div class="app-card-desc">AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged.</div>
-      <div class="app-card-stats">
-        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
-        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
-        <a class="app-card-guide" href="#!/guide/ai-agent" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('dao-governance')">
@@ -2251,28 +2209,113 @@ header {
         <a class="app-card-guide" href="#!/guide/dao-governance" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('deep-funding')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#ff9800,#e65100)">D</div>
+      </div>
+      <div class="app-card-name">DeepFunding</div>
+      <div class="app-card-desc">Open source AI project funding evaluation on Optimism. Contributors submit pairwise comparison questions to rank project impact.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/dao-governance" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('infinite-games')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#26c6da,#00838f)">∞</div>
+      </div>
+      <div class="app-card-name">Infinite Games</div>
+      <div class="app-card-desc">Permissionless prediction market on Gnosis Chain where AI agents compete to forecast real-world events.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('kleros-moderate')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#d29922,#b08800)">K</div>
+      </div>
+      <div class="app-card-name">Kleros · Moderate</div>
+      <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/content-moderation" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('hermes-agent')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#f78166,#b04040)">H</div>
+      </div>
+      <div class="app-card-name">Nous Hermes</div>
+      <div class="app-card-desc">AI agent prediction markets tracking whether GitHub pull requests in the NousResearch/hermes-agent repository get merged.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/ai-agent" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('olas')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#7c4dff,#4527a0)">O</div>
+      </div>
+      <div class="app-card-name">Olas Network</div>
+      <div class="app-card-desc">Prediction markets created by autonomous AI agents in the Olas Network on Gnosis Chain, covering crypto, politics, sports, and current events.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('polkamarkets')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#e91e63,#880e4f)">P</div>
+      </div>
+      <div class="app-card-name">Polkamarkets</div>
+      <div class="app-card-desc">DeFi-native prediction market protocol on Polygon. Uses reality.eth as the decentralised resolution oracle for market outcomes.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('seer')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">S</div>
+      </div>
+      <div class="app-card-name">Seer</div>
+      <div class="app-card-desc">AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/prediction-market" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
+    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('snapshot')">
+      <div class="app-card-top">
+        <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
+      </div>
+      <div class="app-card-name">Snapshot</div>
+      <div class="app-card-desc">Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.</div>
+      <div class="app-card-stats">
+        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
+        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
+        <a class="app-card-guide" href="#!/guide/snapshot" onclick="event.stopPropagation()">Dev guide →</a>
+      </div>
+    </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('sports-oracle')">
       <div class="app-card-top">
         <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">⚽</div>
       </div>
       <div class="app-card-name">Sports Oracle</div>
-      <div class="app-card-desc">Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1.</div>
+      <div class="app-card-desc">Match result oracle for football (including FIFA World Cup and domestic leagues), cricket (IPL, ICC), basketball (NBA), rugby, esports, and Formula 1.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
         <a class="app-card-guide" href="#!/guide/event-oracle" onclick="event.stopPropagation()">Dev guide →</a>
-      </div>
-    </div>
-    <div class="app-card" style="cursor:pointer" onclick="selectIntegration('fantasy-sports')">
-      <div class="app-card-top">
-        <div class="app-icon" style="background:linear-gradient(135deg,#bc8cff,#8957e5)">🏆</div>
-      </div>
-      <div class="app-card-name">Fantasy Sports</div>
-      <div class="app-card-desc">Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120.</div>
-      <div class="app-card-stats">
-        <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
-        <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
-        <a class="app-card-guide" href="#!/guide/hash-commit-oracle" onclick="event.stopPropagation()">Dev guide →</a>
       </div>
     </div>
     <div class="app-card" style="cursor:pointer" onclick="selectIntegration('other')">
@@ -2286,6 +2329,9 @@ header {
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
       </div>
     </div>
+  </div>
+  <div class="integ-show-all-bar">
+    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show all integrations</button>
   </div>
 
   <!-- ── Recent questions ──────────────────────────────── -->
@@ -2309,6 +2355,7 @@ header {
       </select>
     </div>
     <div class="filter-bar">
+      <button class="filter-btn active" data-chain="all">All</button>
       <button class="filter-btn" data-chain="1">Ethereum</button>
       <button class="filter-btn" data-chain="100">Gnosis</button>
       <button class="filter-btn" data-chain="137">Polygon</button>
@@ -3269,6 +3316,7 @@ header {
   let templateFilter = null;    // raw templateId number, or null
   let searchQuery = '';
   let integrationFilter = null;
+  let integGridExpanded = false;
 
   // Token metadata (loaded from contracts.json + tokens.json)
   let tokenDecimals = {};    // symbol -> decimals
@@ -3640,6 +3688,32 @@ header {
     return h > 0 ? `${d}d ${h}h` : `${d}d`;
   }
 
+  window.starQuestion = function(event, el) {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!window.RealityWatches) return;
+    const q = JSON.parse(el.dataset.q);
+    RealityWatches.starQuestion(q).then(() => {
+      el.classList.add('watched');
+      el.textContent = '★';
+      el.title = 'Click to unwatch';
+      el.onclick = e => window.unstarQuestion(e, el);
+    });
+  };
+
+  window.unstarQuestion = function(event, el) {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!window.RealityWatches) return;
+    const q = JSON.parse(el.dataset.q);
+    RealityWatches.unstarQuestion(q.id).then(() => {
+      el.classList.remove('watched');
+      el.textContent = '☆';
+      el.title = 'Watch this question';
+      el.onclick = e => window.starQuestion(e, el);
+    });
+  };
+
   function flatColor(c) {
     const m = c && c.match(/#([0-9a-f]{6}|[0-9a-f]{3})\b/i);
     return m ? m[0] : '#8fa0ad';
@@ -3737,27 +3811,38 @@ header {
       <div class="q-answer-time">${timeHtml}</div>
     </div>`;
 
-    // Watched badge (synchronous — uses preloaded cache)
-    let watchedBadge = '';
+    // Watch star (always rendered; .watched + amber when active)
+    let watchStarClass  = 'q-watch-star';
+    let watchStarChar   = '☆';
+    let watchStarAction = 'starQuestion(event,this)';
+    let watchStarTitle  = 'Watch this question';
+    const qDataAttr     = `data-q='${JSON.stringify({id:q.id,chainId:q.chainId,templateId:String(q.templateId||''),title:q.title}).replace(/'/g,'&#39;')}'`;
     if (window.RealityWatches) {
       if (RealityWatches.isStarredSync(q.id)) {
-        watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='#!/notifications'">★ Watching</span>`;
+        watchStarClass  += ' watched';
+        watchStarChar    = '★';
+        watchStarAction  = 'unstarQuestion(event,this)';
+        watchStarTitle   = 'Click to unwatch';
       } else {
         const matchingConds = RealityWatches.getMatchingConditionsSync(q);
         if (matchingConds.length > 0) {
-          watchedBadge = `<span class="q-watch-badge" onclick="event.stopPropagation();location.href='#!/watch-configure?id=${matchingConds[0].id}'">★ Watched</span>`;
+          watchStarClass  += ' watched';
+          watchStarChar    = '★';
+          watchStarAction  = `event.stopPropagation();event.preventDefault();location.href='#!/watch-configure?id=${matchingConds[0].id}'`;
+          watchStarTitle   = 'Watched via rule';
         }
       }
     }
+    const watchedStar = `<span class="${watchStarClass}" ${qDataAttr} onclick="${watchStarAction}" title="${watchStarTitle}">${watchStarChar}</span>`;
 
     return `
       <a class="q-card" href="#!/network/${q.chainId}/question/${q.id}" style="--integ-color:${integ ? flatColor(integ.color) : 'var(--border-subtle)'}">
+        ${watchedStar}
         <div class="q-card-main">
           <div class="q-meta">
             ${catBadge}
             <span class="badge badge-chain">${chain}</span>
             ${statusBadge}
-            ${watchedBadge}
           </div>
           <div class="q-text">${isMarkdown ? renderMarkdownCard(title) : esc(title)}</div>
           <div class="q-footer">
@@ -3777,7 +3862,13 @@ header {
 
     const now = Math.floor(Date.now() / 1000);
 
-    grid.innerHTML = Object.entries(integrations).map(([id, info]) => {
+    const sortedEntries = Object.entries(integrations).sort(([aId, aInfo], [bId, bInfo]) => {
+      if (aId === 'other') return 1;
+      if (bId === 'other') return -1;
+      return aInfo.name.localeCompare(bInfo.name);
+    });
+
+    grid.innerHTML = sortedEntries.map(([id, info]) => {
       const counts = integCounts[id];
       const matchFn = id === 'other' ? q => classifyQuestion(q) === null : q => classifyQuestion(q) === id;
       const openCount  = counts?.open  ?? allQuestions.filter(q => matchFn(q) && getStatus(q) === 'open').length;
@@ -3814,6 +3905,23 @@ header {
     }).join('');
 
     grid.classList.toggle('has-active', integrationFilter !== null);
+    grid.classList.toggle('expanded', integGridExpanded);
+
+    const btn = document.getElementById('integ-show-all-btn');
+    if (btn) {
+      const n = Object.keys(integrations).length;
+      btn.textContent = integGridExpanded
+        ? 'Show fewer'
+        : `Show all ${n} integrations`;
+    }
+
+    const nav = document.getElementById('carousel-nav');
+    if (nav) nav.style.display = integGridExpanded ? 'none' : '';
+  }
+
+  function toggleIntegGrid() {
+    integGridExpanded = !integGridExpanded;
+    renderIntegrationCards();
   }
 
   function selectIntegration(id) {
@@ -3901,8 +4009,14 @@ header {
       btn.addEventListener('click', () => {
         const f = btn.dataset.filter;
         const t = btn.dataset.type;
-        const c = btn.dataset.chain ? parseInt(btn.dataset.chain) : null;
-        if (c !== null) {
+        const c = btn.dataset.chain === 'all' ? 'all'
+                : btn.dataset.chain ? parseInt(btn.dataset.chain) : null;
+        if (c === 'all') {
+          chainFilters.clear();
+          syncFilterButtons();
+          fetchQuestions(true);
+          return;
+        } else if (c !== null) {
           if (chainFilters.has(c)) chainFilters.delete(c);
           else chainFilters.add(c);
           syncFilterButtons();
@@ -3947,7 +4061,8 @@ header {
         b.classList.toggle('active', typeFilters.has(b.dataset.type));
       });
       document.querySelectorAll('.filter-btn[data-chain]').forEach(b => {
-        b.classList.toggle('active', chainFilters.has(parseInt(b.dataset.chain)));
+        if (b.dataset.chain === 'all') b.classList.toggle('active', chainFilters.size === 0);
+        else b.classList.toggle('active', chainFilters.has(parseInt(b.dataset.chain)));
       });
     }
 
@@ -4447,31 +4562,22 @@ header {
 <script>
 (function () {
   const grid   = document.getElementById('integrations-grid');
-  const nav    = document.getElementById('carousel-nav');
   const prev   = document.getElementById('carousel-prev');
   const next   = document.getElementById('carousel-next');
   const dotsEl = document.getElementById('carousel-dots');
-  if (!grid || !nav || !prev || !next || !dotsEl) return;
+  if (!grid || !prev || !next || !dotsEl) return;
 
   function allCards() { return [...grid.querySelectorAll('.app-card')]; }
-
-  function buildDots() {
-    dotsEl.innerHTML = '';
-    allCards().forEach((_, i) => {
-      const d = document.createElement('button');
-      d.className = 'carousel-dot';
-      d.setAttribute('aria-label', 'Go to card ' + (i + 1));
-      d.addEventListener('click', () => scrollToIdx(i));
-      dotsEl.appendChild(d);
-    });
-  }
+  function cardsPerPage() { return window.innerWidth <= 600 ? 2 : 4; }
+  function pageCount() { return Math.ceil(allCards().length / cardsPerPage()); }
 
   function cardScrollLeft(card) {
     return card.getBoundingClientRect().left - grid.getBoundingClientRect().left + grid.scrollLeft;
   }
 
   function scrollToIdx(i) {
-    const card = allCards()[i];
+    const cards = allCards();
+    const card = cards[Math.max(0, Math.min(i, cards.length - 1))];
     if (!card) return;
     grid.scrollTo({ left: cardScrollLeft(card), behavior: 'smooth' });
   }
@@ -4485,17 +4591,32 @@ header {
     return best;
   }
 
-  function updateNav() {
-    const i = activeIdx();
-    const count = allCards().length;
-    [...dotsEl.querySelectorAll('.carousel-dot')].forEach((d, j) => d.classList.toggle('active', j === i));
-    prev.disabled = i === 0;
-    next.disabled = i === count - 1;
+  function activePage() { return Math.floor(activeIdx() / cardsPerPage()); }
+
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    const pages = pageCount();
+    for (let p = 0; p < pages; p++) {
+      const d = document.createElement('button');
+      d.className = 'carousel-dot';
+      d.setAttribute('aria-label', 'Go to page ' + (p + 1));
+      d.addEventListener('click', () => scrollToIdx(p * cardsPerPage()));
+      dotsEl.appendChild(d);
+    }
   }
 
-  prev.addEventListener('click', () => scrollToIdx(activeIdx() - 1));
-  next.addEventListener('click', () => scrollToIdx(activeIdx() + 1));
+  function updateNav() {
+    const p = activePage();
+    const pages = pageCount();
+    [...dotsEl.querySelectorAll('.carousel-dot')].forEach((d, j) => d.classList.toggle('active', j === p));
+    prev.disabled = p === 0;
+    next.disabled = p >= pages - 1;
+  }
+
+  prev.addEventListener('click', () => scrollToIdx((activePage() - 1) * cardsPerPage()));
+  next.addEventListener('click', () => scrollToIdx((activePage() + 1) * cardsPerPage()));
   grid.addEventListener('scroll', updateNav, { passive: true });
+  window.addEventListener('resize', () => { buildDots(); updateNav(); });
 
   buildDots();
   updateNav();

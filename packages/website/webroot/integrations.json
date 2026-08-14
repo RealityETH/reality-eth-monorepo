@@ -1,6 +1,5 @@
 {
   "_note": "Integration registry for classifying reality.eth questions by creator contract and template patterns. Classification priority: creatorMap > templateIdMap > titlePatterns.",
-
   "integrations": {
     "snapshot": {
       "name": "Snapshot",
@@ -10,7 +9,7 @@
       "guideId": "snapshot"
     },
     "kleros-moderate": {
-      "name": "Kleros · Moderate",
+      "name": "Kleros \u00b7 Moderate",
       "icon": "K",
       "color": "linear-gradient(135deg,#d29922,#b08800)",
       "description": "Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.",
@@ -39,26 +38,53 @@
     },
     "sports-oracle": {
       "name": "Sports Oracle",
-      "icon": "⚽",
+      "icon": "\u26bd",
       "color": "linear-gradient(135deg,#3fb950,#1a7f37)",
-      "description": "Match result oracle for Argentine and international football, rugby, cricket, esports and Formula 1.",
+      "description": "Match result oracle for football (including FIFA World Cup and domestic leagues), cricket (IPL, ICC), basketball (NBA), rugby, esports, and Formula 1.",
       "guideId": "event-oracle"
     },
-    "fantasy-sports": {
-      "name": "Fantasy Sports",
-      "icon": "🏆",
-      "color": "linear-gradient(135deg,#bc8cff,#8957e5)",
-      "description": "Argentine fantasy sports result oracle. Each league deploys its own contract; results are committed as a hash via templateId 120.",
-      "guideId": "hash-commit-oracle"
+    "olas": {
+      "name": "Olas Network",
+      "icon": "O",
+      "color": "linear-gradient(135deg,#7c4dff,#4527a0)",
+      "description": "Prediction markets created by autonomous AI agents in the Olas Network on Gnosis Chain, covering crypto, politics, sports, and current events.",
+      "guideId": "olas-predict"
+    },
+    "infinite-games": {
+      "name": "Infinite Games",
+      "icon": "\u221e",
+      "color": "linear-gradient(135deg,#26c6da,#00838f)",
+      "description": "Permissionless prediction market on Gnosis Chain where AI agents compete to forecast real-world events.",
+      "guideId": "infinite-games"
+    },
+    "deep-funding": {
+      "name": "DeepFunding",
+      "icon": "D",
+      "color": "linear-gradient(135deg,#ff9800,#e65100)",
+      "description": "Dependency-graph funding for open-source projects on Optimism. Jurors submit numeric weights via reality.eth uint questions to allocate grants.",
+      "guideId": "deep-funding"
+    },
+    "cryptopond": {
+      "name": "CryptoPond",
+      "icon": "C",
+      "color": "linear-gradient(135deg,#1565c0,#0d47a1)",
+      "description": "AI model competition marketplace on Optimism and Base. Competition scores and rankings are anchored on-chain via reality.eth for tamper-resistant payouts.",
+      "guideId": "cryptopond"
+    },
+    "polkamarkets": {
+      "name": "Polkamarkets",
+      "icon": "P",
+      "color": "linear-gradient(135deg,#e91e63,#880e4f)",
+      "description": "DeFi-native prediction market protocol on Polygon. Uses reality.eth as the decentralised resolution oracle for market outcomes.",
+      "guideId": "polkamarkets-v2"
     },
     "other": {
       "name": "Other",
-      "icon": "…",
+      "icon": "\u2026",
       "color": "#6e7681",
-      "description": "Questions from addresses not associated with a known integration — prediction markets, DAO governance, testing, and more."
+      "description": "Questions from addresses not associated with a known integration \u2014 prediction markets, DAO governance, testing, and more."
     }
   },
-
   "_creatorMapNote": "Explicit contract-to-integration mapping. Most reliable signal.",
   "creatorMap": {
     "0x67d3673cf19a6b0ad70d76b4e9c6f715177eb48b": "sports-oracle",
@@ -100,12 +126,10 @@
     "0xd1220eed2a71bf5415b7c1a925ba6c1884821948": "sports-oracle",
     "0x9498d267fa9125d9f35b36d47b9ebde5a9c7bcc8": "sports-oracle",
     "0xbdfd060ac349ac8b041d89ac491c89a78b4930e4": "sports-oracle",
-
     "0xe0441ecf50205d3548456b29fde2a3010f9a61f3": "kleros-moderate",
     "0x6426800f8508b15aed271337498fa5e7d0794d46": "kleros-moderate",
     "0x209469c921db9d5bd77084370e80b63d5cdd63c1": "kleros-moderate",
     "0xf2a0a3e58096464874f5f332b80c73721308d830": "kleros-moderate",
-
     "0xca553ac295eda95594e77aa97525fc815090589a": "snapshot",
     "0xa62d2a75eb39c12e908e9f6bf50f189641692f2e": "snapshot",
     "0xce8badc47beed0a8178e2915914dec368d5dab9f": "snapshot",
@@ -194,111 +218,26 @@
     "0xe597c5246b570fd1e0f6e5ed3050b316a2f8232c": "snapshot",
     "0x3704073aec4aad159fae41cf7b92383ce42a0e0e": "snapshot",
     "0xa42ebc57f99eec305b7f096092cb1a3b8487a96f": "snapshot",
-
     "0x83183da839ce8228e31ae41222ead9edbb5cdcf1": "seer",
     "0xecfbc2272c85dee97d7816cb25a4ffb80230942f": "seer",
     "0xe789e4a240d153ac55e32106821e785e71f6b792": "seer",
-
     "0x1246c7e5ac59ba73a45a62e3081b548f02f58e90": "hermes-agent",
-
     "0xa6cb18fcdc17a2b44e5cad2d80a6d5942d30a345": "dao-governance",
-
-    "0x6254b7479919be601560334567fe9eb30f2caf8d": "fantasy-sports",
-    "0x7e3ad81e254b1ecaed265025455db9d2b3f6396e": "fantasy-sports",
-    "0xd4eb62c98bcc55c218dfa6dbee4cd86189e634ba": "fantasy-sports",
-    "0x0028607fde582359f64b1c734b766d6f8358a3b1": "fantasy-sports",
-    "0x08dc69a3fe3cdaa7417a770d69d2c3861f8170f4": "fantasy-sports",
-    "0x40afddf893c7e4294b07515edabd90bd56f8f36e": "fantasy-sports",
-    "0x4fec6233736a48f81a4a3f2566c1d836478db8b0": "fantasy-sports",
-    "0x5b94a2d8c1f7bf713ca8a7363f9ff188bcf4e9f8": "fantasy-sports",
-    "0x719cf967a0acc5824dfc7df93f871ab5941ad4df": "fantasy-sports",
-    "0x6d0e1c58e0a1eb394a4d2d4e72ec6829e1ac3dfb": "fantasy-sports",
-    "0x7ac993b7cfc0e7b80a9c34d5c98af486eeaca13c": "fantasy-sports",
-    "0x8976d79ac9b309fab3f5e34a92dc38b9877248bc": "fantasy-sports",
-    "0xaa8f1119a0465b580a075dc9701c486d8c87c4d8": "fantasy-sports",
-    "0xbed43210f5faf6c1051f4dd715c4aea86691ee83": "fantasy-sports",
-    "0xd1b04c64b010d9bf93ba88cd9edf7719343b8932": "fantasy-sports",
-    "0xd57b0e7ad89e515d160018bf1e6bfd62c191a7d8": "fantasy-sports",
-    "0xe3a33c9b05ce4fb9d5a35e7c471e6af1073fb411": "fantasy-sports",
-    "0xfe32f1a9c58bb6b2061c2a26194de339b5beea46": "fantasy-sports",
-    "0xe8474fee98b184aa176219c1b0b94096cb064a8d": "fantasy-sports",
-    "0x42920658401d8963312f63e6794043d97b90c0fa": "fantasy-sports",
-    "0x0ca99815c960ddbb1693a830f43587440c85493d": "fantasy-sports",
-    "0x45ef45b2e4a6a3c11abac4f899ba98e7a184025d": "fantasy-sports",
-    "0x3410bb764ce70b240bd27c934f5618e1df1bace3": "fantasy-sports",
-    "0xa56d3ee4ef78909ecd6431cee5eb544e31258c6b": "fantasy-sports",
-    "0x69db0d8b18a24d3663c6f96d136d509050775746": "fantasy-sports",
-    "0x55414a2d1c1f5a17350cbf5f17a7475b80fa86d7": "fantasy-sports",
-    "0x9b6c9e2c3278c072f9ec2468021de46191a40da2": "fantasy-sports",
-    "0xa23fe0e5d871def19ad769fb5d82520acd2d051f": "fantasy-sports",
-    "0xdfa42950a948c44834ddb1e9b5cdf8d8f575d040": "fantasy-sports",
-    "0xf20bfff6f0495da4f16d415fa30fba6ec27f8c9e": "fantasy-sports",
-    "0xebe6373221aa8a79a6c5a9e387f9da21eec540c0": "fantasy-sports",
-    "0xe92ee994ea143e6a71905907ec5831de7bfa2167": "fantasy-sports",
-    "0xdc8bff65253c70e3601a1879e94f2c5e90e6195f": "fantasy-sports",
-    "0x35d718bc3f8ff93380007af4c099cc32fd272656": "fantasy-sports",
-    "0x187231fb94a8f5dc2b4d7c9e72280dc8b5dda0e2": "fantasy-sports",
-    "0x1521338c2111ce8b05ee52d2a127650e50fae5d0": "fantasy-sports",
-    "0x0e78475575bfed64df726da7c6e7e0ba9c5a1e65": "fantasy-sports",
-    "0x56141449eafd1090bfb4fcd6f2f4b4c6a41564bb": "fantasy-sports",
-    "0x692a00fad183b3442f52dac665acc9ddd4163db5": "fantasy-sports",
-    "0x897eddddd41f3ff5d2f3aa5a6481fa71cb9a11d2": "fantasy-sports",
-    "0xd0ffcf5491e37f5ef0f168cc029429d484816653": "fantasy-sports",
-    "0xb8e16aa5ab412f2dce0a42c19dde58b56d21307a": "fantasy-sports",
-    "0xcea92fe6ef797b8681ebb6f70f09882f953e40ea": "fantasy-sports",
-    "0xb43fac8e56b9ff5935bee1907d32b2c90a12787b": "fantasy-sports",
-    "0xaf0bbdcaf9b13b063f987a8da8b78a3583939c8a": "fantasy-sports",
-    "0xc34af6c809777a5d4a2e3cfba356efa2c4755a1d": "fantasy-sports",
-    "0xbe5292e94d3b1c6c6de0f282874cd7d2938eaa3b": "fantasy-sports",
-    "0xfcdc53bc41769a268b0f993a683d0729fb02c24c": "fantasy-sports",
-    "0x2fc825c6dd5ebad815862da8a7d24ddbe076c945": "fantasy-sports",
-    "0x894c24e14f2c5b5f555e095d741051e517a35e41": "fantasy-sports",
-    "0xd1006d96bbb6b5fb744959f390735d5be8126631": "fantasy-sports",
-    "0x514ec5cf585b0f97ede4e9ea762e317df17b2863": "fantasy-sports",
-    "0x4827f152d72a1d2a678f0777dc47cd2b1d0c9e32": "fantasy-sports",
-    "0x5f9513c171285cf56559c0f4feefc433a57f21d2": "fantasy-sports",
-    "0x352da0f523f1bcdf148344cda9a439e7fdebcbc5": "fantasy-sports",
-    "0x882140009a7fdfe7e930d2d9aeba2c7ef2af1072": "fantasy-sports",
-    "0x6ad6ef8215c2ce0596c4a7bcbdbca6f273e3678a": "fantasy-sports",
-    "0x69fc1de1389f5816cecbcbc7bdb1f30da9da9509": "fantasy-sports",
-    "0xcddbe26a08b95cd51d91664222785f43ca1a8142": "fantasy-sports",
-    "0xd104dc0b5e9e6da0572a7542e68267ebd93b31d2": "fantasy-sports",
-    "0xf51e05aa60f04ce84f96daee197e0c1b0f222742": "fantasy-sports",
-    "0xea722fe306aac7d3403efe52080d458de9901ad5": "fantasy-sports",
-    "0x4454355266b2c7069e2587e763c1b2cb87efeb8a": "fantasy-sports",
-    "0x41d2cc8b5a8ccbc02d0f9bccf56491c7e43a5a14": "fantasy-sports",
-    "0x4f45f5c6b60dd239eba31084381b043efa25daaf": "fantasy-sports",
-    "0x7da0fa8578eb97e4e60cb36bb263fb9e839b1418": "fantasy-sports",
-    "0xcaf6bd9f214622afe2c14d817477cccad8083ce2": "fantasy-sports",
-    "0xde10cc7a99692bdce1d2881bff6eaeb87ab7cf2d": "fantasy-sports",
-    "0x43b8bbcedb2fc6f72fc68706e56bc0eeb42ba494": "fantasy-sports",
-    "0x06599abccba09cc6c6b21f06f8bfaf4d2dcd65c9": "fantasy-sports",
-    "0x8cb2e76b2dba99431c5b43040e805c64a8f26935": "fantasy-sports",
-    "0x266913fc3cebe421ed31b0559f7e6bed3ef59e25": "fantasy-sports",
-    "0x5c7433fd0f26c954fd72bc0e267103f2e41d4855": "fantasy-sports",
-    "0x25d64c9a59045047f6435320bbeadead888822c3": "fantasy-sports",
-    "0xd4c358891a3f4e974d68b48887bf1a981bc68d17": "fantasy-sports",
-    "0x2ec65d92d585f764c0ac547de375e3b14e814c24": "fantasy-sports",
-    "0xac2f96db262ed9b175a7bdbde3e87bddc5a044a3": "fantasy-sports",
-    "0x94874394aa9fa6cc361b9ccb5bfa1e742444bd81": "fantasy-sports",
-    "0x18de0a35e5d67627a012a28f8dfb27616ad16bf1": "fantasy-sports",
-    "0xc2a9e41f8ba6a3bc527355635e86d72436108697": "fantasy-sports",
-    "0x51fd33ca3b544882987e27b9a7b84f146dc98713": "fantasy-sports",
-    "0xfb07d19a68cec037e635126a135560c7caadbf64": "fantasy-sports",
-    "0x8c686a04f4884c2b1aeae7660a20a30457ed57f6": "fantasy-sports",
-    "0x0a05a2bedbebc03199c2255147795767d809fa9c": "fantasy-sports",
-    "0x566e266bbfc82cf7731a014bedaf7e940d57e9ba": "fantasy-sports",
-    "0x8bdfcbb83ccd8e1f11d1c886730285d93cb1fc5f": "fantasy-sports",
-    "0xf23f5ac1542b9147a592e50ca4a1484f5b83c730": "fantasy-sports",
-    "0x29c6b280e0a4fa8991dcd657b9fdccd12ab38030": "fantasy-sports",
-    "0x792dc2d5db2d7054de169c9c92b92f4f9db2565f": "fantasy-sports",
-    "0x69c8183d0f761fb3c8684b44d23a712726de2d03": "fantasy-sports",
-    "0xbb284a06313e6ed2c5148627e456ee731bb20718": "fantasy-sports",
-    "0xd279f514767b9e75b4b32f87d0ef684ad1f1e453": "fantasy-sports",
-    "0x6137724a019a5daef73519dca75e8048a71e010e": "fantasy-sports",
-    "0xd68b9e3cf980a5671f71cd4f9d9927b52dbecffb": "fantasy-sports"
+    "0x89c5cc945dd550bcffb72fe42bff002429f46fec": "olas",
+    "0xffc8029154ecd55abed15bd428ba596e7d23f557": "olas",
+    "0x993dfce14768e4de4c366654be57c21d9ba54748": "olas",
+    "0x7d3a0da18e14ccb63375cdc250e8a8399997816f": "olas",
+    "0x55d8dfc1e6f994079a6a7fdb9d7a2712dc1b87b2": "infinite-games",
+    "0xecfd8717deada8ccfb925a3f7ea31d47cbb4f37f": "infinite-games",
+    "0xa638f22cdd13013494971b0e1325718aa45280dc": "deep-funding",
+    "0x0956b70ac0eca45db9661a1cee96b2e7062d8a1c": "deep-funding",
+    "0xb2ab74afe47e6f9d8c392fa15b139ac02684771a": "deep-funding",
+    "0x886ef0a78fabbae942f1da1791a8ed02a5af8bc6": "cryptopond",
+    "0x60d7956805ec5a698173def4d0e1ecdefb06cc57": "polkamarkets",
+    "0xb956363eef219c09a0035a527be97f40e4b3d959": "sports-oracle",
+    "0x1ee118412c36b34641d49c6caffb5153bdf64e1d": "sports-oracle",
+    "0x130f5e56220c218953824d2997c4870961cbdd24": "sports-oracle"
   },
-
   "_markdownTemplateIdsNote": "Compound keys (chainId-contract-templateId) whose questionText declares format:text/markdown.",
   "markdownTemplateIds": [
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-73",
@@ -306,27 +245,20 @@
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-75",
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-76"
   ],
-
-  "_templateIdMapNote": "Compound key (chainId-contract-templateId) → integration. Template IDs are per-contract so bare IDs are not unique across chains/deployments.",
+  "_templateIdMapNote": "Compound key (chainId-contract-templateId) \u2192 integration. Template IDs are per-contract so bare IDs are not unique across chains/deployments.",
   "templateIdMap": {
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-59": "kleros-moderate",
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-60": "kleros-moderate",
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-73": "kleros-moderate",
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-74": "kleros-moderate",
     "100-0xe78996a233895be74a66f451f1019ca9734205cc-75": "kleros-moderate",
-    "100-0xe78996a233895be74a66f451f1019ca9734205cc-76": "kleros-moderate",
-    "100-0xe78996a233895be74a66f451f1019ca9734205cc-120": "fantasy-sports"
+    "100-0xe78996a233895be74a66f451f1019ca9734205cc-76": "kleros-moderate"
   },
-
-  "_titlePatternsNote": "Ordered list — first match wins. Used when creatorMap and templateIdMap both miss.",
+  "_titlePatternsNote": "Ordered list \u2014 first match wins. Used when creatorMap and templateIdMap both miss.",
   "titlePatterns": [
     {
       "contains": "Did the Snapshot proposal with the id",
       "integration": "snapshot"
-    },
-    {
-      "contains": "What hash represents the results of",
-      "integration": "fantasy-sports"
     },
     {
       "startsWith": "# [Kleros Moderate]",
