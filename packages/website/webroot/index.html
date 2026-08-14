@@ -2365,6 +2365,20 @@ header {
       <button class="filter-btn" data-chain="130">Unichain</button>
       <button class="filter-btn" data-chain="11155111">Sepolia</button>
     </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-cat="">All</button>
+      <button class="filter-btn" data-cat="sports">sports</button>
+      <button class="filter-btn" data-cat="tech">tech</button>
+      <button class="filter-btn" data-cat="world">world</button>
+      <button class="filter-btn" data-cat="politics">politics</button>
+      <button class="filter-btn" data-cat="business">business</button>
+      <button class="filter-btn" data-cat="health">health</button>
+      <button class="filter-btn" data-cat="science">science</button>
+      <button class="filter-btn" data-cat="crypto">crypto</button>
+      <button class="filter-btn" data-cat="finance">finance</button>
+      <button class="filter-btn" data-cat="arts">arts</button>
+      <button class="filter-btn" data-cat="dao">dao</button>
+    </div>
   </div>
 
   <div id="integ-filter-strip" style="display:none">
@@ -3313,9 +3327,24 @@ header {
   let typeFilters   = new Set(); // empty = show all types
   let sortOpt = 'recent';
   let chainFilters = new Set(); // empty = all chains
+  let categoryFilter = null;    // null = all categories
   let templateFilter = null;    // raw templateId number, or null
   let searchQuery = '';
   let integrationFilter = null;
+
+  const CATEGORY_GROUPS = {
+    sports:   ['sports', 'Sports', 'football', 'FIFA', 'soccer', 'basketball', 'cricket', 'esports', 'F1', 'IPL'],
+    tech:     ['technology'],
+    world:    ['international'],
+    politics: ['politics', '🏛️ politics', 'Politics', "'politics'", 'news-politics'],
+    business: ['business'],
+    health:   ['health'],
+    science:  ['science'],
+    crypto:   ['cryptocurrency', 'Crypto', 'crypto', 'Cryptocurrency'],
+    finance:  ['finance', 'economy'],
+    arts:     ['entertainment', 'movies', 'music', 'arts'],
+    dao:      ['DAO proposal', 'governance'],
+  };
   let integGridExpanded = false;
 
   // Token metadata (loaded from contracts.json + tokens.json)
@@ -3420,6 +3449,11 @@ header {
       const sq = searchQuery.replace(/"/g, '\\"');
       const sqCapped = sq.charAt(0).toUpperCase() + sq.slice(1);
       whereParts.push(`title_contains: "${sqCapped}"`);
+    }
+
+    if (categoryFilter && CATEGORY_GROUPS[categoryFilter]) {
+      const cats = CATEGORY_GROUPS[categoryFilter].map(c => `"${c.replace(/"/g, '\\"')}"`).join(', ');
+      whereParts.push(`category_in: [${cats}]`);
     }
 
     // Process integration filter first so we know if we'll need an OR clause.
@@ -4021,6 +4055,7 @@ header {
         const t = btn.dataset.type;
         const c = btn.dataset.chain === 'all' ? 'all'
                 : btn.dataset.chain ? parseInt(btn.dataset.chain) : null;
+        const cat = btn.dataset.cat !== undefined ? (btn.dataset.cat || null) : undefined;
         if (c === 'all') {
           chainFilters.clear();
           syncFilterButtons();
@@ -4029,6 +4064,11 @@ header {
         } else if (c !== null) {
           if (chainFilters.has(c)) chainFilters.delete(c);
           else chainFilters.add(c);
+          syncFilterButtons();
+          fetchQuestions(true);
+          return;
+        } else if (cat !== undefined) {
+          categoryFilter = cat;
           syncFilterButtons();
           fetchQuestions(true);
           return;
@@ -4073,6 +4113,9 @@ header {
       document.querySelectorAll('.filter-btn[data-chain]').forEach(b => {
         if (b.dataset.chain === 'all') b.classList.toggle('active', chainFilters.size === 0);
         else b.classList.toggle('active', chainFilters.has(parseInt(b.dataset.chain)));
+      });
+      document.querySelectorAll('.filter-btn[data-cat]').forEach(b => {
+        b.classList.toggle('active', b.dataset.cat === (categoryFilter || ''));
       });
     }
 
