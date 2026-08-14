@@ -4,6 +4,7 @@
     "native_chains": {
         "42161": true,
         "421611": true,
-        "421613": true            
-    }
+        "421613": true
+    },
+    "approx_1_usd": 0.000532184
 }

@@ -3,5 +3,6 @@
     "small_number": 10000000000000000,
     "native_chains": {
         "40": true
-    }
+    },
+    "approx_1_usd": 33.1572
 }

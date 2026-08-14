@@ -3,5 +3,6 @@
     "small_number": 1000000000000000000,
     "erc20_chains": {
         "137": "0x60Ea918FC64360269Da4efBDA11d8fC6514617C6"
-    }
+    },
+    "approx_1_usd": 251.405
 }
