@@ -2180,7 +2180,7 @@ header {
   <div class="section-heading has-carousel">
     <h2>Integrations</h2>
     <span class="sub">Apps using reality.eth as their oracle</span>
-    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more integrations</button>
+    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more</button>
     <div class="carousel-nav" id="carousel-nav">
       <button class="carousel-arrow" id="carousel-prev" aria-label="Previous">&#8249;</button>
       <div class="carousel-dots" id="carousel-dots"></div>
@@ -3912,7 +3912,7 @@ header {
       const n = Object.keys(integrations).length;
       btn.textContent = integGridExpanded
         ? 'Show fewer'
-        : `Show more integrations`;
+        : 'Show more';
     }
 
     const nav = document.getElementById('carousel-nav');
