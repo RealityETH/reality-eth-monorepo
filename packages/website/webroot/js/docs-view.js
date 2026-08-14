@@ -10,6 +10,7 @@ const DOCS = [
   { id: 'arbitrators',          title: 'Arbitrators',             desc: 'Choosing and building arbitrators for dispute resolution.' },
   { id: 'contract_explanation', title: 'Contract internals',      desc: 'Data structures and internal logic of the RealityETH contract.' },
   { id: 'whitepaper',           title: 'White paper',             desc: 'Design goals, game theory, and protocol specification.' },
+  { id: 'ponder_indexer',       title: 'Running your own indexer', desc: 'Self-host the GraphQL indexer for the browse page, indexing only the chains you need.' },
 ];
 
 let _clickHandlerAdded = false;

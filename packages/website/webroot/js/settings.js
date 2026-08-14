@@ -107,7 +107,7 @@ function attachPonderPanel(el) {
         <input id="sp-ponder-url" class="sp-input" type="text"
           placeholder="${DEFAULT_PONDER}"
           value="${isCustom ? getPonderUrl() : ''}">
-        <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>)</div>
+        <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>). <a href="#!/docs/ponder_indexer" onclick="window.RealitySettings&&window.RealitySettings.closePanel()">Run your own →</a></div>
         <div class="sp-actions"><button class="sp-save">Save &amp; reload</button></div>
       `;
       if (lastError) {
