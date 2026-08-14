@@ -56,13 +56,16 @@ export const question = onchainTable(
     // Current answer state — updated on each LogNewAnswer
     currentAnswer: p.hex(),
     currentAnswerBond: p.bigint().notNull(),
+    currentAnswerBondUsd: p.bigint().notNull(),
     currentAnswerTimestamp: p.bigint(),
     historyHash: p.hex(),
 
     minBond: p.bigint().notNull(),
     lastBond: p.bigint().notNull(),
     cumulativeBonds: p.bigint().notNull(),
+    cumulativeBondsUsd: p.bigint().notNull(),
     bounty: p.bigint().notNull(),
+    bountyUsd: p.bigint().notNull(),
 
     isPendingArbitration: p.boolean().notNull(),
     arbitrationOccurred: p.boolean().notNull(),
@@ -95,6 +98,8 @@ export const question = onchainTable(
     updatedIdx:      index().on(table.updatedTimestamp),
     createdIdx:      index().on(table.createdTimestamp),
     finalizeIdx:     index().on(table.scheduledFinalizationTimestamp),
+    bondUsdIdx:      index().on(table.currentAnswerBondUsd),
+    cBondsUsdIdx:    index().on(table.cumulativeBondsUsd),
   })
 );
 

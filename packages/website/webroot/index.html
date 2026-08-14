@@ -3397,7 +3397,7 @@ header {
   function buildQuery(limit, after) {
     const orderByMap = {
       recent:  { orderBy: 'updatedTimestamp',             orderDirection: 'desc' },
-      bond:    { orderBy: 'lastBond',                     orderDirection: 'desc' },
+      bond:    { orderBy: 'currentAnswerBondUsd',          orderDirection: 'desc' },
       closing: { orderBy: 'scheduledFinalizationTimestamp', orderDirection: 'asc' },
       newest:  { orderBy: 'createdTimestamp',             orderDirection: 'desc' },
     };

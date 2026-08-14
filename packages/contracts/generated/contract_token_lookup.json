@@ -1,0 +1,476 @@
+{
+  "1": {
+    "0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x6a2155613b68efb38d5c6074921f3f4281c8c177": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xf4585a9944a390615e7cec6756c1c082173b93eb": {
+      "symbol": "FOX",
+      "decimals": 18,
+      "approx_1_usd": 244.585
+    },
+    "0x8f1cc53bf34932591177cda24723486205ca7510": {
+      "symbol": "GNO",
+      "decimals": 18,
+      "approx_1_usd": 0.00967399
+    },
+    "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9": {
+      "symbol": "GNO",
+      "decimals": 18,
+      "approx_1_usd": 0.00967399
+    },
+    "0x867092a32bc16816f12fb326eff7a2865e1ec138": {
+      "symbol": "SWISE",
+      "decimals": 18,
+      "approx_1_usd": 440.021
+    },
+    "0x3d3b51b1091d1f6491aeb1916c94bafe57f6cc9d": {
+      "symbol": "TRST",
+      "decimals": 6,
+      "approx_1_usd": 1371.03
+    }
+  },
+  "4": {
+    "0x3b3ab861deb4ed756e39f2f6a2634dedfc182d38": {
+      "symbol": "DAOOS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0x5e97dd72812b59cb3166b0d907a9b360493b9971": {
+      "symbol": "DAOOS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0xa63db03f2706a6dffcce58b8b567872104d7b48f": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x3d00d77ee771405628a4ba4913175ecc095538da": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xa09ce5e7943f281a782a0dc021c4029f9088bec4": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xdf33060f476f8cff7511f806c72719394da1ad64": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xa682c58333f4959cbf728c2a871548e3d8978fa2": {
+      "symbol": "TRST",
+      "decimals": 6,
+      "approx_1_usd": 1371.03
+    },
+    "0xa4da771bbd6e93bb8e714fe97b388fe88eec8288": {
+      "symbol": "TRST",
+      "decimals": 6,
+      "approx_1_usd": 1371.03
+    }
+  },
+  "5": {
+    "0x6f80c5cbcf9fbc2da2f0675e56a5900bb70df72f": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "8": {
+    "0xd31566493ac99fca63bf17e62724b41010b4afb6": {
+      "symbol": "UBQ",
+      "decimals": 18,
+      "approx_1_usd": 389.902
+    },
+    "0x0de8a0b6d37fbfd704090245f517e52d7ad9a903": {
+      "symbol": "UBQ",
+      "decimals": 18,
+      "approx_1_usd": 389.902
+    },
+    "0x23c7ee4f42e473aef51c3f59d7d58e33a63ab348": {
+      "symbol": "UBQ",
+      "decimals": 18,
+      "approx_1_usd": 389.902
+    }
+  },
+  "10": {
+    "0x0ef940f7f053a2ef5d6578841072488af0c7d89a": {
+      "symbol": "OETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "40": {
+    "0xfd6f6a4181b7df7cd539ac5ea7b6533869ae9bf1": {
+      "symbol": "TLOS",
+      "decimals": 18,
+      "approx_1_usd": 33.1572
+    }
+  },
+  "56": {
+    "0xec634bd4c5766e96dbdc3cf89d15b4d340690118": {
+      "symbol": "BNB",
+      "decimals": 18,
+      "approx_1_usd": 0.00164965
+    },
+    "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716": {
+      "symbol": "BNB",
+      "decimals": 18,
+      "approx_1_usd": 0.00164965
+    },
+    "0xa925646cae3721731f9a8c886e5d1a7b123151b9": {
+      "symbol": "BNB",
+      "decimals": 18,
+      "approx_1_usd": 0.00164965
+    },
+    "0x95f8fc16c7bd5a5b24cae629471c6ccc3916826a": {
+      "symbol": "DEXE",
+      "decimals": 18,
+      "approx_1_usd": 0.518135
+    }
+  },
+  "69": {
+    "0x327543eaf65fe0d68333d4d092282cdba0bc37a6": {
+      "symbol": "OETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "77": {
+    "0x63975d9e7cf434dcd04bd808d8c79d03ef69100b": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0x90a617ed516ab7faaba56cceda0c5d952f294d03": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0xc3324405793b9f1c29e97b29cb084c9541ad4d9b": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    }
+  },
+  "97": {
+    "0x16e0a06b00020764f3f50bd2e03d73da0253a6ea": {
+      "symbol": "BNB",
+      "decimals": 18,
+      "approx_1_usd": 0.00164965
+    }
+  },
+  "100": {
+    "0x95b2b2b4b66a5a47df79bf07bebe72e9870fceb2": {
+      "symbol": "GNO",
+      "decimals": 18,
+      "approx_1_usd": 0.00967399
+    },
+    "0x934326a86a99dab25bb8329089ce73ed9c7c0e4a": {
+      "symbol": "POLK",
+      "decimals": 18,
+      "approx_1_usd": 426.534
+    },
+    "0xc9fbdf0df8de06ad8d2193f7fa28bda78c13a102": {
+      "symbol": "SWISE",
+      "decimals": 18,
+      "approx_1_usd": 440.021
+    },
+    "0x79e32ae03fb27b07c89c0c568f80287c01ca2e57": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0xe78996a233895be74a66f451f1019ca9734205cc": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0xeb51d9d9717906c981c57af09c4a3449ef30705b": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    }
+  },
+  "130": {
+    "0xb920dbede88b42aa77ee55ebce3671132ee856fc": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "137": {
+    "0xec634bd4c5766e96dbdc3cf89d15b4d340690118": {
+      "symbol": "MATIC",
+      "decimals": 18,
+      "approx_1_usd": 7.92669
+    },
+    "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716": {
+      "symbol": "MATIC",
+      "decimals": 18,
+      "approx_1_usd": 7.92669
+    },
+    "0x60573b8dce539ae5bf9ad7932310668997ef0428": {
+      "symbol": "MATIC",
+      "decimals": 18,
+      "approx_1_usd": 7.92669
+    },
+    "0x83d3f4769a19f1b43337888b0290f5473cf508b2": {
+      "symbol": "POLK",
+      "decimals": 18,
+      "approx_1_usd": 426.534
+    },
+    "0x3155836d28c0845c37791808287fafc811742c5a": {
+      "symbol": "SUKU",
+      "decimals": 18,
+      "approx_1_usd": 251.405
+    }
+  },
+  "143": {
+    "0xa317a7b24d72e3c6cd55c8f244ae01398a8d97e1": {
+      "symbol": "MONAD",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    }
+  },
+  "280": {
+    "0xfad6e5e3a9421b9de71a517122d3bb39a57d6ff5": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "300": {
+    "0x4e346436e99fb7d6567a2bd024d8806fc10d84d2": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "324": {
+    "0xa8ac760332770fcf2056040b1f964750e4bef808": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "690": {
+    "0xc716c23d75f523ef0c511456528f2a1980256a87": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "777": {
+    "0xf935d11116fa0103bd340b663879d325673106f0": {
+      "symbol": "CTH",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    }
+  },
+  "1101": {
+    "0x569dcc6d797265da700926fe8d10c0da01717386": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "1301": {
+    "0x2642bfbfe5d8dfc53276c3d510484644ddb20276": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x8bf08ae62cbc9a48aaeb473a82dae2e6d2628517": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "8453": {
+    "0x2f39f464d16402ca3d8527da89617b73de2f60e8": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "10200": {
+    "0xc68755ba891a31b969764eb46c0bc7a5127a0854": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0x1e732a1c5e9181622dd5a931ec6801889ce66185": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    },
+    "0x012fb3adce7d60672cf634e730927fa5822b3cab": {
+      "symbol": "XDAI",
+      "decimals": 18,
+      "approx_1_usd": 0.999001
+    }
+  },
+  "17000": {
+    "0xd3575b215ec1c3875ad7890982f95ea729df9537": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "42161": {
+    "0xba1f68fc8283051c0bceb8770673d5af14081731": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x0edb4cb0b12523749c56ff24c4a09c0c1417f691": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "42220": {
+    "0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3": {
+      "symbol": "CELO",
+      "decimals": 18,
+      "approx_1_usd": 16.7098
+    }
+  },
+  "43114": {
+    "0xd88cd78631ea0d068cedb0d1357a6eabe59d7502": {
+      "symbol": "AVAX",
+      "decimals": 18,
+      "approx_1_usd": 0.155763
+    }
+  },
+  "80001": {
+    "0x92115220c28e78312cce86f3d1de652cfbd0357a": {
+      "symbol": "MATIC",
+      "decimals": 18,
+      "approx_1_usd": 7.92669
+    },
+    "0x895b09919250f81505c089651d3cb61d284531d3": {
+      "symbol": "POLK",
+      "decimals": 18,
+      "approx_1_usd": 426.534
+    }
+  },
+  "84532": {
+    "0x86b653dc9aa6d7311109276925927087573f91cb": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "421611": {
+    "0x0442820a55ba71b8e67e035cd10eaec3ffaa66b1": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0x592d5cdf8464e3a71c7d5e4c8a549a386b625534": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xd3312b4e9225626f8e9a483e2a87bb3966a89f3a": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "421613": {
+    "0x14a6748192abc6e10ca694ae07bdd4327d6c7a51": {
+      "symbol": "ARETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "421614": {
+    "0xb78396efaf0a177d125e9d45b2c6398ac5f803b9": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "534353": {
+    "0xf2d17c08b6a3a60b5a32b95bc9621d292831446b": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "1337702": {
+    "0x45ff90518c92c0acf5c58784435852b5f0cbd4be": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "11155111": {
+    "0x8a5f1c6361e280348a59dac10160a88428ffbd51": {
+      "symbol": "BOND",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0xaf33dcb6e8c5c4d9ddf579f53031b514d19449ca": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    },
+    "0xb7982f20cc159a40eba4b0ea86fd6cba6ff810e1": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "11155420": {
+    "0xead0ca922390a5e383a9d5ba4366f7cfdc6f0dba": {
+      "symbol": "ETH",
+      "decimals": 18,
+      "approx_1_usd": 0.000532184
+    }
+  },
+  "88558801": {
+    "0x7deea9d38d429081a6761ca1ef828a0c12c1d7bc": {
+      "symbol": "ZBS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0xd05af7eab843aa2a04f623c18d2a1c8bb4f301a9": {
+      "symbol": "ZBS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0x3a9ef99956021d545214b7021d449acb20fcf2b3": {
+      "symbol": "ZBS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    },
+    "0x74549fdf4e00c7c564bb193a911887d8c291b13c": {
+      "symbol": "ZBS",
+      "decimals": 18,
+      "approx_1_usd": 532.184
+    }
+  }
+}

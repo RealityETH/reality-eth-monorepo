@@ -6,32 +6,36 @@ import pg from 'pg';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '../ponder/.env.local') });
 
-// Cross-package imports from ponder's node_modules
-const PONDER_MODS = join(__dirname, '../ponder/node_modules');
+// Cross-package imports from ponder's node_modules (ponder 0.17+)
+const PONDER_MODS     = join(__dirname, '../ponder/node_modules');
+const PONDER_INNER    = join(PONDER_MODS, 'ponder/node_modules');
 const url = (p) => pathToFileURL(p).href;
 
+// Must set namespace before onchainTable is called so tables land in reality.* schema
+globalThis.PONDER_NAMESPACE_BUILD = { schema: 'reality' };
+
 const {
-  onchainSchema, index,
+  onchainTable, index,
   hex, bigint, integer, text, boolean,
-} = await import(url(join(PONDER_MODS, '@ponder/core/dist/index.js')));
+  graphql,
+} = await import(url(join(PONDER_MODS, 'ponder/dist/esm/index.js')));
 
-// buildGraphQLSchema and graphql are internal; import from the chunk directly
-const { buildGraphQLSchema, graphql } =
-  await import(url(join(PONDER_MODS, '@ponder/core/dist/chunk-QF63HG2F.js')));
+const { buildGraphQLSchema } =
+  await import(url(join(PONDER_MODS, 'ponder/dist/esm/graphql/index.js')));
 
-const { drizzle } = await import(url(join(PONDER_MODS, 'drizzle-orm/node-postgres/index.js')));
+const { drizzle } = await import(url(join(PONDER_INNER, 'drizzle-orm/node-postgres/index.js')));
 const { Hono }   = await import(url(join(PONDER_MODS, 'hono/dist/index.js')));
 const { cors }   = await import(url(join(PONDER_MODS, 'hono/dist/middleware/cors/index.js')));
-const { serve }  = await import(url(join(PONDER_MODS, '@hono/node-server/dist/index.mjs')));
+const { serve }  = await import(url(join(PONDER_INNER, '@hono/node-server/dist/index.mjs')));
 
 // ── Schema ──────────────────────────────────────────────────────────────────
 // Mirrors ponder.schema.ts exactly but targets reality.* tables (written by
 // sync.js) instead of ponder's public.{hash}__* tables. Keep in sync with
 // ponder.schema.ts when the schema changes.
+// globalThis.PONDER_NAMESPACE_BUILD.schema = 'reality' was set above; onchainTable
+// reads that global to determine the PostgreSQL schema for each table.
 
-const s = onchainSchema('reality');
-
-const template = s.table(
+const template = onchainTable(
   'template',
   {
     id:               text().primaryKey(),
@@ -54,7 +58,7 @@ const template = s.table(
   })
 );
 
-const question = s.table(
+const question = onchainTable(
   'question',
   {
     id:                              text().primaryKey(),
@@ -77,12 +81,15 @@ const question = s.table(
     contentHash:                     hex().notNull(),
     currentAnswer:                   hex(),
     currentAnswerBond:               bigint().notNull(),
+    currentAnswerBondUsd:            bigint().notNull(),
     currentAnswerTimestamp:          bigint(),
     historyHash:                     hex(),
     minBond:                         bigint().notNull(),
     lastBond:                        bigint().notNull(),
     cumulativeBonds:                 bigint().notNull(),
+    cumulativeBondsUsd:              bigint().notNull(),
     bounty:                          bigint().notNull(),
+    bountyUsd:                       bigint().notNull(),
     isPendingArbitration:            boolean().notNull(),
     arbitrationOccurred:             boolean().notNull(),
     arbitrationRequestedTimestamp:   bigint(),
@@ -110,10 +117,12 @@ const question = s.table(
     updatedIdx:     index().on(table.updatedTimestamp),
     createdIdx:     index().on(table.createdTimestamp),
     finalizeIdx:    index().on(table.scheduledFinalizationTimestamp),
+    bondUsdIdx:     index().on(table.currentAnswerBondUsd),
+    cBondsUsdIdx:   index().on(table.cumulativeBondsUsd),
   })
 );
 
-const response = s.table(
+const response = onchainTable(
   'response',
   {
     id:               text().primaryKey(),
@@ -138,7 +147,7 @@ const response = s.table(
   })
 );
 
-const claim = s.table(
+const claim = onchainTable(
   'claim',
   {
     id:               text().primaryKey(),
@@ -164,24 +173,16 @@ const db = drizzle(pool, { casing: 'snake_case', schema });
 
 // ── GraphQL ───────────────────────────────────────────────────────────────────
 
-const graphqlSchema = buildGraphQLSchema(schema);
-const graphqlMiddleware = graphql();
+// Provide the minimal PONDER_DATABASE interface the graphql() middleware needs.
+globalThis.PONDER_DATABASE = { readonlyQB: { raw: db } };
 
-// Only used for the _meta query and /status, /ready endpoints.
-// sync.js doesn't write ponder metadata so we skip ready tracking.
-const metadataStore = { getStatus: async () => null };
+const graphqlMiddleware = graphql({ schema });
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 
 const app = new Hono();
 
 app.use('*', cors({ origin: '*', maxAge: 86400 }));
-app.use('*', async (c, next) => {
-  c.set('db', db);
-  c.set('metadataStore', metadataStore);
-  c.set('graphqlSchema', graphqlSchema);
-  await next();
-});
 
 app.get('/health', (c) => c.text('', 200));
 app.use('/graphql', graphqlMiddleware);

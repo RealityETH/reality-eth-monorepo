@@ -1,6 +1,7 @@
 import { ponder } from "ponder:registry";
 import { question, response, template, claim } from "ponder:schema";
 import { populatedJSONForTemplate, resolveTemplateText, stripNullBytes } from "./lib/parseQuestion";
+import { bondToUsdBigInt } from "./lib/bondToUsd";
 import { keccak256, encodePacked } from "viem";
 
 function cqId(contract: `0x${string}`, questionId: `0x${string}`): string {
@@ -93,10 +94,13 @@ for (const name of [
         timeout: BigInt(timeout),
         contentHash: content_hash,
         currentAnswerBond: 0n,
+        currentAnswerBondUsd: 0n,
         minBond: 0n,
         lastBond: 0n,
         cumulativeBonds: 0n,
+        cumulativeBondsUsd: 0n,
         bounty: 0n,
+        bountyUsd: 0n,
         isPendingArbitration: false,
         arbitrationOccurred: false,
         scheduledFinalizationTimestamp: 0n,
@@ -114,8 +118,9 @@ for (const name of [
 
   ponder.on(`${name}:LogNewAnswer`, async ({ event, context }) => {
     const { answer, question_id, history_hash, user, bond, ts, is_commitment } = event.args;
-    const { db } = context;
+    const { db, chain } = context;
     const qId = cqId(event.log.address, question_id);
+    const bondUsd = bondToUsdBigInt(bond, event.log.address, chain.id);
 
     await db
       .insert(response)
@@ -141,10 +146,12 @@ for (const name of [
     await db.update(question, { id: qId }).set((row) => ({
       ...(is_commitment ? {} : { currentAnswer: answer }),
       currentAnswerBond: bond,
+      currentAnswerBondUsd: bondUsd,
       currentAnswerTimestamp: ts,
       historyHash: history_hash,
       lastBond: bond,
       cumulativeBonds: row.cumulativeBonds + bond,
+      cumulativeBondsUsd: row.cumulativeBondsUsd + bondUsd,
       scheduledFinalizationTimestamp: ts + row.timeout,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
@@ -210,8 +217,10 @@ for (const name of [
 
   ponder.on(`${name}:LogFundAnswerBounty`, async ({ event, context }) => {
     const { question_id, bounty } = event.args;
+    const bountyUsd = bondToUsdBigInt(bounty, event.log.address, context.chain.id);
     await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
       bounty,
+      bountyUsd,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
     });

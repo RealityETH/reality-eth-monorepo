@@ -25,6 +25,21 @@ const ABI = JSON.parse(
   readFileSync(join(__dir, '../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json'), 'utf8')
 );
 
+const CONTRACT_TOKEN_LOOKUP = JSON.parse(
+  readFileSync(join(__dir, '../contracts/generated/contract_token_lookup.json'), 'utf8')
+);
+
+// Returns USD value scaled by 1e18 as a BigInt.
+// Formula: usd_scaled = bond * round(1e18 / approx_1_usd) / 10^decimals
+function bondToUsdBigInt(bondBigInt, contractAddr, chainId) {
+  const byChain = CONTRACT_TOKEN_LOOKUP[String(chainId)];
+  if (!byChain) return 0n;
+  const info = byChain[contractAddr.toLowerCase()];
+  if (!info || !info.approx_1_usd) return 0n;
+  const convFactor = BigInt(Math.round(1e18 / info.approx_1_usd));
+  return bondBigInt * convFactor / BigInt(10 ** info.decimals);
+}
+
 const POLL_MS            = Number(process.env.POLL_MS)            || 30_000;
 const LAZY_INTERVAL_MS   = Number(process.env.LAZY_INTERVAL_MS)   || 6 * 60 * 60 * 1000;
 const LOCAL_TIMEOUT_MS   = Number(process.env.LOCAL_TIMEOUT_MS)   || 120_000;
@@ -451,11 +466,11 @@ class ReorgDetected extends Error {
 // from whatever responses remain in the DB.
 async function recomputeQuestionState(db, questionId) {
   const qRow = await db.query(
-    `SELECT timeout, created_block, created_timestamp FROM reality.question WHERE id = $1`,
+    `SELECT timeout, created_block, created_timestamp, contract, chain_id, bounty FROM reality.question WHERE id = $1`,
     [questionId]
   );
   if (!qRow.rows.length) return;
-  const { timeout, created_block, created_timestamp } = qRow.rows[0];
+  const { timeout, created_block, created_timestamp, contract, chain_id, bounty } = qRow.rows[0];
 
   const rRows = await db.query(`
     SELECT answer, bond, timestamp, history_hash, is_commitment, created_block, created_log_index
@@ -469,10 +484,13 @@ async function recomputeQuestionState(db, questionId) {
       UPDATE reality.question SET
         current_answer                   = null,
         current_answer_bond              = 0,
+        current_answer_bond_usd          = 0,
         current_answer_timestamp         = null,
         history_hash                     = null,
         last_bond                        = 0,
         cumulative_bonds                 = 0,
+        cumulative_bonds_usd             = 0,
+        bounty_usd                       = 0,
         scheduled_finalization_timestamp = 0,
         answer_finalized_timestamp       = null,
         arbitration_occurred             = false,
@@ -486,6 +504,9 @@ async function recomputeQuestionState(db, questionId) {
   const responses = rRows.rows;
   const last = responses[responses.length - 1];
   const cumBonds = responses.reduce((s, r) => s + BigInt(r.bond), 0n).toString();
+  const cumBondsUsd = responses.reduce((s, r) => s + bondToUsdBigInt(BigInt(r.bond), contract, chain_id), 0n).toString();
+  const currentBondUsd = bondToUsdBigInt(BigInt(last.bond), contract, chain_id).toString();
+  const bountyUsd = bondToUsdBigInt(BigInt(bounty), contract, chain_id).toString();
 
   // Last non-commitment answer becomes current_answer
   let currentAnswer = null;
@@ -502,16 +523,19 @@ async function recomputeQuestionState(db, questionId) {
     UPDATE reality.question SET
       current_answer                   = $1,
       current_answer_bond              = $2,
-      current_answer_timestamp         = $3,
-      history_hash                     = $4,
+      current_answer_bond_usd          = $3,
+      current_answer_timestamp         = $4,
+      history_hash                     = $5,
       last_bond                        = $2,
-      cumulative_bonds                 = $5,
-      scheduled_finalization_timestamp = $6,
-      updated_block                    = $7,
-      updated_timestamp                = $3
-    WHERE id = $8
-  `, [currentAnswer, last.bond, last.timestamp, last.history_hash,
-      cumBonds, schedFinal, last.created_block, questionId]);
+      cumulative_bonds                 = $6,
+      cumulative_bonds_usd             = $7,
+      bounty_usd                       = $8,
+      scheduled_finalization_timestamp = $9,
+      updated_block                    = $10,
+      updated_timestamp                = $4
+    WHERE id = $11
+  `, [currentAnswer, last.bond, currentBondUsd, last.timestamp, last.history_hash,
+      cumBonds, cumBondsUsd, bountyUsd, schedFinal, last.created_block, questionId]);
 }
 
 async function performReorgRollback(db, chainId, conflictBlock) {
@@ -691,33 +715,38 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
 
   // Only update question state if this response is new (guards against replay).
   if (ins.rowCount > 0) {
-    const bond = args.bond.toString();
-    const ts   = args.ts.toString();
+    const bond    = args.bond.toString();
+    const bondUsd = bondToUsdBigInt(args.bond, addr, chainId).toString();
+    const ts      = args.ts.toString();
     if (args.is_commitment) {
       await db.query(`
         UPDATE reality.question SET
           current_answer_bond              = $1,
-          current_answer_timestamp         = $2,
-          history_hash                     = $3,
+          current_answer_bond_usd          = $2,
+          current_answer_timestamp         = $3,
+          history_hash                     = $4,
           last_bond                        = $1,
           cumulative_bonds                 = cumulative_bonds + $1::numeric,
-          scheduled_finalization_timestamp = $2::numeric + timeout,
-          updated_block = $4, updated_timestamp = $5
-        WHERE id = $6
-      `, [bond, ts, args.history_hash, block, blockTs, id]);
+          cumulative_bonds_usd             = cumulative_bonds_usd + $2::numeric,
+          scheduled_finalization_timestamp = $3::numeric + timeout,
+          updated_block = $5, updated_timestamp = $6
+        WHERE id = $7
+      `, [bond, bondUsd, ts, args.history_hash, block, blockTs, id]);
     } else {
       await db.query(`
         UPDATE reality.question SET
           current_answer                   = $1,
           current_answer_bond              = $2,
-          current_answer_timestamp         = $3,
-          history_hash                     = $4,
+          current_answer_bond_usd          = $3,
+          current_answer_timestamp         = $4,
+          history_hash                     = $5,
           last_bond                        = $2,
           cumulative_bonds                 = cumulative_bonds + $2::numeric,
-          scheduled_finalization_timestamp = $3::numeric + timeout,
-          updated_block = $5, updated_timestamp = $6
-        WHERE id = $7
-      `, [args.answer, bond, ts, args.history_hash, block, blockTs, id]);
+          cumulative_bonds_usd             = cumulative_bonds_usd + $3::numeric,
+          scheduled_finalization_timestamp = $4::numeric + timeout,
+          updated_block = $6, updated_timestamp = $7
+        WHERE id = $8
+      `, [args.answer, bond, bondUsd, ts, args.history_hash, block, blockTs, id]);
     }
   }
 }
@@ -794,13 +823,15 @@ async function onLogFinalize(db, log, args, chainId, blockTs) {
 }
 
 async function onLogFundAnswerBounty(db, log, args, chainId, blockTs) {
-  const block = parseInt(log.blockNumber, 16);
-  const id    = qId(log.address.toLowerCase(), args.question_id);
+  const block     = parseInt(log.blockNumber, 16);
+  const addr      = log.address.toLowerCase();
+  const id        = qId(addr, args.question_id);
+  const bountyUsd = bondToUsdBigInt(args.bounty, addr, chainId).toString();
   await db.query(`
     UPDATE reality.question SET
-      bounty = $1, updated_block = $2, updated_timestamp = $3
-    WHERE id = $4
-  `, [args.bounty.toString(), block, blockTs, id]);
+      bounty = $1, bounty_usd = $2, updated_block = $3, updated_timestamp = $4
+    WHERE id = $5
+  `, [args.bounty.toString(), bountyUsd, block, blockTs, id]);
 }
 
 async function onLogClaim(db, log, args, chainId, blockTs) {

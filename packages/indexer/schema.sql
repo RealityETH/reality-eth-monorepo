@@ -22,12 +22,15 @@ CREATE TABLE IF NOT EXISTS reality.question (
   content_hash                     text           NOT NULL,
   current_answer                   text,
   current_answer_bond              numeric(78,0)  NOT NULL,
+  current_answer_bond_usd          numeric(78,0)  NOT NULL DEFAULT 0,
   current_answer_timestamp         numeric(78,0),
   history_hash                     text,
   min_bond                         numeric(78,0)  NOT NULL,
   last_bond                        numeric(78,0)  NOT NULL,
   cumulative_bonds                 numeric(78,0)  NOT NULL,
+  cumulative_bonds_usd             numeric(78,0)  NOT NULL DEFAULT 0,
   bounty                           numeric(78,0)  NOT NULL,
+  bounty_usd                       numeric(78,0)  NOT NULL DEFAULT 0,
   is_pending_arbitration           boolean        NOT NULL,
   arbitration_occurred             boolean        NOT NULL,
   arbitration_requested_timestamp  numeric(78,0),
@@ -55,6 +58,8 @@ CREATE INDEX IF NOT EXISTS reality_q_contract   ON reality.question (contract);
 CREATE INDEX IF NOT EXISTS reality_q_arb_pend   ON reality.question (is_pending_arbitration);
 CREATE INDEX IF NOT EXISTS reality_q_aft        ON reality.question (answer_finalized_timestamp);
 CREATE INDEX IF NOT EXISTS reality_q_reopener   ON reality.question (reopens_question_id);
+CREATE INDEX IF NOT EXISTS reality_q_bond_usd   ON reality.question (current_answer_bond_usd);
+CREATE INDEX IF NOT EXISTS reality_q_cbonds_usd ON reality.question (cumulative_bonds_usd);
 
 CREATE TABLE IF NOT EXISTS reality.response (
   id                text          PRIMARY KEY,
