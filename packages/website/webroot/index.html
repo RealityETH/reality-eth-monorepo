@@ -203,7 +203,7 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 36px;
     padding-bottom: 2px; /* prevent box-shadow clip */
   }
   .app-grid::-webkit-scrollbar { display: none; }
@@ -223,10 +223,6 @@
   @media (max-width: 800px) { .app-grid.expanded { grid-template-columns: repeat(2, 1fr); } }
 
   /* Show all bar */
-  .integ-show-all-bar {
-    text-align: center;
-    margin-bottom: 36px;
-  }
   .integ-show-all-btn {
     background: none;
     border: none;
@@ -236,15 +232,18 @@
     padding: 4px 8px;
     transition: color 0.15s;
     letter-spacing: 0.01em;
+    margin-left: auto;
+    white-space: nowrap;
   }
   .integ-show-all-btn:hover { color: var(--text); }
+  @media (max-width: 600px) { .integ-show-all-btn { display: none; } }
 
-  /* Carousel nav — in section heading, right-aligned */
-  .section-heading.has-carousel { position: relative; }
+  /* Carousel nav — flows at right end of section heading */
+  .section-heading.has-carousel { align-items: center; }
   .section-heading.has-carousel::after { display: none !important; }
   .carousel-nav {
     display: flex; align-items: center; gap: 8px;
-    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    flex-shrink: 0;
   }
   .carousel-arrow {
     background: var(--bg-card); border: 1px solid var(--border-subtle);
@@ -2181,6 +2180,7 @@ header {
   <div class="section-heading has-carousel">
     <h2>Integrations</h2>
     <span class="sub">Apps using reality.eth as their oracle</span>
+    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more integrations</button>
     <div class="carousel-nav" id="carousel-nav">
       <button class="carousel-arrow" id="carousel-prev" aria-label="Previous">&#8249;</button>
       <div class="carousel-dots" id="carousel-dots"></div>
@@ -2334,10 +2334,6 @@ header {
       </div>
     </div>
   </div>
-  <div class="integ-show-all-bar">
-    <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more integrations</button>
-  </div>
-
   <!-- ── Recent questions ──────────────────────────────── -->
   <div class="recent-header">
     <h2>Questions</h2>
