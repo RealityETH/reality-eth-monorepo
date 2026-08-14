@@ -4,42 +4,33 @@ The browse page is backed by a GraphQL API that queries an indexed copy of all r
 
 ## How it works
 
-Three Node.js scripts run against a shared PostgreSQL database:
-
-| Script | Role |
-|---|---|
-| `packages/indexer/sync.js` | Fetches events via `eth_getLogs`, decodes them, writes to the database |
-| `packages/indexer/serve.js` | HTTP server (port 42070) serving the GraphQL API |
-| `packages/indexer/log-watcher.js` | Optional: watches nginx logs to promote chains to active mode when traffic arrives |
-
-`sync.js` can run as a persistent daemon (polling active chains every 30 s, lazy chains every 6 h) or in **one-shot mode**, where it syncs a named chain once and exits. One-shot mode is the simplest starting point.
+`packages/ponder` uses [Ponder](https://ponder.sh/) to fetch events from the chain and write them to PostgreSQL. Ponder also serves a GraphQL API directly on port 42069, so no separate server process is needed.
 
 ## Prerequisites
 
-- **Node.js 18+**
+- **Node.js 20+**
 - **PostgreSQL 14+** — any local or remote instance works
-- **An RPC URL** for each chain you want to index — a provider with archive access is required for historical sync (Alchemy, Infura, QuickNode, etc.). Public RPCs will rate-limit. Gnosis Chain's public RPC (`https://rpc.gnosischain.com`) is an exception and works fine.
+- **An RPC URL** for each chain you want to index — a provider with archive access is required for historical sync (Alchemy, Infura, QuickNode, etc.). Public RPCs will work but may rate-limit. Gnosis Chain's public RPC (`https://rpc.gnosischain.com`) is an exception and works fine.
 
 ## Install
 
 ```bash
 git clone https://github.com/RealityETH/reality-eth-monorepo.git
-cd reality-eth-monorepo
-
-cd packages/ponder && npm install && cd -
-cd packages/indexer && npm install && cd -
+cd reality-eth-monorepo/packages/ponder
+npm install
 ```
 
 ## Configure
 
-Create `packages/ponder/.env.local`. Set `DATABASE_URL` and the RPC URL for each chain you want. **Only set the chains you care about** — chains without an RPC URL are automatically skipped.
+Create `packages/ponder/.env.local`. Set `DATABASE_URL`, `DATABASE_SCHEMA`, and the RPC URL for each chain you want. **Only set the chains you care about** — contracts for unconfigured chains are not indexed.
 
 ```bash
 # packages/ponder/.env.local
 
 DATABASE_URL=postgresql://user:password@localhost:5432/reality_eth
+DATABASE_SCHEMA=ponder_sepolia   # Choose any schema name; Ponder creates it automatically
 
-# Pick one or more chains:
+# Pick one or more chains (identified by chain ID):
 
 # Gnosis Chain — Omen prediction markets, Snapshot DAOs
 PONDER_RPC_URL_100=https://rpc.gnosischain.com
@@ -59,70 +50,34 @@ PONDER_RPC_URL_10=https://mainnet.optimism.io
 # Base
 PONDER_RPC_URL_8453=https://mainnet.base.org
 
+# BNB Chain
+PONDER_RPC_URL_56=https://bsc-dataseed.binance.org
+
+# Unichain
+PONDER_RPC_URL_130=https://mainnet.unichain.org
+
 # Sepolia testnet
 PONDER_RPC_URL_11155111=https://rpc.sepolia.org
 ```
 
-Chain names for use in commands: `mainnet`, `gnosis`, `polygon`, `arbitrum`, `optimism`, `base`, `unichain`, `bnb`, `sepolia`.
+If you only want one chain, just set that chain's RPC URL and leave the rest blank.
 
-## Initialize the database
+## Sync and serve
+
+Run Ponder in the foreground. It will sync historical events and then keep up with new blocks, while serving the GraphQL API:
 
 ```bash
-psql "$DATABASE_URL" -f packages/indexer/schema.sql
+npm start
 ```
 
-This is safe to run on an existing database — all statements use `CREATE TABLE IF NOT EXISTS`.
+First-time sync time varies by chain. Sepolia takes around 15 minutes against a local node. Gnosis Chain and mainnet have longer histories and will take longer.
 
-## Sync a chain
-
-### One-shot (recommended for getting started)
-
-Syncs the named chain once and exits:
+You can verify the API is working:
 
 ```bash
-cd packages/indexer
-node sync.js gnosis
-```
-
-To sync multiple chains:
-
-```bash
-node sync.js gnosis polygon
-```
-
-For a chain far behind tip (e.g. after a gap), refresh the sparse block index first so only real event blocks are scanned:
-
-```bash
-node sync.js --refresh gnosis
-```
-
-Mainnet's history goes back to 2019. Expect several hours on first sync, less on subsequent runs.
-
-### Daemon mode (keeps up with new blocks)
-
-Running without chain arguments starts the daemon, which polls all chains whose RPC URLs are configured:
-
-```bash
-node sync.js
-```
-
-Active chains (mainnet and Gnosis by default) are polled every 30 seconds. All others sync every 6 hours. You can make any chain always-active by editing `watcher-config.json` — see `packages/indexer/SETUP.md` for details.
-
-## Start the GraphQL server
-
-In a separate terminal (or after the one-shot sync completes):
-
-```bash
-cd packages/indexer
-node serve.js
-```
-
-This exposes the GraphQL API on `http://localhost:42070`. You can verify it's working:
-
-```bash
-curl -s -X POST http://localhost:42070/graphql \
+curl -s -X POST http://localhost:42069/graphql \
   -H 'Content-Type: application/json' \
-  -d '{"query":"{ questions(limit:1) { items { id } } }"}' | head -c 200
+  -d '{"query":"{ questions(limit:1) { items { id title } } }"}' | head -c 200
 ```
 
 ## Point the website at your indexer
@@ -130,17 +85,40 @@ curl -s -X POST http://localhost:42070/graphql \
 Click the **Ponder hexagon** (⬡) icon in the top-right of the browse page. In the panel that appears, enter your GraphQL URL:
 
 ```
-http://localhost:42070/graphql
+http://localhost:42069/graphql
 ```
 
-If your indexer is on a remote server, replace `localhost` with its address and make sure port 42070 is reachable, or proxy it via nginx. Save and reload — the browse page will now query your instance.
+If your indexer is on a remote server, replace `localhost` with its address and make sure port 42069 is reachable, or proxy it via nginx. Save and reload — the browse page will now query your instance.
 
 To reset to the public indexer, clear the field and save.
 
 ## Production setup
 
-For a server deployment with nginx and systemd, see `packages/indexer/SETUP.md` in the monorepo. That document covers:
+For a server deployment, run `ponder start` as a systemd service. A minimal unit file:
 
-- nginx config to proxy `/graphql` and write the access log the log-watcher needs
-- Three systemd service files (`reality-eth-indexer`, `reality-eth-serve`, `reality-eth-watcher`)
-- Log file permissions for multi-user setups
+```ini
+[Unit]
+Description=Reality.eth Ponder indexer
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/path/to/reality-eth-monorepo/packages/ponder
+EnvironmentFile=/path/to/reality-eth-monorepo/packages/ponder/.env.local
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Proxy the GraphQL port via nginx if you want it accessible over HTTPS:
+
+```nginx
+location /graphql {
+    proxy_pass http://localhost:42069/graphql;
+    proxy_set_header Host $host;
+}
+```

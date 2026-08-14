@@ -3,18 +3,20 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/patch-ponder-ui.js",
-    "dev": "ponder dev --log-format json",
-    "start": "ponder start --log-format json",
-    "serve": "ponder serve --port 42070 --log-format json",
+    "dev": "ponder dev",
+    "start": "ponder start",
+    "serve": "ponder serve --port 42069",
     "codegen": "ponder codegen"
   },
   "dependencies": {
-    "@ponder/core": "^0.7.0",
+    "ponder": "^0.17.6",
     "viem": "^2.0.0",
     "@reality.eth/reality-eth-lib": "file:../reality-eth-lib"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "graphql": "16.8.2"
   }
 }

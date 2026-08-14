@@ -3,10 +3,7 @@
     "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "strict": true,
-    "paths": {
-      "@/generated": ["./.ponder/registry.ts"]
-    }
+    "strict": true
   },
   "include": ["src", "ponder.config.ts", "ponder.schema.ts"]
 }

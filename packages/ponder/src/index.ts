@@ -1,7 +1,6 @@
-import { ponder } from "@/generated";
-import { question, response, template, claim } from "../ponder.schema";
+import { ponder } from "ponder:registry";
+import { question, response, template, claim } from "ponder:schema";
 import { populatedJSONForTemplate, resolveTemplateText, stripNullBytes } from "./lib/parseQuestion";
-import { eq, sql, and } from "drizzle-orm";
 import { keccak256, encodePacked } from "viem";
 
 function cqId(contract: `0x${string}`, questionId: `0x${string}`): string {
@@ -16,26 +15,11 @@ function templateKey(
   return `${chainId}-${contract.toLowerCase()}-${templateIdNum}`;
 }
 
-// Ponder 0.7 internally converts db.update() to INSERT...ON CONFLICT DO UPDATE,
-// which fails with "cannot affect row a second time" when two events for the same
-// entity land in the same batch. Using db.sql (raw drizzle) bypasses this.
-function qUpdate(db: any, qId: string, fields: Record<string, unknown>) {
-  return db.sql
-    .update(question)
-    .set(fields)
-    .where(eq(question.id, qId));
-}
-
-// All contract variants share the same event interface. v3.2-specific events
-// (LogCancelArbitration) are handled separately below.
+// All contract variants share the same event interface.
+// v3.2-specific events (LogCancelArbitration) are handled separately below.
 for (const name of [
   "RealityETH_v3_2",
   "RealityETH_v3_0",
-  "RealityETH_v2_1",
-  "RealityETH_v2_0",
-  "RealityETH_ERC20_mainnet",
-  "RealityETH_ERC20_gnosis",
-  "RealityETH_ERC20_polygon",
   "RealityETH_ERC20_sepolia",
 ] as const) {
 
@@ -43,20 +27,20 @@ for (const name of [
 
   ponder.on(`${name}:LogNewTemplate`, async ({ event, context }) => {
     const { template_id, user, question_text } = event.args;
-    const { db, network } = context;
+    const { db, chain } = context;
 
     await db
       .insert(template)
       .values({
-        id: templateKey(network.chainId, event.log.address, template_id),
+        id: templateKey(chain.id, event.log.address, template_id),
         templateId: template_id,
         contract: event.log.address,
-        chainId: network.chainId,
+        chainId: chain.id,
         user,
         questionText: stripNullBytes(question_text),
         createdBlock: event.block.number,
         createdLogIndex: BigInt(event.log.logIndex),
-        createdTxHash: event.log.transactionHash,
+        createdTxHash: event.transaction.hash,
         createdTimestamp: event.block.timestamp,
       })
       .onConflictDoNothing();
@@ -76,16 +60,13 @@ for (const name of [
       opening_ts,
       nonce,
     } = event.args;
-    const { db, network } = context;
+    const { db, chain } = context;
 
     const id = cqId(event.log.address, question_id);
-    // Raw RPC data may contain null bytes that break UTF-8 storage.
     const cleanData = stripNullBytes(questionData);
 
-    // Look up the template to resolve the question type, category, lang, outcomes.
-    // Built-in templates (0–4) are always available; custom templates are in the DB.
     const storedTemplate = await db.find(template, {
-      id: templateKey(network.chainId, event.log.address, template_id),
+      id: templateKey(chain.id, event.log.address, template_id),
     });
     const templateText = resolveTemplateText(template_id, storedTemplate?.questionText);
     const parsed = populatedJSONForTemplate(templateText, cleanData);
@@ -96,7 +77,7 @@ for (const name of [
         id,
         questionId: question_id,
         contract: event.log.address,
-        chainId: network.chainId,
+        chainId: chain.id,
         templateId: template_id,
         nonce,
         data: cleanData,
@@ -121,7 +102,7 @@ for (const name of [
         scheduledFinalizationTimestamp: 0n,
         createdBlock: event.block.number,
         createdLogIndex: BigInt(event.log.logIndex),
-        createdTxHash: event.log.transactionHash,
+        createdTxHash: event.transaction.hash,
         createdTimestamp: event.block.timestamp,
         updatedBlock: event.block.number,
         updatedTimestamp: event.block.timestamp,
@@ -132,19 +113,16 @@ for (const name of [
   // ── Answers ───────────────────────────────────────────────────────────────
 
   ponder.on(`${name}:LogNewAnswer`, async ({ event, context }) => {
-    const { answer, question_id, history_hash, user, bond, ts, is_commitment } =
-      event.args;
+    const { answer, question_id, history_hash, user, bond, ts, is_commitment } = event.args;
     const { db } = context;
     const qId = cqId(event.log.address, question_id);
 
     await db
       .insert(response)
       .values({
-        // Commitments use the commitment hash in the ID so the reveal handler
-        // can look up by id (text) rather than by the hex commitmentHash column.
         id: is_commitment
           ? `${qId}-${answer}`
-          : `${qId}-${event.log.transactionHash}-${event.log.logIndex}`,
+          : `${qId}-${event.transaction.hash}-${event.log.logIndex}`,
         questionId: qId,
         answer: is_commitment ? undefined : answer,
         commitmentHash: is_commitment ? answer : undefined,
@@ -156,21 +134,21 @@ for (const name of [
         timestamp: ts,
         createdBlock: event.block.number,
         createdLogIndex: BigInt(event.log.logIndex),
-        createdTxHash: event.log.transactionHash,
+        createdTxHash: event.transaction.hash,
       })
       .onConflictDoNothing();
 
-    await qUpdate(db, qId, {
+    await db.update(question, { id: qId }).set((row) => ({
       ...(is_commitment ? {} : { currentAnswer: answer }),
       currentAnswerBond: bond,
       currentAnswerTimestamp: ts,
       historyHash: history_hash,
       lastBond: bond,
-      cumulativeBonds: sql`${question.cumulativeBonds} + ${bond}`,
-      scheduledFinalizationTimestamp: sql`${ts} + ${question.timeout}`,
+      cumulativeBonds: row.cumulativeBonds + bond,
+      scheduledFinalizationTimestamp: ts + row.timeout,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
-    });
+    }));
   });
 
   // ── Answer reveals ────────────────────────────────────────────────────────
@@ -180,19 +158,15 @@ for (const name of [
     const { db } = context;
     const qId = cqId(event.log.address, question_id);
 
-    // The commitment record ID uses the commitment_id, which the contract derives as
-    // keccak256(question_id, answer_hash, bond). LogAnswerReveal.answer_hash is only
-    // keccak256(answer, nonce) — we must recompute commitment_id to look up the record.
     const commitment_id = keccak256(encodePacked(
       ['bytes32', 'bytes32', 'uint256'],
       [question_id, answer_hash, bond],
     ));
-    await db.sql
-      .update(response)
-      .set({ answer, isUnrevealed: false })
-      .where(eq(response.id, `${qId}-${commitment_id}`));
+    await db
+      .update(response, { id: `${qId}-${commitment_id}` })
+      .set({ answer, isUnrevealed: false });
 
-    await qUpdate(db, qId, {
+    await db.update(question, { id: qId }).set({
       currentAnswer: answer,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
@@ -203,34 +177,26 @@ for (const name of [
 
   ponder.on(`${name}:LogMinimumBond`, async ({ event, context }) => {
     const { question_id, min_bond } = event.args;
-    const { db } = context;
-
-    await qUpdate(db, cqId(event.log.address, question_id), { minBond: min_bond });
+    await context.db.update(question, { id: cqId(event.log.address, question_id) })
+      .set({ minBond: min_bond });
   });
 
   // ── Arbitration ───────────────────────────────────────────────────────────
 
-  ponder.on(
-    `${name}:LogNotifyOfArbitrationRequest`,
-    async ({ event, context }) => {
-      const { question_id, user } = event.args;
-      const { db } = context;
-
-      await qUpdate(db, cqId(event.log.address, question_id), {
-        isPendingArbitration: true,
-        arbitrationRequestedTimestamp: event.block.timestamp,
-        arbitrationRequestedBy: user,
-        updatedBlock: event.block.number,
-        updatedTimestamp: event.block.timestamp,
-      });
-    }
-  );
+  ponder.on(`${name}:LogNotifyOfArbitrationRequest`, async ({ event, context }) => {
+    const { question_id, user } = event.args;
+    await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
+      isPendingArbitration: true,
+      arbitrationRequestedTimestamp: event.block.timestamp,
+      arbitrationRequestedBy: user,
+      updatedBlock: event.block.number,
+      updatedTimestamp: event.block.timestamp,
+    });
+  });
 
   ponder.on(`${name}:LogFinalize`, async ({ event, context }) => {
     const { question_id, answer } = event.args;
-    const { db } = context;
-
-    await qUpdate(db, cqId(event.log.address, question_id), {
+    await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
       currentAnswer: answer,
       answerFinalizedTimestamp: event.block.timestamp,
       isPendingArbitration: false,
@@ -243,11 +209,8 @@ for (const name of [
   // ── Bounty ────────────────────────────────────────────────────────────────
 
   ponder.on(`${name}:LogFundAnswerBounty`, async ({ event, context }) => {
-    // `bounty` is the new running total after this addition; use it directly.
     const { question_id, bounty } = event.args;
-    const { db } = context;
-
-    await qUpdate(db, cqId(event.log.address, question_id), {
+    await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
       bounty,
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
@@ -258,13 +221,11 @@ for (const name of [
 
   ponder.on(`${name}:LogClaim`, async ({ event, context }) => {
     const { question_id, user, amount } = event.args;
-    const { db } = context;
     const qId = cqId(event.log.address, question_id);
-
-    await db
+    await context.db
       .insert(claim)
       .values({
-        id: `${qId}-${event.log.transactionHash}-${event.log.logIndex}`,
+        id: `${qId}-${event.transaction.hash}-${event.log.logIndex}`,
         questionId: qId,
         user,
         amount,
@@ -278,10 +239,7 @@ for (const name of [
 
   ponder.on(`${name}:LogReopenQuestion`, async ({ event, context }) => {
     const { question_id, reopened_question_id } = event.args;
-    const { db } = context;
-
-    // question_id is the new question; reopened_question_id is what it reopens
-    await qUpdate(db, cqId(event.log.address, question_id), {
+    await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
       reopensQuestionId: cqId(event.log.address, reopened_question_id),
       updatedBlock: event.block.number,
       updatedTimestamp: event.block.timestamp,
@@ -293,9 +251,7 @@ for (const name of [
 
 ponder.on("RealityETH_v3_2:LogCancelArbitration", async ({ event, context }) => {
   const { question_id } = event.args;
-  const { db } = context;
-
-  await qUpdate(db, cqId(event.log.address, question_id), {
+  await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
     isPendingArbitration: false,
     arbitrationRequestedTimestamp: null,
     arbitrationRequestedBy: null,
