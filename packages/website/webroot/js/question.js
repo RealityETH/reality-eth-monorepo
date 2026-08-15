@@ -1,5 +1,6 @@
 (function () {
 'use strict';
+console.log('[question.js] v19');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -1169,6 +1170,29 @@ function renderWarnings(data) {
   container.innerHTML = '';
 
   const warnings = [];
+
+  // Errors flagged by reality-eth-lib during question JSON parsing
+  const errs = data.qjson?.errors || {};
+  if (errs.suspicious_extra_data) {
+    warnings.push({ level: 'danger', title: 'Suspicious extra data',
+      body: 'This question\'s data field contains extra data that will not be used in the question. This may indicate a potential attack, which should be settled as invalid.' });
+  }
+  if (errs.json_parse_failed) {
+    warnings.push({ level: 'danger', title: 'Malformed question data',
+      body: 'The question data could not be parsed as valid JSON. The question type and title are unknown.' });
+  }
+  if (errs.too_many_outcomes) {
+    warnings.push({ level: 'warn', title: 'Too many outcomes',
+      body: 'This question has more answer options than the contract supports. Some outcomes may be unreachable.' });
+  }
+  if (errs.invalid_precision) {
+    warnings.push({ level: 'warn', title: 'Invalid date precision',
+      body: 'The datetime precision value is not a recognised format. The date display may be incorrect.' });
+  }
+  if (errs.unsafe_markdown) {
+    warnings.push({ level: 'warn', title: 'Unsafe markdown content',
+      body: 'The question title contained unsafe HTML that was stripped for your protection. The displayed title may differ from what was submitted.' });
+  }
 
   // Unknown arbitrator — only warn if we successfully loaded the list for this chain
   if (knownArbitrators && knownArbitrators.size > 0 &&

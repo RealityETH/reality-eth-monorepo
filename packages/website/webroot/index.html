@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=18';
+  var V = '?v=22';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1490,6 +1490,29 @@
   .cost-val { font-weight: 600; color: var(--text); }
   .cost-total .cost-label { color: var(--text); font-weight: 600; }
   .cost-total .cost-val { color: var(--accent); font-size: 15px; }
+  /* ── Field help icons ────────────────────────────────── */
+  .field-label-row { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+  #ask-view .field-label-row label { display: inline; margin-bottom: 0; }
+  .help-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--border); color: var(--text-muted);
+    font-size: 9px; font-weight: 700; cursor: help;
+    position: relative; border: none; padding: 0; line-height: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .help-icon:hover, .help-icon:focus { background: var(--accent); color: #fff; outline: none; }
+  .help-tooltip {
+    display: none; position: absolute;
+    top: calc(100% + 5px); left: 0;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 10px;
+    font-size: 11px; font-weight: 400; color: var(--text);
+    line-height: 1.5; white-space: normal; width: 230px;
+    z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    pointer-events: none;
+  }
+  .help-icon:hover .help-tooltip, .help-icon:focus .help-tooltip { display: block; }
 </style>
 <script defer src="js/website-data.js?v=3"></script>
 <script defer src="js/chains.js?v=3"></script>
@@ -2931,14 +2954,20 @@ header {
         <div class="card-title">Question</div>
 
         <div class="field" id="field-body">
-          <label for="question-body">Question text</label>
+          <div class="field-label-row">
+            <label for="question-body">Question text</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">Be precise and unambiguous — the exact wording determines what counts as a correct answer. For prices or statistics, specify the source, cutoff time, and timezone.</span></span>
+          </div>
           <textarea id="question-body" name="question-body" rows="4"
             placeholder="e.g. Will ETH be above $5000 at the end of 2025?"></textarea>
           <div class="field-error">Please enter your question.</div>
         </div>
 
         <div class="field" id="field-category">
-          <label for="question-category">Category</label>
+          <div class="field-label-row">
+            <label for="question-category">Category</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">Helps people find your question when browsing. Has no effect on how the question works on-chain.</span></span>
+          </div>
           <select id="question-category" name="question-category">
             <option value="">Select category…</option>
             <option value="arts">Arts</option>
@@ -2955,7 +2984,10 @@ header {
         </div>
 
         <div class="field" id="field-opening">
-          <label for="opening-date">Opening date <span class="label-note">(optional)</span></label>
+          <div class="field-label-row">
+            <label for="opening-date">Opening date <span class="label-note">(optional)</span></label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">No answers can be posted before this date. Leave blank to open immediately. Set this to after the event takes place so answers can be verified before they are submitted.</span></span>
+          </div>
           <input type="date" id="opening-date" name="opening-date">
           <div class="field-help">When answers can first be posted. Leave blank to open immediately. Set this to after the event takes place so answers can be verified before they are submitted.</div>
         </div>
@@ -2965,7 +2997,10 @@ header {
         <div class="card-title">Answer type</div>
 
         <div class="field" id="field-type">
-          <label for="question-type">Type</label>
+          <div class="field-label-row">
+            <label for="question-type">Type</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">How the answer is expressed. Yes/No is right for most prediction markets and DAO votes. Number accepts any positive integer. Datetime uses a date picker.</span></span>
+          </div>
           <select id="question-type" name="question-type">
             <option value="bool" selected>Yes / No</option>
             <option value="single-select">Multiple choice — one correct answer</option>
@@ -2977,7 +3012,10 @@ header {
         </div>
 
         <div class="answer-options" id="answer-options">
-          <label>Answer options</label>
+          <div class="field-label-row">
+            <label>Answer options</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">The possible choices for a multiple-choice question. Each answerer must pick from this list. You need at least two options.</span></span>
+          </div>
           <div class="answer-option-row">
             <input type="text" placeholder="Option A" class="answer-option-input">
             <button type="button" class="remove-option" disabled>×</button>
@@ -2995,7 +3033,10 @@ header {
         <div class="card-title">Dispute settings</div>
 
         <div class="field" id="field-timeout">
-          <label for="question-timeout">Dispute window</label>
+          <div class="field-label-row">
+            <label for="question-timeout">Dispute window</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">After each new answer is posted, this window resets. The last unchallenged answer when the window expires becomes final. Longer windows give more time to spot and correct a wrong answer. Under 24 hours is not recommended.</span></span>
+          </div>
           <select id="question-timeout" name="question-timeout">
             <option value="30">30 seconds — testing only</option>
             <option value="180">3 minutes — testing / bots only</option>
@@ -3014,10 +3055,47 @@ header {
         </div>
 
         <div class="field" id="field-minbond">
-          <label for="question-minbond">Minimum bond <span class="label-note" id="token-label">(ETH, optional)</span></label>
+          <div class="field-label-row">
+            <label for="question-minbond">Minimum bond <span class="label-note" id="token-label">(ETH, optional)</span></label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">The smallest stake allowed for the first answer. Raising this increases the cost of posting a wrong answer. Zero means any amount is accepted.</span></span>
+          </div>
           <input type="number" id="question-minbond" name="question-minbond" min="0" step="any" placeholder="0">
           <div class="field-error">Please enter a valid amount.</div>
           <div class="field-help">The smallest bond allowed for the first answer. Higher minimum bonds raise the cost of a wrong answer.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Reward</div>
+        <div class="field" id="field-reward">
+          <div class="field-label-row">
+            <label for="question-reward">Reward <span class="label-note" id="reward-token-label">(ETH)</span></label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">Paid from your wallet when the question is created, collected by whoever provides the final accepted answer. Zero is fine — answerers still profit from escalated bonds. If you plan to answer yourself, set this to zero and post a bond instead.</span></span>
+          </div>
+          <input type="number" id="question-reward" name="question-reward" min="0" step="any" value="0" placeholder="0">
+          <div class="field-error">Please enter a valid amount.</div>
+          <div class="field-help">Paid to whoever provides the final answer. Zero is fine — the answerer still earns the disputed bond.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Arbitrator</div>
+        <div class="field" id="field-arbitrator">
+          <div class="field-label-row">
+            <label for="question-arbitrator">Arbitrator</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">A contract that settles disputes for a fee when challengers can't agree. If bonds keep escalating, either side can pay the arbitrator for a binding ruling. Choose one you trust — an untrustworthy arbitrator can force any answer they like.</span></span>
+          </div>
+          <select id="question-arbitrator" name="question-arbitrator">
+            <option value="">Loading…</option>
+          </select>
+          <div class="field-error">Please select an arbitrator.</div>
+          <div class="arb-tos" id="arb-tos" style="display:none">
+            Terms of service: <a href="#" id="arb-tos-link" target="_blank" rel="noopener">View</a>
+          </div>
+          <div class="arb-other" id="arb-other">
+            <input type="text" id="arbitrator-address" placeholder="0x… arbitrator address">
+          </div>
+          <div class="field-help">Resolves disputes when challengers disagree. The arbitrator fee is added to your total cost.</div>
         </div>
       </div>
 
@@ -3054,34 +3132,6 @@ header {
         </div>
         <div class="warn-box" id="ask-network-unsupported" style="display:none; margin-top:10px;">
           ⚠ This network is not supported. Switch to Ethereum, Gnosis, Polygon, Arbitrum, Optimism, Base, or Unichain.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Reward</div>
-        <div class="field" id="field-reward">
-          <label for="question-reward">Reward <span class="label-note" id="reward-token-label">(ETH)</span></label>
-          <input type="number" id="question-reward" name="question-reward" min="0" step="any" value="0" placeholder="0">
-          <div class="field-error">Please enter a valid amount.</div>
-          <div class="field-help">Paid to whoever provides the final answer. Zero is fine — the answerer still earns the disputed bond.</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Arbitrator</div>
-        <div class="field" id="field-arbitrator">
-          <label for="question-arbitrator">Arbitrator</label>
-          <select id="question-arbitrator" name="question-arbitrator">
-            <option value="">Loading…</option>
-          </select>
-          <div class="field-error">Please select an arbitrator.</div>
-          <div class="arb-tos" id="arb-tos" style="display:none">
-            Terms of service: <a href="#" id="arb-tos-link" target="_blank" rel="noopener">View</a>
-          </div>
-          <div class="arb-other" id="arb-other">
-            <input type="text" id="arbitrator-address" placeholder="0x… arbitrator address">
-          </div>
-          <div class="field-help">Resolves disputes when challengers disagree. The arbitrator fee is added to your total cost.</div>
         </div>
       </div>
 
@@ -3249,18 +3299,19 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
+  const V = '?v=19';
   const VIEW_SCRIPTS = {
-    question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'],
-    account:           ['js/account.js'],
-    notifications:     ['js/notifications-view.js'],
-    watches:           ['js/watches-view.js'],
-    'watch-configure': ['js/watch-configure-view.js'],
-    contract:          ['js/contract-view.js'],
-    guide:             [_CDN_MARKED, _CDN_PURIFY, 'js/guide-view.js'],
-    docs:              [_CDN_MARKED, _CDN_PURIFY, 'js/docs-view.js'],
-    templates:         ['js/templates-view.js'],
-    template:          [_CDN_MARKED, _CDN_PURIFY, 'js/template-view.js'],
-    ask:               [_CDN_MARKED, _CDN_PURIFY, 'js/ask-view.js'],
+    question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
+    account:           ['js/account.js'+V],
+    notifications:     ['js/notifications-view.js'+V],
+    watches:           ['js/watches-view.js'+V],
+    'watch-configure': ['js/watch-configure-view.js'+V],
+    contract:          ['js/contract-view.js'+V],
+    guide:             [_CDN_MARKED, _CDN_PURIFY, 'js/guide-view.js'+V],
+    docs:              [_CDN_MARKED, _CDN_PURIFY, 'js/docs-view.js'+V],
+    templates:         ['js/templates-view.js'+V],
+    template:          [_CDN_MARKED, _CDN_PURIFY, 'js/template-view.js'+V],
+    ask:               [_CDN_MARKED, _CDN_PURIFY, 'js/ask-view.js'+V],
   };
 
   const ponderInd     = document.getElementById('ind-ponder');
