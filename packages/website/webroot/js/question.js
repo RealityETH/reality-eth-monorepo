@@ -810,6 +810,47 @@ function buildAnswerForm(data, walletAddr) {
     ? ethers.formatUnits(minRequired, metaDecimals).replace(/\.0+$/, '')
     : ethers.formatUnits(10n ** BigInt(Math.max(0, metaDecimals - 3)), metaDecimals);
 
+  // Broken question: type unknown, so only offer marking invalid.
+  if (type === 'broken-question') {
+    const card = el('div', 'card');
+    card.appendChild(el('div', 'card-title', 'Answer'));
+    const form = document.createElement('div');
+    form.className = 'answer-form-open';
+    const bondWrap = el('div', 'input-container--bond');
+    const bondInput = document.createElement('input');
+    bondInput.type = 'number'; bondInput.name = 'questionBond';
+    bondInput.className = 'bond-input-field'; bondInput.step = 'any'; bondInput.min = '0';
+    bondInput.value = prefill;
+    bondWrap.appendChild(bondInput);
+    bondWrap.appendChild(el('span', 'min-amount', formatEth(minRequired)));
+    form.appendChild(bondWrap);
+    bondInput.addEventListener('keyup', () => validateBond(bondWrap, bondInput, minRequired));
+    const btn = el('button', 'post-answer-button btn-post', 'Mark invalid');
+    btn.type = 'button';
+    btn.addEventListener('click', () => {
+      if (!validateBond(bondWrap, bondInput, minRequired)) return;
+      if (!realityRW) { console.error('No wallet connected'); return; }
+      const ansBytes = INVALID_ANS;
+      const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
+      if (metaTokenAddress) {
+        runTxWithERC20Approval(
+          btn, 'Mark invalid', walletAddr,
+          metaTokenAddress, CONTRACT, bondWei,
+          () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, bond, bondWei),
+          () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+        );
+      } else {
+        runTx(btn, 'Mark invalid',
+          () => realityRW.submitAnswer(QUESTION_ID, ansBytes, bond, { value: bondWei }),
+          () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+        );
+      }
+    });
+    form.appendChild(btn);
+    card.appendChild(form);
+    return card;
+  }
+
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
   const hasTooSoon = majorVersion >= 3;
 
