@@ -1,0 +1,19 @@
+[Unit]
+Description=reality.eth event indexer
+After=network.target postgresql.service
+Requires=postgresql.service
+OnFailure=reality-eth-notify@%n.service
+
+[Service]
+Type=simple
+User=rcdev
+WorkingDirectory=/srv/rcdev/reality-eth-design/packages/indexer
+Environment=PATH=/home/rcdev/.nvm/versions/node/v23.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/home/rcdev/.nvm/versions/node/v23.11.0/bin/node sync.js
+StandardOutput=append:/srv/rcdev/reality-eth-design/packages/indexer/sync.log
+StandardError=append:/srv/rcdev/reality-eth-design/packages/indexer/sync.log
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

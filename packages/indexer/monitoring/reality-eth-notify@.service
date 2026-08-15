@@ -1,0 +1,7 @@
+[Unit]
+Description=reality.eth Telegram notification for %i
+
+[Service]
+Type=oneshot
+User=rcdev
+ExecStart=/srv/rcdev/reality-eth-design/packages/indexer/monitoring/notify.sh "reality.eth service crashed: %i" "crash-%i" 3600

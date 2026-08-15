@@ -1,0 +1,9 @@
+[Unit]
+Description=reality.eth health check every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

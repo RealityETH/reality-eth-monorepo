@@ -1,0 +1,7 @@
+[Unit]
+Description=reality.eth periodic health check
+
+[Service]
+Type=oneshot
+User=rcdev
+ExecStart=/srv/rcdev/reality-eth-design/packages/indexer/monitoring/healthcheck.sh
