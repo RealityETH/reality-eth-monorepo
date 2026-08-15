@@ -3607,6 +3607,7 @@ header {
                        open: questions(limit:1, where:{${base}, ${openSuffix}}) { totalCount } }`;
       const res  = await withIndicator(ponderInd, () => fetch(GRAPHQL(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({query}) }));
       const data = (await res.json()).data;
+      if (!data) return [id, null];
       return [id, { total: data.cnt?.totalCount ?? null, open: data.open?.totalCount ?? null }];
     };
 

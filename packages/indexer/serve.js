@@ -176,7 +176,17 @@ const db = drizzle(pool, { casing: 'snake_case', schema });
 // ── GraphQL ───────────────────────────────────────────────────────────────────
 
 // Provide the minimal PONDER_DATABASE interface the graphql() middleware needs.
-globalThis.PONDER_DATABASE = { readonlyQB: { raw: db } };
+// wrap() is used by ponder's totalCount implementation — first arg may be an
+// options object, last arg is always the callback receiving the db instance.
+globalThis.PONDER_DATABASE = {
+  readonlyQB: {
+    raw: db,
+    wrap: (...args) => {
+      const cb = typeof args[0] === 'function' ? args[0] : args[1];
+      return cb(db);
+    },
+  },
+};
 
 const graphqlMiddleware = graphql({ schema });
 
