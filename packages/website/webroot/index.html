@@ -2352,6 +2352,7 @@ header {
         <option value="bond">Sort: Highest bond</option>
         <option value="closing">Sort: Closing soon</option>
         <option value="newest">Sort: Newest</option>
+        <option value="contested">Sort: Contested</option>
       </select>
     </div>
     <div class="filter-bar">
@@ -3425,10 +3426,11 @@ header {
   // ── Fetch ──────────────────────────────────────────────
   function buildQuery(limit, after) {
     const orderByMap = {
-      recent:  { orderBy: 'updatedTimestamp',             orderDirection: 'desc' },
-      bond:    { orderBy: 'currentAnswerBondUsd',          orderDirection: 'desc' },
-      closing: { orderBy: 'scheduledFinalizationTimestamp', orderDirection: 'asc' },
-      newest:  { orderBy: 'createdTimestamp',             orderDirection: 'desc' },
+      recent:    { orderBy: 'updatedTimestamp',             orderDirection: 'desc' },
+      bond:      { orderBy: 'currentAnswerBondUsd',          orderDirection: 'desc' },
+      closing:   { orderBy: 'scheduledFinalizationTimestamp', orderDirection: 'asc' },
+      newest:    { orderBy: 'createdTimestamp',             orderDirection: 'desc' },
+      contested: { orderBy: 'answerCount',                  orderDirection: 'desc' },
     };
     const { orderBy, orderDirection } = orderByMap[sortOpt] || orderByMap.recent;
     const afterClause = after ? `, after: "${after}"` : '';

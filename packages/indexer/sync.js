@@ -491,6 +491,7 @@ async function recomputeQuestionState(db, questionId) {
         cumulative_bonds                 = 0,
         cumulative_bonds_usd             = 0,
         bounty_usd                       = 0,
+        answer_count                     = 0,
         scheduled_finalization_timestamp = 0,
         answer_finalized_timestamp       = null,
         arbitration_occurred             = false,
@@ -507,6 +508,7 @@ async function recomputeQuestionState(db, questionId) {
   const cumBondsUsd = responses.reduce((s, r) => s + bondToUsdBigInt(BigInt(r.bond), contract, chain_id), 0n).toString();
   const currentBondUsd = bondToUsdBigInt(BigInt(last.bond), contract, chain_id).toString();
   const bountyUsd = bondToUsdBigInt(BigInt(bounty), contract, chain_id).toString();
+  const answerCount = responses.length;
 
   // Last non-commitment answer becomes current_answer
   let currentAnswer = null;
@@ -530,12 +532,13 @@ async function recomputeQuestionState(db, questionId) {
       cumulative_bonds                 = $6,
       cumulative_bonds_usd             = $7,
       bounty_usd                       = $8,
-      scheduled_finalization_timestamp = $9,
-      updated_block                    = $10,
+      answer_count                     = $9,
+      scheduled_finalization_timestamp = $10,
+      updated_block                    = $11,
       updated_timestamp                = $4
-    WHERE id = $11
+    WHERE id = $12
   `, [currentAnswer, last.bond, currentBondUsd, last.timestamp, last.history_hash,
-      cumBonds, cumBondsUsd, bountyUsd, schedFinal, last.created_block, questionId]);
+      cumBonds, cumBondsUsd, bountyUsd, answerCount, schedFinal, last.created_block, questionId]);
 }
 
 async function performReorgRollback(db, chainId, conflictBlock) {
@@ -728,6 +731,7 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
           last_bond                        = $1,
           cumulative_bonds                 = cumulative_bonds + $1::numeric,
           cumulative_bonds_usd             = cumulative_bonds_usd + $2::numeric,
+          answer_count                     = answer_count + 1,
           scheduled_finalization_timestamp = $3::numeric + timeout,
           updated_block = $5, updated_timestamp = $6
         WHERE id = $7
@@ -743,6 +747,7 @@ async function onLogNewAnswer(db, log, args, chainId, blockTs) {
           last_bond                        = $2,
           cumulative_bonds                 = cumulative_bonds + $2::numeric,
           cumulative_bonds_usd             = cumulative_bonds_usd + $3::numeric,
+          answer_count                     = answer_count + 1,
           scheduled_finalization_timestamp = $4::numeric + timeout,
           updated_block = $6, updated_timestamp = $7
         WHERE id = $8

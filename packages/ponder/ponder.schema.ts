@@ -58,6 +58,7 @@ export const question = onchainTable(
     currentAnswerBond: p.bigint().notNull(),
     currentAnswerBondUsd: p.bigint().notNull(),
     currentAnswerTimestamp: p.bigint(),
+    answerCount: p.integer().notNull(),
     historyHash: p.hex(),
 
     minBond: p.bigint().notNull(),
@@ -98,6 +99,7 @@ export const question = onchainTable(
     updatedIdx:      index().on(table.updatedTimestamp),
     createdIdx:      index().on(table.createdTimestamp),
     finalizeIdx:     index().on(table.scheduledFinalizationTimestamp),
+    answerCountIdx:  index().on(table.answerCount),
     bondUsdIdx:      index().on(table.currentAnswerBondUsd),
     cBondsUsdIdx:    index().on(table.cumulativeBondsUsd),
   })
