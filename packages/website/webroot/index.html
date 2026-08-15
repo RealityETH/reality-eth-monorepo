@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=23';
+  var V = '?v=24';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1790,10 +1790,10 @@ header {
 .q-card:first-child { border-top: 1px solid var(--border-subtle) !important; }
 .q-card:hover { background: var(--bg-card) !important; }
 
-/* Single-row table: status | chain | question | bond | answer */
+/* Single-row table: status | chain | question | bond | warn | answer */
 .q-card-main {
   display: grid !important;
-  grid-template-columns: 58px 84px 1fr 72px 110px !important;
+  grid-template-columns: 58px 84px 1fr 72px 24px 110px !important;
   grid-template-rows: 1fr !important;
   align-items: center !important;
   gap: 0 !important;
@@ -1871,8 +1871,15 @@ header {
   text-overflow: ellipsis !important;
 }
 
-/* Hide warn icon */
-.q-warn-icon { display: none !important; }
+/* Warning icon → col 5; show only the first (most severe), hide the rest */
+.q-warn-icon {
+  display: inline-flex !important;
+  grid-column: 5 !important;
+  grid-row: 1 !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+.q-warn-icon ~ .q-warn-icon { display: none !important; }
 
 /* Question text */
 .q-text {
@@ -1912,7 +1919,7 @@ header {
 
 /* Answer column: value only */
 .q-answer-side {
-  grid-column: 5 !important;
+  grid-column: 6 !important;
   grid-row: 1 !important;
   margin: 0 !important;
   padding: 8px 14px !important;
