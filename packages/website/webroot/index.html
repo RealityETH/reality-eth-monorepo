@@ -3708,7 +3708,7 @@ header {
     const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
     const text = window.RealityLib.getAnswerString(qjson, q.currentAnswer);
     if (!text || text === 'null') return null;
-    if (text === 'Invalid') return { text: 'Invalid / N-A', cls: 'answer-invalid' };
+    if (text === 'Invalid') return { text: 'Invalid', cls: 'answer-invalid' };
     if (text === 'Answered too soon') return { text, cls: 'answer-invalid' };
     if (q.type === 'bool') return { text, cls: text === 'Yes' ? 'answer-yes' : 'answer-no' };
     return { text, cls: 'answer-opt' };
