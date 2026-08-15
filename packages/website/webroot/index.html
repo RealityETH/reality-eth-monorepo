@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=22';
+  var V = '?v=23';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -3847,6 +3847,24 @@ header {
 
   function getWarnings(q) {
     const warnings = [];
+    const errs = q.questionJson
+      ? (window.RealityLib.parseQuestionJSON(q.questionJson).errors || {})
+      : {};
+    if (errs.suspicious_extra_data) {
+      warnings.push({ level: 'danger', text: 'Suspicious extra data' });
+    }
+    if (errs.json_parse_failed) {
+      warnings.push({ level: 'danger', text: 'Malformed question data' });
+    }
+    if (errs.too_many_outcomes) {
+      warnings.push({ level: 'warn', text: 'Too many outcomes' });
+    }
+    if (errs.invalid_precision) {
+      warnings.push({ level: 'warn', text: 'Invalid date precision' });
+    }
+    if (errs.unsafe_markdown) {
+      warnings.push({ level: 'warn', text: 'Unsafe markdown' });
+    }
     const arbKey = `${q.chainId}-${(q.arbitrator || '').toLowerCase()}`;
     const chainHasArbs = Object.keys(knownArbitratorMap).some(k => k.startsWith(`${q.chainId}-`));
     if (q.arbitrator && !/^0x0+$/.test(q.arbitrator) && chainHasArbs && !knownArbitratorMap[arbKey]) {
