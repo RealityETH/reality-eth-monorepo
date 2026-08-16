@@ -2,11 +2,13 @@ window.RealityWatchConfigure = window.RealityWatchConfigure || {};
 
 window.RealityWatchConfigure.mount = async function (rawParams) {
   const KNOWN_CHAINS = [
-    { id: 1,        label: 'Mainnet'  },
+    { id: 1,        label: 'Ethereum' },
     { id: 100,      label: 'Gnosis'   },
     { id: 137,      label: 'Polygon'  },
-    { id: 10,       label: 'Optimism' },
     { id: 42161,    label: 'Arbitrum' },
+    { id: 10,       label: 'Optimism' },
+    { id: 8453,     label: 'Base'     },
+    { id: 130,      label: 'Unichain' },
     { id: 11155111, label: 'Sepolia'  },
   ];
 
@@ -113,22 +115,36 @@ window.RealityWatchConfigure.mount = async function (rawParams) {
       ? [initChainId, ...KNOWN_CHAINS.map(c => c.id).filter(id => id !== initChainId)]
       : KNOWN_CHAINS.map(c => c.id);
 
-    container.innerHTML = [...new Set(allChains)].map(id => {
+    const isAll = selectedChains.length === 0;
+    const allBtn = `<button class="chain-pill${isAll ? ' active' : ''}" data-chain="all">All</button>`;
+    const chainBtns = [...new Set(allChains)].map(id => {
       const info   = KNOWN_CHAINS.find(c => c.id === id);
       const label  = info?.label || `Chain ${id}`;
       const active = selectedChains.includes(id);
       return `<button class="chain-pill${active ? ' active' : ''}" data-chain="${id}">${esc(label)}</button>`;
     }).join('');
+    container.innerHTML = allBtn + chainBtns;
+    container.classList.add('visible');
 
     container.querySelectorAll('.chain-pill').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = Number(btn.dataset.chain);
-        if (selectedChains.includes(id)) {
-          selectedChains = selectedChains.filter(c => c !== id);
+        if (btn.dataset.chain === 'all') {
+          selectedChains = [];
         } else {
-          selectedChains.push(id);
+          const id = Number(btn.dataset.chain);
+          if (selectedChains.includes(id)) {
+            selectedChains = selectedChains.filter(c => c !== id);
+          } else {
+            selectedChains.push(id);
+          }
         }
-        btn.classList.toggle('active', selectedChains.includes(id));
+        container.querySelectorAll('.chain-pill').forEach(b => {
+          if (b.dataset.chain === 'all') {
+            b.classList.toggle('active', selectedChains.length === 0);
+          } else {
+            b.classList.toggle('active', selectedChains.includes(Number(b.dataset.chain)));
+          }
+        });
         buildVersionSelect().then(() => schedulePreview());
       });
     });
