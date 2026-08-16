@@ -1711,7 +1711,7 @@ header {
 }
 .recent-header {
   align-items: center !important;
-  margin-bottom: 0 !important;
+  margin-bottom: 10px !important;
 }
 .recent-header h2 {
   font-size: 11px !important;
@@ -1759,7 +1759,7 @@ header {
 .filter-bars { margin-bottom: 8px !important; }
 .filter-bar { gap: 6px !important; flex-wrap: wrap !important; }
 .filter-sep { display: none !important; }
-.sort-select { margin-bottom: 4px !important; }
+.sort-select { margin-left: 0 !important; }
 .filter-btn {
   border-radius: 20px !important;
   border: 1px solid var(--border) !important;
@@ -2382,6 +2382,13 @@ header {
   <!-- ── Recent questions ──────────────────────────────── -->
   <div class="recent-header">
     <h2>Questions</h2>
+    <select id="sort-select" class="sort-select">
+      <option value="recent">Sort: Recent activity</option>
+      <option value="bond">Sort: Highest bond</option>
+      <option value="closing">Sort: Closing soon</option>
+      <option value="newest">Sort: Newest</option>
+      <option value="contested">Sort: Contested</option>
+    </select>
   </div>
   <div class="filter-bars">
     <div class="filter-bar">
@@ -2392,13 +2399,6 @@ header {
       <div class="filter-sep"></div>
       <button class="filter-btn" data-type="bool">Yes/No</button>
       <button class="filter-btn" data-type="multi">Multiple choice</button>
-      <select id="sort-select" class="sort-select">
-        <option value="recent">Sort: Recent activity</option>
-        <option value="bond">Sort: Highest bond</option>
-        <option value="closing">Sort: Closing soon</option>
-        <option value="newest">Sort: Newest</option>
-        <option value="contested">Sort: Contested</option>
-      </select>
     </div>
     <div class="filter-bar">
       <button class="filter-btn active" data-chain="all">All</button>
