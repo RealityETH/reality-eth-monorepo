@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=24';
+  var V = '?v=25';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1107,7 +1107,7 @@
   .ask-layout > * { min-width: 0; }
   .ask-layout > .col-main { grid-area: auto; }
   .ask-layout > .col-side { grid-area: auto; }
-  @media (max-width: 680px) { .ask-layout { grid-template-columns: 1fr; } .col-side { order: -1; } }
+  @media (max-width: 680px) { .ask-layout { grid-template-columns: 1fr; } }
   .label-note { font-weight: 400; color: var(--text-dim); }
   .field { margin-bottom: 20px; }
   .field:last-child { margin-bottom: 0; }
@@ -1790,10 +1790,10 @@ header {
 .q-card:first-child { border-top: 1px solid var(--border-subtle) !important; }
 .q-card:hover { background: var(--bg-card) !important; }
 
-/* Single-row table: status | chain | question | bond | warn | answer */
+/* Single-row table: status | chain | question | bond | answer */
 .q-card-main {
   display: grid !important;
-  grid-template-columns: 58px 84px 1fr 72px 24px 110px !important;
+  grid-template-columns: 58px 84px 1fr 72px 110px !important;
   grid-template-rows: 1fr !important;
   align-items: center !important;
   gap: 0 !important;
@@ -1871,13 +1871,14 @@ header {
   text-overflow: ellipsis !important;
 }
 
-/* Warning icon → col 5; show only the first (most severe), hide the rest */
+/* Warning icon → absolute, just outside right edge; show only the first (most severe) */
 .q-warn-icon {
   display: inline-flex !important;
-  grid-column: 5 !important;
-  grid-row: 1 !important;
-  justify-content: center !important;
-  padding: 0 !important;
+  position: absolute !important;
+  right: -28px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  padding: 8px 4px !important;
 }
 .q-warn-icon ~ .q-warn-icon { display: none !important; }
 
@@ -1919,7 +1920,7 @@ header {
 
 /* Answer column: value only */
 .q-answer-side {
-  grid-column: 6 !important;
+  grid-column: 5 !important;
   grid-row: 1 !important;
   margin: 0 !important;
   padding: 8px 14px !important;
@@ -3306,7 +3307,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=19';
+  const V = '?v=25';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -3871,21 +3872,6 @@ header {
     }
     if (errs.unsafe_markdown) {
       warnings.push({ level: 'warn', text: 'Unsafe markdown' });
-    }
-    const arbKey = `${q.chainId}-${(q.arbitrator || '').toLowerCase()}`;
-    const chainHasArbs = Object.keys(knownArbitratorMap).some(k => k.startsWith(`${q.chainId}-`));
-    if (q.arbitrator && !/^0x0+$/.test(q.arbitrator) && chainHasArbs && !knownArbitratorMap[arbKey]) {
-      warnings.push({ level: 'danger', text: 'Unrecognised arbitrator' });
-    }
-    if (q.timeout > 0 && q.timeout < 86400) {
-      warnings.push({ level: 'warn', text: 'Very short dispute window (< 24h)' });
-    }
-    if (q.answerFinalizedTimestamp > 0) {
-      const bond = BigInt(q.currentAnswerBond || '0');
-      const bounty = BigInt(q.bounty || '0');
-      if (bond + bounty < 1000000000000000000n) {
-        warnings.push({ level: 'warn', text: 'Low reward and bond' });
-      }
     }
     return warnings;
   }
