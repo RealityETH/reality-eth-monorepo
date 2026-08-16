@@ -326,15 +326,20 @@ window.RealityWatchConfigure.mount = async function (rawParams) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: `{
           questions(${whereClause},orderBy:"createdTimestamp",orderDirection:"desc",limit:50) {
+            totalCount
             items { id title data chainId templateId category contract creator createdTimestamp }
           }
         }` }),
       });
-      const data    = (await r.json()).data;
-      const all     = data?.questions?.items || [];
-      const matched = all.filter(q => RealityWatches.questionMatchesCondition(q, conditions));
+      const data       = (await r.json()).data;
+      const all        = data?.questions?.items || [];
+      const totalCount = data?.questions?.totalCount ?? null;
+      const matched    = all.filter(q => RealityWatches.questionMatchesCondition(q, conditions));
 
-      countEl.innerHTML = `<strong>${matched.length}</strong> matching question${matched.length === 1 ? '' : 's'}`;
+      const hasKeywords = (conditions.keywords?.length > 0);
+      const count = hasKeywords ? matched.length : (totalCount ?? matched.length);
+      const suffix = hasKeywords && all.length >= 50 ? ' <span style="color:var(--text-dim);font-weight:400">(keywords checked against first 50)</span>' : '';
+      countEl.innerHTML = `<strong>${count.toLocaleString()}</strong> matching question${count === 1 ? '' : 's'}${suffix}`;
       listEl.innerHTML  = matched.slice(0, 10).map(q => {
         const title = q.title || q.data || q.id;
         const url   = `#!/network/${q.chainId}/question/${esc(q.id)}`;
