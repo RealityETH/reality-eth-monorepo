@@ -13,6 +13,13 @@ import { createRequire } from 'module';
 const __dir = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dir, '../ponder/.env.local') });
 
+// Prefix all console output with ISO timestamp.
+const _log = console.log.bind(console);
+const _err = console.error.bind(console);
+const ts = () => new Date().toISOString();
+console.log   = (...a) => _log(ts(), ...a);
+console.error = (...a) => _err(ts(), ...a);
+
 // CJS imports via createRequire (reality-eth-lib ships CommonJS)
 const _require = createRequire(import.meta.url);
 const { populatedJSONForTemplate } =
@@ -41,7 +48,7 @@ function bondToUsdBigInt(bondBigInt, contractAddr, chainId) {
 }
 
 const POLL_MS            = Number(process.env.POLL_MS)            || 30_000;
-const LAZY_INTERVAL_MS   = Number(process.env.LAZY_INTERVAL_MS)   || 6 * 60 * 60 * 1000;
+const LAZY_INTERVAL_MS   = Number(process.env.LAZY_INTERVAL_MS)   || 1 * 60 * 60 * 1000;
 const LOCAL_TIMEOUT_MS   = Number(process.env.LOCAL_TIMEOUT_MS)   || 120_000;
 const CONFIRM_DEPTH      = Number(process.env.CONFIRM_DEPTH)      || 100;
 const CONFIRM_BATCH      = Number(process.env.CONFIRM_BATCH)      || 50;

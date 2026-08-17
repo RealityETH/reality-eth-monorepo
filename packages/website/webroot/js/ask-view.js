@@ -60,6 +60,7 @@ window.RealityAsk.mount = async function () {
   let selectedVersion  = null;
   let isERC20Contract  = false;
   let rcTokenAddress   = null;
+  let pendingChainId   = null;
 
   // ── DOM refs ──────────────────────────────────────────────────────────────────
   const submitBtn          = document.getElementById('ask-submit-btn');
@@ -146,7 +147,7 @@ window.RealityAsk.mount = async function () {
     updateArbTos();
     updateCost();
 
-    if (rcAddr) {
+    if (rcAddr && (provider || window.ethereum)) {
       const prov = provider || new ethers.BrowserProvider(window.ethereum);
       for (const { addr, name } of arbs) {
         try {
@@ -281,7 +282,7 @@ window.RealityAsk.mount = async function () {
 
   function updateChainPills(activeChain) {
     const pills = document.getElementById('ask-chain-pills');
-    pills.classList.toggle('visible', !!walletAddr);
+    pills.classList.add('visible');
     for (const pill of pills.querySelectorAll('.chain-pill')) {
       pill.classList.toggle('active', parseInt(pill.dataset.chain) === activeChain);
     }
@@ -325,13 +326,21 @@ window.RealityAsk.mount = async function () {
 
   // ── Wallet ────────────────────────────────────────────────────────────────────
   async function applyWallet(addr) {
-    walletAddr = addr;
-    if (addr) {
+    walletAddr = addr && window.ethereum ? addr : null;
+    if (walletAddr) {
       provider = new ethers.BrowserProvider(window.ethereum);
       signer   = await provider.getSigner();
       walletNotice.style.display = 'none';
 
-      provider.getNetwork().then(net => setupForChain(Number(net.chainId)));
+      provider.getNetwork().then(async net => {
+        const target = pendingChainId;
+        pendingChainId = null;
+        if (target && target !== Number(net.chainId)) {
+          await switchChain(target);
+        } else {
+          setupForChain(target || Number(net.chainId));
+        }
+      });
 
       window.ethereum.removeAllListeners?.('chainChanged');
       window.ethereum.on('chainChanged', async hexChain => {
@@ -344,7 +353,7 @@ window.RealityAsk.mount = async function () {
       networkName.textContent = 'Not connected';
       networkDot.classList.add('unknown');
       walletNotice.style.display = 'block';
-      updateChainPills(null);
+      updateChainPills(pendingChainId);
     }
     updateSubmitState();
   }
@@ -593,7 +602,14 @@ window.RealityAsk.mount = async function () {
   // ── Chain / token / version events ────────────────────────────────────────────
   document.getElementById('ask-chain-pills').addEventListener('click', e => {
     const pill = e.target.closest('.chain-pill');
-    if (pill) switchChain(parseInt(pill.dataset.chain));
+    if (!pill) return;
+    const chain = parseInt(pill.dataset.chain);
+    if (walletAddr) {
+      switchChain(chain);
+    } else {
+      pendingChainId = chain;
+      setupForChain(chain);
+    }
   });
 
   document.getElementById('ask-token-pills').addEventListener('click', e => {
@@ -609,6 +625,7 @@ window.RealityAsk.mount = async function () {
   document.title = 'reality.eth — Ask a question';
   loadContracts().catch(() => {});
   updateCost();
+  updateChainPills(null);
 
   window._setAskWallet = applyWallet;
 };

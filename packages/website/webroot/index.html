@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=26';
+  var V = '?v=31';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -861,6 +861,8 @@
   .meta-val a { color: var(--accent); text-decoration: none; font-family: monospace; font-size: 11px; }
   .meta-val a:hover { text-decoration: underline; }
   .meta-val.mono { font-family: monospace; font-size: 11px; }
+  .copy-btn { background: none; border: none; padding: 0 0 0 4px; color: var(--text-dim); cursor: pointer; font-size: 12px; line-height: 1; vertical-align: middle; opacity: 0.7; transition: opacity 0.15s, color 0.15s; }
+  .copy-btn:hover { opacity: 1; color: var(--text-muted); }
   .raw-data-section { margin-top: 28px; border-top: 1px solid var(--border-subtle); padding-top: 16px; }
   .raw-data-toggle { font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; }
   .raw-data-toggle::-webkit-details-marker { display: none; }
@@ -1131,7 +1133,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
   }
-  #template-view select option { background: #1c2330; }
+  #template-view select option { background: var(--bg); color: var(--text); }
   #template-view .is-error input, #template-view .is-error select, #template-view .is-error textarea { border-color: var(--red); }
   #template-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
   .type-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
@@ -1295,7 +1297,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
   }
-  #templates-view select option { background: #1c2330; }
+  #templates-view select option { background: var(--bg); color: var(--text); }
   .search-btn {
     padding: 7px 18px; background: var(--accent); border: none;
     border-radius: var(--radius-sm); color: #fff; font-size: 13px;
@@ -1470,7 +1472,7 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
   }
-  #ask-view select option, #ask-view select optgroup { background: #1c2330; }
+  #ask-view select option, #ask-view select optgroup { background: var(--bg); color: var(--text); }
   #ask-view .is-error input, #ask-view .is-error select, #ask-view .is-error textarea { border-color: var(--red); }
   #ask-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
   #ask-view .tx-error {
@@ -1519,7 +1521,7 @@
 <script defer src="js/reality-eth-lib.js?v=3"></script>
 <script defer src="js/ethers.js?v=3"></script>
 <script defer src="js/wallet.js?v=3"></script>
-<script defer src="js/settings.js?v=8"></script>
+<script defer src="js/settings.js?v=10"></script>
 <script defer src="js/question-cache.js?v=3"></script>
 <script defer src="js/watches.js?v=3"></script>
 <style id="heritage-theme">
@@ -3307,7 +3309,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=26';
+  const V = '?v=31';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

@@ -107,7 +107,7 @@ function attachPonderPanel(el) {
         <input id="sp-ponder-url" class="sp-input" type="text"
           placeholder="${DEFAULT_PONDER}"
           value="${isCustom ? getPonderUrl() : ''}">
-        <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>). <a href="#!/docs/ponder_indexer" onclick="window.RealitySettings&&window.RealitySettings.closePanel()">Run your own →</a></div>
+        <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>).<br><br><a href="#!/docs/ponder_indexer" onclick="window.RealitySettings&&window.RealitySettings.closePanel()">Run your own →</a></div>
         <div class="sp-actions"><button class="sp-save">Save &amp; reload</button></div>
       `;
       if (lastError) {
@@ -212,7 +212,7 @@ function injectStyles() {
     .sp-error-block { background: var(--amber-subtle); border: 1px solid var(--amber); border-radius: 5px; padding: 8px 10px; margin-bottom: 12px; }
     .sp-error-msg { font-size: 12px; color: var(--amber); font-weight: 500; }
     .sp-error-url { font-size: 11px; color: var(--text-muted); margin-top: 4px; word-break: break-all; font-family: monospace; }
-    .sp-hint code { font-family: monospace; color: var(--text-muted); }
+    .sp-hint code { font-family: monospace; color: var(--text-muted); display: block; overflow-x: auto; white-space: nowrap; margin-top: 3px; }
     .sp-check-row {
       display: flex; align-items: center; gap: 8px; cursor: pointer;
       font-size: 13px; color: var(--text-muted); user-select: none;

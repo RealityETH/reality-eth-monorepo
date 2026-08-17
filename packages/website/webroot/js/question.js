@@ -241,7 +241,7 @@ async function fetchPonderData() {
       currentAnswer currentAnswerBond
       minBond bounty scheduledFinalizationTimestamp
       arbitrationOccurred isPendingArbitration
-      createdBlock createdLogIndex createdTxHash
+      createdBlock createdLogIndex createdTxHash createdTimestamp
       reopensQuestionId
     }
     responses(where: { questionId: ${qid} }, orderBy: "timestamp", orderDirection: "asc", limit: 1000) {
@@ -408,7 +408,9 @@ function adaptPonderData(ponderData) {
     nonce:         0n,
     templateId:    Number(pq.templateId || 0),
     questionStr:   pq.data,
-    createdBlock:  pq.createdBlock ? Number(pq.createdBlock) : undefined,
+    createdBlock:     pq.createdBlock     ? Number(pq.createdBlock)     : undefined,
+    createdTimestamp: pq.createdTimestamp ? Number(pq.createdTimestamp) : undefined,
+    createdTxHash:    pq.createdTxHash    || undefined,
     qjson:         null,
     minBond:       BigInt((pq.minBond || '0').toString()),
     bounty:        BigInt((pq.bounty  || '0').toString()),
@@ -1953,7 +1955,6 @@ function buildDetailsCard(data, chainId) {
   row('Type', esc(TYPE_LABEL[data.qjson?.type] || data.qjson?.type || ''));
   if (data.qjson?.category) row('Category', esc(data.qjson.category));
   if (data.qjson?.lang && data.qjson.lang !== 'en') row('Language', esc(data.qjson.lang));
-  if (data.creator) row('Creator', addrHtml(data.creator));
   if (data.openingTS > 0) {
     const past = data.openingTS * 1000 < Date.now();
     row(past ? 'Opened' : 'Opens', esc(date(data.openingTS)));
@@ -1962,8 +1963,19 @@ function buildDetailsCard(data, chainId) {
   if ((data.minBond ?? 0n) > 0n) row('Min bond', esc(formatBond(data.minBond, token)));
   if ((data.bond ?? 0n) > 0n)    row('Current bond', esc(formatBond(data.bond, token)));
   row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
-  row('Contract', `<a href="#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>`);
-  row('Question ID', `<span class="meta-val mono" title="${esc(QUESTION_ID)}">${QUESTION_ID.slice(0,10)}…</span>`);
+  if (data.creator) row('Creator', addrHtml(data.creator));
+  if (data.createdTimestamp && data.createdTxHash) {
+    const _exp = EXPLORER[chainId] || '';
+    const _txUrl = _exp ? `${_exp}/tx/${esc(data.createdTxHash)}` : '';
+    const _dateStr = esc(date(data.createdTimestamp));
+    row('Created', _txUrl
+      ? `<a href="${_txUrl}" target="_blank" rel="noopener noreferrer">${_dateStr} ↗</a>`
+      : _dateStr);
+  }
+  const _exp = EXPLORER[chainId] || '';
+  const _expLink = _exp ? ` <a class="bond-addr-ext" href="${_exp}/address/${esc(CONTRACT)}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
+  row('Contract', `<a href="#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>${_expLink}`);
+  row('Question ID', `<span class="meta-val mono">${QUESTION_ID.slice(0,10)}…${QUESTION_ID.slice(-8)}</span><button class="copy-btn" title="Copy full ID" onclick="var b=this;navigator.clipboard.writeText('${QUESTION_ID}').then(function(){b.textContent='✓';setTimeout(function(){b.textContent='⎘'},1500)})">⎘</button>`);
 
   const card = el('div', 'card');
   card.innerHTML = `<div class="card-title">Details</div><div class="meta-list">${rows.join('')}</div>`;
