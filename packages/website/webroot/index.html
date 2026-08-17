@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=34';
+  var V = '?v=35';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1109,7 +1109,7 @@
   .ask-layout > * { min-width: 0; }
   .ask-layout > .col-main { grid-area: auto; }
   .ask-layout > .col-side { grid-area: auto; }
-  @media (max-width: 680px) { .ask-layout { grid-template-columns: 1fr; } }
+  @media (max-width: 680px) { .ask-layout { grid-template-columns: 1fr; } .ask-layout .col-side { order: -1; } }
   .label-note { font-weight: 400; color: var(--text-dim); }
   .field { margin-bottom: 20px; }
   .field:last-child { margin-bottom: 0; }
@@ -3309,7 +3309,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=34';
+  const V = '?v=35';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
