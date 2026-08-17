@@ -183,7 +183,7 @@ window.RealityAsk.mount = async function () {
   function buildTokenPills(data, chain, tokens, activeToken) {
     const container = document.getElementById('ask-token-pills');
     container.innerHTML = '';
-    if (tokens.length <= 1) {
+    if (tokens.length === 0) {
       container.style.display = 'none';
       return;
     }
