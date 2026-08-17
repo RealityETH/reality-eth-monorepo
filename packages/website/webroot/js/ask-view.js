@@ -201,7 +201,7 @@ window.RealityAsk.mount = async function () {
   function buildVersionSelect(versions, activeVersion) {
     const row = document.getElementById('ask-version-row');
     const sel = document.getElementById('ask-version-select');
-    if (versions.length <= 1) {
+    if (versions.length === 0) {
       row.style.display = 'none';
       return;
     }
