@@ -109,7 +109,7 @@ window.RealityAsk.mount = async function () {
   function getVersionsForToken(data, chain, token) {
     const versions = data[String(chain)]?.[token] || {};
     return Object.keys(versions)
-      .filter(v => versions[v]?.address)
+      .filter(v => versions[v]?.address && !versions[v]?.reality_eth_address)
       .sort((a, b) => {
         const key = v => { const m = v.match(/(\d+)\.(\d+)$/); return m ? parseInt(m[1]) * 100 + parseInt(m[2]) : 0; };
         return key(b) - key(a);
