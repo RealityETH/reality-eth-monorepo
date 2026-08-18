@@ -2392,7 +2392,7 @@ async function verifyWithRpc(data) {
 // whenever data changes so all state-dependent UI stays in sync.
 let _renderDynamic = null;
 
-async function main() {
+async function main(hintAddr) {
   const BN0 = 0n;
 
   // contractsMetaPromise already started at module load; awaited before renderWarnings
@@ -2414,6 +2414,16 @@ async function main() {
         reality = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
       }
       // Wallet is always the write provider (user must switch chain themselves)
+      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+    } catch {}
+  }
+  // If eth_accounts returned nothing but the router already has a connected wallet
+  // (e.g. WalletConnect session not yet ready, or SPA navigation mid-session),
+  // use the hint for the initial render and try to get a signer from window.ethereum.
+  if (!walletAddr && hintAddr && window.ethereum) {
+    walletAddr = hintAddr;
+    try {
+      const _wp = new ethers.BrowserProvider(window.ethereum);
       realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
     } catch {}
   }
@@ -2911,7 +2921,7 @@ async function main() {
 
 // Called by question.html after initWallet() resolves, so window.ethereum is
 // already set (injected wallet or WC session restore) before main() checks it.
-window._initQuestion = () => main().catch(err => {
+window._initQuestion = (hintAddr) => main(hintAddr).catch(err => {
   console.error('question page error', err);
   if (qPage) qPage.dataset.error = err.message;
 });
