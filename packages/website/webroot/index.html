@@ -4282,7 +4282,7 @@ header {
     const btn = document.getElementById('wallet-btn');
     if (!btn) return;
     if (addr) {
-      btn.textContent = addr;
+      btn.textContent = RealityWallet.shortAddr(addr);
       btn.classList.add('connected');
       btn.onclick = () => RealityWallet.disconnectWallet(onWalletChange);
     } else {

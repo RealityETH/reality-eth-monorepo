@@ -1081,7 +1081,7 @@ window.RealityAccount.mount = async function (addr) {
     setUrlAddress(a);
     document.getElementById('connect-prompt').style.display = 'none';
     document.getElementById('account-content').style.display = '';
-    document.getElementById('hero-addr').textContent = shortAddr(a);
+    document.getElementById('hero-addr').textContent = (a);
     const exp = walletChainId ? EXPLORER[walletChainId] : null;
     const link = document.getElementById('hero-explorer-link');
     if (exp) { link.href = `${exp}/address/${a}`; link.style.display = ''; }
@@ -1281,7 +1281,7 @@ window.RealityAccount.mount = async function (addr) {
   if (viewAddr) {
     document.getElementById('connect-prompt').style.display = 'none';
     document.getElementById('account-content').style.display = '';
-    document.getElementById('hero-addr').textContent = shortAddr(viewAddr);
+    document.getElementById('hero-addr').textContent = (viewAddr);
     runAccount(viewAddr);
   }
 };
