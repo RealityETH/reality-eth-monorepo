@@ -881,13 +881,17 @@ window.RealityAccount.mount = async function (addr) {
   }
 
   // ── Chain pills ────────────────────────────────────────────────────────────────
-  const SUPPORTED_CHAINS = [1, 100, 11155111];
 
   function buildChainPills() {
+    const contracts = _contractsData || window.RealityWebsiteData?.contracts || {};
+    const chainIds = Object.keys(contracts)
+      .map(Number)
+      .filter(id => getRcContracts(contracts, id).length > 0)
+      .sort((a, b) => a - b);
     const container = document.getElementById('chain-pills');
     container.innerHTML = '';
     container.style.display = '';
-    for (const chainId of SUPPORTED_CHAINS) {
+    for (const chainId of chainIds) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'chain-pill' + (selectedViewChains.has(chainId) ? ' active' : '');
