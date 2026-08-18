@@ -486,7 +486,8 @@ function answerColorClass(bytes32, qjson) {
 
 // ── Transaction UX ───────────────────────────────────────────────────────────
 function txErrorMessage(err) {
-  if (err?.code === 4001 || err?.code === 'ACTION_REJECTED') return 'Cancelled';
+  if (err?.code === 4001 || err?.code === 5001 || err?.code === 'ACTION_REJECTED') return 'Cancelled';
+  if (err?.code === 5100) return 'Chain not supported by your wallet — please switch network manually';
   if (err?.reason)          return String(err.reason).slice(0, 160);
   if (err?.data?.message)   return String(err.data.message).slice(0, 160);
   if (err?.message)         return String(err.message).slice(0, 160);
@@ -511,23 +512,40 @@ const ARBITRATOR_ABI = [
   'function requestArbitration(bytes32 question_id, uint256 max_previous) payable',
 ];
 
-// Switch MetaMask to the question's chain if needed, then refresh realityRW.
+// Switch the wallet to the question's chain if needed.
 async function ensureCorrectChain() {
   if (!window.ethereum) throw new Error('No wallet connected');
   const currentHex = await window.ethereum.request({ method: 'eth_chainId' });
   if (parseInt(currentHex, 16) === CHAIN_ID) return;
   const targetHex = '0x' + CHAIN_ID.toString(16);
+  const eth = window.ethereum;
+
+  if (eth.session) {
+    // WalletConnect: switching via wallet_switchEthereumChain fires chainChanged,
+    // which wallet.js normally handles with location.reload(). Suppress that while
+    // we're the ones triggering the switch. BrowserProvider is a live wrapper so
+    // realityRW automatically picks up the new chain — no need to rebuild it.
+    try {
+      eth._internalChainSwitch = true;
+      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+    } finally {
+      eth._internalChainSwitch = false;
+    }
+    return;
+  }
+
+  // Injected wallet (MetaMask, Rabby, etc.)
   try {
-    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
   } catch (err) {
     if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[CHAIN_ID]) {
-      await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[CHAIN_ID]] });
+      await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[CHAIN_ID]] });
     } else {
       throw err;
     }
   }
   // Refresh write contract on the now-correct chain
-  const wp = new ethers.BrowserProvider(window.ethereum);
+  const wp = new ethers.BrowserProvider(eth);
   realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
 }
 
@@ -832,7 +850,7 @@ function buildAnswerForm(data, walletAddr) {
     btn.type = 'button';
     btn.addEventListener('click', () => {
       if (!validateBond(bondWrap, bondInput, minRequired)) return;
-      if (!realityRW) { console.error('No wallet connected'); return; }
+      if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
       const ansBytes = INVALID_ANS;
       const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
       if (metaTokenAddress) {
@@ -1039,9 +1057,9 @@ function buildAnswerForm(data, walletAddr) {
       }
     }
 
-    if (rawAnswer === '' || rawAnswer === undefined) return;
+    if (rawAnswer === '' || rawAnswer === undefined) { showTxError(btn, 'Please select an answer'); return; }
     if (!validateBond(bondWrap, bondInput, minRequired)) return;
-    if (!realityRW) { console.error('No wallet connected'); return; }
+    if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
 
     const ansBytes = answerToBytes32(rawAnswer, qjson);
     const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
@@ -2414,7 +2432,11 @@ async function main(hintAddr) {
         reality = new ethers.Contract(CONTRACT, REALITY_ABI, _wp);
       }
       // Wallet is always the write provider (user must switch chain themselves)
-      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+      // Use the already-known address directly — avoids an eth_accounts round-trip
+      // that can fail silently for WC optional-chain sessions.
+      if (walletAddr) {
+        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, new ethers.JsonRpcSigner(_wp, walletAddr));
+      }
     } catch {}
   }
   // If eth_accounts returned nothing but the router already has a connected wallet
@@ -2426,7 +2448,7 @@ async function main(hintAddr) {
     if (window.ethereum) {
       try {
         const _wp = new ethers.BrowserProvider(window.ethereum);
-        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, new ethers.JsonRpcSigner(_wp, hintAddr));
       } catch {}
     }
   }
@@ -2887,12 +2909,16 @@ async function main(hintAddr) {
     // Wallet hook — set once for open, post-opening questions
     if (!walletHookSet && !finalized && !beforeOpen) {
       walletHookSet = true;
-      window._setQuestionWallet = async function(addr) {
+      window._setQuestionWallet = function(addr) {
         if (!formAreaEl?.isConnected) return;
         walletAddr = addr;
         if (addr && window.ethereum) {
-          const _wp = new ethers.BrowserProvider(window.ethereum);
-          realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+          try {
+            const _wp = new ethers.BrowserProvider(window.ethereum);
+            realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, new ethers.JsonRpcSigner(_wp, addr));
+          } catch {
+            realityRW = null;
+          }
         } else {
           realityRW = null;
         }
@@ -2907,6 +2933,14 @@ async function main(hintAddr) {
   // "Answered too soon") depend on metaMajorVersion, so we force a form rebuild
   // below once the meta resolves.
   _renderDynamic();
+
+  // Race-condition guard: initWallet() is not awaited before the router runs, so
+  // initWC (loading the WC bundle) races fetchPonderData(). If the WC bundle
+  // resolved first, onWalletChange already fired but _setQuestionWallet wasn't
+  // registered yet. Catch up now that _renderDynamic has registered it.
+  if (walletAddr && window.ethereum && !realityRW) {
+    window._setQuestionWallet?.(walletAddr);
+  }
 
   // 6. Contract warnings need meta; rebuild form afterwards with correct metaMajorVersion.
   await contractsMetaPromise;

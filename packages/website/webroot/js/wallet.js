@@ -213,7 +213,10 @@
       setCached(addr);
       onChange(addr);
     });
-    provider.on('chainChanged', () => location.reload());
+    provider.on('chainChanged', () => {
+      if (provider._internalChainSwitch) return;
+      location.reload();
+    });
     provider.on('disconnect', () => {
       window.ethereum = _savedInjected || undefined;
       _savedInjected = null;
