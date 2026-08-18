@@ -525,9 +525,25 @@ async function ensureCorrectChain() {
     // which wallet.js normally handles with location.reload(). Suppress that while
     // we're the ones triggering the switch. BrowserProvider is a live wrapper so
     // realityRW automatically picks up the new chain — no need to rebuild it.
+    //
+    // The WC relay may return "chain not available on free plan" even when the
+    // wallet is already on the correct chain (WC free plan restricts the relay's
+    // chain-switch method, not actual transaction relay). If the switch fails but
+    // the session namespace already covers CHAIN_ID, swallow the relay error and
+    // proceed — the transaction will succeed on the correct chain regardless.
     try {
       eth._internalChainSwitch = true;
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
+    } catch {
+      const sessionAccounts = eth.session?.namespaces?.eip155?.accounts || [];
+      const sessionChains = sessionAccounts.map(a => {
+        const parts = a.split(':');
+        return parts.length >= 3 ? parseInt(parts[1]) : 0;
+      });
+      if (!sessionChains.includes(CHAIN_ID)) {
+        const chainName = CHAIN_ADD_PARAMS[CHAIN_ID]?.chainName || `chain ${CHAIN_ID}`;
+        throw new Error(`Please switch to ${chainName} in your wallet app`);
+      }
     } finally {
       eth._internalChainSwitch = false;
     }

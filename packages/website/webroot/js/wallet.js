@@ -140,6 +140,22 @@
 
   // ── WalletConnect ──────────────────────────────────────────────────────────
 
+  // Extract the first numeric chainId from a WC session's CAIP-10 accounts
+  // ("eip155:11155111:0x..."). Returns null if session/accounts absent.
+  function wcSessionChainId(provider) {
+    try {
+      const accs = provider.session?.namespaces?.eip155?.accounts || [];
+      for (const a of accs) {
+        const parts = a.split(':');
+        if (parts.length >= 3) {
+          const n = parseInt(parts[1]);
+          if (n) return n;
+        }
+      }
+    } catch {}
+    return null;
+  }
+
   // Lazily inject walletconnect.js (built IIFE) and wait for it.
   function loadWCBundle() {
     if (window.WalletConnectProvider) return Promise.resolve(window.WalletConnectProvider);
@@ -172,6 +188,18 @@
         } catch {}
       }
       if (addr) {
+        // provider.chainId defaults to WC_CHAINS[0] (mainnet=1) even when the
+        // session is on an optionalChain. Fix it from the session namespace
+        // BEFORE attaching listeners so chainChanged doesn't trigger a reload.
+        const sessionChain = wcSessionChainId(provider);
+        if (sessionChain && sessionChain !== provider.chainId) {
+          try {
+            await provider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x' + sessionChain.toString(16) }],
+            });
+          } catch {}
+        }
         window.ethereum = provider;
         setCached(addr);
         attachWCListeners(provider, onChange);
