@@ -1221,21 +1221,33 @@ window.RealityAccount.mount = async function (addr) {
     walletAddr = a ? a.toLowerCase() : null;
 
     if (walletAddr) {
-      provider = new ethers.BrowserProvider(window.ethereum);
-      Promise.all([provider.getSigner(), provider.getNetwork()]).then(([s, net]) => {
-        signer = s;
-        walletChainId = Number(net.chainId);
-        if (!viewAddr) {
-          setViewAddr(walletAddr);
-        } else {
-          updateWalletUI();
-        }
-      });
-      window.ethereum.removeAllListeners?.('chainChanged');
-      window.ethereum.on('chainChanged', async hex => {
+      const eth = window.ethereum;
+      if (!eth) {
+        // window.ethereum not yet set — WC session is still restoring.
+        // The second onChange call from initWC will have it ready.
+        return;
+      }
+      provider = new ethers.BrowserProvider(eth);
+      // JsonRpcSigner is synchronous and doesn't call eth_accounts, which
+      // fails for WC optional-chain sessions.
+      signer = new ethers.JsonRpcSigner(provider, walletAddr);
+      // Fetch chain ID for scan prioritization and explorer links, then
+      // update the UI regardless of whether getNetwork() succeeds.
+      provider.getNetwork()
+        .then(net => { walletChainId = Number(net.chainId); })
+        .catch(() => {})
+        .finally(() => {
+          if (!viewAddr) setViewAddr(walletAddr);
+          else updateWalletUI();
+        });
+      eth.removeAllListeners?.('chainChanged');
+      eth.on('chainChanged', hex => {
         walletChainId = parseInt(hex, 16);
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
+        const eth2 = window.ethereum;
+        if (eth2) {
+          provider = new ethers.BrowserProvider(eth2);
+          signer = new ethers.JsonRpcSigner(provider, walletAddr);
+        }
         updateWalletUI();
       });
     } else {
