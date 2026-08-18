@@ -2860,6 +2860,7 @@ async function main(hintAddr) {
       walletHookSet = true;
       window._setQuestionWallet = function(addr) {
         if (!formAreaEl?.isConnected) return;
+        const addrChanged = addr !== walletAddr;
         walletAddr = addr;
         if (addr && window.ethereum) {
           try {
@@ -2871,8 +2872,14 @@ async function main(hintAddr) {
         } else {
           realityRW = null;
         }
-        lastFormState = null; // force form rebuild with the new wallet address
-        _renderDynamic();
+        // Only rebuild the form when the address changes (connect / disconnect).
+        // Same-address calls (e.g. accountsChanged fired by a WC chain switch)
+        // just refresh realityRW without tearing down the form and losing the
+        // user's answer selection.
+        if (addrChanged) {
+          lastFormState = null;
+          _renderDynamic();
+        }
       };
     }
   };
