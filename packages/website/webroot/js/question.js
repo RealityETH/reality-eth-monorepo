@@ -846,27 +846,35 @@ function buildAnswerForm(data, walletAddr) {
     bondWrap.appendChild(el('span', 'min-amount', formatEth(minRequired)));
     form.appendChild(bondWrap);
     bondInput.addEventListener('keyup', () => validateBond(bondWrap, bondInput, minRequired));
-    const btn = el('button', 'post-answer-button btn-post', 'Mark invalid');
+    const btn = walletAddr
+      ? el('button', 'post-answer-button btn-post', 'Mark invalid')
+      : el('button', 'btn-connect', 'Connect wallet');
     btn.type = 'button';
-    btn.addEventListener('click', () => {
-      if (!validateBond(bondWrap, bondInput, minRequired)) return;
-      if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
-      const ansBytes = INVALID_ANS;
-      const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
-      if (metaTokenAddress) {
-        runTxWithERC20Approval(
-          btn, 'Mark invalid', walletAddr,
-          metaTokenAddress, CONTRACT, bondWei,
-          () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, bond, bondWei),
-          () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
-        );
-      } else {
-        runTx(btn, 'Mark invalid',
-          () => realityRW.submitAnswer(QUESTION_ID, ansBytes, bond, { value: bondWei }),
-          () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
-        );
-      }
-    });
+    if (!walletAddr) {
+      btn.addEventListener('click', () => {
+        if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+      });
+    } else {
+      btn.addEventListener('click', () => {
+        if (!validateBond(bondWrap, bondInput, minRequired)) return;
+        if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
+        const ansBytes = INVALID_ANS;
+        const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
+        if (metaTokenAddress) {
+          runTxWithERC20Approval(
+            btn, 'Mark invalid', walletAddr,
+            metaTokenAddress, CONTRACT, bondWei,
+            () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, bond, bondWei),
+            () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+          );
+        } else {
+          runTx(btn, 'Mark invalid',
+            () => realityRW.submitAnswer(QUESTION_ID, ansBytes, bond, { value: bondWei }),
+            () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+          );
+        }
+      });
+    }
     form.appendChild(btn);
     card.appendChild(form);
     return card;
@@ -963,10 +971,18 @@ function buildAnswerForm(data, walletAddr) {
   bondWrap.appendChild(minEl);
   form.appendChild(bondWrap);
 
-  // ── Submit button ──
-  const btn = el('button', 'post-answer-button btn-post', 'Post answer');
+  // ── Submit / connect button ──
+  const btn = walletAddr
+    ? el('button', 'post-answer-button btn-post', 'Post answer')
+    : el('button', 'btn-connect', 'Connect wallet');
   btn.type = 'button';
   form.appendChild(btn);
+
+  if (!walletAddr) {
+    btn.addEventListener('click', () => {
+      if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+    });
+  }
 
   // ── Commit-reveal toggle ──
   const crLabel = el('label', 'cr-toggle');
@@ -1039,8 +1055,8 @@ function buildAnswerForm(data, walletAddr) {
         .forEach(cb => { cb.disabled = true; });
   });
 
-  // ── Submit handler ──
-  btn.addEventListener('click', () => {
+  // ── Submit handler (only wired when wallet is connected) ──
+  if (walletAddr) btn.addEventListener('click', () => {
     let rawAnswer = form.dataset.specialAnswer || '';
     if (!rawAnswer) {
       if (isSelectType) {
@@ -2000,71 +2016,6 @@ function buildDetailsCard(data, chainId) {
   return card;
 }
 
-// ── Locked interact state ─────────────────────────────────────────────────────
-function buildLockedState(data) {
-  const { bond, minBond, qjson } = data;
-  const b = bond ?? 0n;
-  const mb = minBond ?? 0n;
-  const minRequired = mb > 0n && b === 0n
-    ? mb
-    : b > 0n ? b * 2n : (mb > 0n ? mb : 0n);
-  const nextBondStr = minRequired > 0n ? formatBond(minRequired) : null;
-
-  const type = qjson?.type || 'bool';
-  const isMulti  = type === 'multiple-select';
-  const isSelect = type === 'single-select' || isMulti;
-  const outcomes = isSelect ? (qjson?.outcomes || []) : [];
-
-  const card = el('div', 'card');
-  card.appendChild(el('div', 'card-title', 'Answer'));
-
-  if (outcomes.length) {
-    const inputWrap = el('div', 'answer-input-wrap');
-    if (isMulti) {
-      outcomes.forEach((o, i) => {
-        const lbl = el('label', 'multi-option');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox'; cb.value = String(i);
-        lbl.appendChild(cb);
-        lbl.appendChild(document.createTextNode(' ' + o));
-        inputWrap.appendChild(lbl);
-      });
-    } else {
-      const select = document.createElement('select');
-      select.className = 'answer-select';
-      const def = el('option'); def.value = ''; def.textContent = '— Select —'; def.selected = true;
-      select.appendChild(def);
-      outcomes.forEach((o, i) => {
-        const opt = el('option'); opt.value = String(i); opt.textContent = o;
-        select.appendChild(opt);
-      });
-      inputWrap.appendChild(select);
-    }
-    card.appendChild(inputWrap);
-  }
-
-  const locked = el('div', 'interact-locked');
-  const lockIcon = el('div', 'lock-icon');
-  lockIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
-  locked.appendChild(lockIcon);
-  locked.appendChild(el('div', 'lock-text', 'Connect your wallet to answer this question or dispute the current answer.'));
-  card.appendChild(locked);
-
-  const btn = document.createElement('button');
-  btn.className = 'btn-connect'; btn.textContent = 'Connect wallet';
-  btn.addEventListener('click', () => {
-    if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
-  });
-  card.appendChild(btn);
-
-  if (nextBondStr) {
-    const hint = el('div', 'interact-hint');
-    hint.innerHTML = `Next valid bond: <strong>${nextBondStr}</strong>`;
-    card.appendChild(hint);
-  }
-
-  return card;
-}
 
 // ── RPC verification ─────────────────────────────────────────────────────────
 async function verifyWithRpc(data) {
@@ -2813,9 +2764,7 @@ async function main(hintAddr) {
       lastFormState = formState;
       let replacement;
       try {
-        replacement = (!walletAddr && !finalized && !beforeOpen)
-          ? buildLockedState(data)
-          : buildAnswerForm(data, walletAddr);
+        replacement = buildAnswerForm(data, walletAddr);
       } catch {}
       if (formAreaEl?.isConnected) {
         if (replacement) { formAreaEl.replaceWith(replacement); formAreaEl = replacement; }
