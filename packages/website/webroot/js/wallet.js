@@ -202,6 +202,7 @@
     }
     window.ethereum = provider; // make existing eth code use WC provider
     setCached(addr);
+    try { localStorage.setItem(WC_CACHE_KEY, '1'); } catch {}
     attachWCListeners(provider, onChange);
     onChange(addr);
   }
@@ -229,6 +230,17 @@
   async function initWallet(onChange) {
     const cached = getCached();
     if (cached) onChange(cached);
+
+    // If the user previously chose WalletConnect, try to restore that session
+    // before touching window.ethereum (an injected wallet would otherwise stomp
+    // on the cached WC address). Only loads the WC bundle if the flag is set.
+    const wcFlag = (() => { try { return localStorage.getItem(WC_CACHE_KEY); } catch { return null; } })();
+    if (wcFlag) {
+      const restored = await initWC(onChange);
+      if (restored) return;
+      // Session gone — clear the flag and fall through to injected wallet.
+      try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
+    }
 
     const eth = window.ethereum;
     if (eth) {
@@ -309,6 +321,7 @@
       eth.disconnect().catch(() => {});
       window.ethereum = _savedInjected || undefined;
       _savedInjected = null;
+      try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
     }
     setCached(null);
     onChange(null);
