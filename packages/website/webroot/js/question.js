@@ -2035,7 +2035,7 @@ function buildLockedState(data) {
   const btn = document.createElement('button');
   btn.className = 'btn-connect'; btn.textContent = 'Connect wallet';
   btn.addEventListener('click', () => {
-    if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(() => location.reload());
+    if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
   });
   card.appendChild(btn);
 
@@ -2419,13 +2419,16 @@ async function main(hintAddr) {
   }
   // If eth_accounts returned nothing but the router already has a connected wallet
   // (e.g. WalletConnect session not yet ready, or SPA navigation mid-session),
-  // use the hint for the initial render and try to get a signer from window.ethereum.
-  if (!walletAddr && hintAddr && window.ethereum) {
+  // use the hint for the initial render. realityRW will be wired up when
+  // _setQuestionWallet fires once the provider is fully initialised.
+  if (!walletAddr && hintAddr) {
     walletAddr = hintAddr;
-    try {
-      const _wp = new ethers.BrowserProvider(window.ethereum);
-      realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
-    } catch {}
+    if (window.ethereum) {
+      try {
+        const _wp = new ethers.BrowserProvider(window.ethereum);
+        realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await _wp.getSigner());
+      } catch {}
+    }
   }
   // Fall back to public RPC for reads if wallet is absent or on wrong chain
   if (!reality && readProvider) {
