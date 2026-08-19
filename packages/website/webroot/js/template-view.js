@@ -518,13 +518,13 @@ window.RealityTemplate.mount = async function (routeId) {
       submitBtn.textContent = 'Pending…';
       const receipt = await withIndicator(rpcInd, () => tx.wait());
 
-      const iface = new ethers.utils.Interface(RC_ABI);
+      const iface = new ethers.Interface(RC_ABI);
       let templateIdNum = null;
       for (const log of receipt.logs) {
         try {
           const parsed = iface.parseLog(log);
           if (parsed.name === 'LogNewTemplate') {
-            templateIdNum = parsed.args.template_id.toNumber();
+            templateIdNum = Number(parsed.args.template_id);
             break;
           }
         } catch {}
