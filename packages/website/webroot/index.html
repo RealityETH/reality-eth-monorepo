@@ -1362,6 +1362,7 @@
   /* ── Guide view ──────────────────────────────────── */
   .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 16px 80px;
     display: grid; grid-template-columns: 220px 1fr; gap: 40px; align-items: start; }
+  .page-wrap > main { min-width: 0; }
   @media (max-width: 720px) { .page-wrap { grid-template-columns: 1fr; } }
   .sidebar { position: sticky; top: 72px; }
   .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
@@ -1416,7 +1417,7 @@
   .code-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--text-dim); padding: 8px 14px 0; }
   #guide-view pre { padding: 10px 14px 14px; font-family: 'SFMono-Regular', Consolas, monospace;
-    font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre; }
+    font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre; overflow-x: auto; }
   /* ── Docs view ──────────────────────────────────── */
   .docs-body h1 { font-size: 26px; font-weight: 700; margin: 0 0 8px; }
   .docs-body h2 { font-size: 18px; font-weight: 600; margin: 28px 0 10px;
