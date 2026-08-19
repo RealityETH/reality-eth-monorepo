@@ -509,12 +509,7 @@ window.RealityAsk.mount = async function () {
 
   // ── Question encoding ─────────────────────────────────────────────────────────
   function encodeQuestion(type, title, outcomes, category) {
-    const parts = [title];
-    if (type === 'single-select' || type === 'multiple-select') {
-      parts.push(outcomes.map(o => JSON.stringify(o)).join(','));
-    }
-    parts.push(category);
-    return parts.join(DELIM);
+    return RealityLib.encodeText(type, title, outcomes, category);
   }
 
   // ── TX helper ─────────────────────────────────────────────────────────────────

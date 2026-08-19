@@ -452,17 +452,6 @@ function answerToBytes32(raw, qjson) {
   const norm = typeof raw === 'string' ? raw.toLowerCase() : String(raw);
   if (norm === INVALID_LC) return INVALID;
   if (norm === TOO_SOON_LC) return TOO_SOON;
-
-  const type = qjson?.type || 'bool';
-  if (type === 'datetime') {
-    // UI passes a date string; convert to unix timestamp before encoding.
-    const ts = Math.floor(new Date(raw).getTime() / 1000);
-    return '0x' + BigInt(ts).toString(16).padStart(64, '0');
-  }
-  if (type === 'multiple-select') {
-    // UI passes a numeric bitmask, not boolean[]; encode directly.
-    return '0x' + BigInt(raw).toString(16).padStart(64, '0');
-  }
   return RealityLib.answerToBytes32(raw, qjson);
 }
 
@@ -648,8 +637,7 @@ function makeRevealNonce() {
 }
 
 function computeCommitHash(ansBytes, nonce) {
-  // Matches soliditySHA3(["uint256","uint256"], [answer, nonce]) in the contracts lib
-  return ethers.solidityPackedKeccak256(['uint256', 'uint256'], [ansBytes, nonce]);
+  return RealityLib.answerHash(ansBytes, nonce);
 }
 
 const PENDING_REVEAL_KEY = `cr-${CHAIN_ID}-${CONTRACT.toLowerCase()}-${QUESTION_ID}`;
@@ -1078,14 +1066,16 @@ function buildAnswerForm(data, walletAddr) {
       if (isSelectType) {
         rawAnswer = form.querySelector('select[name="input-answer"]')?.value || '';
       } else if (isMulti) {
-        let mask = 0;
-        form.querySelectorAll('input[name="input-answer"]:checked')
-            .forEach(cb => { mask |= (1 << parseInt(cb.value)); });
-        rawAnswer = String(mask);
+        const checked = new Set(
+          [...form.querySelectorAll('input[name="input-answer"]:checked')]
+            .map(cb => parseInt(cb.value))
+        );
+        rawAnswer = Array.from({ length: qjson.outcomes?.length || 0 }, (_, i) => checked.has(i));
       } else if (isUint) {
         rawAnswer = form.querySelector('input[name="input-answer"]')?.value || '';
       } else if (isDatetime) {
-        rawAnswer = form.querySelector('.datetime-input-date')?.value || '';
+        const dateStr = form.querySelector('.datetime-input-date')?.value || '';
+        rawAnswer = dateStr ? String(Math.floor(new Date(dateStr).getTime() / 1000)) : '';
       }
     }
 

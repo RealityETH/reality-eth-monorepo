@@ -27,6 +27,14 @@ describe('Default template types', function() {
         expect(q.type).to.equal(t);
     }
   });
+  it('round-trips a title containing double quotes without breaking JSON', function() {
+    const title = 'Will Trump say "economics" in his speech?';
+    const qtext = rc_question.encodeText('bool', title, null, 'politics');
+    const q = rc_question.populatedJSONForTemplate(rc_template.defaultTemplateForType('bool'), qtext);
+    expect(q.title).to.equal(title);
+    expect(q.type).to.equal('bool');
+    expect(q.errors).to.be.undefined;
+  });
   it('marks the question if it has extra unused data', function() {
     const outcomes = ["oink", "oink2"];
     for (var i=0; i<option_types.length; i++) {

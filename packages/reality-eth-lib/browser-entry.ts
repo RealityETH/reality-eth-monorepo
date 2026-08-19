@@ -2,6 +2,8 @@
 export {
     populatedJSONForTemplate,
     parseQuestionJSON,
+    encodeText,
+    answerHash,
     answerToBytes32,
     bytes32ToString,
     getAnswerString,
