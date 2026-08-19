@@ -2725,8 +2725,10 @@ async function main(hintAddr) {
         [data.templateId, data.openingTS, data.questionStr]
       );
     } catch {}
-    const templateUrl = `#!/template/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId}`;
-    const templateLink = `<a href="${esc(templateUrl)}" style="color:var(--accent);text-decoration:none">${esc(data.templateId)}</a>`;
+    const templateUrl = `#!/template/${CHAIN_ID}-${CONTRACT.toLowerCase()}-${data.templateId ?? ''}`;
+    const templateLink = data.templateId != null
+      ? `<a href="${esc(templateUrl)}" style="color:var(--accent);text-decoration:none">${String(data.templateId)}</a>`
+      : '';
     rawBody.innerHTML = [
       rawRow('Question ID',   esc(QUESTION_ID)),
       rawRow('Template ID',   templateLink),
