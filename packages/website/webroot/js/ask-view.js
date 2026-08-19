@@ -329,7 +329,7 @@ window.RealityAsk.mount = async function () {
     walletAddr = addr && window.ethereum ? addr : null;
     if (walletAddr) {
       provider = new ethers.BrowserProvider(window.ethereum);
-      signer   = await provider.getSigner();
+      signer   = new ethers.JsonRpcSigner(provider, walletAddr);
       walletNotice.style.display = 'none';
 
       provider.getNetwork().then(async net => {
@@ -343,9 +343,9 @@ window.RealityAsk.mount = async function () {
       });
 
       window.ethereum.removeAllListeners?.('chainChanged');
-      window.ethereum.on('chainChanged', async hexChain => {
+      window.ethereum.on('chainChanged', hexChain => {
         provider = new ethers.BrowserProvider(window.ethereum);
-        signer   = await provider.getSigner();
+        signer   = new ethers.JsonRpcSigner(provider, walletAddr);
         setupForChain(parseInt(hexChain, 16));
       });
     } else {

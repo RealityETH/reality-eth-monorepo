@@ -207,16 +207,16 @@ window.RealityTemplate.mount = async function (routeId) {
 
   // ── Wallet ────────────────────────────────────────────────────────────────────
   function applyWallet(addr) {
-    walletAddr = addr;
-    if (addr) {
-      provider = new ethers.providers.Web3Provider(window.ethereum);
-      signer   = provider.getSigner();
+    walletAddr = addr && window.ethereum ? addr : null;
+    if (walletAddr) {
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer   = new ethers.JsonRpcSigner(provider, walletAddr);
       walletNotice.style.display = 'none';
-      provider.getNetwork().then(net => setupForChain(net.chainId));
+      provider.getNetwork().then(net => setupForChain(Number(net.chainId)));
       window.ethereum.removeAllListeners?.('chainChanged');
       window.ethereum.on('chainChanged', hexChain => {
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer   = provider.getSigner();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer   = new ethers.JsonRpcSigner(provider, walletAddr);
         setupForChain(parseInt(hexChain, 16));
       });
     } else {
