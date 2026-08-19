@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=43';
+  var V = '?v=44';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -915,6 +915,10 @@
     cursor: pointer; transition: all 0.15s; }
   .chain-pill:hover { border-color: var(--accent); color: var(--text); }
   .chain-pill.active { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent); }
+  .chain-pill-more { padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 500;
+    border: 1px dashed var(--border); background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: all 0.15s; }
+  .chain-pill-more:hover { border-color: var(--accent); border-style: solid; color: var(--text-muted); }
   .tabs-row { display: flex; gap: 2px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px; }
   .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted);
     background: none; border: none; border-bottom: 2px solid transparent;
@@ -2819,16 +2823,7 @@ header {
           <div class="network-dot unknown" id="network-dot"></div>
           <span class="network-name" id="network-name">Not connected</span>
         </div>
-        <div class="chain-pills" id="tc-chain-pills">
-          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
-          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
-          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
-          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
-          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
-          <button type="button" class="chain-pill" data-chain="8453">Base</button>
-          <button type="button" class="chain-pill" data-chain="130">Unichain</button>
-          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
-        </div>
+        <div class="chain-pills" id="tc-chain-pills"></div>
         <div id="token-pills" class="token-pills" style="display:none"></div>
         <div id="tc-version-row" style="display:none; margin-top:10px;">
           <select id="tc-version-select" class="version-select"></select>
@@ -3120,16 +3115,7 @@ header {
           <div class="network-dot unknown" id="ask-network-dot"></div>
           <span class="network-name" id="ask-network-name">Not connected</span>
         </div>
-        <div class="chain-pills" id="ask-chain-pills">
-          <button type="button" class="chain-pill" data-chain="1">Ethereum</button>
-          <button type="button" class="chain-pill" data-chain="100">Gnosis</button>
-          <button type="button" class="chain-pill" data-chain="137">Polygon</button>
-          <button type="button" class="chain-pill" data-chain="42161">Arbitrum</button>
-          <button type="button" class="chain-pill" data-chain="10">Optimism</button>
-          <button type="button" class="chain-pill" data-chain="8453">Base</button>
-          <button type="button" class="chain-pill" data-chain="130">Unichain</button>
-          <button type="button" class="chain-pill" data-chain="11155111">Sepolia</button>
-        </div>
+        <div class="chain-pills" id="ask-chain-pills"></div>
         <div id="ask-token-pills" class="token-pills" style="display:none"></div>
         <div id="ask-version-row" style="display:none; margin-top:10px;">
           <select id="ask-version-select" class="version-select"></select>
@@ -3309,7 +3295,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=43';
+  const V = '?v=44';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

@@ -884,21 +884,41 @@ window.RealityAccount.mount = async function (addr) {
 
   function buildChainPills() {
     const contracts = _contractsData || window.RealityWebsiteData?.contracts || {};
-    const chainIds = Object.keys(contracts)
+    const allChainIds = Object.keys(contracts)
       .map(Number)
       .filter(id => getRcContracts(contracts, id).length > 0)
       .sort((a, b) => a - b);
+    const indexedSet = new Set(window.RealitySettings?.getChainIds() || []);
+
+    // Primary: indexed chains + any currently selected non-indexed chain
+    const primary = allChainIds.filter(id => indexedSet.has(id) || selectedViewChains.has(id));
+    const extra   = allChainIds.filter(id => !indexedSet.has(id) && !selectedViewChains.has(id));
+
     const container = document.getElementById('chain-pills');
     container.innerHTML = '';
     container.style.display = '';
-    for (const chainId of chainIds) {
+
+    function makePill(id) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'chain-pill' + (selectedViewChains.has(chainId) ? ' active' : '');
-      btn.dataset.chain = String(chainId);
-      btn.textContent = chainName(chainId);
-      btn.addEventListener('click', () => toggleViewChain(chainId));
-      container.appendChild(btn);
+      btn.className = 'chain-pill' + (selectedViewChains.has(id) ? ' active' : '');
+      btn.dataset.chain = String(id);
+      btn.textContent = chainName(id);
+      btn.addEventListener('click', () => toggleViewChain(id));
+      return btn;
+    }
+    for (const id of primary) container.appendChild(makePill(id));
+
+    if (extra.length > 0) {
+      const moreBtn = document.createElement('button');
+      moreBtn.type = 'button';
+      moreBtn.className = 'chain-pill-more';
+      moreBtn.textContent = 'More';
+      moreBtn.addEventListener('click', () => {
+        moreBtn.remove();
+        for (const id of extra) container.appendChild(makePill(id));
+      });
+      container.appendChild(moreBtn);
     }
   }
 
@@ -914,9 +934,7 @@ window.RealityAccount.mount = async function (addr) {
     if (selectedViewChains.has(chainId)) selectedViewChains.delete(chainId);
     else selectedViewChains.add(chainId);
 
-    document.querySelectorAll('.chain-pill').forEach(btn => {
-      btn.classList.toggle('active', selectedViewChains.has(Number(btn.dataset.chain)));
-    });
+    buildChainPills();
 
     const linkChain = selectedViewChains.size === 1 ? [...selectedViewChains][0] : walletChainId;
     const link = document.getElementById('hero-explorer-link');

@@ -167,11 +167,39 @@ window.RealityTemplate.mount = async function (routeId) {
     }
   }
 
-  function updateChainPills(activeChain) {
-    const pills = document.getElementById('tc-chain-pills');
-    pills.classList.toggle('visible', !!walletAddr);
-    for (const pill of pills.querySelectorAll('.chain-pill')) {
-      pill.classList.toggle('active', parseInt(pill.dataset.chain) === activeChain);
+  function buildChainPills(activeChain) {
+    const data = contractsData || window.RealityWebsiteData?.contracts || {};
+    const allChains = Object.keys(data).map(Number)
+      .filter(id => getTokensForChain(data, id).length > 0)
+      .sort((a, b) => a - b);
+    const indexedSet = new Set(window.RealitySettings?.getChainIds() || []);
+    const primary = allChains.filter(id => indexedSet.has(id) || id === activeChain);
+    const extra   = allChains.filter(id => !indexedSet.has(id) && id !== activeChain);
+
+    const container = document.getElementById('tc-chain-pills');
+    container.innerHTML = '';
+    container.classList.toggle('visible', !!walletAddr);
+
+    function makePill(id) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chain-pill' + (id === activeChain ? ' active' : '');
+      btn.dataset.chain = String(id);
+      btn.textContent = chainName(id);
+      return btn;
+    }
+    for (const id of primary) container.appendChild(makePill(id));
+
+    if (extra.length > 0) {
+      const moreBtn = document.createElement('button');
+      moreBtn.type = 'button';
+      moreBtn.className = 'chain-pill-more';
+      moreBtn.textContent = 'More';
+      moreBtn.addEventListener('click', () => {
+        moreBtn.remove();
+        for (const id of extra) container.appendChild(makePill(id));
+      });
+      container.appendChild(moreBtn);
     }
   }
 
@@ -182,7 +210,7 @@ window.RealityTemplate.mount = async function (routeId) {
     const tokens = getTokensForChain(data, chain);
 
     networkName.textContent = name;
-    updateChainPills(chain);
+    buildChainPills(chain);
 
     if (tokens.length === 0) {
       networkDot.classList.add('unknown');
@@ -224,7 +252,7 @@ window.RealityTemplate.mount = async function (routeId) {
       networkName.textContent = 'Not connected';
       networkDot.classList.add('unknown');
       walletNotice.style.display = 'block';
-      updateChainPills(null);
+      buildChainPills(null);
     }
     updateSubmitState();
   }
