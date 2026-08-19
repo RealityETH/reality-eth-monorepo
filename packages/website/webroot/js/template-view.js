@@ -202,6 +202,12 @@ window.RealityTemplate.mount = async function (routeId) {
       moreBtn.addEventListener('click', () => {
         moreBtn.remove();
         for (const id of extra) container.appendChild(makePill(id));
+        const lessBtn = document.createElement('button');
+        lessBtn.type = 'button';
+        lessBtn.className = 'chain-pill-more';
+        lessBtn.textContent = 'Less';
+        lessBtn.addEventListener('click', () => buildChainPills(activeChain));
+        container.appendChild(lessBtn);
       });
       container.appendChild(moreBtn);
     }
