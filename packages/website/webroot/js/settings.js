@@ -9,12 +9,12 @@ const DEFAULT_PONDER = 'https://dev2.edochan.com/graphql';
 const CHAINS = [
   { id: 1,        name: 'Ethereum',  defaultRpc: 'https://ethereum-rpc.publicnode.com' },
   { id: 10,       name: 'Optimism',  defaultRpc: 'https://optimism-rpc.publicnode.com' },
+  { id: 56,       name: 'BNB Chain', defaultRpc: 'https://bsc-dataseed1.bnbchain.org' },
   { id: 100,      name: 'Gnosis',    defaultRpc: 'https://rpc.gnosischain.com' },
+  { id: 130,      name: 'Unichain',  defaultRpc: 'https://mainnet.unichain.org' },
   { id: 137,      name: 'Polygon',   defaultRpc: 'https://polygon-rpc.com' },
+  { id: 8453,     name: 'Base',      defaultRpc: 'https://mainnet.base.org' },
   { id: 42161,    name: 'Arbitrum',  defaultRpc: 'https://arbitrum-one-rpc.publicnode.com' },
-  { id: 8453,     name: 'Base',      defaultRpc: 'https://base-rpc.publicnode.com' },
-  { id: 43114,    name: 'Avalanche', defaultRpc: 'https://avalanche-c-chain-rpc.publicnode.com' },
-  { id: 42220,    name: 'Celo',      defaultRpc: 'https://celo-rpc.publicnode.com' },
   { id: 11155111, name: 'Sepolia',   defaultRpc: 'https://ethereum-sepolia-rpc.publicnode.com' },
 ];
 
