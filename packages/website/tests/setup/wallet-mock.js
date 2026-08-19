@@ -1,5 +1,132 @@
 import { ANVIL_URL, TEST_ACCOUNT, FORK_BLOCK } from './anvil.js';
 
+// ── WalletConnect mock ────────────────────────────────────────────────────────
+//
+// Simulates a restored WalletConnect v2 session with the "optional-chain"
+// quirk: eth_accounts returns [] even though the session has a valid address.
+// This is the root cause of the wallet-connection bugs we fixed in question.js,
+// account.js, ask-view.js, and template-view.js.
+//
+// The mock pre-sets window.WalletConnectProvider so wallet.js's loadWCBundle()
+// resolves immediately without fetching the real walletconnect.js bundle.
+// It also writes the two localStorage keys that wallet.js checks to take the
+// WC path (reality-eth-wc-session and reality-eth-wallet).
+//
+// sessionChainId — the chain the mock session reports (default 100 = Gnosis)
+// address        — the wallet address (default TEST_ACCOUNT.address)
+// rpcUrl         — RPC for real chain calls (default ANVIL_URL)
+export function wcWalletMockScript({
+  sessionChainId = 100,
+  address = TEST_ACCOUNT.address,
+  rpcUrl = ANVIL_URL,
+} = {}) {
+  const LOG_MIN_BLOCK = FORK_BLOCK + 1;
+  return `
+(function () {
+  const _addr    = ${JSON.stringify(address)};
+  const _sesChain = ${sessionChainId};
+  const _rpcUrl  = ${JSON.stringify(rpcUrl)};
+  const LOG_SCAN_MIN_BLOCK = ${LOG_MIN_BLOCK};
+
+  async function rpc(method, params = []) {
+    const res = await fetch(_rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    });
+    const json = await res.json();
+    if (json.error) { const e = new Error(json.error.message); e.code = json.error.code; throw e; }
+    return json.result;
+  }
+
+  // Pre-set WalletConnectProvider so wallet.js's loadWCBundle() resolves
+  // immediately without fetching walletconnect.js.
+  window.WalletConnectProvider = {
+    EthereumProvider: {
+      init: async function ({ chains }) {
+        const _handlers = {};
+        // WC EthereumProvider starts with the required chain (usually mainnet=1)
+        // even when the actual session is on an optional chain — the exact
+        // mismatch our initWC fix corrects via wallet_switchEthereumChain.
+        let _chainId = (chains && chains[0]) || 1;
+
+        const provider = {
+          get chainId() { return _chainId; },
+          set chainId(v) { _chainId = v; },
+          // WC populates .accounts from the session (not eth_accounts).
+          accounts: [_addr],
+          session: {
+            namespaces: {
+              eip155: {
+                accounts: ['eip155:' + _sesChain + ':' + _addr],
+                chains:   ['eip155:' + _sesChain],
+              },
+            },
+          },
+          request: async ({ method, params = [] }) => {
+            switch (method) {
+              // Core WC optional-chain behaviour: eth_accounts returns empty.
+              // This is what broke getSigner() throughout the view code.
+              case 'eth_accounts': return [];
+              case 'eth_chainId':  return '0x' + _chainId.toString(16);
+              case 'net_version':  return String(_chainId);
+              case 'wallet_switchEthereumChain': {
+                _chainId = parseInt(params[0].chainId, 16);
+                (_handlers['chainChanged'] || []).forEach(h => h(params[0].chainId));
+                return null;
+              }
+              case 'eth_sendTransaction': {
+                const tx = params[0];
+                await rpc('anvil_impersonateAccount', [_addr]);
+                const hash = await rpc('eth_sendTransaction', [{ ...tx, from: _addr }]);
+                await rpc('anvil_stopImpersonatingAccount', [_addr]);
+                return hash;
+              }
+              case 'eth_getLogs': {
+                // Same fromBlock clipping as the injected-wallet mock to
+                // avoid touching the archive on full-range scans.
+                const filter = { ...params[0] };
+                if (filter.fromBlock) {
+                  const from = parseInt(filter.fromBlock, 16);
+                  const to   = filter.toBlock === 'latest' || filter.toBlock == null
+                    ? Infinity : parseInt(filter.toBlock, 16);
+                  if (!isNaN(from) && from < LOG_SCAN_MIN_BLOCK && to >= LOG_SCAN_MIN_BLOCK) {
+                    filter.fromBlock = '0x' + LOG_SCAN_MIN_BLOCK.toString(16);
+                  }
+                }
+                return rpc('eth_getLogs', [filter]);
+              }
+              default:
+                return rpc(method, params);
+            }
+          },
+          on: (event, handler) => {
+            if (!_handlers[event]) _handlers[event] = [];
+            _handlers[event].push(handler);
+          },
+          removeListener: (event, handler) => {
+            if (_handlers[event]) _handlers[event] = _handlers[event].filter(h => h !== handler);
+          },
+          removeAllListeners: (event) => {
+            if (event) _handlers[event] = [];
+            else Object.keys(_handlers).forEach(k => { _handlers[k] = []; });
+          },
+        };
+        return provider;
+      },
+    },
+  };
+
+  // Tell wallet.js to take the WC path: it checks both keys before loading
+  // the bundle and attempting session restore.
+  try {
+    localStorage.setItem('reality-eth-wc-session', '1');
+    localStorage.setItem('reality-eth-wallet', _addr);
+  } catch {}
+})();
+`;
+}
+
 // Set up a fresh Playwright page for a website test:
 //  - inject the wallet mock (EIP-1193 backed by anvil)
 //  - intercept /graphql so Ponder returns no data → triggers RPC fallback
