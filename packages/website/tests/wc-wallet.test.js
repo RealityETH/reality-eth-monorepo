@@ -92,6 +92,52 @@ test.describe('WC wallet: account page', () => {
   });
 });
 
+// ── Question page: answer submission ─────────────────────────────────────────
+// Before the fix: runTx / runTxWithERC20Approval called wp.getSigner() which
+// hits eth_accounts → [] for WC optional-chain → signer creation fails →
+// the "Post answer" click throws silently and the UI never progresses.
+// After the fix: JsonRpcSigner is constructed from the known walletAddr,
+// so the transaction is submitted and the button reaches "Pending…" / "✓ Done".
+
+test.describe('WC wallet: answer submission', () => {
+  let fixtures;
+  let snap;
+
+  test.beforeAll(async () => { fixtures = await createFixtures(); });
+  test.beforeEach(async () => { snap = await snapshot(); });
+  test.afterEach(async () => { await revert(snap); });
+
+  test('submits answer transaction via WC optional-chain session', async ({ page }) => {
+    await page.addInitScript(WC_MOCK);
+    await page.route('**/graphql**', PONDER_NULL);
+
+    await page.goto(
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolQuestionId}`
+    );
+    await page.waitForSelector('input[name="questionBond"]', { timeout: 30000 });
+
+    // Intercept eth_sendTransaction to capture it without waiting for page reload
+    const txPromise = page.evaluate(() =>
+      new Promise(resolve => {
+        const orig = window.ethereum.request.bind(window.ethereum);
+        window.ethereum.request = async (args) => {
+          const result = await orig(args);
+          if (args.method === 'eth_sendTransaction') resolve(args.params[0]);
+          return result;
+        };
+      })
+    );
+
+    await page.locator('select[name="input-answer"]').selectOption('1');
+    await page.locator('input[name="questionBond"]').fill('0.002');
+    await page.locator('button.post-answer-button').click();
+
+    // Before the fix this never resolved — getSigner() threw for WC
+    const tx = await txPromise;
+    expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth30.toLowerCase());
+  });
+});
+
 // ── Ask page ──────────────────────────────────────────────────────────────────
 // Bug in ask-view.js applyWallet(): async function calls `await getSigner()`
 // which hits eth_accounts → [] for WC optional-chain → getSigner throws →

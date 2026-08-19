@@ -44,7 +44,7 @@ function bnToJSON(v) {
 }
 
 function bnFromJSON(v) {
-  if (v && typeof v === 'object' && '_bn' in v) return ethers.BigNumber.from(v._bn);
+  if (v && typeof v === 'object' && '_bn' in v) return BigInt(v._bn);
   if (Array.isArray(v)) return v.map(bnFromJSON);
   if (v && typeof v === 'object') {
     const out = {};

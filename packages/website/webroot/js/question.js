@@ -574,7 +574,7 @@ async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, 
     const allowance = await tokenRead.allowance(walletAddr, spender);
     if (allowance < amountWei) {
       btn.textContent = `Approve ${metaToken} in wallet…`;
-      const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, await wp.getSigner());
+      const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
       const approveTx = await tokenRW.approve(spender, amountWei);
       btn.textContent = `Approving ${metaToken}…`;
       await approveTx.wait();
@@ -684,14 +684,14 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
   try {
     await ensureCorrectChain();
     const wp = new ethers.BrowserProvider(window.ethereum);
-    const rc = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
+    const rc = new ethers.Contract(CONTRACT, REALITY_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
 
     if (metaTokenAddress) {
       btn.textContent = `Approve ${metaToken} in wallet…`;
       const tokenRead = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, wp);
       const allowance = await tokenRead.allowance(walletAddr, CONTRACT);
       if (allowance < bondWei) {
-        const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, await wp.getSigner());
+        const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
         const approveTx = await tokenRW.approve(CONTRACT, bondWei);
         btn.textContent = `Approving ${metaToken}…`;
         await approveTx.wait();
@@ -1143,7 +1143,7 @@ function buildAnswerForm(data, walletAddr) {
         try {
           await ensureCorrectChain();
           const wp = new ethers.BrowserProvider(window.ethereum);
-          const rc = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
+          const rc = new ethers.Contract(CONTRACT, REALITY_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
           const ansBytes = pending.answer;
           const nonce    = pending.nonce;
           const bondWei  = BigInt(pending.bond);
@@ -1770,7 +1770,7 @@ async function renderArbitrationSection(data, walletAddr) {
 
       btn.textContent = 'Waiting for wallet…';
       const wp = new ethers.BrowserProvider(window.ethereum);
-      const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, await wp.getSigner())
+      const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, new ethers.JsonRpcSigner(wp, walletAddr))
         .requestArbitration(QUESTION_ID, bond, { value: fee });
       btn.textContent = 'Pending…';
       await tx.wait();
