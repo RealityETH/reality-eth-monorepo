@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=54';
+  var V = '?v=55';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -3026,6 +3026,7 @@ header {
           </div>
           <input type="number" id="custom-template-id" min="0" step="1" placeholder="e.g. 42">
           <div id="custom-template-status" class="field-help"></div>
+          <div class="field-help"><a id="custom-template-link" href="#!/template">Create a new template</a></div>
           <div class="field-error">Template not found or invalid.</div>
         </div>
 
@@ -3308,7 +3309,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=54';
+  const V = '?v=55';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

@@ -251,6 +251,7 @@ window.RealityAsk.mount = async function () {
 
     await populateArbitrators(chain, rcAddress, info.arbitrators);
     updateSubmitState();
+    updateCustomTemplateLink();
     maybeFetchCustomTemplate();
   }
 
@@ -412,6 +413,7 @@ window.RealityAsk.mount = async function () {
   });
 
   document.getElementById('custom-template-id').addEventListener('input', () => {
+    updateCustomTemplateLink();
     clearTimeout(customTplTimer);
     customTplTimer = setTimeout(() => maybeFetchCustomTemplate(), 600);
   });
@@ -644,9 +646,23 @@ window.RealityAsk.mount = async function () {
     }
   }
 
+  function updateCustomTemplateLink() {
+    const link = document.getElementById('custom-template-link');
+    if (!link) return;
+    const id = document.getElementById('custom-template-id').value;
+    if (id && rcAddress && chainId) {
+      link.href = `#!/template/${chainId}-${rcAddress.toLowerCase()}-${id}`;
+      link.textContent = `View / edit template #${id}`;
+    } else {
+      link.href = '#!/template';
+      link.textContent = 'Create a new template';
+    }
+  }
+
   function maybeFetchCustomTemplate() {
     if (typeSelect.value !== 'custom') return;
     const id = document.getElementById('custom-template-id').value;
+    updateCustomTemplateLink();
     if (id && rcAddress && chainId) fetchCustomTemplate(id);
   }
 
