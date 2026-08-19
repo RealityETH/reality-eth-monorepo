@@ -730,9 +730,14 @@ window.RealityTemplate.mount = async function (routeId) {
   document.getElementById('toggle-zodiac').addEventListener('click', () => setTemplateMode('zodiac'));
   document.getElementById('toggle-raw').addEventListener('click',    () => setTemplateMode('raw'));
 
-  document.getElementById('tc-chain-pills').addEventListener('click', e => {
+  document.getElementById('tc-chain-pills').addEventListener('click', async e => {
     const pill = e.target.closest('.chain-pill');
-    if (pill) switchChain(parseInt(pill.dataset.chain));
+    if (!pill) return;
+    const chain = parseInt(pill.dataset.chain);
+    await switchChain(chain);
+    // WC doesn't fire chainChanged when switching to the required chain (chain 1);
+    // call setupForChain directly so the UI updates in all cases.
+    if (window.ethereum?.session) setupForChain(chain);
   });
 
   document.getElementById('token-pills').addEventListener('click', e => {

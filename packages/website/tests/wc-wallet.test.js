@@ -109,6 +109,24 @@ test.describe('WC wallet: ask page', () => {
     // hidden.  Before the fix getSigner() throws so it stays visible.
     await expect(page.locator('#ask-wallet-notice')).toHaveCSS('display', 'none', { timeout: 10000 });
   });
+
+  // WC does NOT emit chainChanged when switching to the required chain (chain 1
+  // = Ethereum Mainnet).  The ask-page chain pill click must call setupForChain
+  // directly after switchChain resolves so the network name updates.
+  test('switching to Ethereum Mainnet (required chain) updates network display', async ({ page }) => {
+    // Session on Gnosis (100); requiredChains=[1] so switching to chain 1
+    // will NOT emit chainChanged — exercising the direct setupForChain fallback.
+    await page.addInitScript(wcWalletMockScript({ sessionChainId: 100, requiredChains: [1] }));
+
+    await page.goto(`${WEBSITE_URL}/index.html#!/ask`);
+    await expect(page.locator('#ask-wallet-notice')).toHaveCSS('display', 'none', { timeout: 10000 });
+
+    // Click the Ethereum chain pill
+    await page.locator('#ask-chain-pills .chain-pill[data-chain="1"]').click();
+
+    // Network name should update to Ethereum Mainnet within a short timeout
+    await expect(page.locator('#ask-network-name')).toHaveText('Ethereum Mainnet', { timeout: 5000 });
+  });
 });
 
 // ── Template page ─────────────────────────────────────────────────────────────

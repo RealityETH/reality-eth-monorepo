@@ -630,12 +630,15 @@ window.RealityAsk.mount = async function () {
   });
 
   // ── Chain / token / version events ────────────────────────────────────────────
-  document.getElementById('ask-chain-pills').addEventListener('click', e => {
+  document.getElementById('ask-chain-pills').addEventListener('click', async e => {
     const pill = e.target.closest('.chain-pill');
     if (!pill) return;
     const chain = parseInt(pill.dataset.chain);
     if (walletAddr) {
-      switchChain(chain);
+      await switchChain(chain);
+      // WC doesn't fire chainChanged when switching to the required chain (chain 1);
+      // call setupForChain directly so the UI updates in all cases.
+      if (window.ethereum?.session) setupForChain(chain);
     } else {
       pendingChainId = chain;
       setupForChain(chain);

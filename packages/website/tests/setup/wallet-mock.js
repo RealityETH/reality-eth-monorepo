@@ -15,10 +15,13 @@ import { ANVIL_URL, TEST_ACCOUNT, FORK_BLOCK } from './anvil.js';
 // sessionChainId — the chain the mock session reports (default 100 = Gnosis)
 // address        — the wallet address (default TEST_ACCOUNT.address)
 // rpcUrl         — RPC for real chain calls (default ANVIL_URL)
+// requiredChains — chains passed as WC `chains:` (required); WC does NOT emit
+//                  chainChanged when switching to one of these (default [1]).
 export function wcWalletMockScript({
   sessionChainId = 100,
   address = TEST_ACCOUNT.address,
   rpcUrl = ANVIL_URL,
+  requiredChains = [1],
 } = {}) {
   const LOG_MIN_BLOCK = FORK_BLOCK + 1;
   return `
@@ -27,6 +30,7 @@ export function wcWalletMockScript({
   const _sesChain = ${sessionChainId};
   const _rpcUrl  = ${JSON.stringify(rpcUrl)};
   const LOG_SCAN_MIN_BLOCK = ${LOG_MIN_BLOCK};
+  const _requiredChains = new Set(${JSON.stringify(requiredChains)});
 
   async function rpc(method, params = []) {
     const res = await fetch(_rpcUrl, {
@@ -71,8 +75,12 @@ export function wcWalletMockScript({
               case 'eth_chainId':  return '0x' + _chainId.toString(16);
               case 'net_version':  return String(_chainId);
               case 'wallet_switchEthereumChain': {
-                _chainId = parseInt(params[0].chainId, 16);
-                (_handlers['chainChanged'] || []).forEach(h => h(params[0].chainId));
+                const newChainId = parseInt(params[0].chainId, 16);
+                _chainId = newChainId;
+                // Real WC does NOT emit chainChanged when switching to a required chain.
+                if (!_requiredChains.has(newChainId)) {
+                  (_handlers['chainChanged'] || []).forEach(h => h(params[0].chainId));
+                }
                 return null;
               }
               case 'eth_sendTransaction': {
