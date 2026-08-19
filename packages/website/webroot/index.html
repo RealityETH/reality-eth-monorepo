@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=52';
+  var V = '?v=54';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1480,6 +1480,7 @@
   }
   #ask-view select option, #ask-view select optgroup { background: var(--bg); color: var(--text); }
   #ask-view .is-error input, #ask-view .is-error select, #ask-view .is-error textarea { border-color: var(--red); }
+  .tpl-locked-value { font-size: 13px; padding: 4px 0; color: var(--text-dim); font-style: italic; }
   #ask-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
   #ask-view .tx-error {
     margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
@@ -1524,7 +1525,7 @@
 </style>
 <script defer src="js/website-data.js?v=3"></script>
 <script defer src="js/chains.js?v=3"></script>
-<script defer src="js/reality-eth-lib.js?v=4"></script>
+<script defer src="js/reality-eth-lib.js?v=5"></script>
 <script defer src="js/ethers.js?v=3"></script>
 <script defer src="js/wallet.js?v=6"></script>
 <script defer src="js/settings.js?v=11"></script>
@@ -3014,8 +3015,18 @@ header {
             <option value="multiple-select">Multiple choice — multiple correct answers</option>
             <option value="uint">Number (positive integer)</option>
             <option value="datetime">Date / time</option>
+            <option value="custom">Custom template</option>
           </select>
           <div class="field-help">For prediction markets and DAO votes, Yes / No is usually right.</div>
+        </div>
+
+        <div class="field" id="field-custom-template" style="display:none">
+          <div class="field-label-row">
+            <label for="custom-template-id">Template ID</label>
+          </div>
+          <input type="number" id="custom-template-id" min="0" step="1" placeholder="e.g. 42">
+          <div id="custom-template-status" class="field-help"></div>
+          <div class="field-error">Template not found or invalid.</div>
         </div>
 
         <div class="answer-options" id="answer-options">
@@ -3297,7 +3308,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=52';
+  const V = '?v=54';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

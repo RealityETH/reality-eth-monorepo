@@ -25,6 +25,7 @@ window.RealityAsk.mount = async function () {
   const RC_ABI = [
     'function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) payable returns (bytes32)',
     'function askQuestionWithMinBond(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) payable returns (bytes32)',
+    'function templates(uint256) view returns (string)',
     'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
   ];
   const RC_ERC20_ABI = [
@@ -61,6 +62,8 @@ window.RealityAsk.mount = async function () {
   let isERC20Contract  = false;
   let rcTokenAddress   = null;
   let pendingChainId   = null;
+  let customTemplate   = null;
+  let customTplTimer   = null;
 
   // ── DOM refs ──────────────────────────────────────────────────────────────────
   const submitBtn          = document.getElementById('ask-submit-btn');
@@ -248,6 +251,7 @@ window.RealityAsk.mount = async function () {
 
     await populateArbitrators(chain, rcAddress, info.arbitrators);
     updateSubmitState();
+    maybeFetchCustomTemplate();
   }
 
   function selectToken(token) {
@@ -397,8 +401,19 @@ window.RealityAsk.mount = async function () {
   // ── Answer type toggling ──────────────────────────────────────────────────────
   typeSelect.addEventListener('change', () => {
     const t = typeSelect.value;
-    const multi = t === 'single-select' || t === 'multiple-select';
-    optionsWrap.classList.toggle('visible', multi);
+    const isCustom = t === 'custom';
+    document.getElementById('field-custom-template').style.display = isCustom ? '' : 'none';
+    if (isCustom) {
+      maybeFetchCustomTemplate();
+    } else {
+      customTemplate = null;
+      applyCustomTemplate(null);
+    }
+  });
+
+  document.getElementById('custom-template-id').addEventListener('input', () => {
+    clearTimeout(customTplTimer);
+    customTplTimer = setTimeout(() => maybeFetchCustomTemplate(), 600);
   });
 
   addOptionBtn.addEventListener('click', () => {
@@ -466,14 +481,25 @@ window.RealityAsk.mount = async function () {
 
   function validate() {
     let ok = true;
-    const body = document.getElementById('question-body').value.trim();
-    if (!body) { setError('field-body'); ok = false; } else clearError('field-body');
 
-    const cat = document.getElementById('question-category').value;
-    if (!cat) { setError('field-category'); ok = false; } else clearError('field-category');
+    const bodyField = document.getElementById('field-body');
+    if (bodyField.style.display !== 'none') {
+      const body = document.getElementById('question-body').value.trim();
+      if (!body) { setError('field-body'); ok = false; } else clearError('field-body');
+    } else clearError('field-body');
 
-    const type = typeSelect.value;
-    if (type === 'single-select' || type === 'multiple-select') {
+    const catField = document.getElementById('field-category');
+    const catSel   = document.getElementById('question-category');
+    if (catField.style.display !== 'none' && catSel.style.display !== 'none') {
+      if (!catSel.value) { setError('field-category'); ok = false; } else clearError('field-category');
+    } else clearError('field-category');
+
+    if (typeSelect.value === 'custom') {
+      if (!customTemplate) { setError('field-custom-template'); ok = false; }
+      else clearError('field-custom-template');
+    }
+
+    if (optionsWrap.classList.contains('visible')) {
       const opts = [...optionsWrap.querySelectorAll('.answer-option-input')]
         .map(i => i.value.trim()).filter(Boolean);
       const errEl = document.getElementById('options-error');
@@ -507,6 +533,123 @@ window.RealityAsk.mount = async function () {
     submitBtn.disabled = !walletAddr || !rcAddress;
   }
 
+  // ── Custom template helpers ───────────────────────────────────────────────────
+  function parseCustomTemplate(str) {
+    const SPARAM = '__RC_PARAM__';
+    const APARAM = '__RC_APARAM__';
+    let s = str.replace(/\[%s\]/g, JSON.stringify([APARAM]));
+    s = s.replace(/%s/g, SPARAM);
+    let parsed;
+    try { parsed = JSON.parse(s); } catch { return null; }
+    const fields = {};
+    const paramOrder = [];
+    for (const [k, v] of Object.entries(parsed)) {
+      if (k === 'title_text' || k === 'title_html') continue;
+      if (v === SPARAM) {
+        fields[k] = 'param';
+        paramOrder.push({ key: k, kind: 'string' });
+      } else if (Array.isArray(v) && v.length === 1 && v[0] === APARAM) {
+        fields[k] = 'array_param';
+        paramOrder.push({ key: k, kind: 'array' });
+      } else {
+        fields[k] = { fixed: v };
+      }
+    }
+    return { fields, paramOrder, type: String(parsed.type || 'bool') };
+  }
+
+  function applyCustomTemplate(tmpl) {
+    document.querySelectorAll('.tpl-locked-value').forEach(el => el.remove());
+    const catSel    = document.getElementById('question-category');
+    catSel.style.display = '';
+    const fieldBody = document.getElementById('field-body');
+    const fieldCat  = document.getElementById('field-category');
+
+    if (!tmpl) {
+      fieldBody.style.display = '';
+      fieldCat.style.display = '';
+      const t = typeSelect.value;
+      optionsWrap.classList.toggle('visible', t === 'single-select' || t === 'multiple-select');
+      return;
+    }
+
+    const { fields, type } = tmpl;
+
+    fieldBody.style.display = (fields.title === 'param') ? '' : 'none';
+
+    if (!('category' in fields)) {
+      fieldCat.style.display = 'none';
+    } else if (fields.category === 'param') {
+      fieldCat.style.display = '';
+    } else {
+      catSel.style.display = 'none';
+      const locked = document.createElement('div');
+      locked.className = 'tpl-locked-value';
+      locked.textContent = String(fields.category.fixed ?? '');
+      catSel.insertAdjacentElement('afterend', locked);
+    }
+
+    const isMulti = type === 'single-select' || type === 'multiple-select';
+    optionsWrap.classList.toggle('visible', isMulti && fields.outcomes === 'array_param');
+  }
+
+  async function fetchCustomTemplate(id) {
+    const statusEl = document.getElementById('custom-template-status');
+    statusEl.textContent = 'Loading…';
+    clearError('field-custom-template');
+    try {
+      const ponderId = `${chainId}-${rcAddress.toLowerCase()}-${id}`;
+      const GRAPHQL  = window.RealitySettings?.getPonderUrl() || '/graphql';
+      let templateStr = null;
+      try {
+        const res  = await fetch(GRAPHQL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: 'query($id:String!){template(id:$id){questionText}}',
+            variables: { id: ponderId },
+          }),
+        });
+        templateStr = (await res.json())?.data?.template?.questionText ?? null;
+      } catch {}
+      if (!templateStr && provider) {
+        const rc = new ethers.Contract(rcAddress, RC_ABI, provider);
+        const result = await rc.templates(id);
+        if (result) templateStr = result;
+      }
+      if (!templateStr) {
+        statusEl.textContent = '';
+        setError('field-custom-template', 'Template not found.');
+        customTemplate = null;
+        applyCustomTemplate(null);
+        return;
+      }
+      const parsed = parseCustomTemplate(templateStr);
+      if (!parsed) {
+        statusEl.textContent = '';
+        setError('field-custom-template', 'Invalid template format.');
+        customTemplate = null;
+        applyCustomTemplate(null);
+        return;
+      }
+      customTemplate = { id, str: templateStr, ...parsed };
+      const typeLabels = { bool: 'Yes/No', uint: 'Number', 'single-select': 'Single choice', 'multiple-select': 'Multiple choice', datetime: 'Date/time' };
+      statusEl.textContent = `Loaded: ${typeLabels[parsed.type] || parsed.type}`;
+      applyCustomTemplate(customTemplate);
+    } catch (err) {
+      statusEl.textContent = '';
+      setError('field-custom-template', `Error: ${err.message}`);
+      customTemplate = null;
+      applyCustomTemplate(null);
+    }
+  }
+
+  function maybeFetchCustomTemplate() {
+    if (typeSelect.value !== 'custom') return;
+    const id = document.getElementById('custom-template-id').value;
+    if (id && rcAddress && chainId) fetchCustomTemplate(id);
+  }
+
   // ── Question encoding ─────────────────────────────────────────────────────────
   function encodeQuestion(type, title, outcomes, category) {
     return RealityLib.encodeText(type, title, outcomes, category);
@@ -529,7 +672,6 @@ window.RealityAsk.mount = async function () {
     submitBtn.textContent = 'Waiting for wallet…';
 
     try {
-      const type     = typeSelect.value;
       const title    = document.getElementById('question-body').value.trim();
       const category = document.getElementById('question-category').value;
       const opening  = document.getElementById('opening-date').value;
@@ -540,8 +682,22 @@ window.RealityAsk.mount = async function () {
       const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
         .map(i => i.value.trim()).filter(Boolean);
 
-      const templateId = TEMPLATE_IDS[type];
-      const qtext = encodeQuestion(type, title, outcomes, category);
+      let templateId, qtext;
+      if (typeSelect.value === 'custom') {
+        templateId = parseInt(document.getElementById('custom-template-id').value);
+        const values = {};
+        for (const { key } of customTemplate.paramOrder) {
+          if (key === 'title')         values[key] = title;
+          else if (key === 'category') values[key] = category;
+          else if (key === 'outcomes') values[key] = outcomes;
+          else                         values[key] = '';
+        }
+        qtext = RealityLib.encodeCustomText(values);
+      } else {
+        const type = typeSelect.value;
+        templateId = TEMPLATE_IDS[type];
+        qtext = encodeQuestion(type, title, outcomes, category);
+      }
       const openingTs = opening
         ? Math.floor(new Date(opening + 'T00:00:00Z').getTime() / 1000) : 0;
       const rewardWei  = ethers.parseEther(rewardEth);
@@ -660,6 +816,14 @@ window.RealityAsk.mount = async function () {
   loadContracts().catch(() => {});
   updateCost();
   buildChainPills(null);
+
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^[^?]*/, ''));
+  const urlTemplateId = hashParams.get('templateId');
+  if (urlTemplateId) {
+    typeSelect.value = 'custom';
+    document.getElementById('field-custom-template').style.display = '';
+    document.getElementById('custom-template-id').value = urlTemplateId;
+  }
 
   window._setAskWallet = applyWallet;
 };

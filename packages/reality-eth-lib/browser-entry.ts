@@ -3,6 +3,7 @@ export {
     populatedJSONForTemplate,
     parseQuestionJSON,
     encodeText,
+    encodeCustomText,
     answerHash,
     answerToBytes32,
     bytes32ToString,
