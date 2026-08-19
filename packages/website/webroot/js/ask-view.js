@@ -268,15 +268,17 @@ window.RealityAsk.mount = async function () {
   // ── Chain switching ───────────────────────────────────────────────────────────
   async function switchChain(chain) {
     if (!window.ethereum) return;
+    const eth = window.ethereum;
     const hexChain = '0x' + chain.toString(16);
     try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
+      if (eth.session) eth._internalChainSwitch = true;
+      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
     } catch (err) {
       if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
-        try {
-          await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
-        } catch {}
+        try { await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] }); } catch {}
       }
+    } finally {
+      if (eth.session) eth._internalChainSwitch = false;
     }
   }
 
