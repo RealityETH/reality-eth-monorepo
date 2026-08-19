@@ -2024,6 +2024,10 @@ function buildDetailsCard(data, chainId) {
   }
   const _exp = EXPLORER[chainId] || '';
   const _expLink = _exp ? ` <a class="bond-addr-ext" href="${_exp}/address/${esc(CONTRACT)}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
+  if (data.templateId != null) {
+    const templateUrl = `#!/template/${chainId}-${esc(CONTRACT.toLowerCase())}-${esc(String(data.templateId))}`;
+    row('Template', `<a href="${templateUrl}">${esc(String(data.templateId))}</a>`);
+  }
   row('Contract', `<a href="#!/network/${chainId}/contract/${esc(CONTRACT)}">${esc(CONTRACT.slice(0,8))}…${esc(CONTRACT.slice(-6))}</a>${_expLink}`);
   row('Question ID', `<span class="meta-val mono">${QUESTION_ID.slice(0,10)}…${QUESTION_ID.slice(-8)}</span><button class="copy-btn" title="Copy full ID" onclick="var b=this;navigator.clipboard.writeText('${QUESTION_ID}').then(function(){b.textContent='✓';setTimeout(function(){b.textContent='⎘'},1500)})">⎘</button>`);
 
