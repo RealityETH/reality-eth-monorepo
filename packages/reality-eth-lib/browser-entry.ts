@@ -15,3 +15,8 @@ export {
     getInvalidValue,
     getAnsweredTooSoonValue,
 } from './src/formatters/question.js';
+
+export {
+    preloadedTemplateContents,
+    preloadedTemplateContentsV32,
+} from './src/formatters/template.js';

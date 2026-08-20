@@ -65,13 +65,16 @@ const CHAIN_ADD_PARAMS = {
   },
 };
 
-const BUILTIN_TEMPLATES = {
-  0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
-  1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}',
-  2: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
-  3: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
-  4: '{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}',
-};
+// Returns built-in template map for a version string (e.g. "RealityETH-3.2").
+// v3.2+ and v2.2 use description+hash; older versions use category.
+function builtinTemplatesForVer(verStr) {
+  const m = (verStr || '').match(/(\d+)\.(\d+)/);
+  const [major, minor] = m ? [parseInt(m[1]), parseInt(m[2])] : [0, 0];
+  const isNew = (major > 3) || (major === 3 && minor >= 2) || (major === 2 && minor === 2);
+  return isNew
+    ? window.RealityLib.preloadedTemplateContentsV32()
+    : window.RealityLib.preloadedTemplateContents();
+}
 
 const REALITY_ABI = [
   'function getBond(bytes32) view returns (uint256)',
@@ -275,7 +278,8 @@ async function fetchPonderData() {
 }
 
 async function fetchTemplateStr(templateId) {
-  const builtin = BUILTIN_TEMPLATES[templateId];
+  const builtins = builtinTemplatesForVer(metaContractVer);
+  const builtin = builtins[templateId];
   if (builtin) return builtin;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
@@ -284,8 +288,8 @@ async function fetchTemplateStr(templateId) {
       ponderFetch(ponderUrl, { query: `{ template(id: ${tid}) { questionText } }` })
     );
     const { data } = await resp.json();
-    return data?.template?.questionText || BUILTIN_TEMPLATES[0];
-  } catch { return BUILTIN_TEMPLATES[0]; }
+    return data?.template?.questionText || builtins[0];
+  } catch { return builtins[0]; }
 }
 
 // Fetch contract events with chunked fallback for restrictive public RPCs.
@@ -1175,6 +1179,7 @@ function buildAnswerForm(data, walletAddr) {
 let knownArbitrators = null; // Set of lowercase addresses, or null if not yet loaded
 let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
 let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
+let metaContractVer  = null; // Full version string e.g. "RealityETH-3.2" (for template set selection)
 let metaToken        = CHAIN_TOKEN[CHAIN_ID] || 'ETH'; // Bond/reward token symbol
 let metaDecimals     = 18;                             // Token decimal places (18 for all native tokens)
 let metaTokenAddress = null; // ERC20 token address, or null for native-token contracts
@@ -1195,6 +1200,7 @@ const contractsMetaPromise = (async () => {
           // Version key is like "RealityETH-3.2" or "RealityETH_ERC20-3.2"
           const major = ver.match(/[-_](\d+)\./)?.[1];
           metaMajorVersion = major ? parseInt(major) : null;
+          metaContractVer  = ver;
           metaTokenAddress = info.token_address || null;
           if (metaTokenAddress) {
             metaToken = tokenSym;
@@ -2587,7 +2593,7 @@ async function main(hintAddr) {
       const qTimeout    = Number(qEv?.args.timeout      ?? q?.timeout     ?? 0);
       const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.ZeroAddress;
       const nonce       = qEv?.args.nonce ?? BN0;
-      let rpcTemplateStr = BUILTIN_TEMPLATES[templateId];
+      let rpcTemplateStr = builtinTemplatesForVer(metaContractVer)[templateId];
       if (!rpcTemplateStr) {
         const templateBlock = await safeCall(() => reality.templates(templateId), null);
         if (templateBlock) {

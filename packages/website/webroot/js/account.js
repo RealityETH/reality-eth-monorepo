@@ -21,13 +21,16 @@ const SCAN_ABI = [
   'function templates(uint256) view returns (uint256)',
 ];
 
-const BUILTIN_TEMPLATES = {
-  0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
-  1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}',
-  2: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
-  3: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
-  4: '{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}',
-};
+// Returns the right built-in template map for a contract version string.
+// v3.2+ and v2.2 use description+hash type; everything else uses category.
+function builtinTemplatesForVer(verStr) {
+  const m = (verStr || '').match(/(\d+)\.(\d+)/);
+  const [major, minor] = m ? [parseInt(m[1]), parseInt(m[2])] : [0, 0];
+  const isNew = (major > 3) || (major === 3 && minor >= 2) || (major === 2 && minor === 2);
+  return isNew
+    ? window.RealityLib.preloadedTemplateContentsV32()
+    : window.RealityLib.preloadedTemplateContents();
+}
 
 const REALITY_ABI = [
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
@@ -251,7 +254,7 @@ window.RealityAccount.mount = async function (addr) {
 
     for (let i = 0; i < rcList.length; i++) {
       if (gen !== _accountLoadGen) return null;
-      const { address: rcAddr } = rcList[i];
+      const { address: rcAddr, ver: rcVer } = rcList[i];
       onProgress?.(`Scanning ${chainName(chainId)} (${i + 1}/${rcList.length})…`);
       console.log(`[scan] contract ${i + 1}/${rcList.length}: ${rcAddr}`);
 
@@ -268,12 +271,12 @@ window.RealityAccount.mount = async function (addr) {
 
       for (const ev of (askedRes.value || [])) {
         const qId = ev.args.question_id;
-        const cur = foundIds.get(qId) || { contract: rcAddr, isAsked: false, isAnswered: false };
-        foundIds.set(qId, { ...cur, contract: rcAddr, isAsked: true });
+        const cur = foundIds.get(qId) || { contract: rcAddr, ver: rcVer, isAsked: false, isAnswered: false };
+        foundIds.set(qId, { ...cur, contract: rcAddr, ver: rcVer, isAsked: true });
       }
       for (const ev of (answeredRes.value || [])) {
         const qId = ev.args.question_id;
-        const cur = foundIds.get(qId) || { contract: rcAddr, isAsked: false, isAnswered: false };
+        const cur = foundIds.get(qId) || { contract: rcAddr, ver: rcVer, isAsked: false, isAnswered: false };
         foundIds.set(qId, { ...cur, contract: rcAddr, isAnswered: true });
       }
     }
@@ -306,7 +309,7 @@ window.RealityAccount.mount = async function (addr) {
         const cacheKey = `${info.contract}-${templateId}`;
         let templateStr = templateCache[cacheKey];
         if (!templateStr) {
-          templateStr = BUILTIN_TEMPLATES[templateId] ?? null;
+          templateStr = builtinTemplatesForVer(info.ver)[templateId] ?? null;
           if (!templateStr) {
             const tBlock = Number(await rc.templates(templateId));
             if (tBlock) {
