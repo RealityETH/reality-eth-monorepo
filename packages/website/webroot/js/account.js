@@ -17,6 +17,7 @@ const BLOCKS_PER_DAY = { 1: 7200, 10: 43200, 100: 17280, 137: 43200, 42161: 3600
 const SCAN_ABI = [
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 created)',
   'event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
+  'function templates(uint256) view returns (string)',
 ];
 
 const REALITY_ABI = [
@@ -144,7 +145,7 @@ window.RealityAccount.mount = async function (addr) {
     }
   }
 
-  function buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, state) {
+  function buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, state, resolvedJson = null) {
     const args     = qEvent.args;
     const lastAns  = answerEvents.at(-1);
     const now      = Math.floor(Date.now() / 1000);
@@ -159,9 +160,10 @@ window.RealityAccount.mount = async function (addr) {
       questionId,
       contract:                    String(contract).toLowerCase(),
       chainId:                     Number(chainId),
-      title:                       parseQuestionTitle(String(args.question || '')),
-      type:                        null,
-      category:                    null,
+      title:                       resolvedJson?.title || parseQuestionTitle(String(args.question || '')),
+      type:                        resolvedJson?.type || null,
+      category:                    resolvedJson?.category || null,
+      questionJson:                resolvedJson ? JSON.stringify(resolvedJson) : null,
       currentAnswer:               curAns,
       currentAnswerBond:           state ? toBigStr(state.bond) : (lastAns ? toBigStr(lastAns.args.bond) : '0'),
       bounty:                      state ? toBigStr(state.bounty) : '0',
@@ -273,6 +275,7 @@ window.RealityAccount.mount = async function (addr) {
     onProgress?.(`Fetching ${ids.length} question${ids.length !== 1 ? 's' : ''} from chain…`);
 
     const asked = [], answered = [], userResponses = [], fullRespMap = {};
+    const templateCache = {}; // keyed by `${contract}-${templateId}`
 
     for (const [qId, info] of ids) {
       if (gen !== _accountLoadGen) return null;
@@ -286,8 +289,21 @@ window.RealityAccount.mount = async function (addr) {
       const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock);
       answerEvents.sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
+      // Resolve template to get title, type, category, and questionJson
+      let resolvedJson = null;
+      try {
+        const templateId = Number(qEvent.args.template_id);
+        const cacheKey = `${info.contract}-${templateId}`;
+        let templateStr = templateCache[cacheKey];
+        if (!templateStr) {
+          templateStr = await rc.templates(templateId);
+          templateCache[cacheKey] = templateStr;
+        }
+        resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args.question));
+      } catch {}
+
       const state = await questionsStructFallback(prov, info.contract, qId);
-      const q     = buildQuestionFromEvents(qId, info.contract, chainId, qEvent, answerEvents, state);
+      const q     = buildQuestionFromEvents(qId, info.contract, chainId, qEvent, answerEvents, state, resolvedJson);
 
       if (info.isAsked)    asked.push(q);
       if (info.isAnswered) answered.push(q);
