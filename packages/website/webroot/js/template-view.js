@@ -763,10 +763,11 @@ window.RealityTemplate.mount = async function (routeId) {
     const chain = parseInt(pill.dataset.chain);
     if (walletAddr) {
       const switched = await switchChain(chain);
-      // WC doesn't fire chainChanged when switching to chain 1 (its required chain).
-      // Use the promise return value (not window.ethereum.chainId, which is stale
-      // for required chains) to decide whether the switch succeeded.
-      if (window.ethereum?.session && switched) setupForChain(chain);
+      if (switched) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer   = new ethers.JsonRpcSigner(provider, walletAddr);
+        setupForChain(chain);
+      }
     } else {
       pendingChainId = chain;
       setupForChain(chain);

@@ -905,10 +905,18 @@ window.RealityAsk.mount = async function () {
     const chain = parseInt(pill.dataset.chain);
     if (walletAddr) {
       const switched = await switchChain(chain);
-      // WC doesn't fire chainChanged when switching to chain 1 (its required chain).
-      // Use the promise return value (not window.ethereum.chainId, which is stale
-      // for required chains) to decide whether the switch succeeded.
-      if (window.ethereum?.session && switched) setupForChain(chain);
+      // Call setupForChain directly on success for all wallet types:
+      // - WC required chain (mainnet=1): chainChanged never fires, so this is
+      //   the only update path.
+      // - WC optional chains: chainChanged fires during the await and already
+      //   called setupForChain; this second call is a harmless no-op.
+      // - Injected wallets: chainChanged may fire, but some wallets (e.g.
+      //   TrustWallet mobile) don't reliably emit it, so also call directly.
+      if (switched) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer   = new ethers.JsonRpcSigner(provider, walletAddr);
+        setupForChain(chain);
+      }
     } else {
       pendingChainId = chain;
       setupForChain(chain);
