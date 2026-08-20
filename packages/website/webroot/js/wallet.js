@@ -9,9 +9,13 @@
   // WalletConnect project ID — obtain one at https://cloud.walletconnect.com
   const WC_PROJECT_ID = 'b96a6c05f714b99168f6d0eb5c422215';
 
-  // All chains the app supports; WC needs to know upfront.
-  const WC_CHAINS          = [1];
-  const WC_OPTIONAL_CHAINS = [10, 100, 137, 42161, 8453, 43114, 42220, 11155111];
+  // Chain 1 (mainnet) is the WC required chain; everything else from the contracts
+  // config is optional — wallets silently ignore chains they don't support.
+  const WC_CHAINS = [1];
+  function wcOptionalChains() {
+    const contracts = window.RealityWebsiteData?.contracts || {};
+    return Object.keys(contracts).map(Number).filter(id => id > 0 && id !== 1);
+  }
 
   // Saved reference to the injected wallet when WC overwrites window.ethereum,
   // so it can be restored if the user later disconnects WC.
@@ -171,10 +175,11 @@
   async function initWC(onChange) {
     const { EthereumProvider } = await loadWCBundle();
     const provider = await EthereumProvider.init({
-      projectId:      WC_PROJECT_ID,
-      chains:         WC_CHAINS,
-      optionalChains: WC_OPTIONAL_CHAINS,
-      showQrModal:    true,
+      projectId:       WC_PROJECT_ID,
+      chains:          WC_CHAINS,
+      optionalChains:  wcOptionalChains(),
+      optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
+      showQrModal:     true,
     });
 
     // If there's an existing session (page reload after WC connect), restore it
@@ -213,10 +218,11 @@
   async function connectWC(onChange) {
     const { EthereumProvider } = await loadWCBundle();
     const provider = await EthereumProvider.init({
-      projectId:      WC_PROJECT_ID,
-      chains:         WC_CHAINS,
-      optionalChains: WC_OPTIONAL_CHAINS,
-      showQrModal:    true,
+      projectId:       WC_PROJECT_ID,
+      chains:          WC_CHAINS,
+      optionalChains:  wcOptionalChains(),
+      optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
+      showQrModal:     true,
     });
     await provider.connect(); // shows QR modal; resolves after user approves
     // provider.accounts is populated synchronously when connect() resolves.
@@ -267,9 +273,18 @@
     // on the cached WC address). Only loads the WC bundle if the flag is set.
     const wcFlag = (() => { try { return localStorage.getItem(WC_CACHE_KEY); } catch { return null; } })();
     if (wcFlag) {
+      // Hide the injected wallet while we load the WC bundle so that page-level
+      // wallet callbacks (which run concurrently) don't accidentally pick up
+      // MetaMask instead of the WC provider.
+      if (window.ethereum && !window.ethereum.session) {
+        _savedInjected = window.ethereum;
+        window.ethereum = undefined;
+      }
       const restored = await initWC(onChange);
       if (restored) return;
-      // Session gone — clear the flag and fall through to injected wallet.
+      // Session gone — restore the injected wallet, clear the flag, and fall through.
+      window.ethereum = _savedInjected || undefined;
+      _savedInjected = null;
       try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
     }
 
