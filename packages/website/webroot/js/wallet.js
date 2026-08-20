@@ -9,12 +9,15 @@
   // WalletConnect project ID — obtain one at https://cloud.walletconnect.com
   const WC_PROJECT_ID = 'b96a6c05f714b99168f6d0eb5c422215';
 
-  // Chain 1 (mainnet) is the WC required chain; everything else from the contracts
-  // config is optional — wallets silently ignore chains they don't support.
+  // Chain 1 (mainnet) is the WC required chain (spec requires at least one).
+  // All contract chains including mainnet go in optionalChains too — the SDK
+  // deduplicates, and this gets mainnet into the optional namespace's extended
+  // method list (which includes wallet_switchEthereumChain), allowing wallets
+  // that grant mainnet via optional to switch to it internally without a relay call.
   const WC_CHAINS = [1];
   function wcOptionalChains() {
     const contracts = window.RealityWebsiteData?.contracts || {};
-    return Object.keys(contracts).map(Number).filter(id => id > 0 && id !== 1);
+    return Object.keys(contracts).map(Number).filter(id => id > 0);
   }
 
   // Saved reference to the injected wallet when WC overwrites window.ethereum,
