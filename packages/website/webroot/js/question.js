@@ -554,6 +554,19 @@ async function ensureCorrectChain() {
   realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
 }
 
+// Poll for a receipt using a CORS-safe hosted RPC when available (bypasses WC
+// relay, which can drop inbound messages after the wallet approves). Falls back
+// to tx.wait() via the WC relay with a 2-minute timeout so the user is never
+// permanently stuck.
+async function waitForTx(tx) {
+  const hostedRpcUrl = window.RealityWebsiteData?.chains?.[CHAIN_ID]?.hostedRPC;
+  const isCorsHosted = hostedRpcUrl && /alchemy\.com|infura\.io|quicknode\.pro|g\.alchemy/.test(hostedRpcUrl);
+  if (isCorsHosted) {
+    return new ethers.JsonRpcProvider(hostedRpcUrl).waitForTransaction(tx.hash);
+  }
+  return Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]);
+}
+
 async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, spender, amountWei, txFn, onSubmitted) {
   btn.disabled = true;
   try {
@@ -566,13 +579,13 @@ async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, 
       const tokenRW = new ethers.Contract(tokenAddr, ERC20_TOKEN_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
       const approveTx = await tokenRW.approve(spender, amountWei);
       btn.textContent = `Approving ${metaToken}…`;
-      await approveTx.wait();
+      await waitForTx(approveTx);
     }
     btn.textContent = 'Waiting for wallet…';
     const tx = await txFn();
     btn.textContent = 'Pending…';
     if (onSubmitted) onSubmitted();
-    await tx.wait();
+    await waitForTx(tx);
     _autoStarFn?.();
     btn.textContent = '✓ Done';
     setTimeout(() => location.reload(), 1500);
@@ -591,7 +604,7 @@ async function runTx(btn, originalText, txFn, onSubmitted) {
     const tx = await txFn();
     btn.textContent = 'Pending…';
     if (onSubmitted) onSubmitted();
-    await tx.wait();
+    await waitForTx(tx);
     _autoStarFn?.();
     btn.textContent = '✓ Done';
     setTimeout(() => location.reload(), 1500);
@@ -682,7 +695,7 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
         const tokenRW = new ethers.Contract(metaTokenAddress, ERC20_TOKEN_ABI, new ethers.JsonRpcSigner(wp, walletAddr));
         const approveTx = await tokenRW.approve(CONTRACT, bondWei);
         btn.textContent = `Approving ${metaToken}…`;
-        await approveTx.wait();
+        await waitForTx(approveTx);
       }
     }
 
@@ -692,12 +705,12 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
       : await rc.submitAnswerCommitment(QUESTION_ID, answerHash, maxPrev, walletAddr, { value: bondWei });
     btn.textContent = 'Committing…';
     addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson);
-    await commitTx.wait();
+    await waitForTx(commitTx);
 
     btn.textContent = 'Waiting for wallet (reveal)…';
     const revealTx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
     btn.textContent = 'Revealing…';
-    await revealTx.wait();
+    await waitForTx(revealTx);
 
     clearPendingReveal();
     btn.textContent = '✓ Done';
@@ -1139,7 +1152,7 @@ function buildAnswerForm(data, walletAddr) {
           const bondWei  = BigInt(pending.bond);
           const tx = await rc.submitAnswerReveal(QUESTION_ID, ansBytes, nonce, bondWei);
           revealBtn.textContent = 'Revealing…';
-          await tx.wait();
+          await waitForTx(tx);
           _autoStarFn?.();
           clearPendingReveal();
           revealBtn.textContent = '✓ Done';
@@ -1763,7 +1776,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, new ethers.JsonRpcSigner(wp, walletAddr))
         .requestArbitration(QUESTION_ID, bond, { value: fee });
       btn.textContent = 'Pending…';
-      await tx.wait();
+      await waitForTx(tx);
       _autoStarFn?.();
       btn.textContent = '✓ Done';
       setTimeout(() => location.reload(), 1500);
