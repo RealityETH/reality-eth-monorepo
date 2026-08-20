@@ -490,6 +490,13 @@ window.RealityAsk.mount = async function () {
       if (!body) { setError('field-body'); ok = false; } else clearError('field-body');
     } else clearError('field-body');
 
+    const fieldTitleParams = document.getElementById('field-title-params');
+    if (fieldTitleParams.style.display !== 'none') {
+      const inputs = fieldTitleParams.querySelectorAll('.title-part-input');
+      const allFilled = [...inputs].every(i => i.value.trim());
+      if (!allFilled) { setError('field-title-params'); ok = false; } else clearError('field-title-params');
+    } else clearError('field-title-params');
+
     const catField = document.getElementById('field-category');
     const catSel   = document.getElementById('question-category');
     if (catField.style.display !== 'none' && catSel.style.display !== 'none') {
@@ -553,6 +560,18 @@ window.RealityAsk.mount = async function () {
       } else if (Array.isArray(v) && v.length === 1 && v[0] === APARAM) {
         fields[k] = 'array_param';
         paramOrder.push({ key: k, kind: 'array' });
+      } else if (typeof v === 'string' && v.includes(SPARAM)) {
+        const parts = [];
+        const segs = v.split(SPARAM);
+        for (let i = 0; i < segs.length; i++) {
+          if (segs[i]) parts.push({ t: 'text', value: segs[i] });
+          if (i < segs.length - 1) {
+            const paramKey = `${k}__${paramOrder.length}`;
+            parts.push({ t: 'param', key: paramKey });
+            paramOrder.push({ key: paramKey, kind: 'string' });
+          }
+        }
+        fields[k] = { parts };
       } else {
         fields[k] = { fixed: v };
       }
@@ -570,6 +589,7 @@ window.RealityAsk.mount = async function () {
     if (!tmpl) {
       fieldBody.style.display = '';
       fieldCat.style.display = '';
+      document.getElementById('field-title-params').style.display = 'none';
       const t = typeSelect.value;
       optionsWrap.classList.toggle('visible', t === 'single-select' || t === 'multiple-select');
       return;
@@ -577,7 +597,31 @@ window.RealityAsk.mount = async function () {
 
     const { fields, type } = tmpl;
 
-    fieldBody.style.display = (fields.title === 'param') ? '' : 'none';
+    const fieldTitleParams = document.getElementById('field-title-params');
+    const titlePartsContainer = document.getElementById('title-parts-container');
+    titlePartsContainer.innerHTML = '';
+    if (fields.title && fields.title.parts) {
+      fieldBody.style.display = 'none';
+      fieldTitleParams.style.display = '';
+      for (const part of fields.title.parts) {
+        if (part.t === 'text') {
+          const span = document.createElement('span');
+          span.className = 'title-part-text';
+          span.textContent = part.value;
+          titlePartsContainer.appendChild(span);
+        } else {
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.className = 'title-part-input';
+          inp.dataset.paramKey = part.key;
+          inp.placeholder = 'enter value';
+          titlePartsContainer.appendChild(inp);
+        }
+      }
+    } else {
+      fieldTitleParams.style.display = 'none';
+      fieldBody.style.display = (fields.title === 'param') ? '' : 'none';
+    }
 
     if (!('category' in fields)) {
       fieldCat.style.display = 'none';
@@ -703,10 +747,13 @@ window.RealityAsk.mount = async function () {
         templateId = parseInt(document.getElementById('custom-template-id').value);
         const values = {};
         for (const { key } of customTemplate.paramOrder) {
-          if (key === 'title')         values[key] = title;
-          else if (key === 'category') values[key] = category;
-          else if (key === 'outcomes') values[key] = outcomes;
-          else                         values[key] = '';
+          if (key === 'title')            values[key] = title;
+          else if (key === 'category')    values[key] = category;
+          else if (key === 'outcomes')    values[key] = outcomes;
+          else if (key.startsWith('title__')) {
+            const inputEl = document.querySelector(`[data-param-key="${key}"]`);
+            values[key] = inputEl ? inputEl.value.trim() : '';
+          } else                          values[key] = '';
         }
         qtext = RealityLib.encodeCustomText(values);
       } else {
@@ -773,7 +820,25 @@ window.RealityAsk.mount = async function () {
       }
 
       submitBtn.textContent = 'Pending…';
-      const receipt = await withIndicator(rpcInd, () => tx.wait());
+      // The WC relay can drop inbound messages after the wallet approves, leaving
+      // tx.wait() hanging indefinitely. Use a direct hosted RPC when available
+      // (Alchemy etc. support browser CORS); otherwise fall back to tx.wait() with
+      // a timeout so the user is never permanently stuck.
+      const hostedRpcUrl = window.RealityWebsiteData?.chains?.[chainId]?.hostedRPC;
+      const isCorsHosted = hostedRpcUrl && /alchemy\.com|infura\.io|quicknode\.pro|g\.alchemy/.test(hostedRpcUrl);
+      let receipt;
+      if (isCorsHosted) {
+        receipt = await withIndicator(rpcInd,
+          () => new ethers.JsonRpcProvider(hostedRpcUrl).waitForTransaction(tx.hash));
+      } else {
+        receipt = await withIndicator(rpcInd,
+          () => Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]));
+      }
+      if (!receipt) {
+        submitBtn.textContent = '✓ Sent!';
+        setTimeout(() => { location.hash = '#!/browse'; }, 1500);
+        return;
+      }
 
       // Extract question ID from LogNewQuestion event
       const iface = new ethers.Interface(RC_ABI);
@@ -809,9 +874,10 @@ window.RealityAsk.mount = async function () {
     const chain = parseInt(pill.dataset.chain);
     if (walletAddr) {
       await switchChain(chain);
-      // WC doesn't fire chainChanged when switching to the required chain (chain 1);
-      // call setupForChain directly so the UI updates in all cases.
-      if (window.ethereum?.session) setupForChain(chain);
+      // WC doesn't fire chainChanged when switching to chain 1 (its required chain);
+      // call setupForChain with the actual post-switch chainId so the UI reflects
+      // the real state even when the wallet rejected the switch request.
+      if (window.ethereum?.session) setupForChain(window.ethereum.chainId || chain);
     } else {
       pendingChainId = chain;
       setupForChain(chain);

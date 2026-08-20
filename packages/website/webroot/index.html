@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=55';
+  var V = '?v=62';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1481,6 +1481,9 @@
   #ask-view select option, #ask-view select optgroup { background: var(--bg); color: var(--text); }
   #ask-view .is-error input, #ask-view .is-error select, #ask-view .is-error textarea { border-color: var(--red); }
   .tpl-locked-value { font-size: 13px; padding: 4px 0; color: var(--text-dim); font-style: italic; }
+  .title-parts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; line-height: 2.2; }
+  .title-part-text { color: var(--text); white-space: pre-wrap; }
+  .title-part-input { flex: 1; min-width: 120px; }
   #ask-view .page-intro { background: none; border: none; border-left: none; color: var(--text-muted); font-size: 13px; padding: 0; margin-bottom: 32px; }
   #ask-view .tx-error {
     margin-top: 10px; padding: 8px 12px; border-radius: var(--radius-sm);
@@ -1527,7 +1530,7 @@
 <script defer src="js/chains.js?v=3"></script>
 <script defer src="js/reality-eth-lib.js?v=5"></script>
 <script defer src="js/ethers.js?v=3"></script>
-<script defer src="js/wallet.js?v=6"></script>
+<script defer src="js/wallet.js?v=8"></script>
 <script defer src="js/settings.js?v=11"></script>
 <script defer src="js/question-cache.js?v=3"></script>
 <script defer src="js/watches.js?v=3"></script>
@@ -2845,7 +2848,7 @@ header {
         <div class="card-title">Create</div>
         <button type="button" class="submit-btn" id="submit-btn" disabled>Create template</button>
         <div class="tx-error" id="tx-error"></div>
-        <div class="info-box" id="wallet-notice">Connect your wallet to create a template.</div>
+        <div class="info-box" id="wallet-notice" style="display:none"></div>
         <div class="result-box" id="result-box">
           <div class="result-id-label">Template ID</div>
           <div class="result-id" id="result-id">—</div>
@@ -2969,6 +2972,14 @@ header {
           <textarea id="question-body" name="question-body" rows="4"
             placeholder="e.g. Will ETH be above $5000 at the end of 2025?"></textarea>
           <div class="field-error">Please enter your question.</div>
+        </div>
+
+        <div class="field" id="field-title-params" style="display:none">
+          <div class="field-label-row">
+            <label>Question title</label>
+          </div>
+          <div class="title-parts" id="title-parts-container"></div>
+          <div class="field-error" id="title-params-error">Please fill in all title fields.</div>
         </div>
 
         <div class="field" id="field-category">
@@ -3309,7 +3320,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=55';
+  const V = '?v=62';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
