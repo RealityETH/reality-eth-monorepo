@@ -56,6 +56,7 @@ window.RealityAsk.mount = async function () {
   let isERC20Contract         = false;
   let rcTokenAddress   = null;
   let pendingChainId   = null;
+  let chainSetupSeq    = 0;  // incremented by every setupForChain call; getNetwork ignores stale results
   let customTemplate   = null;
   let customTplTimer   = null;
 
@@ -343,6 +344,7 @@ window.RealityAsk.mount = async function () {
 
   // ── Network setup ─────────────────────────────────────────────────────────────
   async function setupForChain(chain) {
+    chainSetupSeq++;
     chainId = chain;
     const name = chainName(chain);
     const data = await loadContracts();
@@ -385,7 +387,11 @@ window.RealityAsk.mount = async function () {
       signer   = new ethers.JsonRpcSigner(provider, walletAddr);
       walletNotice.style.display = 'none';
 
+      const seqAtConnect = chainSetupSeq;
       provider.getNetwork().then(async net => {
+        // Ignore if a chainChanged event or pill click already called setupForChain
+        // (i.e. the user acted before getNetwork resolved — common on slow WC relay).
+        if (chainSetupSeq !== seqAtConnect) return;
         const target = pendingChainId;
         pendingChainId = null;
         if (target && target !== Number(net.chainId)) {

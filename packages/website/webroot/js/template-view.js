@@ -43,6 +43,7 @@ window.RealityTemplate.mount = async function (routeId) {
   let walletAddr     = null;
   let chainId        = null;
   let pendingChainId = null;
+  let chainSetupSeq  = 0;
   let rcAddress      = null;
   let contractsData  = null;
   let selectedToken   = null;
@@ -219,6 +220,7 @@ window.RealityTemplate.mount = async function (routeId) {
   }
 
   async function setupForChain(chain) {
+    chainSetupSeq++;
     chainId = chain;
     const name = chainName(chain);
     const data = await loadContracts();
@@ -254,7 +256,9 @@ window.RealityTemplate.mount = async function (routeId) {
     if (walletAddr && window.ethereum) {
       provider = new ethers.BrowserProvider(window.ethereum);
       signer   = new ethers.JsonRpcSigner(provider, walletAddr);
+      const seqAtConnect = chainSetupSeq;
       provider.getNetwork().then(async net => {
+        if (chainSetupSeq !== seqAtConnect) return;
         const target = pendingChainId;
         pendingChainId = null;
         if (target && target !== Number(net.chainId)) {
