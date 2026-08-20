@@ -171,12 +171,15 @@ window.RealityTemplate.mount = async function (routeId) {
           return true;
         } catch {}
       }
-      // WC wallets (e.g. TrustWallet) may reject wallet_switchEthereumChain with
-      // "method not supported" (-32601) because they forward it to the wallet app
-      // instead of handling it in the SDK. WC v2 pre-approves all chains so
-      // transactions still work; treat anything other than explicit user rejection
-      // (4001) as success so the UI updates.
-      if (eth.session && err.code !== 4001) return true;
+      // WC wallets (e.g. TrustWallet) may reject wallet_switchEthereumChain because
+      // they forward it to the wallet app instead of the WC SDK handling it locally.
+      // Query eth_chainId to check if the wallet is already on the target chain.
+      if (eth.session && err.code !== 4001) {
+        try {
+          const actual = parseInt(await eth.request({ method: 'eth_chainId' }), 16);
+          if (actual === chain) return true;
+        } catch {}
+      }
       return false;
     } finally {
       if (eth.session) eth._internalChainSwitch = false;
