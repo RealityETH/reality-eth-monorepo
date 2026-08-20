@@ -1,5 +1,6 @@
 // Browser IIFE entry: exposes parsing/formatting helpers as window.RealityLib
 export {
+    delimiter,
     populatedJSONForTemplate,
     parseQuestionJSON,
     encodeText,
@@ -14,9 +15,21 @@ export {
     hasAnsweredTooSoonOption,
     getInvalidValue,
     getAnsweredTooSoonValue,
+    minNumber,
+    maxNumber,
+    arrayToBitmaskBigNumber,
+    padToBytes32,
+    convertTsToString,
+    secondsTodHms,
+    guessTemplateConfig,
+    getLanguage,
+    commitmentID,
+    shortDisplayQuestionID,
 } from './src/formatters/question.js';
 
 export {
     preloadedTemplateContents,
     preloadedTemplateContentsV32,
+    defaultTemplateIDForType,
+    defaultTemplateForType,
 } from './src/formatters/template.js';
