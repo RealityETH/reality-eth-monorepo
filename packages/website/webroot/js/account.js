@@ -22,12 +22,10 @@ const SCAN_ABI = [
 ];
 
 // Returns the right built-in template map for a contract version string.
-// v3.2+ and v2.2 use description+hash type; everything else uses category.
+// Minor version >= 2 uses description+hash type; .0 and .1 use category.
 function builtinTemplatesForVer(verStr) {
-  const m = (verStr || '').match(/(\d+)\.(\d+)/);
-  const [major, minor] = m ? [parseInt(m[1]), parseInt(m[2])] : [0, 0];
-  const isNew = (major > 3) || (major === 3 && minor >= 2) || (major === 2 && minor === 2);
-  return isNew
+  const minor = parseInt((verStr || '').match(/\.(\d+)/)?.[1] ?? '0');
+  return minor >= 2
     ? window.RealityLib.preloadedTemplateContentsV32()
     : window.RealityLib.preloadedTemplateContents();
 }
