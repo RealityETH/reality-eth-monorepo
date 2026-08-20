@@ -41,14 +41,6 @@ window.RealityAsk.mount = async function () {
     'function arbitrator_question_fees(address) view returns (uint256)',
   ];
 
-  const ARB_TOS = {
-    '0xff32eff': 'https://kleros.io/tos',
-    '0xf72cfd1': 'https://kleros.io/tos',
-    '0x7837638': 'https://kleros.io/tos',
-    '0x728cba7': 'https://kleros.io/tos',
-    '0x29f39de': 'https://kleros.io/tos',
-    '0x5afa42b': 'https://kleros.io/tos',
-  };
 
   // ── State ─────────────────────────────────────────────────────────────────────
   let provider      = null;
@@ -58,9 +50,10 @@ window.RealityAsk.mount = async function () {
   let rcAddress     = null;
   let rcToken       = 'ETH';
   let contractsData = null;
-  let selectedToken    = null;
-  let selectedVersion  = null;
-  let isERC20Contract  = false;
+  let selectedToken           = null;
+  let selectedVersion         = null;
+  let contractUsesDescription = false;
+  let isERC20Contract         = false;
   let rcTokenAddress   = null;
   let pendingChainId   = null;
   let customTemplate   = null;
@@ -174,13 +167,23 @@ window.RealityAsk.mount = async function () {
 
   function updateArbTos() {
     const val = arbSelect.value;
-    const isOther = val === 'other';
-    arbOtherEl.classList.toggle('visible', isOther);
-
-    const prefix = val.slice(0, 9).toLowerCase();
-    const tos = ARB_TOS[prefix];
-    arbTosEl.style.display = tos ? 'block' : 'none';
-    if (tos) arbTosLink.href = tos;
+    arbOtherEl.classList.toggle('visible', val === 'other');
+    arbTosEl.style.display = 'none';
+    if (!ethers.isAddress(val)) return;
+    const prov = provider || (window.ethereum ? new ethers.BrowserProvider(window.ethereum) : null);
+    if (!prov) return;
+    new ethers.Contract(val, ['function metadata() view returns (string)'], prov)
+      .metadata()
+      .then(raw => {
+        let meta;
+        try { meta = JSON.parse(raw); } catch { return; }
+        if (!meta.tos) return;
+        let tos = meta.tos;
+        if (tos.toLowerCase().startsWith('ipfs://')) tos = 'https://ipfs.io/ipfs/' + tos.slice(7);
+        arbTosLink.href = tos;
+        arbTosEl.style.display = 'block';
+      })
+      .catch(() => {});
   }
 
   // ── Token / version selection ─────────────────────────────────────────────────
@@ -237,6 +240,9 @@ window.RealityAsk.mount = async function () {
     isERC20Contract = !!info.token_address;
     rcTokenAddress = info.token_address || null;
     const supportsMinBond = versionMajor(version) >= 3;
+    const minor = parseInt((version || '').match(/\.(\d+)/)?.[1] ?? '0');
+    contractUsesDescription = minor >= 2;
+    if (typeSelect.value !== 'custom') applyCustomTemplate(null);
 
     document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
     document.getElementById('reward-token-label').textContent = `(${rcToken})`;
@@ -498,11 +504,17 @@ window.RealityAsk.mount = async function () {
       if (!allFilled) { setError('field-title-params'); ok = false; } else clearError('field-title-params');
     } else clearError('field-title-params');
 
-    const catField = document.getElementById('field-category');
-    const catSel   = document.getElementById('question-category');
+    const catField = form.querySelector('#field-category');
+    const catSel   = form.querySelector('#question-category');
     if (catField.style.display !== 'none' && catSel.style.display !== 'none') {
       if (!catSel.value) { setError('field-category'); ok = false; } else clearError('field-category');
     } else clearError('field-category');
+
+    const descField = form.querySelector('#field-description');
+    const descInput = form.querySelector('#question-description');
+    if (descField.style.display !== 'none') {
+      if (!descInput.value.trim()) { setError('field-description'); ok = false; } else clearError('field-description');
+    } else clearError('field-description');
 
     if (typeSelect.value === 'custom') {
       if (!customTemplate) { setError('field-custom-template'); ok = false; }
@@ -581,15 +593,17 @@ window.RealityAsk.mount = async function () {
   }
 
   function applyCustomTemplate(tmpl) {
-    document.querySelectorAll('.tpl-locked-value').forEach(el => el.remove());
-    const catSel    = document.getElementById('question-category');
+    form.querySelectorAll('.tpl-locked-value').forEach(el => el.remove());
+    const catSel    = form.querySelector('#question-category');
     catSel.style.display = '';
-    const fieldBody = document.getElementById('field-body');
-    const fieldCat  = document.getElementById('field-category');
+    const fieldBody = form.querySelector('#field-body');
+    const fieldCat  = form.querySelector('#field-category');
+    const fieldDesc = form.querySelector('#field-description');
 
     if (!tmpl) {
       fieldBody.style.display = '';
-      fieldCat.style.display = '';
+      fieldCat.style.display  = contractUsesDescription ? 'none' : '';
+      fieldDesc.style.display = contractUsesDescription ? '' : 'none';
       document.getElementById('field-title-params').style.display = 'none';
       const t = typeSelect.value;
       optionsWrap.classList.toggle('visible', t === 'single-select' || t === 'multiple-select');
@@ -624,12 +638,18 @@ window.RealityAsk.mount = async function () {
       fieldBody.style.display = (fields.title === 'param') ? '' : 'none';
     }
 
-    if (!('category' in fields)) {
+    if ('description' in fields) {
       fieldCat.style.display = 'none';
+      fieldDesc.style.display = fields.description === 'param' ? '' : 'none';
+    } else if (!('category' in fields)) {
+      fieldCat.style.display = 'none';
+      fieldDesc.style.display = 'none';
     } else if (fields.category === 'param') {
       fieldCat.style.display = '';
+      fieldDesc.style.display = 'none';
     } else {
       catSel.style.display = 'none';
+      fieldDesc.style.display = 'none';
       const locked = document.createElement('div');
       locked.className = 'tpl-locked-value';
       locked.textContent = String(fields.category.fixed ?? '');
@@ -736,8 +756,9 @@ window.RealityAsk.mount = async function () {
     submitBtn.textContent = 'Waiting for wallet…';
 
     try {
-      const title    = document.getElementById('question-body').value.trim();
-      const category = document.getElementById('question-category').value;
+      const title       = form.querySelector('#question-body').value.trim();
+      const category    = form.querySelector('#question-category').value;
+      const description = form.querySelector('#question-description').value.trim();
       const opening  = document.getElementById('opening-date').value;
       const timeout  = parseInt(timeoutSel.value);
       const rewardEth  = rewardInput.value || '0';
@@ -753,6 +774,7 @@ window.RealityAsk.mount = async function () {
         for (const { key } of customTemplate.paramOrder) {
           if (key === 'title')            values[key] = title;
           else if (key === 'category')    values[key] = category;
+          else if (key === 'description') values[key] = description;
           else if (key === 'outcomes')    values[key] = outcomes;
           else if (key.startsWith('title__')) {
             const inputEl = document.querySelector(`[data-param-key="${key}"]`);
@@ -763,7 +785,7 @@ window.RealityAsk.mount = async function () {
       } else {
         const type = typeSelect.value;
         templateId = TEMPLATE_IDS[type];
-        qtext = encodeQuestion(type, title, outcomes, category);
+        qtext = encodeQuestion(type, title, outcomes, contractUsesDescription ? description : category);
       }
       const openingTs = opening
         ? Math.floor(new Date(opening + 'T00:00:00Z').getTime() / 1000) : 0;

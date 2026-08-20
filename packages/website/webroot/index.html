@@ -36,7 +36,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=66';
+  var V = '?v=72';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -662,6 +662,7 @@
   .badge-chain   { background: var(--border-subtle); color: var(--text-dim); font-size: 11px; }
   .q-text-large  { font-size: 22px; font-weight: 600; line-height: 1.35; }
   .q-text-large.q-text-md { font-weight: normal; font-size: 15px; }
+  .q-description { margin-top: 8px; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
   .rpc-loading-note {
     display: flex; align-items: flex-start; gap: 6px; margin-top: 10px;
     font-size: 13px; color: var(--amber); line-height: 1.4;
@@ -2473,6 +2474,7 @@ header {
       <a class="watch-similar-link" id="watch-similar-link" href="#!/watch-configure">Watch similar questions →</a>
     </div>
     <div class="q-text-large" id="question-title" style="min-height:2lh"></div>
+    <div class="q-description" id="question-description-display" style="display:none"></div>
     <div class="rpc-loading-note" id="rpc-loading-note" style="display:none">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       Indexer unavailable — loading from RPC, this may be slow.
@@ -2536,6 +2538,7 @@ header {
           <div class="meta-row"><span class="meta-key">Question ID</span><span class="meta-val skel-val"></span></div>
         </div>
       </div>
+      <div id="arb-tos-question" class="arb-tos" style="display:none">Arbitrator terms of service: <a id="arb-tos-question-link" href="#" target="_blank" rel="noopener">View</a></div>
       <div class="arbitration-section" id="arbitration-section" style="display:none"></div>
       <div class="claim-section" style="display:none">
         <div class="card-title" style="margin-bottom:10px">Claim winnings</div>
@@ -3002,6 +3005,15 @@ header {
           <div class="field-help">Helps others find and classify the question.</div>
         </div>
 
+        <div class="field" id="field-description" style="display:none">
+          <div class="field-label-row">
+            <label for="question-description">Description</label>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">Additional context or details for the question.</span></span>
+          </div>
+          <textarea id="question-description" name="question-description" rows="3"></textarea>
+          <div class="field-error">Please enter a description.</div>
+        </div>
+
         <div class="field" id="field-opening">
           <div class="field-label-row">
             <label for="opening-date">Opening date <span class="label-note">(optional)</span></label>
@@ -3320,7 +3332,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=66';
+  const V = '?v=72';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

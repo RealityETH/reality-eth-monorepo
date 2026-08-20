@@ -1265,6 +1265,35 @@ export async function createCommitRevealSelectFixtures() {
 // Creates a bool question whose text is properly ␟-encoded so that template
 // resolution is meaningful.  Used to verify the account page resolves templates
 // from RPC logs and shows the title part only (not the raw encoded string).
+// nonce=0 on v3.2 — first fixture to use that contract.
+export async function createDescriptionFixtures() {
+  const DELIMITER = '␟';
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth32, REALITY_ETH_ABI, wallet);
+
+  const title = 'Description display test question';
+  const description = 'This is the description of the question, shown below the title.';
+  const questionText = `${title}${DELIMITER}${description}${DELIMITER}en`;
+
+  const questionId = computeQuestionId(
+    0, 0, questionText,
+    ethers.ZeroAddress, 60, 0,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth32
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      0, questionText,
+      ethers.ZeroAddress, 60, 0, 0,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+  }
+
+  return { questionId, title, description, contract: CONTRACTS.realityEth32 };
+}
+
 // nonce=30 — nonces 0–29 on v3.0 are taken by other fixture functions.
 export async function createAccountTemplateFixtures() {
   const DELIMITER = '␟';
@@ -1293,4 +1322,57 @@ export async function createAccountTemplateFixtures() {
   }
 
   return { questionId, title, contract: CONTRACTS.realityEth30 };
+}
+
+// Creates a question with a mock arbitrator that returns TOS metadata.
+// The mock is deployed via anvil_setCode so no Solidity compilation is needed.
+// nonce=31 — nonces 0–30 on v3.0 are taken by other fixture functions.
+export async function createTOSFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const MOCK_ARB_ADDR = '0x1234567890123456789012345678901234567890';
+  const TOS_META = '{"tos":"ipfs://QmTestTOSHash"}';
+
+  // Build EVM runtime bytecode that unconditionally returns ABI-encoded TOS_META
+  // for any call (no function selector dispatch needed for tests).
+  const returnData = ethers.AbiCoder.defaultAbiCoder().encode(['string'], [TOS_META]);
+  // returnData: 3 × 32-byte words (offset header, length, string bytes)
+  const words = [
+    returnData.slice(2, 66),    // word0: offset = 32
+    returnData.slice(66, 130),  // word1: string length
+    returnData.slice(130, 194), // word2: string bytes, right-padded
+  ];
+  // PUSH32 each word into memory, then RETURN 96 bytes from offset 0
+  const bytecode = '0x' + [
+    '7f', words[0], '6000', '52', // PUSH32 word0, PUSH1 0x00, MSTORE
+    '7f', words[1], '6020', '52', // PUSH32 word1, PUSH1 0x20, MSTORE
+    '7f', words[2], '6040', '52', // PUSH32 word2, PUSH1 0x40, MSTORE
+    '6060', '6000', 'f3',          // PUSH1 0x60(96), PUSH1 0x00, RETURN
+  ].join('');
+
+  await provider.send('anvil_setCode', [MOCK_ARB_ADDR, bytecode]);
+
+  const TIMEOUT_90_DAYS = 7776000;
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'TOS test: arbitrator with terms of service',
+    MOCK_ARB_ADDR, TIMEOUT_90_DAYS, 31,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      TEMPLATE.bool, 'TOS test: arbitrator with terms of service',
+      MOCK_ARB_ADDR, TIMEOUT_90_DAYS, 0, 31,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+  }
+
+  return {
+    questionId,
+    arbAddr: MOCK_ARB_ADDR,
+    expectedTosUrl: 'https://ipfs.io/ipfs/QmTestTOSHash',
+  };
 }

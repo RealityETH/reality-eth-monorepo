@@ -138,8 +138,9 @@ export function wcWalletMockScript({
 // Set up a fresh Playwright page for a website test:
 //  - inject the wallet mock (EIP-1193 backed by anvil)
 //  - intercept /graphql so Ponder returns no data → triggers RPC fallback
-export async function setupPage(page) {
-  await page.addInitScript(walletMockScript());
+// opts.extraContracts: lowercase addresses to add to KNOWN_LOCAL_CONTRACTS
+export async function setupPage(page, opts = {}) {
+  await page.addInitScript(walletMockScript({ extraContracts: opts.extraContracts ?? [] }));
   // Return a null question so question.js falls back to RPC event scanning
   await page.route('**/graphql**', route =>
     route.fulfill({
@@ -166,13 +167,29 @@ export async function setupPageWithStalePonder(page, ponderData) {
 
 // Returns a script string injected via page.addInitScript().
 // EIP-1193 mock backed by the local anvil node.
-export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) {
+// Also injects window.RealitySettings.getRpcUrl so that question.js readProvider
+// points to Anvil rather than the public chain RPC — needed for anvil_setCode mocks.
+export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [] } = {}) {
   return `
 (function() {
   const RPC_URL = ${JSON.stringify(rpcUrl)};
   let _chainId = ${JSON.stringify(chainId)};
   const _address = ${JSON.stringify(TEST_ACCOUNT.address)};
   const _handlers = {};
+
+  // question.js creates readProvider from window.RealitySettings.getRpcUrl() or
+  // PUBLIC_RPC[chainId]. settings.js (a defer script) overwrites RealitySettings
+  // after addInitScript, so we can't intercept there. Instead, redirect all fetch
+  // calls to public chain RPC URLs to Anvil so readProvider hits the local fork.
+  const _origFetch = window.fetch;
+  window.fetch = async function(resource, init) {
+    const url = typeof resource === 'string' ? resource
+      : (resource instanceof URL ? resource.href : resource && resource.url);
+    if (typeof url === 'string' && url.includes('rpc.gnosischain.com')) {
+      resource = RPC_URL;
+    }
+    return _origFetch.call(this, resource, init);
+  };
 
   // Clip eth_getLogs fromBlock to the first local block so continuous event scans
   // never touch the archive.  Targeted historical queries (fromBlock == toBlock at an
@@ -189,6 +206,7 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL } = {}) 
     '0xe78996a233895be74a66f451f1019ca9734205cc', // reality.eth v3.0
     '0xeb51d9d9717906c981c57af09c4a3449ef30705b', // reality.eth v3.2
     '0x29f39de98d750eb77b5fafb31b2837f079fce222', // Kleros ForeignArbitrationProxy
+    ...${JSON.stringify(extraContracts)},
   ]);
 
   async function rpc(method, params = []) {

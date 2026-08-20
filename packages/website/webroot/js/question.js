@@ -1606,6 +1606,28 @@ function renderHistory(data) {
   }
 }
 
+// ── Arbitrator TOS ────────────────────────────────────────────────────────────
+async function renderArbitratorTOS(arbitrator) {
+  if (isSelfArbitrator(arbitrator)) return;
+  if (!readProvider) return;
+  let tos = null;
+  try {
+    const arb = new ethers.Contract(arbitrator, ['function metadata() view returns (string)'], readProvider);
+    const raw = await arb.metadata();
+    const meta = JSON.parse(raw);
+    if (meta.tos) tos = meta.tos;
+  } catch(e) {}
+  if (!tos) return;
+  if (tos.toLowerCase().startsWith('ipfs://')) {
+    tos = 'https://ipfs.io/ipfs/' + tos.slice(7);
+  }
+  const el = document.getElementById('arb-tos-question');
+  const link = document.getElementById('arb-tos-question-link');
+  if (!el || !link) return;
+  link.href = tos;
+  el.style.display = '';
+}
+
 // ── Arbitration section ───────────────────────────────────────────────────────
 async function renderArbitrationSection(data, walletAddr) {
   const section = document.getElementById('arbitration-section');
@@ -2660,6 +2682,17 @@ async function main(hintAddr) {
     }
   }
 
+  const descEl = document.getElementById('question-description-display');
+  if (descEl) {
+    const desc = data.qjson?.description;
+    if (desc) {
+      descEl.textContent = desc;
+      descEl.style.display = '';
+    } else {
+      descEl.style.display = 'none';
+    }
+  }
+
   const badgesEl = qPage.querySelector('.q-badges');
   if (badgesEl && data.qjson?.type) {
     const TYPE_SHORT = { bool:'Yes / No', uint:'Number', int:'Number', 'single-select':'Choice', 'multiple-select':'Multi-choice', datetime:'Date' };
@@ -2934,8 +2967,9 @@ async function main(hintAddr) {
   lastFormState = null; // force form rebuild now that metaMajorVersion is available
   _renderDynamic();
 
-  // 7. Arbitration section (async, one-time)
+  // 7. Arbitration section and TOS (async, one-time)
   renderArbitrationSection(data, walletAddr).catch(() => {});
+  renderArbitratorTOS(data.arbitrator).catch(() => {});
 
   // 8. Background RPC verification + reveal-map population
   if (reality) verifyWithRpc(data).catch(() => {});
