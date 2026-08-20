@@ -4,6 +4,7 @@
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "build": "tsc",
+    "build:browser": "node build-browser.mjs",
     "test": "npm run build && env TZ='Asia/Kabul' mocha ./test"
   },
   "exports": {
@@ -38,6 +39,7 @@
     "bignumber.js": "^7.2.1",
     "chai": "^4.3.6",
     "chai-bignumber": "^2.0.2",
+    "esbuild": "0.28.2",
     "mocha": "^5.2.0",
     "truffle": "^4.0.1",
     "typescript": "^6.0.3"
