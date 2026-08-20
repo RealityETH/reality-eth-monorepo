@@ -38,12 +38,13 @@ window.RealityTemplate.mount = async function (routeId) {
   };
 
   // ── State ─────────────────────────────────────────────────────────────────────
-  let provider      = null;
-  let signer        = null;
-  let walletAddr    = null;
-  let chainId       = null;
-  let rcAddress     = null;
-  let contractsData = null;
+  let provider       = null;
+  let signer         = null;
+  let walletAddr     = null;
+  let chainId        = null;
+  let pendingChainId = null;
+  let rcAddress      = null;
+  let contractsData  = null;
   let selectedToken   = null;
   let selectedVersion = null;
   let templateMode    = 'custom';
@@ -51,7 +52,6 @@ window.RealityTemplate.mount = async function (routeId) {
   // ── DOM refs ──────────────────────────────────────────────────────────────────
   const submitBtn    = document.getElementById('submit-btn');
   const txError      = document.getElementById('tx-error');
-  const walletNotice = document.getElementById('wallet-notice');
   const networkName  = document.getElementById('network-name');
   const networkDot   = document.getElementById('network-dot');
   const jsonPreview  = document.getElementById('json-preview');
@@ -156,16 +156,21 @@ window.RealityTemplate.mount = async function (routeId) {
 
   // ── Chain switching ───────────────────────────────────────────────────────────
   async function switchChain(chain) {
-    if (!window.ethereum) return;
+    if (!window.ethereum) return false;
     const eth = window.ethereum;
     const hexChain = '0x' + chain.toString(16);
     try {
       if (eth.session) eth._internalChainSwitch = true;
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
+      return true;
     } catch (err) {
       if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
-        try { await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] }); } catch {}
+        try {
+          await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
+          return true;
+        } catch {}
       }
+      return false;
     } finally {
       if (eth.session) eth._internalChainSwitch = false;
     }
@@ -182,7 +187,7 @@ window.RealityTemplate.mount = async function (routeId) {
 
     const container = document.getElementById('tc-chain-pills');
     container.innerHTML = '';
-    container.classList.toggle('visible', !!walletAddr);
+    container.classList.add('visible');
 
     function makePill(id) {
       const btn = document.createElement('button');
@@ -245,24 +250,30 @@ window.RealityTemplate.mount = async function (routeId) {
 
   // ── Wallet ────────────────────────────────────────────────────────────────────
   function applyWallet(addr) {
-    walletAddr = addr && window.ethereum ? addr : null;
-    if (walletAddr) {
+    walletAddr = addr || null;
+    if (walletAddr && window.ethereum) {
       provider = new ethers.BrowserProvider(window.ethereum);
       signer   = new ethers.JsonRpcSigner(provider, walletAddr);
-      walletNotice.style.display = 'none';
-      provider.getNetwork().then(net => setupForChain(Number(net.chainId)));
+      provider.getNetwork().then(async net => {
+        const target = pendingChainId;
+        pendingChainId = null;
+        if (target && target !== Number(net.chainId)) {
+          await switchChain(target);
+        } else {
+          setupForChain(target || Number(net.chainId));
+        }
+      });
       window.ethereum.removeAllListeners?.('chainChanged');
       window.ethereum.on('chainChanged', hexChain => {
         provider = new ethers.BrowserProvider(window.ethereum);
         signer   = new ethers.JsonRpcSigner(provider, walletAddr);
         setupForChain(parseInt(hexChain, 16));
       });
-    } else {
+    } else if (!walletAddr) {
       provider = null; signer = null;
       networkName.textContent = 'Not connected';
       networkDot.classList.add('unknown');
-      walletNotice.style.display = 'block';
-      buildChainPills(null);
+      buildChainPills(pendingChainId);
     }
     updateSubmitState();
   }
@@ -488,8 +499,14 @@ window.RealityTemplate.mount = async function (routeId) {
   }
 
   function updateSubmitState() {
-    const tmpl = buildTemplate();
-    submitBtn.disabled = !walletAddr || !rcAddress || !tmpl;
+    if (!walletAddr) {
+      submitBtn.textContent = 'Connect wallet';
+      submitBtn.disabled = false;
+    } else {
+      const tmpl = buildTemplate();
+      submitBtn.textContent = 'Create template';
+      submitBtn.disabled = !rcAddress || !tmpl;
+    }
   }
 
   // ── TX helpers ────────────────────────────────────────────────────────────────
@@ -500,6 +517,10 @@ window.RealityTemplate.mount = async function (routeId) {
 
   // ── Submit ────────────────────────────────────────────────────────────────────
   submitBtn.addEventListener('click', async () => {
+    if (!walletAddr) {
+      if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+      return;
+    }
     if (!signer || !rcAddress) return;
     if (!validate()) return;
 
@@ -740,10 +761,16 @@ window.RealityTemplate.mount = async function (routeId) {
     const pill = e.target.closest('.chain-pill');
     if (!pill) return;
     const chain = parseInt(pill.dataset.chain);
-    await switchChain(chain);
-    // WC doesn't fire chainChanged when switching to the required chain (chain 1);
-    // call setupForChain directly so the UI updates in all cases.
-    if (window.ethereum?.session) setupForChain(chain);
+    if (walletAddr) {
+      const switched = await switchChain(chain);
+      // WC doesn't fire chainChanged when switching to chain 1 (its required chain).
+      // Use the promise return value (not window.ethereum.chainId, which is stale
+      // for required chains) to decide whether the switch succeeded.
+      if (window.ethereum?.session && switched) setupForChain(chain);
+    } else {
+      pendingChainId = chain;
+      setupForChain(chain);
+    }
   });
 
   document.getElementById('token-pills').addEventListener('click', e => {
@@ -771,4 +798,5 @@ window.RealityTemplate.mount = async function (routeId) {
     document.title = 'reality.eth — Create template';
     loadContracts().catch(() => {});
   }
+  buildChainPills(null);
 };

@@ -279,16 +279,21 @@ window.RealityAsk.mount = async function () {
 
   // ── Chain switching ───────────────────────────────────────────────────────────
   async function switchChain(chain) {
-    if (!window.ethereum) return;
+    if (!window.ethereum) return false;
     const eth = window.ethereum;
     const hexChain = '0x' + chain.toString(16);
     try {
       if (eth.session) eth._internalChainSwitch = true;
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
+      return true;
     } catch (err) {
       if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
-        try { await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] }); } catch {}
+        try {
+          await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
+          return true;
+        } catch {}
       }
+      return false;
     } finally {
       if (eth.session) eth._internalChainSwitch = false;
     }
@@ -899,11 +904,11 @@ window.RealityAsk.mount = async function () {
     if (!pill) return;
     const chain = parseInt(pill.dataset.chain);
     if (walletAddr) {
-      await switchChain(chain);
-      // WC doesn't fire chainChanged when switching to chain 1 (its required chain);
-      // call setupForChain with the actual post-switch chainId so the UI reflects
-      // the real state even when the wallet rejected the switch request.
-      if (window.ethereum?.session) setupForChain(window.ethereum.chainId || chain);
+      const switched = await switchChain(chain);
+      // WC doesn't fire chainChanged when switching to chain 1 (its required chain).
+      // Use the promise return value (not window.ethereum.chainId, which is stale
+      // for required chains) to decide whether the switch succeeded.
+      if (window.ethereum?.session && switched) setupForChain(chain);
     } else {
       pendingChainId = chain;
       setupForChain(chain);
