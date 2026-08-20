@@ -17,8 +17,17 @@ const BLOCKS_PER_DAY = { 1: 7200, 10: 43200, 100: 17280, 137: 43200, 42161: 3600
 const SCAN_ABI = [
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 created)',
   'event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
-  'function templates(uint256) view returns (string)',
+  'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
+  'function templates(uint256) view returns (uint256)',
 ];
+
+const BUILTIN_TEMPLATES = {
+  0: '{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}',
+  1: '{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}',
+  2: '{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+  3: '{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}',
+  4: '{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}',
+};
 
 const REALITY_ABI = [
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
@@ -289,17 +298,27 @@ window.RealityAccount.mount = async function (addr) {
       const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock);
       answerEvents.sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
-      // Resolve template to get title, type, category, and questionJson
+      // Resolve template to get title, type, category, and questionJson.
+      // templates() returns the creation block number; the text is in LogNewTemplate at that block.
       let resolvedJson = null;
       try {
         const templateId = Number(qEvent.args.template_id);
         const cacheKey = `${info.contract}-${templateId}`;
         let templateStr = templateCache[cacheKey];
         if (!templateStr) {
-          templateStr = await rc.templates(templateId);
-          templateCache[cacheKey] = templateStr;
+          templateStr = BUILTIN_TEMPLATES[templateId] ?? null;
+          if (!templateStr) {
+            const tBlock = Number(await rc.templates(templateId));
+            if (tBlock) {
+              const tevs = await rc.queryFilter(rc.filters.LogNewTemplate(templateId), tBlock, tBlock);
+              templateStr = tevs[0]?.args.question_text ?? null;
+            }
+          }
+          if (templateStr) templateCache[cacheKey] = templateStr;
         }
-        resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args.question));
+        if (templateStr) {
+          resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args.question));
+        }
       } catch {}
 
       const state = await questionsStructFallback(prov, info.contract, qId);

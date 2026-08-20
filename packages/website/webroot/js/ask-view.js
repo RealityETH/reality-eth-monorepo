@@ -25,7 +25,8 @@ window.RealityAsk.mount = async function () {
   const RC_ABI = [
     'function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) payable returns (bytes32)',
     'function askQuestionWithMinBond(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond) payable returns (bytes32)',
-    'function templates(uint256) view returns (string)',
+    'function templates(uint256) view returns (uint256)',
+    'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
     'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
   ];
   const RC_ERC20_ABI = [
@@ -660,8 +661,11 @@ window.RealityAsk.mount = async function () {
       } catch {}
       if (!templateStr && provider) {
         const rc = new ethers.Contract(rcAddress, RC_ABI, provider);
-        const result = await rc.templates(id);
-        if (result) templateStr = result;
+        const tBlock = Number(await rc.templates(id));
+        if (tBlock) {
+          const tevs = await rc.queryFilter(rc.filters.LogNewTemplate(id), tBlock, tBlock);
+          templateStr = tevs[0]?.args.question_text ?? null;
+        }
       }
       if (!templateStr) {
         statusEl.textContent = '';
