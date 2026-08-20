@@ -21,7 +21,6 @@ export {
     padToBytes32,
     convertTsToString,
     secondsTodHms,
-    guessTemplateConfig,
     getLanguage,
     commitmentID,
     shortDisplayQuestionID,
