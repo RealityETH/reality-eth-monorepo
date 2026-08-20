@@ -208,6 +208,17 @@ window.RealityAccount.mount = async function (addr) {
     const syncEntries = await QCache.getAllSync().catch(() => []);
     const asked = [], answered = [], userResponses = [];
 
+    // Build contract→ver lookup so we can choose the right built-in template set.
+    const contracts = await loadContracts().catch(() => ({}));
+    const verByContract = {};
+    for (const chainData of Object.values(contracts)) {
+      for (const versions of Object.values(chainData)) {
+        for (const [ver, v] of Object.entries(versions)) {
+          if (v.address) verByContract[v.address.toLowerCase()] = ver;
+        }
+      }
+    }
+
     for (const entry of syncEntries) {
       const { chainId, contract, questionId } = entry;
       const cached = await QCache.get(chainId, contract, questionId).catch(() => null);
@@ -219,7 +230,17 @@ window.RealityAccount.mount = async function (addr) {
       const isAnswered = answerEvents.some(ev => String(ev.args?.user || '').toLowerCase() === addr);
       if (!isAsked && !isAnswered) continue;
 
-      const q = buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, null);
+      let resolvedJson = null;
+      try {
+        const templateId = Number(qEvent.args?.template_id);
+        const ver = verByContract[contract?.toLowerCase()] ?? null;
+        const templateStr = builtinTemplatesForVer(ver)[templateId] ?? null;
+        if (templateStr) {
+          resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args?.question ?? ''));
+        }
+      } catch(e) { console.error('[cache-template]', e); }
+
+      const q = buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, resolvedJson);
       if (isAsked)    asked.push(q);
       if (isAnswered) answered.push(q);
 
@@ -320,7 +341,7 @@ window.RealityAccount.mount = async function (addr) {
         if (templateStr) {
           resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args.question));
         }
-      } catch {}
+      } catch(e) { console.error('[account-template]', e, 'ver=', info.ver, 'qArgs=', qEvent?.args); }
 
       const state = await questionsStructFallback(prov, info.contract, qId);
       const q     = buildQuestionFromEvents(qId, info.contract, chainId, qEvent, answerEvents, state, resolvedJson);

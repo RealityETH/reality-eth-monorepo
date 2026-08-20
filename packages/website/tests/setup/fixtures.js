@@ -1261,3 +1261,36 @@ export async function createCommitRevealSelectFixtures() {
 
   return { questionId, answer: DOG };
 }
+
+// Creates a bool question whose text is properly ␟-encoded so that template
+// resolution is meaningful.  Used to verify the account page resolves templates
+// from RPC logs and shows the title part only (not the raw encoded string).
+// nonce=30 — nonces 0–29 on v3.0 are taken by other fixture functions.
+export async function createAccountTemplateFixtures() {
+  const DELIMITER = '␟';
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const title = 'Account template resolution check';
+  const questionText = `${title}${DELIMITER}crypto${DELIMITER}en`;
+
+  const questionId = computeQuestionId(
+    0, 0, questionText,
+    ethers.ZeroAddress, 60, 30,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  if (!alreadyExists) {
+    await (await reality.askQuestion(
+      0, questionText,
+      ethers.ZeroAddress, 60, 0, 30,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+  }
+
+  return { questionId, title, contract: CONTRACTS.realityEth30 };
+}
