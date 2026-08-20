@@ -900,7 +900,7 @@ function buildAnswerForm(data, walletAddr) {
   }
 
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
-  const hasTooSoon = majorVersion >= 3;
+  const hasTooSoon = (metaMajorVersion ?? majorVersion) >= 3;
 
   // ── Build form wrapper ──
   const form = document.createElement('div');
