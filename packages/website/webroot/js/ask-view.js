@@ -104,13 +104,19 @@ window.RealityAsk.mount = async function () {
     return Object.keys(data[String(chain)] || {});
   }
 
+  // Matches the priority order of realityETHConfig() in @reality.eth/contracts:
+  // 3.0 is preferred over 3.2 because fewer arbitrators support 3.2 yet.
+  const VERSION_PRIORITY = ['3.0', '3.2', '2.1', '2.1-rc1', '2.0'];
+
   function getVersionsForToken(data, chain, token) {
     const versions = data[String(chain)]?.[token] || {};
+    const verNum = v => v.replace(/^[A-Za-z_]+-/, '');
     return Object.keys(versions)
       .filter(v => versions[v]?.address && !versions[v]?.reality_eth_address)
       .sort((a, b) => {
-        const key = v => { const m = v.match(/(\d+)\.(\d+)$/); return m ? parseInt(m[1]) * 100 + parseInt(m[2]) : 0; };
-        return key(b) - key(a);
+        const ai = VERSION_PRIORITY.indexOf(verNum(a));
+        const bi = VERSION_PRIORITY.indexOf(verNum(b));
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
       });
   }
 
