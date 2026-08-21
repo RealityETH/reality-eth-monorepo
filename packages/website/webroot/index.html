@@ -1860,7 +1860,7 @@ header {
   border: 1px solid #f5d8b0;
 }
 .q-meta .badge-upcoming::after {
-  content: 'Pend.';
+  content: 'Wait';
   font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
   padding: 2px 6px; border-radius: 2px;
   background: var(--border-subtle); color: var(--text-dim);
@@ -2220,7 +2220,7 @@ header {
   <p class="page-intro">Reality.eth is an on-chain fact-checking system and smart contract oracle for answering natural-language questions. Any person or contract can ask a question, and it uses an escalation game to incentivize people and agents to answer truthfully. It can be backstopped by any arbitration system you choose, but a common choice is <a href="https://kleros.io">Kleros</a>.
 	<br />
 	<br />
-	<a href="#!/ask">Ask a question now</a> or learn <a href="#!/docs">how to integrate it into your project</a>.
+	<a href="#!/ask">Ask a question now</a> or <a href="#!/docs">read the docs</a> to find out how to integrate it into your project</a>.
 	<br />
 	<br />
 
@@ -2238,7 +2238,7 @@ header {
   <!-- ── Known integrations ──────────────────────────── -->
   <div class="section-heading has-carousel">
     <h2>Integrations</h2>
-    <span class="sub">Apps using reality.eth as their oracle</span>
+    <span class="sub">Some apps using reality.eth</span>
     <button class="integ-show-all-btn" id="integ-show-all-btn" onclick="toggleIntegGrid()">Show more</button>
     <div class="carousel-nav" id="carousel-nav">
       <button class="carousel-arrow" id="carousel-prev" aria-label="Previous">&#8249;</button>
@@ -2265,7 +2265,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#1158cc)">G</div>
       </div>
       <div class="app-card-name">DAO Governance</div>
-      <div class="app-card-desc">Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes.</div>
+      <div class="app-card-desc">Prediction questions tracking Gnosis DAO (GIP) and Kleros (KIP) governance proposal outcomes powering a futarchy system.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2277,7 +2277,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#ff9800,#e65100)">D</div>
       </div>
       <div class="app-card-name">DeepFunding</div>
-      <div class="app-card-desc">Open source AI project funding evaluation on Optimism. Contributors submit pairwise comparison questions to rank project impact.</div>
+      <div class="app-card-desc">Open source AI project funding evaluation on Optimism. Contributors submit comparison questions to rank project impact.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2302,7 +2302,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#d29922,#b08800)">K</div>
       </div>
       <div class="app-card-name">Kleros · Moderate</div>
-      <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities via Kleros dispute resolution.</div>
+      <div class="app-card-desc">Decentralised content moderation for Telegram groups and online communities.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2326,7 +2326,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#7c4dff,#4527a0)">O</div>
       </div>
       <div class="app-card-name">Olas Network</div>
-      <div class="app-card-desc">Prediction markets created by autonomous AI agents in the Olas Network on Gnosis Chain, covering crypto, politics, sports, and current events.</div>
+      <div class="app-card-desc">Prediction markets created by autonomous AI agents in the Olas Network on Gnosis Chain.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2338,7 +2338,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#e91e63,#880e4f)">P</div>
       </div>
       <div class="app-card-name">Polkamarkets</div>
-      <div class="app-card-desc">DeFi-native prediction market protocol on Polygon. Uses reality.eth as the decentralised resolution oracle for market outcomes.</div>
+      <div class="app-card-desc">DeFi-native prediction market protocol on Polygon.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2350,7 +2350,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#3fb950,#1a7f37)">S</div>
       </div>
       <div class="app-card-name">Seer</div>
-      <div class="app-card-desc">AI-generated prediction markets on Gnosis Chain covering sports, crypto, politics, and more. Uses a 10 xDAI minimum bond.</div>
+      <div class="app-card-desc">Prediction markets on Gnosis Chain built by Kleros.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2362,7 +2362,7 @@ header {
         <div class="app-icon" style="background:linear-gradient(135deg,#58a6ff,#bc8cff)">S</div>
       </div>
       <div class="app-card-name">Snapshot</div>
-      <div class="app-card-desc">Verifies off-chain DAO governance votes. Each Gnosis Safe with SafeSnap or Zodiac Reality Module has its own creator contract address.</div>
+      <div class="app-card-desc">Uses the Zodiac Reality Module to execute off-chain votes in a Gnosis Safe.</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2386,7 +2386,7 @@ header {
         <div class="app-icon" style="background:#6e7681">…</div>
       </div>
       <div class="app-card-name">Other</div>
-      <div class="app-card-desc">Questions from addresses not associated with a known integration — prediction markets, DAO governance, testing, and more.</div>
+      <div class="app-card-desc">All kinds of other amazing things people have built</div>
       <div class="app-card-stats">
         <div class="stat"><span class="stat-val open">…</span><span class="stat-label">Open</span></div>
         <div class="stat"><span class="stat-val total">…</span><span class="stat-label">Total</span></div>
@@ -2408,11 +2408,9 @@ header {
     <div class="filter-bar">
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="open">Open</button>
+      <button class="filter-btn" data-filter="upcoming">Waiting to open</button>
       <button class="filter-btn" data-filter="arb">Pending arbitration</button>
       <button class="filter-btn" data-filter="finalized">Finalized</button>
-      <div class="filter-sep"></div>
-      <button class="filter-btn" data-type="bool">Yes/No</button>
-      <button class="filter-btn" data-type="multi">Multiple choice</button>
     </div>
     <div class="filter-bar">
       <button class="filter-btn active" data-chain="all">All</button>
@@ -2506,7 +2504,7 @@ header {
         <div class="claim-history-list"></div>
       </div>
       <div class="reopen-container" style="display:none">
-        <p>This question was answered when it was too soon.</p>
+        <p>This question was answered before the the event it referred to occurred or before answer was known. If you think the answer is now available you can reopen it.</p>
         <button class="reopen-question-submit">Reopen question</button>
       </div>
       <div class="reopened-container" style="display:none">
@@ -2533,7 +2531,7 @@ header {
           <div class="meta-row"><span class="meta-key">Type</span><span class="meta-val skel-val"></span></div>
           <div class="meta-row"><span class="meta-key">Creator</span><span class="meta-val skel-val"></span></div>
           <div class="meta-row"><span class="meta-key">Opened</span><span class="meta-val skel-val"></span></div>
-          <div class="meta-row"><span class="meta-key">Resolution window</span><span class="meta-val skel-val"></span></div>
+          <div class="meta-row"><span class="meta-key">Dispute timeout</span><span class="meta-val skel-val"></span></div>
           <div class="meta-row"><span class="meta-key">Arbitrator</span><span class="meta-val skel-val"></span></div>
           <div class="meta-row"><span class="meta-key">Contract</span><span class="meta-val skel-val"></span></div>
           <div class="meta-row"><span class="meta-key">Question ID</span><span class="meta-val skel-val"></span></div>
@@ -3041,7 +3039,7 @@ header {
             <option value="datetime">Date / time</option>
             <option value="custom">Custom template</option>
           </select>
-          <div class="field-help">For prediction markets and DAO votes, Yes / No is usually right.</div>
+          <div class="field-help"></div>
         </div>
 
         <div class="field" id="field-custom-template" style="display:none">
@@ -3078,7 +3076,7 @@ header {
         <div class="field" id="field-timeout">
           <div class="field-label-row">
             <label for="question-timeout">Dispute window</label>
-            <span class="help-icon" tabindex="0">?<span class="help-tooltip">After each new answer is posted, this window resets. The last unchallenged answer when the window expires becomes final. Longer windows give more time to spot and correct a wrong answer. Under 24 hours is not recommended.</span></span>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">After each new answer is posted, this window resets. The last unchallenged answer when the window expires becomes final. Longer windows give more time to spot and correct a wrong answer.</span></span>
           </div>
           <select id="question-timeout" name="question-timeout">
             <option value="30">30 seconds — testing only</option>
@@ -3094,7 +3092,7 @@ header {
             <option value="432000">5 days</option>
             <option value="604800">1 week</option>
           </select>
-          <div class="field-help">After each new answer, this window resets. The last unchallenged answer when the window expires is the result. Longer windows give more time to correct mistakes.</div>
+          <div class="field-help">After each new answer, this window resets. The last unchallenged answer when the window expires is the result. Longer windows give more time to correct mistakes or lies.</div>
         </div>
 
         <div class="field" id="field-minbond">
@@ -3117,7 +3115,7 @@ header {
           </div>
           <input type="number" id="question-reward" name="question-reward" min="0" step="any" value="0" placeholder="0">
           <div class="field-error">Please enter a valid amount.</div>
-          <div class="field-help">Paid to whoever provides the final answer. Zero is fine — the answerer still earns the disputed bond.</div>
+          <div class="field-help">Paid to whoever provides the final answer. It's OK not to provide a reward if you think someone will have an incentive to post the answer even without one.</div>
         </div>
       </div>
 
@@ -3126,7 +3124,7 @@ header {
         <div class="field" id="field-arbitrator">
           <div class="field-label-row">
             <label for="question-arbitrator">Arbitrator</label>
-            <span class="help-icon" tabindex="0">?<span class="help-tooltip">A contract that settles disputes for a fee when challengers can't agree. If bonds keep escalating, either side can pay the arbitrator for a binding ruling. Choose one you trust — an untrustworthy arbitrator can force any answer they like.</span></span>
+            <span class="help-icon" tabindex="0">?<span class="help-tooltip">A contract that can be paid to settle disputes for a fee if the dispute escalates higher than one participant wants to raise. Choose one you trust — an untrustworthy arbitrator can force any answer they like. Their fees are often high, but an honest user can cover them and still make a profit by making the other party put up a bond higher than the cost of arbitration.</span></span>
           </div>
           <select id="question-arbitrator" name="question-arbitrator">
             <option value="">Loading…</option>
@@ -3424,7 +3422,6 @@ header {
   let hasNextPage = false;
   let ponderFailed = false;
   let statusFilters = new Set(); // empty = show all
-  let typeFilters   = new Set(); // empty = show all types
   let sortOpt = 'recent';
   let chainFilters = new Set(); // empty = all chains
   let categoryFilter = null;    // null = all categories
@@ -3733,14 +3730,6 @@ header {
 
     if (statusFilters.size > 0) {
       out = out.filter(q => statusFilters.has(getStatus(q)));
-    }
-
-    if (typeFilters.size > 0) {
-      out = out.filter(q => {
-        const isMulti = q.type === 'single-select' || q.type === 'multiple-select';
-        return (typeFilters.has('bool') && q.type === 'bool') ||
-               (typeFilters.has('multi') && isMulti);
-      });
     }
 
     if (templateFilter !== null) {
@@ -4197,10 +4186,6 @@ header {
             fetchQuestions(true);
             return;
           }
-        } else if (t) {
-          if (typeFilters.has(t)) typeFilters.delete(t);
-          else typeFilters.add(t);
-          syncFilterButtons();
         }
         renderList();
       });
@@ -4211,9 +4196,6 @@ header {
         .classList.toggle('active', statusFilters.size === 0);
       document.querySelectorAll('.filter-btn[data-filter]:not([data-filter="all"])').forEach(b => {
         b.classList.toggle('active', statusFilters.has(b.dataset.filter));
-      });
-      document.querySelectorAll('.filter-btn[data-type]').forEach(b => {
-        b.classList.toggle('active', typeFilters.has(b.dataset.type));
       });
       document.querySelectorAll('.filter-btn[data-chain]').forEach(b => {
         if (b.dataset.chain === 'all') b.classList.toggle('active', chainFilters.size === 0);
