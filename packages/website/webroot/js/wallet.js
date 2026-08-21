@@ -168,7 +168,7 @@
     if (window.WalletConnectProvider) return Promise.resolve(window.WalletConnectProvider);
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'js/walletconnect.js';
+      s.src = 'js/vendor/walletconnect.js';
       s.onload  = () => resolve(window.WalletConnectProvider);
       s.onerror = () => reject(new Error('Failed to load WalletConnect bundle'));
       document.head.appendChild(s);

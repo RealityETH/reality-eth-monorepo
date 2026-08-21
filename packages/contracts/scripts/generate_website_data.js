@@ -62,7 +62,7 @@ fs.writeFileSync(generatedPath, output);
 console.log('Wrote', generatedPath);
 
 if (install) {
-    const installPath = path.join(webroot, 'js/website-data.js');
+    const installPath = path.join(webroot, 'js/vendor/website-data.js');
     fs.writeFileSync(installPath, output);
     console.log('Installed to', installPath);
 }

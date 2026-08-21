@@ -3,7 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const outfile = resolve(__dirname, '../website/webroot/js/reality-eth-lib.js');
+const outfile = resolve(__dirname, '../website/webroot/js/vendor/reality-eth-lib.js');
 
 await build({
   entryPoints: [resolve(__dirname, 'browser-entry.ts')],

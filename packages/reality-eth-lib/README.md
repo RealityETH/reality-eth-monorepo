@@ -14,7 +14,7 @@ Compiles TypeScript sources under `src/` to `dist/cjs/` via `tsc`.
 
 ## Browser bundle
 
-Used by the website (`packages/website/webroot/js/reality-eth-lib.js`).
+Used by the website (`packages/website/webroot/js/vendor/reality-eth-lib.js`).
 Exports all public functions from `browser-entry.ts` as `window.RealityLib`.
 
 ```
@@ -27,7 +27,7 @@ produces the same file:
 
 ```
 npm run build:browser
-sha256sum ../website/webroot/js/reality-eth-lib.js
+sha256sum ../website/webroot/js/vendor/reality-eth-lib.js
 ```
 
 Expected hash: `6b713caca2d26b7e9b4814e7137179d66d70af185228f4adfd66a1d3b1a159fa`

@@ -3,7 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const outfile = resolve(__dirname, '../webroot/js/walletconnect.js');
+const outfile = resolve(__dirname, '../webroot/js/vendor/walletconnect.js');
 
 await build({
   entryPoints: [resolve(__dirname, 'src/index.js')],

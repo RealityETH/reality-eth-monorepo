@@ -10,8 +10,8 @@
 // Runs synchronously in <head>, no external deps.
 (function () {
   var h = location.hash;
-  var M  = 'js/marked.js?v=3';
-  var DP = 'js/dompurify.js?v=3';
+  var M  = 'js/vendor/marked.js?v=3';
+  var DP = 'js/vendor/dompurify.js?v=3';
 
   // CSS: show the right view immediately without a browse-page flash
   var view =
@@ -1528,10 +1528,10 @@
   }
   .help-icon:hover .help-tooltip, .help-icon:focus .help-tooltip { display: block; }
 </style>
-<script defer src="js/website-data.js?v=4"></script>
+<script defer src="js/vendor/website-data.js?v=4"></script>
 <script defer src="js/chains.js?v=3"></script>
-<script defer src="js/reality-eth-lib.js?v=6"></script>
-<script defer src="js/ethers.js?v=3"></script>
+<script defer src="js/vendor/reality-eth-lib.js?v=6"></script>
+<script defer src="js/vendor/ethers.js?v=3"></script>
 <script defer src="js/wallet.js?v=9"></script>
 <script defer src="js/settings.js?v=12"></script>
 <script defer src="js/question-cache.js?v=3"></script>
@@ -3313,8 +3313,8 @@ header {
   const TOO_SOON    = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
 
   // ── Dynamic script loader ─────────────────────────────────────────────────────
-  const _CDN_MARKED = 'js/marked.js?v=3';
-  const _CDN_PURIFY = 'js/dompurify.js?v=3';
+  const _CDN_MARKED = 'js/vendor/marked.js?v=3';
+  const _CDN_PURIFY = 'js/vendor/dompurify.js?v=3';
   const _scriptLoads = new Map();
   function loadScript(src) {
     if (!_scriptLoads.has(src)) {
