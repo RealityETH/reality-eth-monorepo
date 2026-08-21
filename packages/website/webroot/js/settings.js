@@ -4,7 +4,7 @@
 const PONDER_KEY     = 'reality.ponderUrl';
 const RPC_PREFIX     = 'reality.rpcUrl.';
 const BROWSER_RPC_KEY = 'reality.useBrowserRpc';
-const DEFAULT_PONDER = 'https://dev2.edochan.com/graphql';
+const DEFAULT_PONDER = 'https://indexer.reality.gwei.name/graphql';
 
 const CHAINS = [
   { id: 1,        name: 'Ethereum',  defaultRpc: 'https://ethereum-rpc.publicnode.com' },

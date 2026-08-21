@@ -240,7 +240,7 @@ window.RealityAccount.mount = async function (addr) {
         }
       } catch(e) { console.error('[cache-template]', e); }
 
-      const q = buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, resolvedJson);
+      const q = buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, null, resolvedJson);
       if (isAsked)    asked.push(q);
       if (isAnswered) answered.push(q);
 

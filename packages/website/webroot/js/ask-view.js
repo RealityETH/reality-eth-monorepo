@@ -8,19 +8,21 @@ window.RealityAsk.mount = async function () {
 
   const TEMPLATE_IDS = { bool: 0, uint: 1, 'single-select': 2, 'multiple-select': 3, datetime: 4 };
 
-  const CHAIN_NATIVE_TOKEN = {
-    1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
-    10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
-  };
   const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
-  const CHAIN_ADD_PARAMS = {
-    100: {
-      chainId: '0x64', chainName: 'Gnosis',
-      nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
-      rpcUrls: ['https://rpc.gnosischain.com'],
-      blockExplorerUrls: ['https://gnosisscan.io'],
-    },
-  };
+  function chainNativeToken(id) {
+    return window.RealityWebsiteData?.nativeTokenByChain?.[id] || 'ETH';
+  }
+  function chainAddParams(id) {
+    const c = window.RealityWebsiteData?.chains?.[id];
+    if (!c) return null;
+    const publicRpcs = c.rpcUrls.filter(u => u.startsWith('https://'));
+    return {
+      chainId: c.chainId, chainName: c.chainName,
+      nativeCurrency: c.nativeCurrency,
+      rpcUrls: publicRpcs.length ? publicRpcs : c.rpcUrls,
+      blockExplorerUrls: c.blockExplorerUrls,
+    };
+  }
 
   const RC_ABI = [
     'function askQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce) payable returns (bytes32)',
@@ -294,9 +296,9 @@ window.RealityAsk.mount = async function () {
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
       return true;
     } catch (err) {
-      if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
+      if ((err.code === 4902 || err.code === -32603) && chainAddParams(chain)) {
         try {
-          await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
+          await eth.request({ method: 'wallet_addEthereumChain', params: [chainAddParams(chain)] });
           return true;
         } catch {}
       }
@@ -372,7 +374,7 @@ window.RealityAsk.mount = async function () {
       networkDot.classList.add('unknown');
       networkUnsupported.style.display = 'block';
       rcAddress = null;
-      rcToken = CHAIN_NATIVE_TOKEN[chain] || 'ETH';
+      rcToken = chainNativeToken(chain);
       document.getElementById('ask-token-pills').style.display = 'none';
       document.getElementById('ask-version-row').style.display = 'none';
       document.getElementById('erc20-note').style.display = 'none';
@@ -384,7 +386,7 @@ window.RealityAsk.mount = async function () {
     networkDot.classList.remove('unknown');
     networkUnsupported.style.display = 'none';
 
-    const nativeToken = CHAIN_NATIVE_TOKEN[chain];
+    const nativeToken = chainNativeToken(chain);
     const defaultToken = tokens.includes(nativeToken) ? nativeToken : tokens[0];
     buildTokenPills(data, chain, tokens, defaultToken);
 

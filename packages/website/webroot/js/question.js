@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v19');
+console.log('[question.js] v20');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -10,60 +10,39 @@ const TOO_SOON_LC = TOO_SOON.toLowerCase();
 const ZERO_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const FORK_BLOCK = 46600000;
 
-// Map contract address → major version integer
-const CONTRACT_MAJOR = {
-  '0x79e32ae03fb27b07c89c0c568f80287c01ca2e57': 2,
-  '0xe78996a233895be74a66f451f1019ca9734205cc': 3,
-  '0xeb51d9d9717906c981c57af09c4a3449ef30705b': 3,
-};
-
-// Map contract address → deployment block (for targeted log queries in RPC fallback).
-// Unknown contracts fall back to FORK_BLOCK so the test suite still works.
-const CONTRACT_START_BLOCK = {
-  // Gnosis
-  '0x79e32ae03fb27b07c89c0c568f80287c01ca2e57': 14005802,  // v2.1
-  '0xe78996a233895be74a66f451f1019ca9734205cc': 17997262,  // v3.0
-  '0xeb51d9d9717906c981c57af09c4a3449ef30705b': 39142627,  // v3.2
-  // Mainnet
-  '0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47':  6531265,  // v2.0
-  '0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c': 13194676,  // v3.0
-  '0x6a2155613b68efb38d5c6074921f3f4281c8c177': 22100226,  // v3.2
-  // Arbitrum
-  '0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9':   459975,  // v3.0
-  // Celo
-  '0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3': 31954377,  // v3.0
-  // Avalanche
-  '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502':  4090592,  // v3.0
-};
-
 function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
-const CHAIN_TOKEN   = { 1:'ETH', 10:'OETH', 56:'BNB', 100:'XDAI', 130:'ETH', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
-// Minimum stake below which the "low reward" warning fires, in wei (native-chain values).
+
+// Helpers reading from window.RealityWebsiteData (populated by website-data.js).
+function contractMeta(addr) {
+  return window.RealityWebsiteData?.contractsByAddress?.[addr.toLowerCase()];
+}
+function chainToken(id) {
+  return window.RealityWebsiteData?.nativeTokenByChain?.[id] || 'ETH';
+}
+function chainExplorer(id) {
+  return window.RealityWebsiteData?.chains?.[id]?.blockExplorerUrls?.[0] || '';
+}
+function chainRpcUrl(id) {
+  const c = window.RealityWebsiteData?.chains?.[id];
+  return c?.hostedRPC || c?.rpcUrls?.find(u => u.startsWith('https://')) || null;
+}
+function chainAddParams(id) {
+  const c = window.RealityWebsiteData?.chains?.[id];
+  if (!c) return null;
+  const publicRpcs = c.rpcUrls.filter(u => u.startsWith('https://'));
+  return {
+    chainId: c.chainId, chainName: c.chainName,
+    nativeCurrency: c.nativeCurrency,
+    rpcUrls: publicRpcs.length ? publicRpcs : c.rpcUrls,
+    blockExplorerUrls: c.blockExplorerUrls,
+  };
+}
+// Minimum stake below which the "low reward" warning fires, in wei.
 // ERC20 contracts use 1 token (10^metaDecimals) as the threshold instead.
-const SMALL_BOND    = { 1:10n**16n, 10:10n**16n, 56:10n**16n, 100:10n**18n, 130:10n**16n, 137:10n**18n, 42161:10n**16n, 8453:10n**16n, 43114:10n**16n, 42220:10n**18n, 11155111:10n**16n };
-const EXPLORER      = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 130:'https://uniscan.xyz', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 43114:'https://snowtrace.io', 42220:'https://celoscan.io', 11155111:'https://sepolia.etherscan.io' };
-const PUBLIC_RPC    = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 130:'https://mainnet.unichain.org', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 43114:'https://avalanche-c-chain-rpc.publicnode.com', 42220:'https://celo-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
-// Params for chains MetaMask may not know natively (wallet_addEthereumChain fallback)
-const CHAIN_ADD_PARAMS = {
-  100: {
-    chainId: '0x64', chainName: 'Gnosis',
-    nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
-    rpcUrls: ['https://rpc.gnosischain.com'],
-    blockExplorerUrls: ['https://gnosisscan.io'],
-  },
-  130: {
-    chainId: '0x82', chainName: 'Unichain',
-    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: ['https://mainnet.unichain.org'],
-    blockExplorerUrls: ['https://uniscan.xyz'],
-  },
-  11155111: {
-    chainId: '0xaa36a7', chainName: 'Sepolia',
-    nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 },
-    rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com'],
-    blockExplorerUrls: ['https://sepolia.etherscan.io'],
-  },
-};
+function nativeSmallBond(id) {
+  const n = window.RealityWebsiteData?.smallBondByChain?.[id];
+  return n != null ? BigInt(n) : 10n ** 16n;
+}
 
 // Returns built-in template map for a version string (e.g. "RealityETH-3.2").
 // Minor version >= 2 uses description+hash type; .0 and .1 use category.
@@ -127,10 +106,10 @@ if (chainBadge) {
 // ── Provider ──────────────────────────────────────────────────────────────────
 // readProvider is always available for the correct chain (no wallet needed).
 // reality / realityRW are set in main() once we know the wallet's chain.
-const majorVersion = CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3;
+const majorVersion = contractMeta(CONTRACT)?.majorVersion ?? 3;
 let reality = null, realityRW = null;
 
-const publicRpcUrl = window.RealitySettings?.getRpcUrl(CHAIN_ID) || PUBLIC_RPC[CHAIN_ID];
+const publicRpcUrl = window.RealitySettings?.getRpcUrl(CHAIN_ID) || chainRpcUrl(CHAIN_ID);
 const readProvider = publicRpcUrl
   ? new ethers.JsonRpcProvider(publicRpcUrl, CHAIN_ID, { staticNetwork: true })
   : null;
@@ -195,7 +174,7 @@ async function questionsStruct(provider, contractAddr, questionId) {
 function addrLinks(addr, chainId = CHAIN_ID) {
   if (!addr || /^0x0+$/.test(addr)) return null;
   const short = addr.slice(0, 6) + '…' + addr.slice(-4);
-  const exp   = EXPLORER[chainId] || '';
+  const exp   = chainExplorer(chainId);
   const acct  = `<a class="bond-addr-link" href="#!/account/${addr}">${short}</a>`;
   const extLk = exp ? ` <a class="bond-addr-ext" href="${exp}/address/${addr}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
   return acct + extLk;
@@ -532,8 +511,7 @@ async function ensureCorrectChain() {
         return parts.length >= 3 ? parseInt(parts[1]) : 0;
       });
       if (!sessionChains.includes(CHAIN_ID)) {
-        const chainName = CHAIN_ADD_PARAMS[CHAIN_ID]?.chainName || `chain ${CHAIN_ID}`;
-        throw new Error(`Please switch to ${chainName} in your wallet app`);
+        throw new Error(`Please switch to ${chainName(CHAIN_ID)} in your wallet app`);
       }
     } finally {
       eth._internalChainSwitch = false;
@@ -545,8 +523,8 @@ async function ensureCorrectChain() {
   try {
     await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
   } catch (err) {
-    if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[CHAIN_ID]) {
-      await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[CHAIN_ID]] });
+    if ((err.code === 4902 || err.code === -32603) && chainAddParams(CHAIN_ID)) {
+      await eth.request({ method: 'wallet_addEthereumChain', params: [chainAddParams(CHAIN_ID)] });
     } else {
       throw err;
     }
@@ -1178,7 +1156,7 @@ let knownArbitrators = null; // Set of lowercase addresses, or null if not yet l
 let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
 let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
 let metaContractVer  = null; // Full version string e.g. "RealityETH-3.2" (for template set selection)
-let metaToken        = CHAIN_TOKEN[CHAIN_ID] || 'ETH'; // Bond/reward token symbol
+let metaToken        = chainToken(CHAIN_ID); // Bond/reward token symbol
 let metaDecimals     = 18;                             // Token decimal places (18 for all native tokens)
 let metaTokenAddress = null; // ERC20 token address, or null for native-token contracts
 
@@ -1274,7 +1252,7 @@ function renderWarnings(data) {
     const totalStake = (data.bounty ?? 0n) + topBond;
     const smallBond = metaTokenAddress
       ? 10n ** BigInt(metaDecimals)
-      : (SMALL_BOND[CHAIN_ID] ?? 10n ** 16n);
+      : nativeSmallBond(CHAIN_ID);
     if (totalStake < smallBond) {
       warnings.push({ level: 'warn', title: 'Low reward and bond',
         body: 'The reward was very low and no substantial bond was posted. There may not have been enough incentive to post accurate information.' });
@@ -1662,7 +1640,7 @@ async function renderArbitrationSection(data, walletAddr) {
 
         const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
         const fpChainId = Number(fpChainBN);
-        const fpRpcUrl = PUBLIC_RPC[fpChainId];
+        const fpRpcUrl = chainRpcUrl(fpChainId);
         if (!fpRpcUrl) return;
         const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, fpChainId, { staticNetwork: true });
         const fpChainName = chainName(fpChainId);
@@ -1756,7 +1734,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
       txChainId = Number(fpChainBN);
 
-      const fpRpcUrl = PUBLIC_RPC[txChainId];
+      const fpRpcUrl = chainRpcUrl(txChainId);
       if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
       const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, txChainId, { staticNetwork: true });
       fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);
@@ -1769,7 +1747,7 @@ async function renderArbitrationSection(data, walletAddr) {
     }
   }
 
-  const nativeToken = CHAIN_TOKEN[txChainId] || 'ETH';
+  const nativeToken = chainToken(txChainId);
   const btnLabel = fee === 0n
     ? 'Request arbitration (free)'
     : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
@@ -1789,8 +1767,8 @@ async function renderArbitrationSection(data, walletAddr) {
         try {
           await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
         } catch (switchErr) {
-          if ((switchErr.code === 4902 || switchErr.code === -32603) && CHAIN_ADD_PARAMS?.[txChainId]) {
-            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[txChainId]] });
+          if ((switchErr.code === 4902 || switchErr.code === -32603) && chainAddParams(txChainId)) {
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [chainAddParams(txChainId)] });
           } else {
             throw switchErr;
           }
@@ -2003,7 +1981,7 @@ function startPoll(initialFinalizeTS) {
 }
 
 function buildDetailsCard(data, chainId) {
-  const token = CHAIN_TOKEN[chainId] || 'ETH';
+  const token = chainToken(chainId);
 
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -2044,14 +2022,14 @@ function buildDetailsCard(data, chainId) {
   row('Arbitrator', isSelfArbitrator(data.arbitrator) ? 'No arbitrator' : addrHtml(data.arbitrator));
   if (data.creator) row('Creator', addrHtml(data.creator));
   if (data.createdTimestamp && data.createdTxHash) {
-    const _exp = EXPLORER[chainId] || '';
+    const _exp = chainExplorer(chainId);
     const _txUrl = _exp ? `${_exp}/tx/${esc(data.createdTxHash)}` : '';
     const _dateStr = esc(date(data.createdTimestamp));
     row('Created', _txUrl
       ? `<a href="${_txUrl}" target="_blank" rel="noopener noreferrer">${_dateStr} ↗</a>`
       : _dateStr);
   }
-  const _exp = EXPLORER[chainId] || '';
+  const _exp = chainExplorer(chainId);
   const _expLink = _exp ? ` <a class="bond-addr-ext" href="${_exp}/address/${esc(CONTRACT)}" target="_blank" rel="noopener noreferrer">↗</a>` : '';
   if (data.templateId != null) {
     const templateUrl = `#!/template/${chainId}-${esc(CONTRACT.toLowerCase())}-${esc(String(data.templateId))}`;
@@ -2343,7 +2321,7 @@ async function verifyWithRpc(data) {
         const currentBlock = await safeCall(() => reality.runner.getBlockNumber(), null);
         if (currentBlock === null) return;
 
-        const startBlock = data.createdBlock || CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] || 0;
+        const startBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
 
         // For finalized questions, limit the scan to the approximate finalization block
         // to avoid scanning months of irrelevant chain history beyond the answer window.
@@ -2553,8 +2531,8 @@ async function main(hintAddr) {
     document.getElementById('rpc-loading-note')?.style.removeProperty('display');
     // RPC path — await meta so we have the correct deployment block and version
     await contractsMetaPromise;
-    const effectiveMajor = metaMajorVersion ?? (CONTRACT_MAJOR[CONTRACT.toLowerCase()] || 3);
-    const startBlock     = metaStartBlock   ?? CONTRACT_START_BLOCK[CONTRACT.toLowerCase()] ?? 0;
+    const effectiveMajor = metaMajorVersion ?? (contractMeta(CONTRACT)?.majorVersion ?? 3);
+    const startBlock     = metaStartBlock   ?? contractMeta(CONTRACT)?.startBlock ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
       // One call for all question struct fields; fall back to individual getters if it fails.

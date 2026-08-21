@@ -10,19 +10,21 @@ window.RealityTemplate.mount = async function (routeId) {
   // 3.0 is preferred over 3.2 because fewer arbitrators support 3.2 yet.
   const VERSION_PRIORITY = ['3.0', '3.2', '2.1', '2.1-rc1', '2.0'];
 
-  const CHAIN_NATIVE_TOKEN = {
-    1: 'ETH', 100: 'XDAI', 137: 'MATIC', 42161: 'ARETH',
-    10: 'OETH', 8453: 'ETH', 130: 'ETH', 11155111: 'ETH',
-  };
   const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
-  const CHAIN_ADD_PARAMS = {
-    100: {
-      chainId: '0x64', chainName: 'Gnosis',
-      nativeCurrency: { name: 'xDAI', symbol: 'XDAI', decimals: 18 },
-      rpcUrls: ['https://rpc.gnosischain.com'],
-      blockExplorerUrls: ['https://gnosisscan.io'],
-    },
-  };
+  function chainNativeToken(id) {
+    return window.RealityWebsiteData?.nativeTokenByChain?.[id] || 'ETH';
+  }
+  function chainAddParams(id) {
+    const c = window.RealityWebsiteData?.chains?.[id];
+    if (!c) return null;
+    const publicRpcs = c.rpcUrls.filter(u => u.startsWith('https://'));
+    return {
+      chainId: c.chainId, chainName: c.chainName,
+      nativeCurrency: c.nativeCurrency,
+      rpcUrls: publicRpcs.length ? publicRpcs : c.rpcUrls,
+      blockExplorerUrls: c.blockExplorerUrls,
+    };
+  }
   const RC_ABI = [
     'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
     'function createTemplate(string content) returns (uint256)',
@@ -169,9 +171,9 @@ window.RealityTemplate.mount = async function (routeId) {
       await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain }] });
       return true;
     } catch (err) {
-      if ((err.code === 4902 || err.code === -32603) && CHAIN_ADD_PARAMS[chain]) {
+      if ((err.code === 4902 || err.code === -32603) && chainAddParams(chain)) {
         try {
-          await eth.request({ method: 'wallet_addEthereumChain', params: [CHAIN_ADD_PARAMS[chain]] });
+          await eth.request({ method: 'wallet_addEthereumChain', params: [chainAddParams(chain)] });
           return true;
         } catch {}
       }
@@ -255,7 +257,7 @@ window.RealityTemplate.mount = async function (routeId) {
     networkDot.classList.remove('unknown');
     document.getElementById('network-unsupported').style.display = 'none';
 
-    const nativeToken = CHAIN_NATIVE_TOKEN[chain];
+    const nativeToken = chainNativeToken(chain);
     const defaultToken = tokens.includes(nativeToken) ? nativeToken : tokens[0];
     buildTokenPills(data, chain, tokens, defaultToken);
     const versions = getVersionsForToken(data, chain, defaultToken);
