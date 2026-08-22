@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v27');
+console.log('[question.js] v28');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -2774,12 +2774,9 @@ async function main(hintAddr) {
     const ponderQId = `${CONTRACT.toLowerCase()}-${QUESTION_ID}`;
 
     // Auto-mark any notifications for this question as seen on page load.
-    (async () => {
-      const notifications = await RealityWatches.getNotifications();
-      const unseen = notifications.filter(n => n.questionId === ponderQId && !n.seen);
-      for (const n of unseen) await RealityWatches.markSeen(n.id);
-      if (unseen.length > 0) RealityWatches.updateBellBadge();
-    })();
+    RealityWatches.markSeenForQuestion(ponderQId).then(count => {
+      if (count > 0) RealityWatches.updateBellBadge();
+    });
 
   if (starBtn) {
     const questionMeta = {

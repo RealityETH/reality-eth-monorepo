@@ -213,6 +213,21 @@ async function markSeen(id) {
   if (n && !n.seen) await dbOp('notifications', 'readwrite', s => s.put({ ...n, seen: 1 }));
 }
 
+async function markSeenForQuestion(questionId) {
+  const all      = await getNotifications();
+  const matching = all.filter(n => n.questionId === questionId && !n.seen);
+  if (matching.length === 0) return 0;
+  const db = await openDB();
+  await new Promise((resolve, reject) => {
+    const tx    = db.transaction('notifications', 'readwrite');
+    const store = tx.objectStore('notifications');
+    for (const n of matching) store.put({ ...n, seen: 1 });
+    tx.oncomplete = () => resolve();
+    tx.onerror    = e => reject(e.target.error);
+  });
+  return matching.length;
+}
+
 // ── Meta ──────────────────────────────────────────────────────────────────────
 
 function getLastChecked() {
@@ -393,7 +408,7 @@ window.RealityWatches = {
   addConditionWatch, updateConditionWatch, removeConditionWatch, getConditionWatches,
   questionMatchesCondition, getMatchingConditions,
   preloadCache, isStarredSync, isWatchedSync, getMatchingConditionsSync,
-  addNotification, getNotifications, getUnseenCount, markAllSeen, markSeen,
+  addNotification, getNotifications, getUnseenCount, markAllSeen, markSeen, markSeenForQuestion,
   getLastChecked, setLastChecked,
   checkForUpdates, updateBellBadge,
 };
