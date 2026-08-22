@@ -1,14 +1,7 @@
 window.RealityWatchesView = window.RealityWatchesView || {};
 
 window.RealityWatchesView.mount = async function () {
-  const KNOWN_CHAINS = [
-    { id: 1,        label: 'Mainnet'  },
-    { id: 100,      label: 'Gnosis'   },
-    { id: 137,      label: 'Polygon'  },
-    { id: 10,       label: 'Optimism' },
-    { id: 42161,    label: 'Arbitrum' },
-    { id: 11155111, label: 'Sepolia'  },
-  ];
+  function chainLabel(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
 
   function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -23,7 +16,7 @@ window.RealityWatchesView.mount = async function () {
     const parts = [];
     if (c.chainId != null) {
       const ids = Array.isArray(c.chainId) ? c.chainId : [c.chainId];
-      parts.push(ids.map(id => KNOWN_CHAINS.find(ch => ch.id === id)?.label || `Chain ${id}`).join(', '));
+      parts.push(ids.map(id => chainLabel(id)).join(', '));
     }
     if (c.templateId != null) parts.push(`Template #${c.templateId}`);
     if (c.contract   != null) parts.push(shortAddr(c.contract));

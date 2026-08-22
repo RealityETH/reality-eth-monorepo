@@ -81,6 +81,14 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['deprecated'] = true;
     }
 
+    if (our_data['realityETHIndexerSupport']) {
+        chainparams['realityETHIndexerSupport'] = true;
+    }
+
+    if (our_data['blocksPerDay']) {
+        chainparams['blocksPerDay'] = our_data['blocksPerDay'];
+    }
+
     chainparams['blockExplorerUrls'] = [];
     if ('explorers' in chain_info) {
         for(var exi in chain_info['explorers']) {

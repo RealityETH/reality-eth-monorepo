@@ -5,14 +5,12 @@
 const ZERO_HASH = '0x' + '0'.repeat(64);
 
 function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
-// Canonical token symbol per chain — used for display whenever a contract-specific token is not found.
-const CHAIN_NATIVE_TOKEN = { 1:'ETH', 10:'OETH', 56:'BNB', 100:'XDAI', 137:'POL', 42161:'ETH', 8453:'ETH', 43114:'AVAX', 42220:'CELO', 11155111:'ETH' };
-const EXPLORER    = { 1:'https://etherscan.io', 10:'https://optimistic.etherscan.io', 100:'https://gnosisscan.io', 137:'https://polygonscan.com', 42161:'https://arbiscan.io', 8453:'https://basescan.org', 11155111:'https://sepolia.etherscan.io' };
-const PUBLIC_RPC  = { 1:'https://ethereum-rpc.publicnode.com', 10:'https://optimism-rpc.publicnode.com', 100:'https://rpc.gnosischain.com', 137:'https://polygon-rpc.com', 42161:'https://arbitrum-one-rpc.publicnode.com', 8453:'https://base-rpc.publicnode.com', 11155111:'https://ethereum-sepolia-rpc.publicnode.com' };
+function chainNativeToken(id) { return window.RealityWebsiteData?.nativeTokenByChain?.[String(id)] || 'ETH'; }
+function chainExplorer(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blockExplorerUrls?.[0] || null; }
+function chainRpc(id) { return window.RealitySettings?.getRpcUrl(id) || window.RealityWebsiteData?.chains?.[String(id)]?.hostedRPC || null; }
+function chainBlocksPerDay(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blocksPerDay || 7200; }
 
 const VERSION_PREF = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
-
-const BLOCKS_PER_DAY = { 1: 7200, 10: 43200, 100: 17280, 137: 43200, 42161: 360000, 8453: 43200, 11155111: 7200 };
 
 const SCAN_ABI = [
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 created)',
@@ -268,7 +266,7 @@ window.RealityAccount.mount = async function (addr) {
     console.log(`[scan] chain=${chainId} addr=${addr} blocks=${fromBlock}-${toBlock} contracts=${rcList.length}`);
     if (!rcList.length) { console.log('[scan] no contracts for chain, skipping'); return empty; }
 
-    const prov = provider || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+    const prov = provider || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
     const foundIds = new Map(); // questionId → { contract, isAsked, isAnswered }
 
     for (let i = 0; i < rcList.length; i++) {
@@ -379,7 +377,7 @@ window.RealityAccount.mount = async function (addr) {
 
   // ── Scan status UI ────────────────────────────────────────────────────────────
   function formatScanRange(chainId, fromBlock, toBlock) {
-    const days = Math.round((toBlock - fromBlock) / (BLOCKS_PER_DAY[chainId] || 7200));
+    const days = Math.round((toBlock - fromBlock) / (chainBlocksPerDay(chainId)));
     if (days >= 14) return `~${Math.round(days / 7)} weeks`;
     if (days >= 2)  return `~${days} days`;
     return '< 1 day';
@@ -444,13 +442,13 @@ window.RealityAccount.mount = async function (addr) {
     _scanState[chainId] = null;  // mark in progress (hides pill)
 
     const gen = _accountLoadGen;
-    const prov = new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+    const prov = new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
     let toBlock;
     try { toBlock = await withIndicator(rpcInd, () => prov.getBlockNumber()); }
     catch { delete _scanState[chainId]; return; }
     if (gen !== _accountLoadGen) return;
 
-    const fromBlock = Math.max(0, toBlock - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
+    const fromBlock = Math.max(0, toBlock - (chainBlocksPerDay(chainId)) * 21);
     renderScanStatus(`Scanning ${chainName(chainId)}…`);
 
     const rpcData = await scanRpcForAccount(viewAddr, chainId, fromBlock, toBlock, gen, msg => {
@@ -483,7 +481,7 @@ window.RealityAccount.mount = async function (addr) {
     const gen = _accountLoadGen;
     // Each click pushes the desired target 3 more weeks back from wherever we already plan to go
     const base = _scanFurtherBackTarget[chainId] ?? _scanState[chainId].fromBlock;
-    _scanFurtherBackTarget[chainId] = Math.max(0, base - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
+    _scanFurtherBackTarget[chainId] = Math.max(0, base - (chainBlocksPerDay(chainId)) * 21);
 
     // If the loop is already running it will pick up the new target; just return
     if (_scanFurtherBackActive.has(chainId)) return;
@@ -575,7 +573,7 @@ window.RealityAccount.mount = async function (addr) {
       const info = _contractTokenMap[q.contract.toLowerCase()];
       if (info) return info.tokenSym;
     }
-    return CHAIN_NATIVE_TOKEN[q.chainId] || 'ETH';
+    return chainNativeToken(q.chainId) || 'ETH';
   }
 
   // ── Answer display ────────────────────────────────────────────────────────────
@@ -1001,7 +999,7 @@ window.RealityAccount.mount = async function (addr) {
 
     const linkChain = selectedViewChains.size === 1 ? [...selectedViewChains][0] : walletChainId;
     const link = document.getElementById('hero-explorer-link');
-    const exp = linkChain ? EXPLORER[linkChain] : null;
+    const exp = linkChain ? chainExplorer(linkChain) : null;
     if (exp && viewAddr) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
     else                 { link.style.display = 'none'; }
 
@@ -1035,7 +1033,7 @@ window.RealityAccount.mount = async function (addr) {
     if (chainClaimables.length > 0) {
       const byToken = {};
       for (const c of chainClaimables) {
-        const sym = _contractTokenMap[c.contract]?.tokenSym || CHAIN_NATIVE_TOKEN[chainId] || 'ETH';
+        const sym = _contractTokenMap[c.contract]?.tokenSym || chainNativeToken(chainId) || 'ETH';
         byToken[sym] = (byToken[sym] || BN0) + c.total;
       }
       const amountText = Object.entries(byToken).map(([sym, amt]) => `${formatEth(amt)} ${sym}`).join(' + ');
@@ -1147,7 +1145,7 @@ window.RealityAccount.mount = async function (addr) {
     }
 
     if (selectedViewChains.size === 0 && walletChainId && viewAddr) {
-      const exp = EXPLORER[walletChainId];
+      const exp = chainExplorer(walletChainId);
       const link = document.getElementById('hero-explorer-link');
       if (exp) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
       else      { link.style.display = 'none'; }
@@ -1163,7 +1161,7 @@ window.RealityAccount.mount = async function (addr) {
     document.getElementById('connect-prompt').style.display = 'none';
     document.getElementById('account-content').style.display = '';
     document.getElementById('hero-addr').textContent = (a);
-    const exp = walletChainId ? EXPLORER[walletChainId] : null;
+    const exp = walletChainId ? chainExplorer(walletChainId) : null;
     const link = document.getElementById('hero-explorer-link');
     if (exp) { link.href = `${exp}/address/${a}`; link.style.display = ''; }
     else      { link.style.display = 'none'; }
@@ -1244,7 +1242,7 @@ window.RealityAccount.mount = async function (addr) {
     const chainsToScan = [...new Set([
       ...(walletChainId ? [walletChainId] : []),
       ...cacheChainIds,
-    ])].filter(id => (id === walletChainId && provider) || PUBLIC_RPC[id]);
+    ])].filter(id => (id === walletChainId && provider) || chainRpc(id));
     if (!chainsToScan.length) chainsToScan.push(1);
     console.log(`[scan] walletChainId=${walletChainId} cacheChains=[${cacheChainIds}] chainsToScan=[${chainsToScan}]`);
 
@@ -1257,7 +1255,7 @@ window.RealityAccount.mount = async function (addr) {
       let toBlock;
       try {
         const prov = (chainId === walletChainId && provider)
-          || new ethers.JsonRpcProvider(PUBLIC_RPC[chainId], chainId, { staticNetwork: true });
+          || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
         toBlock = await withIndicator(rpcInd, () => prov.getBlockNumber());
       } catch {
         delete _scanState[chainId];
@@ -1266,7 +1264,7 @@ window.RealityAccount.mount = async function (addr) {
       }
       if (gen !== _accountLoadGen) return;
 
-      const fromBlock = Math.max(0, toBlock - (BLOCKS_PER_DAY[chainId] || 7200) * 21);
+      const fromBlock = Math.max(0, toBlock - (chainBlocksPerDay(chainId)) * 21);
       renderScanStatus(`Scanning ${chainName(chainId)} (last 3 weeks)…`);
 
       const rpcData = await scanRpcForAccount(a, chainId, fromBlock, toBlock, gen, msg => {

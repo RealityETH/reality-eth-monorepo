@@ -6,17 +6,18 @@ const RPC_PREFIX     = 'reality.rpcUrl.';
 const BROWSER_RPC_KEY = 'reality.useBrowserRpc';
 const DEFAULT_PONDER = 'https://indexer.reality.gwei.name/graphql';
 
-const CHAINS = [
-  { id: 1,        name: 'Ethereum',  defaultRpc: 'https://ethereum-rpc.publicnode.com' },
-  { id: 10,       name: 'Optimism',  defaultRpc: 'https://optimism-rpc.publicnode.com' },
-  { id: 56,       name: 'BNB Chain', defaultRpc: 'https://bsc-dataseed1.bnbchain.org' },
-  { id: 100,      name: 'Gnosis',    defaultRpc: 'https://rpc.gnosischain.com' },
-  { id: 130,      name: 'Unichain',  defaultRpc: 'https://mainnet.unichain.org' },
-  { id: 137,      name: 'Polygon',   defaultRpc: 'https://polygon-rpc.com' },
-  { id: 8453,     name: 'Base',      defaultRpc: 'https://mainnet.base.org' },
-  { id: 42161,    name: 'Arbitrum',  defaultRpc: 'https://arbitrum-one-rpc.publicnode.com' },
-  { id: 11155111, name: 'Sepolia',   defaultRpc: 'https://ethereum-sepolia-rpc.publicnode.com' },
-];
+function getChains() {
+  const wd = window.RealityWebsiteData;
+  if (!wd?.chains) return [];
+  return Object.entries(wd.chains)
+    .filter(([, c]) => c.realityETHIndexerSupport && !c.deprecated)
+    .map(([id, c]) => ({
+      id: parseInt(id, 10),
+      name: c.chainName,
+      defaultRpc: c.hostedRPC || c.rpcUrls?.[0] || '',
+    }))
+    .sort((a, b) => a.id - b.id);
+}
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
@@ -135,9 +136,10 @@ function attachRpcPanel(el, currentChainId) {
     e.stopPropagation();
     if (activeAnchor === el) { closePanel(); return; }
     openPanel(el, 340, (panel) => {
+      const chains = getChains();
       const sorted = currentChainId
-        ? [CHAINS.find(c => c.id === currentChainId), ...CHAINS.filter(c => c.id !== currentChainId)].filter(Boolean)
-        : CHAINS;
+        ? [chains.find(c => c.id === currentChainId), ...chains.filter(c => c.id !== currentChainId)].filter(Boolean)
+        : chains;
 
       panel.innerHTML = `
         <div class="sp-title">RPC Endpoints</div>
@@ -266,7 +268,7 @@ window.RealitySettings = {
   getUseBrowserRpc, setUseBrowserRpc,
   attachPonderPanel, attachRpcPanel,
   openPanel, closePanel,
-  getChainIds: () => CHAINS.map(c => c.id),
+  getChainIds: () => getChains().map(c => c.id),
 };
 
 })();
