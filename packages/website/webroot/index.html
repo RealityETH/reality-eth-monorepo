@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=80';
+  var V = '?v=86';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -834,7 +834,7 @@
   .optimistic-entry .bond-connector::after { content: ''; position: absolute; left: 10px; top: 22px; width: 1px; height: calc(100% + 12px); background: var(--border-subtle); }
   .tag-pending { background: var(--amber-subtle); color: var(--amber); }
   @keyframes pending-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
-  .optimistic-entry .bond-tag { animation: pending-pulse 1.1s ease-in-out infinite; }
+  .optimistic-entry .bond-tag, #answer-banner .tag-pending { animation: pending-pulse 1.1s ease-in-out infinite; }
   .cr-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; }
   .cr-toggle input[type="checkbox"] { cursor: pointer; accent-color: var(--accent); }
   .pending-reveal-notice { background: var(--amber-subtle); border: 1px solid rgba(210,153,34,0.3); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: var(--text-muted); }
@@ -3331,7 +3331,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=80';
+  const V = '?v=86';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

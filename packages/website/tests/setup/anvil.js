@@ -77,3 +77,8 @@ export async function increaseTime(seconds) {
   await provider.send('evm_increaseTime', [seconds]);
   await provider.send('evm_mine', []);
 }
+
+export async function setAutomine(enabled) {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  await provider.send('evm_setAutomine', [enabled]);
+}

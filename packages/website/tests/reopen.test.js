@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { ethers } from 'ethers';
 import { snapshot, revert } from './setup/anvil.js';
 import { setupPage } from './setup/wallet-mock.js';
-import { createReopenFixtures, CONTRACTS } from './setup/fixtures.js';
+import { createReopenFixtures, createDoubleReopenFixtures, CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
 import { createRequire } from 'module';
@@ -36,7 +36,7 @@ test.describe('reopen flow', () => {
   test('reopen-container is visible for a reopenable question', async ({ page }) => {
     await loadQuestion(page);
     await expect(page.locator('.reopen-container')).toBeVisible();
-    await expect(page.locator('.reopen-container')).toContainText('answered when it was too soon');
+    await expect(page.locator('.reopen-container')).toContainText('answered before the');
   });
 
   test('reopened-container is hidden for a reopenable question', async ({ page }) => {
@@ -101,5 +101,61 @@ test.describe('reopen flow', () => {
     // so the page should show the reopened container instead of reopen button
     await page.waitForSelector('.reopened-container', { state: 'visible', timeout: 30000 });
     await expect(page.locator('.reopen-container')).not.toBeVisible();
+  });
+});
+
+// ── Double-reopen finalization tests ─────────────────────────────────────────
+//
+// When a question is reopened and the reopener is itself answered "too soon",
+// re-opening the original is only valid once the reopener has FINALIZED.
+// The dapp must not show the reopen button while the reopener's timeout is
+// still counting down.
+//
+// Fixture layout (see createDoubleReopenFixtures):
+//   pendingOriginalId — original finalized too-soon; reopener has 90-day timeout
+//                       → reopener finalize_ts ≈ Sep 2026 > browser clock (~Aug 2026)
+//                       → NOT yet finalized → reopen button must NOT appear
+//   readyOriginalId   — original finalized too-soon; reopener has 60s timeout
+//                       → reopener finalize_ts ≈ Jun 2026 < browser clock (~Aug 2026)
+//                       → IS finalized → reopen button MUST appear
+
+test.describe('double-reopen finalization', () => {
+  test.setTimeout(60000);
+
+  let snap;
+  let fixtures;
+
+  test.beforeAll(async () => {
+    fixtures = await createDoubleReopenFixtures();
+  });
+
+  test.beforeEach(async () => { snap = await snapshot(); });
+  test.afterEach(async () => { await revert(snap); snap = await snapshot(); });
+
+  async function loadAndWait(page, questionId, waitSelector) {
+    await setupPage(page);
+    await page.goto(
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${questionId}`
+    );
+    await page.waitForSelector(waitSelector, { state: 'visible', timeout: 30000 });
+  }
+
+  // "pending" fixture: question was reopened, reopener answered too soon but NOT
+  // finalized from the browser — so isReopened=true → .reopened-container shows,
+  // and isReopenable=false → .reopen-container must NOT show.
+  test('reopen button NOT visible when reopener answered too soon but not yet finalized', async ({ page }) => {
+    await loadAndWait(page, fixtures.pendingOriginalId, '.reopened-container');
+    await expect(page.locator('.reopen-container')).not.toBeVisible();
+  });
+
+  test('reopened-container IS visible when reopener answered too soon but not yet finalized', async ({ page }) => {
+    await loadAndWait(page, fixtures.pendingOriginalId, '.reopened-container');
+    await expect(page.locator('.reopened-container')).toBeVisible();
+  });
+
+  // "ready" fixture: reopener answered too soon AND finalized → isReopenable=true
+  test('reopen button IS visible when reopener answered too soon AND finalized', async ({ page }) => {
+    await loadAndWait(page, fixtures.readyOriginalId, '.reopen-container');
+    await expect(page.locator('.reopen-container')).toBeVisible();
   });
 });

@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v20');
+console.log('[question.js] v25');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -231,7 +231,7 @@ async function fetchPonderData() {
       items { user amount createdTimestamp }
     }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
-      items { id currentAnswer }
+      items { id currentAnswer scheduledFinalizationTimestamp }
     }
   }`;
   const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
@@ -399,6 +399,8 @@ function adaptPonderData(ponderData) {
     reopenedBy:              (reopeners?.items?.length || 0) > 0 ? '0x01' : ZERO_HASH,
     reopenerQuestionId:      reopeners?.items?.[0]?.id || null,
     reopenerAnsweredTooSoon: (reopeners?.items?.[0]?.currentAnswer || '').toLowerCase() === TOO_SOON_LC,
+    reopenerFinalizeTS:      reopeners?.items?.[0]?.scheduledFinalizationTimestamp
+      ? Number(reopeners.items[0].scheduledFinalizationTimestamp) : 0,
     reopensQuestionId:       pq.reopensQuestionId || null,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
@@ -547,7 +549,7 @@ async function waitForTx(tx) {
   return Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]);
 }
 
-async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, spender, amountWei, txFn, onSubmitted) {
+async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, spender, amountWei, txFn, onSubmitted, onConfirmed) {
   btn.disabled = true;
   try {
     await ensureCorrectChain();
@@ -564,11 +566,12 @@ async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, 
     btn.textContent = 'Waiting for wallet…';
     const tx = await txFn();
     btn.textContent = 'Pending…';
-    if (onSubmitted) onSubmitted();
-    await waitForTx(tx);
+    if (onSubmitted) onSubmitted(tx);
+    const receipt = await waitForTx(tx);
     _autoStarFn?.();
     btn.textContent = '✓ Done';
-    setTimeout(() => location.reload(), 1500);
+    if (onConfirmed) onConfirmed(receipt);
+    else setTimeout(() => location.reload(), 1500);
   } catch (err) {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -576,18 +579,19 @@ async function runTxWithERC20Approval(btn, originalText, walletAddr, tokenAddr, 
   }
 }
 
-async function runTx(btn, originalText, txFn, onSubmitted) {
+async function runTx(btn, originalText, txFn, onSubmitted, onConfirmed) {
   btn.disabled = true;
   btn.textContent = 'Waiting for wallet…';
   try {
     await ensureCorrectChain();
     const tx = await txFn();
     btn.textContent = 'Pending…';
-    if (onSubmitted) onSubmitted();
-    await waitForTx(tx);
+    if (onSubmitted) onSubmitted(tx);
+    const receipt = await waitForTx(tx);
     _autoStarFn?.();
     btn.textContent = '✓ Done';
-    setTimeout(() => location.reload(), 1500);
+    if (onConfirmed) onConfirmed(receipt);
+    else setTimeout(() => location.reload(), 1500);
   } catch (err) {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -655,7 +659,7 @@ function loadPendingReveal(walletAddr) {
   return null;
 }
 
-async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjson) {
+async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, data) {
   const originalText = btn.textContent;
   const nonce = makeRevealNonce();
   const answerHash = computeCommitHash(ansBytes, nonce);
@@ -684,7 +688,7 @@ async function runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjso
       ? await rc.submitAnswerCommitmentERC20(QUESTION_ID, answerHash, maxPrev, walletAddr, bondWei)
       : await rc.submitAnswerCommitment(QUESTION_ID, answerHash, maxPrev, walletAddr, { value: bondWei });
     btn.textContent = 'Committing…';
-    addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson);
+    addOptimisticEntry(ansBytes, bondWei, walletAddr, data);
     await waitForTx(commitTx);
 
     btn.textContent = 'Waiting for wallet (reveal)…';
@@ -857,17 +861,18 @@ function buildAnswerForm(data, walletAddr) {
         if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
         const ansBytes = INVALID_ANS;
         const bondWei  = ethers.parseUnits(bondInput.value, metaDecimals);
+        const { onSubmitted: os, onConfirmed: oc } = makeAnswerCallbacks(ansBytes, bondWei, walletAddr, data);
         if (metaTokenAddress) {
           runTxWithERC20Approval(
             btn, 'Mark invalid', walletAddr,
             metaTokenAddress, CONTRACT, bondWei,
             () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, bond, bondWei),
-            () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+            os, oc
           );
         } else {
           runTx(btn, 'Mark invalid',
             () => realityRW.submitAnswer(QUESTION_ID, ansBytes, bond, { value: bondWei }),
-            () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
+            os, oc
           );
         }
       });
@@ -1081,19 +1086,22 @@ function buildAnswerForm(data, walletAddr) {
     const maxPrev  = data.bond;
 
     if (crCb.checked) {
-      runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, qjson);
-    } else if (metaTokenAddress) {
-      runTxWithERC20Approval(
-        btn, 'Post answer', walletAddr,
-        metaTokenAddress, CONTRACT, bondWei,
-        () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, maxPrev, bondWei),
-        () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
-      );
+      runCommitReveal(btn, walletAddr, ansBytes, bondWei, maxPrev, data);
     } else {
-      runTx(btn, 'Post answer',
-        () => realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei }),
-        () => addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson)
-      );
+      const { onSubmitted: os, onConfirmed: oc } = makeAnswerCallbacks(ansBytes, bondWei, walletAddr, data);
+      if (metaTokenAddress) {
+        runTxWithERC20Approval(
+          btn, 'Post answer', walletAddr,
+          metaTokenAddress, CONTRACT, bondWei,
+          () => realityRW.submitAnswerERC20(QUESTION_ID, ansBytes, maxPrev, bondWei),
+          os, oc
+        );
+      } else {
+        runTx(btn, 'Post answer',
+          () => realityRW.submitAnswer(QUESTION_ID, ansBytes, maxPrev, { value: bondWei }),
+          os, oc
+        );
+      }
     }
   });
 
@@ -1277,28 +1285,65 @@ function getAnswerDisplay(bytes32, qjson) {
 }
 
 // ── Optimistic answer entry ───────────────────────────────────────────────────
-function addOptimisticEntry(ansBytes, bondWei, walletAddr, qjson) {
-  const bondList = qPage.querySelector('.bond-list');
-  if (!bondList) return;
+// Push a synthetic answer event into data immediately on TX submission, then
+// re-render so the history shows it with a "pending" tag before the block mines.
+function addOptimisticEntry(ansBytes, bondWei, walletAddr, data, txHash) {
+  data.answerEvents.push({
+    _optimistic: true,
+    _txHash: txHash || null,
+    args: {
+      is_commitment: false,
+      answer:        ansBytes,
+      bond:          bondWei,
+      user:          walletAddr,
+      ts:            Math.floor(Date.now() / 1000),
+      history_hash:  null,
+    }
+  });
+  data.bond = bondWei;
+  _renderDynamic?.();
+}
 
-  const { label, color } = getAnswerDisplay(ansBytes, qjson);
-  const bondStr  = formatBond(bondWei);
-  const letter   = LETTER_MAP[color] || '·';
-  const addrHtml = walletAddr ? (addrLinks(walletAddr) || '') : '';
-
-  const entry = document.createElement('div');
-  entry.className = 'optimistic-entry';
-  entry.innerHTML = `
-    <div class="bond-connector"><div class="answer-dot dot-${color}">${letter}</div></div>
-    <div class="bond-main">
-      <div class="bond-answer-label ${color}"><span class="label-text"></span><span class="bond-tag tag-pending">Submitting…</span></div>
-      <div class="bond-submeta">${addrHtml}${addrHtml ? ' · ' : ''}<span>Unconfirmed</span></div>
-    </div>
-    <div class="bond-right"><div class="bond-amount">${bondStr}</div></div>`;
-  entry.querySelector('.label-text').textContent = label;
-
-  bondList.insertBefore(entry, bondList.firstChild);
-  qPage.classList.add('has-history');
+// Returns {onSubmitted, onConfirmed} callbacks for a submitAnswer TX.
+// onSubmitted fires immediately after the wallet approves (shows pending state).
+// onConfirmed fires after the block mines: replaces the synthetic entry with real
+// log data so verifyWithRpc hash checks stay consistent on any future re-render.
+function makeAnswerCallbacks(ansBytes, bondWei, walletAddr, data) {
+  const onSubmitted = (tx) => addOptimisticEntry(ansBytes, bondWei, walletAddr, data, tx?.hash);
+  const onConfirmed = (receipt) => {
+    const idx = data.answerEvents.findIndex(ev => ev._optimistic);
+    if (idx === -1) return;
+    let replaced = false;
+    if (receipt && reality) {
+      const ANSWER_TOPIC = reality.interface.getEvent('LogNewAnswer').topicHash;
+      const log = receipt.logs?.find(l => l.topics[0] === ANSWER_TOPIC);
+      if (log) {
+        const parsed = reality.interface.parseLog(log);
+        data.answerEvents[idx] = {
+          blockNumber:     receipt.blockNumber,
+          transactionHash: receipt.hash,
+          args: {
+            answer:        parsed.args.answer,
+            question_id:   parsed.args.question_id,
+            history_hash:  parsed.args.history_hash,
+            user:          parsed.args.user,
+            bond:          BigInt(parsed.args.bond),
+            ts:            Number(parsed.args.ts),
+            is_commitment: parsed.args.is_commitment,
+          }
+        };
+        data.finalizeTS = Number(parsed.args.ts) + data.timeout;
+        replaced = true;
+      }
+    }
+    if (!replaced) {
+      // Receipt missing or no matching log — strip the flag so renderHistory
+      // renders it as a plain "current" entry rather than keeping the pending tag.
+      delete data.answerEvents[idx]._optimistic;
+    }
+    _renderDynamic?.();
+  };
+  return { onSubmitted, onConfirmed };
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -1527,6 +1572,19 @@ function renderHistory(data) {
       const revealTs = ev.args.ts + Math.floor(data.timeout / 8);
       submeta.appendChild(document.createTextNode(` · reveal ${formatRevealDeadline(revealTs)}`));
     }
+    if (ev._txHash) {
+      const exp = chainExplorer(CHAIN_ID);
+      if (exp) {
+        submeta.appendChild(document.createTextNode(' · '));
+        const lnk = document.createElement('a');
+        lnk.href = `${exp}/tx/${ev._txHash}`;
+        lnk.target = '_blank';
+        lnk.rel = 'noopener noreferrer';
+        lnk.className = 'bond-addr-ext';
+        lnk.textContent = 'view tx ↗';
+        submeta.appendChild(lnk);
+      }
+    }
     main.appendChild(submeta);
 
     // Right: bond amount + bar (omitted for arbitrated answers where bond is meaningless)
@@ -1552,8 +1610,10 @@ function renderHistory(data) {
 
   // Build current answer entry (latest)
   const latestIsArbitrated = arbitrationOccurred && answerEvents[n - 1].args.bond === 0n;
-  const currentTag = latestIsArbitrated ? 'arbitrated' : 'current';
+  const currentTag = answerEvents[n - 1]._optimistic ? 'pending'
+    : latestIsArbitrated ? 'arbitrated' : 'current';
   const { connector, main, right } = buildEntryContents(answerEvents[n - 1], currentTag, true);
+  curContainer.classList.toggle('optimistic-entry', !!answerEvents[n - 1]._optimistic);
   curContainer.innerHTML = '';
   curContainer.appendChild(connector);
   curContainer.appendChild(main);
@@ -1846,7 +1906,9 @@ function renderStatusCard(data) {
     const topBond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
     const bondStr = formatBond(topBond);
     let pendingBadge = '';
-    if (pendingReveal) {
+    if (latest._optimistic) {
+      pendingBadge = `<span class="bond-tag tag-pending">pending</span>`;
+    } else if (pendingReveal) {
       const revealTs = latest.args.ts && timeout ? latest.args.ts + Math.floor(timeout / 8) : 0;
       const dlStr = revealTs ? formatRevealDeadline(revealTs) : null;
       if (dlStr !== 'deadline passed') {
@@ -1854,10 +1916,15 @@ function renderStatusCard(data) {
         pendingBadge = `<span class="bond-tag tag-pending">${esc(badgeText)}</span>`;
       }
     }
+    const _bannerExp = chainExplorer(CHAIN_ID);
+    const _txMeta = (latest._txHash && _bannerExp)
+      ? ` · <a class="bond-addr-ext" href="${_bannerExp}/tx/${esc(latest._txHash)}" target="_blank" rel="noopener noreferrer">view tx ↗</a>`
+      : '';
+    const _titleStr = finalized ? 'Final answer' : (latest._optimistic ? 'Pending answer' : 'Current answer');
     banner.innerHTML = `
-      <div class="card-title">${finalized ? 'Final answer' : 'Current answer'}</div>
+      <div class="card-title">${_titleStr}</div>
       <span class="answer-banner-value ${bgCls}${isHex ? ' hex' : ''}">${esc(label)}${pendingBadge}</span>
-      <div class="answer-banner-meta">Top bond: <strong>${esc(bondStr)}</strong></div>`;
+      <div class="answer-banner-meta">Top bond: <strong>${esc(bondStr)}</strong>${_txMeta}</div>`;
     banner.style.display = '';
   }
 
@@ -2065,9 +2132,12 @@ async function verifyWithRpc(data) {
     // questionsStruct reads the public questions() mapping directly — works on v2 and v3.
     // Individual getter functions (getBestAnswer, getFinalizeTS, etc.) were only added in v3
     // and revert on v2.x contracts, so we avoid them here.
-    const [q, templateHash] = await Promise.all([
+    const [q, templateHash, onChainReopenedBy] = await Promise.all([
       questionsStruct(reality.runner, CONTRACT, QUESTION_ID),
       data.templateId > 4 ? safeCall(() => reality.template_hashes(data.templateId), null) : Promise.resolve(null),
+      data.settledTooSoon && data.reopenedBy === ZERO_HASH
+        ? safeCall(() => reality.reopened_questions(QUESTION_ID), null)
+        : Promise.resolve(null),
     ]);
 
     const bestAnswer  = q?.best_answer  ?? null;
@@ -2230,6 +2300,13 @@ async function verifyWithRpc(data) {
     if (arbitrator !== null && data.arbitrator &&
         arbitrator.toLowerCase() !== data.arbitrator.toLowerCase())
       errors.push('arbitrator mismatch');
+
+    // Ponder may not have indexed the reopener question yet — check on-chain directly.
+    if (onChainReopenedBy && onChainReopenedBy !== ZERO_HASH) {
+      data.reopenedBy = onChainReopenedBy;
+      data.reopenerQuestionId = `${CONTRACT.toLowerCase()}-${onChainReopenedBy}`;
+      liveStateUpdated = true;
+    }
 
     if (liveStateUpdated || newEntryPushed) {
       _renderDynamic?.();
@@ -2604,11 +2681,21 @@ async function main(hintAddr) {
       }
       const minBond      = q?.min_bond ?? BN0;
       let settledTooSoon = false, reopenedBy = ZERO_HASH, reopensQuestionId = null;
+      let reopenerAnsweredTooSoon = false;
+      let reopenerFinalizeTS = 0;
       if (effectiveMajor >= 3) {
         [settledTooSoon, reopenedBy] = await Promise.all([
           safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
           safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
         ]);
+        if (reopenedBy && reopenedBy !== ZERO_HASH) {
+          const reopenerStruct = await safeCall(
+            () => questionsStruct(reality.runner, CONTRACT, reopenedBy), null);
+          if (reopenerStruct) {
+            reopenerAnsweredTooSoon = reopenerStruct.best_answer?.toLowerCase() === TOO_SOON_LC;
+            reopenerFinalizeTS = Number(reopenerStruct.finalize_ts);
+          }
+        }
         // If this question's nonce is itself a question ID, check whether it's the
         // reopener of that question (i.e. reopened_questions(nonce) === QUESTION_ID).
         // The reopenQuestion() function sets nonce = reopens_question_id.
@@ -2639,7 +2726,8 @@ async function main(hintAddr) {
         minBond, bounty: bounty ?? BN0, settledTooSoon, reopenedBy, arbitrationOccurred,
         isPendingArbitration: isPendingArbitration ?? false,
         reopenerQuestionId: (reopenedBy && reopenedBy !== ZERO_HASH) ? `${CONTRACT.toLowerCase()}-${reopenedBy}` : null,
-        reopenerAnsweredTooSoon: false,
+        reopenerAnsweredTooSoon,
+        reopenerFinalizeTS,
         reopensQuestionId,
         answerEvents,
         revealMap: {},
@@ -2769,11 +2857,13 @@ async function main(hintAddr) {
     const finalized  = isFinalized(data.finalizeTS) && !data.isPendingArbitration;
     const beforeOpen = isBeforeOpening(data.openingTS);
     const effectiveVersion = metaMajorVersion ?? majorVersion;
+    const reopenerTooSoonFinalized = data.reopenerAnsweredTooSoon && isFinalized(data.reopenerFinalizeTS);
     const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3
-      && (data.reopenedBy === ZERO_HASH || data.reopenerAnsweredTooSoon)
+      && (data.reopenedBy === ZERO_HASH || reopenerTooSoonFinalized)
       && !data.reopensQuestionId;
+    // Show "reopened" when reopener exists and is not itself ready to be re-reopened
     const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3
-      && data.reopenedBy !== ZERO_HASH && !data.reopenerAnsweredTooSoon;
+      && data.reopenedBy !== ZERO_HASH && !reopenerTooSoonFinalized;
 
     // Status badge
     const statusBadge = document.getElementById('status-badge');
@@ -2869,11 +2959,18 @@ async function main(hintAddr) {
         );
         if (userEvents.length > 0) {
           safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(onChainHash => {
-            if (onChainHash?.toLowerCase() === ZERO_HASH.toLowerCase()) return;
+            // Treat null (RPC failure) or zero (fully claimed) as "nothing to claim"
+            if (!onChainHash || onChainHash.toLowerCase() === ZERO_HASH.toLowerCase()) return;
             claimSection.style.display = '';
             const claimBtn = claimSection.querySelector('button.claim-button');
             if (claimBtn) {
-              claimBtn.addEventListener('click', () => {
+              claimBtn.addEventListener('click', async () => {
+                // Pre-flight: re-check hash so we don't send a tx that will revert
+                const currentHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
+                if (!currentHash || currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
+                  claimSection.style.display = 'none';
+                  return;
+                }
                 const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
                 runTx(claimBtn, claimBtn.textContent, () =>
                   realityRW.claimMultipleAndWithdrawBalance(
@@ -2895,8 +2992,8 @@ async function main(hintAddr) {
       startPoll(data.finalizeTS);
     }
 
-    // Wallet hook — set once for open, post-opening questions
-    if (!walletHookSet && !finalized && !beforeOpen) {
+    // Wallet hook — set once; covers open questions and finalized questions (reopen/claim need it too)
+    if (!walletHookSet && !beforeOpen) {
       walletHookSet = true;
       window._setQuestionWallet = function(addr) {
         if (!formAreaEl?.isConnected) return;

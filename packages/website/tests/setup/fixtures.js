@@ -1376,3 +1376,96 @@ export async function createTOSFixtures() {
     expectedTosUrl: 'https://ipfs.io/ipfs/QmTestTOSHash',
   };
 }
+
+// Creates two original questions, each finalized as "answered too soon" and then
+// reopened.  The reopener in each case is also answered "too soon", but:
+//
+//   readyOriginalId / readyReopenerId   (nonce 33) — reopener's TOO_SOON answer is
+//     submitted at fork-block time (~Jun 2026), so finalize_ts << browser clock
+//     (~Aug 2026).  The dapp SHOULD show the reopen button.
+//
+//   pendingOriginalId / pendingReopenerId (nonce 32) — reopener's TOO_SOON answer is
+//     submitted with block.timestamp stamped at FAR_FUTURE_TS (~Jan 2027), so
+//     finalize_ts >> browser clock.  The dapp must NOT show the reopen button.
+//
+// The contract enforces timeout == original.timeout for reopenQuestion, so both
+// reopeners use the same 60s timeout as their originals.  We control finalize_ts
+// via evm_setNextBlockTimestamp instead of by varying the timeout.
+//
+// nonces 32 and 33 on v3.0 — all previous nonces 0–31 are taken.
+export async function createDoubleReopenFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const ANSWERED_TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
+  // Unix timestamp ~Jan 13 2027 — well after the test-runner browser clock (~Aug 2026).
+  // Used as the block.timestamp when submitting TOO_SOON to the "pending" reopener so
+  // that finalize_ts = FAR_FUTURE_TS + 60 > Date.now() and isFinalized() returns false.
+  const FAR_FUTURE_TS = 1800000000;
+
+  async function buildFixture(nonce, questionText, stampReopenerFuture) {
+    const originalId = computeQuestionId(
+      TEMPLATE.bool, 0, questionText,
+      ethers.ZeroAddress, 60, nonce,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+
+    const existing = await reality.questions(originalId);
+    const alreadyExists = BigInt(existing[0]) !== 0n;
+
+    let reopenerId;
+
+    if (!alreadyExists) {
+      // 1. Ask original question and finalise it as "answered too soon"
+      await (await reality.askQuestion(
+        TEMPLATE.bool, questionText,
+        ethers.ZeroAddress, 60, 0, nonce, { value: bounty }
+      )).wait();
+      await (await reality.submitAnswer(originalId, ANSWERED_TOO_SOON, 0, { value: bond })).wait();
+      // Advance 70s so on-chain isSettledTooSoon() returns true (timeout=60 expired)
+      await provider.send('evm_increaseTime', [70]);
+      await provider.send('evm_mine', []);
+
+      // 2. Reopen — timeout must match original (60s); nonce = originalId
+      const tx = await reality.reopenQuestion(
+        TEMPLATE.bool, questionText,
+        ethers.ZeroAddress, 60, 0,
+        BigInt(originalId), 0,
+        originalId, { value: bond }
+      );
+      const receipt = await tx.wait();
+      const logTopic = reality.interface.getEvent('LogNewQuestion').topicHash;
+      const log = receipt.logs.find(l => l.topics[0] === logTopic);
+      reopenerId = reality.interface.parseLog(log).args.question_id;
+
+      // 3. Submit TOO_SOON to the reopener.
+      //    stampReopenerFuture=true: set block.timestamp to FAR_FUTURE_TS so
+      //      finalize_ts = FAR_FUTURE_TS + 60 >> browser clock → not finalized.
+      //    stampReopenerFuture=false: no override, finalize_ts stays in Jun 2026
+      //      which is << browser clock (~Aug 2026) → finalized.
+      if (stampReopenerFuture) {
+        await provider.send('evm_setNextBlockTimestamp', [FAR_FUTURE_TS]);
+      }
+      await (await reality.submitAnswer(reopenerId, ANSWERED_TOO_SOON, 0, { value: bond })).wait();
+    } else {
+      reopenerId = await reality.reopened_questions(originalId);
+    }
+
+    return { originalId, reopenerId };
+  }
+
+  // "ready" first (nonce 33): no time override → reopener finalize_ts in Jun 2026 → finalized by browser
+  const ready   = await buildFixture(33, 'Double reopen test: ready',   false);
+  // "pending" second (nonce 32): far-future stamp → reopener finalize_ts in Jan 2027 → not finalized by browser
+  const pending = await buildFixture(32, 'Double reopen test: pending', true);
+
+  return {
+    pendingOriginalId: pending.originalId,
+    pendingReopenerId: pending.reopenerId,
+    readyOriginalId:   ready.originalId,
+    readyReopenerId:   ready.reopenerId,
+  };
+}
