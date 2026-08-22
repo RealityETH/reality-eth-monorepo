@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v25');
+console.log('[question.js] v26');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -986,17 +986,18 @@ function buildAnswerForm(data, walletAddr) {
     });
   }
 
-  // ── Commit-reveal toggle ──
+  // ── Commit-reveal toggle — only shown when ?commit=1 is in the URL ──
   const crLabel = el('label', 'cr-toggle');
   const crCb    = document.createElement('input');
   crCb.type = 'checkbox';
   crLabel.appendChild(crCb);
   crLabel.appendChild(document.createTextNode(' Use commit-reveal'));
-  form.appendChild(crLabel);
-
-  crCb.addEventListener('change', () => {
-    btn.textContent = crCb.checked ? 'Commit then reveal' : 'Post answer';
-  });
+  if (new URLSearchParams(location.search).has('commit')) {
+    form.appendChild(crLabel);
+    crCb.addEventListener('change', () => {
+      btn.textContent = crCb.checked ? 'Commit then reveal' : 'Post answer';
+    });
+  }
 
   // ── Bond keyup validation ──
   bondInput.addEventListener('keyup', () => validateBond(bondWrap, bondInput, minRequired));
