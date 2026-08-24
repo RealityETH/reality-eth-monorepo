@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=90';
+  var V = '?v=91';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -525,22 +525,30 @@
   .page-intro a { color: var(--accent); text-decoration: none; }
   .page-intro a:hover { text-decoration: underline; }
 
-  /* ── Footer ───────────────────────────────────────────── */
-  .site-footer {
-    border-top: 1px solid var(--border-subtle);
-    margin-top: 48px; padding: 24px 16px;
-    color: var(--text-dim); font-size: 12px;
+  /* ── Classic-app link (desktop right-edge tab / mobile footer) ── */
+  .classic-tab { display: none; }
+  .classic-footer { display: none; }
+  @media (min-width: 768px) {
+    .classic-tab {
+      display: block; position: fixed; right: 0; top: 30%;
+      transform: translateY(-50%); z-index: 100;
+      writing-mode: vertical-rl; text-orientation: mixed;
+      padding: 14px 7px; background: var(--bg-card);
+      border: 1px solid var(--border); border-right: none;
+      border-radius: 6px 0 0 6px;
+      color: var(--text-dim); font-size: 11px; text-decoration: none;
+      transition: color 0.15s, background 0.15s; white-space: nowrap;
+    }
+    .classic-tab:hover { color: var(--text-muted); background: var(--bg); }
   }
-  .footer-inner {
-    max-width: 1100px; margin: 0 auto;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  @media (max-width: 767px) {
+    .classic-footer {
+      display: block; border-top: 1px solid var(--border-subtle);
+      padding: 10px 16px; text-align: right; font-size: 12px;
+    }
+    .classic-footer a { color: var(--text-dim); text-decoration: none; }
+    .classic-footer a:hover { color: var(--text-muted); }
   }
-  .footer-copy { flex: 1; min-width: 180px; }
-  .footer-copy a { color: var(--text-dim); text-decoration: none; }
-  .footer-copy a:hover { color: var(--text-muted); }
-  .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
-  .footer-links a { color: var(--text-dim); text-decoration: none; }
-  .footer-links a:hover { color: var(--text-muted); }
 
   /* ── Star button ─────────────────────────────────────── */
   .star-btn {
@@ -1648,26 +1656,6 @@ header {
   border-color: rgba(46,125,50,0.5) !important;
   color: var(--green) !important;
 }
-
-/* ── Footer: white shell, navy bar contained ── */
-.site-footer {
-  border-top: none !important;
-  background: var(--bg) !important;
-  padding: 0 20px !important;
-  margin-top: 24px !important;
-}
-.footer-inner {
-  background: var(--navy2) !important;
-  max-width: 1160px !important;
-  margin: 0 auto !important;
-  height: 52px !important;
-  padding: 0 20px !important;
-  color: rgba(255,255,255,0.7) !important;
-}
-.footer-copy, .footer-copy a,
-.footer-links a { color: rgba(255,255,255,0.7) !important; transition: color 0.1s; }
-.footer-copy a:hover,
-.footer-links a:hover { color: var(--teal) !important; }
 
 /* ── Page intro ── */
 .page-intro {
@@ -4763,5 +4751,7 @@ header {
   updateNav();
 })();
 </script>
+<a class="classic-tab" href="/app/">Classic app ↗</a>
+<footer class="classic-footer"><a href="/app/">Old version of the dapp ↗</a></footer>
 </body>
 </html>
