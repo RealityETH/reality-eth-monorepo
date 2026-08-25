@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=101';
+  var V = '?v=106';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -913,6 +913,12 @@
     border: 1px solid var(--border); border-radius: 4px; transition: color 0.15s, border-color 0.15s; }
   .hero-addr-link:hover { color: var(--accent); border-color: var(--accent); }
   .hero-wallet-note { font-size: 11px; color: var(--amber); }
+  #withdraw-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn-withdraw { background: transparent; border: 1px solid var(--amber); color: var(--amber);
+    padding: 6px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+  .btn-withdraw:hover:not(:disabled) { opacity: 0.8; }
+  .btn-withdraw:disabled { opacity: 0.45; cursor: not-allowed; }
   .claim-banner { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25);
     border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -2571,6 +2577,7 @@ header {
         <a class="hero-addr-link" id="hero-explorer-link" href="#" target="_blank" rel="noopener" style="display:none">↗</a>
         <span class="hero-wallet-note" id="hero-wallet-note" style="display:none"></span>
       </div>
+      <div id="withdraw-btns" style="display:none"></div>
     </div>
 
     <div class="claim-banner" id="claim-banner" style="display:none">
@@ -3325,7 +3332,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=101';
+  const V = '?v=106';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -3648,8 +3655,8 @@ header {
       const json = await res.json();
       const result = json.data.questions;
       allQuestions = reset ? result.items : [...allQuestions, ...result.items];
-      cursor = result.pageInfo.endCursor;
-      hasNextPage = result.pageInfo.hasNextPage;
+      cursor = result.pageInfo?.endCursor ?? null;
+      hasNextPage = result.pageInfo?.hasNextPage ?? false;
       if (reset) writeBrowseCache(allQuestions, cursor, hasNextPage);
     } catch (e) {
       console.error('GraphQL error:', e);

@@ -1504,3 +1504,49 @@ export async function createDoubleReopenFixtures() {
     readyReopenerId:   ready.reopenerId,
   };
 }
+
+// Creates a bool question answered YES and fully claimed on-chain, so
+// history_hash is rewound to ZERO_HASH.  Used to test the RPC-path claim
+// detection (no indexer → getHistoryHash returns ZERO_HASH → distributed note).
+// nonce=34 — nonces 0–33 on v3.0 are taken by other fixture functions.
+export async function createClaimedYesFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const bounty = ethers.parseEther('0.001');
+  const bond   = ethers.parseEther('0.001');
+  const YES    = '0x0000000000000000000000000000000000000000000000000000000000000001';
+  const timeout = 60;
+
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'Claim section test: claimed YES answer',
+    ethers.ZeroAddress, timeout, 34,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+
+  const existing = await reality.questions(questionId);
+  const alreadyExists = BigInt(existing[0]) !== 0n;
+
+  if (!alreadyExists) {
+    await (await reality.askQuestion(
+      TEMPLATE.bool, 'Claim section test: claimed YES answer',
+      ethers.ZeroAddress, timeout, 0, 34,
+      { value: bounty }
+    )).wait();
+
+    await (await reality.submitAnswer(questionId, YES, 0, { value: bond })).wait();
+    await provider.send('evm_increaseTime', [70]);
+    await provider.send('evm_mine', []);
+
+    await (await reality.claimWinnings(
+      questionId,
+      [ethers.ZeroHash],
+      [TEST_ACCOUNT.address],
+      [bond],
+      [YES]
+    )).wait();
+  }
+
+  return { questionId, bond, bounty, answer: YES };
+}

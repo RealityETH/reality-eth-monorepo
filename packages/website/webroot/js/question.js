@@ -410,7 +410,6 @@ function adaptPonderData(ponderData) {
     answerEvents,
     revealMap,
     currentAnswer:      pq.currentAnswer || null,
-    ponderHistoryHash:  pq.historyHash   || null,
     claims: (claimsPage?.items || []).map(c => ({
       user:   c.user,
       txHash: c.createdTxHash || null,
@@ -2889,7 +2888,7 @@ async function main(hintAddr) {
   let formAreaEl    = qPage.querySelector('#answer-form-container');
   let lastFormState = null;   // tracks what state the form was last built for
   let claimWired    = false;
-  let _claimHash;   // undefined = not fetched yet; null = RPC failure; string = hash value
+  let _claimHash;   // RPC-path only: cached getHistoryHash result (undefined=not yet fetched, null=failure)
   let countdownPollStarted = false;
   let walletHookSet = false;
 
@@ -2991,57 +2990,79 @@ async function main(hintAddr) {
 
     // Claim section — shown whenever the question is finalized.
     // Three states:
-    //   (a) Already distributed (hash = 0): "✓ Bonds distributed [date] ↗" note; no wallet needed.
+    //   (a) Already distributed: "✓ Bonds distributed [date] ↗" note; no wallet needed.
     //   (b) Unclaimed + no wallet: "Claim winnings" title + "Connect wallet" button.
     //   (c) Unclaimed + wallet: proper claim/distribute button; then lock claimWired.
-    // _claimHash caches the on-chain result so we make at most one RPC call.
+    //
+    // Two paths for determining distributed state:
+    //   Indexer path (data.claims != null): check claim records — no RPC call needed.
+    //   RPC-only path (data.claims == null): check on-chain getHistoryHash; cached in _claimHash.
     if (!claimWired) {
       const claimSection     = qPage.querySelector('.claim-section');
       const claimDistributed = qPage.querySelector('.claim-distributed');
       if (finalized && (claimSection || claimDistributed)) {
-        // Use ponder's indexed historyHash when available (avoids RPC call that may
-        // fail due to CORS on public endpoints). Fall back to on-chain read otherwise.
-        const hashP = _claimHash !== undefined
-          ? Promise.resolve(_claimHash)
-          : typeof data.ponderHistoryHash === 'string'
-            ? Promise.resolve((_claimHash = data.ponderHistoryHash))
+        // Resolve a { distributed, indexerClaim } object:
+        //   distributed=true + indexerClaim=object → use indexer date/tx directly
+        //   distributed=true + no indexerClaim    → fetch LogClaim from RPC for date/tx
+        //   distributed=false                     → show claim button
+        //   distributed=null                      → RPC failure, can't determine state
+        let stateP;
+        if (data.claims != null) {
+          stateP = Promise.resolve(
+            data.claims.length > 0
+              ? { distributed: true, indexerClaim: data.claims[0] }
+              : { distributed: false }
+          );
+        } else {
+          const hashP = _claimHash !== undefined
+            ? Promise.resolve(_claimHash)
             : safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(h => (_claimHash = h));
+          stateP = hashP.then(h => ({
+            distributed: h == null ? null : h.toLowerCase() === ZERO_HASH.toLowerCase(),
+          }));
+        }
 
-        hashP.then(async onChainHash => {
-          if (!onChainHash) return; // RPC failure
+        stateP.then(async ({ distributed, indexerClaim }) => {
+          if (distributed === null) return; // RPC failure — can't determine state
 
-          if (onChainHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
-            // Already distributed — show note and stop re-checking.
+          if (distributed) {
             claimWired = true;
             if (!claimDistributed) return;
-            try {
-              const fromBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
-              const logs = await safeCall(
-                () => reality.queryFilter(reality.filters.LogClaim(QUESTION_ID), fromBlock), []
-              );
-              const log = logs?.[0];
+            let txUrl = '', dateStr = '';
+            if (indexerClaim) {
               const exp = chainExplorer(CHAIN_ID);
-              const txUrl = log && exp ? `${exp}/tx/${log.transactionHash}` : '';
-              let dateStr = '';
-              if (log) {
-                try {
-                  const block = await readProvider.getBlock(log.blockNumber);
-                  if (block?.timestamp) dateStr = date(block.timestamp);
-                } catch {}
-              }
-              claimDistributed.textContent = `✓ Bonds distributed${dateStr ? ' ' + dateStr : ''}`;
-              if (txUrl) {
-                const a = Object.assign(document.createElement('a'), {
-                  href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
-                });
-                claimDistributed.appendChild(a);
-              }
-              claimDistributed.style.display = '';
-            } catch {}
+              txUrl = indexerClaim.txHash && exp ? `${exp}/tx/${indexerClaim.txHash}` : '';
+              dateStr = indexerClaim.ts ? formatRelTime(indexerClaim.ts) : '';
+            } else {
+              // RPC path: fetch LogClaim events for date/tx
+              try {
+                const fromBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
+                const logs = await safeCall(
+                  () => reality.queryFilter(reality.filters.LogClaim(QUESTION_ID), fromBlock), []
+                );
+                const log = logs?.[0];
+                const exp = chainExplorer(CHAIN_ID);
+                txUrl = log && exp ? `${exp}/tx/${log.transactionHash}` : '';
+                if (log) {
+                  try {
+                    const block = await readProvider.getBlock(log.blockNumber);
+                    if (block?.timestamp) dateStr = date(block.timestamp);
+                  } catch {}
+                }
+              } catch {}
+            }
+            claimDistributed.textContent = `✓ Bonds distributed${dateStr ? ' ' + dateStr : ''}`;
+            if (txUrl) {
+              const a = Object.assign(document.createElement('a'), {
+                href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
+              });
+              claimDistributed.appendChild(a);
+            }
+            claimDistributed.style.display = '';
             return;
           }
 
-          // Unclaimed — always show the section.
+          // Not distributed — show claim button.
           if (!claimSection) return;
           const titleEl  = claimSection.querySelector('.card-title');
           const claimBtn = claimSection.querySelector('button.claim-button');
@@ -3073,15 +3094,6 @@ async function main(hintAddr) {
           claimSection.style.display = '';
           if (claimBtn) {
             claimBtn.onclick = async () => {
-              // Pre-flight: verify bonds haven't been distributed since page load.
-              // Attempt a fresh on-chain read; if the RPC is unavailable (e.g. CORS),
-              // fall back to the cached ponder hash — it was non-zero to get here.
-              const freshHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
-              const currentHash = freshHash ?? _claimHash;
-              if (currentHash && currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
-                claimSection.style.display = 'none';
-                return;
-              }
               const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
               if (userIsParticipant) {
                 runTx(claimBtn, claimBtn.textContent, () =>
@@ -3116,6 +3128,7 @@ async function main(hintAddr) {
       window._setQuestionWallet = function(addr) {
         if (!qPage.isConnected) return;
         const addrChanged = addr !== walletAddr;
+        const prevRealityRW = realityRW;
         walletAddr = addr;
         if (addr && window.ethereum) {
           try {
@@ -3127,12 +3140,15 @@ async function main(hintAddr) {
         } else {
           realityRW = null;
         }
-        // Only rebuild the form when the address changes (connect / disconnect).
-        // Same-address calls (e.g. accountsChanged fired by a WC chain switch)
-        // just refresh realityRW without tearing down the form and losing the
-        // user's answer selection.
+        // Rebuild the form on address change (connect/disconnect).
+        // Also re-render (without form rebuild) when realityRW becomes available
+        // for the first time for this address — WalletConnect session restores
+        // after the page already rendered with walletAddr set but window.ethereum
+        // still undefined, leaving the claim section stuck at "Connect wallet".
         if (addrChanged) {
           lastFormState = null;
+          _renderDynamic();
+        } else if (!prevRealityRW && realityRW) {
           _renderDynamic();
         }
       };

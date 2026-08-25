@@ -30,6 +30,8 @@ function builtinTemplatesForVer(verStr) {
 
 const REALITY_ABI = [
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
+  'function balanceOf(address) view returns (uint256)',
+  'function withdraw()',
 ];
 
 // Cached across mount() calls to avoid re-fetching on every navigation
@@ -1153,6 +1155,59 @@ window.RealityAccount.mount = async function (addr) {
       if (exp) { link.href = `${exp}/address/${viewAddr}`; link.style.display = ''; }
       else      { link.style.display = 'none'; }
     }
+
+    checkWithdrawBalances();
+  }
+
+  // ── Withdraw balance check ─────────────────────────────────────────────────────
+  // Checks balanceOf() on every contract for the connected wallet's chain.
+  // Shows one button per contract with a non-zero unclaimed balance.
+  async function checkWithdrawBalances() {
+    const el = document.getElementById('withdraw-btns');
+    if (!el) return;
+    el.innerHTML = '';
+    el.style.display = 'none';
+    if (!walletAddr || !provider || !walletChainId) return;
+
+    const contracts = _contractsData || window.RealityWebsiteData?.contracts || {};
+    const rcList = getRcContracts(contracts, walletChainId);
+    if (!rcList.length) return;
+
+    const results = await Promise.all(rcList.map(async ({ address, tokenSym }) => {
+      try {
+        const rc = new ethers.Contract(address, REALITY_ABI, provider);
+        const bal = await withIndicator(rpcInd, () => rc.balanceOf(walletAddr));
+        return bal > 0n ? { address, tokenSym, bal } : null;
+      } catch { return null; }
+    }));
+
+    const nonZero = results.filter(Boolean);
+    if (!nonZero.length) return;
+
+    for (const { address, tokenSym, bal } of nonZero) {
+      const token = tokenSym || chainNativeToken(walletChainId) || 'ETH';
+      const btn = document.createElement('button');
+      btn.className = 'btn-withdraw';
+      btn.textContent = `Withdraw ${formatEth(bal)} ${token}`;
+      btn.addEventListener('click', async () => {
+        if (!signer) return;
+        btn.disabled = true;
+        btn.textContent = 'Waiting for wallet…';
+        try {
+          const rc = new ethers.Contract(address, REALITY_ABI, signer);
+          const tx = await withIndicator(rpcInd, () => rc.withdraw());
+          btn.textContent = 'Pending…';
+          await withIndicator(rpcInd, () => tx.wait());
+          btn.textContent = '✓ Done';
+          setTimeout(() => { btn.remove(); if (!el.children.length) el.style.display = 'none'; }, 2000);
+        } catch {
+          btn.disabled = false;
+          btn.textContent = `Withdraw ${formatEth(bal)} ${token}`;
+        }
+      });
+      el.appendChild(btn);
+    }
+    el.style.display = '';
   }
 
   // ── Navigate to an address ────────────────────────────────────────────────────
