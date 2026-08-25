@@ -142,6 +142,41 @@ export async function createKlerosFixtures() {
   return { klerosQuestionId: questionId, bond, bounty, answer: YES };
 }
 
+// Plants mock bytecode at the Kleros foreign proxy address (on the Gnosis fork)
+// so the browser's direct ethers.JsonRpcProvider calls to the foreign chain
+// (redirected to Anvil in tests) return predictable values:
+//   getDisputeFee(bytes32)            → 0.001 ETH (1e15 wei)
+//   requestArbitration(bytes32,uint256) → success (empty return)
+//
+// Selectors (keccak256 of canonical sig, first 4 bytes):
+//   getDisputeFee     a22352e2
+//   requestArbitration a829c3d1
+// Jump destinations (pre-computed from instruction layout):
+//   0x14 (20) = return fee, 0x26 (38) = return empty success
+const MOCK_FOREIGN_PROXY_BYTECODE =
+  '0x' +
+  '60003560e01c' +              // PUSH1 0, CALLDATALOAD, PUSH1 224, SHR → selector on stack
+  '8063a22352e21461002157' +    // DUP1, PUSH4 getDisputeFee, EQ, PUSH2 0x21, JUMPI
+  '8063a829c3d11461003357' +    // DUP1, PUSH4 requestArbitration, EQ, PUSH2 0x33, JUMPI
+  '60006000fd' +                // REVERT (unknown selector)
+  '5b5066038d7ea4c6800060005260206000f3' + // 0x21: JUMPDEST, POP, PUSH7 1e15, MSTORE(0,fee), RETURN(0,32)
+  '5b5060006000f3';             // 0x33: JUMPDEST, POP, RETURN(0,0)
+
+export async function createForeignProxyFixtures(klerosFixtures) {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+
+  const homeProxy = new ethers.Contract(
+    CONTRACTS.klerosArbitrator,
+    ['function foreignProxy() view returns (address)'],
+    provider,
+  );
+  const foreignProxyAddr = (await homeProxy.foreignProxy()).toLowerCase();
+
+  await provider.send('anvil_setCode', [foreignProxyAddr, MOCK_FOREIGN_PROXY_BYTECODE]);
+
+  return { foreignProxyAddr, ...klerosFixtures };
+}
+
 export async function createAnswerTypeFixtures() {
   const DELIMITER = '␟'; // reality.eth question field separator
   const provider = new ethers.JsonRpcProvider(ANVIL_URL);

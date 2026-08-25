@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=92';
+  var V = '?v=93';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1540,7 +1540,7 @@
 <script defer src="js/chains.js?v=3"></script>
 <script defer src="js/vendor/reality-eth-lib.js?v=6"></script>
 <script defer src="js/vendor/ethers.js?v=3"></script>
-<script defer src="js/wallet.js?v=9"></script>
+<script defer src="js/wallet.js?v=10"></script>
 <script defer src="js/settings.js?v=12"></script>
 <script defer src="js/question-cache.js?v=3"></script>
 <script defer src="js/watches.js?v=4"></script>
@@ -3319,7 +3319,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=90';
+  const V = '?v=91';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

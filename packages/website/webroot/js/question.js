@@ -1825,6 +1825,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const currentHex = await window.ethereum.request({ method: 'eth_chainId' });
       if (parseInt(currentHex, 16) !== txChainId) {
         btn.textContent = `Switching to ${chainName(txChainId)}…`;
+        window.ethereum._internalChainSwitch = true;
         try {
           await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
         } catch (switchErr) {
@@ -1833,6 +1834,8 @@ async function renderArbitrationSection(data, walletAddr) {
           } else {
             throw switchErr;
           }
+        } finally {
+          window.ethereum._internalChainSwitch = false;
         }
       }
 

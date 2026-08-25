@@ -306,7 +306,7 @@
         setCached(addr);
         onChange(addr);
       });
-      eth.on('chainChanged', () => location.reload());
+      eth.on('chainChanged', () => { if (eth._internalChainSwitch) return; location.reload(); });
       return;
     }
 
