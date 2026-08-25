@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=100';
+  var V = '?v=101';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -861,6 +861,10 @@
   .claim-history-list { display: flex; flex-direction: column; gap: 6px; }
   .claim-history-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
   .claim-addr { color: var(--text); flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .claim-addr a { color: inherit; text-decoration: none; }
+  .claim-addr a:hover { text-decoration: underline; }
+  .claim-tx { color: var(--text-muted); font-size: 11px; white-space: nowrap; text-decoration: none; }
+  .claim-tx:hover { text-decoration: underline; }
   .claim-amount { color: var(--green); font-weight: 600; white-space: nowrap; }
   .claim-date { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
   .claim-button { width: 100%; padding: 9px; background: var(--green); border: none; border-radius: var(--radius-sm); color: var(--bg); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
@@ -3321,7 +3325,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=100';
+  const V = '?v=101';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

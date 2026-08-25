@@ -1865,24 +1865,38 @@ function renderClaimHistory(data) {
   if (!section || !data.claims || data.claims.length === 0) return;
   const list = section.querySelector('.claim-history-list');
   list.innerHTML = '';
+  const exp = chainExplorer(CHAIN_ID);
   data.claims.forEach(c => {
-    const row  = el('div', 'claim-history-row');
+    const row       = el('div', 'claim-history-row');
+    const shortAddr = c.user.slice(0,6) + '…' + c.user.slice(-4);
+
     const addr = el('span', 'claim-addr');
-    const exp  = chainExplorer(CHAIN_ID);
-    if (c.txHash && exp) {
-      const a = Object.assign(document.createElement('a'), {
-        href: `${exp}/tx/${c.txHash}`, target: '_blank', rel: 'noopener noreferrer',
-        textContent: c.user.slice(0,6) + '…' + c.user.slice(-4),
+    if (exp) {
+      Object.assign(addr.appendChild(document.createElement('a')), {
+        href: `${exp}/address/${c.user}`, target: '_blank', rel: 'noopener noreferrer',
+        textContent: shortAddr,
       });
-      addr.appendChild(a);
     } else {
-      addr.innerHTML = addrLinks(c.user) || (c.user.slice(0,6) + '…' + c.user.slice(-4));
+      addr.textContent = shortAddr;
     }
-    const amt  = el('span', 'claim-amount', formatEth(c.amount) + ' ' + metaToken);
-    const date = el('span', 'claim-date', new Date(c.ts * 1000).toLocaleDateString());
+
+    const amt = el('span', 'claim-amount', formatEth(c.amount) + ' ' + metaToken);
+
+    const d = new Date(c.ts * 1000);
+    const dateStr = d.toLocaleString(undefined, {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+    const ts = el('span', 'claim-date', dateStr);
+
     row.appendChild(addr);
+    if (c.txHash && exp) {
+      row.appendChild(Object.assign(el('a', 'claim-tx', 'tx ↗'), {
+        href: `${exp}/tx/${c.txHash}`, target: '_blank', rel: 'noopener noreferrer',
+      }));
+    }
     row.appendChild(amt);
-    row.appendChild(date);
+    row.appendChild(ts);
     list.appendChild(row);
   });
   section.style.display = '';
