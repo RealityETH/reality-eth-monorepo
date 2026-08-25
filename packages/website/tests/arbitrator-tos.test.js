@@ -10,10 +10,9 @@ test.describe('arbitrator TOS link', () => {
   let baseFixtures;
 
   test.beforeAll(async () => {
-    [tosFixtures, baseFixtures] = await Promise.all([
-      createTOSFixtures(),
-      createFixtures(),
-    ]);
+    // Sequential — both use TEST_ACCOUNT; parallel NonceManagers collide on first run
+    tosFixtures  = await createTOSFixtures();
+    baseFixtures = await createFixtures();
   });
 
   test.beforeEach(async () => { snap = await snapshot(); });
