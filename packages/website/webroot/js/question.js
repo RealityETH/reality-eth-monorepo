@@ -3087,7 +3087,7 @@ async function main(hintAddr) {
     if (!walletHookSet && !beforeOpen) {
       walletHookSet = true;
       window._setQuestionWallet = function(addr) {
-        if (!formAreaEl?.isConnected) return;
+        if (!qPage.isConnected) return;
         const addrChanged = addr !== walletAddr;
         walletAddr = addr;
         if (addr && window.ethereum) {
