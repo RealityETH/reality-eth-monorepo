@@ -241,6 +241,7 @@ for (const name of [
         user,
         amount,
         createdBlock: event.block.number,
+        createdTxHash: event.transaction.hash,
         createdTimestamp: event.block.timestamp,
       })
       .onConflictDoNothing();

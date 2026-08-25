@@ -145,6 +145,7 @@ export const claim = onchainTable(
     user: p.hex().notNull(),
     amount: p.bigint().notNull(),
     createdBlock: p.bigint().notNull(),
+    createdTxHash: p.hex().notNull(),
     createdTimestamp: p.bigint().notNull(),
   }),
   (table) => ({

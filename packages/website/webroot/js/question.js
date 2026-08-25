@@ -230,7 +230,7 @@ async function fetchPonderData() {
       items { answer commitmentHash bond user historyHash isCommitment isUnrevealed timestamp createdBlock createdLogIndex createdTxHash }
     }
     claims(where: { questionId: ${qid} }, orderBy: "createdTimestamp", orderDirection: "asc", limit: 100) {
-      items { user amount createdTimestamp }
+      items { user amount createdTxHash createdTimestamp }
     }
     reopeners: questions(where: { reopensQuestionId: ${qid} }, limit: 1) {
       items { id currentAnswer scheduledFinalizationTimestamp }
@@ -413,6 +413,7 @@ function adaptPonderData(ponderData) {
     ponderHistoryHash:  pq.historyHash   || null,
     claims: (claimsPage?.items || []).map(c => ({
       user:   c.user,
+      txHash: c.createdTxHash || null,
       amount: BigInt(c.amount),
       ts:     Number(c.createdTimestamp),
     })),
@@ -1865,9 +1866,18 @@ function renderClaimHistory(data) {
   const list = section.querySelector('.claim-history-list');
   list.innerHTML = '';
   data.claims.forEach(c => {
-    const row = el('div', 'claim-history-row');
+    const row  = el('div', 'claim-history-row');
     const addr = el('span', 'claim-addr');
-    addr.innerHTML = addrLinks(c.user) || (c.user.slice(0,6) + '…' + c.user.slice(-4));
+    const exp  = chainExplorer(CHAIN_ID);
+    if (c.txHash && exp) {
+      const a = Object.assign(document.createElement('a'), {
+        href: `${exp}/tx/${c.txHash}`, target: '_blank', rel: 'noopener noreferrer',
+        textContent: c.user.slice(0,6) + '…' + c.user.slice(-4),
+      });
+      addr.appendChild(a);
+    } else {
+      addr.innerHTML = addrLinks(c.user) || (c.user.slice(0,6) + '…' + c.user.slice(-4));
+    }
     const amt  = el('span', 'claim-amount', formatEth(c.amount) + ' ' + metaToken);
     const date = el('span', 'claim-date', new Date(c.ts * 1000).toLocaleDateString());
     row.appendChild(addr);
