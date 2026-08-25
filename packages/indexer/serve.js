@@ -141,6 +141,7 @@ const response = onchainTable(
     createdLogIndex:  bigint().notNull(),
     createdTxHash:    hex().notNull(),
     revealedBlock:    bigint(),
+    revealedTxHash:   hex(),
   },
   (table) => ({
     userIdx:      index().on(table.user),
@@ -157,6 +158,7 @@ const claim = onchainTable(
     user:             hex().notNull(),
     amount:           bigint().notNull(),
     createdBlock:     bigint().notNull(),
+    createdTxHash:    hex(),
     createdTimestamp: bigint().notNull(),
   },
   (table) => ({
