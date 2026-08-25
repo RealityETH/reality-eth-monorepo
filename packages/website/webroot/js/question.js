@@ -220,7 +220,7 @@ async function fetchPonderData() {
     question(id: ${qid}) {
       templateId data title type category lang outcomes questionJson creator
       arbitrator openingTimestamp timeout
-      currentAnswer currentAnswerBond
+      currentAnswer currentAnswerBond historyHash
       minBond bounty scheduledFinalizationTimestamp
       arbitrationOccurred isPendingArbitration
       createdBlock createdLogIndex createdTxHash createdTimestamp
@@ -409,7 +409,8 @@ function adaptPonderData(ponderData) {
     creator:              (pq.creator || '').toLowerCase(),
     answerEvents,
     revealMap,
-    currentAnswer: pq.currentAnswer || null,
+    currentAnswer:      pq.currentAnswer || null,
+    ponderHistoryHash:  pq.historyHash   || null,
     claims: (claimsPage?.items || []).map(c => ({
       user:   c.user,
       amount: BigInt(c.amount),
@@ -2974,9 +2975,13 @@ async function main(hintAddr) {
       const claimSection     = qPage.querySelector('.claim-section');
       const claimDistributed = qPage.querySelector('.claim-distributed');
       if (finalized && (claimSection || claimDistributed)) {
+        // Use ponder's indexed historyHash when available (avoids RPC call that may
+        // fail due to CORS on public endpoints). Fall back to on-chain read otherwise.
         const hashP = _claimHash !== undefined
           ? Promise.resolve(_claimHash)
-          : safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(h => (_claimHash = h));
+          : typeof data.ponderHistoryHash === 'string'
+            ? Promise.resolve((_claimHash = data.ponderHistoryHash))
+            : safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(h => (_claimHash = h));
 
         hashP.then(async onChainHash => {
           if (!onChainHash) return; // RPC failure
