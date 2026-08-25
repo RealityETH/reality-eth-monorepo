@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS reality.response (
   created_block     numeric(78,0) NOT NULL,
   created_log_index numeric(78,0) NOT NULL,
   created_tx_hash   text          NOT NULL,
-  revealed_block    numeric(78,0)
+  revealed_block    numeric(78,0),
+  revealed_tx_hash  text
 );
 
 CREATE INDEX IF NOT EXISTS reality_r_qid       ON reality.response (question_id);
@@ -110,6 +111,7 @@ CREATE TABLE IF NOT EXISTS reality.claim (
   "user"            text          NOT NULL,
   amount            numeric(78,0) NOT NULL,
   created_block     numeric(78,0) NOT NULL,
+  created_tx_hash   text          NOT NULL,
   created_timestamp numeric(78,0) NOT NULL
 );
 

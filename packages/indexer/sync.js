@@ -775,9 +775,9 @@ async function onLogAnswerReveal(db, log, args, chainId, blockTs) {
   ));
   await db.query(`
     UPDATE reality.response
-    SET answer = $1, is_unrevealed = false, revealed_block = $2
-    WHERE id = $3
-  `, [args.answer, block, `${id}-${commitmentId}`]);
+    SET answer = $1, is_unrevealed = false, revealed_block = $2, revealed_tx_hash = $3
+    WHERE id = $4
+  `, [args.answer, block, log.transactionHash, `${id}-${commitmentId}`]);
 
   await db.query(`
     UPDATE reality.question SET
@@ -852,12 +852,12 @@ async function onLogClaim(db, log, args, chainId, blockTs) {
   const logIdx = parseInt(log.logIndex, 16);
   const id     = qId(addr, args.question_id);
   await db.query(`
-    INSERT INTO reality.claim (id, question_id, "user", amount, created_block, created_timestamp)
-    VALUES ($1,$2,$3,$4,$5,$6)
+    INSERT INTO reality.claim (id, question_id, "user", amount, created_block, created_tx_hash, created_timestamp)
+    VALUES ($1,$2,$3,$4,$5,$6,$7)
     ON CONFLICT (id) DO NOTHING
   `, [
     `${id}-${log.transactionHash}-${logIdx}`,
-    id, args.user.toLowerCase(), args.amount.toString(), block, blockTs,
+    id, args.user.toLowerCase(), args.amount.toString(), block, log.transactionHash, blockTs,
   ]);
 }
 
