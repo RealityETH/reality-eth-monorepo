@@ -58,5 +58,5 @@ try {
   console.error('Migration failed, rolled back:', err.message);
   process.exit(1);
 } finally {
-  await client.close();
+  await client.end();
 }
