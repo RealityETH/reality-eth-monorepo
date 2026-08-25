@@ -3049,9 +3049,12 @@ async function main(hintAddr) {
           claimSection.style.display = '';
           if (claimBtn) {
             claimBtn.onclick = async () => {
-              // Pre-flight: re-check hash so we don't send a tx that will revert
-              const currentHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
-              if (!currentHash || currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
+              // Pre-flight: verify bonds haven't been distributed since page load.
+              // Attempt a fresh on-chain read; if the RPC is unavailable (e.g. CORS),
+              // fall back to the cached ponder hash — it was non-zero to get here.
+              const freshHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
+              const currentHash = freshHash ?? _claimHash;
+              if (currentHash && currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
                 claimSection.style.display = 'none';
                 return;
               }
