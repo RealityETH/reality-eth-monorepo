@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=93';
+  var V = '?v=96';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -857,6 +857,7 @@
   .arb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .arb-pending-notice { font-size: 13px; color: var(--text-muted); padding: 8px 12px; margin-top: 8px; background: rgba(188,140,255,0.08); border: 1px solid rgba(188,140,255,0.2); border-radius: var(--radius-sm); }
   .claim-section { background: var(--green-subtle); border: 1px solid rgba(63,185,80,0.25); border-radius: var(--radius); padding: 14px 16px; }
+  .claim-distributed { font-size: 13px; color: var(--text-muted); margin: 0; }
   .claim-history-list { display: flex; flex-direction: column; gap: 6px; }
   .claim-history-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
   .claim-addr { color: var(--text); flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2531,6 +2532,7 @@ header {
         <div class="card-title" style="margin-bottom:10px">Claim winnings</div>
         <button class="claim-button">Claim &amp; withdraw</button>
       </div>
+      <p class="claim-distributed" style="display:none"></p>
     </div>
 
   </div>
@@ -3319,7 +3321,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=91';
+  const V = '?v=94';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

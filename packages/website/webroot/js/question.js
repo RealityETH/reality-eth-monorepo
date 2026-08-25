@@ -72,10 +72,12 @@ const REALITY_ABI = [
   'function submitAnswerCommitment(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer) payable',
   'function submitAnswerCommitmentERC20(bytes32 question_id, bytes32 answer_hash, uint256 max_previous, address _answerer, uint256 tokens)',
   'function submitAnswerReveal(bytes32 question_id, bytes32 answer, uint256 nonce, uint256 bond)',
+  'function claimWinnings(bytes32 question_id, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
   'function claimMultipleAndWithdrawBalance(bytes32[] question_ids, uint256[] lengths, bytes32[] hist_hashes, address[] addrs, uint256[] bonds, bytes32[] answers)',
   'function reopenQuestion(uint256 template_id, string question, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 min_bond, bytes32 reopens_question_id) payable',
   'event LogNewQuestion(bytes32 indexed question_id, address indexed user, uint256 template_id, string question, bytes32 indexed content_hash, address arbitrator, uint32 timeout, uint32 opening_ts, uint256 nonce, uint256 timestamp)',
   'event LogNewAnswer(bytes32 answer, bytes32 indexed question_id, bytes32 history_hash, address indexed user, uint256 bond, uint256 ts, bool is_commitment)',
+  'event LogClaim(bytes32 indexed question_id, address indexed user, uint256 amount)',
   'event LogAnswerReveal(bytes32 indexed question_id, address indexed user, bytes32 indexed answer_hash, bytes32 answer, uint256 nonce, uint256 bond)',
   'function commitments(bytes32) view returns (uint32 reveal_ts, bool is_revealed, bytes32 revealed_answer)',
   'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
@@ -2862,6 +2864,7 @@ async function main(hintAddr) {
   let formAreaEl    = qPage.querySelector('#answer-form-container');
   let lastFormState = null;   // tracks what state the form was last built for
   let claimWired    = false;
+  let _claimHash;   // undefined = not fetched yet; null = RPC failure; string = hash value
   let countdownPollStarted = false;
   let walletHookSet = false;
 
@@ -2961,39 +2964,110 @@ async function main(hintAddr) {
       }
     }
 
-    // Claim section — wire once when the question is confirmed finalized with user answers
+    // Claim section — shown whenever the question is finalized.
+    // Three states:
+    //   (a) Already distributed (hash = 0): "✓ Bonds distributed [date] ↗" note; no wallet needed.
+    //   (b) Unclaimed + no wallet: "Claim winnings" title + "Connect wallet" button.
+    //   (c) Unclaimed + wallet: proper claim/distribute button; then lock claimWired.
+    // _claimHash caches the on-chain result so we make at most one RPC call.
     if (!claimWired) {
-      const claimSection = qPage.querySelector('.claim-section');
-      if (claimSection && finalized && walletAddr && realityRW) {
-        claimWired = true;
-        const userEvents = data.answerEvents.filter(
-          ev => ev.args.user?.toLowerCase() === walletAddr.toLowerCase()
-        );
-        if (userEvents.length > 0) {
-          safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(onChainHash => {
-            // Treat null (RPC failure) or zero (fully claimed) as "nothing to claim"
-            if (!onChainHash || onChainHash.toLowerCase() === ZERO_HASH.toLowerCase()) return;
-            claimSection.style.display = '';
-            const claimBtn = claimSection.querySelector('button.claim-button');
+      const claimSection     = qPage.querySelector('.claim-section');
+      const claimDistributed = qPage.querySelector('.claim-distributed');
+      if (finalized && (claimSection || claimDistributed)) {
+        const hashP = _claimHash !== undefined
+          ? Promise.resolve(_claimHash)
+          : safeCall(() => reality.getHistoryHash(QUESTION_ID), null).then(h => (_claimHash = h));
+
+        hashP.then(async onChainHash => {
+          if (!onChainHash) return; // RPC failure
+
+          if (onChainHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
+            // Already distributed — show note and stop re-checking.
+            claimWired = true;
+            if (!claimDistributed) return;
+            try {
+              const fromBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
+              const logs = await safeCall(
+                () => reality.queryFilter(reality.filters.LogClaim(QUESTION_ID), fromBlock), []
+              );
+              const log = logs?.[0];
+              const exp = chainExplorer(CHAIN_ID);
+              const txUrl = log && exp ? `${exp}/tx/${log.transactionHash}` : '';
+              let dateStr = '';
+              if (log) {
+                try {
+                  const block = await readProvider.getBlock(log.blockNumber);
+                  if (block?.timestamp) dateStr = date(block.timestamp);
+                } catch {}
+              }
+              claimDistributed.textContent = `✓ Bonds distributed${dateStr ? ' ' + dateStr : ''}`;
+              if (txUrl) {
+                const a = Object.assign(document.createElement('a'), {
+                  href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
+                });
+                claimDistributed.appendChild(a);
+              }
+              claimDistributed.style.display = '';
+            } catch {}
+            return;
+          }
+
+          // Unclaimed — always show the section.
+          if (!claimSection) return;
+          const titleEl  = claimSection.querySelector('.card-title');
+          const claimBtn = claimSection.querySelector('button.claim-button');
+
+          if (!walletAddr || !realityRW) {
+            // No wallet yet — show "Connect wallet"; don't lock claimWired so we
+            // re-enter this branch once the wallet connects and _renderDynamic fires.
+            if (titleEl)  titleEl.textContent  = 'Claim winnings';
             if (claimBtn) {
-              claimBtn.addEventListener('click', async () => {
-                // Pre-flight: re-check hash so we don't send a tx that will revert
-                const currentHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
-                if (!currentHash || currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
-                  claimSection.style.display = 'none';
-                  return;
-                }
-                const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
+              claimBtn.textContent = 'Connect wallet';
+              claimBtn.onclick = () => RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+            }
+            claimSection.style.display = '';
+            return;
+          }
+
+          // Wallet connected — wire the real action and lock.
+          claimWired = true;
+          const userIsParticipant = data.answerEvents.some(
+            ev => ev.args.user?.toLowerCase() === walletAddr.toLowerCase()
+          );
+          if (userIsParticipant) {
+            if (titleEl)  titleEl.textContent  = 'Claim winnings';
+            if (claimBtn) claimBtn.textContent = 'Claim & withdraw';
+          } else {
+            if (titleEl)  titleEl.textContent  = 'Distribute bonds';
+            if (claimBtn) claimBtn.textContent = 'Distribute bonds';
+          }
+          claimSection.style.display = '';
+          if (claimBtn) {
+            claimBtn.onclick = async () => {
+              // Pre-flight: re-check hash so we don't send a tx that will revert
+              const currentHash = await safeCall(() => reality.getHistoryHash(QUESTION_ID), null);
+              if (!currentHash || currentHash.toLowerCase() === ZERO_HASH.toLowerCase()) {
+                claimSection.style.display = 'none';
+                return;
+              }
+              const args = buildClaimArgs(QUESTION_ID, data.answerEvents);
+              if (userIsParticipant) {
                 runTx(claimBtn, claimBtn.textContent, () =>
                   realityRW.claimMultipleAndWithdrawBalance(
                     args.question_ids, args.lengths, args.hist_hashes,
                     args.addrs, args.bonds, args.answers
                   )
                 );
-              });
-            }
-          });
-        }
+              } else {
+                runTx(claimBtn, claimBtn.textContent, () =>
+                  realityRW.claimWinnings(
+                    QUESTION_ID, args.hist_hashes, args.addrs, args.bonds, args.answers
+                  )
+                );
+              }
+            };
+          }
+        });
       }
     }
 

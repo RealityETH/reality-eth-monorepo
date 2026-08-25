@@ -676,19 +676,22 @@ window.RealityAccount.mount = async function (addr) {
 
     const answeredIds = [...new Set(userResponses.map(r => r.questionId))];
     let answeredQuestions = [];
-    if (answeredIds.length > 0) {
-      const idList = answeredIds.map(id => `"${id}"`).join(',');
-      const answeredData = await gql(`{ questions(where:{id_in:[${idList}]},limit:${answeredIds.length}) { items{${qFields}} } }`);
-      answeredQuestions = answeredData.questions?.items || [];
+    const CHUNK = 250;
+    for (let i = 0; i < answeredIds.length; i += CHUNK) {
+      const chunk = answeredIds.slice(i, i + CHUNK);
+      const idList = chunk.map(id => `"${id}"`).join(',');
+      const answeredData = await gql(`{ questions(where:{id_in:[${idList}]},limit:${chunk.length}) { items{${qFields}} } }`);
+      answeredQuestions.push(...(answeredData.questions?.items || []));
     }
 
     const claimCandidates = answeredQuestions.filter(q =>
       isFinalized(q) && !claimedSet.has(q.id)
     );
     const fullRespMap = {};
-    if (claimCandidates.length > 0) {
-      const candIds = claimCandidates.map(q => `"${q.id}"`).join(',');
-      const histData = await gql(`{ responses(where:{questionId_in:[${candIds}]},orderBy:"timestamp",orderDirection:"asc",limit:${claimCandidates.length * 100}) { items{answer commitmentHash bond user historyHash isCommitment questionId} } }`);
+    for (let i = 0; i < claimCandidates.length; i += CHUNK) {
+      const chunk = claimCandidates.slice(i, i + CHUNK);
+      const candIds = chunk.map(q => `"${q.id}"`).join(',');
+      const histData = await gql(`{ responses(where:{questionId_in:[${candIds}]},orderBy:"timestamp",orderDirection:"asc",limit:${chunk.length * 100}) { items{answer commitmentHash bond user historyHash isCommitment questionId} } }`);
       for (const r of histData.responses?.items || []) {
         (fullRespMap[r.questionId] ??= []).push(r);
       }

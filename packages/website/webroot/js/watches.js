@@ -261,8 +261,12 @@ async function checkForUpdates(ponderUrl) {
   ]);
   const now = Math.floor(Date.now() / 1000);
 
-  if (starred.length > 0) {
-    const ids     = starred.map(q => `"${q.id}"`).join(',');
+  // Process starred watches in chunks to stay under the GraphQL 1000-token limit.
+  // Each 66-char question ID is 1 string token + 1 comma = 2 tokens; 250 IDs ≈ 540 tokens.
+  const STARRED_CHUNK = 250;
+  for (let ci = 0; ci < starred.length; ci += STARRED_CHUNK) {
+    const chunk   = starred.slice(ci, ci + STARRED_CHUNK);
+    const ids     = chunk.map(q => `"${q.id}"`).join(',');
     const afterTs = lastChecked;
 
     // New answers
@@ -272,7 +276,7 @@ async function checkForUpdates(ponderUrl) {
       }
     }`);
     for (const r of respData?.responses?.items || []) {
-      const sq = starred.find(q => q.id === r.questionId);
+      const sq = chunk.find(q => q.id === r.questionId);
       await addNotification({
         id:         `resp-${r.id}`,
         questionId: r.questionId,
@@ -294,7 +298,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `final-${q.id}`,
         questionId: q.id,
-        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
+        chainId:    chunk.find(sq => sq.id === q.id)?.chainId,
         type:       'finalized',
         title:      q.title || q.id,
         detail:     'Question finalized',
@@ -312,7 +316,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `arbreq-${q.id}`,
         questionId: q.id,
-        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
+        chainId:    chunk.find(sq => sq.id === q.id)?.chainId,
         type:       'arb_requested',
         title:      q.title || q.id,
         detail:     'Arbitration requested',
@@ -330,7 +334,7 @@ async function checkForUpdates(ponderUrl) {
       await addNotification({
         id:         `arbres-${q.id}`,
         questionId: q.id,
-        chainId:    starred.find(sq => sq.id === q.id)?.chainId,
+        chainId:    chunk.find(sq => sq.id === q.id)?.chainId,
         type:       'arb_resolved',
         title:      q.title || q.id,
         detail:     'Arbitration resolved',
