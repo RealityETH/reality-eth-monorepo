@@ -129,6 +129,7 @@ export const response = onchainTable(
     createdLogIndex: p.bigint().notNull(),
     createdTxHash: p.hex().notNull(),
     revealedBlock: p.bigint(),
+    revealedTxHash: p.hex(),
   }),
   (table) => ({
     userIdx:       index().on(table.user),

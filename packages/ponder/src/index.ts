@@ -173,7 +173,7 @@ for (const name of [
     ));
     await db
       .update(response, { id: `${qId}-${commitment_id}` })
-      .set({ answer, isUnrevealed: false });
+      .set({ answer, isUnrevealed: false, revealedBlock: event.block.number, revealedTxHash: event.transaction.hash });
 
     await db.update(question, { id: qId }).set({
       currentAnswer: answer,
