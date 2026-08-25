@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS reality.claim (
   "user"            text          NOT NULL,
   amount            numeric(78,0) NOT NULL,
   created_block     numeric(78,0) NOT NULL,
-  created_tx_hash   text          NOT NULL,
+  created_tx_hash   text,
   created_timestamp numeric(78,0) NOT NULL
 );
 
