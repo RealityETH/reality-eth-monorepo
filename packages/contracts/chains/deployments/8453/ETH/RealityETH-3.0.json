@@ -3,6 +3,8 @@
     "block": 26260675,
     "notes": null,
     "arbitrators": {
-        "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)"
+        "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
+        "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros (Seer)",
+        "0xd04f24364687dbd6db67d2101fae59e91a6e605b": "Kleros (Precog)"
     }
 }

@@ -3,6 +3,8 @@
     "block": 17997262,
     "notes": null,
     "arbitrators": {
-        "0x29f39de98d750eb77b5fafb31b2837f079fce222": "Kleros"
+        "0x29f39de98d750eb77b5fafb31b2837f079fce222": "Kleros",
+        "0x68154ea682f95bf582b80dd6453fa401737491dc": "Kleros (Seer)",
+        "0xe04f5791d671d5c4e08ab49b39807087b591ea3e": "Kleros Moderate"
     }
 }

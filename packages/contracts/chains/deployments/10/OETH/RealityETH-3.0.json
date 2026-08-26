@@ -2,5 +2,7 @@
     "address": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
     "block": 2462149,
     "notes": null,
-    "arbitrators": {}
+    "arbitrators": {
+        "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros (Seer)"
+    }
 }

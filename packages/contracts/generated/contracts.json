@@ -188,7 +188,9 @@
                 "address": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
                 "block": 2462149,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros (Seer)"
+                }
             }
         }
     },
@@ -329,7 +331,9 @@
                 "block": 17997262,
                 "notes": null,
                 "arbitrators": {
-                    "0x29f39de98d750eb77b5fafb31b2837f079fce222": "Kleros"
+                    "0x29f39de98d750eb77b5fafb31b2837f079fce222": "Kleros",
+                    "0x68154ea682f95bf582b80dd6453fa401737491dc": "Kleros (Seer)",
+                    "0xe04f5791d671d5c4e08ab49b39807087b591ea3e": "Kleros Moderate"
                 }
             },
             "RealityETH-3.2": {
@@ -491,7 +495,9 @@
                 "block": 26260675,
                 "notes": null,
                 "arbitrators": {
-                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)"
+                    "0x05295972F75cFeE7fE66E6BDDC0435c9Fd083D18": "Kleros (Oracle court)",
+                    "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros (Seer)",
+                    "0xd04f24364687dbd6db67d2101fae59e91a6e605b": "Kleros (Precog)"
                 }
             }
         }
