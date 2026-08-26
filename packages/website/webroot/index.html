@@ -543,8 +543,9 @@
   }
   @media (max-width: 767px) {
     .classic-footer {
-      display: block; border-top: 1px solid var(--border-subtle);
-      padding: 10px 16px; text-align: right; font-size: 12px;
+      display: flex; justify-content: space-between;
+      border-top: 1px solid var(--border-subtle);
+      padding: 10px 16px; font-size: 12px;
     }
     .classic-footer a { color: var(--text-dim); text-decoration: none; }
     .classic-footer a:hover { color: var(--text-muted); }
@@ -1552,7 +1553,7 @@
 <script defer src="js/vendor/reality-eth-lib.js?v=6"></script>
 <script defer src="js/vendor/ethers.js?v=3"></script>
 <script defer src="js/wallet.js?v=11"></script>
-<script defer src="js/settings.js?v=12"></script>
+<script defer src="js/settings.js?v=13"></script>
 <script defer src="js/question-cache.js?v=3"></script>
 <script defer src="js/watches.js?v=4"></script>
 <style id="heritage-theme">
@@ -4768,7 +4769,7 @@ header {
 })();
 </script>
 <a id="classic-tab-link" class="classic-tab" href="https://old.reality.eth.limo/app/">Classic app ↗</a>
-<footer class="classic-footer"><a id="classic-footer-link" href="https://old.reality.eth.limo/app/">Old version of the dapp ↗</a></footer>
+<footer class="classic-footer"><a href="#!/account">My Account</a><a id="classic-footer-link" href="https://old.reality.eth.limo/app/">Old version of the dapp ↗</a></footer>
 <script>
 (function() {
   const h = window.location.hostname;

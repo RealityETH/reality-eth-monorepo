@@ -25,7 +25,7 @@ function getPonderUrl(chainIds) {
   const base = localStorage.getItem(PONDER_KEY) || DEFAULT_PONDER;
   if (!chainIds) return base;
   const ids = (Array.isArray(chainIds) ? chainIds : [chainIds]).filter(Boolean);
-  return ids.length ? `${base}/${ids.join(',')}` : base;
+  return ids.length ? `${base}?chainIds=${ids.join(',')}` : base;
 }
 function setPonderUrl(url) {
   const t = (url || '').trim();
