@@ -218,7 +218,8 @@
     return false;
   }
 
-  async function connectWC(onChange) {
+  async function connectWC(onChange, onLoading) {
+    onLoading?.('Loading WalletConnect…');
     const { EthereumProvider } = await loadWCBundle();
     const provider = await EthereumProvider.init({
       projectId:       WC_PROJECT_ID,
@@ -227,6 +228,7 @@
       optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
       showQrModal:     true,
     });
+    onLoading?.(null); // bundle + provider ready — QR modal is about to appear
     await provider.connect(); // shows QR modal; resolves after user approves
     // provider.accounts is populated synchronously when connect() resolves.
     // Avoid a separate eth_accounts RPC which can race before the session is ready.
@@ -315,7 +317,7 @@
   }
 
   // Shows wallet chooser / connect flow.
-  async function connectWallet(onChange) {
+  async function connectWallet(onChange, onLoading) {
     const eth = window.ethereum;
 
     if (eth) {
@@ -326,9 +328,10 @@
         // Save the injected wallet so we can restore it if the user disconnects WC.
         _savedInjected = eth;
         try {
-          await connectWC(onChange);
+          await connectWC(onChange, onLoading);
         } catch (e) {
           _savedInjected = null;
+          onLoading?.(null);
           if (!e.message?.includes('User rejected') && e.code !== 4001) {
             console.error('WalletConnect error:', e);
           }
@@ -354,8 +357,9 @@
     // restore the session before showing the QR modal.
     try {
       if (getCached() && await initWC(onChange)) return;
-      await connectWC(onChange);
+      await connectWC(onChange, onLoading);
     } catch (e) {
+      onLoading?.(null);
       if (!e.message?.includes('User rejected') && e.code !== 4001) {
         console.error('WalletConnect error:', e);
       }

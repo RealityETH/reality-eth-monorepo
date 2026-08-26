@@ -37,7 +37,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=106';
+  var V = '?v=107';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1551,7 +1551,7 @@
 <script defer src="js/chains.js?v=3"></script>
 <script defer src="js/vendor/reality-eth-lib.js?v=6"></script>
 <script defer src="js/vendor/ethers.js?v=3"></script>
-<script defer src="js/wallet.js?v=10"></script>
+<script defer src="js/wallet.js?v=11"></script>
 <script defer src="js/settings.js?v=12"></script>
 <script defer src="js/question-cache.js?v=3"></script>
 <script defer src="js/watches.js?v=4"></script>
@@ -3332,7 +3332,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=106';
+  const V = '?v=107';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -4295,7 +4295,10 @@ header {
     } else {
       btn.textContent = 'Connect wallet';
       btn.classList.remove('connected');
-      btn.onclick = () => RealityWallet.connectWallet(onWalletChange);
+      btn.onclick = () => RealityWallet.connectWallet(onWalletChange, msg => {
+        btn.textContent = msg || 'Connect wallet';
+        btn.disabled = !!msg;
+      });
     }
     window._setQuestionWallet?.(addr);
     window._setAccountWallet?.(addr);
@@ -4764,7 +4767,19 @@ header {
   updateNav();
 })();
 </script>
-<a class="classic-tab" href="/app/">Classic app ↗</a>
-<footer class="classic-footer"><a href="/app/">Old version of the dapp ↗</a></footer>
+<a id="classic-tab-link" class="classic-tab" href="https://old.reality.eth.limo/app/">Classic app ↗</a>
+<footer class="classic-footer"><a id="classic-footer-link" href="https://old.reality.eth.limo/app/">Old version of the dapp ↗</a></footer>
+<script>
+(function() {
+  const h = window.location.hostname;
+  const base = (h === 'reality.eth' || h === 'reality.eth.limo')
+    ? 'https://old.' + h + '/app/'
+    : 'https://old.reality.eth.limo/app/';
+  const hash = window.location.hash;
+  const url = /\/network\/\d+\/question\//.test(hash) ? base + hash : base;
+  document.getElementById('classic-tab-link').href = url;
+  document.getElementById('classic-footer-link').href = url;
+})();
+</script>
 </body>
 </html>

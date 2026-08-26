@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy reality.eth / reality.gwei</title>
+<link rel="icon" href="data:,">
+<style>
+    :root {
+        --bg: #15161b;
+        --panel: #1b1d24;
+        --text: #e7e4dc;
+        --text-dim: #8d8f9b;
+        --hairline: #303240;
+        --amber: #d4a24c;
+        --ok: #9cbf8e;
+        --bad: #c07b6e;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        background: var(--bg);
+        color: var(--text);
+        max-width: 640px;
+        margin: 56px auto;
+        padding: 0 20px;
+        line-height: 1.6;
+    }
+    h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .sub { color: var(--text-dim); font-size: 13px; margin-bottom: 28px; }
+    .module {
+        background: var(--panel);
+        border: 1px solid var(--hairline);
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+    }
+    .field { margin-bottom: 8px; font-size: 13.5px; }
+    .field label { color: var(--text-dim); margin-right: 8px; }
+    .field .value { color: var(--amber); word-break: break-all; }
+    .field .value.dim { color: var(--text-dim); }
+    .network-group { margin-bottom: 20px; }
+    .network-group h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-dim);
+        margin: 0 0 8px;
+        font-weight: 600;
+    }
+    .btn-row { display: flex; gap: 8px; }
+    button {
+        font-family: inherit;
+        font-size: 13.5px;
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--hairline);
+        border-radius: 6px;
+        padding: 10px 14px;
+        cursor: pointer;
+        flex: 1;
+    }
+    button:hover:not(:disabled) { border-color: var(--amber); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.primary { border-color: var(--amber); color: var(--amber); }
+    .tick { color: var(--ok); font-weight: 700; }
+    #status {
+        white-space: pre-wrap;
+        font-size: 12.5px;
+        color: var(--text-dim);
+        min-height: 1.6em;
+    }
+    #status .ok { color: var(--ok); }
+    #status .bad { color: var(--bad); }
+    a { color: var(--amber); }
+</style>
+</head>
+<body>
+    <h1>deploy reality.eth / reality.gwei</h1>
+    <div class="sub">reads deploy/cid.json — run tools/ipfs_build.sh first, then open this page</div>
+
+    <div class="module">
+        <div class="field"><label>CID</label><span class="value" id="cid-value">loading cid.json…</span></div>
+        <div class="field"><label>CID (v0, Qm…)</label><span class="value" id="cid-v0-value">-</span></div>
+        <div class="field"><label>ipfs://</label><a class="value" id="cid-ipfs-link" href="#">-</a></div>
+        <div class="field"><label>published</label><span class="value dim" id="published-value">-</span></div>
+        <div class="field"><label>on-chain</label><span class="value dim" id="check-status">-</span></div>
+        <div class="field"><label>wallet</label><span class="value dim" id="wallet-value">not connected</span></div>
+    </div>
+
+    <div class="network-group">
+        <h2>Mainnet</h2>
+        <div class="btn-row">
+            <button data-net="mainnet" data-targets="gwei">reality.gwei</button>
+            <button data-net="mainnet" data-targets="eth">reality.eth</button>
+            <button class="primary" data-net="mainnet" data-targets="gwei,eth">both</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "multiformats/bases/base32": "https://cdn.jsdelivr.net/npm/multiformats@13.4.0/bases/base32/+esm",
+        "multiformats/bases/base58": "https://cdn.jsdelivr.net/npm/multiformats@13.4.0/bases/base58/+esm"
+      },
+      "integrity": {
+        "https://cdn.jsdelivr.net/npm/multiformats@13.4.0/bases/base32/+esm": "sha384-PNoUMjtNgoutAdnIRetFgED2e6YmP6mFeM+2gt8r9flQBIdT3+oHRK3GVh45R67i",
+        "https://cdn.jsdelivr.net/npm/multiformats@13.4.0/bases/base58/+esm": "sha384-7lWXi7VgbZE7rC1XhsjXHyYkZup9nboxvnNiQrmTAEfjRtGZGYrb6DveOEyJNQyA"
+      }
+    }
+    </script>
+    <script type="module">
+        import { base32 } from 'multiformats/bases/base32';
+        import { base58btc } from 'multiformats/bases/base58';
+
+        const ETH_NAME = 'reality.eth';
+        const GNS_BARE_NAME = 'reality';
+
+        const ENS_REGISTRY_ADDRESS = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+        const REGISTRY_ABI = [
+            'function owner(bytes32 node) view returns (address)',
+            'function resolver(bytes32 node) view returns (address)',
+        ];
+        const RESOLVER_ABI = [
+            'function contenthash(bytes32 node) view returns (bytes)',
+            'function setContenthash(bytes32 node, bytes hash)',
+        ];
+        const GNS_NAME_NFT_ADDRESS = '0x9D51D507BC7264d4fE8Ad1cf7Fe191933A0a81d6';
+        const GNS_NAME_NFT_ABI = [
+            'function computeId(string fullName) view returns (uint256)',
+            'function ownerOf(uint256 tokenId) view returns (address)',
+            'function contenthash(uint256 tokenId) view returns (bytes)',
+            'function setContenthash(uint256 tokenId, bytes hash)',
+        ];
+
+        const MAINNET = { chainIdHex: '0x1', chainIdDec: 1n, label: 'Mainnet' };
+        const READ_RPC_URL = 'https://ethereum-rpc.publicnode.com';
+
+        function cidToContenthash(cidStr) {
+            if (!cidStr.startsWith('b')) throw new Error('Expected a base32 (multibase "b"…) CIDv1 string');
+            const cidBytes = base32.decode(cidStr.toLowerCase());
+            const out = new Uint8Array(2 + cidBytes.length);
+            out[0] = 0xe3;
+            out[1] = 0x01;
+            out.set(cidBytes, 2);
+            return '0x' + Array.from(out).map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function cidV1ToCidV0(cidStr) {
+            if (!cidStr.startsWith('b')) throw new Error('Expected a base32 (multibase "b"…) CIDv1 string');
+            const cidBytes = base32.decode(cidStr.toLowerCase());
+            if (cidBytes[0] !== 0x01 || cidBytes[1] !== 0x70) {
+                throw new Error('Not a CIDv1 dag-pb CID — no CIDv0 form exists');
+            }
+            return base58btc.encode(cidBytes.slice(2)).slice(1);
+        }
+
+        const statusEl = document.getElementById('status');
+        function log(text, cls) {
+            const line = document.createElement('div');
+            if (cls) line.className = cls;
+            line.textContent = text;
+            statusEl.appendChild(line);
+        }
+        function setButtonsDisabled(disabled) {
+            document.querySelectorAll('button').forEach((b) => { b.disabled = disabled; });
+        }
+
+        let currentCid = null;
+
+        async function loadCid() {
+            try {
+                const res = await fetch('./cid.json', { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                currentCid = data.cid;
+                document.getElementById('cid-value').textContent = data.cid;
+                try {
+                    document.getElementById('cid-v0-value').textContent = cidV1ToCidV0(data.cid);
+                } catch (err) {
+                    document.getElementById('cid-v0-value').textContent = `n/a (${err.message})`;
+                }
+                const ipfsLink = document.getElementById('cid-ipfs-link');
+                ipfsLink.href = `ipfs://${data.cid}/`;
+                ipfsLink.textContent = `ipfs://${data.cid}/`;
+                document.getElementById('published-value').textContent = data.publishedAt || '-';
+                refreshStatuses();
+            } catch (err) {
+                document.getElementById('cid-value').textContent =
+                    `could not load cid.json (${err.message}) — run tools/ipfs_build.sh first`;
+            }
+        }
+
+        async function readEnsContenthash() {
+            const provider = new ethers.JsonRpcProvider(READ_RPC_URL);
+            const node = ethers.namehash(ETH_NAME);
+            const registry = new ethers.Contract(ENS_REGISTRY_ADDRESS, REGISTRY_ABI, provider);
+            const resolverAddress = await registry.resolver(node);
+            if (ethers.getAddress(resolverAddress) === ethers.ZeroAddress) return null;
+            const resolver = new ethers.Contract(resolverAddress, RESOLVER_ABI, provider);
+            return await resolver.contenthash(node);
+        }
+
+        async function readGnsContenthash() {
+            const provider = new ethers.JsonRpcProvider(READ_RPC_URL);
+            const contract = new ethers.Contract(GNS_NAME_NFT_ADDRESS, GNS_NAME_NFT_ABI, provider);
+            const tokenId = await contract.computeId(GNS_BARE_NAME);
+            return await contract.contenthash(tokenId);
+        }
+
+        function setTick(targetsAttr, upToDate) {
+            const btn = document.querySelector(`button[data-targets="${targetsAttr}"]`);
+            if (!btn) return;
+            let tick = btn.querySelector('.tick');
+            if (upToDate) {
+                if (!tick) {
+                    tick = document.createElement('span');
+                    tick.className = 'tick';
+                    tick.textContent = ' ✓';
+                    btn.appendChild(tick);
+                }
+            } else if (tick) {
+                tick.remove();
+            }
+        }
+
+        async function checkStatus(target, readFn, expectedHex) {
+            try {
+                const existing = await readFn();
+                const upToDate = !!existing && existing !== '0x' && existing.toLowerCase() === expectedHex.toLowerCase();
+                setTick(target, upToDate);
+                return upToDate;
+            } catch (err) {
+                console.error(`status check failed for ${target}:`, err);
+                setTick(target, false);
+                return false;
+            }
+        }
+
+        async function refreshStatuses() {
+            if (!currentCid) return;
+            const checkEl = document.getElementById('check-status');
+            checkEl.textContent = 'checking…';
+            const expectedHex = cidToContenthash(currentCid);
+            const [isEth, isGwei] = await Promise.all([
+                checkStatus('eth', readEnsContenthash, expectedHex),
+                checkStatus('gwei', readGnsContenthash, expectedHex),
+            ]);
+            setTick('gwei,eth', isEth && isGwei);
+            checkEl.textContent = 'checked just now';
+        }
+
+        loadCid();
+
+        async function setEnsContenthash(provider, signer, contenthashHex) {
+            const node = ethers.namehash(ETH_NAME);
+            const registry = new ethers.Contract(ENS_REGISTRY_ADDRESS, REGISTRY_ABI, provider);
+            const owner = await registry.owner(node);
+            const signerAddr = await signer.getAddress();
+            if (ethers.getAddress(owner) !== ethers.getAddress(signerAddr)) {
+                throw new Error(`${ETH_NAME} is owned by ${owner}, not the connected wallet (${signerAddr}).`);
+            }
+            const resolverAddress = await registry.resolver(node);
+            if (ethers.getAddress(resolverAddress) === ethers.ZeroAddress) {
+                throw new Error(`No resolver set for ${ETH_NAME}.`);
+            }
+            const existing = await new ethers.Contract(resolverAddress, RESOLVER_ABI, provider).contenthash(node);
+            if (existing.toLowerCase() === contenthashHex.toLowerCase()) {
+                log(`${ETH_NAME}: already set to this CID, skipping.`);
+                return;
+            }
+            const tx = await new ethers.Contract(resolverAddress, RESOLVER_ABI, signer).setContenthash(node, contenthashHex);
+            log(`${ETH_NAME}: tx sent (${tx.hash}), waiting…`);
+            await tx.wait();
+            log(`${ETH_NAME}: confirmed.`, 'ok');
+        }
+
+        async function setGnsContenthash(provider, signer, contenthashHex) {
+            const readContract = new ethers.Contract(GNS_NAME_NFT_ADDRESS, GNS_NAME_NFT_ABI, provider);
+            const tokenId = await readContract.computeId(GNS_BARE_NAME);
+            let owner;
+            try {
+                owner = await readContract.ownerOf(tokenId);
+            } catch {
+                throw new Error(`"${GNS_BARE_NAME}.gwei" isn't registered.`);
+            }
+            const signerAddr = await signer.getAddress();
+            if (ethers.getAddress(owner) !== ethers.getAddress(signerAddr)) {
+                throw new Error(`"${GNS_BARE_NAME}.gwei" is owned by ${owner}, not the connected wallet (${signerAddr}).`);
+            }
+            const existing = await readContract.contenthash(tokenId);
+            if (existing.toLowerCase() === contenthashHex.toLowerCase()) {
+                log(`${GNS_BARE_NAME}.gwei: already set to this CID, skipping.`);
+                return;
+            }
+            const tx = await new ethers.Contract(GNS_NAME_NFT_ADDRESS, GNS_NAME_NFT_ABI, signer).setContenthash(tokenId, contenthashHex);
+            log(`${GNS_BARE_NAME}.gwei: tx sent (${tx.hash}), waiting…`);
+            await tx.wait();
+            log(`${GNS_BARE_NAME}.gwei: confirmed.`, 'ok');
+        }
+
+        async function deploy(targets) {
+            statusEl.replaceChildren();
+            setButtonsDisabled(true);
+            try {
+                if (!window.ethereum) throw new Error('No injected wallet found (MetaMask not detected).');
+                if (!currentCid) throw new Error('No CID loaded — run tools/ipfs_build.sh first.');
+                const contenthashHex = cidToContenthash(currentCid);
+
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MAINNET.chainIdHex }] });
+
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const network = await provider.getNetwork();
+                if (network.chainId !== MAINNET.chainIdDec) {
+                    throw new Error(`Wallet is on chain ${network.chainId}, expected 1 (Mainnet).`);
+                }
+                document.getElementById('wallet-value').textContent = await signer.getAddress();
+
+                if (targets.includes('gwei')) await setGnsContenthash(provider, signer, contenthashHex);
+                if (targets.includes('eth'))  await setEnsContenthash(provider, signer, contenthashHex);
+
+                log('Done.', 'ok');
+                await refreshStatuses();
+            } catch (err) {
+                console.error(err);
+                log(`Error: ${err.message || err}`, 'bad');
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        document.querySelectorAll('button[data-net]').forEach((btn) => {
+            btn.addEventListener('click', () => deploy(btn.dataset.targets.split(',')));
+        });
+    </script>
+</body>
+</html>
