@@ -115,14 +115,18 @@ For a server deployment, run `ponder start` as a systemd service. A minimal unit
 ```ini
 [Unit]
 Description=Reality.eth Ponder indexer
-After=network.target postgresql.service
+After=network.target
 
 [Service]
 Type=simple
 User=www-data
 WorkingDirectory=/path/to/reality-eth-monorepo/packages/ponder
+# Set PATH to include the directory containing your node binary.
+# Run `dirname $(which node)` to find it — essential if you installed Node
+# via nvm or fnm, where /usr/bin/node won't exist.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=/path/to/reality-eth-monorepo/packages/ponder/.env.local
-ExecStart=/usr/bin/npm start
+ExecStart=node node_modules/.bin/ponder start --log-format json
 Restart=on-failure
 RestartSec=10
 
