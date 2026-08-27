@@ -28,6 +28,10 @@ Create `packages/ponder/.env.local` and set the RPC URL for each chain you want.
 ```bash
 # packages/ponder/.env.local
 
+# Required — Ponder uses this as the schema name in its embedded database.
+# Any name works; the schema is created automatically.
+DATABASE_SCHEMA=ponder
+
 # Pick one or more chains (identified by chain ID):
 
 # Gnosis Chain — Omen prediction markets, Snapshot DAOs
@@ -64,11 +68,10 @@ If you only want one chain, just set that chain's RPC URL and leave the rest bla
 
 ### Optional: PostgreSQL
 
-To use PostgreSQL instead of the embedded database, add these two variables:
+To use PostgreSQL instead of the embedded database, add `DATABASE_URL`:
 
 ```bash
 DATABASE_URL=postgresql://user:password@localhost:5432/reality_eth
-DATABASE_SCHEMA=ponder_sepolia   # Ponder creates this schema automatically
 ```
 
 PostgreSQL is worth using if you're running on a machine where disk I/O is a bottleneck, or if you want the indexed data accessible to other tools.
