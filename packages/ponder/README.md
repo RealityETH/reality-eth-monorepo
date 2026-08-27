@@ -94,7 +94,7 @@ Set in `.env.local` (shared by Ponder and sync.js):
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string — optional; omit to use embedded PGlite |
-| `PONDER_RPC_URL_{chainId}` | Narrow (Alchemy) RPC — used for `eth_blockNumber` and per-block fetches |
+| `PONDER_RPC_URL_{chainId}` | Narrow (Alchemy) RPC — used for `eth_blockNumber` and per-block fetches. If unset for a configured chain, Ponder v0.17 warns and silently falls back to a public thirdweb endpoint rather than erroring. |
 | `PONDER_RPC_URL_{chainId}_WIDE` | Wide (Infura) RPC — used for `eth_getLogs` range queries |
 | `PONDER_RPC_URL_{chainId}_LOCAL` | Local node URL (tried first; falls back to Alchemy on network errors) |
 | `PONDER_RPC_MAX_RPS_{chainId}` | Optional RPC rate cap for specific chains |

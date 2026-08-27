@@ -58,6 +58,8 @@ PONDER_RPC_URL_130=https://mainnet.unichain.org
 PONDER_RPC_URL_11155111=https://rpc.sepolia.org
 ```
 
+**Note:** if a chain's RPC URL is unset, Ponder v0.17 does not error — it logs a warning and silently falls back to a public endpoint (thirdweb). If you need to guarantee that no third-party RPC calls are made, verify that every chain you care about has an explicit URL set.
+
 If you only want one chain, just set that chain's RPC URL and leave the rest blank.
 
 ### Optional: PostgreSQL
