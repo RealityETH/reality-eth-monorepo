@@ -27,147 +27,18 @@ try {
 const OUTPUT      = path.join(__dirname, '..', 'known-event-blocks.json');
 const META_OUTPUT = path.join(__dirname, '..', 'known-event-blocks-meta.json');
 
-// Etherscan v2 unified API — one endpoint for all chains via chainid param.
-// Get a free API key at https://etherscan.io/register (works for all chains).
-const ETHERSCAN_V2  = 'https://api.etherscan.io/v2/api';
-const ETHERSCAN_KEY = process.env.ETHERSCAN_API_KEY;
-
-// BscScan free API key — register separately at https://bscscan.com/register
-// Etherscan v2 free tier does not include BNB Smart Chain; BscScan's own free
-// tier does, but uses the same Etherscan v2 endpoint with a BscScan-issued key.
-const BSCSCAN_KEY = process.env.BSCSCAN_API_KEY;
-
-const CHAINS = {
-  mainnet: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 1,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0x325a2e0F3CCA2ddbaeBB4DfC38Df8D19ca165b47', startBlock: 6531265,  name: 'v2.0' },
-      { address: '0x5b7dD1E86623548AF054A4985F7fc8Ccbb554E2c', startBlock: 13194676, name: 'v3.0' },
-      { address: '0x6a2155613b68eFB38D5c6074921F3F4281c8c177', startBlock: 22100226, name: 'v3.2' },
-      { address: '0x3D3B51b1091d1F6491AeB1916C94BAfe57f6Cc9d', startBlock: 8050824,  name: 'ERC20-TRST' },
-      { address: '0x8f1CC53bf34932591177CDA24723486205CA7510', startBlock: 12654676, name: 'ERC20-GNO-v2' },
-      { address: '0xf4585A9944A390615E7cec6756C1c082173B93eB', startBlock: 12821080, name: 'ERC20-FOX' },
-      { address: '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9', startBlock: 13201169, name: 'ERC20-GNO-v3' },
-      { address: '0x867092A32bC16816F12Fb326EfF7A2865E1ec138', startBlock: 14485576, name: 'ERC20-SWISE' },
-    ],
-  },
-  gnosis: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 100,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0x79e32aE03fb27B07C89c0c568F80287C01ca2E57', startBlock: 14005802, name: 'v2.1' },
-      { address: '0xE78996A233895bE74a66F451f1019cA9734205cc', startBlock: 17997262, name: 'v3.0' },
-      { address: '0xEb51d9d9717906c981C57af09C4a3449eF30705b', startBlock: 39142627, name: 'v3.2' },
-      { address: '0x95b2b2b4b66A5a47Df79bF07BEBe72E9870fceb2', startBlock: 20882108, name: 'ERC20-GNO' },
-      { address: '0xC9FbdF0df8dE06Ad8d2193F7FA28bdA78c13a102', startBlock: 21371853, name: 'ERC20-SWISE' },
-      { address: '0x934326a86A99DaB25bB8329089ce73ed9c7c0E4a', startBlock: 34578493, name: 'ERC20-POLK' },
-    ],
-  },
-  arbitrum: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 42161,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0x0EDB4CB0B12523749c56Ff24C4a09c0c1417f691', startBlock: 112029,  name: 'v2.1' },
-      { address: '0x5D18bD4dC5f1AC8e9bD9B666Bd71cB35A327C4A9', startBlock: 459973,  name: 'v3.0' },
-    ],
-  },
-  sepolia: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 11155111,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA', startBlock: 3044431,  name: 'v3.0' },
-      { address: '0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1', startBlock: 7898415,  name: 'v3.2' },
-      { address: '0x8A5f1C6361E280348a59daC10160A88428FFBd51', startBlock: 8526475,  name: 'ERC20-BOND' },
-    ],
-  },
-  polygon: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 137,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0xA75AE6D61Dd9d55e8153A393E2fc859c6a0FC716', startBlock: 15610082, name: 'v2.1' },
-      { address: '0x60573B8DcE539aE5bF9aD7932310668997ef0428', startBlock: 18901674, name: 'v3.0' },
-      { address: '0x83d3f4769a19f1b43337888b0290f5473cf508b2', startBlock: 42899867, name: 'ERC20-POLK' },
-    ],
-  },
-  base: {
-    apiUrl:  'https://base.blockscout.com/api',
-    chainId: null,  // Blockscout instances are chain-specific; no chainid param needed
-    apiKey:  null,
-    contracts: [
-      { address: '0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8', startBlock: 26260675, name: 'v3.0' },
-    ],
-  },
-  optimism: {
-    apiUrl:  'https://explorer.optimism.io/api',
-    chainId: null,
-    apiKey:  null,
-    contracts: [
-      { address: '0x0eF940F7f053a2eF5D6578841072488aF0c7d89A', startBlock: 2462148, name: 'v3.0' },
-    ],
-  },
-  unichain: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 130,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0xB920dBedE88B42aA77eE55ebcE3671132ee856fC', startBlock: 8561869, name: 'v3.0' },
-    ],
-  },
-  // Avalanche: Snowtrace API (no key required; chainid param accepted but ignored)
-  avalanche: {
-    apiUrl:  'https://api.snowtrace.io/api',
-    chainId: 43114,
-    apiKey:  null,
-    contracts: [
-      { address: '0xD88cd78631Ea0D068cedB0d1357a6eabe59D7502', startBlock: 4090592, name: 'v3.0' },
-    ],
-  },
-  // Celo: Etherscan v2 (free tier supported)
-  celo: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 42220,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0x4C2863bb9969dD693Ec487bED72BDfD83C0cA5b3', startBlock: 31954377, name: 'v3.0' },
-    ],
-  },
-  // Monad Mainnet: Etherscan v2 (free tier supported)
-  monad: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 143,
-    apiKey:  ETHERSCAN_KEY,
-    contracts: [
-      { address: '0xa317A7B24d72e3C6cD55c8F244AE01398A8D97e1', startBlock: 48537242, name: 'v3.2' },
-    ],
-  },
-  // zkSync Era: Blockscout instance (same pattern as base/optimism)
-  zksync: {
-    apiUrl:  'https://zksync.blockscout.com/api',
-    chainId: null,
-    apiKey:  null,
-    contracts: [
-      { address: '0xA8AC760332770FcF2056040B1f964750e4bEf808', startBlock: 9691, name: 'v3.0' },
-    ],
-  },
-  // BNB Smart Chain: requires a free BscScan API key from https://bscscan.com/register
-  // Set BSCSCAN_API_KEY in .env.local — Etherscan v2 free tier does not cover BSC.
-  ...(BSCSCAN_KEY && { bnb: {
-    apiUrl:  ETHERSCAN_V2,
-    chainId: 56,
-    apiKey:  BSCSCAN_KEY,
-    contracts: [
-      { address: '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', startBlock: 7962044,  name: 'v2.1' },
-      { address: '0xa925646Cae3721731F9a8C886E5D1A7B123151B9', startBlock: 10751380, name: 'v3.0' },
-      { address: '0x95f8fc16C7Bd5a5b24CaE629471c6cCC3916826A', startBlock: 13749748, name: 'ERC20-DEXE' },
-    ],
-  }}),
-};
+// AUTO-GENERATED from packages/contracts/generated/contracts.json via
+// packages/contracts/scripts/generate_indexer_config.js — do not edit manually.
+// apiKeyRequired: true chains are omitted if the required env var is not set.
+// Etherscan v2 key (ETHERSCAN_API_KEY) is optional — API works without it at lower rate limits.
+// BNB Smart Chain (BSCSCAN_API_KEY): requires a free key from https://bscscan.com/register
+const _chainSpecs = JSON.parse(fs.readFileSync(path.join(__dirname, 'chains-config.json'), 'utf8'));
+const CHAINS = {};
+for (const [name, spec] of Object.entries(_chainSpecs)) {
+  const apiKey = spec.apiKeyEnv ? process.env[spec.apiKeyEnv] : null;
+  if (spec.apiKeyRequired && !apiKey) continue;
+  CHAINS[name] = { apiUrl: spec.apiUrl, chainId: spec.chainId, apiKey, contracts: spec.contracts };
+}
 
 async function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));

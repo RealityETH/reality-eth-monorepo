@@ -81,8 +81,13 @@ function loadConfig() {
 
 const FETCH_EVENT_BLOCKS = join(__dir, '../ponder/scripts/fetch-event-blocks.js');
 
-// Chains whose sparse index is manually seeded (no block explorer API available).
-const NO_EXPLORER_REFRESH = new Set(['bnb']);
+const CHAIN_SPECS = JSON.parse(
+  readFileSync(join(__dir, 'active-chains.json'), 'utf8')
+);
+
+// Chains whose sparse index refresh is disabled (no usable block explorer API).
+// Derived from no_explorer_refresh field in supported.json via generate_indexer_config.js.
+const NO_EXPLORER_REFRESH = new Set(CHAIN_SPECS.filter(s => s.noExplorerRefresh).map(s => s.name));
 
 async function refreshSparseIndex(chain) {
   if (NO_EXPLORER_REFRESH.has(chain.name)) {
@@ -162,62 +167,13 @@ function mkChain(id, name, batchDefault, startBlock, addresses) {
   };
 }
 
+// AUTO-GENERATED from packages/contracts/generated/contracts.json via
+// packages/contracts/scripts/generate_indexer_config.js — do not edit manually.
 const ACTIVE_CHAINS = Object.fromEntries(
-  [
-    mkChain(1, 'mainnet', 12_000, 6_531_265, [
-      '0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47', // v2.0
-      '0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c', // v3.0
-      '0x6a2155613b68efb38d5c6074921f3f4281c8c177', // v3.2
-      '0x3d3b51b1091d1f6491aeb1916c94bafe57f6cc9d', // ERC20 TRST v2.0
-      '0x8f1cc53bf34932591177cda24723486205ca7510', // ERC20 GNO v2.0
-      '0xf4585a9944a390615e7cec6756c1c082173b93eb', // ERC20 FOX v2.0
-      '0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9', // ERC20 GNO v3.0
-      '0x867092a32bc16816f12fb326eff7a2865e1ec138', // ERC20 SWISE v3.0
-    ]),
-    mkChain(100, 'gnosis', 5_000, 14_005_802, [
-      '0x79e32ae03fb27b07c89c0c568f80287c01ca2e57', // v2.1
-      '0xe78996a233895be74a66f451f1019ca9734205cc', // v3.0
-      '0xeb51d9d9717906c981c57af09c4a3449ef30705b', // v3.2
-      '0x95b2b2b4b66a5a47df79bf07bebe72e9870fceb2', // ERC20 GNO
-      '0xc9fbdf0df8de06ad8d2193f7fa28bda78c13a102', // ERC20 SWISE
-      '0x934326a86a99dab25bb8329089ce73ed9c7c0e4a', // ERC20 POLK
-    ]),
-    mkChain(137, 'polygon', 5_000, 15_610_082, [
-      '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', // v2.1
-      '0x60573b8dce539ae5bf9ad7932310668997ef0428', // v3.0
-      '0x83d3f4769a19f1b43337888b0290f5473cf508b2', // ERC20 POLK
-      '0x3155836d28c0845c37791808287fafc811742c5a', // ERC20 SUKU v3.2
-    ]),
-    mkChain(42161, 'arbitrum', 10_000, 112_029, [
-      '0x0edb4cb0b12523749c56ff24c4a09c0c1417f691', // v2.1
-      '0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9', // v3.0
-    ]),
-    mkChain(10, 'optimism', 10_000, 2_462_148, [
-      '0x0ef940f7f053a2ef5d6578841072488af0c7d89a', // v3.0
-    ]),
-    mkChain(8453, 'base', 10_000, 26_260_675, [
-      '0x2f39f464d16402ca3d8527da89617b73de2f60e8', // v3.0
-    ]),
-    mkChain(130, 'unichain', 10_000, 8_561_869, [
-      '0xb920dbede88b42aa77ee55ebce3671132ee856fc', // v3.0
-    ]),
-    mkChain(43114, 'avalanche', 5_000, 4_090_592, [
-      '0xd88cd78631ea0d068cedb0d1357a6eabe59d7502', // v3.0
-    ]),
-    mkChain(42220, 'celo', 5_000, 31_954_377, [
-      '0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3', // v3.0
-    ]),
-    mkChain(11155111, 'sepolia', 10_000, 3_044_431, [
-      '0xaf33dcb6e8c5c4d9ddf579f53031b514d19449ca', // v3.0
-      '0xb7982f20cc159a40eba4b0ea86fd6cba6ff810e1', // v3.2
-      '0x8a5f1c6361e280348a59dac10160a88428ffbd51', // ERC20 BOND
-    ]),
-    mkChain(56, 'bnb', 10_000, 7_962_044, [
-      '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', // v2.1
-      '0xa925646cae3721731f9a8c886e5d1a7b123151b9', // v3.0
-      '0x95f8fc16c7bd5a5b24cae629471c6ccc3916826a', // ERC20 DEXE
-    ]),
-  ].filter(Boolean).map(c => [c.chainId, c])
+  CHAIN_SPECS
+    .map(s => mkChain(s.id, s.name, s.batchSize, s.startBlock, s.addresses))
+    .filter(Boolean)
+    .map(c => [c.chainId, c])
 );
 
 // ── Topic filter ───────────────────────────────────────────────────────────────

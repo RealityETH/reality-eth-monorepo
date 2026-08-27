@@ -6,6 +6,7 @@
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "network_name": "mainnet",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 12000,
         "blocksPerDay": 7200
     },
     "3": {
@@ -36,6 +37,10 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL",
         "network_name": "optimism",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 10000,
+        "explorer_api_url": "https://explorer.optimism.io/api",
+        "explorer_api_key_env": null,
+        "explorer_api_no_chain_id": true,
         "blocksPerDay": 43200
     },
     "40": {
@@ -46,6 +51,11 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5KjMLU6mx7RrjJJK9XKrM7i6oeB7C6gpnsi3CTWqpYpm",
         "network_name": "bsc",
         "realityETHIndexerSupport": true,
+        "indexer_name": "bnb",
+        "indexer_batch_size": 10000,
+        "no_explorer_refresh": true,
+        "explorer_api_key_env": "BSCSCAN_API_KEY",
+        "explorer_api_key_required": true,
         "blocksPerDay": 28800
     },
     "69": {
@@ -69,6 +79,7 @@
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "network_name": "gnosis",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 5000,
         "blocksPerDay": 17280
     },
     "130": {
@@ -77,6 +88,7 @@
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "network_name": "unichain",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 10000,
         "blocksPerDay": 43200
     },
     "137": {
@@ -85,6 +97,8 @@
         "graphURLStudio": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
         "network_name": "matic",
         "realityETHIndexerSupport": true,
+        "indexer_name": "polygon",
+        "indexer_batch_size": 5000,
         "blocksPerDay": 43200
     },
     "143": {
@@ -130,6 +144,10 @@
         "explorerURL": "https://basescan.org/",
         "network_name": "base",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 10000,
+        "explorer_api_url": "https://base.blockscout.com/api",
+        "explorer_api_key_env": null,
+        "explorer_api_no_chain_id": true,
         "blocksPerDay": 43200
     },
     "10200": {
@@ -148,17 +166,25 @@
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
         "network_name": "arbitrum-one",
         "realityETHIndexerSupport": true,
+        "indexer_name": "arbitrum",
+        "indexer_batch_size": 10000,
         "blocksPerDay": 360000
     },
     "42220": {
         "hostedRPC": "https://forno.celo.org",
         "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
-        "network_name": "celo"
+        "network_name": "celo",
+        "realityETHIndexerSupport": true,
+        "indexer_batch_size": 5000
     },
     "43114": {
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
-        "network_name": "avalanche"
+        "network_name": "avalanche",
+        "realityETHIndexerSupport": true,
+        "indexer_batch_size": 5000,
+        "explorer_api_url": "https://api.snowtrace.io/api",
+        "explorer_api_key_env": null
     },
     "80001": {
         "hostedRPC": "https://rpc.ankr.com/polygon_mumbai",
@@ -191,6 +217,7 @@
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "realityETHIndexerSupport": true,
+        "indexer_batch_size": 10000,
         "blocksPerDay": 7200
     },
     "11155420": {

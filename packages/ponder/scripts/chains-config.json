@@ -1,0 +1,245 @@
+{
+  "mainnet": {
+    "chainId": 1,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x325a2e0f3cca2ddbaebb4dfc38df8d19ca165b47",
+        "startBlock": 6531265,
+        "name": "v2.0"
+      },
+      {
+        "address": "0x3d3b51b1091d1f6491aeb1916c94bafe57f6cc9d",
+        "startBlock": 8050824,
+        "name": "ERC20-TRST-v2.0"
+      },
+      {
+        "address": "0x8f1cc53bf34932591177cda24723486205ca7510",
+        "startBlock": 12654677,
+        "name": "ERC20-GNO-v2.0"
+      },
+      {
+        "address": "0xf4585a9944a390615e7cec6756c1c082173b93eb",
+        "startBlock": 12821080,
+        "name": "ERC20-FOX-v2.0"
+      },
+      {
+        "address": "0x5b7dd1e86623548af054a4985f7fc8ccbb554e2c",
+        "startBlock": 13194676,
+        "name": "v3.0"
+      },
+      {
+        "address": "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9",
+        "startBlock": 13201169,
+        "name": "ERC20-GNO-v3.0"
+      },
+      {
+        "address": "0x867092a32bc16816f12fb326eff7a2865e1ec138",
+        "startBlock": 14485577,
+        "name": "ERC20-SWISE-v3.0"
+      },
+      {
+        "address": "0x6a2155613b68efb38d5c6074921f3f4281c8c177",
+        "startBlock": 22100226,
+        "name": "v3.2"
+      }
+    ]
+  },
+  "optimism": {
+    "chainId": null,
+    "apiUrl": "https://explorer.optimism.io/api",
+    "apiKeyEnv": null,
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x0ef940f7f053a2ef5d6578841072488af0c7d89a",
+        "startBlock": 2462149,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "bnb": {
+    "chainId": 56,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "BSCSCAN_API_KEY",
+    "apiKeyRequired": true,
+    "contracts": [
+      {
+        "address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716",
+        "startBlock": 7962044,
+        "name": "v2.1"
+      },
+      {
+        "address": "0xa925646cae3721731f9a8c886e5d1a7b123151b9",
+        "startBlock": 10751380,
+        "name": "v3.0"
+      },
+      {
+        "address": "0x95f8fc16c7bd5a5b24cae629471c6ccc3916826a",
+        "startBlock": 13749748,
+        "name": "ERC20-DEXE-v3.0"
+      }
+    ]
+  },
+  "gnosis": {
+    "chainId": 100,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x79e32ae03fb27b07c89c0c568f80287c01ca2e57",
+        "startBlock": 14005802,
+        "name": "v2.1"
+      },
+      {
+        "address": "0xe78996a233895be74a66f451f1019ca9734205cc",
+        "startBlock": 17997262,
+        "name": "v3.0"
+      },
+      {
+        "address": "0x95b2b2b4b66a5a47df79bf07bebe72e9870fceb2",
+        "startBlock": 20882108,
+        "name": "ERC20-GNO-v3.0"
+      },
+      {
+        "address": "0xc9fbdf0df8de06ad8d2193f7fa28bda78c13a102",
+        "startBlock": 21371853,
+        "name": "ERC20-SWISE-v3.0"
+      },
+      {
+        "address": "0x934326a86a99dab25bb8329089ce73ed9c7c0e4a",
+        "startBlock": 34578493,
+        "name": "ERC20-POLK-v3.0"
+      },
+      {
+        "address": "0xeb51d9d9717906c981c57af09c4a3449ef30705b",
+        "startBlock": 39142627,
+        "name": "v3.2"
+      }
+    ]
+  },
+  "unichain": {
+    "chainId": 130,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0xb920dbede88b42aa77ee55ebce3671132ee856fc",
+        "startBlock": 8561869,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "polygon": {
+    "chainId": 137,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716",
+        "startBlock": 15610082,
+        "name": "v2.1"
+      },
+      {
+        "address": "0x60573b8dce539ae5bf9ad7932310668997ef0428",
+        "startBlock": 18901674,
+        "name": "v3.0"
+      },
+      {
+        "address": "0x83d3f4769a19f1b43337888b0290f5473cf508b2",
+        "startBlock": 42899867,
+        "name": "ERC20-POLK-v3.0"
+      },
+      {
+        "address": "0x3155836d28c0845c37791808287fafc811742c5a",
+        "startBlock": 73217319,
+        "name": "ERC20-SUKU-v3.2"
+      }
+    ]
+  },
+  "base": {
+    "chainId": null,
+    "apiUrl": "https://base.blockscout.com/api",
+    "apiKeyEnv": null,
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x2f39f464d16402ca3d8527da89617b73de2f60e8",
+        "startBlock": 26260675,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "arbitrum": {
+    "chainId": 42161,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x0edb4cb0b12523749c56ff24c4a09c0c1417f691",
+        "startBlock": 112029,
+        "name": "v2.1"
+      },
+      {
+        "address": "0x5d18bd4dc5f1ac8e9bd9b666bd71cb35a327c4a9",
+        "startBlock": 459975,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "celo": {
+    "chainId": 42220,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x4c2863bb9969dd693ec487bed72bdfd83c0ca5b3",
+        "startBlock": 31954377,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "avalanche": {
+    "chainId": 43114,
+    "apiUrl": "https://api.snowtrace.io/api",
+    "apiKeyEnv": null,
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0xd88cd78631ea0d068cedb0d1357a6eabe59d7502",
+        "startBlock": 4090592,
+        "name": "v3.0"
+      }
+    ]
+  },
+  "sepolia": {
+    "chainId": 11155111,
+    "apiUrl": "https://api.etherscan.io/v2/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0xaf33dcb6e8c5c4d9ddf579f53031b514d19449ca",
+        "startBlock": 3044431,
+        "name": "v3.0"
+      },
+      {
+        "address": "0xb7982f20cc159a40eba4b0ea86fd6cba6ff810e1",
+        "startBlock": 7898415,
+        "name": "v3.2"
+      },
+      {
+        "address": "0x8a5f1c6361e280348a59dac10160a88428ffbd51",
+        "startBlock": 8526475,
+        "name": "ERC20-BOND-v3.2"
+      }
+    ]
+  }
+}
