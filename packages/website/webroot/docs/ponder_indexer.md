@@ -4,13 +4,14 @@ The browse page is backed by a GraphQL API that queries an indexed copy of all r
 
 ## How it works
 
-`packages/ponder` uses [Ponder](https://ponder.sh/) to fetch events from the chain and write them to PostgreSQL. Ponder also serves a GraphQL API directly on port 42069, so no separate server process is needed.
+`packages/ponder` uses [Ponder](https://ponder.sh/) to fetch events from the chain and serve a GraphQL API directly on port 42069, so no separate server process is needed.
 
 ## Prerequisites
 
 - **Node.js 20+**
 - **An RPC URL** for each chain you want to index — a provider with archive access is required for historical sync (Alchemy, Infura, QuickNode, etc.). Public RPCs will work but may rate-limit. Gnosis Chain's public RPC (`https://rpc.gnosischain.com`) is an exception and works fine.
-- **PostgreSQL 14+** — required for production. For local dev you can omit it entirely; Ponder falls back to an embedded [PGlite](https://pglite.dev/) database automatically.
+
+No database setup is needed. Ponder uses an embedded [PGlite](https://pglite.dev/) database by default, stored in `.ponder/`. If you need higher performance or want to store data externally, you can point it at a PostgreSQL instance instead — see [Configure](#configure) below.
 
 ## Install
 
@@ -22,15 +23,10 @@ npm install --install-links
 
 ## Configure
 
-Create `packages/ponder/.env.local`. Set the RPC URL for each chain you want. **Only set the chains you care about** — contracts for unconfigured chains are not indexed.
-
-For production, also set `DATABASE_URL` and `DATABASE_SCHEMA`. For local dev you can skip both — Ponder will use an embedded PGlite database stored in `.ponder/` and create its own schema.
+Create `packages/ponder/.env.local` and set the RPC URL for each chain you want. **Only set the chains you care about** — contracts for unconfigured chains are not indexed.
 
 ```bash
 # packages/ponder/.env.local
-
-DATABASE_URL=postgresql://user:password@localhost:5432/reality_eth
-DATABASE_SCHEMA=ponder_sepolia   # Choose any schema name; Ponder creates it automatically
 
 # Pick one or more chains (identified by chain ID):
 
@@ -63,6 +59,17 @@ PONDER_RPC_URL_11155111=https://rpc.sepolia.org
 ```
 
 If you only want one chain, just set that chain's RPC URL and leave the rest blank.
+
+### Optional: PostgreSQL
+
+To use PostgreSQL instead of the embedded database, add these two variables:
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/reality_eth
+DATABASE_SCHEMA=ponder_sepolia   # Ponder creates this schema automatically
+```
+
+PostgreSQL is worth using if you're running on a machine where disk I/O is a bottleneck, or if you want the indexed data accessible to other tools.
 
 ## Sync and serve
 
