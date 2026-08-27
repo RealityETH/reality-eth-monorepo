@@ -17,7 +17,7 @@ The browse page is backed by a GraphQL API that queries an indexed copy of all r
 ```bash
 git clone https://github.com/RealityETH/reality-eth-monorepo.git
 cd reality-eth-monorepo/packages/ponder
-npm install
+npm install --install-links
 ```
 
 ## Configure
