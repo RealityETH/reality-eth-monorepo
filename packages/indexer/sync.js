@@ -186,6 +186,7 @@ const ACTIVE_CHAINS = Object.fromEntries(
       '0xa75ae6d61dd9d55e8153a393e2fc859c6a0fc716', // v2.1
       '0x60573b8dce539ae5bf9ad7932310668997ef0428', // v3.0
       '0x83d3f4769a19f1b43337888b0290f5473cf508b2', // ERC20 POLK
+      '0x3155836d28c0845c37791808287fafc811742c5a', // ERC20 SUKU v3.2
     ]),
     mkChain(42161, 'arbitrum', 10_000, 112_029, [
       '0x0edb4cb0b12523749c56ff24c4a09c0c1417f691', // v2.1

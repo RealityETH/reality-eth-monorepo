@@ -3,6 +3,7 @@ import { question, response, template, claim } from "ponder:schema";
 import { populatedJSONForTemplate, resolveTemplateText, stripNullBytes } from "./lib/parseQuestion";
 import { bondToUsdBigInt } from "./lib/bondToUsd";
 import { keccak256, encodePacked } from "viem";
+import ponderConfig from "../ponder.config";
 
 function cqId(contract: `0x${string}`, questionId: `0x${string}`): string {
   return `${contract.toLowerCase()}-${questionId}`;
@@ -16,13 +17,10 @@ function templateKey(
   return `${chainId}-${contract.toLowerCase()}-${templateIdNum}`;
 }
 
-// All contract variants share the same event interface.
-// v3.2-specific events (LogCancelArbitration) are handled separately below.
-for (const name of [
-  "RealityETH_v3_2",
-  "RealityETH_v3_0",
-  "RealityETH_ERC20_sepolia",
-] as const) {
+// All contract groups share the same event interface. Derived from ponder.config.ts at startup
+// so new contracts are automatically covered when the config is regenerated.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+for (const name of Object.keys(ponderConfig.contracts) as any[]) {
 
   // ── Templates ────────────────────────────────────────────────────────────
 
@@ -257,17 +255,17 @@ for (const name of [
       updatedTimestamp: event.block.timestamp,
     });
   });
-}
 
-// ── v3.2-only events ───────────────────────────────────────────────────────
+  // ── Cancel arbitration (v3.2+; safe to register for all — older contracts never emit it) ──
 
-ponder.on("RealityETH_v3_2:LogCancelArbitration", async ({ event, context }) => {
-  const { question_id } = event.args;
-  await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
-    isPendingArbitration: false,
-    arbitrationRequestedTimestamp: null,
-    arbitrationRequestedBy: null,
-    updatedBlock: event.block.number,
-    updatedTimestamp: event.block.timestamp,
+  ponder.on(`${name}:LogCancelArbitration`, async ({ event, context }) => {
+    const { question_id } = event.args;
+    await context.db.update(question, { id: cqId(event.log.address, question_id) }).set({
+      isPendingArbitration: false,
+      arbitrationRequestedTimestamp: null,
+      arbitrationRequestedBy: null,
+      updatedBlock: event.block.number,
+      updatedTimestamp: event.block.timestamp,
+    });
   });
-});
+}

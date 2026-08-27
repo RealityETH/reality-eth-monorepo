@@ -101,6 +101,7 @@
             "symbol": "UBQ",
             "decimals": 18
         },
+        "network_name": "ubiq",
         "rpcUrls": [
             "https://rpc.octano.dev",
             "https://pyrus2.ubiqscan.io"
@@ -119,6 +120,7 @@
             "symbol": "ETH",
             "decimals": 18
         },
+        "network_name": "optimism",
         "rpcUrls": [
             "https://mainnet.optimism.io",
             "https://optimism-rpc.publicnode.com",
@@ -754,6 +756,7 @@
             "symbol": "ETH",
             "decimals": 18
         },
+        "network_name": "scroll-alpha",
         "rpcUrls": [
             "https://alpha-rpc.scroll.io/l2"
         ],

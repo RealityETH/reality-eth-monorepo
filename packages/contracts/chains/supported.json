@@ -27,12 +27,14 @@
     },
     "8": {
         "hostedRPC": "https://rpc.octano.dev",
-        "explorerURL": "https://ubqblockexplorer.com/"
+        "explorerURL": "https://ubqblockexplorer.com/",
+        "network_name": "ubiq"
     },
     "10": {
         "hostedRPC": "https://mainnet.optimism.io",
         "explorerURL": "https://optimistic.etherscan.io",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL",
+        "network_name": "optimism",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 43200
     },
@@ -177,7 +179,8 @@
         "network_name": "arbitrum-sepolia"
     },
     "534353": {
-        "hostedRPC": "https://alpha-rpc.scroll.io/l2"
+        "hostedRPC": "https://alpha-rpc.scroll.io/l2",
+        "network_name": "scroll-alpha"
     },
     "1337702": {
         "network_name": "kintsugi",

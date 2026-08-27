@@ -1,0 +1,227 @@
+/**
+ * Generates packages/ponder/ponder.config.ts from packages/contracts/generated/contracts.json.
+ * Chain names are derived from the network_name field in generated/chains.json (populated from
+ * chains/supported.json and chainlist.org data).
+ *
+ * Usage:
+ *   cd packages/contracts && node scripts/generate_ponder_config.js
+ */
+
+'use strict';
+const fs   = require('fs');
+const path = require('path');
+
+const projectBase = path.resolve(__dirname, '..');
+const ponderPkg   = path.resolve(projectBase, '../ponder');
+const contracts   = JSON.parse(fs.readFileSync(path.join(projectBase, 'generated/contracts.json'), 'utf8'));
+const chains      = JSON.parse(fs.readFileSync(path.join(projectBase, 'generated/chains.json'),    'utf8'));
+
+// Ponder chain name derived from chains.json network_name:
+// lowercase, hyphens/spaces → underscores. Falls back to "chain_{id}".
+function cname(id) {
+  const nn = chains[id] && chains[id].network_name;
+  if (!nn) return `chain_${id}`;
+  return nn.toLowerCase().replace(/[-\s.]+/g, '_');
+}
+
+// Polling intervals (ms) keyed by chain ID.
+// Derived from block time, but capped to avoid excessive RPC calls on fast chains.
+const POLL_MS = {
+  1:        12_000,
+  4:        15_000,
+  5:        15_000,
+  8:        30_000,
+  10:       30_000,
+  40:       30_000,
+  56:        3_000,
+  69:       15_000,
+  77:       15_000,
+  97:        3_000,
+  100:       5_000,
+  130:       8_000,
+  137:      15_000,
+  143:      10_000,
+  280:      15_000,
+  300:      30_000,
+  324:      30_000,
+  534353:   15_000,
+  690:      30_000,
+  777:      15_000,
+  1101:     30_000,
+  1301:     10_000,
+  1337702:  15_000,
+  8453:     30_000,
+  10200:    15_000,
+  17000:    30_000,
+  42161:   300_000,  // Arbitrum produces blocks very fast; poll slowly to avoid RPC hammering
+  42220:    30_000,
+  43114:    30_000,
+  80001:    15_000,
+  84532:    30_000,
+  421611:   15_000,
+  421613:   30_000,
+  421614:   30_000,
+  11155111: 30_000,
+  11155420: 30_000,
+  88558801: 10_000,
+};
+
+// Chains where PONDER_RPC_MAX_RPS_{id} should be wired up (rate-limited endpoints common)
+const MAX_RPS_CHAINS = new Set([10, 137]);
+
+const cpoll = id => POLL_MS[id] || 15_000;
+const crps  = id => MAX_RPS_CHAINS.has(id);
+// Format a number with _ as thousands separator (e.g. 12000 → "12_000")
+const fnum  = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '_');
+
+// Versions to skip entirely (arbitrators, release candidates)
+const SKIP_VERSIONS = new Set(['Arbitrator', 'Arbitrator_RealityETH-2.1', 'RealityETH-2.1-rc1']);
+
+// Convert a native version string to a ponder contract name (null = skip)
+function nativePonderName(ver) {
+  if (SKIP_VERSIONS.has(ver)) return null;
+  const m = ver.match(/^RealityETH-(\d+)\.(\d+)$/);
+  return m ? `RealityETH_v${m[1]}_${m[2]}` : null;
+}
+
+const isERC20 = ver => ver.startsWith('RealityETH_ERC20-');
+
+// ── Collect data ──────────────────────────────────────────────────────────────
+
+// native: ponderName → { chainId → [ { address, block } ] }
+// (array because a chain can have multiple tokens for the same version, e.g. Scroll Alpha ETH+SETH)
+const native  = {};
+// erc20: chainId → [ { address, block } ]
+const erc20   = {};
+const chainIds = new Set();
+
+for (const [cidStr, byToken] of Object.entries(contracts)) {
+  const cid = Number(cidStr);
+  for (const byVersion of Object.values(byToken)) {
+    for (const [ver, data] of Object.entries(byVersion)) {
+      if (!data.address) continue;
+      if (isERC20(ver)) {
+        if (!erc20[cid]) erc20[cid] = [];
+        erc20[cid].push({ address: data.address, block: data.block || 0 });
+        chainIds.add(cid);
+      } else {
+        const pn = nativePonderName(ver);
+        if (!pn) continue;
+        if (!native[pn]) native[pn] = {};
+        if (!native[pn][cid]) native[pn][cid] = [];
+        native[pn][cid].push({ address: data.address, block: data.block || 0 });
+        chainIds.add(cid);
+      }
+    }
+  }
+}
+
+// ── Sort order ────────────────────────────────────────────────────────────────
+
+// Priority chains come first in output (major production chains)
+const PRIORITY_CHAINS = [1, 100, 10, 8453, 42161, 56, 130, 137, 11155111];
+const sortedCids = [...chainIds].sort((a, b) => {
+  const ai = PRIORITY_CHAINS.indexOf(a), bi = PRIORITY_CHAINS.indexOf(b);
+  if (ai >= 0 && bi >= 0) return ai - bi;
+  if (ai >= 0) return -1;
+  if (bi >= 0) return 1;
+  return a - b;
+});
+
+// Preferred version output order
+const VER_ORDER = ['RealityETH_v3_2', 'RealityETH_v3_0', 'RealityETH_v2_1', 'RealityETH_v2_0'];
+const sortedNative = Object.keys(native).sort((a, b) => {
+  const ai = VER_ORDER.indexOf(a), bi = VER_ORDER.indexOf(b);
+  if (ai >= 0 && bi >= 0) return ai - bi;
+  if (ai >= 0) return -1;
+  if (bi >= 0) return 1;
+  return a.localeCompare(b);
+});
+
+// ── Build output lines ────────────────────────────────────────────────────────
+
+const lines = [];
+const p = (...args) => lines.push(...args);
+
+p(
+  '// AUTO-GENERATED by packages/contracts/scripts/generate_ponder_config.js',
+  '// Do not edit by hand — run `cd packages/contracts && npm run generate-ponder-config`',
+  'import { createConfig } from "ponder";',
+  'import type { Abi } from "abitype";',
+  'import rawAbi from "@reality.eth/contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json";',
+  'const abi = rawAbi as unknown as Abi;',
+  '',
+);
+
+// Use double-quoted strings so ${id} is literal in the TypeScript output
+p(
+  "const has = (id: number) => !!process.env[`PONDER_RPC_URL_${id}`];",
+  "const rpc = (id: number) => process.env[`PONDER_RPC_URL_${id}`] as string;",
+  "const rps = (id: number, def = 5) => Number(process.env[`PONDER_RPC_MAX_RPS_${id}`] || def);",
+  '',
+  'export default createConfig({',
+  '  chains: {',
+);
+
+for (const cid of sortedCids) {
+  const n    = cname(cid);
+  const pi   = fnum(cpoll(cid));
+  const rpsX = crps(cid) ? `, maxRequestsPerSecond: rps(${cid})` : '';
+  p(`    ...(has(${cid}) && { ${n}: { id: ${cid}, rpc: rpc(${cid}), pollingInterval: ${pi}${rpsX} } }),`);
+}
+
+p('  },', '  contracts: {');
+
+// Native contracts
+for (const pn of sortedNative) {
+  const chainMap     = native[pn];
+  const relevantCids = sortedCids.filter(cid => chainMap[cid]);
+  if (!relevantCids.length) continue;
+
+  const guardExpr = relevantCids.length === 1
+    ? `has(${relevantCids[0]})`
+    : `(${relevantCids.map(c => `has(${c})`).join(' || ')})`;
+
+  p(`    ...(${guardExpr} && { ${pn}: {`);
+  p(`      abi,`);
+  p(`      chain: {`);
+  for (const cid of relevantCids) {
+    const entries    = chainMap[cid].sort((a, b) => a.block - b.block);
+    const startBlock = entries[0].block;
+    const addrVal    = entries.length === 1
+      ? `"${entries[0].address}"`
+      : `[\n          ${entries.map(e => `"${e.address}"`).join(',\n          ')},\n        ]`;
+    p(`        ...(has(${cid}) && { ${cname(cid)}: { address: ${addrVal}, startBlock: ${startBlock} } }),`);
+  }
+  p(`      },`);
+  p(`    }}),`);
+  p('');
+}
+
+// ERC20 contracts, grouped by chain
+for (const cid of sortedCids) {
+  if (!erc20[cid]) continue;
+  const sorted       = [...erc20[cid]].sort((a, b) => a.block - b.block);
+  const n            = cname(cid);
+  const contractName = `RealityETH_ERC20_${n}`;
+  const startBlock   = sorted[0].block;
+  const addrVal      = sorted.length === 1
+    ? `"${sorted[0].address}"`
+    : `[\n          ${sorted.map(x => `"${x.address}"`).join(',\n          ')},\n        ]`;
+
+  p(`    ...(has(${cid}) && { ${contractName}: {`);
+  p(`      abi,`);
+  p(`      chain: {`);
+  p(`        ${n}: { address: ${addrVal}, startBlock: ${startBlock} },`);
+  p(`      },`);
+  p(`    }}),`);
+  p('');
+}
+
+p('  },', '});', '');
+
+// ── Write ─────────────────────────────────────────────────────────────────────
+
+const outPath = path.join(ponderPkg, 'ponder.config.ts');
+fs.writeFileSync(outPath, lines.join('\n'));
+console.log('Wrote', outPath);
