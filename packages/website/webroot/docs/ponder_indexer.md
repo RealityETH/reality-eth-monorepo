@@ -136,7 +136,9 @@ WantedBy=multi-user.target
 
 ## HTTPS with Caddy
 
-To make your GraphQL endpoint accessible over HTTPS — required when accessing the website from `reality.gwei.site` or any other HTTPS origin — use [Caddy](https://caddyserver.com). Caddy provisions a Let's Encrypt certificate automatically; no manual cert setup needed.
+If you're loading the website locally over IPFS, for example accessing `reality.gwei` or `reality.eth` in Freedom Browser, you can connect directly to your indexer over http. However, if you're using a gateway like `reality.gwei.site` or `reality.eth.link` you will be using https, and your browser will insist that the indexer also use https. 
+
+To serve the indexer over https you can use [Caddy](https://caddyserver.com). Caddy provisions a Let's Encrypt certificate automatically; no manual cert setup needed.
 
 A `Caddyfile` template is included at `packages/ponder/Caddyfile`. Edit it to replace `your.domain.com` with your domain, then:
 
