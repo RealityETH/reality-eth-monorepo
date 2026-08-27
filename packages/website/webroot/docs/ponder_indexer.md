@@ -86,6 +86,8 @@ npm start
 
 First-time sync time varies by chain. Sepolia takes around 15 minutes against a local node. Gnosis Chain and mainnet have longer histories and will take longer.
 
+If you see bursts of `WARN Unable to find available JSON-RPC provider within expected time` during backfill, Ponder is briefly outpacing your node's request capacity — it self-recovers, but you can throttle it by adding `PONDER_RPC_MAX_RPS_<chainId>=25` (or lower) to `.env.local`.
+
 You can verify the API is working:
 
 ```bash
