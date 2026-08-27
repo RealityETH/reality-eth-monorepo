@@ -9,8 +9,8 @@ The browse page is backed by a GraphQL API that queries an indexed copy of all r
 ## Prerequisites
 
 - **Node.js 20+**
-- **PostgreSQL 14+** — any local or remote instance works
 - **An RPC URL** for each chain you want to index — a provider with archive access is required for historical sync (Alchemy, Infura, QuickNode, etc.). Public RPCs will work but may rate-limit. Gnosis Chain's public RPC (`https://rpc.gnosischain.com`) is an exception and works fine.
+- **PostgreSQL 14+** — required for production. For local dev you can omit it entirely; Ponder falls back to an embedded [PGlite](https://pglite.dev/) database automatically.
 
 ## Install
 
@@ -22,7 +22,9 @@ npm install --install-links
 
 ## Configure
 
-Create `packages/ponder/.env.local`. Set `DATABASE_URL`, `DATABASE_SCHEMA`, and the RPC URL for each chain you want. **Only set the chains you care about** — contracts for unconfigured chains are not indexed.
+Create `packages/ponder/.env.local`. Set the RPC URL for each chain you want. **Only set the chains you care about** — contracts for unconfigured chains are not indexed.
+
+For production, also set `DATABASE_URL` and `DATABASE_SCHEMA`. For local dev you can skip both — Ponder will use an embedded PGlite database stored in `.ponder/` and create its own schema.
 
 ```bash
 # packages/ponder/.env.local

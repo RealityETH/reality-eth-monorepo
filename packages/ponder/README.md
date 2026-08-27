@@ -58,7 +58,7 @@ If you want to run standard Ponder instead of sync.js (e.g. to avoid the custom 
 ## Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 14+ (production) — for local dev you can omit it; Ponder falls back to an embedded PGlite database automatically.
 
 ## Setup
 
@@ -67,7 +67,7 @@ If you want to run standard Ponder instead of sync.js (e.g. to avoid the custom 
 npm install --install-links
 
 # 2. Copy and fill in .env.local
-cp .env.example .env.local   # set DATABASE_URL and RPC URLs
+cp .env.example .env.local   # set RPC URLs; set DATABASE_URL for production (optional for local dev)
 
 # 3. Initialise the database schema
 psql "$DATABASE_URL" -f ../indexer/schema.sql
@@ -92,7 +92,7 @@ Set in `.env.local` (shared by Ponder and sync.js):
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | PostgreSQL connection string — omit for local dev to use embedded PGlite |
 | `PONDER_RPC_URL_{chainId}` | Narrow (Alchemy) RPC — used for `eth_blockNumber` and per-block fetches |
 | `PONDER_RPC_URL_{chainId}_WIDE` | Wide (Infura) RPC — used for `eth_getLogs` range queries |
 | `PONDER_RPC_URL_{chainId}_LOCAL` | Local node URL (tried first; falls back to Alchemy on network errors) |
