@@ -11,6 +11,7 @@
   "dependencies": {
     "ponder": "^0.17.6",
     "viem": "^2.0.0",
+    "@reality.eth/contracts": "file:../contracts",
     "@reality.eth/reality-eth-lib": "file:../reality-eth-lib"
   },
   "devDependencies": {

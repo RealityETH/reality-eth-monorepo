@@ -1,5 +1,5 @@
 import { createConfig } from "ponder";
-import abi from "../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json";
+import abi from "@reality.eth/contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json";
 
 export default createConfig({
   chains: {

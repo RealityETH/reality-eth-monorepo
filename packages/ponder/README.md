@@ -63,8 +63,8 @@ If you want to run standard Ponder instead of sync.js (e.g. to avoid the custom 
 ## Setup
 
 ```bash
-# 1. Install dependencies
-npm install
+# 1. Install dependencies (--install-links copies file: deps instead of symlinking)
+npm install --install-links
 
 # 2. Copy and fill in .env.local
 cp .env.example .env.local   # set DATABASE_URL and RPC URLs

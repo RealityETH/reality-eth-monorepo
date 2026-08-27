@@ -1,4 +1,4 @@
-import LOOKUP from "../../../contracts/generated/contract_token_lookup.json";
+import LOOKUP from "@reality.eth/contracts/generated/contract_token_lookup.json";
 
 interface TokenInfo {
   symbol: string;
