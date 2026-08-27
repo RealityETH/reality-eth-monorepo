@@ -57,7 +57,7 @@ If you want to run standard Ponder instead of sync.js (e.g. to avoid the custom 
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 
 No database setup is required. Ponder uses an embedded [PGlite](https://pglite.dev/) database by default. PostgreSQL is optional — use it if you need higher performance or external access to the data.
 

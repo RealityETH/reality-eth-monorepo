@@ -8,7 +8,7 @@ The browse page is backed by a GraphQL API that queries an indexed copy of all r
 
 ## Prerequisites
 
-- **Node.js 20+**
+- **Node.js 22+**
 - **An RPC URL** for each chain you want to index — a provider with archive access is required for historical sync (Alchemy, Infura, QuickNode, etc.). Public RPCs will work but may rate-limit. Gnosis Chain's public RPC (`https://rpc.gnosischain.com`) is an exception and works fine.
 
 No database setup is needed. Ponder uses an embedded [PGlite](https://pglite.dev/) database by default, stored in `.ponder/`. If you need higher performance or want to store data externally, you can point it at a PostgreSQL instance instead — see [Configure](#configure) below.
