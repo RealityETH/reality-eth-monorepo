@@ -1,0 +1,21 @@
+# Exposes your Ponder GraphQL endpoint over HTTPS.
+# Caddy automatically provisions a Let's Encrypt certificate for your domain.
+#
+# Setup:
+#   1. Point a DNS A record for your domain at this server.
+#   2. Replace "your.domain.com" below with your actual domain.
+#   3. Install Caddy: https://caddyserver.com/docs/install
+#   4. caddy start --config /path/to/this/Caddyfile
+#
+# Then enter https://your.domain.com/graphql as the GraphQL URL in the website.
+
+your.domain.com {
+    handle /graphql* {
+        reverse_proxy localhost:42069
+    }
+
+    # Uncomment the two lines below if you want to serve the reality.eth website
+    # from this host instead of using the public hosted version at reality.gwei.site.
+    # root * /path/to/reality-eth-monorepo/packages/website/webroot
+    # file_server
+}

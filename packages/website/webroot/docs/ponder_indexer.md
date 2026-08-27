@@ -104,7 +104,7 @@ Click the **Ponder hexagon** (⬡) icon in the top-right of the browse page. In 
 http://localhost:42069/graphql
 ```
 
-If your indexer is on a remote server, replace `localhost` with its address and make sure port 42069 is reachable, or proxy it via nginx. Save and reload — the browse page will now query your instance.
+If your indexer is on a remote server, or if you are accessing the website over HTTPS (e.g. from `reality.gwei.site`), you need an HTTPS endpoint — browsers block HTTP requests from HTTPS pages. See [HTTPS with Caddy](#https-with-caddy) below.
 
 To reset to the public indexer, clear the field and save.
 
@@ -134,11 +134,16 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-Proxy the GraphQL port via nginx if you want it accessible over HTTPS:
+## HTTPS with Caddy
 
-```nginx
-location /graphql {
-    proxy_pass http://localhost:42069/graphql;
-    proxy_set_header Host $host;
-}
+To make your GraphQL endpoint accessible over HTTPS — required when accessing the website from `reality.gwei.site` or any other HTTPS origin — use [Caddy](https://caddyserver.com). Caddy provisions a Let's Encrypt certificate automatically; no manual cert setup needed.
+
+A `Caddyfile` template is included at `packages/ponder/Caddyfile`. Edit it to replace `your.domain.com` with your domain, then:
+
+```bash
+caddy start --config /path/to/reality-eth-monorepo/packages/ponder/Caddyfile
 ```
+
+Once running, enter `https://your.domain.com/graphql` as the GraphQL URL in the website.
+
+The template also has two commented-out lines (`root` and `file_server`) — uncomment them if you want Caddy to serve the reality.eth website itself from this host, instead of using the public hosted version.
