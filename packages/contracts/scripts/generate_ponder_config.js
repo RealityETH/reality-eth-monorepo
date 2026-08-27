@@ -66,11 +66,7 @@ const POLL_MS = {
   88558801: 10_000,
 };
 
-// Chains where PONDER_RPC_MAX_RPS_{id} should be wired up (rate-limited endpoints common)
-const MAX_RPS_CHAINS = new Set([10, 137]);
-
 const cpoll = id => POLL_MS[id] || 15_000;
-const crps  = id => MAX_RPS_CHAINS.has(id);
 // Format a number with _ as thousands separator (e.g. 12000 → "12_000")
 const fnum  = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '_');
 
@@ -157,7 +153,7 @@ p(
 p(
   "const has = (id: number) => !!process.env[`PONDER_RPC_URL_${id}`];",
   "const rpc = (id: number) => process.env[`PONDER_RPC_URL_${id}`] as string;",
-  "const rps = (id: number, def = 5) => Number(process.env[`PONDER_RPC_MAX_RPS_${id}`] || def);",
+  "const rps = (id: number) => process.env[`PONDER_RPC_MAX_RPS_${id}`] ? { maxRequestsPerSecond: Number(process.env[`PONDER_RPC_MAX_RPS_${id}`]) } : {};",
   '',
   'export default createConfig({',
   '  chains: {',
@@ -166,8 +162,7 @@ p(
 for (const cid of sortedCids) {
   const n    = cname(cid);
   const pi   = fnum(cpoll(cid));
-  const rpsX = crps(cid) ? `, maxRequestsPerSecond: rps(${cid})` : '';
-  p(`    ...(has(${cid}) && { ${n}: { id: ${cid}, rpc: rpc(${cid}), pollingInterval: ${pi}${rpsX} } }),`);
+  p(`    ...(has(${cid}) && { ${n}: { id: ${cid}, rpc: rpc(${cid}), pollingInterval: ${pi}, ...rps(${cid}) } }),`);
 }
 
 p('  },', '  contracts: {');
