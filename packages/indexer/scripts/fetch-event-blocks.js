@@ -9,10 +9,11 @@
 // Incremental: only fetches blocks since the last run (stored in
 // known-event-blocks-meta.json). Delete that file to force a full re-fetch.
 
-'use strict';
+import fs   from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const fs   = require('fs');
-const path = require('path');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load .env.local so ETHERSCAN_API_KEY etc. are available without manual export.
 try {
@@ -157,7 +158,15 @@ async function main() {
   let existing = {};
   let meta = {};
   try { existing = JSON.parse(fs.readFileSync(OUTPUT,      'utf8')); } catch {}
-  try { meta     = JSON.parse(fs.readFileSync(META_OUTPUT, 'utf8')); } catch {}
+  try {
+    const rawMeta = JSON.parse(fs.readFileSync(META_OUTPUT, 'utf8'));
+    // Normalise keys to lowercase to match chains-config.json address format.
+    for (const [chain, contracts] of Object.entries(rawMeta)) {
+      meta[chain] = Object.fromEntries(
+        Object.entries(contracts).map(([addr, hwm]) => [addr.toLowerCase(), hwm])
+      );
+    }
+  } catch {}
 
   for (const [chain, config] of Object.entries(chains)) {
     console.log(`\n${chain}:`);
@@ -178,7 +187,7 @@ async function main() {
     const allBlocks = new Set(existing[chain] ?? []);
 
     for (const contract of config.contracts) {
-      const hwm       = meta[chain][contract.address];
+      const hwm       = meta[chain][contract.address.toLowerCase()];
       const fetchFrom = hwm != null ? hwm + 1 : contract.startBlock;
 
       if (hwm != null && currentBlock != null && hwm >= currentBlock) {
@@ -196,7 +205,7 @@ async function main() {
       blocks.forEach(b => allBlocks.add(b));
 
       if (currentBlock != null) {
-        meta[chain][contract.address] = currentBlock;
+        meta[chain][contract.address.toLowerCase()] = currentBlock;
       }
 
       const contractIdx = config.contracts.indexOf(contract);
