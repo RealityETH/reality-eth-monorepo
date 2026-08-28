@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 import { createRequire } from 'module';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '.env.local') });
 
 // Prefix all console output with ISO timestamp.
 const _log = console.log.bind(console);
@@ -79,7 +79,7 @@ function loadConfig() {
   }
 }
 
-const FETCH_EVENT_BLOCKS = join(__dir, '../ponder/scripts/fetch-event-blocks.js');
+const FETCH_EVENT_BLOCKS = join(__dir, 'scripts/fetch-event-blocks.js');
 
 const CHAIN_SPECS = JSON.parse(
   readFileSync(join(__dir, 'active-chains.json'), 'utf8')

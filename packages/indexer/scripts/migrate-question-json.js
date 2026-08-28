@@ -14,7 +14,7 @@ import { dirname, join } from 'path';
 import { createRequire } from 'module';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 // Import populatedJSONForTemplate from reality-eth-lib via ponder's node_modules.
 const require = createRequire(join(__dir, '../../ponder/node_modules/.package-lock.json'));

@@ -20,7 +20,7 @@ import { dirname, join } from 'path';
 import { onLogNewAnswer, ReorgDetected } from '../sync.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const ANVIL_PORT  = 19999; // distinct from website-test port 18545
 const ANVIL_URL   = `http://127.0.0.1:${ANVIL_PORT}`;

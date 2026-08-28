@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const LOOKUP = JSON.parse(
   readFileSync(join(__dir, '../../contracts/generated/contract_token_lookup.json'), 'utf8')

@@ -10,7 +10,7 @@ import { dirname, join } from 'path';
 import { onLogNewAnswer, recomputeQuestionState, ReorgDetected } from '../sync.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const CHAIN_ID   = 9999;                                         // fake — no production collision
 const CONTRACT   = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';

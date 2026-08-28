@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dirname, '../ponder/.env.local') });
+dotenv.config({ path: join(__dirname, '.env.local') });
 
 // Cross-package imports from ponder's node_modules (ponder 0.17+)
 const PONDER_MODS     = join(__dirname, '../ponder/node_modules');

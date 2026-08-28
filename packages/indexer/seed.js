@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '.env.local') });
 
 // Accept chain IDs as CLI args; default to mainnet + gnosis.
 const CHAIN_IDS = process.argv.slice(2).length

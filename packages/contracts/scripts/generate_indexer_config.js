@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // AUTO-GENERATES two files from contracts.json + chains.json:
 //   packages/indexer/active-chains.json      — chain list for sync.js ACTIVE_CHAINS
-//   packages/ponder/scripts/chains-config.json — chain/explorer config for fetch-event-blocks.js
+//   packages/indexer/scripts/chains-config.json — chain/explorer config for fetch-event-blocks.js
 //
 // Reads realityETHIndexerSupport, indexer_batch_size, indexer_name, and explorer_api_*
 // fields from supported.json to drive generation.
@@ -102,7 +102,7 @@ for (const chainId of indexedIds) {
 }
 
 const activeChainPath  = path.resolve(contractsDir, '../indexer/active-chains.json');
-const chainsConfigPath = path.resolve(contractsDir, '../ponder/scripts/chains-config.json');
+const chainsConfigPath = path.resolve(contractsDir, '../indexer/scripts/chains-config.json');
 
 fs.writeFileSync(activeChainPath,  JSON.stringify(activeChains,  null, 2) + '\n');
 console.log('Wrote', activeChainPath);

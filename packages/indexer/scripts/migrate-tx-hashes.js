@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();

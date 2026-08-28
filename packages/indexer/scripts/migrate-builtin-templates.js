@@ -18,7 +18,7 @@ import { decodeEventLog } from 'viem';
 import { readFileSync } from 'fs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const ABI = JSON.parse(readFileSync(join(__dir, '../../contracts/abi/solc-0.8.6/RealityETH-3.2.abi.json'), 'utf8'));
 

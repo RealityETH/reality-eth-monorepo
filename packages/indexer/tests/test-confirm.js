@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dir, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dir, '../.env.local') });
 
 const target = process.argv[2] ?? 'mainnet';
 const LOCAL_URL = target === 'sepolia' ? 'http://localhost:8546' : 'http://localhost:8545';

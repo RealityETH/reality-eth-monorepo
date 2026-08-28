@@ -7,7 +7,7 @@ import pg from 'pg';
 import dotenv from 'dotenv';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: join(__dirname, '../../ponder/.env.local') });
+dotenv.config({ path: join(__dirname, '../.env.local') });
 
 const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
