@@ -1,6 +1,8 @@
 # Running your own indexer
 
-The browse page is backed by a GraphQL API that queries an indexed copy of all reality.eth events. By default it uses the public instance at reality.eth, but you can run your own — useful if you want to self-host, index only the chains you care about, or guarantee availability for your own app.
+The browse page is backed by a GraphQL API that queries an indexed copy of all reality.eth events. Other pages also use the indexer but will fall back on your RPC node if the indexer is unavailable. The question display page will also check the data it gets from the indexer against the local RPC node.
+
+By default the indexer uses a public instance run by reality.eth, but you can also run your own indexing whichever chains you care about.
 
 ## How it works
 
@@ -136,7 +138,7 @@ WantedBy=multi-user.target
 
 ## HTTPS with Caddy
 
-If you're loading the website locally over IPFS, for example accessing `reality.gwei` or `reality.eth` in Freedom Browser, you can connect directly to your indexer over http. However, if you're using a gateway like `reality.gwei.site` or `reality.eth.link` you will be using https, and your browser will insist that the indexer also use https. 
+If you're loading the website locally over IPFS, for example accessing `reality.gwei` or `reality.eth` in [Freedom Browser](https://freedombrowser.eth.limo/), you can connect directly to your indexer over http. However, if you're using a gateway like `reality.gwei.site` or `reality.eth.link` you will be using https, and your browser will insist that the indexer also use https. 
 
 To serve the indexer over https you can use [Caddy](https://caddyserver.com). Caddy provisions a Let's Encrypt certificate automatically; no manual cert setup needed.
 
@@ -148,4 +150,4 @@ caddy start --config /path/to/reality-eth-monorepo/packages/ponder/Caddyfile
 
 Once running, enter `https://your.domain.com/graphql` as the GraphQL URL in the website.
 
-The template also has two commented-out lines (`root` and `file_server`) — uncomment them if you want Caddy to serve the reality.eth website itself from this host, instead of using the public hosted version.
+The template also has two commented-out lines (`root` and `file_server`). Uncomment them if you want Caddy to serve the reality.eth website itself from this host, instead of using the public hosted version.
