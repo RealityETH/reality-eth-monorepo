@@ -2,4 +2,5 @@ node_modules/
 sync.pid
 sync-config.json
 logs/
-monitoring/telegram.env
+monitoring/.telegram.env
+.env.local
