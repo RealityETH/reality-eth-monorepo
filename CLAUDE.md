@@ -75,6 +75,24 @@ To reload `sync-config.json` without restarting:
 kill -HUP $(cat packages/indexer/sync.pid)
 ```
 
+## Old dapp (packages/dapp and packages/template-generator)
+
+These are the old webpack-based apps maintained at old.reality.eth. They require a build step before deployment.
+
+Build:
+```bash
+tools/rebuild.sh
+# (template-generator uses react-scripts which needs --openssl-legacy-provider on Node 23+)
+```
+
+Deploy (old version IPFS):
+```bash
+tools/ipfs_build_old.sh   # packages website + dapp/build + template-generator/build
+tools/pin_ipfs_old.sh     # upload to Filebase
+```
+
+The dapp test suite is in `packages/dapp/tests/` (88 tests, older Playwright setup). Non-obvious implementation details are in `packages/dapp/DAPP_REBUILD_NOTES.md`.
+
 ## Infrastructure
 
 The dev environment runs persistent local Ethereum nodes on ports 8545 (mainnet) and 8546 (Sepolia). Do not attempt to bind anything to those ports.

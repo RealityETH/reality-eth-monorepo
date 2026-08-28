@@ -6,20 +6,33 @@ It comprises the following packages, under packages/:
 
   * contracts: reality.eth contracts source code, also details of supported networks and tokens and the relevant contract addresses.
   * reality-eth-lib: Useful functions for creating and interpreting questions and templates used by the reality.eth system.
-  * dapp: The UI front-end as deployed at reality.eth/dapp
+  * website: The current main dapp UI, served from webroot/. This is what runs at reality.eth.
+  * indexer: The production off-chain indexer, feeding the browse/search API.
+  * ponder: A Ponder-based indexer, kept for self-hosters; not run in production.
+  * dapp: The old dapp UI, maintained at old.reality.eth. Uses webpack; requires a build step.
+  * template-generator: A GUI tool to create custom question templates, also part of old.reality.eth. Uses react-scripts; requires a build step.
   * docs: The system documentation as deployed at reality.eth/docs
-  * website: The project website as seen at reality.eth/
   * cli-tools: Javascript tools, mainly used for arbitration
   * graph: Subgraph definitions for https://thegraph.com/
-  * template-generator: A GUI tool to create custom question templates.
   * twitter-bot: A script to tweet out new questions and answers.
 
 See the README of each respective package for details.
 
-The following scripts are used for deployment, under tools/:
-  
-  * ipfs_build.sh: Deploy web-accessible parts of the project to a web-accessible URL, pin it to IPFS on the local server and on Filebase. You should then register it with ENS to update reality.eth.link.
-  * gh_build.sh: As with ipfs_build.sh but deploying the dapp only, to github.io repo at https://realityeth.github.io/. This is usually updated more frequently than the IPFS build.
+### Deployment scripts (tools/)
+
+There are two separate deployment targets:
+
+**Current version (reality.eth)** — served from `packages/website/webroot/` (no build step needed):
+
+  * `tools/ipfs_build.sh`: Packages website/webroot into an IPFS DAG and writes the CID to deploy/cid.json.
+  * `tools/pin_ipfs.sh`: Uploads the CID from deploy/cid.json to Filebase. Then update ENS to point reality.eth to the new CID.
+  * `tools/gh_build.sh`: Deploys to github.io repo at https://realityeth.github.io/ (usually updated more frequently than the IPFS build).
+
+**Old version (old.reality.eth)** — served from built outputs of `packages/dapp` and `packages/template-generator`:
+
+  * `tools/rebuild.sh`: Builds both packages/dapp and packages/template-generator. Run this before the IPFS build.
+  * `tools/ipfs_build_old.sh`: Packages website/webroot + dapp/build + template-generator/build into an IPFS DAG. Requires a git clone of the repo and locally-built dapp/template-generator artifacts.
+  * `tools/pin_ipfs_old.sh`: Pins the old-version CID to Filebase.
 
 ### NPM packages
 
