@@ -2412,18 +2412,7 @@ header {
       <button class="filter-btn" data-filter="arb">Pending arbitration</button>
       <button class="filter-btn" data-filter="finalized">Finalized</button>
     </div>
-    <div class="filter-bar">
-      <button class="filter-btn active" data-chain="all">All</button>
-      <button class="filter-btn" data-chain="1">Ethereum</button>
-      <button class="filter-btn" data-chain="100">Gnosis</button>
-      <button class="filter-btn" data-chain="137">Polygon</button>
-      <button class="filter-btn" data-chain="42161">Arbitrum</button>
-      <button class="filter-btn" data-chain="10">Optimism</button>
-      <button class="filter-btn" data-chain="8453">Base</button>
-      <button class="filter-btn" data-chain="130">Unichain</button>
-      <button class="filter-btn" data-chain="56">BNB</button>
-      <button class="filter-btn" data-chain="11155111">Sepolia</button>
-    </div>
+    <div class="filter-bar" id="chain-filter-bar"></div>
     <div class="filter-bar">
       <button class="filter-btn active" data-cat="">All</button>
       <button class="filter-btn" data-cat="sports">sports</button>
@@ -4145,6 +4134,21 @@ header {
   }
 
   function initControls() {
+    // Populate chain filter bar from RealityWebsiteData
+    const chainBar = document.getElementById('chain-filter-bar');
+    function _shortChainName(name) {
+      return name.replace(/ Smart Chain Mainnet$/, '').replace(/ Mainnet$/, '')
+                 .replace(/ C-Chain$/, '').replace(/ One$/, '').replace(/^OP$/, 'Optimism');
+    }
+    const indexedChains = Object.entries(window.RealityWebsiteData?.chains || {})
+      .filter(([, c]) => c.realityETHIndexerSupport && !c.deprecated)
+      .map(([id, c]) => ({ id: parseInt(id, 10), label: _shortChainName(c.chainName) }))
+      .sort((a, b) => a.id - b.id);
+    chainBar.innerHTML = '<button class="filter-btn active" data-chain="all">All</button>' +
+      indexedChains.map(c =>
+        `<button class="filter-btn" data-chain="${c.id}">${c.label}</button>`
+      ).join('');
+
     // Status + type filter buttons
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
