@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-SECRETS=/srv/rcdev/reality-eth-design/packages/indexer/monitoring/telegram.env
+SECRETS=/srv/rcdev/reality-eth-design/packages/indexer/monitoring/.telegram.env
 STATE_DIR=/var/lib/reality-eth
 
 source "$SECRETS"
