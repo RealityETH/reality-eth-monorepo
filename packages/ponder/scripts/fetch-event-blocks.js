@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 // Fetches block numbers where reality.eth events occurred from block explorers.
-// Writes known-event-blocks.json which ponder.config.ts uses to skip empty
-// ranges during historical sync — dramatically reducing RPC calls on sparse chains.
+// Builds the sparse block index used by sync.js to skip empty getLogs ranges.
 //
 // Usage:
 //   node scripts/fetch-event-blocks.js [chain...]
 //
 // If no chains are specified, all configured chains are fetched.
-// Incremental: re-runs only fetch blocks since the last run (stored in
+// Incremental: only fetches blocks since the last run (stored in
 // known-event-blocks-meta.json). Delete that file to force a full re-fetch.
 
 'use strict';
@@ -24,8 +23,8 @@ try {
   }
 } catch {}
 
-const OUTPUT      = path.join(__dirname, '..', 'known-event-blocks.json');
-const META_OUTPUT = path.join(__dirname, '..', 'known-event-blocks-meta.json');
+const OUTPUT      = path.join(__dirname, '..', '..', 'indexer', 'known-event-blocks.json');
+const META_OUTPUT = path.join(__dirname, '..', '..', 'indexer', 'known-event-blocks-meta.json');
 
 // AUTO-GENERATED from packages/contracts/generated/contracts.json via
 // packages/contracts/scripts/generate_indexer_config.js — do not edit manually.

@@ -109,15 +109,14 @@ async function refreshSparseIndex(chain) {
 }
 
 // ── Sparse block index ─────────────────────────────────────────────────────────
-// Reuses ponder's known-event-blocks.json and known-event-blocks-meta.json.
 // For historical ranges (below the HWM), if no known event block falls in the
 // batch we skip the getLogs call entirely — avoiding ~99% of RPC calls on sparse
 // chains. Above the HWM, getLogs is always called (live events not yet indexed).
 
 function loadSparseIndex() {
   try {
-    const blocks = JSON.parse(readFileSync(join(__dir, '../ponder/known-event-blocks.json'), 'utf8'));
-    const meta   = JSON.parse(readFileSync(join(__dir, '../ponder/known-event-blocks-meta.json'), 'utf8'));
+    const blocks = JSON.parse(readFileSync(join(__dir, 'known-event-blocks.json'), 'utf8'));
+    const meta   = JSON.parse(readFileSync(join(__dir, 'known-event-blocks-meta.json'), 'utf8'));
     // Compute min HWM per chain (worst-case across contracts)
     const hwm = Object.fromEntries(
       Object.entries(meta).map(([chain, contracts]) => [
