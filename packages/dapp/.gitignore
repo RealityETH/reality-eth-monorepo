@@ -8,6 +8,7 @@ logs
 # Directories used by tools like mocha & istanbul
 coverage
 shippable
+tests/test-results/
 
 # Dependency directory
 node_modules
