@@ -1,16 +1,18 @@
 window.RealityWatchConfigure = window.RealityWatchConfigure || {};
 
 window.RealityWatchConfigure.mount = async function (rawParams) {
-  const KNOWN_CHAINS = [
-    { id: 1,        label: 'Ethereum' },
-    { id: 100,      label: 'Gnosis'   },
-    { id: 137,      label: 'Polygon'  },
-    { id: 42161,    label: 'Arbitrum' },
-    { id: 10,       label: 'Optimism' },
-    { id: 8453,     label: 'Base'     },
-    { id: 130,      label: 'Unichain' },
-    { id: 11155111, label: 'Sepolia'  },
-  ];
+  function _shortChainName(name) {
+    return name
+      .replace(/ Smart Chain Mainnet$/, '')
+      .replace(/ Mainnet$/, '')
+      .replace(/ C-Chain$/, '')
+      .replace(/ One$/, '')
+      .replace(/^OP$/, 'Optimism');
+  }
+  const KNOWN_CHAINS = Object.entries(window.RealityWebsiteData?.chains || {})
+    .filter(([, c]) => c.realityETHIndexerSupport && !c.deprecated)
+    .map(([id, c]) => ({ id: parseInt(id, 10), label: _shortChainName(c.chainName) }))
+    .sort((a, b) => a.id - b.id);
 
   const ARG_DELIMITER = '␟';
 
