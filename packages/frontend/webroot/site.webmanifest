@@ -1,0 +1,11 @@
+{
+    "name": "reality.eth",
+    "short_name": "reality.eth",
+    "display": "browser",
+    "start_url": "/",
+    "theme_color": "#0d1117",
+    "background_color": "#0d1117",
+    "icons": [
+        { "src": "icon.png", "sizes": "192x192", "type": "image/png" }
+    ]
+}

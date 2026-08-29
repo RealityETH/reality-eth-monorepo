@@ -4,14 +4,14 @@
  *
  * Usage:
  *   node scripts/generate_website_data.js           # writes to generated/website-data.js
- *   node scripts/generate_website_data.js --install # also copies to packages/website/webroot/js/
+ *   node scripts/generate_website_data.js --install # also copies to packages/frontend/webroot/js/
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const project_base = path.resolve(__dirname, '..');
-const webroot = path.resolve(project_base, '../../packages/website/webroot');
+const webroot = path.resolve(project_base, '../../packages/frontend/webroot');
 const install = process.argv.includes('--install');
 
 const chains       = JSON.parse(fs.readFileSync(path.join(project_base, 'generated/chains.json'),    'utf8'));

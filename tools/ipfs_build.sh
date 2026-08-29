@@ -24,7 +24,7 @@ rsync -avz --delete \
     --exclude='404.html' \
     --exclude='robots.txt' \
     --exclude='integrations.json' \
-    "$SRC_DIR/packages/website/webroot/" "$BUILD_DIR/"
+    "$SRC_DIR/packages/frontend/webroot/" "$BUILD_DIR/"
 
 CID=$(ipfs add -r --cid-version=1 -Q "$BUILD_DIR")
 

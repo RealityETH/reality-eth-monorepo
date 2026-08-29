@@ -4,7 +4,7 @@ import { resolve, extname, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const WEBROOT = resolve(__dirname, '../../../../packages/website/webroot');
+const WEBROOT = resolve(__dirname, '../../../../packages/frontend/webroot');
 
 export const QUESTION_PORT = 8083;
 export const QUESTION_URL = `http://localhost:${QUESTION_PORT}`;

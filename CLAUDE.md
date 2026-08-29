@@ -6,7 +6,7 @@ Lerna monorepo. The packages most likely to be edited:
 
 | Package | What it is |
 |---|---|
-| `packages/website` | The main dapp UI — a static single-page app served from `webroot/` |
+| `packages/frontend` | The main dapp UI — a static single-page app served from `webroot/` |
 | `packages/contracts` | Solidity contracts and ABI files consumed by the UI |
 | `packages/indexer` | Custom off-chain indexer — the one actually running in production |
 | `packages/ponder` | Ponder-based indexer — not run in production; kept for self-hosters |
@@ -14,7 +14,7 @@ Lerna monorepo. The packages most likely to be edited:
 
 ## Website package
 
-The UI is a plain HTML/JS/CSS single-page app — no build step, no bundler. Files are served directly from `packages/website/webroot/`. The entry point is `index.html`, which route-detects in a synchronous inline script and lazily loads per-view JS modules (all `defer`).
+The UI is a plain HTML/JS/CSS single-page app — no build step, no bundler. Files are served directly from `packages/frontend/webroot/`. The entry point is `index.html`, which route-detects in a synchronous inline script and lazily loads per-view JS modules (all `defer`).
 
 Key JS files:
 
@@ -30,10 +30,10 @@ The WC bundle (`walletconnect.js`) is loaded lazily — only when `reality-eth-w
 
 ## Running the tests
 
-The primary test suite is in `packages/website/tests/`:
+The primary test suite is in `packages/frontend/tests/`:
 
 ```
-cd packages/website/tests
+cd packages/frontend/tests
 npx playwright test
 ```
 

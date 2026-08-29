@@ -22,7 +22,7 @@ See the README of each respective package for details.
 
 There are two separate deployment targets:
 
-**Current version (reality.eth)** — served from `packages/website/webroot/` (no build step needed):
+**Current version (reality.eth)** — served from `packages/frontend/webroot/` (no build step needed):
 
   * `tools/ipfs_build.sh`: Packages website/webroot into an IPFS DAG and writes the CID to deploy/cid.json.
   * `tools/pin_ipfs.sh`: Uploads the CID from deploy/cid.json to Filebase. Then update ENS to point reality.eth to the new CID.
