@@ -4,3 +4,4 @@ sync-config.json
 logs/
 monitoring/.telegram.env
 .env.local
+known-event-blocks-meta.json
