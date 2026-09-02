@@ -17,11 +17,13 @@ Kleros provide a decentralized court system that is integrated with reality.eth 
 
 Where a consumer contract has their own token, they may choose to provide their own arbitrator contract allowing their own stakeholders to vote. Alternatively, it is possible to deploy a reality.eth contract using the token in question for bonds, then create questions without a registered arbitrator. That way the side able to martial the greatest amount of the token will prevail.
 
-### Subjectivocracy
+### Trusted party multisig
 
-We are developing [a forkable Layer 2 ledger](https://backstop.technology/) where issues can be decided by the subjective choice of users to operate as an arbitration backstop.
+You can deploy an arbitration contract controlled by a group of people you trust.
 
+### No arbitration
 
+We generally do not recommend not having arbitration. It results in a dollar auction with unpredicatable results. However it may work in special conditions, for example where the people who hold the token the bonds are staked in are the stakeholders.
 
 
 ## Creating and using an arbitration contract
