@@ -26,7 +26,7 @@ FILEBASE_BUCKET="reality-eth-2026"
 ACCESS_KEY=$(grep ACCESS_TOKEN ~/secrets/filebase_s3.txt | cut -d= -f2)
 SECRET_KEY=$(grep SECRET_KEY ~/secrets/filebase_s3.txt | cut -d= -f2)
 BUCKET="${FILEBASE_BUCKET:-reality-eth}"
-OBJECT_KEY="reality-eth-site.car"
+OBJECT_KEY="reality-eth-site-${CID}.car"
 
 CAR_FILE="$(mktemp --suffix=.car)"
 trap 'rm -f "$CAR_FILE"' EXIT
