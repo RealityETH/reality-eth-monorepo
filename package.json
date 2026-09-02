@@ -2,5 +2,22 @@
   "name": "reality-eth",
   "dependencies": {
     "lerna": "^7.4.2"
+  },
+  "overrides": {
+    "@lerna/create": {
+      "handlebars": "4.7.9"
+    },
+    "conventional-changelog-core": {
+      "handlebars": "4.7.9"
+    },
+    "conventional-changelog-writer": {
+      "handlebars": "4.7.9"
+    },
+    "handlebars": {
+      "handlebars": "4.7.9"
+    },
+    "lerna": {
+      "handlebars": "4.7.9"
+    }
   }
 }
