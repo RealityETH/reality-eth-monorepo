@@ -23,7 +23,7 @@ You can deploy an arbitration contract controlled by a group of people you trust
 
 ### No arbitration
 
-We generally do not recommend not having arbitration. It results in a dollar auction with unpredicatable results. However it may work in special conditions, for example where the people who hold the token the bonds are staked in are the stakeholders.
+We generally do not recommend not having arbitration. It results in a dollar auction winnable by whoever controls the most tokens, which may be the Democratic People's Republic of Korea. However it may work in special conditions, for example where the people who hold the token the bonds are staked in are the stakeholders.
 
 
 ## Creating and using an arbitration contract
