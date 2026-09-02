@@ -2,6 +2,8 @@ node_modules/
 sync.pid
 sync-config.json
 logs/
+serve.log
+generated/
 monitoring/.telegram.env
 .env.local
 known-event-blocks-meta.json
