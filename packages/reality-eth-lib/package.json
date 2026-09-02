@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/reality-eth-lib",
-  "version": "3.4.28",
+  "version": "3.4.29",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "build": "tsc",
@@ -31,7 +31,7 @@
   "author": "Edmund Edgar (https://reality.eth.link)",
   "license": "GPL-3.0",
   "dependencies": {
-    "@reality.eth/contracts": "^3.2.25",
+    "@reality.eth/contracts": "^3.2.26",
     "ethers": "^6.0.0",
     "isomorphic-dompurify": "^0.23.0",
     "marked": "^4.1.1"

@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/ponder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
     "dev": "ponder dev",
@@ -9,10 +9,10 @@
     "codegen": "ponder codegen"
   },
   "dependencies": {
-    "ponder": "^0.17.6",
-    "viem": "^2.0.0",
     "@reality.eth/contracts": "file:../contracts",
-    "@reality.eth/reality-eth-lib": "file:../reality-eth-lib"
+    "@reality.eth/reality-eth-lib": "file:../reality-eth-lib",
+    "ponder": "^0.17.6",
+    "viem": "^2.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
