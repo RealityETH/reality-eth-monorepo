@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "build:browser": "node build-browser.mjs",
+    "prepublishOnly": "npm run build && npm run build:browser",
     "test": "npm run build && env TZ='Asia/Kabul' mocha ./test"
   },
   "exports": {
