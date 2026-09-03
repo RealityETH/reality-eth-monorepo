@@ -6,12 +6,12 @@ It comprises the following packages, under packages/:
 
   * contracts: reality.eth contracts source code, also details of supported networks and tokens and the relevant contract addresses.
   * reality-eth-lib: Useful functions for creating and interpreting questions and templates used by the reality.eth system.
-  * website: The current main dapp UI, served from webroot/. This is what runs at reality.eth.
-  * indexer: The production off-chain indexer, feeding the browse/search API.
-  * ponder: A Ponder-based indexer, kept for self-hosters; not run in production.
-  * dapp: The old dapp UI, maintained at old.reality.eth. Uses webpack; requires a build step.
-  * template-generator: A GUI tool to create custom question templates, also part of old.reality.eth. Uses react-scripts; requires a build step.
-  * docs: The system documentation as deployed at reality.eth/docs
+  * front-end: The main dapp UI, served from webroot/.
+  * ponder: A Ponder-based indexer to serve the front-end.
+  * indexer: Our customized indexer, serving the same API calls as Ponder but with some tweaks to reduce RPC traffic.
+  * dapp: The old dapp UI, maintained at old.reality.eth. Replaced by `front-end`.
+  * template-generator: The old GUI tool to create custom question templates. Functionality now part of `front-end`.
+  * docs: The system documentation as deployed at reality.eth/docs. Now replaced by `front-end`.
   * cli-tools: Javascript tools, mainly used for arbitration
   * graph: Subgraph definitions for https://thegraph.com/
   * twitter-bot: A script to tweet out new questions and answers.
