@@ -48,6 +48,8 @@
         "explorerURL": "https://rootstock.blockscout.com",
         "explorer_api_url": "https://rootstock.blockscout.com/api",
         "network_name": "rootstock",
+        "realityETHIndexerSupport": true,
+        "indexer_batch_size": 5000,
         "blocksPerDay": 2880
     },
     "40": {

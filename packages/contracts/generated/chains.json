@@ -155,6 +155,7 @@
             "https://mycrypto.rsk.co"
         ],
         "hostedRPC": "https://public-node.rsk.co",
+        "realityETHIndexerSupport": true,
         "blocksPerDay": 2880,
         "blockExplorerUrls": [
             "https://explorer.rsk.co",

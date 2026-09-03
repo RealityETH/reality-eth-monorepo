@@ -60,6 +60,19 @@
       }
     ]
   },
+  "rootstock": {
+    "chainId": 30,
+    "apiUrl": "https://rootstock.blockscout.com/api",
+    "apiKeyEnv": "ETHERSCAN_API_KEY",
+    "apiKeyRequired": false,
+    "contracts": [
+      {
+        "address": "0x4396db62818efd4dbcf34a069047e66db4a1cc66",
+        "startBlock": 9206460,
+        "name": "v3.2"
+      }
+    ]
+  },
   "bnb": {
     "chainId": 56,
     "apiUrl": "https://api.etherscan.io/v2/api",

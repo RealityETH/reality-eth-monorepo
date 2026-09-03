@@ -27,6 +27,16 @@
     ]
   },
   {
+    "id": 30,
+    "name": "rootstock",
+    "batchSize": 5000,
+    "noExplorerRefresh": false,
+    "startBlock": 9206460,
+    "addresses": [
+      "0x4396db62818efd4dbcf34a069047e66db4a1cc66"
+    ]
+  },
+  {
     "id": 56,
     "name": "bnb",
     "batchSize": 10000,
