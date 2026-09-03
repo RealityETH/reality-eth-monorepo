@@ -43,6 +43,13 @@
         "explorer_api_no_chain_id": true,
         "blocksPerDay": 43200
     },
+    "30": {
+        "hostedRPC": "https://public-node.rsk.co",
+        "explorerURL": "https://rootstock.blockscout.com",
+        "explorer_api_url": "https://rootstock.blockscout.com/api",
+        "network_name": "rootstock",
+        "blocksPerDay": 2880
+    },
     "40": {
         "network_name": "TelosEVM"
     },

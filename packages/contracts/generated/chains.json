@@ -141,6 +141,26 @@
             "https://mainnet.superscan.network"
         ]
     },
+    "30": {
+        "chainId": "0x1e",
+        "chainName": "Rootstock Mainnet",
+        "nativeCurrency": {
+            "name": "Smart Bitcoin",
+            "symbol": "RBTC",
+            "decimals": 18
+        },
+        "network_name": "rootstock",
+        "rpcUrls": [
+            "https://public-node.rsk.co",
+            "https://mycrypto.rsk.co"
+        ],
+        "hostedRPC": "https://public-node.rsk.co",
+        "blocksPerDay": 2880,
+        "blockExplorerUrls": [
+            "https://explorer.rsk.co",
+            "https://rootstock.blockscout.com"
+        ]
+    },
     "40": {
         "chainId": "0x28",
         "chainName": "Telos EVM Mainnet",
