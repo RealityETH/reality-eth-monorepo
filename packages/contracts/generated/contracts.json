@@ -204,6 +204,16 @@
             }
         }
     },
+    "31": {
+        "tRBTC": {
+            "RealityETH-3.2": {
+                "address": "0xD9C19E152948FF34A817c75D022af9b7Ac8BD5bA",
+                "block": 8039801,
+                "notes": null,
+                "arbitrators": {}
+            }
+        }
+    },
     "40": {
         "TLOS": {
             "RealityETH-3.0": {

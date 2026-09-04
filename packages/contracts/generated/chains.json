@@ -162,6 +162,26 @@
             "https://rootstock.blockscout.com"
         ]
     },
+    "31": {
+        "chainId": "0x1f",
+        "chainName": "Rootstock Testnet",
+        "nativeCurrency": {
+            "name": "Testnet Smart Bitcoin",
+            "symbol": "tRBTC",
+            "decimals": 18
+        },
+        "network_name": "rootstock-testnet",
+        "rpcUrls": [
+            "https://public-node.testnet.rsk.co",
+            "https://mycrypto.testnet.rsk.co"
+        ],
+        "hostedRPC": "https://public-node.testnet.rsk.co",
+        "blocksPerDay": 2880,
+        "blockExplorerUrls": [
+            "https://explorer.testnet.rsk.co",
+            "https://rootstock-testnet.blockscout.com"
+        ]
+    },
     "40": {
         "chainId": "0x28",
         "chainName": "Telos EVM Mainnet",

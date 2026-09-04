@@ -24,6 +24,7 @@ export default createConfig({
     ...(has(5) && { goerli: { id: 5, rpc: rpc(5), pollingInterval: 15_000, ...rps(5) } }),
     ...(has(8) && { ubiq: { id: 8, rpc: rpc(8), pollingInterval: 30_000, ...rps(8) } }),
     ...(has(30) && { rootstock: { id: 30, rpc: rpc(30), pollingInterval: 15_000, ...rps(30) } }),
+    ...(has(31) && { rootstock_testnet: { id: 31, rpc: rpc(31), pollingInterval: 15_000, ...rps(31) } }),
     ...(has(40) && { telosevm: { id: 40, rpc: rpc(40), pollingInterval: 30_000, ...rps(40) } }),
     ...(has(69) && { kovan: { id: 69, rpc: rpc(69), pollingInterval: 15_000, ...rps(69) } }),
     ...(has(77) && { poa_sokol: { id: 77, rpc: rpc(77), pollingInterval: 15_000, ...rps(77) } }),
@@ -51,13 +52,14 @@ export default createConfig({
     ...(has(88558801) && { backstoptestnet1: { id: 88558801, rpc: rpc(88558801), pollingInterval: 10_000, ...rps(88558801) } }),
   },
   contracts: {
-    ...((has(1) || has(100) || has(11155111) || has(30) || has(143) || has(10200) || has(88558801)) && { RealityETH_v3_2: {
+    ...((has(1) || has(100) || has(11155111) || has(30) || has(31) || has(143) || has(10200) || has(88558801)) && { RealityETH_v3_2: {
       abi,
       chain: {
         ...(has(1) && { mainnet: { address: "0x6a2155613b68eFB38D5c6074921F3F4281c8c177", startBlock: 22100226 } }),
         ...(has(100) && { gnosis: { address: "0xEb51d9d9717906c981C57af09C4a3449eF30705b", startBlock: 39142627 } }),
         ...(has(11155111) && { sepolia: { address: "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1", startBlock: 7898415 } }),
         ...(has(30) && { rootstock: { address: "0x4396DB62818eFd4dbcf34A069047E66dB4a1cc66", startBlock: 9206460 } }),
+        ...(has(31) && { rootstock_testnet: { address: "0xD9C19E152948FF34A817c75D022af9b7Ac8BD5bA", startBlock: 8039801 } }),
         ...(has(143) && { monad: { address: "0xa317A7B24d72e3C6cD55c8F244AE01398A8D97e1", startBlock: 48537242 } }),
         ...(has(10200) && { chiado: { address: "0x012fb3aDce7D60672cF634e730927Fa5822b3cAb", startBlock: 14880291 } }),
         ...(has(88558801) && { backstoptestnet1: { address: "0x3a9Ef99956021d545214B7021D449ACb20fCF2b3", startBlock: 240 } }),
