@@ -237,7 +237,7 @@ async function batchQuestionState(prov, items) {
 }
 
 function parseRpcBrowseHash() {
-  const m = location.hash.match(/^#!?\/rpc-browse(?:\/(\d+))?(\/.*)?$/);
+  const m = location.hash.match(/^#!?\/rpc-browse(?:\/network\/(\d+))?(\/.*)?$/);
   if (!m) return {};
   const segs = (m[2] || '').split('/').filter(Boolean);
   const p = {};
@@ -256,7 +256,7 @@ function parseRpcBrowseHash() {
 }
 
 function buildRpcBrowseHash(chainId, opts = {}) {
-  let h = `#!/rpc-browse/${chainId}`;
+  let h = `#!/rpc-browse/network/${chainId}`;
   for (const [key, val] of [
     ['creator', opts.creator],
     ['tmpl',    opts.tmpl !== undefined && opts.tmpl !== '' ? String(opts.tmpl) : ''],
@@ -318,7 +318,7 @@ window.RealityRpcBrowse.mount = async function () {
       btn.onclick = () => {
         if (id === selectedChainId) return;
         selectedChainId = id;
-        history.replaceState(null, '', `#!/rpc-browse/${id}`);
+        history.replaceState(null, '', `#!/rpc-browse/network/${id}`);
         scanWindow = null;
         scanItems  = [];
         statusFilters.clear();
