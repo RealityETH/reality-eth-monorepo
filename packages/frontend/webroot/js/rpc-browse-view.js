@@ -236,6 +236,31 @@ async function batchQuestionState(prov, items) {
   });
 }
 
+function parseRpcBrowseHash() {
+  const m = location.hash.match(/^#!?\/rpc-browse(?:\/(\d+))?(?:\?(.*))?$/);
+  if (!m) return {};
+  const p = new URLSearchParams(m[2] || '');
+  return {
+    chainId: m[1] ? parseInt(m[1], 10) : null,
+    creator: p.get('creator') || '',
+    tmpl:    p.get('tmpl')    || '',
+    ver:     p.get('ver')     || '',
+    cat:     p.get('cat')     || '',
+    kw:      p.get('kw')      || '',
+  };
+}
+
+function buildRpcBrowseHash(chainId, opts = {}) {
+  const q = new URLSearchParams();
+  if (opts.creator) q.set('creator', opts.creator);
+  if (opts.tmpl !== undefined && opts.tmpl !== '') q.set('tmpl', String(opts.tmpl));
+  if (opts.ver) q.set('ver', opts.ver);
+  if (opts.cat) q.set('cat', opts.cat);
+  if (opts.kw) q.set('kw', opts.kw);
+  const qs = q.toString();
+  return qs ? `#!/rpc-browse/${chainId}?${qs}` : `#!/rpc-browse/${chainId}`;
+}
+
 window.RealityRpcBrowse = window.RealityRpcBrowse || {};
 
 window.RealityRpcBrowse.mount = async function () {
@@ -284,6 +309,7 @@ window.RealityRpcBrowse.mount = async function () {
       btn.onclick = () => {
         if (id === selectedChainId) return;
         selectedChainId = id;
+        history.replaceState(null, '', `#!/rpc-browse/${id}`);
         scanWindow = null;
         scanItems  = [];
         resultsEl.innerHTML = '';
@@ -347,9 +373,22 @@ window.RealityRpcBrowse.mount = async function () {
     }
   }
 
-  if (chains.length) selectedChainId = chains[0];
+  const urlState = parseRpcBrowseHash();
+  const urlChain = urlState.chainId && chains.includes(urlState.chainId) ? urlState.chainId : null;
+  selectedChainId = urlChain ?? (chains.length ? chains[0] : null);
+
+  if (urlChain) {
+    creatorIn.value = urlState.creator;
+    tmplIn.value    = urlState.tmpl;
+    catIn.value     = urlState.cat;
+    kwIn.value      = urlState.kw;
+  }
+
   buildChainPills();
   buildVersionSelect();
+
+  // Restore version select after buildVersionSelect populates options
+  if (urlChain && urlState.ver) verEl.value = urlState.ver;
 
   filterBarEl.querySelectorAll('[data-rbf]').forEach(btn => {
     btn.onclick = () => {
@@ -361,6 +400,9 @@ window.RealityRpcBrowse.mount = async function () {
       renderAllItems();
     };
   });
+
+  // Auto-scan if the URL already encodes a chain (back-button restore or direct link)
+  if (urlChain) scanBtn.click();
 
   // ── Scan status bar ───────────────────────────────────────────────────────────
   function setStatus(msg) {
@@ -580,6 +622,14 @@ window.RealityRpcBrowse.mount = async function () {
       const verFilter = verEl.value || null;
       const cat       = catIn.value.trim().toLowerCase() || null;
       const kw        = kwIn.value.trim().toLowerCase() || null;
+
+      history.replaceState(null, '', buildRpcBrowseHash(chainId, {
+        creator: creatorRaw,
+        tmpl:    tmplIn.value.trim(),
+        ver:     verEl.value,
+        cat:     catIn.value.trim(),
+        kw:      kwIn.value.trim(),
+      }));
 
       const prov = new ethers.JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
 
