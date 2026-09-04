@@ -170,8 +170,8 @@ test.describe('WC wallet: ask page', () => {
     // Click the Ethereum chain pill
     await page.locator('#ask-chain-pills .chain-pill[data-chain="1"]').click();
 
-    // Network name should update to Ethereum Mainnet within a short timeout
-    await expect(page.locator('#ask-network-name')).toHaveText('Ethereum Mainnet', { timeout: 5000 });
+    // Network name should update to Ethereum within a short timeout
+    await expect(page.locator('#ask-network-name')).toHaveText('Ethereum', { timeout: 5000 });
   });
 });
 
