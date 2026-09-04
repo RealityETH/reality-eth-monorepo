@@ -237,28 +237,37 @@ async function batchQuestionState(prov, items) {
 }
 
 function parseRpcBrowseHash() {
-  const m = location.hash.match(/^#!?\/rpc-browse(?:\/(\d+))?(?:\?(.*))?$/);
+  const m = location.hash.match(/^#!?\/rpc-browse(?:\/(\d+))?(\/.*)?$/);
   if (!m) return {};
-  const p = new URLSearchParams(m[2] || '');
+  const segs = (m[2] || '').split('/').filter(Boolean);
+  const p = {};
+  for (let i = 0; i + 1 < segs.length; i += 2) {
+    try { p[segs[i]] = decodeURIComponent(segs[i + 1]); } catch { p[segs[i]] = segs[i + 1]; }
+  }
   return {
     chainId: m[1] ? parseInt(m[1], 10) : null,
-    creator: p.get('creator') || '',
-    tmpl:    p.get('tmpl')    || '',
-    ver:     p.get('ver')     || '',
-    cat:     p.get('cat')     || '',
-    kw:      p.get('kw')      || '',
+    creator: p.creator || '',
+    tmpl:    p.tmpl    || '',
+    ver:     p.ver     || '',
+    cat:     p.cat     || '',
+    kw:      p.kw      || '',
+    status:  p.status  || '',
   };
 }
 
 function buildRpcBrowseHash(chainId, opts = {}) {
-  const q = new URLSearchParams();
-  if (opts.creator) q.set('creator', opts.creator);
-  if (opts.tmpl !== undefined && opts.tmpl !== '') q.set('tmpl', String(opts.tmpl));
-  if (opts.ver) q.set('ver', opts.ver);
-  if (opts.cat) q.set('cat', opts.cat);
-  if (opts.kw) q.set('kw', opts.kw);
-  const qs = q.toString();
-  return qs ? `#!/rpc-browse/${chainId}?${qs}` : `#!/rpc-browse/${chainId}`;
+  let h = `#!/rpc-browse/${chainId}`;
+  for (const [key, val] of [
+    ['creator', opts.creator],
+    ['tmpl',    opts.tmpl !== undefined && opts.tmpl !== '' ? String(opts.tmpl) : ''],
+    ['ver',     opts.ver],
+    ['cat',     opts.cat],
+    ['kw',      opts.kw],
+    ['status',  opts.status],
+  ]) {
+    if (val) h += `/${key}/${encodeURIComponent(val)}`;
+  }
+  return h;
 }
 
 window.RealityRpcBrowse = window.RealityRpcBrowse || {};
@@ -312,12 +321,14 @@ window.RealityRpcBrowse.mount = async function () {
         history.replaceState(null, '', `#!/rpc-browse/${id}`);
         scanWindow = null;
         scanItems  = [];
+        statusFilters.clear();
         resultsEl.innerHTML = '';
         ++scanGen;
         scanning = false;
         scanBtn.disabled = false;
         buildChainPills();
         buildVersionSelect();
+        syncFilterBar();
         updateScanStatus(null);
       };
       return btn;
@@ -398,10 +409,22 @@ window.RealityRpcBrowse.mount = async function () {
       else statusFilters.add(f);
       syncFilterBar();
       renderAllItems();
+      if (selectedChainId) {
+        const cur = parseRpcBrowseHash();
+        history.replaceState(null, '', buildRpcBrowseHash(selectedChainId, {
+          ...cur,
+          status: statusFilters.size > 0 ? [...statusFilters].sort().join(',') : '',
+        }));
+      }
     };
   });
 
-  // Auto-scan if the URL already encodes a chain (back-button restore or direct link)
+  // Restore status filter from URL, then auto-scan if chain is encoded
+  if (urlChain && urlState.status) {
+    const valid = new Set(['open', 'upcoming', 'arb', 'finalized']);
+    statusFilters = new Set(urlState.status.split(',').filter(s => valid.has(s)));
+    syncFilterBar();
+  }
   if (urlChain) scanBtn.click();
 
   // ── Scan status bar ───────────────────────────────────────────────────────────
@@ -603,8 +626,6 @@ window.RealityRpcBrowse.mount = async function () {
 
     scanItems  = [];
     scanWindow = null;
-    statusFilters.clear();
-    syncFilterBar();
     resultsEl.innerHTML = '';
 
     try {
