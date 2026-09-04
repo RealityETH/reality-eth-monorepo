@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { snapshot, revert, FORK_BLOCK } from './setup/anvil.js';
+import { snapshot, revert, FORK_BLOCK, ANVIL_URL } from './setup/anvil.js';
 import { walletMockScript } from './setup/wallet-mock.js';
 import { createAccountTemplateFixtures } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
@@ -82,5 +82,45 @@ test.describe('account page: template resolution from RPC', () => {
     // The [account-template] error log fires when template resolution throws.
     const templateErrors = consoleErrors.filter(e => e.includes('[account-template]'));
     expect(templateErrors).toHaveLength(0);
+  });
+
+  test('uses configured RPC instead of browser wallet when useBrowserRpc is disabled', async ({ page }) => {
+    // Pre-set localStorage before any page scripts run: disable browser wallet for reads,
+    // point chain 100's RPC directly at Anvil.
+    await page.addInitScript(`
+      (function() {
+        localStorage.setItem('reality.useBrowserRpc', 'false');
+        localStorage.setItem('reality.rpcUrl.100', ${JSON.stringify(ANVIL_URL)});
+      })();
+    `);
+
+    // Standard wallet mock provides eth_accounts / eth_chainId for wallet detection.
+    await page.addInitScript(walletMockScript());
+
+    // Override the wallet's eth_getLogs and eth_call to throw — if account.js
+    // routes reads through the browser wallet despite useBrowserRpc=false, the
+    // scan will fail and no question will appear.
+    await page.addInitScript(`
+      (function() {
+        const origRequest = window.ethereum.request.bind(window.ethereum);
+        window.ethereum.request = async function({ method, params = [] }) {
+          if (method === 'eth_getLogs' || method === 'eth_call') {
+            throw new Error('Browser wallet must not be used for reads when useBrowserRpc is false');
+          }
+          return origRequest({ method, params });
+        };
+      })();
+    `);
+
+    // Ponder returns 500 → page falls back to RPC scan.
+    await page.route('**/graphql**', route =>
+      route.fulfill({ status: 500, body: 'Internal Server Error' })
+    );
+
+    await page.goto(`${WEBSITE_URL}/index.html#!/account`);
+
+    // The configured RPC (ANVIL_URL) is used for the scan; the question should appear.
+    const titleLocator = page.locator('#asked-list .q-item-title', { hasText: fixtures.title });
+    await expect(titleLocator).toBeVisible({ timeout: 60000 });
   });
 });

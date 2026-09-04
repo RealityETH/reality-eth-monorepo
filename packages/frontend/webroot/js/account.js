@@ -268,7 +268,8 @@ window.RealityAccount.mount = async function (addr) {
     console.log(`[scan] chain=${chainId} addr=${addr} blocks=${fromBlock}-${toBlock} contracts=${rcList.length}`);
     if (!rcList.length) { console.log('[scan] no contracts for chain, skipping'); return empty; }
 
-    const prov = provider || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
+    const useBrRpc = window.RealitySettings?.getUseBrowserRpc() ?? true;
+    const prov = (useBrRpc && provider) || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
     const foundIds = new Map(); // questionId → { contract, isAsked, isAnswered }
 
     for (let i = 0; i < rcList.length; i++) {
@@ -1297,10 +1298,11 @@ window.RealityAccount.mount = async function (addr) {
       ...cacheData.asked.map(q => q.chainId),
       ...cacheData.answered.map(q => q.chainId),
     ])];
+    const useBrowserRpc = window.RealitySettings?.getUseBrowserRpc() ?? true;
     const chainsToScan = [...new Set([
       ...(walletChainId ? [walletChainId] : []),
       ...cacheChainIds,
-    ])].filter(id => (id === walletChainId && provider) || chainRpc(id));
+    ])].filter(id => (id === walletChainId && provider && useBrowserRpc) || chainRpc(id));
     if (!chainsToScan.length) chainsToScan.push(1);
     console.log(`[scan] walletChainId=${walletChainId} cacheChains=[${cacheChainIds}] chainsToScan=[${chainsToScan}]`);
 
@@ -1312,7 +1314,7 @@ window.RealityAccount.mount = async function (addr) {
 
       let toBlock;
       try {
-        const prov = (chainId === walletChainId && provider)
+        const prov = (chainId === walletChainId && useBrowserRpc && provider)
           || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
         toBlock = await withIndicator(rpcInd, () => prov.getBlockNumber());
       } catch {
