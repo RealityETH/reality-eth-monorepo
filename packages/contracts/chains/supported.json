@@ -1,5 +1,6 @@
 {
     "1": {
+        "display_name": "Ethereum",
         "hostedRPC": "https://eth.drpc.org",
         "explorerURL": "https://etherscan.io",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/deployments/id/QmaugeofXNk2tCN3U3LaEi8vRq99zZ6pbKYJDWbbVF1Z9E",
@@ -32,6 +33,7 @@
         "network_name": "ubiq"
     },
     "10": {
+        "display_name": "Optimism",
         "hostedRPC": "https://mainnet.optimism.io",
         "explorerURL": "https://optimistic.etherscan.io",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL",
@@ -44,6 +46,7 @@
         "blocksPerDay": 43200
     },
     "30": {
+        "display_name": "Rootstock",
         "hostedRPC": "https://public-node.rsk.co",
         "explorerURL": "https://rootstock.blockscout.com",
         "explorer_api_url": "https://rootstock.blockscout.com/api",
@@ -60,9 +63,11 @@
         "blocksPerDay": 2880
     },
     "40": {
+        "display_name": "Telos",
         "network_name": "TelosEVM"
     },
     "56": {
+        "display_name": "BNB",
         "explorerURL": "https://www.bscscan.com",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5KjMLU6mx7RrjJJK9XKrM7i6oeB7C6gpnsi3CTWqpYpm",
         "network_name": "bsc",
@@ -80,11 +85,13 @@
         "network_name": "kovan"
     },
     "77": {
+        "display_name": "Sokol",
         "explorerURL": "https://blockscout.com/poa/sokol",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
         "network_name": "poa-sokol"
     },
     "97": {
+        "display_name": "BNB Testnet",
         "explorerURL": "https://testnet.bscscan.com",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
         "network_name": "chapel"
@@ -108,6 +115,7 @@
         "blocksPerDay": 43200
     },
     "137": {
+        "display_name": "Polygon",
         "explorerURL": "https://polygonscan.com/",
         "graphURLHosted": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-polygon",
         "graphURLStudio": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
@@ -122,15 +130,18 @@
         "network_name": "monad"
     },
     "280": {
+        "display_name": "zkSync Goerli",
         "hostedRPC": "https://zksync2-testnet.zksync.dev",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
         "explorerURL": "https://zksync2-testnet.zkscan.io",
         "network_name": "zkSync2-testnet"
     },
     "300": {
+        "display_name": "zkSync Sepolia",
         "network_name": "zksync-sepolia"
     },
     "324": {
+        "display_name": "zkSync",
         "explorerURL": "https://explorer.zksync.io/",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
         "network_name": "zksync-era"
@@ -145,11 +156,13 @@
         "network_name": "cheapeth"
     },
     "1101": {
+        "display_name": "Polygon zkEVM",
         "hostedRPC": "https://zkevm-rpc.com",
         "explorerURL": "https://zkevm.polygonscan.com/",
         "network_name": "polygon-zkevm"
     },
     "1301": {
+        "display_name": "Unichain Sepolia",
         "hostedRPC": "https://sepolia.unichain.org",
         "explorerURL": "https://unichain-sepolia.blockscout.com/",
         "network_name": "unichain-sepolia"
@@ -167,6 +180,7 @@
         "blocksPerDay": 43200
     },
     "10200": {
+        "display_name": "Chiado",
         "hostedRPC": "https://rpc.chiadochain.net",
         "explorerURL": "https://gnosis-chiado.blockscout.com/",
         "network_name": "chiado"
@@ -178,6 +192,7 @@
         "deprecated": true
     },
     "42161": {
+        "display_name": "Arbitrum",
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
         "network_name": "arbitrum-one",
@@ -187,6 +202,7 @@
         "blocksPerDay": 360000
     },
     "42220": {
+        "display_name": "Celo",
         "hostedRPC": "https://forno.celo.org",
         "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
         "network_name": "celo",
@@ -194,6 +210,7 @@
         "indexer_batch_size": 5000
     },
     "43114": {
+        "display_name": "Avalanche",
         "explorerURL": "https://cchain.explorer.avax.network/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
         "network_name": "avalanche",
@@ -209,18 +226,23 @@
         "network_name": "mumbai"
     },
     "84532": {
+        "display_name": "Base Sepolia",
         "network_name": "base-sepolia"
     },
     "421611": {
+        "display_name": "Arb. Rinkeby",
         "network_name": "arbitrum-rinkeby"
     },
     "421613": {
+        "display_name": "Arb. Goerli",
         "network_name": "arbitrum-goerli"
     },
     "421614": {
+        "display_name": "Arb. Sepolia",
         "network_name": "arbitrum-sepolia"
     },
     "534353": {
+        "display_name": "Scroll Alpha",
         "hostedRPC": "https://alpha-rpc.scroll.io/l2",
         "network_name": "scroll-alpha"
     },
@@ -229,6 +251,7 @@
         "deprecated": true
     },
     "11155111": {
+        "display_name": "Sepolia",
         "network_name": "sepolia",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
@@ -237,6 +260,7 @@
         "blocksPerDay": 7200
     },
     "11155420": {
+        "display_name": "OP Sepolia",
         "network_name": "optimism-sepolia"
     },
     "88558801": {

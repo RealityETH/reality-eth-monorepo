@@ -29,6 +29,7 @@
         "hostedRPC": "https://eth.drpc.org",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/deployments/id/QmaugeofXNk2tCN3U3LaEi8vRq99zZ6pbKYJDWbbVF1Z9E",
+        "display_name": "Ethereum",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 7200,
         "blockExplorerUrls": [
@@ -132,6 +133,7 @@
         ],
         "hostedRPC": "https://mainnet.optimism.io",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/DbXiienZtjzLNQiXUfVvEyGxR3xkrJ7sJm5XdDKT4DqL",
+        "display_name": "Optimism",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 43200,
         "blockExplorerUrls": [
@@ -155,6 +157,7 @@
             "https://mycrypto.rsk.co"
         ],
         "hostedRPC": "https://public-node.rsk.co",
+        "display_name": "Rootstock",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 2880,
         "blockExplorerUrls": [
@@ -197,6 +200,7 @@
             "wss://telos.drpc.org"
         ],
         "hostedRPC": "https://rpc.telos.net",
+        "display_name": "Telos",
         "blockExplorerUrls": [
             "https://teloscan.io"
         ]
@@ -229,6 +233,7 @@
         ],
         "hostedRPC": "https://bsc-dataseed1.bnbchain.org",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5KjMLU6mx7RrjJJK9XKrM7i6oeB7C6gpnsi3CTWqpYpm",
+        "display_name": "BNB",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 28800,
         "blockExplorerUrls": [
@@ -270,6 +275,7 @@
         ],
         "hostedRPC": "https://sokol.poa.network",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-sokol",
+        "display_name": "Sokol",
         "blockExplorerUrls": [
             "https://blockscout.com/poa/sokol"
         ]
@@ -295,6 +301,7 @@
         ],
         "hostedRPC": "https://data-seed-prebsc-1-s1.bnbchain.org:8545",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-chapel",
+        "display_name": "BNB Testnet",
         "blockExplorerUrls": [
             "https://testnet.bscscan.com"
         ]
@@ -383,6 +390,7 @@
         ],
         "hostedRPC": "https://polygon-rpc.com/",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/AWx6jkeKZ3xKRzkrzgfCAMPT7d6Jc3AMcqB8koN3QEqE",
+        "display_name": "Polygon",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 43200,
         "blockExplorerUrls": [
@@ -424,6 +432,7 @@
         ],
         "hostedRPC": "https://zksync2-testnet.zksync.dev",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-goerli-2",
+        "display_name": "zkSync Goerli",
         "blockExplorerUrls": [
             "https://goerli.explorer.zksync.io/",
             "https://zksync2-testnet.zkscan.io"
@@ -444,6 +453,7 @@
             "wss://zksync-sepolia.drpc.org"
         ],
         "hostedRPC": "https://sepolia.era.zksync.dev",
+        "display_name": "zkSync Sepolia",
         "blockExplorerUrls": [
             "https://sepolia.explorer.zksync.io"
         ]
@@ -464,6 +474,7 @@
         ],
         "hostedRPC": "https://mainnet.era.zksync.io",
         "graphURL": "https://api.thegraph.com/subgraphs/name/realityeth/realityeth-zksync-era",
+        "display_name": "zkSync",
         "blockExplorerUrls": [
             "https://explorer.zksync.io",
             "https://explorer.zksync.io/"
@@ -520,6 +531,7 @@
             "wss://polygon-zkevm.drpc.org"
         ],
         "hostedRPC": "https://zkevm-rpc.com",
+        "display_name": "Polygon zkEVM",
         "blockExplorerUrls": [
             "https://zkevm.polygonscan.com",
             "https://zkevm.polygonscan.com/"
@@ -540,6 +552,7 @@
             "wss://unichain-sepolia-rpc.publicnode.com"
         ],
         "hostedRPC": "https://sepolia.unichain.org",
+        "display_name": "Unichain Sepolia",
         "blockExplorerUrls": [
             "https://unichain-sepolia.blockscout.com",
             "https://sepolia.uniscan.xyz",
@@ -594,6 +607,7 @@
             "wss://gnosis-chiado.drpc.org"
         ],
         "hostedRPC": "https://rpc.chiadochain.net",
+        "display_name": "Chiado",
         "blockExplorerUrls": [
             "https://blockscout.chiadochain.net",
             "https://gnosis-chiado.blockscout.com",
@@ -641,6 +655,7 @@
         ],
         "hostedRPC": "https://arb1.arbitrum.io/rpc",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/GE8vDWJM3JBeqM8uk3LHZMbyBaeZTNjaeZRx1KgWvHeD",
+        "display_name": "Arbitrum",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 360000,
         "blockExplorerUrls": [
@@ -662,6 +677,7 @@
         ],
         "hostedRPC": "https://forno.celo.org",
         "graphURL": "https://api.studio.thegraph.com/query/41571/realityeth-celo/version/latest",
+        "display_name": "Celo",
         "realityETHIndexerSupport": true,
         "blockExplorerUrls": [
             "https://celoscan.io",
@@ -684,6 +700,7 @@
         ],
         "hostedRPC": "https://api.avax.network/ext/bc/C/rpc",
         "graphURL": "https://gateway-arbitrum.network.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/5mxhdAbQubvMU8cVjevsC2L8vre6EaHhpCXBdNPjd6EL",
+        "display_name": "Avalanche",
         "realityETHIndexerSupport": true,
         "blockExplorerUrls": [
             "https://snowscan.xyz",
@@ -729,6 +746,7 @@
             "wss://base-sepolia-rpc.publicnode.com"
         ],
         "hostedRPC": "https://sepolia.base.org",
+        "display_name": "Base Sepolia",
         "blockExplorerUrls": [
             "https://sepolia.basescan.org",
             "https://base-sepolia.blockscout.com"
@@ -747,6 +765,7 @@
             "https://rinkeby.arbitrum.io/rpc"
         ],
         "hostedRPC": "https://rinkeby.arbitrum.io/rpc",
+        "display_name": "Arb. Rinkeby",
         "blockExplorerUrls": [
             "https://testnet.arbiscan.io",
             "https://rinkeby-explorer.arbitrum.io"
@@ -767,6 +786,7 @@
             "wss://arbitrum-goerli.publicnode.com"
         ],
         "hostedRPC": "https://goerli-rollup.arbitrum.io/rpc",
+        "display_name": "Arb. Goerli",
         "blockExplorerUrls": [
             "https://goerli.arbiscan.io"
         ]
@@ -786,6 +806,7 @@
             "wss://arbitrum-sepolia-rpc.publicnode.com"
         ],
         "hostedRPC": "https://sepolia-rollup.arbitrum.io/rpc",
+        "display_name": "Arb. Sepolia",
         "blockExplorerUrls": [
             "https://sepolia.arbiscan.io",
             "https://sepolia-explorer.arbitrum.io"
@@ -804,6 +825,7 @@
             "https://alpha-rpc.scroll.io/l2"
         ],
         "hostedRPC": "https://alpha-rpc.scroll.io/l2",
+        "display_name": "Scroll Alpha",
         "blockExplorerUrls": [
             "https://alpha-blockscout.scroll.io"
         ]
@@ -850,6 +872,7 @@
         "hostedRPC": "https://rpc.sepolia.org",
         "atprotoBot": "did:plc:u4d5v5zsl5jb2y33vtfhyjo5",
         "graphURL": "https://gateway.thegraph.com/api/73380b22a17017c081123ec9c0e34677/subgraphs/id/F3XjWNiNFUTbZhNQjXuhP7oDug2NaPwMPZ5XCRx46h5U",
+        "display_name": "Sepolia",
         "realityETHIndexerSupport": true,
         "blocksPerDay": 7200,
         "blockExplorerUrls": [
@@ -873,6 +896,7 @@
             "wss://optimism-sepolia.drpc.org"
         ],
         "hostedRPC": "https://sepolia.optimism.io",
+        "display_name": "OP Sepolia",
         "blockExplorerUrls": [
             "https://sepolia-optimism.etherscan.io",
             "https://optimism-sepolia.blockscout.com"

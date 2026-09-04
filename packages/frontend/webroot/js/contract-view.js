@@ -60,7 +60,7 @@ window.RealityContract.mount = async function (chainId, address) {
   if (!info) { showError(`Contract ${address} not found in registry for chain ${chainId}.`); return; }
 
   const chainInfo = chains[String(chainId)] || {};
-  const chainName = chainInfo.chainName || `Chain ${chainId}`;
+  const chainName = chainInfo.display_name || chainInfo.chainName || `Chain ${chainId}`;
   const explorer  = (chainInfo.blockExplorerUrls || [])[0] || '';
   const tokenInfo = tokens[tokenSym] || {};
   const isERC20   = !!info.token_address;

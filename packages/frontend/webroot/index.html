@@ -26,6 +26,7 @@
     /^#!?\/watch-configure(\/|$|\?)/.test(h)   ? 'watch-configure-view' :
     /^#!?\/watches(\/|$)/.test(h)              ? 'watches-view'         :
     /^#!?\/notifications(\/|$)/.test(h)        ? 'notifications-view'   :
+    /^#!?\/rpc-browse(\/|$)/.test(h)           ? 'rpc-browse-view'      :
     null;
   if (view) {
     var s = document.createElement('style');
@@ -37,11 +38,12 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=109';
+  var V = '?v=118';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
-    'js/guide-view.js'+V, 'js/docs-view.js'+V, 'js/templates-view.js'+V, 'js/template-view.js'+V, 'js/ask-view.js'+V];
+    'js/guide-view.js'+V, 'js/docs-view.js'+V, 'js/templates-view.js'+V, 'js/template-view.js'+V, 'js/ask-view.js'+V,
+    'js/rpc-browse-view.js'+V];
 
   var route =
     /^#!?\/network\/\d+\/question\//.test(h)  ? [M, DP, 'js/question.js'+V] :
@@ -55,6 +57,7 @@
     /^#!?\/watch-configure(\/|$|\?)/.test(h)  ? ['js/watch-configure-view.js'+V] :
     /^#!?\/watches(\/|$)/.test(h)             ? ['js/watches-view.js'+V] :
     /^#!?\/notifications(\/|$)/.test(h)       ? ['js/notifications-view.js'+V] :
+    /^#!?\/rpc-browse(\/|$)/.test(h)          ? ['js/rpc-browse-view.js'+V] :
     [];
 
   // Preload route scripts immediately (download in parallel with core, execute later)
@@ -989,6 +992,24 @@
   .scan-chain-pill:hover { border-color: var(--accent); color: var(--accent); }
   .scan-back-btn { padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: none; font-size: 12px; color: var(--text); cursor: pointer; margin-left: 4px; }
   .scan-back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .rb-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .rb-table th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); padding: 0 8px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .rb-table td { padding: 7px 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+  .rb-row:hover td { background: var(--bg-card); }
+  .rb-th-status, .rb-td-status { width: 48px; }
+  .rb-td-status .badge { font-size: 10px; font-weight: 700; letter-spacing: 0.02em; padding: 2px 6px; border-radius: 2px; }
+  .rb-td-status .badge-open     { background: rgba(181,222,39,0.18); color: #4a6000; border: 1px solid rgba(181,222,39,0.45); }
+  .rb-td-status .badge-arb      { background: var(--amber-subtle); color: var(--amber); border: 1px solid #f5d8b0; }
+  .rb-td-status .badge-final    { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
+  .rb-td-status .badge-upcoming { background: var(--border-subtle); color: var(--text-dim); border: 1px solid var(--border); }
+  .rb-th-answer, .rb-td-answer { width: 90px; }
+  .rb-th-bond,   .rb-td-bond   { width: 90px; text-align: right; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+  .rb-th-bond { text-align: right; }
+  .rb-th-time,   .rb-td-time   { width: 64px; text-align: right; color: var(--text-dim); white-space: nowrap; }
+  .rb-th-time { text-align: right; }
+  .rb-title-link { color: var(--text); text-decoration: none; font-weight: 500; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; }
+  .rb-title-link:hover { color: var(--accent); }
+  .rb-cat { font-size: 10px; color: var(--text-dim); margin-left: 6px; }
   .arb-section-header { font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
   .arb-section-header:first-child { padding-top: 4px; }
@@ -1554,7 +1575,7 @@
 <script defer src="js/vendor/ethers.js?v=3"></script>
 <script defer src="js/wallet.js?v=11"></script>
 <script defer src="js/settings.js?v=13"></script>
-<script defer src="js/question-cache.js?v=3"></script>
+<script defer src="js/question-cache.js?v=4"></script>
 <script defer src="js/watches.js?v=4"></script>
 <style id="heritage-theme">
 /* ── Heritage theme override ── */
@@ -2615,6 +2636,39 @@ header {
 </div>
 </div>
 
+<div id="rpc-browse-view" style="display:none">
+<div class="page">
+  <div id="rb-chain-pills" class="chain-pills-row"></div>
+  <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:14px">
+    <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem;color:var(--text-muted)">Creator (optional)
+      <input id="rb-creator" class="addr-input" type="text" placeholder="0x…" autocomplete="off" spellcheck="false" style="min-width:280px">
+    </label>
+    <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem;color:var(--text-muted)">Template ID
+      <input id="rb-template" class="addr-input" type="number" placeholder="any" min="0" style="width:90px">
+    </label>
+    <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem;color:var(--text-muted)">Contract version
+      <select id="rb-version" class="addr-input"></select>
+    </label>
+    <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem;color:var(--text-muted)">Category
+      <input id="rb-category" class="addr-input" type="text" placeholder="any" autocomplete="off" style="width:130px">
+    </label>
+    <label style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem;color:var(--text-muted)">Keyword
+      <input id="rb-keyword" class="addr-input" type="text" placeholder="any" autocomplete="off" style="width:150px">
+    </label>
+    <button id="rb-scan-btn" class="btn-addr-go">Scan</button>
+  </div>
+  <div id="rb-filter-bar" class="filter-bar" style="margin-bottom:14px">
+    <button class="filter-btn active" data-rbf="all">All</button>
+    <button class="filter-btn" data-rbf="open">Open</button>
+    <button class="filter-btn" data-rbf="upcoming">Waiting to open</button>
+    <button class="filter-btn" data-rbf="arb">Pending arbitration</button>
+    <button class="filter-btn" data-rbf="finalized">Finalized</button>
+  </div>
+  <div id="rb-scan-status" class="rpc-scan-status" style="display:none"></div>
+  <div id="rb-results"></div>
+</div>
+</div>
+
 <div id="contract-view" style="display:none">
 <div class="page">
   <div class="breadcrumb">
@@ -3323,7 +3377,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=109';
+  const V = '?v=118';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -3336,6 +3390,7 @@ header {
     templates:         ['js/templates-view.js'+V],
     template:          [_CDN_MARKED, _CDN_PURIFY, 'js/template-view.js'+V],
     ask:               [_CDN_MARKED, _CDN_PURIFY, 'js/ask-view.js'+V],
+    'rpc-browse':      ['js/rpc-browse-view.js'+V],
   };
 
   const ponderInd     = document.getElementById('ind-ponder');
@@ -3780,28 +3835,10 @@ header {
     return { text, cls: 'answer-opt' };
   }
 
-  const SHORT_CHAIN_NAMES = {
-    'Ethereum Mainnet':        'Ethereum',
-    'Arbitrum One':            'Arbitrum',
-    'Arbitrum Sepolia':        'Arb. Sepolia',
-    'Arbitrum Goerli':         'Arb. Goerli',
-    'BNB Smart Chain Mainnet': 'BNB',
-    'BNB Smart Chain Testnet': 'BNB Testnet',
-    'Avalanche C-Chain':       'Avalanche',
-    'Celo Mainnet':            'Celo',
-    'Polygon Mainnet':         'Polygon',
-    'Polygon zkEVM':           'zkEVM',
-    'OP Mainnet':              'Optimism',
-    'OP Sepolia Testnet':      'OP Sepolia',
-    'Gnosis Chiado Testnet':   'Chiado',
-    'Base Sepolia Testnet':    'Base Sepolia',
-    'Ethereum Sepolia':        'Sepolia',
-    'POA Network Sokol':       'Sokol',
-  };
-
   function chainLabel(chainId) {
-    const full = window.RealityChains?.name(chainId) || `Chain ${chainId}`;
-    return SHORT_CHAIN_NAMES[full] || full;
+    return window.RealityWebsiteData?.chains?.[String(chainId)]?.display_name
+      || window.RealityChains?.name(chainId)
+      || `Chain ${chainId}`;
   }
 
   function formatRelTime(ts) {
@@ -4323,6 +4360,10 @@ header {
     return false;
   }
 
+  function isRpcBrowseHash(hash) {
+    return /^#!?\/rpc-browse(\/|$)/.test(hash);
+  }
+
   function isQuestionHash(hash) {
     return /^#!?\/network\/\d+\/question\/0x[0-9a-fA-F]+-0x[0-9a-fA-F]+/.test(hash);
   }
@@ -4416,6 +4457,7 @@ header {
   let _templatesViewTemplate       = null;
   let _templateViewTemplate        = null;
   let _askViewTemplate             = null;
+  let _rpcBrowseViewTemplate       = null;
   let _connectedWalletAddr       = undefined; // undefined = not yet initialized; null = no wallet
 
   function _hideAllViews() {
@@ -4423,6 +4465,7 @@ header {
     document.getElementById('view-content').style.display = 'none';
     document.getElementById('question-view').style.display = 'none';
     document.getElementById('account-view').style.display = 'none';
+    document.getElementById('rpc-browse-view').style.display = 'none';
     document.getElementById('notifications-view').style.display = 'none';
     document.getElementById('watches-view').style.display = 'none';
     document.getElementById('watch-configure-view').style.display = 'none';
@@ -4581,6 +4624,17 @@ header {
     document.title = 'reality.eth';
   }
 
+  async function showRpcBrowseView() {
+    await loadViewScripts(VIEW_SCRIPTS['rpc-browse']);
+    const rv = document.getElementById('rpc-browse-view');
+    if (!_rpcBrowseViewTemplate) _rpcBrowseViewTemplate = rv.innerHTML;
+    rv.innerHTML = _rpcBrowseViewTemplate;
+    _hideAllViews();
+    rv.style.display = '';
+    document.title = 'reality.eth — Browse by RPC';
+    await window.RealityRpcBrowse.mount();
+  }
+
   async function route() {
     const hash = window.location.hash || '#/browse';
     if (isQuestionHash(hash)) {
@@ -4625,6 +4679,10 @@ header {
     }
     if (isTemplatesHash(hash)) {
       await showTemplatesView();
+      return;
+    }
+    if (isRpcBrowseHash(hash)) {
+      await showRpcBrowseView();
       return;
     }
     if (isBrowseHash(hash)) {
@@ -4684,6 +4742,8 @@ header {
       await showTemplateView();
     } else if (isTemplatesHash(window.location.hash)) {
       await showTemplatesView();
+    } else if (isRpcBrowseHash(window.location.hash)) {
+      await showRpcBrowseView();
     } else {
       showSkeleton();
     }
@@ -4702,7 +4762,7 @@ header {
         cacheInd?.classList.add('hit');
         setTimeout(() => cacheInd?.classList.remove('hit'), 2000);
         renderList();
-      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isAskHash(window.location.hash) && !isTemplatesHash(window.location.hash) && !isTemplateHash(window.location.hash)) {
+      } else if (!isQuestionHash(window.location.hash) && !isAccountHash(window.location.hash) && !isNotificationsHash(window.location.hash) && !isWatchesHash(window.location.hash) && !isWatchConfigureHash(window.location.hash) && !isContractHash(window.location.hash) && !isGuideHash(window.location.hash) && !isAskHash(window.location.hash) && !isTemplatesHash(window.location.hash) && !isTemplateHash(window.location.hash) && !isRpcBrowseHash(window.location.hash)) {
         showSkeleton();
       }
       fetchIntegrationCounts();

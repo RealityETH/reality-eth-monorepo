@@ -15,7 +15,8 @@ _load();
 
 window.RealityChains = {
   name(chainId) {
-    return _data?.[String(chainId)]?.chainName || null;
+    const c = _data?.[String(chainId)];
+    return c ? (c.display_name || c.chainName) : null;
   },
   nativeSymbol(chainId) {
     return _data?.[String(chainId)]?.nativeCurrency?.symbol || null;

@@ -4,7 +4,7 @@
 // ── Constants ──────────────────────────────────────────────────────────────────
 const ZERO_HASH = '0x' + '0'.repeat(64);
 
-function chainName(id) { return window.RealityChains?.name(id) || `Chain ${id}`; }
+function chainName(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.display_name || window.RealityChains?.name(id) || `Chain ${id}`; }
 function chainNativeToken(id) { return window.RealityWebsiteData?.nativeTokenByChain?.[String(id)] || 'ETH'; }
 function chainExplorer(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blockExplorerUrls?.[0] || null; }
 function chainRpc(id) { return window.RealitySettings?.getRpcUrl(id) || window.RealityWebsiteData?.chains?.[String(id)]?.hostedRPC || null; }

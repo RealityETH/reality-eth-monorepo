@@ -77,6 +77,10 @@ for (var ci = 0; ci< chain_id_list.length; ci++) {
         chainparams['network_name'] = our_data['network_name'];
     }
 
+    if (our_data['display_name']) {
+        chainparams['display_name'] = our_data['display_name'];
+    }
+
     if (our_data['deprecated']) {
         chainparams['deprecated'] = true;
     }

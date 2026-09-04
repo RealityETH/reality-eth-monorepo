@@ -1,17 +1,9 @@
 window.RealityWatchConfigure = window.RealityWatchConfigure || {};
 
 window.RealityWatchConfigure.mount = async function (rawParams) {
-  function _shortChainName(name) {
-    return name
-      .replace(/ Smart Chain Mainnet$/, '')
-      .replace(/ Mainnet$/, '')
-      .replace(/ C-Chain$/, '')
-      .replace(/ One$/, '')
-      .replace(/^OP$/, 'Optimism');
-  }
   const KNOWN_CHAINS = Object.entries(window.RealityWebsiteData?.chains || {})
     .filter(([, c]) => c.realityETHIndexerSupport && !c.deprecated)
-    .map(([id, c]) => ({ id: parseInt(id, 10), label: _shortChainName(c.chainName) }))
+    .map(([id, c]) => ({ id: parseInt(id, 10), label: c.display_name || c.chainName }))
     .sort((a, b) => a.id - b.id);
 
   const ARG_DELIMITER = '␟';

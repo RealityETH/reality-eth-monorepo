@@ -2,7 +2,7 @@
 'use strict';
 
 const DB_NAME    = 'reality-eth-events';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _dbPromise = null;
 
@@ -11,15 +11,19 @@ function openDb() {
   _dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = ev => {
-      const db = ev.target.result;
-      if (!db.objectStoreNames.contains('events')) {
-        const store = db.createObjectStore('events', {
+      const db  = ev.target.result;
+      const old = ev.oldVersion;
+      if (old < 1) {
+        const evStore = db.createObjectStore('events', {
           keyPath: ['chainId', 'questionId', 'blockNumber', 'logIndex'],
         });
-        store.createIndex('by-question', ['chainId', 'questionId']);
-      }
-      if (!db.objectStoreNames.contains('sync')) {
-        db.createObjectStore('sync', { keyPath: 'id' });
+        evStore.createIndex('by-question', ['chainId', 'questionId']);
+        const syncStore = db.createObjectStore('sync', { keyPath: 'id' });
+        syncStore.createIndex('by-contract', ['chainId', 'contract']);
+      } else if (old < 2) {
+        // v1 → v2: add by-contract index to existing sync store
+        ev.target.transaction.objectStore('sync')
+          .createIndex('by-contract', ['chainId', 'contract']);
       }
     };
     req.onsuccess = ev => resolve(ev.target.result);
@@ -156,6 +160,26 @@ window.QCache = {
     } catch (err) {
       console.warn('[QCache] get failed:', err);
       return { qEvent: null, answerEvents: [], lastBlock: null };
+    }
+  },
+
+  // Returns [{ev, questionId}] for all cached LogNewQuestion events on a contract.
+  // ev has the same shape as a raw ethers event (blockNumber, logIndex, args).
+  async getByContract(chainId, contract) {
+    try {
+      const db   = await openDb();
+      const lc   = contract.toLowerCase();
+      const syncs = await idbGetAllByIndex(db, 'sync', 'by-contract', [chainId, lc]);
+      const results = [];
+      for (const sync of syncs) {
+        const rows = await idbGetAllByIndex(db, 'events', 'by-question', [chainId, sync.questionId]);
+        const qRow = rows.find(r => r.eventName === 'LogNewQuestion') ?? null;
+        if (qRow) results.push({ ev: deserializeRow(qRow), questionId: sync.questionId });
+      }
+      return results;
+    } catch (err) {
+      console.warn('[QCache] getByContract failed:', err);
+      return [];
     }
   },
 

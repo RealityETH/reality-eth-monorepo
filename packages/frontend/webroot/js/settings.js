@@ -13,7 +13,7 @@ function getChains() {
     .filter(([, c]) => c.realityETHIndexerSupport && !c.deprecated)
     .map(([id, c]) => ({
       id: parseInt(id, 10),
-      name: c.chainName,
+      name: c.display_name || c.chainName,
       defaultRpc: c.hostedRPC || c.rpcUrls?.[0] || '',
     }))
     .sort((a, b) => a.id - b.id);
