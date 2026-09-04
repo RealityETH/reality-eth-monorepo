@@ -38,7 +38,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=123';
+  var V = '?v=124';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -364,6 +364,7 @@
   .filter-bar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   }
+  .rpc-browse-hint { font-size: 12px; color: var(--text-dim); }
 
   .filter-btn {
     padding: 5px 12px; border-radius: 20px;
@@ -2433,7 +2434,6 @@ header {
       <button class="filter-btn" data-filter="arb">Pending arbitration</button>
       <button class="filter-btn" data-filter="finalized">Finalized</button>
     </div>
-    <div class="filter-bar" id="chain-filter-bar"></div>
     <div class="filter-bar">
       <button class="filter-btn active" data-cat="">All</button>
       <button class="filter-btn" data-cat="sports">sports</button>
@@ -2447,6 +2447,10 @@ header {
       <button class="filter-btn" data-cat="finance">finance</button>
       <button class="filter-btn" data-cat="arts">arts</button>
       <button class="filter-btn" data-cat="dao">dao</button>
+    </div>
+    <div class="filter-bar" id="chain-filter-bar"></div>
+    <div class="filter-bar rpc-browse-hint">
+      Chain not listed here? Indexer slow to update? <a href="#!/rpc-browse">Browse using RPC</a>
     </div>
   </div>
 
@@ -3377,7 +3381,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=123';
+  const V = '?v=124';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
