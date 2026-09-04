@@ -419,13 +419,12 @@ window.RealityRpcBrowse.mount = async function () {
     };
   });
 
-  // Restore status filter from URL, then auto-scan if chain is encoded
+  // Restore status filter from URL (auto-scan fires later, after onclick is wired)
   if (urlChain && urlState.status) {
     const valid = new Set(['open', 'upcoming', 'arb', 'finalized']);
     statusFilters = new Set(urlState.status.split(',').filter(s => valid.has(s)));
     syncFilterBar();
   }
-  if (urlChain) scanBtn.click();
 
   // ── Scan status bar ───────────────────────────────────────────────────────────
   function setStatus(msg) {
@@ -744,6 +743,9 @@ window.RealityRpcBrowse.mount = async function () {
       }
     }
   }
+
+  // Auto-scan now that all handlers are wired
+  if (urlChain) scanBtn.click();
 };
 
 })();
