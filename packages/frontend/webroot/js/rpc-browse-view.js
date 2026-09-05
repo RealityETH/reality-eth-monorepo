@@ -208,8 +208,9 @@ function rpcErrHtml(errRef, rpcUrl) {
   const msgLines = [...errRef.msgs].slice(0, 3)
     .map(m => `<div style="font-size:11px;opacity:0.85;margin-top:2px">${escHtml(m)}</div>`)
     .join('');
+  const src = rpcUrl ? `the RPC node (<code>${escHtml(rpcUrl)}</code>)` : 'the browser wallet';
   return `<div class="rpc-scan-msg" style="color:var(--amber)">`
-    + `${errRef.count} getLogs request(s) to the RPC node (<code>${escHtml(rpcUrl)}</code>) failed — results may be incomplete.`
+    + `${errRef.count} getLogs request(s) to ${src} failed — results may be incomplete.`
     + msgLines
     + `</div>`;
 }
@@ -744,10 +745,12 @@ window.RealityRpcBrowse.mount = async function () {
     scanWindow = null;
     resultsEl.innerHTML = '';
 
+    let rpcUrl = null;
+    let usingBrowserWallet = false;
+
     try {
       const chainId = selectedChainId;
-      const rpcUrl = chainRpc(chainId);
-      if (!rpcUrl) throw new Error('No RPC available for this chain');
+      rpcUrl = chainRpc(chainId);
 
       const creatorRaw = creatorIn.value.trim();
       let creator = null;
@@ -768,7 +771,18 @@ window.RealityRpcBrowse.mount = async function () {
         kw:      kwIn.value.trim(),
       }));
 
-      const prov = new ethers.JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
+      let prov = null;
+      const useBrRpc = window.RealitySettings?.getUseBrowserRpc() ?? true;
+      if (useBrRpc && window.ethereum) {
+        updateScanStatus('Checking browser wallet…');
+        const brProv = new ethers.BrowserProvider(window.ethereum);
+        const net = await brProv.getNetwork();
+        if (Number(net.chainId) === chainId) { prov = brProv; usingBrowserWallet = true; }
+      }
+      if (!prov) {
+        if (!rpcUrl) throw new Error('No RPC available for this chain');
+        prov = new ethers.JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
+      }
 
       // Pre-populate from QCache and show with live state before the RPC scan
       const cachedRaw = await loadCachedForChain(chainId, verFilter, creator);
@@ -813,21 +827,22 @@ window.RealityRpcBrowse.mount = async function () {
         statusEl.insertAdjacentHTML('afterbegin',
           '<div class="rpc-scan-msg" style="color:var(--text-muted)">No questions found.</div>');
         if (errRef.count > 0) {
-          statusEl.insertAdjacentHTML('afterbegin', rpcErrHtml(errRef, rpcUrl));
+          statusEl.insertAdjacentHTML('afterbegin', rpcErrHtml(errRef, usingBrowserWallet ? null : rpcUrl));
         }
       } else {
         updateScanStatus(null);
         renderAllItems();
         if (errRef.count > 0) {
           statusEl.style.display = '';
-          statusEl.insertAdjacentHTML('beforeend', rpcErrHtml(errRef, rpcUrl));
+          statusEl.insertAdjacentHTML('beforeend', rpcErrHtml(errRef, usingBrowserWallet ? null : rpcUrl));
         }
       }
 
     } catch (err) {
       if (myGen === scanGen) {
         statusEl.style.display = '';
-        statusEl.innerHTML = `Error connecting to RPC node (<code>${escHtml(rpcUrl)}</code>): ${escHtml(err.message)}`;
+        const provDesc = usingBrowserWallet ? 'browser wallet' : `RPC node (<code>${escHtml(rpcUrl)}</code>)`;
+        statusEl.innerHTML = `Error connecting to ${provDesc}: ${escHtml(err.message)}`;
       }
     } finally {
       if (myGen === scanGen) {
