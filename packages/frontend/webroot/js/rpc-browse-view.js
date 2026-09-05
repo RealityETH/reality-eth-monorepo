@@ -40,6 +40,16 @@ const MC3_ABI = [
   'function aggregate3(tuple(address target, bool allowFailure, bytes callData)[] calls) view returns (tuple(bool success, bytes returnData)[] returnData)',
 ];
 
+const TEMPLATE_FETCH_ABI = ['function templates(uint256 template_id) view returns (uint256)'];
+const LOG_TEMPLATE_TOPIC = ethers.id('LogNewTemplate(uint256,address,string)');
+const templateLogIface   = new ethers.Interface([
+  'event LogNewTemplate(uint256 indexed template_id, address indexed user, string question_text)',
+]);
+
+// Survives across scans for the page lifetime.
+// Key: `${chainId}:${contractAddr}:${templateId}` → text (string) or null (not found).
+const templateCache = new Map();
+
 function builtinTemplatesForVer(verStr) {
   const minor = parseInt((verStr || '').match(/\.(\d+)/)?.[1] ?? '0');
   return minor >= 2
@@ -47,49 +57,124 @@ function builtinTemplatesForVer(verStr) {
     : window.RealityLib.preloadedTemplateContents();
 }
 
-function resolveTitle(ev, ver) {
-  const rawQ = String(ev.args.question || '');
-  const templateId = Number(ev.args.template_id);
-  const templateStr = builtinTemplatesForVer(ver)[templateId] ?? null;
+function getBundledTemplate(chainId, contractAddr, templateId) {
+  return (window.RealityBundledTemplates
+    ?.[String(chainId)]
+    ?.[contractAddr.toLowerCase()]
+    ?.[String(templateId)]
+  ) ?? null;
+}
+
+function getTemplateStr(item, chainId) {
+  const tid = Number(item.ev.args.template_id);
+  const builtins = builtinTemplatesForVer(item.ver);
+  if (builtins[tid] != null) return builtins[tid];
+  const bundled = getBundledTemplate(chainId, item.rcAddr, tid);
+  if (bundled != null) return bundled;
+  // templateCache stores null for "not found", undefined (missing key) for "not yet fetched"
+  const cached = templateCache.get(`${chainId}:${item.rcAddr}:${tid}`);
+  return cached !== undefined ? cached : null;
+}
+
+// Fetches and caches custom templates for any items not already resolved.
+// Calls templates(id) on the contract to get the block, then getLogs for that block.
+async function prefetchTemplates(items, chainId, prov) {
+  const toFetch = [];
+  for (const item of items) {
+    const tid = Number(item.ev.args.template_id);
+    const key = `${chainId}:${item.rcAddr}:${tid}`;
+    if (
+      builtinTemplatesForVer(item.ver)[tid] != null ||
+      getBundledTemplate(chainId, item.rcAddr, tid) != null ||
+      templateCache.has(key)
+    ) continue;
+    if (!toFetch.some(f => f.addr === item.rcAddr && f.tid === tid)) {
+      toFetch.push({ addr: item.rcAddr, tid });
+    }
+  }
+  if (!toFetch.length) return;
+
+  const byContract = new Map();
+  for (const { addr, tid } of toFetch) {
+    if (!byContract.has(addr)) byContract.set(addr, new Set());
+    byContract.get(addr).add(tid);
+  }
+
+  for (const [addr, idSet] of byContract) {
+    const rc = new ethers.Contract(addr, TEMPLATE_FETCH_ABI, prov);
+    const blockToIds = new Map();
+    for (const tid of idSet) {
+      try {
+        const blockNum = Number(await rc.templates(tid));
+        if (blockNum === 0) {
+          templateCache.set(`${chainId}:${addr}:${tid}`, null);
+          continue;
+        }
+        if (!blockToIds.has(blockNum)) blockToIds.set(blockNum, []);
+        blockToIds.get(blockNum).push(tid);
+      } catch {
+        templateCache.set(`${chainId}:${addr}:${tid}`, null);
+      }
+    }
+    for (const [blockNum, ids] of blockToIds) {
+      try {
+        const logs = await prov.getLogs({
+          address: addr,
+          topics:  [LOG_TEMPLATE_TOPIC],
+          fromBlock: blockNum,
+          toBlock:   blockNum,
+        });
+        for (const log of logs) {
+          try {
+            const parsed = templateLogIface.parseLog(log);
+            const tid = Number(parsed.args.template_id);
+            templateCache.set(`${chainId}:${addr}:${tid}`, parsed.args.question_text);
+          } catch { /* malformed log */ }
+        }
+      } catch { /* getLogs failed — leave keys missing so a future call can retry */ }
+      // Mark any ids not found in logs as null so we don't retry them
+      for (const tid of ids) {
+        const key = `${chainId}:${addr}:${tid}`;
+        if (!templateCache.has(key)) templateCache.set(key, null);
+      }
+    }
+  }
+}
+
+function resolveTitle(item, chainId) {
+  const rawQ = String(item.ev.args.question || '');
+  const templateStr = getTemplateStr(item, chainId);
   if (templateStr) {
     try {
       const populated = window.RealityLib.populatedJSONForTemplate(templateStr, rawQ);
       if (populated?.title) return populated.title;
     } catch { /* fall through */ }
   }
-  const sep = rawQ.indexOf('\x1f');
-  if (sep > 0) return rawQ.slice(0, sep);
   try {
     const obj = JSON.parse(rawQ);
     return obj?.title || obj?.question || rawQ.slice(0, 100);
   } catch { return rawQ.slice(0, 100); }
 }
 
-function resolveCategory(ev, ver) {
-  const rawQ = String(ev.args.question || '');
-  const templateId = Number(ev.args.template_id);
-  const templateStr = builtinTemplatesForVer(ver)[templateId] ?? null;
+function resolveCategory(item, chainId) {
+  const rawQ = String(item.ev.args.question || '');
+  const templateStr = getTemplateStr(item, chainId);
   if (templateStr) {
     try {
       const populated = window.RealityLib.populatedJSONForTemplate(templateStr, rawQ);
       if (populated?.category) return String(populated.category);
     } catch { /* fall through */ }
   }
-  const sep = rawQ.indexOf('\x1f');
-  if (sep >= 0) {
-    const rest = rawQ.slice(sep + 1);
-    const sep2 = rest.indexOf('\x1f');
-    return sep2 >= 0 ? rest.slice(0, sep2) : rest;
-  }
   try { return String(JSON.parse(rawQ)?.category || ''); } catch { return ''; }
 }
 
-function formatRpcAnswer(ev, ver, bestAnswer) {
+function formatRpcAnswer(item, chainId, bestAnswer, hasAnswer) {
   const ZERO = '0x' + '0'.repeat(64);
-  if (!bestAnswer || bestAnswer === ZERO) return null;
-  const rawQ = String(ev.args.question || '');
-  const templateId = Number(ev.args.template_id);
-  const templateStr = builtinTemplatesForVer(ver)[templateId] ?? null;
+  if (!bestAnswer) return null;
+  // ZERO is "answered false" for bool; only skip it when nothing has been posted
+  if (bestAnswer === ZERO && !hasAnswer) return null;
+  const rawQ = String(item.ev.args.question || '');
+  const templateStr = getTemplateStr(item, chainId);
   let qjson = null;
   if (templateStr) {
     try { qjson = window.RealityLib.populatedJSONForTemplate(templateStr, rawQ); } catch { /* */ }
@@ -110,6 +195,23 @@ function formatRpcAnswer(ev, ver, bestAnswer) {
 
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function rpcErrDetail(err) {
+  // ethers spreads makeError params directly onto the error object (Object.assign);
+  // for "could not coalesce error" (UNKNOWN_ERROR), the JSON-RPC error is at err.error.message
+  const msg = err?.error?.message || err?.shortMessage || err?.message || String(err);
+  return err?.status ? `HTTP ${err.status}: ${msg}` : msg;
+}
+
+function rpcErrHtml(errRef, rpcUrl) {
+  const msgLines = [...errRef.msgs].slice(0, 3)
+    .map(m => `<div style="font-size:11px;opacity:0.85;margin-top:2px">${escHtml(m)}</div>`)
+    .join('');
+  return `<div class="rpc-scan-msg" style="color:var(--amber)">`
+    + `${errRef.count} getLogs request(s) to the RPC node (<code>${escHtml(rpcUrl)}</code>) failed — results may be incomplete.`
+    + msgLines
+    + `</div>`;
 }
 
 function relTime(ts) {
@@ -142,28 +244,35 @@ function formatScanRange(chainId, fromBlock, toBlock) {
 
 // chunkRef is a shared { value } object so the discovered chunk size carries across
 // multiple safeQueryFilter calls within the same scan (one probe, not one per contract).
-async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef) {
+async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef, errRef) {
   if (!chunkRef.value) {
     try {
       return await contract.queryFilter(filter, fromBlock, toBlock);
     } catch {
       let size = Math.floor((toBlock - fromBlock + 1) / 2);
       let probeResult = null;
+      let lastProbeErr = null;
       while (size >= 10) {
         try {
           probeResult = await contract.queryFilter(filter, fromBlock, fromBlock + size - 1);
           chunkRef.value = size;
           break;
-        } catch {
+        } catch (err) {
+          lastProbeErr = err;
           size = Math.floor(size / 2);
         }
       }
-      if (!chunkRef.value) return [];
+      if (!chunkRef.value) {
+        if (errRef) { errRef.count++; if (lastProbeErr) errRef.msgs.add(rpcErrDetail(lastProbeErr)); }
+        return [];
+      }
       const results = [...probeResult];
       for (let s = fromBlock + size; s <= toBlock; s += size) {
         try {
           results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock)));
-        } catch { /* skip */ }
+        } catch (err) {
+          if (errRef) { errRef.count++; errRef.msgs.add(rpcErrDetail(err)); }
+        }
       }
       return results;
     }
@@ -173,7 +282,9 @@ async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef) {
   for (let s = fromBlock; s <= toBlock; s += size) {
     try {
       results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock)));
-    } catch { /* skip */ }
+    } catch (err) {
+      if (errRef) { errRef.count++; errRef.msgs.add(rpcErrDetail(err)); }
+    }
   }
   return results;
 }
@@ -475,17 +586,20 @@ window.RealityRpcBrowse.mount = async function () {
     const finalizeTs = state ? Number(state.finalize_ts) : 0;
     const now = Date.now() / 1000;
     if (state?.is_pending_arbitration) return 'arb';
-    if (finalizeTs > 1 && finalizeTs < now) return 'finalized';
-    if (finalizeTs > 1 && finalizeTs > now) return 'open';
-    return 'upcoming';
+    // finalize_ts=1 is the sentinel the contracts write when an arbitrator finalises a question
+    if (finalizeTs > 0 && finalizeTs < now) return 'finalized';
+    if (finalizeTs > 0) return 'open'; // answer posted, still within timeout
+    // No answer yet: upcoming if before opening_ts, otherwise open (awaiting first answer)
+    const openingTs = Number(item.ev?.args?.opening_ts || 0);
+    return openingTs > now ? 'upcoming' : 'open';
   }
 
   function renderItem(item) {
-    const { ev, rcAddr, state, token } = item;
     const chainId    = scanWindow?.chainId ?? selectedChainId;
+    const { ev, rcAddr, state, token } = item;
     const questionId = ev.args.question_id;
-    const title      = resolveTitle(ev, item.ver);
-    const category   = resolveCategory(ev, item.ver);
+    const title      = resolveTitle(item, chainId);
+    const category   = resolveCategory(item, chainId);
     const href       = `#!/network/${chainId}/question/${rcAddr}-${questionId}`;
 
     const status  = getItemStatus(item);
@@ -500,13 +614,13 @@ window.RealityRpcBrowse.mount = async function () {
     let bondStr = '';
     if (bondBig > 0n) {
       const decimals = window.RealityWebsiteData?.tokens?.[token]?.decimals ?? 18;
-      const human = Number(bondBig) / (10 ** decimals);
+      const human = parseFloat(ethers.formatUnits(bondBig, decimals));
       bondStr = human < 0.0001 ? `< 0.0001 ${token}`
         : human < 1            ? `${+human.toFixed(4)} ${token}`
         :                        `${+human.toFixed(2)} ${token}`;
     }
 
-    const answer = state?.best_answer ? formatRpcAnswer(ev, item.ver, state.best_answer) : null;
+    const answer = state?.best_answer ? formatRpcAnswer(item, chainId, state.best_answer, bondBig > 0n) : null;
 
     const openingTs  = Number(ev.args.opening_ts || 0);
     const createdTs  = Number(ev.args.created || 0);
@@ -554,7 +668,7 @@ window.RealityRpcBrowse.mount = async function () {
   }
 
   // ── Core scan logic ───────────────────────────────────────────────────────────
-  async function fetchAndAppend(prov, chainId, fromBlock, toBlock, creator, tmpl, verFilter, cat, kw, myGen, prepend) {
+  async function fetchAndAppend(prov, chainId, fromBlock, toBlock, creator, tmpl, verFilter, cat, kw, myGen, prepend, errRef) {
     const [filterVer, filterToken] = verFilter ? verFilter.split('|') : [null, null];
     const rcList = getContractsForChain(chainId).filter(c => !filterVer || (c.ver === filterVer && c.token === filterToken));
     const found  = [];
@@ -567,16 +681,19 @@ window.RealityRpcBrowse.mount = async function () {
       updateScanStatus(`Scanning ${chainName(chainId)} contract ${i + 1}/${rcList.length}…`);
       const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
       const prevChunk = chunkRef.value;
-      const evs = await safeQueryFilter(rc, rc.filters.LogNewQuestion(null, creator), fromBlock, toBlock, chunkRef);
+      const evs = await safeQueryFilter(rc, rc.filters.LogNewQuestion(null, creator), fromBlock, toBlock, chunkRef, errRef);
       if (chunkRef.value && chunkRef.value !== prevChunk) saveChunkSize(rpcUrl, chunkRef.value);
       for (const ev of evs) found.push({ ev, rcAddr, ver: contractVer, token: contractToken, state: null });
     }
 
     if (myGen !== scanGen) return null;
 
+    // Fetch any custom templates not in builtins or bundle before filtering/rendering
+    await prefetchTemplates(found, chainId, prov);
+
     const filtered = found.filter(f => {
       if (tmpl !== null && Number(f.ev.args.template_id) !== tmpl) return false;
-      if (cat && !resolveCategory(f.ev, f.ver).toLowerCase().includes(cat)) return false;
+      if (cat && !resolveCategory(f, chainId).toLowerCase().includes(cat)) return false;
       if (kw  && !String(f.ev.args.question || '').toLowerCase().includes(kw)) return false;
       return true;
     });
@@ -655,9 +772,10 @@ window.RealityRpcBrowse.mount = async function () {
 
       // Pre-populate from QCache and show with live state before the RPC scan
       const cachedRaw = await loadCachedForChain(chainId, verFilter, creator);
+      await prefetchTemplates(cachedRaw, chainId, prov);
       const filteredCached = cachedRaw.filter(f => {
         if (tmpl !== null && Number(f.ev.args.template_id) !== tmpl) return false;
-        if (cat && !resolveCategory(f.ev, f.ver).toLowerCase().includes(cat)) return false;
+        if (cat && !resolveCategory(f, chainId).toLowerCase().includes(cat)) return false;
         if (kw  && !String(f.ev.args.question || '').toLowerCase().includes(kw)) return false;
         return true;
       });
@@ -678,7 +796,8 @@ window.RealityRpcBrowse.mount = async function () {
       const latestBlock = await prov.getBlockNumber();
       const fromBlock   = Math.max(0, latestBlock - Math.ceil(WEEKS_INIT * 7 * chainBlocksPerDay(chainId)));
 
-      const newItems = await fetchAndAppend(prov, chainId, fromBlock, latestBlock, creator, tmpl, verFilter, cat, kw, myGen, false);
+      const errRef = { count: 0, msgs: new Set() };
+      const newItems = await fetchAndAppend(prov, chainId, fromBlock, latestBlock, creator, tmpl, verFilter, cat, kw, myGen, false, errRef);
       if (newItems === null || myGen !== scanGen) return;
 
       scanWindow = { chainId, fromBlock, toBlock: latestBlock, prov, creator, tmpl, verFilter, cat, kw };
@@ -693,15 +812,22 @@ window.RealityRpcBrowse.mount = async function () {
         statusEl.querySelector('.scan-back-btn').onclick = scanFurtherBack;
         statusEl.insertAdjacentHTML('afterbegin',
           '<div class="rpc-scan-msg" style="color:var(--text-muted)">No questions found.</div>');
+        if (errRef.count > 0) {
+          statusEl.insertAdjacentHTML('afterbegin', rpcErrHtml(errRef, rpcUrl));
+        }
       } else {
         updateScanStatus(null);
         renderAllItems();
+        if (errRef.count > 0) {
+          statusEl.style.display = '';
+          statusEl.insertAdjacentHTML('beforeend', rpcErrHtml(errRef, rpcUrl));
+        }
       }
 
     } catch (err) {
       if (myGen === scanGen) {
         statusEl.style.display = '';
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.innerHTML = `Error connecting to RPC node (<code>${escHtml(rpcUrl)}</code>): ${escHtml(err.message)}`;
       }
     } finally {
       if (myGen === scanGen) {
@@ -724,12 +850,16 @@ window.RealityRpcBrowse.mount = async function () {
     const newTo   = prevFrom - 1;
 
     try {
-      const newItems = await fetchAndAppend(prov, chainId, newFrom, newTo, creator, tmpl, verFilter, cat, kw, myGen, false);
+      const errRef = { count: 0, msgs: new Set() };
+      const newItems = await fetchAndAppend(prov, chainId, newFrom, newTo, creator, tmpl, verFilter, cat, kw, myGen, false, errRef);
       if (newItems === null || myGen !== scanGen) return;
 
       scanWindow.fromBlock = newFrom;
       updateScanStatus(null);
       renderAllItems();
+      if (errRef.count > 0) {
+        statusEl.insertAdjacentHTML('beforeend', rpcErrHtml(errRef, chainRpc(chainId)));
+      }
     } catch (err) {
       if (myGen === scanGen) {
         updateScanStatus(null);

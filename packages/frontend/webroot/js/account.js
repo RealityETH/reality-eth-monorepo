@@ -9,6 +9,11 @@ function chainNativeToken(id) { return window.RealityWebsiteData?.nativeTokenByC
 function chainExplorer(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blockExplorerUrls?.[0] || null; }
 function chainRpc(id) { return window.RealitySettings?.getRpcUrl(id) || window.RealityWebsiteData?.chains?.[String(id)]?.hostedRPC || null; }
 function chainBlocksPerDay(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blocksPerDay || 7200; }
+function tokenDecimals(tokenSym) { return window.RealityWebsiteData?.tokens?.[tokenSym]?.decimals ?? 18; }
+
+function chunkSizeKey(rpcUrl) { return `reality.rpcChunk.${rpcUrl}`; }
+function loadChunkSize(rpcUrl) { const v = localStorage.getItem(chunkSizeKey(rpcUrl)); return v ? Number(v) : undefined; }
+function saveChunkSize(rpcUrl, size) { try { localStorage.setItem(chunkSizeKey(rpcUrl), String(size)); } catch { /* quota */ } }
 
 const VERSION_PREF = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
 
@@ -26,6 +31,24 @@ function builtinTemplatesForVer(verStr) {
   return minor >= 2
     ? window.RealityLib.preloadedTemplateContentsV32()
     : window.RealityLib.preloadedTemplateContents();
+}
+
+// Template cache: keyed by `${contractAddr}:${templateId}`, persists for the page lifetime.
+// Stores the resolved template text, or null if confirmed not found.
+const templateCache = new Map();
+
+// Resolve a template string: builtins first, then the shipped bundle, then runtime cache.
+// Returns null if not yet fetched (caller must do the on-chain fetch).
+function getTemplateStr(contractAddr, templateId, ver, chainId) {
+  const builtins = builtinTemplatesForVer(ver);
+  if (builtins[templateId] != null) return builtins[templateId];
+  const bundled = window.RealityBundledTemplates
+    ?.[String(chainId)]
+    ?.[contractAddr.toLowerCase()]
+    ?.[String(templateId)];
+  if (bundled != null) return bundled;
+  const cached = templateCache.get(`${contractAddr.toLowerCase()}:${templateId}`);
+  return cached !== undefined ? cached : null;
 }
 
 const REALITY_ABI = [
@@ -70,17 +93,17 @@ window.RealityAccount.mount = async function (addr) {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
-  function formatEth(bn) {
+  function formatAmount(bn, tokenSym) {
     if (!bn || BigInt(bn.toString()) === 0n) return '0';
-    return ethers.formatEther(bn).replace(/\.0+$/, '');
+    return ethers.formatUnits(bn, tokenDecimals(tokenSym)).replace(/\.0+$/, '');
   }
 
   function shortAddr(a) { return a ? `${a.slice(0,6)}…${a.slice(-4)}` : ''; }
 
   function isFinalized(q) {
     const ts = Number(q.answerFinalizedTimestamp || 0);
-    // ts=1 is an on-chain sentinel meaning "answered but countdown not yet started"; not finalized.
-    return ts > 1 && ts * 1000 < Date.now() && !q.isPendingArbitration;
+    // finalize_ts=1 is the sentinel written by arbitrators when they finalise a question
+    return ts > 0 && ts * 1000 < Date.now() && !q.isPendingArbitration;
   }
 
   function questionUrl(q) {
@@ -103,20 +126,40 @@ window.RealityAccount.mount = async function (addr) {
   }
 
   // ── RPC helpers ───────────────────────────────────────────────────────────────
-  async function safeQueryFilter(contract, filter, fromBlock, toBlock) {
-    try {
-      return await contract.queryFilter(filter, fromBlock, toBlock);
-    } catch {
-      const CHUNK = 50000;
-      const results = [];
-      for (let s = fromBlock; s <= toBlock; s += CHUNK) {
-        try {
-          const chunk = await contract.queryFilter(filter, s, Math.min(s + CHUNK - 1, toBlock));
-          results.push(...chunk);
-        } catch { /* skip chunk */ }
+  // chunkRef is a shared { value } object so the discovered chunk size carries across
+  // multiple safeQueryFilter calls within the same scan (one probe, not one per call).
+  async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef) {
+    if (!chunkRef.value) {
+      try {
+        return await contract.queryFilter(filter, fromBlock, toBlock);
+      } catch {
+        let size = Math.floor((toBlock - fromBlock + 1) / 2);
+        let probeResult = null;
+        while (size >= 10) {
+          try {
+            probeResult = await contract.queryFilter(filter, fromBlock, fromBlock + size - 1);
+            chunkRef.value = size;
+            break;
+          } catch {
+            size = Math.floor(size / 2);
+          }
+        }
+        if (!chunkRef.value) return [];
+        const results = [...probeResult];
+        for (let s = fromBlock + size; s <= toBlock; s += size) {
+          try { results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock))); }
+          catch { /* skip */ }
+        }
+        return results;
       }
-      return results;
     }
+    const size = chunkRef.value;
+    const results = [];
+    for (let s = fromBlock; s <= toBlock; s += size) {
+      try { results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock))); }
+      catch { /* skip */ }
+    }
+    return results;
   }
 
   async function questionsStructFallback(prov, contractAddr, questionId) {
@@ -143,18 +186,6 @@ window.RealityAccount.mount = async function (addr) {
     } catch { return null; }
   }
 
-  function parseQuestionTitle(questionStr) {
-    if (!questionStr) return '';
-    try {
-      const obj = JSON.parse(questionStr);
-      if (typeof obj === 'string') return obj;
-      return obj.title || obj.question || questionStr.slice(0, 100);
-    } catch {
-      const sep = questionStr.indexOf('\x1f');
-      return sep > 0 ? questionStr.slice(0, sep) : questionStr.slice(0, 100);
-    }
-  }
-
   function buildQuestionFromEvents(questionId, contract, chainId, qEvent, answerEvents, state, resolvedJson = null) {
     const args     = qEvent.args;
     const lastAns  = answerEvents.at(-1);
@@ -165,12 +196,23 @@ window.RealityAccount.mount = async function (addr) {
     const curAns   = bestAns != null ? bestAns : (lastAns?.args.answer ?? null);
     const toBigStr = v => { try { return BigInt(v.toString()).toString(); } catch { return '0'; } };
 
+    // Title fallback when template resolution failed: try JSON parse, then raw truncation.
+    // No delimiter heuristic — position assumptions about unknown templates are not safe.
+    let title = resolvedJson?.title;
+    if (!title) {
+      const raw = String(args.question || '');
+      try {
+        const obj = JSON.parse(raw);
+        title = obj?.title || obj?.question || raw.slice(0, 100);
+      } catch { title = raw.slice(0, 100); }
+    }
+
     return {
       id:                          `${String(contract).toLowerCase()}-${questionId}`,
       questionId,
       contract:                    String(contract).toLowerCase(),
       chainId:                     Number(chainId),
-      title:                       resolvedJson?.title || parseQuestionTitle(String(args.question || '')),
+      title,
       type:                        resolvedJson?.type || null,
       category:                    resolvedJson?.category || null,
       questionJson:                resolvedJson ? JSON.stringify(resolvedJson) : null,
@@ -208,13 +250,13 @@ window.RealityAccount.mount = async function (addr) {
     const syncEntries = await QCache.getAllSync().catch(() => []);
     const asked = [], answered = [], userResponses = [];
 
-    // Build contract→ver lookup so we can choose the right built-in template set.
+    // Build contract→{ver, chainId} lookup so we can choose the right template set.
     const contracts = await loadContracts().catch(() => ({}));
-    const verByContract = {};
-    for (const chainData of Object.values(contracts)) {
+    const infoByContract = {};
+    for (const [chainId, chainData] of Object.entries(contracts)) {
       for (const versions of Object.values(chainData)) {
         for (const [ver, v] of Object.entries(versions)) {
-          if (v.address) verByContract[v.address.toLowerCase()] = ver;
+          if (v.address) infoByContract[v.address.toLowerCase()] = { ver, chainId: Number(chainId) };
         }
       }
     }
@@ -233,8 +275,9 @@ window.RealityAccount.mount = async function (addr) {
       let resolvedJson = null;
       try {
         const templateId = Number(qEvent.args?.template_id);
-        const ver = verByContract[contract?.toLowerCase()] ?? null;
-        const templateStr = builtinTemplatesForVer(ver)[templateId] ?? null;
+        const contractInfo = infoByContract[contract?.toLowerCase()] ?? {};
+        const { ver = null, chainId: cid = chainId } = contractInfo;
+        const templateStr = getTemplateStr(contract, templateId, ver, cid);
         if (templateStr) {
           resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args?.question ?? ''));
         }
@@ -269,7 +312,9 @@ window.RealityAccount.mount = async function (addr) {
     if (!rcList.length) { console.log('[scan] no contracts for chain, skipping'); return empty; }
 
     const useBrRpc = window.RealitySettings?.getUseBrowserRpc() ?? true;
+    const rpcUrl   = chainRpc(chainId) || `chain-${chainId}`;
     const prov = (useBrRpc && provider) || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
+    const chunkRef = { value: loadChunkSize(rpcUrl) };
     const foundIds = new Map(); // questionId → { contract, isAsked, isAnswered }
 
     for (let i = 0; i < rcList.length; i++) {
@@ -279,10 +324,12 @@ window.RealityAccount.mount = async function (addr) {
       console.log(`[scan] contract ${i + 1}/${rcList.length}: ${rcAddr}`);
 
       const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
+      const prevChunk = chunkRef.value;
       const [askedRes, answeredRes] = await Promise.allSettled([
-        safeQueryFilter(rc, rc.filters.LogNewQuestion(null, addr), fromBlock, toBlock),
-        safeQueryFilter(rc, rc.filters.LogNewAnswer(null, null, null, addr), fromBlock, toBlock),
+        safeQueryFilter(rc, rc.filters.LogNewQuestion(null, addr), fromBlock, toBlock, chunkRef),
+        safeQueryFilter(rc, rc.filters.LogNewAnswer(null, null, null, addr), fromBlock, toBlock, chunkRef),
       ]);
+      if (chunkRef.value && chunkRef.value !== prevChunk) saveChunkSize(rpcUrl, chunkRef.value);
 
       console.log(`[scan]   LogNewQuestion: status=${askedRes.status} count=${askedRes.value?.length ?? 'err'}`
         + (askedRes.reason ? ` reason=${askedRes.reason}` : ''));
@@ -307,37 +354,34 @@ window.RealityAccount.mount = async function (addr) {
     onProgress?.(`Fetching ${ids.length} question${ids.length !== 1 ? 's' : ''} from chain…`);
 
     const asked = [], answered = [], userResponses = [], fullRespMap = {};
-    const templateCache = {}; // keyed by `${contract}-${templateId}`
 
     for (const [qId, info] of ids) {
       if (gen !== _accountLoadGen) return null;
       const rc = new ethers.Contract(info.contract, SCAN_ABI, prov);
 
       // Targeted full-history scan for this specific question
-      const qEvents = await safeQueryFilter(rc, rc.filters.LogNewQuestion(qId), 0, toBlock);
+      const prevChunkQ = chunkRef.value;
+      const qEvents = await safeQueryFilter(rc, rc.filters.LogNewQuestion(qId), 0, toBlock, chunkRef);
+      if (chunkRef.value && chunkRef.value !== prevChunkQ) saveChunkSize(rpcUrl, chunkRef.value);
       if (!qEvents.length) continue;
       const qEvent = qEvents[0];
 
-      const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock);
+      const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock, chunkRef);
       answerEvents.sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
-      // Resolve template to get title, type, category, and questionJson.
-      // templates() returns the creation block number; the text is in LogNewTemplate at that block.
+      // Resolve template: builtins → bundle → runtime cache → on-chain fetch
       let resolvedJson = null;
       try {
         const templateId = Number(qEvent.args.template_id);
-        const cacheKey = `${info.contract}-${templateId}`;
-        let templateStr = templateCache[cacheKey];
-        if (!templateStr) {
-          templateStr = builtinTemplatesForVer(info.ver)[templateId] ?? null;
-          if (!templateStr) {
-            const tBlock = Number(await rc.templates(templateId));
-            if (tBlock) {
-              const tevs = await rc.queryFilter(rc.filters.LogNewTemplate(templateId), tBlock, tBlock);
-              templateStr = tevs[0]?.args.question_text ?? null;
-            }
+        const cacheKey   = `${info.contract.toLowerCase()}:${templateId}`;
+        let templateStr  = getTemplateStr(info.contract, templateId, info.ver, chainId);
+        if (!templateStr && !templateCache.has(cacheKey)) {
+          const tBlock = Number(await rc.templates(templateId));
+          if (tBlock) {
+            const tevs = await rc.queryFilter(rc.filters.LogNewTemplate(templateId), tBlock, tBlock);
+            templateStr = tevs[0]?.args.question_text ?? null;
           }
-          if (templateStr) templateCache[cacheKey] = templateStr;
+          templateCache.set(cacheKey, templateStr ?? null);
         }
         if (templateStr) {
           resolvedJson = window.RealityLib.populatedJSONForTemplate(templateStr, String(qEvent.args.question));
@@ -580,31 +624,22 @@ window.RealityAccount.mount = async function (addr) {
   }
 
   // ── Answer display ────────────────────────────────────────────────────────────
-  const BOOL_LABEL = { '0x0000000000000000000000000000000000000000000000000000000000000000': 'No',
-                       '0x0000000000000000000000000000000000000000000000000000000000000001': 'Yes' };
-  const INVALID = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-  const TOO_SOON = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
-
   function answerLabel(hex, q) {
     if (!hex) return null;
-    const lo = hex.toLowerCase();
-    if (lo === INVALID.toLowerCase()) return 'Invalid';
-    if (lo === TOO_SOON.toLowerCase()) return 'Too soon';
     if (q && q.questionJson) {
       const qjson = window.RealityLib.parseQuestionJSON(q.questionJson);
       const text = window.RealityLib.getAnswerString(qjson, hex);
       if (text && text !== 'null') return text;
     }
-    return BOOL_LABEL[lo] || hex.slice(0, 10) + '…';
+    return hex.slice(0, 10) + '…';
   }
 
   function answerClass(hex, q) {
     if (!hex) return 'ans-inv';
-    const lo = hex.toLowerCase();
-    if (lo === INVALID.toLowerCase() || lo === TOO_SOON.toLowerCase()) return 'ans-inv';
     const lbl = answerLabel(hex, q);
     if (lbl === 'Yes') return 'ans-yes';
     if (lbl === 'No')  return 'ans-no';
+    if (lbl === 'Invalid' || lbl === 'Too soon') return 'ans-inv';
     return 'ans-other';
   }
 
@@ -763,11 +798,11 @@ window.RealityAccount.mount = async function (addr) {
         const cls   = answerClass(q.currentAnswer, q);
         rightHtml = `<span class="ans-pill ${cls}">${label}</span>`;
       } else if (bond > 0n) {
-        rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`;
+        rightHtml = `<div class="q-item-amount">${formatAmount(bond, token)} ${token}</div><div class="q-item-chain">top bond</div>`;
       }
 
       const bounty  = BigInt(q.bounty || '0');
-      const bountyStr = bounty > 0n ? ` · reward ${formatEth(bounty)} ${token}` : '';
+      const bountyStr = bounty > 0n ? ` · reward ${formatAmount(bounty, token)} ${token}` : '';
 
       const item = document.createElement('div');
       item.className = 'q-item';
@@ -848,12 +883,12 @@ window.RealityAccount.mount = async function (addr) {
 
       let rightHtml = '';
       if (claimItem) {
-        rightHtml = `<div class="q-item-amount claimable">${formatEth(claimItem.total)} ${token}</div><div class="q-item-chain">claimable</div>`;
+        rightHtml = `<div class="q-item-amount claimable">${formatAmount(claimItem.total, token)} ${token}</div><div class="q-item-chain">claimable</div>`;
       } else if (alreadyClaimed) {
         rightHtml = `<div class="q-item-amount claimed">Claimed</div>`;
       } else if (myResp) {
         const bond = BigInt(myResp.bond || '0');
-        if (bond > 0n) rightHtml = `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">your bond</div>`;
+        if (bond > 0n) rightHtml = `<div class="q-item-amount">${formatAmount(bond, token)} ${token}</div><div class="q-item-chain">your bond</div>`;
       }
 
       const item = document.createElement('div');
@@ -915,7 +950,7 @@ window.RealityAccount.mount = async function (addr) {
         const chain = chainName(q.chainId);
         const title = q.title || q.id;
         const rightHtml = bond > 0n
-          ? `<div class="q-item-amount">${formatEth(bond)} ${token}</div><div class="q-item-chain">top bond</div>`
+          ? `<div class="q-item-amount">${formatAmount(bond, token)} ${token}</div><div class="q-item-chain">top bond</div>`
           : '';
         const item = document.createElement('div');
         item.className = 'q-item';
@@ -1042,7 +1077,7 @@ window.RealityAccount.mount = async function (addr) {
         const sym = _contractTokenMap[c.contract]?.tokenSym || chainNativeToken(chainId) || 'ETH';
         byToken[sym] = (byToken[sym] || BN0) + c.total;
       }
-      const amountText = Object.entries(byToken).map(([sym, amt]) => `${formatEth(amt)} ${sym}`).join(' + ');
+      const amountText = Object.entries(byToken).map(([sym, amt]) => `${formatAmount(amt, sym)} ${sym}`).join(' + ');
       banner.style.display = '';
       document.getElementById('claim-amount').textContent = `${amountText} claimable`;
       document.getElementById('claim-desc').textContent =
@@ -1189,7 +1224,7 @@ window.RealityAccount.mount = async function (addr) {
       const token = tokenSym || chainNativeToken(walletChainId) || 'ETH';
       const btn = document.createElement('button');
       btn.className = 'btn-withdraw';
-      btn.textContent = `Withdraw ${formatEth(bal)} ${token}`;
+      btn.textContent = `Withdraw ${formatAmount(bal, token)} ${token}`;
       btn.addEventListener('click', async () => {
         if (!signer) return;
         btn.disabled = true;
@@ -1203,7 +1238,7 @@ window.RealityAccount.mount = async function (addr) {
           setTimeout(() => { btn.remove(); if (!el.children.length) el.style.display = 'none'; }, 2000);
         } catch {
           btn.disabled = false;
-          btn.textContent = `Withdraw ${formatEth(bal)} ${token}`;
+          btn.textContent = `Withdraw ${formatAmount(bal, token)} ${token}`;
         }
       });
       el.appendChild(btn);

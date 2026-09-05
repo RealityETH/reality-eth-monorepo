@@ -1359,6 +1359,80 @@ export async function createAccountTemplateFixtures() {
   return { questionId, title, contract: CONTRACTS.realityEth30 };
 }
 
+// Creates two questions on chain 100 (Gnosis/Anvil) for rpc-browse template tests:
+//   • one using builtin template 0 (bool) — exercises the builtins path
+//   • one using a freshly-created custom template — exercises the bundle and on-chain paths
+// nonces 35 and 36 — nonces 0–34 on v3.0 are taken by other fixture functions.
+export async function createRpcBrowseTemplateFixtures() {
+  const DELIMITER = '␟'; // U+241F
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const timeout  = 60;
+  const openingTs = 0;
+  const bounty   = ethers.parseEther('0.001');
+
+  // ── Builtin template (template 0, bool) ────────────────────────────────────
+  // Template 0: {"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}
+  const builtinTitle = 'RPC browse builtin resolution check';
+  const builtinQText = `${builtinTitle}${DELIMITER}testing${DELIMITER}en_US`;
+  const builtinQuestionId = await (async () => {
+    const qId = computeQuestionId(
+      0, openingTs, builtinQText,
+      ethers.ZeroAddress, timeout, 35,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+    const existing = await reality.questions(qId);
+    if (BigInt(existing[0]) === 0n) {
+      await (await reality.askQuestion(
+        0, builtinQText, ethers.ZeroAddress, timeout, openingTs, 35, { value: bounty }
+      )).wait();
+    }
+    return qId;
+  })();
+
+  // ── Custom template ────────────────────────────────────────────────────────
+  const customTemplateText = '{"title": "%s", "type": "bool", "category": "testing", "lang": "en_US"}';
+  let customTemplateId;
+  const existingTpls = await reality.queryFilter(
+    reality.filters.LogNewTemplate(null, TEST_ACCOUNT.address),
+    FORK_BLOCK
+  );
+  const existingTpl = existingTpls.find(e => e.args.question_text === customTemplateText);
+  if (existingTpl) {
+    customTemplateId = Number(existingTpl.args.template_id);
+  } else {
+    const tx      = await reality.createTemplate(customTemplateText);
+    const receipt = await tx.wait();
+    const logTopic = reality.interface.getEvent('LogNewTemplate').topicHash;
+    const log = receipt.logs.find(l => l.topics[0] === logTopic);
+    customTemplateId = Number(reality.interface.parseLog(log).args.template_id);
+  }
+
+  const customTitle = 'RPC browse custom template check';
+  const customQuestionId = await (async () => {
+    const qId = computeQuestionId(
+      customTemplateId, openingTs, customTitle,
+      ethers.ZeroAddress, timeout, 36,
+      TEST_ACCOUNT.address, CONTRACTS.realityEth30
+    );
+    const existing = await reality.questions(qId);
+    if (BigInt(existing[0]) === 0n) {
+      await (await reality.askQuestion(
+        customTemplateId, customTitle, ethers.ZeroAddress, timeout, openingTs, 36, { value: bounty }
+      )).wait();
+    }
+    return qId;
+  })();
+
+  return {
+    builtinTitle, builtinQuestionId,
+    customTemplateId, customTemplateText, customTitle, customQuestionId,
+    contract: CONTRACTS.realityEth30,
+  };
+}
+
 // Creates a question with a mock arbitrator that returns TOS metadata.
 // The mock is deployed via anvil_setCode so no Solidity compilation is needed.
 // nonce=31 — nonces 0–30 on v3.0 are taken by other fixture functions.

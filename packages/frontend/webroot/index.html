@@ -38,7 +38,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=125';
+  var V = '?v=133';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1013,6 +1013,29 @@
   .rb-title-link { color: var(--text); text-decoration: none; font-weight: 500; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55vw; }
   .rb-title-link:hover { color: var(--accent); }
   .rb-cat { font-size: 10px; color: var(--text-dim); margin-left: 6px; }
+  @media (max-width: 600px) {
+    .rb-table thead            { display: none; }
+    .rb-table, .rb-table tbody { display: block; }
+    .rb-table td               { border-bottom: none; padding: 0; }
+    .rb-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      grid-template-rows: auto auto;
+      gap: 3px 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      align-items: center;
+    }
+    .rb-row:first-child { border-top: 1px solid var(--border-subtle); }
+    .rb-row:hover       { background: var(--bg-card); }
+    .rb-row:hover td    { background: none; }
+    .rb-td-title  { grid-column: 1/-1; grid-row: 1; padding-bottom: 2px; }
+    .rb-td-status { grid-column: 1;    grid-row: 2; }
+    .rb-td-bond   { grid-column: 2;    grid-row: 2; text-align: left; font-size: 11px; }
+    .rb-td-answer { grid-column: 3;    grid-row: 2; }
+    .rb-td-time   { grid-column: 4;    grid-row: 2; }
+    .rb-title-link { white-space: normal; max-width: none; overflow: visible; text-overflow: unset; }
+  }
   .arb-section-header { font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--text-dim); padding: 12px 0 6px; }
   .arb-section-header:first-child { padding-top: 4px; }
@@ -1573,6 +1596,7 @@
   .help-icon:hover .help-tooltip, .help-icon:focus .help-tooltip { display: block; }
 </style>
 <script defer src="js/vendor/website-data.js?v=9"></script>
+<script defer src="js/vendor/website-templates.js?v=1"></script>
 <script defer src="js/chains.js?v=3"></script>
 <script defer src="js/vendor/reality-eth-lib.js?v=6"></script>
 <script defer src="js/vendor/ethers.js?v=3"></script>
@@ -3383,7 +3407,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=125';
+  const V = '?v=133';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
