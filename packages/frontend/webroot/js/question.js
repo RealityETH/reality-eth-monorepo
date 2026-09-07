@@ -258,8 +258,10 @@ async function fetchPonderData() {
 
 async function fetchTemplateStr(templateId) {
   const builtins = builtinTemplatesForVer(metaContractVer);
-  const builtin = builtins[templateId];
-  if (builtin) return builtin;
+  if (builtins[templateId] != null) return builtins[templateId];
+  const bundled = window.RealityBundledTemplates
+    ?.[String(CHAIN_ID)]?.[CONTRACT.toLowerCase()]?.[String(templateId)];
+  if (bundled != null) return bundled;
   const tid = JSON.stringify(`${CHAIN_ID}-${CONTRACT.toLowerCase()}-${templateId}`);
   try {
     const ponderUrl = window.RealitySettings?.getPonderUrl(CHAIN_ID) || `/graphql/${CHAIN_ID}`;
@@ -2698,7 +2700,8 @@ async function main(hintAddr) {
       const qTimeout    = Number(qEv?.args.timeout      ?? q?.timeout     ?? 0);
       const arbitrator  = qEv?.args.arbitrator   ?? q?.arbitrator  ?? ethers.ZeroAddress;
       const nonce       = qEv?.args.nonce ?? BN0;
-      let rpcTemplateStr = builtinTemplatesForVer(metaContractVer)[templateId];
+      let rpcTemplateStr = builtinTemplatesForVer(metaContractVer)[templateId]
+        ?? window.RealityBundledTemplates?.[String(CHAIN_ID)]?.[CONTRACT.toLowerCase()]?.[String(templateId)];
       if (!rpcTemplateStr) {
         const templateBlock = await safeCall(() => reality.templates(templateId), null);
         if (templateBlock) {

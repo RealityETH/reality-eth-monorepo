@@ -538,11 +538,7 @@ window.RealityAsk.mount = async function () {
       if (!catSel.value) { setError('field-category'); ok = false; } else clearError('field-category');
     } else clearError('field-category');
 
-    const descField = form.querySelector('#field-description');
-    const descInput = form.querySelector('#question-description');
-    if (descField.style.display !== 'none') {
-      if (!descInput.value.trim()) { setError('field-description'); ok = false; } else clearError('field-description');
-    } else clearError('field-description');
+    clearError('field-description');
 
     if (typeSelect.value === 'custom') {
       if (!customTemplate) { setError('field-custom-template'); ok = false; }
@@ -695,8 +691,11 @@ window.RealityAsk.mount = async function () {
     try {
       const ponderId = `${chainId}-${rcAddress.toLowerCase()}-${id}`;
       const GRAPHQL  = window.RealitySettings?.getPonderUrl() || '/graphql';
-      let templateStr = null;
-      try {
+      const builtins = window.RealityLib?.preloadedTemplateContents?.() ?? {};
+      let templateStr = builtins[id]
+        ?? window.RealityBundledTemplates?.[String(chainId)]?.[rcAddress.toLowerCase()]?.[String(id)]
+        ?? null;
+      if (!templateStr) try {
         const res  = await fetch(GRAPHQL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

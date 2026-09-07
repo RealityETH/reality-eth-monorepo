@@ -61,7 +61,7 @@ test.describe('ask page: v3.2 description validation and submission', () => {
   test.beforeEach(async () => { snap = await snapshot(); });
   test.afterEach(async () => { await revert(snap); });
 
-  test('submitting without description shows validation error', async ({ page }) => {
+  test('submitting without description is allowed (description is optional)', async ({ page }) => {
     await loadAskPage(page);
     await page.locator('#ask-version-select').selectOption('RealityETH-3.2');
 
@@ -70,7 +70,7 @@ test.describe('ask page: v3.2 description validation and submission', () => {
     await page.locator('#question-arbitrator').selectOption('self');
     await page.locator('#ask-submit-btn').click();
 
-    await expect(page.locator('#ask-form #field-description')).toHaveClass(/is-error/);
+    await expect(page.locator('#ask-form #field-description')).not.toHaveClass(/is-error/);
   });
 
   test('v3.2 submission encodes description in the question text', async ({ page }) => {
