@@ -262,8 +262,9 @@ export async function createClaimFixtures() {
 // The key constraint: isFinalized() in the dapp checks `fin * 1000 < Date.now()`.
 // After an answer the contract sets finalization_ts = block.timestamp + timeout.
 // The fork block is ~2 days in the past relative to the browser clock, so any
-// question with timeout < 2 days would already appear finalized.  We use a 90-day
-// timeout so finalization_ts = fork_ts + 90d ≈ September 2026 > browser June 2026.
+// question with timeout < 2 days would already appear finalized.  We use a 300-day
+// timeout so finalization_ts = fork_ts + 300d ≈ April 2027 > browser clock.
+// (reality.eth enforces timeout < 365 days; 300d is well within that limit.)
 export async function createBondEscalationFixtures() {
   const provider = new ethers.JsonRpcProvider(ANVIL_URL);
   const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
@@ -272,12 +273,12 @@ export async function createBondEscalationFixtures() {
   const bounty    = ethers.parseEther('0.001');
   const initBond  = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
-  const TIMEOUT_90_DAYS = 7776000; // 90 * 24 * 3600
+  const TIMEOUT_300_DAYS = 25920000; // 300 * 24 * 3600
 
   // nonce=10 — nonces 0-9 on v3.0 are taken by other fixture functions
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Bond escalation test: bool',
-    ethers.ZeroAddress, TIMEOUT_90_DAYS, 10,
+    ethers.ZeroAddress, TIMEOUT_300_DAYS, 10,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
@@ -287,7 +288,7 @@ export async function createBondEscalationFixtures() {
   if (!alreadyExists) {
     const tx1 = await reality.askQuestion(
       TEMPLATE.bool, 'Bond escalation test: bool',
-      ethers.ZeroAddress, TIMEOUT_90_DAYS, 0, 10,
+      ethers.ZeroAddress, TIMEOUT_300_DAYS, 0, 10,
       { value: bounty }
     );
     await tx1.wait();
@@ -301,7 +302,7 @@ export async function createBondEscalationFixtures() {
 //   oneAnswerQuestionId  — 1 answer (YES, 0.001 ETH); has-history should NOT be set
 //   twoAnswerQuestionId  — 2 answers (YES@0.001, then NO@0.002); has-history SHOULD be set
 //
-// Both use a 90-day timeout so they appear open from the browser clock (see
+// Both use a 300-day timeout so they appear open from the browser clock (see
 // createBondEscalationFixtures for the full reasoning).
 export async function createAnswerHistoryFixtures() {
   const provider = new ethers.JsonRpcProvider(ANVIL_URL);
@@ -311,13 +312,13 @@ export async function createAnswerHistoryFixtures() {
   const bounty = ethers.parseEther('0.001');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
   const NO  = '0x0000000000000000000000000000000000000000000000000000000000000000';
-  const TIMEOUT_90_DAYS = 7776000;
+  const TIMEOUT_300_DAYS = 25920000;
 
   // nonces 11 and 12 — nonces 0-10 on v3.0 are already taken
   async function ensureQuestion(text, nonce, submits) {
     const questionId = computeQuestionId(
       TEMPLATE.bool, 0, text,
-      ethers.ZeroAddress, TIMEOUT_90_DAYS, nonce,
+      ethers.ZeroAddress, TIMEOUT_300_DAYS, nonce,
       TEST_ACCOUNT.address, CONTRACTS.realityEth30
     );
     const existing = await reality.questions(questionId);
@@ -325,7 +326,7 @@ export async function createAnswerHistoryFixtures() {
 
     await (await reality.askQuestion(
       TEMPLATE.bool, text, ethers.ZeroAddress,
-      TIMEOUT_90_DAYS, 0, nonce, { value: bounty }
+      TIMEOUT_300_DAYS, 0, nonce, { value: bounty }
     )).wait();
     for (const { answer, bond, maxPrev } of submits) {
       await (await reality.submitAnswer(
@@ -898,13 +899,13 @@ export async function createPartialIndexerLagFixtures() {
   const bond1     = ethers.parseEther('0.001');
   const bond2     = ethers.parseEther('0.002');
   const YES = '0x0000000000000000000000000000000000000000000000000000000000000001';
-  // 90-day timeout keeps the question open from the browser clock so the
+  // 300-day timeout keeps the question open from the browser clock so the
   // historyHash check runs (it skips finalized questions).
-  const TIMEOUT_90_DAYS = 7776000;
+  const TIMEOUT_300_DAYS = 25920000;
 
   const questionId = computeQuestionId(
     TEMPLATE.bool, 0, 'Partial indexer lag test: same answer re-escalated',
-    ethers.ZeroAddress, TIMEOUT_90_DAYS, 26,
+    ethers.ZeroAddress, TIMEOUT_300_DAYS, 26,
     TEST_ACCOUNT.address, CONTRACTS.realityEth30
   );
 
@@ -915,7 +916,7 @@ export async function createPartialIndexerLagFixtures() {
   if (!alreadyExists) {
     const receipt1 = await (await reality.askQuestion(
       TEMPLATE.bool, 'Partial indexer lag test: same answer re-escalated',
-      ethers.ZeroAddress, TIMEOUT_90_DAYS, 0, 26,
+      ethers.ZeroAddress, TIMEOUT_300_DAYS, 0, 26,
       { value: bounty }
     )).wait();
     createdBlock = receipt1.blockNumber;
@@ -958,12 +959,12 @@ export async function createPartialIndexerLagFixtures() {
       creator: TEST_ACCOUNT.address.toLowerCase(),
       arbitrator: ethers.ZeroAddress.toLowerCase(),
       openingTimestamp: '0',
-      timeout: String(TIMEOUT_90_DAYS),
+      timeout: String(TIMEOUT_300_DAYS),
       currentAnswer: YES,
       currentAnswerBond: bond1.toString(),
       minBond: '0',
       bounty: bounty.toString(),
-      scheduledFinalizationTimestamp: String(firstAnswerTs + TIMEOUT_90_DAYS),
+      scheduledFinalizationTimestamp: String(firstAnswerTs + TIMEOUT_300_DAYS),
       arbitrationOccurred: false,
       isPendingArbitration: false,
       createdBlock: String(createdBlock),
