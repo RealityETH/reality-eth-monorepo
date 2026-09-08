@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting…</title>
+  <meta name="robots" content="noindex">
+  <script>
+    // Preserve the hash fragment so old deep links (#!/network/100/question/…) still work.
+    var dest = '/' + (location.hash || '');
+    location.replace(dest);
+  </script>
+  <noscript>
+    <meta http-equiv="refresh" content="0;url=/">
+  </noscript>
+</head>
+<body></body>
+</html>
