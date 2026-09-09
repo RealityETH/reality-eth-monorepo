@@ -38,7 +38,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=133';
+  var V = '?v=134';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -1319,6 +1319,7 @@
   .view-meta-item { font-size: 12px; }
   .view-meta-label { color: var(--text-dim); margin-bottom: 3px; }
   .view-meta-val { color: var(--text-muted); font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+  .view-meta-val a { color: var(--accent); text-decoration: none; }
   .view-top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
   .view-nav-link { font-size: 13px; color: var(--accent); text-decoration: none; white-space: nowrap; padding-top: 2px; }
   .view-nav-link:hover { text-decoration: underline; }
@@ -3407,7 +3408,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=133';
+  const V = '?v=134';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],

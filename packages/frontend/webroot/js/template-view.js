@@ -11,6 +11,7 @@ window.RealityTemplate.mount = async function (routeId) {
   const VERSION_PRIORITY = ['3.0', '3.2', '2.1', '2.1-rc1', '2.0'];
 
   const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
+  const chainExplorer = id => window.RealityWebsiteData?.chains?.[id]?.blockExplorerUrls?.[0] || '';
   function chainNativeToken(id) {
     return window.RealityWebsiteData?.nativeTokenByChain?.[id] || 'ETH';
   }
@@ -683,11 +684,36 @@ window.RealityTemplate.mount = async function (routeId) {
       outcomesWrap.appendChild(row);
     }
 
-    document.getElementById('view-creator').textContent = t.user;
-    document.getElementById('view-contract').textContent =
-      `${chainName(t.chainId)} · ${t.contract.slice(0,10)}…`;
-    document.getElementById('view-txhash').textContent =
-      t.createdTxHash ? t.createdTxHash.slice(0, 14) + '…' : '(built-in)';
+    const explorerBase = chainExplorer(t.chainId);
+    function explorerLink(href, label) {
+      if (!href) return document.createTextNode(label);
+      const a = document.createElement('a');
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = label;
+      return a;
+    }
+    const creatorEl = document.getElementById('view-creator');
+    creatorEl.textContent = '';
+    creatorEl.appendChild(explorerLink(
+      explorerBase && `${explorerBase}/address/${t.user}`, t.user));
+
+    const contractEl = document.getElementById('view-contract');
+    contractEl.textContent = '';
+    const contractLabel = `${chainName(t.chainId)} · ${t.contract.slice(0,10)}…`;
+    contractEl.appendChild(explorerLink(
+      explorerBase && `${explorerBase}/address/${t.contract}`, contractLabel));
+
+    const txEl = document.getElementById('view-txhash');
+    txEl.textContent = '';
+    if (t.createdTxHash) {
+      txEl.appendChild(explorerLink(
+        explorerBase && `${explorerBase}/tx/${t.createdTxHash}`,
+        t.createdTxHash.slice(0, 14) + '…'));
+    } else {
+      txEl.textContent = '(built-in)';
+    }
 
     document.getElementById('view-json').textContent = rawText;
 
