@@ -850,66 +850,109 @@ window.RealityAsk.mount = async function () {
 
       submitBtn.textContent = 'Waiting for wallet…';
 
-      let tx;
-      if (isERC20Contract) {
-        const rc = new ethers.Contract(rcAddress, [...RC_ABI, ...RC_ERC20_ABI], signer);
-        if (supportsMinBond && minBondWei > 0n) {
-          tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBondERC20(
-            templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei));
+      // Pre-compute the expected question ID from the inputs we already have.
+      // If the WC relay drops the tx hash after the wallet signs, we can poll
+      // eth_getLogs for LogNewQuestion with this ID rather than hanging forever.
+      const versionStr = selectedVersion.match(/-(\d+\.\d+)$/)?.[1] || '2.0';
+      const expectedQuestionId = RealityLib.questionID(
+        templateId, qtext, arbAddr, timeout, openingTs, walletAddr, 0,
+        '0x' + minBondWei.toString(16), rcAddress, versionStr);
+
+      const hostedRpcUrl = window.RealityWebsiteData?.chains?.[chainId]?.hostedRPC;
+      const directProvider = hostedRpcUrl ? new ethers.JsonRpcProvider(hostedRpcUrl) : null;
+      let startBlock = null;
+      if (directProvider) {
+        try { startBlock = Math.max(0, await directProvider.getBlockNumber() - 5); } catch {}
+      }
+
+      // Race each wallet call against a generous timeout. If the WC relay drops
+      // the response after the wallet signs, we time out here and fall through to
+      // event polling below rather than hanging at "Waiting for wallet…" forever.
+      const WC_TIMEOUT_MS = 300000; // 5 min
+      const wcTimeout = new Promise((_, rej) =>
+        setTimeout(() => rej(Object.assign(new Error('WC relay timeout'), { _wcTimeout: true })), WC_TIMEOUT_MS));
+
+      let tx = null;
+      try {
+        if (isERC20Contract) {
+          const rc = new ethers.Contract(rcAddress, [...RC_ABI, ...RC_ERC20_ABI], signer);
+          if (supportsMinBond && minBondWei > 0n) {
+            tx = await Promise.race([withIndicator(rpcInd, () => rc.askQuestionWithMinBondERC20(
+              templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, rewardWei)), wcTimeout]);
+          } else {
+            tx = await Promise.race([withIndicator(rpcInd, () => rc.askQuestionERC20(
+              templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei)), wcTimeout]);
+          }
         } else {
-          tx = await withIndicator(rpcInd, () => rc.askQuestionERC20(
-            templateId, qtext, arbAddr, timeout, openingTs, 0, rewardWei));
+          const value = rewardWei + feeWei;
+          const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
+          if (minBondWei > 0n) {
+            tx = await Promise.race([withIndicator(rpcInd, () => rc.askQuestionWithMinBond(
+              templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value })), wcTimeout]);
+          } else {
+            tx = await Promise.race([withIndicator(rpcInd, () => rc.askQuestion(
+              templateId, qtext, arbAddr, timeout, openingTs, 0, { value })), wcTimeout]);
+          }
         }
-      } else {
-        const value = rewardWei + feeWei;
-        const rc = new ethers.Contract(rcAddress, RC_ABI, signer);
-        if (minBondWei > 0n) {
-          tx = await withIndicator(rpcInd, () => rc.askQuestionWithMinBond(
-            templateId, qtext, arbAddr, timeout, openingTs, 0, minBondWei, { value }));
-        } else {
-          tx = await withIndicator(rpcInd, () => rc.askQuestion(
-            templateId, qtext, arbAddr, timeout, openingTs, 0, { value }));
+        submitBtn.textContent = 'Pending…';
+      } catch (err) {
+        if (!err._wcTimeout) throw err;
+        // WC relay dropped the response — tx may already be on-chain; continue to poll
+        submitBtn.textContent = 'Confirming…';
+      }
+
+      // Poll for LogNewQuestion using the pre-computed question ID as a topic filter.
+      // Works whether or not we received the tx hash from the wallet.
+      const LOG_TOPIC = ethers.id('LogNewQuestion(bytes32,address,uint256,string,bytes32,address,uint32,uint32,uint256,uint256)');
+      let questionId = null;
+
+      if (directProvider) {
+        const POLL_MS = 4000;
+        const POLL_TIMEOUT_MS = 600000; // 10 min
+        const pollStart = Date.now();
+        rpcInd?.classList.add('active');
+        try {
+          while (Date.now() - pollStart < POLL_TIMEOUT_MS) {
+            try {
+              const currentBlock = await directProvider.getBlockNumber();
+              if (startBlock === null) startBlock = Math.max(0, currentBlock - 1000);
+              const logs = await directProvider.getLogs({
+                address: rcAddress,
+                topics: [LOG_TOPIC, expectedQuestionId],
+                fromBlock: startBlock,
+                toBlock: currentBlock,
+              });
+              if (logs.length > 0) { questionId = expectedQuestionId; break; }
+              startBlock = currentBlock + 1;
+            } catch { /* RPC hiccup — retry next interval */ }
+            await new Promise(r => setTimeout(r, POLL_MS));
+          }
+        } finally {
+          setTimeout(() => rpcInd?.classList.remove('active'), 1000);
+        }
+      } else if (tx) {
+        // No direct provider — fall back to tx.wait() with a timeout
+        const receipt = await Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]);
+        if (receipt) {
+          const iface = new ethers.Interface(RC_ABI);
+          for (const log of receipt.logs) {
+            try {
+              const parsed = iface.parseLog(log);
+              if (parsed.name === 'LogNewQuestion') { questionId = parsed.args.question_id; break; }
+            } catch {}
+          }
         }
       }
 
-      submitBtn.textContent = 'Pending…';
-      // The WC relay can drop inbound messages after the wallet approves, leaving
-      // tx.wait() hanging indefinitely. Use a direct hosted RPC when available
-      // (Alchemy etc. support browser CORS); otherwise fall back to tx.wait() with
-      // a timeout so the user is never permanently stuck.
-      const hostedRpcUrl = window.RealityWebsiteData?.chains?.[chainId]?.hostedRPC;
-      const isCorsHosted = hostedRpcUrl && /alchemy\.com|infura\.io|quicknode\.pro|g\.alchemy/.test(hostedRpcUrl);
-      let receipt;
-      if (isCorsHosted) {
-        receipt = await withIndicator(rpcInd,
-          () => new ethers.JsonRpcProvider(hostedRpcUrl).waitForTransaction(tx.hash));
-      } else {
-        receipt = await withIndicator(rpcInd,
-          () => Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]));
-      }
-      if (!receipt) {
+      if (!questionId) {
         submitBtn.textContent = '✓ Sent!';
         setTimeout(() => { location.hash = '#!/browse'; }, 1500);
         return;
       }
 
-      // Extract question ID from LogNewQuestion event
-      const iface = new ethers.Interface(RC_ABI);
-      let questionId = null;
-      for (const log of receipt.logs) {
-        try {
-          const parsed = iface.parseLog(log);
-          if (parsed.name === 'LogNewQuestion') { questionId = parsed.args.question_id; break; }
-        } catch {}
-      }
-
       submitBtn.textContent = '✓ Question asked!';
       setTimeout(() => {
-        if (questionId) {
-          location.hash = `#!/network/${chainId}/question/${rcAddress.toLowerCase()}-${questionId}`;
-        } else {
-          location.hash = '#!/browse';
-        }
+        location.hash = `#!/network/${chainId}/question/${rcAddress.toLowerCase()}-${questionId}`;
       }, 1000);
 
     } catch (err) {
