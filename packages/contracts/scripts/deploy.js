@@ -18,20 +18,7 @@ const deployed_at = null;
 var undef;
 
 const defaultConfigs = {
-    //maxFeePerGas:         610000000000,
-    //maxPriorityFeePerGas:  10000000000,
-    //gasPrice: 70000000000,
-    //gasPrice:   10000000000,
-    // gasPrice:   100000000,
-    // gasPrice: 10000, // optimism 1000000,
-    /// gasPrice: 5000000000,
-    //gasLimit: 6000000, // optimism 4500000
     gasLimit: 4500000,
-    //etherscanApiKey: 'TPA4BFDDIH8Q7YBQ4JMGN6WDDRRPAV6G34'
-    //gasLimit: 155734867 // arbitrum
-    //gasLimit: 7000000
-    //gasLimit:   800035294
-    // gasLimit: 4291955938
 }
 const task = process.argv[2]
 const version = process.argv[3]
@@ -74,6 +61,7 @@ const chains = {
     'backstopTestnet1': 88558801
 }
 const non_infura_chains = {
+    'mainnet': 'http://127.0.0.1:8545',
     'gnosis': 'https://gnosis.oat.farm',
     'scroll-alpha-testnet': 'https://alpha-rpc.scroll.io/l2',
     'sokol': 'https://sokol.poa.network',
@@ -94,7 +82,7 @@ const non_infura_chains = {
     'kintsugi': 'https://rpc.kintsugi.themerge.dev',
     'monad': 'https://rpc.monad.xyz',
     'mumbai': 'https://matic-mumbai.chainstacklabs.com',
-    'sepolia': 'https://sepolia.backstop.technology/', // 'https://rpc.sepolia.org',
+    'sepolia': 'http://127.0.0.1:8546',
     'holesky': 'https://ethereum-holesky.publicnode.com',
     'telosevm': 'https://mainnet.telos.net/evm',
     'unichain': 'https://mainnet.unichain.org',
@@ -252,25 +240,17 @@ function realityETHName() {
     return tmpl;
 }
 
+// Fetch current fee data and return EIP-1559 overrides: { maxFeePerGas, maxPriorityFeePerGas }.
+// tip comes from eth_maxPriorityFeePerGas (actual market rate, not ethers v5's hardcoded 1.5 gwei).
+// maxFeePerGas = baseFee * 2 + tip (gives headroom for a few blocks of fee movement).
 async function waitForGas(provider) {
-    if (!defaultConfigs.maxFeePerGas) {
-        return true;
-    }
-    // console.log('in waitForGas');
-    const sleep = (milliseconds) => {
-      return new Promise(resolve => setTimeout(resolve, milliseconds))
-    }
-
-    const f = await provider.getFeeData()
-     console.log('fee', f)
-throw new Error();
-return;
-    if (f.gasPrice.gt(ethers.BigNumber.from(defaultConfigs.maxFeePerGas))) {
-        console.log('Gas is too expensive, got', f.gasPrice.toString(), 'but you will only pay ', defaultConfigs.maxFeePerGas, ', retrying...')
-        await sleep(2000);
-        await waitForGas(provider);
-    } 
-    return true;
+    const block = await provider.getBlock('latest');
+    const base = block.baseFeePerGas || ethers.BigNumber.from(0);
+    const tipHex = await provider.send('eth_maxPriorityFeePerGas', []);
+    const tip = ethers.BigNumber.from(tipHex);
+    const maxFee = base.mul(2).add(tip);
+    console.log('base fee:', base.toString(), 'tip:', tip.toString(), 'maxFee:', maxFee.toString());
+    return { maxFeePerGas: maxFee, maxPriorityFeePerGas: tip };
 }
 
 async function deployRealityETH() {
@@ -287,7 +267,8 @@ async function deployRealityETH() {
     txt = txt + ' (from address ' + signer.address + ')';
     console.log(txt);
 
-    await waitForGas(provider);
+    const feeOverrides = await waitForGas(provider);
+    const txConfig = { ...defaultConfigs, ...feeOverrides };
 
     if (deployed_at) {
 
@@ -311,7 +292,7 @@ async function deployRealityETH() {
         }
 
     } else {
-        confac.deploy(defaultConfigs).then(function(result) {
+        confac.deploy(txConfig).then(function(result) {
             const txid = result.deployTransaction.hash;
             const address = result.address;
             console.log('storing address', address);
@@ -327,7 +308,7 @@ async function deployRealityETH() {
                 }
 
                 //console.log('result was', result);
-                store_deployed_contract(tmpl, chain_id, token_name, settings); 
+                store_deployed_contract(tmpl, chain_id, token_name, settings);
                 if (isERC20()) {
                     console.log('Setting token')
                     result.setToken(token_address);
@@ -442,9 +423,10 @@ async function deployFactory() {
     txt = txt + ' (from address ' + signer.address + ')';
     console.log(txt);
 
-    await waitForGas(provider);
+    const feeOverrides = await waitForGas(provider);
+    const txConfig = { ...defaultConfigs, ...feeOverrides };
 
-    confac.deploy(lib, defaultConfigs).then(function(result) {
+    confac.deploy(lib, txConfig).then(function(result) {
         const txid = result.deployTransaction.hash;
         const address = result.address;
         console.log('storing address', address);
