@@ -49,6 +49,93 @@ function setRpcUrl(chainId, url) {
   else localStorage.removeItem(RPC_PREFIX + chainId);
 }
 
+// ── Chunked eth_getLogs ───────────────────────────────────────────────────────
+
+const CHUNK_KEY_PREFIX = 'reality.rpcChunk.';
+function loadChunkSize(rpcUrl) { const v = localStorage.getItem(CHUNK_KEY_PREFIX + rpcUrl); return v ? Number(v) : undefined; }
+function saveChunkSize(rpcUrl, size) { try { localStorage.setItem(CHUNK_KEY_PREFIX + rpcUrl, String(size)); } catch { /* quota */ } }
+
+// Parse a suggested block range size from a getLogs error response.
+// Handles Alchemy/Infura text "[0xHEX, 0xHEX]" and Infura structured data.from/data.to.
+function parseSuggestedRange(err) {
+  const d = err?.error?.data;
+  if (d?.from != null && d?.to != null) {
+    const parse = v => typeof v === 'string' ? parseInt(v, v.startsWith('0x') ? 16 : 10) : Number(v);
+    const f = parse(d.from); const t = parse(d.to);
+    if (Number.isFinite(f) && Number.isFinite(t) && t > f) return t - f + 1;
+  }
+  const msg = err?.error?.message || err?.message || '';
+  const m = msg.match(/\[0x([0-9a-f]+),\s*0x([0-9a-f]+)\]/i);
+  if (m) {
+    const f = parseInt(m[1], 16); const t = parseInt(m[2], 16);
+    if (Number.isFinite(f) && Number.isFinite(t) && t > f) return t - f + 1;
+  }
+  return null;
+}
+
+// Fetch contract events in chunks, adapting to RPC block-range limits.
+// Tries the full range first; if rejected, uses suggested or binary-searched chunk size.
+// opts: { rpcUrl, onError(err), stopOnFirst }
+async function queryFilter(contract, filter, fromBlock, toBlock, opts = {}) {
+  const { rpcUrl, onError, stopOnFirst } = opts;
+  let chunkSize = rpcUrl ? loadChunkSize(rpcUrl) : undefined;
+
+  if (!chunkSize) {
+    let firstErr;
+    try { return await contract.queryFilter(filter, fromBlock, toBlock); }
+    catch (err) { firstErr = err; }
+
+    let suggested = parseSuggestedRange(firstErr);
+    let probeResult = null;
+    let lastErr = firstErr;
+
+    if (!suggested || suggested < 10) {
+      let size = Math.floor((toBlock - fromBlock + 1) / 2);
+      while (size >= 10) {
+        try {
+          probeResult = await contract.queryFilter(filter, fromBlock, fromBlock + size - 1);
+          suggested = size;
+          break;
+        } catch (err) {
+          const s = parseSuggestedRange(err);
+          if (s && s >= 10) { suggested = s; break; }
+          lastErr = err;
+          size = Math.floor(size / 2);
+        }
+      }
+    }
+
+    if (!suggested || suggested < 10) {
+      if (onError) onError(lastErr);
+      return [];
+    }
+    chunkSize = suggested;
+    if (rpcUrl) saveChunkSize(rpcUrl, chunkSize);
+
+    const results = probeResult ? [...probeResult] : [];
+    const scanFrom = probeResult ? fromBlock + chunkSize : fromBlock;
+    if (stopOnFirst && results.length > 0) return results;
+    for (let s = scanFrom; s <= toBlock; s += chunkSize) {
+      try {
+        const chunk = await contract.queryFilter(filter, s, Math.min(s + chunkSize - 1, toBlock));
+        results.push(...chunk);
+        if (stopOnFirst && results.length > 0) break;
+      } catch (err) { if (onError) onError(err); }
+    }
+    return results;
+  }
+
+  const results = [];
+  for (let s = fromBlock; s <= toBlock; s += chunkSize) {
+    try {
+      const chunk = await contract.queryFilter(filter, s, Math.min(s + chunkSize - 1, toBlock));
+      results.push(...chunk);
+      if (stopOnFirst && results.length > 0) break;
+    } catch (err) { if (onError) onError(err); }
+  }
+  return results;
+}
+
 function getUseBrowserRpc() {
   const v = localStorage.getItem(BROWSER_RPC_KEY);
   return v === null || v === 'true';
@@ -276,6 +363,7 @@ window.RealitySettings = {
   attachPonderPanel, attachRpcPanel,
   openPanel, closePanel,
   getChainIds: () => getChains().map(c => c.id),
+  queryFilter,
 };
 
 })();

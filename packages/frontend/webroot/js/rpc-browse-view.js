@@ -231,9 +231,6 @@ function relTime(ts) {
   return new Date(Number(ts) * 1000).toLocaleDateString();
 }
 
-function chunkSizeKey(rpcUrl) { return `reality.rpcChunk.${rpcUrl}`; }
-function loadChunkSize(rpcUrl) { const v = localStorage.getItem(chunkSizeKey(rpcUrl)); return v ? Number(v) : undefined; }
-function saveChunkSize(rpcUrl, size) { try { localStorage.setItem(chunkSizeKey(rpcUrl), String(size)); } catch { /* quota */ } }
 
 
 function formatScanRange(chainId, fromBlock, toBlock) {
@@ -243,52 +240,6 @@ function formatScanRange(chainId, fromBlock, toBlock) {
   return '< 1 day';
 }
 
-// chunkRef is a shared { value } object so the discovered chunk size carries across
-// multiple safeQueryFilter calls within the same scan (one probe, not one per contract).
-async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef, errRef) {
-  if (!chunkRef.value) {
-    try {
-      return await contract.queryFilter(filter, fromBlock, toBlock);
-    } catch {
-      let size = Math.floor((toBlock - fromBlock + 1) / 2);
-      let probeResult = null;
-      let lastProbeErr = null;
-      while (size >= 10) {
-        try {
-          probeResult = await contract.queryFilter(filter, fromBlock, fromBlock + size - 1);
-          chunkRef.value = size;
-          break;
-        } catch (err) {
-          lastProbeErr = err;
-          size = Math.floor(size / 2);
-        }
-      }
-      if (!chunkRef.value) {
-        if (errRef) { errRef.count++; if (lastProbeErr) errRef.msgs.add(rpcErrDetail(lastProbeErr)); }
-        return [];
-      }
-      const results = [...probeResult];
-      for (let s = fromBlock + size; s <= toBlock; s += size) {
-        try {
-          results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock)));
-        } catch (err) {
-          if (errRef) { errRef.count++; errRef.msgs.add(rpcErrDetail(err)); }
-        }
-      }
-      return results;
-    }
-  }
-  const size = chunkRef.value;
-  const results = [];
-  for (let s = fromBlock; s <= toBlock; s += size) {
-    try {
-      results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock)));
-    } catch (err) {
-      if (errRef) { errRef.count++; errRef.msgs.add(rpcErrDetail(err)); }
-    }
-  }
-  return results;
-}
 
 async function loadCachedForChain(chainId, verFilter, creator) {
   if (!window.QCache) return [];
@@ -674,16 +625,16 @@ window.RealityRpcBrowse.mount = async function () {
     const rcList = getContractsForChain(chainId).filter(c => !filterVer || (c.ver === filterVer && c.token === filterToken));
     const found  = [];
     const rpcUrl = chainRpc(chainId);
-    const chunkRef = { value: loadChunkSize(rpcUrl) };
 
     for (let i = 0; i < rcList.length; i++) {
       if (myGen !== scanGen) return null;
       const { address: rcAddr, ver: contractVer, token: contractToken } = rcList[i];
       updateScanStatus(`Scanning ${chainName(chainId)} contract ${i + 1}/${rcList.length}…`);
       const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
-      const prevChunk = chunkRef.value;
-      const evs = await safeQueryFilter(rc, rc.filters.LogNewQuestion(null, creator), fromBlock, toBlock, chunkRef, errRef);
-      if (chunkRef.value && chunkRef.value !== prevChunk) saveChunkSize(rpcUrl, chunkRef.value);
+      const evs = await window.RealitySettings.queryFilter(rc, rc.filters.LogNewQuestion(null, creator), fromBlock, toBlock, {
+        rpcUrl,
+        onError: err => { errRef.count++; errRef.msgs.add(rpcErrDetail(err)); },
+      });
       for (const ev of evs) found.push({ ev, rcAddr, ver: contractVer, token: contractToken, state: null });
     }
 

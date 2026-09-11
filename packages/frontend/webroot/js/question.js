@@ -273,20 +273,8 @@ async function fetchTemplateStr(templateId) {
   } catch { return builtins[0]; }
 }
 
-// Fetch contract events with chunked fallback for restrictive public RPCs.
-// Tries the full range first; if it fails, scans in 50k-block chunks sequentially.
-// stopOnFirst=true exits as soon as any results are found (for single-event lookups).
-async function queryFilterRobust(contract, filter, from, to, stopOnFirst = false) {
-  const full = await safeCall(() => contract.queryFilter(filter, from, to), null);
-  if (full !== null) return full;
-  const CHUNK = 50000;
-  const results = [];
-  for (let s = from; s <= to; s += CHUNK) {
-    const chunk = await safeCall(() => contract.queryFilter(filter, s, Math.min(s + CHUNK - 1, to)), []);
-    results.push(...chunk);
-    if (stopOnFirst && results.length > 0) break;
-  }
-  return results;
+function queryFilterRobust(contract, filter, from, to, stopOnFirst = false) {
+  return window.RealitySettings.queryFilter(contract, filter, from, to, { rpcUrl: publicRpcUrl, stopOnFirst });
 }
 
 // Binary-search block timestamps: returns the lowest block number where block.timestamp > ts.
@@ -3030,37 +3018,62 @@ async function main(hintAddr) {
           if (distributed) {
             claimWired = true;
             if (!claimDistributed) return;
-            let txUrl = '', dateStr = '';
+            // Show immediately — enrich with date/tx asynchronously below
+            claimDistributed.textContent = '✓ Bonds distributed';
+            claimDistributed.style.display = '';
             if (indexerClaim) {
               const exp = chainExplorer(CHAIN_ID);
-              txUrl = indexerClaim.txHash && exp ? `${exp}/tx/${indexerClaim.txHash}` : '';
-              dateStr = indexerClaim.ts ? formatRelTime(indexerClaim.ts) : '';
+              const txUrl = indexerClaim.txHash && exp ? `${exp}/tx/${indexerClaim.txHash}` : '';
+              const dateStr = indexerClaim.ts ? formatRelTime(indexerClaim.ts) : '';
+              if (dateStr) claimDistributed.textContent = `✓ Bonds distributed ${dateStr}`;
+              if (txUrl) {
+                const a = Object.assign(document.createElement('a'), {
+                  href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
+                });
+                claimDistributed.appendChild(a);
+              }
             } else {
-              // RPC path: fetch LogClaim events for date/tx
-              try {
+              // RPC path: fetch LogClaim events for claim history table and date/tx.
+              // Show the element now; update with details when the async scan finishes.
+              // Try direct queryFilter first (fast: one call, uses 'latest' as toBlock).
+              // Returns null on range/network failure, [] if no events, [...] if found.
+              (async () => {
                 const fromBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
-                const logs = await safeCall(
-                  () => reality.queryFilter(reality.filters.LogClaim(QUESTION_ID), fromBlock), []
-                );
-                const log = logs?.[0];
-                const exp = chainExplorer(CHAIN_ID);
-                txUrl = log && exp ? `${exp}/tx/${log.transactionHash}` : '';
-                if (log) {
-                  try {
-                    const block = await readProvider.getBlock(log.blockNumber);
-                    if (block?.timestamp) dateStr = date(block.timestamp);
-                  } catch {}
+                let logs = await safeCall(
+                  () => reality.queryFilter(reality.filters.LogClaim(QUESTION_ID), fromBlock), null);
+                if (logs === null) {
+                  // Range too large — fall back to adaptive chunked scan with explicit block number
+                  const toBlock = await safeCall(() => readProvider.getBlockNumber(), null);
+                  if (toBlock != null) {
+                    logs = await window.RealitySettings.queryFilter(
+                      reality, reality.filters.LogClaim(QUESTION_ID), fromBlock, toBlock,
+                      { rpcUrl: publicRpcUrl });
+                  }
                 }
-              } catch {}
+                if (!logs?.length) return;
+                data.claims = await Promise.all(logs.map(async ev => {
+                  const block = await safeCall(() => readProvider.getBlock(ev.blockNumber), null);
+                  return {
+                    user: ev.args.user,
+                    amount: ev.args.amount,
+                    txHash: ev.transactionHash,
+                    ts: block?.timestamp ?? null,
+                  };
+                }));
+                renderClaimHistory(data);
+                const c = data.claims[0];
+                const exp = chainExplorer(CHAIN_ID);
+                const txUrl = c?.txHash && exp ? `${exp}/tx/${c.txHash}` : '';
+                const dateStr = c?.ts ? date(c.ts) : '';
+                if (dateStr) claimDistributed.textContent = `✓ Bonds distributed ${dateStr}`;
+                if (txUrl) {
+                  const a = Object.assign(document.createElement('a'), {
+                    href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
+                  });
+                  claimDistributed.appendChild(a);
+                }
+              })();
             }
-            claimDistributed.textContent = `✓ Bonds distributed${dateStr ? ' ' + dateStr : ''}`;
-            if (txUrl) {
-              const a = Object.assign(document.createElement('a'), {
-                href: txUrl, target: '_blank', rel: 'noopener noreferrer', textContent: ' ↗',
-              });
-              claimDistributed.appendChild(a);
-            }
-            claimDistributed.style.display = '';
             return;
           }
 

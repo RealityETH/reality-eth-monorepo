@@ -11,9 +11,6 @@ function chainRpc(id) { return window.RealitySettings?.getEffectiveRpcUrl(id) ||
 function chainBlocksPerDay(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blocksPerDay || 7200; }
 function tokenDecimals(tokenSym) { return window.RealityWebsiteData?.tokens?.[tokenSym]?.decimals ?? 18; }
 
-function chunkSizeKey(rpcUrl) { return `reality.rpcChunk.${rpcUrl}`; }
-function loadChunkSize(rpcUrl) { const v = localStorage.getItem(chunkSizeKey(rpcUrl)); return v ? Number(v) : undefined; }
-function saveChunkSize(rpcUrl, size) { try { localStorage.setItem(chunkSizeKey(rpcUrl), String(size)); } catch { /* quota */ } }
 
 const VERSION_PREF = ['RealityETH-3.2', 'RealityETH-3.0', 'RealityETH-2.1'];
 
@@ -125,42 +122,6 @@ window.RealityAccount.mount = async function (addr) {
     finally { setTimeout(() => el?.classList.remove('active'), Math.max(0, 1000 - (Date.now() - start))); }
   }
 
-  // ── RPC helpers ───────────────────────────────────────────────────────────────
-  // chunkRef is a shared { value } object so the discovered chunk size carries across
-  // multiple safeQueryFilter calls within the same scan (one probe, not one per call).
-  async function safeQueryFilter(contract, filter, fromBlock, toBlock, chunkRef) {
-    if (!chunkRef.value) {
-      try {
-        return await contract.queryFilter(filter, fromBlock, toBlock);
-      } catch {
-        let size = Math.floor((toBlock - fromBlock + 1) / 2);
-        let probeResult = null;
-        while (size >= 10) {
-          try {
-            probeResult = await contract.queryFilter(filter, fromBlock, fromBlock + size - 1);
-            chunkRef.value = size;
-            break;
-          } catch {
-            size = Math.floor(size / 2);
-          }
-        }
-        if (!chunkRef.value) return [];
-        const results = [...probeResult];
-        for (let s = fromBlock + size; s <= toBlock; s += size) {
-          try { results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock))); }
-          catch { /* skip */ }
-        }
-        return results;
-      }
-    }
-    const size = chunkRef.value;
-    const results = [];
-    for (let s = fromBlock; s <= toBlock; s += size) {
-      try { results.push(...await contract.queryFilter(filter, s, Math.min(s + size - 1, toBlock))); }
-      catch { /* skip */ }
-    }
-    return results;
-  }
 
   async function questionsStructFallback(prov, contractAddr, questionId) {
     try {
@@ -314,7 +275,6 @@ window.RealityAccount.mount = async function (addr) {
     const useBrRpc = window.RealitySettings?.getUseBrowserRpc() ?? true;
     const rpcUrl   = chainRpc(chainId) || `chain-${chainId}`;
     const prov = (useBrRpc && provider) || new ethers.JsonRpcProvider(chainRpc(chainId), chainId, { staticNetwork: true });
-    const chunkRef = { value: loadChunkSize(rpcUrl) };
     const foundIds = new Map(); // questionId → { contract, isAsked, isAnswered }
 
     for (let i = 0; i < rcList.length; i++) {
@@ -324,12 +284,10 @@ window.RealityAccount.mount = async function (addr) {
       console.log(`[scan] contract ${i + 1}/${rcList.length}: ${rcAddr}`);
 
       const rc = new ethers.Contract(rcAddr, SCAN_ABI, prov);
-      const prevChunk = chunkRef.value;
       const [askedRes, answeredRes] = await Promise.allSettled([
-        safeQueryFilter(rc, rc.filters.LogNewQuestion(null, addr), fromBlock, toBlock, chunkRef),
-        safeQueryFilter(rc, rc.filters.LogNewAnswer(null, null, null, addr), fromBlock, toBlock, chunkRef),
+        window.RealitySettings.queryFilter(rc, rc.filters.LogNewQuestion(null, addr), fromBlock, toBlock, { rpcUrl }),
+        window.RealitySettings.queryFilter(rc, rc.filters.LogNewAnswer(null, null, null, addr), fromBlock, toBlock, { rpcUrl }),
       ]);
-      if (chunkRef.value && chunkRef.value !== prevChunk) saveChunkSize(rpcUrl, chunkRef.value);
 
       console.log(`[scan]   LogNewQuestion: status=${askedRes.status} count=${askedRes.value?.length ?? 'err'}`
         + (askedRes.reason ? ` reason=${askedRes.reason}` : ''));
@@ -360,13 +318,11 @@ window.RealityAccount.mount = async function (addr) {
       const rc = new ethers.Contract(info.contract, SCAN_ABI, prov);
 
       // Targeted full-history scan for this specific question
-      const prevChunkQ = chunkRef.value;
-      const qEvents = await safeQueryFilter(rc, rc.filters.LogNewQuestion(qId), 0, toBlock, chunkRef);
-      if (chunkRef.value && chunkRef.value !== prevChunkQ) saveChunkSize(rpcUrl, chunkRef.value);
+      const qEvents = await window.RealitySettings.queryFilter(rc, rc.filters.LogNewQuestion(qId), 0, toBlock, { rpcUrl });
       if (!qEvents.length) continue;
       const qEvent = qEvents[0];
 
-      const answerEvents = await safeQueryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock, chunkRef);
+      const answerEvents = await window.RealitySettings.queryFilter(rc, rc.filters.LogNewAnswer(null, qId), qEvent.blockNumber, toBlock, { rpcUrl });
       answerEvents.sort((a, b) => a.blockNumber - b.blockNumber || a.logIndex - b.logIndex);
 
       // Resolve template: builtins → bundle → runtime cache → on-chain fetch
