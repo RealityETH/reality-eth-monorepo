@@ -150,6 +150,7 @@ export default createConfig({
           "0xf4585A9944A390615E7cec6756C1c082173B93eB",
           "0x33aa365a53a4c9ba777fb5f450901a8eef73f0a9",
           "0x867092A32bC16816F12Fb326EfF7A2865E1ec138",
+          "0xdd34D37ABD603658b039BB46f25769E21e252A43",
         ], startBlock: 8050824 },
       },
     }}),
@@ -185,7 +186,10 @@ export default createConfig({
     ...(has(11155111) && { RealityETH_ERC20_sepolia: {
       abi,
       chain: {
-        sepolia: { address: "0x8A5f1C6361E280348a59daC10160A88428FFBd51", startBlock: 8526475 },
+        sepolia: { address: [
+          "0x8A5f1C6361E280348a59daC10160A88428FFBd51",
+          "0x4Ae490264e52d418b4eFF916F3cbB161d565fE74",
+        ], startBlock: 8526475 },
       },
     }}),
 
