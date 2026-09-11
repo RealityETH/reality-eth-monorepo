@@ -44,6 +44,11 @@
         "address": "0x6a2155613b68efb38d5c6074921f3f4281c8c177",
         "startBlock": 22100226,
         "name": "v3.2"
+      },
+      {
+        "address": "0xdd34d37abd603658b039bb46f25769e21e252a43",
+        "startBlock": 25956983,
+        "name": "ERC20-SAFE-v3.0"
       }
     ]
   },
@@ -252,6 +257,11 @@
         "address": "0x8a5f1c6361e280348a59dac10160a88428ffbd51",
         "startBlock": 8526475,
         "name": "ERC20-BOND-v3.2"
+      },
+      {
+        "address": "0x4ae490264e52d418b4eff916f3cbb161d565fe74",
+        "startBlock": 11684662,
+        "name": "ERC20-SAFE-v3.0"
       }
     ]
   }
