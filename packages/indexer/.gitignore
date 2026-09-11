@@ -7,3 +7,5 @@ generated/
 monitoring/.telegram.env
 .env.local
 known-event-blocks-meta.json
+sync.log
+.env.local.swp
