@@ -7,7 +7,7 @@ const ZERO_HASH = '0x' + '0'.repeat(64);
 function chainName(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.display_name || window.RealityChains?.name(id) || `Chain ${id}`; }
 function chainNativeToken(id) { return window.RealityWebsiteData?.nativeTokenByChain?.[String(id)] || 'ETH'; }
 function chainExplorer(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blockExplorerUrls?.[0] || null; }
-function chainRpc(id) { return window.RealitySettings?.getRpcUrl(id) || window.RealityWebsiteData?.chains?.[String(id)]?.hostedRPC || null; }
+function chainRpc(id) { return window.RealitySettings?.getEffectiveRpcUrl(id) || null; }
 function chainBlocksPerDay(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blocksPerDay || 7200; }
 function tokenDecimals(tokenSym) { return window.RealityWebsiteData?.tokens?.[tokenSym]?.decimals ?? 18; }
 

@@ -76,7 +76,7 @@ window.RealityAsk.mount = async function () {
   const arbOtherEl         = document.getElementById('arb-other');
   const typeSelect         = document.getElementById('question-type');
   const optionsWrap        = document.getElementById('answer-options');
-  const addOptionBtn       = document.getElementById('add-option');
+  const addOptionBtn       = optionsWrap.querySelector('.add-option-btn');
   const rewardInput        = document.getElementById('question-reward');
   const timeoutSel         = document.getElementById('question-timeout');
   const form               = document.getElementById('ask-form');
@@ -858,7 +858,7 @@ window.RealityAsk.mount = async function () {
         templateId, qtext, arbAddr, timeout, openingTs, walletAddr, 0,
         '0x' + minBondWei.toString(16), rcAddress, versionStr);
 
-      const hostedRpcUrl = window.RealityWebsiteData?.chains?.[chainId]?.hostedRPC;
+      const hostedRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(chainId);
       const directProvider = hostedRpcUrl ? new ethers.JsonRpcProvider(hostedRpcUrl) : null;
       let startBlock = null;
       if (directProvider) {

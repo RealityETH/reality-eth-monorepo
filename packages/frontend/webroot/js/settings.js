@@ -36,6 +36,13 @@ function setPonderUrl(url) {
 function getRpcUrl(chainId) {
   return localStorage.getItem(RPC_PREFIX + chainId) || null;
 }
+function getEffectiveRpcUrl(chainId) {
+  const c = window.RealityWebsiteData?.chains?.[chainId];
+  return getRpcUrl(chainId)
+    || c?.hostedRPC
+    || c?.rpcUrls?.find(u => u.startsWith('https://'))
+    || null;
+}
 function setRpcUrl(chainId, url) {
   const t = (url || '').trim();
   if (t) localStorage.setItem(RPC_PREFIX + chainId, t);
@@ -264,7 +271,7 @@ if (document.readyState === 'loading') {
 
 window.RealitySettings = {
   getPonderUrl, setPonderUrl,
-  getRpcUrl, setRpcUrl,
+  getRpcUrl, getEffectiveRpcUrl, setRpcUrl,
   getUseBrowserRpc, setUseBrowserRpc,
   attachPonderPanel, attachRpcPanel,
   openPanel, closePanel,

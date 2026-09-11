@@ -111,7 +111,7 @@ if (chainBadge) {
 const majorVersion = contractMeta(CONTRACT)?.majorVersion ?? 3;
 let reality = null, realityRW = null;
 
-const publicRpcUrl = window.RealitySettings?.getRpcUrl(CHAIN_ID) || chainRpcUrl(CHAIN_ID);
+const publicRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(CHAIN_ID) || chainRpcUrl(CHAIN_ID);
 const readProvider = publicRpcUrl
   ? new ethers.JsonRpcProvider(publicRpcUrl, CHAIN_ID, { staticNetwork: true })
   : null;
@@ -541,15 +541,14 @@ async function ensureCorrectChain() {
   realityRW = new ethers.Contract(CONTRACT, REALITY_ABI, await wp.getSigner());
 }
 
-// Poll for a receipt using a CORS-safe hosted RPC when available (bypasses WC
-// relay, which can drop inbound messages after the wallet approves). Falls back
-// to tx.wait() via the WC relay with a 2-minute timeout so the user is never
+// Poll for a receipt using a direct RPC when available (bypasses WC relay,
+// which can drop inbound messages after the wallet approves). Falls back to
+// tx.wait() via the WC relay with a 2-minute timeout so the user is never
 // permanently stuck.
 async function waitForTx(tx) {
-  const hostedRpcUrl = window.RealityWebsiteData?.chains?.[CHAIN_ID]?.hostedRPC;
-  const isCorsHosted = hostedRpcUrl && /alchemy\.com|infura\.io|quicknode\.pro|g\.alchemy/.test(hostedRpcUrl);
-  if (isCorsHosted) {
-    return new ethers.JsonRpcProvider(hostedRpcUrl).waitForTransaction(tx.hash);
+  const rpcUrl = window.RealitySettings?.getEffectiveRpcUrl(CHAIN_ID);
+  if (rpcUrl) {
+    return new ethers.JsonRpcProvider(rpcUrl).waitForTransaction(tx.hash);
   }
   return Promise.race([tx.wait(), new Promise(r => setTimeout(() => r(null), 120000))]);
 }
@@ -1706,7 +1705,7 @@ async function renderArbitrationSection(data, walletAddr) {
 
         const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
         const fpChainId = Number(fpChainBN);
-        const fpRpcUrl = chainRpcUrl(fpChainId);
+        const fpRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(fpChainId) || chainRpcUrl(fpChainId);
         if (!fpRpcUrl) return;
         const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, fpChainId, { staticNetwork: true });
         const fpChainName = chainName(fpChainId);
@@ -1800,7 +1799,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
       txChainId = Number(fpChainBN);
 
-      const fpRpcUrl = chainRpcUrl(txChainId);
+      const fpRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(txChainId) || chainRpcUrl(txChainId);
       if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
       const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, txChainId, { staticNetwork: true });
       fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);

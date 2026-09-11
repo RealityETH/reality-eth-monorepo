@@ -55,6 +55,49 @@ test.describe('ask page: template field visibility', () => {
   });
 });
 
+test.describe('ask page: answer options UI', () => {
+  test('switching to single-select shows answer options section', async ({ page }) => {
+    await loadAskPage(page);
+    await expect(page.locator('#answer-options')).toBeHidden();
+
+    await page.locator('#question-type').selectOption('single-select');
+    await expect(page.locator('#answer-options')).toBeVisible();
+  });
+
+  test('Add another option button appends a new row', async ({ page }) => {
+    await loadAskPage(page);
+    await page.locator('#question-type').selectOption('single-select');
+
+    const rows = page.locator('#answer-options .answer-option-row');
+    await expect(rows).toHaveCount(2);
+
+    await page.locator('#answer-options .add-option-btn').click();
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(2).locator('input')).toHaveAttribute('placeholder', 'Option C');
+  });
+
+  test('X button on third row removes it; X buttons on two-row minimum are disabled', async ({ page }) => {
+    await loadAskPage(page);
+    await page.locator('#question-type').selectOption('single-select');
+
+    // Initial two rows: X buttons disabled (can't go below minimum)
+    const removeButtons = page.locator('#answer-options .remove-option');
+    await expect(removeButtons.nth(0)).toBeDisabled();
+    await expect(removeButtons.nth(1)).toBeDisabled();
+
+    // Add a third row — its X button must be enabled
+    await page.locator('#answer-options .add-option-btn').click();
+    const rows = page.locator('#answer-options .answer-option-row');
+    await expect(rows).toHaveCount(3);
+    const thirdRemove = rows.nth(2).locator('.remove-option');
+    await expect(thirdRemove).toBeEnabled();
+
+    // Click it — back to two rows
+    await thirdRemove.click();
+    await expect(rows).toHaveCount(2);
+  });
+});
+
 test.describe('ask page: v3.2 description validation and submission', () => {
   let snap;
 

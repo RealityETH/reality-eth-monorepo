@@ -7,7 +7,7 @@ const WEEKS_BACK  = 3;   // how many weeks each "Scan further back" adds
 
 function chainName(id)         { return window.RealityWebsiteData?.chains?.[String(id)]?.display_name || window.RealityChains?.name(id) || `Chain ${id}`; }
 function chainBlocksPerDay(id) { return window.RealityWebsiteData?.chains?.[String(id)]?.blocksPerDay || 7200; }
-function chainRpc(id)          { return window.RealitySettings?.getRpcUrl(id) || window.RealityWebsiteData?.chains?.[String(id)]?.hostedRPC || null; }
+function chainRpc(id)          { return window.RealitySettings?.getEffectiveRpcUrl(id) || null; }
 
 function getContractsForChain(chainId) {
   const chainData = (window.RealityWebsiteData?.contracts || {})[String(chainId)] || {};
