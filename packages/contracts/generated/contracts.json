@@ -57,6 +57,15 @@
                 "arbitrators": {}
             }
         },
+        "SAFE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0xdd34D37ABD603658b039BB46f25769E21e252A43",
+                "block": 25956983,
+                "token_address": "0x5aFE3855358E112B5647B952709E6165e1c1eEEe",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "SWISE": {
             "RealityETH_ERC20-3.0": {
                 "address": "0x867092A32bC16816F12Fb326EfF7A2865E1ec138",
@@ -731,6 +740,15 @@
             "RealityETH-3.2": {
                 "address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1",
                 "block": 7898415,
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
+        "SAFE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x4Ae490264e52d418b4eFF916F3cbB161d565fE74",
+                "block": 11684662,
+                "token_address": "0x5aFE3855358E112B5647B952709E6165e1c1eEEe",
                 "notes": null,
                 "arbitrators": {}
             }
