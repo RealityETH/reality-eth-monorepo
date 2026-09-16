@@ -1659,6 +1659,103 @@ async function renderArbitratorTOS(arbitrator) {
   el.style.display = '';
 }
 
+// ── Arbitration ruling form (simple arbitrator only) ─────────────────────────
+function buildArbitrationForm(data, walletAddr) {
+  const { qjson, answerEvents, arbitrator } = data;
+  const type = qjson?.type || 'bool';
+  const isSelectType = type === 'bool' || type === 'single-select';
+  const isMulti = type === 'multiple-select';
+  const isUint = type === 'uint' || type === 'int';
+  const isDatetime = type === 'datetime';
+
+  const form = el('div', 'arb-ruling-form');
+
+  // Answer input
+  const inputWrap = el('div', 'input-container');
+  form.appendChild(inputWrap);
+
+  let getAnswer = () => '';
+
+  if (isSelectType) {
+    const select = document.createElement('select');
+    select.className = 'answer-select';
+    const def = el('option'); def.value = ''; def.disabled = true; def.selected = true; def.textContent = '— Select —';
+    select.appendChild(def);
+    if (type === 'bool') {
+      const no = el('option'); no.value = '0'; no.textContent = 'No'; select.appendChild(no);
+      const yes = el('option'); yes.value = '1'; yes.textContent = 'Yes'; select.appendChild(yes);
+    } else {
+      (qjson.outcomes || []).forEach((o, i) => {
+        const opt = el('option'); opt.value = String(i); opt.textContent = o; select.appendChild(opt);
+      });
+    }
+    const inv = el('option'); inv.value = INVALID; inv.textContent = 'Invalid'; select.appendChild(inv);
+    inputWrap.appendChild(select);
+    getAnswer = () => select.value;
+  } else if (isMulti) {
+    (qjson.outcomes || []).forEach((o, i) => {
+      const lbl = el('label', 'multi-option');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = String(i);
+      lbl.appendChild(cb); lbl.appendChild(document.createTextNode(' ' + o));
+      inputWrap.appendChild(lbl);
+    });
+    const inv = el('option'); inv.value = INVALID; inv.textContent = 'Invalid'; inputWrap.appendChild(inv);
+    getAnswer = () => {
+      const checked = new Set([...inputWrap.querySelectorAll('input:checked')].map(cb => parseInt(cb.value)));
+      return Array.from({ length: qjson.outcomes?.length || 0 }, (_, i) => checked.has(i));
+    };
+  } else if (isUint) {
+    const input = document.createElement('input');
+    input.type = 'number'; input.step = 'any'; input.min = '0'; input.className = 'uint-input';
+    inputWrap.appendChild(input);
+    getAnswer = () => input.value;
+  } else if (isDatetime) {
+    const input = document.createElement('input');
+    input.type = 'date'; input.className = 'datetime-input-date';
+    inputWrap.appendChild(input);
+    getAnswer = () => input.value ? String(Math.floor(new Date(input.value).getTime() / 1000)) : '';
+  }
+
+  // Winner address — auto-populated when answer matches a known answerer
+  const winnerWrap = el('div', 'arb-winner-wrap');
+  const winnerLabel = el('label', '', 'Winner address');
+  const winnerInput = document.createElement('input');
+  winnerInput.type = 'text'; winnerInput.className = 'arb-winner-input'; winnerInput.placeholder = '0x…';
+  winnerWrap.appendChild(winnerLabel);
+  winnerWrap.appendChild(winnerInput);
+  form.appendChild(winnerWrap);
+
+  function syncWinner() {
+    const raw = getAnswer();
+    if (raw === '' || raw === undefined) return;
+    const ansBytes = answerToBytes32(raw, qjson).toLowerCase();
+    const match = [...answerEvents].reverse().find(ev => ev.args.answer.toLowerCase() === ansBytes);
+    if (match) winnerInput.value = match.args.user;
+  }
+
+  inputWrap.addEventListener('change', syncWinner);
+
+  const btn = el('button', 'post-answer-button btn-post', 'Submit ruling');
+  form.appendChild(btn);
+
+  btn.addEventListener('click', () => {
+    const raw = getAnswer();
+    if (raw === '' || raw === undefined) { showTxError(btn, 'Please select an answer'); return; }
+    const ansBytes = answerToBytes32(raw, qjson);
+    const winner = winnerInput.value.trim();
+    if (!winner) { showTxError(btn, 'Please enter a winner address'); return; }
+    const ARB_RULING_ABI = ['function submitAnswerByArbitrator(bytes32,bytes32,address)'];
+    runTx(btn, 'Submit ruling', async () => {
+      const wp = new ethers.BrowserProvider(window.ethereum);
+      const arbRW = new ethers.Contract(arbitrator, ARB_RULING_ABI, await wp.getSigner());
+      return arbRW.submitAnswerByArbitrator(QUESTION_ID, ansBytes, winner);
+    });
+  });
+
+  return form;
+}
+
 // ── Arbitration section ───────────────────────────────────────────────────────
 async function renderArbitrationSection(data, walletAddr) {
   const section = document.getElementById('arbitration-section');
@@ -1676,6 +1773,17 @@ async function renderArbitrationSection(data, walletAddr) {
       <div class="card-title">Arbitration</div>
       <div class="arb-pending-notice" id="arb-pending-notice">Arbitration has been requested and is awaiting resolution by the arbitrator.</div>`;
     section.style.display = '';
+
+    if (walletAddr) {
+      const arbLink = el('a', 'arb-rule-link', 'Arbitrate');
+      arbLink.href = '#';
+      section.appendChild(arbLink);
+      arbLink.addEventListener('click', e => {
+        e.preventDefault();
+        arbLink.remove();
+        section.appendChild(buildArbitrationForm(data, walletAddr));
+      });
+    }
 
     // Asynchronously refine the notice for Kleros foreign-proxy arbitrators.
     (async () => {
