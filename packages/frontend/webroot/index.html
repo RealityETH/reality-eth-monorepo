@@ -32,7 +32,8 @@
     var s = document.createElement('style');
     s.id = '__route-style';
     s.dataset.view = view;
-    s.textContent = '#view-content{display:none!important}#' + view + '{display:block!important}';
+    s.textContent = '#view-content{display:none!important}#' + view + '{display:block!important}'
+      + (view !== 'rpc-browse-view' ? '.search-wrap{visibility:hidden!important}' : '');
     document.head.appendChild(s);
   }
 
@@ -133,6 +134,7 @@
     width: 28px; height: 28px; flex-shrink: 0; border-radius: 6px; color: transparent;
   }
   .search-wrap { flex: 1; max-width: 440px; position: relative; }
+  body.no-search .search-wrap { visibility: hidden; }
   .search-wrap svg {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
     color: var(--text-dim); pointer-events: none;
@@ -4436,6 +4438,7 @@ header {
 
   function _hideAllViews() {
     window.scrollTo(0, 0);
+    document.body.classList.add('no-search');
     document.getElementById('view-content').style.display = 'none';
     document.getElementById('question-view').style.display = 'none';
     document.getElementById('account-view').style.display = 'none';
@@ -4595,6 +4598,7 @@ header {
   function showBrowseView() {
     _hideAllViews();
     document.getElementById('view-content').style.display = '';
+    document.body.classList.remove('no-search');
     document.title = 'reality.eth';
   }
 
@@ -4605,6 +4609,7 @@ header {
     rv.innerHTML = _rpcBrowseViewTemplate;
     _hideAllViews();
     rv.style.display = '';
+    document.body.classList.remove('no-search');
     document.title = 'reality.eth — Browse by RPC';
     await window.RealityRpcBrowse.mount();
   }
