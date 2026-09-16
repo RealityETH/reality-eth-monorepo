@@ -2,5 +2,7 @@
     "address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1",
     "block": 7898415,
     "notes": null,
-    "arbitrators": {}
+    "arbitrators": {
+        "0x50A7485f583273A4e5D341a25E4555D3C5A810dE": "reality.eth test arbitrator"
+    }
 }

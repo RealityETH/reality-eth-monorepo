@@ -728,6 +728,11 @@
             }
         },
         "ETH": {
+            "Arbitrator": {
+                "address": "0x50A7485f583273A4e5D341a25E4555D3C5A810dE",
+                "block": 11714272,
+                "reality_eth_address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1"
+            },
             "RealityETH-3.0": {
                 "address": "0xaf33DcB6E8c5c4D9dDF579f53031b514d19449CA",
                 "block": 3044431,
@@ -741,7 +746,9 @@
                 "address": "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1",
                 "block": 7898415,
                 "notes": null,
-                "arbitrators": {}
+                "arbitrators": {
+                    "0x50A7485f583273A4e5D341a25E4555D3C5A810dE": "reality.eth test arbitrator"
+                }
             }
         },
         "SAFE": {
