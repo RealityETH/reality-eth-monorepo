@@ -725,6 +725,7 @@ function buildAnswerForm(data, walletAddr) {
   const isMulti      = type === 'multiple-select';
   const isUint       = type === 'uint' || type === 'int';
   const isDatetime   = type === 'datetime';
+  const isHash       = type === 'hash';
 
   // Before-opening: show disabled options (if any) and a notice with opening time
   if (beforeOpen) {
@@ -952,6 +953,16 @@ function buildAnswerForm(data, walletAddr) {
     inputWrap.appendChild(inv);
     if (!hasTooSoon) ts.style.display = 'none';
     inputWrap.appendChild(ts);
+  } else if (isHash) {
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'hash-input'; input.name = 'input-answer';
+    input.placeholder = '0x0000…';
+    inputWrap.appendChild(input);
+    const { inv, ts } = buildSpecialAnswerLinks();
+    if (!hasInvalid) inv.style.display = 'none';
+    inputWrap.appendChild(inv);
+    if (!hasTooSoon) ts.style.display = 'none';
+    inputWrap.appendChild(ts);
   }
 
   // ── Bond row ──
@@ -1067,10 +1078,16 @@ function buildAnswerForm(data, walletAddr) {
       } else if (isDatetime) {
         const dateStr = form.querySelector('.datetime-input-date')?.value || '';
         rawAnswer = dateStr ? String(Math.floor(new Date(dateStr).getTime() / 1000)) : '';
+      } else if (isHash) {
+        rawAnswer = form.querySelector('.hash-input')?.value.trim() || '';
       }
     }
 
     if (rawAnswer === '' || rawAnswer === undefined) { showTxError(btn, 'Please select an answer'); return; }
+    if (isHash && !form.dataset.specialAnswer) {
+      if (!/^0x[0-9a-fA-F]+$/.test(rawAnswer)) { showTxError(btn, 'Please enter a valid hex value'); return; }
+      if (rawAnswer.toLowerCase() === INVALID.toLowerCase()) { showTxError(btn, 'That value is reserved for invalid answers'); return; }
+    }
     if (!validateBond(bondWrap, bondInput, minRequired)) return;
     if (!realityRW) { showTxError(btn, 'Wallet not connected — please connect and try again'); return; }
 
@@ -1715,6 +1732,11 @@ function buildArbitrationForm(data, walletAddr) {
     input.type = 'date'; input.className = 'datetime-input-date';
     inputWrap.appendChild(input);
     getAnswer = () => input.value ? String(Math.floor(new Date(input.value).getTime() / 1000)) : '';
+  } else if (isHash) {
+    const input = document.createElement('input');
+    input.type = 'text'; input.className = 'hash-input'; input.placeholder = '0x0000…';
+    inputWrap.appendChild(input);
+    getAnswer = () => input.value.trim();
   }
 
   // Winner address — auto-populated when answer matches a known answerer
@@ -2202,7 +2224,7 @@ function buildDetailsCard(data, chainId) {
     if (val) rows.push(`<div class="meta-row"><span class="meta-key">${esc(key)}</span><span class="meta-val">${val}</span></div>`);
   }
 
-  const TYPE_LABEL = { bool:'Yes / No', uint:'Number', int:'Number', 'single-select':'Single choice', 'multiple-select':'Multiple choice', datetime:'Date / time' };
+  const TYPE_LABEL = { bool:'Yes / No', uint:'Number', int:'Number', 'single-select':'Single choice', 'multiple-select':'Multiple choice', datetime:'Date / time', hash:'Hash' };
   row('Type', esc(TYPE_LABEL[data.qjson?.type] || data.qjson?.type || ''));
   if (data.qjson?.category) row('Category', esc(data.qjson.category));
   if (data.qjson?.lang && data.qjson.lang !== 'en') row('Language', esc(data.qjson.lang));

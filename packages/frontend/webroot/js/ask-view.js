@@ -6,7 +6,7 @@ window.RealityAsk.mount = async function () {
   // ── Constants ─────────────────────────────────────────────────────────────────
   const DELIM = '␟';
 
-  const TEMPLATE_IDS = { bool: 0, uint: 1, 'single-select': 2, 'multiple-select': 3, datetime: 4 };
+  const TEMPLATE_IDS = { bool: 0, uint: 1, 'single-select': 2, 'multiple-select': 3, datetime: 4, hash: 5 };
 
   const chainName = id => window.RealityChains?.name(id) || `Chain ${id}`;
   function chainNativeToken(id) {
@@ -251,6 +251,8 @@ window.RealityAsk.mount = async function () {
     const supportsMinBond = versionMajor(version) >= 3;
     const minor = parseInt((version || '').match(/\.(\d+)/)?.[1] ?? '0');
     contractUsesDescription = minor >= 2;
+    const hashOpt = document.getElementById('type-option-hash');
+    if (hashOpt) hashOpt.disabled = minor < 2;
     if (typeSelect.value !== 'custom') applyCustomTemplate(null);
 
     document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
@@ -730,7 +732,7 @@ window.RealityAsk.mount = async function () {
         return;
       }
       customTemplate = { id, str: templateStr, ...parsed };
-      const typeLabels = { bool: 'Yes/No', uint: 'Number', 'single-select': 'Single choice', 'multiple-select': 'Multiple choice', datetime: 'Date/time' };
+      const typeLabels = { bool: 'Yes/No', uint: 'Number', 'single-select': 'Single choice', 'multiple-select': 'Multiple choice', datetime: 'Date/time', hash: 'Hash' };
       statusEl.textContent = `Loaded: ${typeLabels[parsed.type] || parsed.type}`;
       applyCustomTemplate(customTemplate);
     } catch (err) {
