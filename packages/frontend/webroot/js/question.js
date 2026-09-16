@@ -715,7 +715,7 @@ function buildSpecialAnswerLinks() {
 // ── Form builder ──────────────────────────────────────────────────────────────
 function buildAnswerForm(data, walletAddr) {
   const { qjson, minBond, openingTS, finalizeTS, answerEvents, isPendingArbitration } = data;
-  const bond = answerEvents.reduce((mx, ev) => ev.args.bond > mx ? ev.args.bond : mx, 0n);
+  const bond = [data.bond, ...answerEvents.map(ev => ev.args.bond)].reduce((mx, b) => b > mx ? b : mx, 0n);
   // Pending arbitration blocks new answers; the arbitration section covers the display.
   if (isPendingArbitration) return null;
   const finalized    = isFinalized(finalizeTS);
