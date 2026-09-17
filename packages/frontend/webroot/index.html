@@ -4819,10 +4819,14 @@ header {
   const base = (h === 'reality.eth' || h === 'reality.eth.limo')
     ? 'https://old.' + h + '/app/'
     : 'https://old.reality.eth.limo/app/';
-  const hash = window.location.hash;
-  const url = /\/network\/\d+\/question\//.test(hash) ? base + hash : base;
-  document.getElementById('classic-tab-link').href = url;
-  document.getElementById('classic-footer-link').href = url;
+  function updateClassicLink() {
+    const hash = window.location.hash;
+    const url = /\/network\/\d+\/question\//.test(hash) ? base + hash : base;
+    document.getElementById('classic-tab-link').href = url;
+    document.getElementById('classic-footer-link').href = url;
+  }
+  updateClassicLink();
+  window.addEventListener('hashchange', updateClassicLink);
 })();
 </script>
 </body>
