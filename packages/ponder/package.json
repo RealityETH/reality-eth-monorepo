@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/ponder",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publishConfig": {
     "access": "public"
   },
@@ -11,8 +11,8 @@
     "codegen": "ponder codegen"
   },
   "dependencies": {
-    "@reality.eth/contracts": "^3.2.26",
-    "@reality.eth/reality-eth-lib": "^3.4.29",
+    "@reality.eth/contracts": "^3.2.27",
+    "@reality.eth/reality-eth-lib": "^3.4.30",
     "ponder": "^0.17.6",
     "viem": "^2.0.0"
   },
