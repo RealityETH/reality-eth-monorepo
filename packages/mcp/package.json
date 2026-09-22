@@ -1,0 +1,19 @@
+{
+  "name": "@reality.eth/mcp",
+  "version": "1.0.0",
+  "description": "MCP server for reality.eth — lets AI agents list, read and answer on-chain questions",
+  "type": "module",
+  "bin": {
+    "reality-eth-mcp": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "lib/",
+    "generated/"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ethers": "^6.0.0"
+  },
+  "license": "GPL-3.0"
+}
