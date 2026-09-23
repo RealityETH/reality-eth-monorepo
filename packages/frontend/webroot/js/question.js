@@ -139,6 +139,16 @@ async function withIndicator(el, fn) {
   }
 }
 
+// Flag a load-bearing RPC failure on the RPC indicator (mirrors the Ponder offline
+// treatment: amber dot + tooltip). Only call this for reads the page actually depends on —
+// best-effort/supplemental RPC reads are left to fail silently (see safeCall call sites).
+function markRpcOffline(msg) {
+  if (!rpcInd) return;
+  rpcInd.classList.add('offline');
+  rpcInd.title = msg;
+  rpcInd.dataset.lastError = msg;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function safeCall(fn, fallback) {
   try { return await fn(); } catch { return fallback; }
@@ -275,8 +285,14 @@ async function fetchTemplateStr(templateId) {
   } catch { return builtins[0]; }
 }
 
+// queryFilterRobust is only used by load-bearing log paths (indexer-down fallback and
+// indexer-lag backfill), so surface getLogs failures on the RPC indicator. Best-effort
+// log reads (cache-warming) call reality.queryFilter directly and stay silent.
 function queryFilterRobust(contract, filter, from, to, stopOnFirst = false) {
-  return window.RealitySettings.queryFilter(contract, filter, from, to, { rpcUrl: publicRpcUrl, stopOnFirst });
+  return window.RealitySettings.queryFilter(contract, filter, from, to, {
+    rpcUrl: publicRpcUrl, stopOnFirst,
+    onError: () => markRpcOffline('RPC error — could not load on-chain event data from the network'),
+  });
 }
 
 // Binary-search block timestamps: returns the lowest block number where block.timestamp > ts.
@@ -1941,6 +1957,10 @@ async function renderArbitrationSection(data, walletAddr) {
 
       noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${chainName(txChainId)} to pay the arbitration fee.`;
     } catch {
+      // NB: not flagged on the RPC indicator. This eth_call path can't cleanly tell an
+      // RPC/network failure from a genuinely unsupported arbitrator (the metadata() error
+      // above is swallowed), and the wrong-chain UX here is tracked separately. Left as-is
+      // pending that fix rather than risk a false RPC-offline flag.
       btn.textContent = 'Fee unavailable — arbitrator may not be responding';
       return;
     }
@@ -2509,7 +2529,8 @@ async function verifyWithRpc(data) {
     // Warm the events cache in the background using pinpoint single-block fetches.
     // Ponder tells us the exact createdBlock for each event, so we don't need
     // a range scan at all — just one eth_getLogs call per unique block.
-    // Only runs if the cache is empty.
+    // Only runs if the cache is empty. Purely a perf optimisation over indexer data, so
+    // these getLogs go via reality.queryFilter + safeCall and fail silently (no rpcInd flag).
     (async () => {
       try {
         const existing = await QCache.get(CHAIN_ID, CONTRACT, QUESTION_ID);
@@ -3182,6 +3203,8 @@ async function main(hintAddr) {
               // Show the element now; update with details when the async scan finishes.
               // Try direct queryFilter first (fast: one call, uses 'latest' as toBlock).
               // Returns null on range/network failure, [] if no events, [...] if found.
+              // Best-effort enrichment (only reached when the indexer lacks the claim), so
+              // these getLogs fail silently — no rpcInd flag.
               (async () => {
                 const fromBlock = data.createdBlock || contractMeta(CONTRACT)?.startBlock || 0;
                 let logs = await safeCall(
@@ -3340,7 +3363,10 @@ async function main(hintAddr) {
   renderArbitrationSection(data, walletAddr).catch(() => {});
   renderArbitratorTOS(data.arbitrator).catch(() => {});
 
-  // 8. Background RPC verification + reveal-map population
+  // 8. Background RPC verification + reveal-map population.
+  // Supplemental: the page already rendered from indexer data, so a failure here is
+  // deliberately silent (its load-bearing log reads flag rpcInd themselves via
+  // queryFilterRobust).
   if (reality) verifyWithRpc(data).catch(() => {});
 }
 

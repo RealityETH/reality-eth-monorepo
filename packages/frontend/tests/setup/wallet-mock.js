@@ -169,10 +169,14 @@ export async function setupPageWithStalePonder(page, ponderData) {
 // EIP-1193 mock backed by the local anvil node.
 // Also injects window.RealitySettings.getRpcUrl so that question.js readProvider
 // points to Anvil rather than the public chain RPC — needed for anvil_setCode mocks.
-export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [] } = {}) {
+// failLogs: simulate an RPC endpoint that serves eth_call but rejects eth_getLogs
+// (a common real-world quirk) — used to test that log failures surface only when
+// load-bearing.
+export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false } = {}) {
   return `
 (function() {
   const RPC_URL = ${JSON.stringify(rpcUrl)};
+  const FAIL_LOGS = ${failLogs};
   let _chainId = ${JSON.stringify(chainId)};
   const _address = ${JSON.stringify(TEST_ACCOUNT.address)};
   const _handlers = {};
@@ -273,6 +277,7 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraCo
         }
 
         case 'eth_getLogs': {
+          if (FAIL_LOGS) throw new Error('the method eth_getLogs is not available');
           const filter = { ...params[0] };
           if (filter.fromBlock) {
             const from = parseInt(filter.fromBlock, 16);
