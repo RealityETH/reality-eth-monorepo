@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { ethers } from 'ethers';
 import { snapshot, revert } from './setup/anvil.js';
 import { walletMockScript } from './setup/wallet-mock.js';
+import { CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
 import { createRequire } from 'module';
@@ -190,5 +191,34 @@ test.describe('ask page: v3.2 description validation and submission', () => {
     expect(parts[1]).toBe(description);
     expect(questionText).not.toContain('Select category');
     expect(questionText).not.toContain('arts');
+  });
+
+  // The ask flow pre-computes the expected question id (RealityLib.questionID) before
+  // sending the tx, using the version number extracted from the version key. On v2.1 that
+  // uses the v2 questionID hashing path. If the extraction regressed, questionID would
+  // throw and the tx would never be sent — so reaching eth_sendTransaction proves it.
+  test('v2.1 submission computes the expected question id and sends askQuestion', async ({ page }) => {
+    await loadAskPage(page);
+    await page.locator('#ask-version-select').selectOption('RealityETH-2.1');
+
+    await page.locator('#question-body').fill('Version extraction test?');
+    await page.locator('#question-category').selectOption('misc'); // required on v2.1
+    await page.locator('#question-arbitrator').selectOption('self');
+
+    const txPromise = page.evaluate(() =>
+      new Promise(resolve => {
+        const orig = window.ethereum.request.bind(window.ethereum);
+        window.ethereum.request = async (args) => {
+          const result = await orig(args);
+          if (args.method === 'eth_sendTransaction') resolve(args.params[0]);
+          return result;
+        };
+      })
+    );
+
+    await page.locator('#ask-submit-btn').click();
+
+    const tx = await txPromise;
+    expect(tx.to.toLowerCase()).toBe(CONTRACTS.realityEth21.toLowerCase());
   });
 });

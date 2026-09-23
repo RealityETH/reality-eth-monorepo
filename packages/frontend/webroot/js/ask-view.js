@@ -856,7 +856,7 @@ window.RealityAsk.mount = async function () {
       // Pre-compute the expected question ID from the inputs we already have.
       // If the WC relay drops the tx hash after the wallet signs, we can poll
       // eth_getLogs for LogNewQuestion with this ID rather than hanging forever.
-      const versionStr = selectedVersion.match(/-(\d+\.\d+)$/)?.[1] || '2.0';
+      const versionStr = window.RealityContracts?.versionNumberFromKey(selectedVersion) || '2.0';
       const expectedQuestionId = RealityLib.questionID(
         templateId, qtext, arbAddr, timeout, openingTs, walletAddr, 0,
         '0x' + minBondWei.toString(16), rcAddress, versionStr);
