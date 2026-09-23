@@ -66,7 +66,8 @@ window.RealityContract.mount = async function (chainId, address) {
   const isERC20   = !!info.token_address;
   const verMeta   = VERSION_META[versionKey] || {};
 
-  const verNum  = parseFloat((versionKey.match(/[-_](\d+\.\d+)/) || [])[1] || '0');
+  // Version number extraction is owned by @reality.eth/contracts (window.RealityContracts).
+  const verNum  = parseFloat(window.RealityContracts?.versionNumberFromKey(versionKey) || '0');
   const features = VERSION_FEATURES.filter(f => verNum >= f.fromMajor);
   if (isERC20) features.unshift({ label: 'ERC-20 token bonds', note: `Bond payments use ${tokenSym} tokens rather than the chain's native currency.` });
 
