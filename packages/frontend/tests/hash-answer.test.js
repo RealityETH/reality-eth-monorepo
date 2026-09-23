@@ -176,3 +176,23 @@ test.describe('ask page: hash answer type gating', () => {
     await expect(page.locator('#type-option-hash')).toBeDisabled();
   });
 });
+
+// The generated website data records each contract's majorVersion, extracted from the
+// version key via the shared versionNumberFromKey helper. The question page's version
+// fallback (contractMeta().majorVersion) depends on this being correct.
+test.describe('website data: contract major version', () => {
+  test('contractsByAddress.majorVersion is derived correctly from version keys', async ({ page }) => {
+    await loadAskPage(page);
+    const majors = await page.evaluate(() => {
+      const c = window.RealityWebsiteData.contractsByAddress;
+      return {
+        v21: c['0x79e32ae03fb27b07c89c0c568f80287c01ca2e57']?.majorVersion, // RealityETH-2.1
+        v30: c['0xe78996a233895be74a66f451f1019ca9734205cc']?.majorVersion, // RealityETH-3.0
+        v32: c['0xeb51d9d9717906c981c57af09c4a3449ef30705b']?.majorVersion, // RealityETH-3.2
+      };
+    });
+    expect(majors.v21).toBe(2);
+    expect(majors.v30).toBe(3);
+    expect(majors.v32).toBe(3);
+  });
+});

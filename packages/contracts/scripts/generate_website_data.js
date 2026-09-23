@@ -47,9 +47,9 @@ for (const [chainId, chainContracts] of Object.entries(contracts)) {
         const tokenDecimals = tokens[tokenTicker]?.decimals ?? 18;
         for (const [versionName, versionData] of Object.entries(tokenVersions)) {
             if (!versionData.address) continue;
-            const majorMatch = versionName.match(/-(\d+)\./);
+            const major = parseInt(versionNumberFromKey(versionName));
             contractsByAddress[versionData.address.toLowerCase()] = {
-                majorVersion: majorMatch ? parseInt(majorMatch[1]) : null,
+                majorVersion: Number.isNaN(major) ? null : major,
                 startBlock:   versionData.block ?? 0,
                 tokenTicker,
                 tokenDecimals,

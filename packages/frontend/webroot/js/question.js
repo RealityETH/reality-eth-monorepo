@@ -1203,9 +1203,10 @@ const contractsMetaPromise = (async () => {
         }
         if (info.address?.toLowerCase() === CONTRACT.toLowerCase()) {
           metaStartBlock   = info.block ?? null;
-          // Version key is like "RealityETH-3.2" or "RealityETH_ERC20-3.2"
-          const major = ver.match(/[-_](\d+)\./)?.[1];
-          metaMajorVersion = major ? parseInt(major) : null;
+          // Version key is like "RealityETH-3.2" or "RealityETH_ERC20-3.2"; extract the
+          // number via the shared @reality.eth/contracts helper rather than a local regex.
+          const major = parseInt(window.RealityContracts?.versionNumberFromKey(ver));
+          metaMajorVersion = Number.isNaN(major) ? null : major;
           metaContractVer  = ver;
           metaTokenAddress = info.token_address || null;
           if (metaTokenAddress) {
