@@ -55,6 +55,31 @@ test.describe('ask page: template field visibility', () => {
   });
 });
 
+// The minimum-bond field is only supported on v3.0+ contracts (askQuestionWithMinBond).
+// The ask page enables/disables it via the version feature check; if that regresses,
+// users on v2.1 could enter a min bond that the contract can't honour, or users on
+// v3.0+ could be blocked from setting one.
+test.describe('ask page: min-bond field gating', () => {
+  test('v3.0 (default on Gnosis) enables the minimum-bond field', async ({ page }) => {
+    await loadAskPage(page);
+    await expect(page.locator('#question-minbond')).toBeEnabled();
+  });
+
+  test('switching to v2.1 disables the minimum-bond field', async ({ page }) => {
+    await loadAskPage(page);
+    await page.locator('#ask-version-select').selectOption('RealityETH-2.1');
+    await expect(page.locator('#question-minbond')).toBeDisabled();
+  });
+
+  test('switching back to v3.0 re-enables the minimum-bond field', async ({ page }) => {
+    await loadAskPage(page);
+    await page.locator('#ask-version-select').selectOption('RealityETH-2.1');
+    await expect(page.locator('#question-minbond')).toBeDisabled();
+    await page.locator('#ask-version-select').selectOption('RealityETH-3.0');
+    await expect(page.locator('#question-minbond')).toBeEnabled();
+  });
+});
+
 test.describe('ask page: answer options UI', () => {
   test('switching to single-select shows answer options section', async ({ page }) => {
     await loadAskPage(page);

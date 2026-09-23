@@ -232,11 +232,6 @@ window.RealityAsk.mount = async function () {
     }
   }
 
-  function versionMajor(versionStr) {
-    const m = versionStr.match(/-(\d+)\./);
-    return m ? parseInt(m[1]) : 0;
-  }
-
   async function applyTokenVersion(data, chain, token, version) {
     selectedToken = token;
     selectedVersion = version;
@@ -248,11 +243,15 @@ window.RealityAsk.mount = async function () {
     rcToken = token;
     isERC20Contract = !!info.token_address;
     rcTokenAddress = info.token_address || null;
-    const supportsMinBond = versionMajor(version) >= 3;
-    const minor = parseInt((version || '').match(/\.(\d+)/)?.[1] ?? '0');
-    contractUsesDescription = minor >= 2;
+    // Version feature-detection is owned by @reality.eth/contracts (exposed as
+    // window.RealityContracts) — don't hand-roll version parsing here. versionHasFeature
+    // wants a bare "major.minor" number, so extract it from the version key first.
+    const verNum = window.RealityContracts?.versionNumberFromKey(version);
+    const hasFeature = f => window.RealityContracts?.versionHasFeature(verNum, f) ?? false;
+    const supportsMinBond = hasFeature('min-bond');
+    contractUsesDescription = hasFeature('description');
     const hashOpt = document.getElementById('type-option-hash');
-    if (hashOpt) hashOpt.disabled = minor < 2;
+    if (hashOpt) hashOpt.disabled = !hasFeature('hash-type');
     if (typeSelect.value !== 'custom') applyCustomTemplate(null);
 
     document.getElementById('token-label').textContent = `(${rcToken}, optional)`;
@@ -791,7 +790,8 @@ window.RealityAsk.mount = async function () {
       const opening  = document.getElementById('opening-date').value;
       const timeout  = parseInt(timeoutSel.value);
       const rewardEth  = rewardInput.value || '0';
-      const supportsMinBond = versionMajor(selectedVersion) >= 3;
+      const selectedVerNum = window.RealityContracts?.versionNumberFromKey(selectedVersion);
+      const supportsMinBond = window.RealityContracts?.versionHasFeature(selectedVerNum, 'min-bond') ?? false;
       const minBondEth = supportsMinBond ? (document.getElementById('question-minbond').value || '0') : '0';
       const outcomes = [...optionsWrap.querySelectorAll('.answer-option-input')]
         .map(i => i.value.trim()).filter(Boolean);

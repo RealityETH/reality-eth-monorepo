@@ -47,8 +47,10 @@ function nativeSmallBond(id) {
 // Returns built-in template map for a version string (e.g. "RealityETH-3.2").
 // Minor version >= 2 uses description+hash type; .0 and .1 use category.
 function builtinTemplatesForVer(verStr) {
-  const minor = parseInt((verStr || '').match(/\.(\d+)/)?.[1] ?? '0');
-  return minor >= 2
+  // The v3.2 template set (which adds the hash template) is exactly the versions that
+  // support the hash-type feature, so reuse the canonical check from @reality.eth/contracts.
+  const num = window.RealityContracts?.versionNumberFromKey(verStr);
+  return window.RealityContracts?.versionHasFeature(num, 'hash-type')
     ? window.RealityLib.preloadedTemplateContentsV32()
     : window.RealityLib.preloadedTemplateContents();
 }
@@ -876,7 +878,7 @@ function buildAnswerForm(data, walletAddr) {
   }
 
   const hasInvalid = !('has_invalid' in qjson && !qjson.has_invalid);
-  const hasTooSoon = (metaMajorVersion ?? majorVersion) >= 3;
+  const hasTooSoon = hasContractFeature('answered-too-soon');
 
   // ── Build form wrapper ──
   const form = document.createElement('div');
@@ -1174,6 +1176,16 @@ let knownArbitrators = null; // Set of lowercase addresses, or null if not yet l
 let metaStartBlock   = null; // Deployment block for CONTRACT on CHAIN_ID (from contracts.json)
 let metaMajorVersion = null; // Major version (2 or 3) for CONTRACT on CHAIN_ID
 let metaContractVer  = null; // Full version string e.g. "RealityETH-3.2" (for template set selection)
+
+// Version feature-detection is owned by @reality.eth/contracts (exposed as
+// window.RealityContracts). Prefer the full version key; fall back to the major version
+// when contract meta hasn't loaded yet. versionHasFeature wants a bare "major.minor"
+// number, so run the key through the shared extractor first.
+function hasContractFeature(feature) {
+  const key = metaContractVer || ((metaMajorVersion ?? majorVersion) + '.0');
+  const num = window.RealityContracts?.versionNumberFromKey(key);
+  return window.RealityContracts?.versionHasFeature(num, feature) ?? false;
+}
 let metaToken        = chainToken(CHAIN_ID); // Bond/reward token symbol
 let metaDecimals     = 18;                             // Token decimal places (18 for all native tokens)
 let metaTokenAddress = null; // ERC20 token address, or null for native-token contracts
@@ -1684,6 +1696,7 @@ function buildArbitrationForm(data, walletAddr) {
   const isMulti = type === 'multiple-select';
   const isUint = type === 'uint' || type === 'int';
   const isDatetime = type === 'datetime';
+  const isHash = type === 'hash';
 
   const form = el('div', 'arb-ruling-form');
 
@@ -2757,7 +2770,6 @@ async function main(hintAddr) {
     document.getElementById('rpc-loading-note')?.style.removeProperty('display');
     // RPC path — await meta so we have the correct deployment block and version
     await contractsMetaPromise;
-    const effectiveMajor = metaMajorVersion ?? (contractMeta(CONTRACT)?.majorVersion ?? 3);
     const startBlock     = metaStartBlock   ?? contractMeta(CONTRACT)?.startBlock ?? 0;
 
     data = await withIndicator(rpcInd, async () => {
@@ -2833,7 +2845,7 @@ async function main(hintAddr) {
       let settledTooSoon = false, reopenedBy = ZERO_HASH, reopensQuestionId = null;
       let reopenerAnsweredTooSoon = false;
       let reopenerFinalizeTS = 0;
-      if (effectiveMajor >= 3) {
+      if (hasContractFeature('reopen-question')) {
         [settledTooSoon, reopenedBy] = await Promise.all([
           safeCall(() => reality.isSettledTooSoon(QUESTION_ID), false),
           safeCall(() => reality.reopened_questions(QUESTION_ID), ZERO_HASH),
@@ -3015,13 +3027,13 @@ async function main(hintAddr) {
   _renderDynamic = function() {
     const finalized  = isFinalized(data.finalizeTS) && !data.isPendingArbitration;
     const beforeOpen = isBeforeOpening(data.openingTS);
-    const effectiveVersion = metaMajorVersion ?? majorVersion;
+    const supportsReopen = hasContractFeature('reopen-question');
     const reopenerTooSoonFinalized = data.reopenerAnsweredTooSoon && isFinalized(data.reopenerFinalizeTS);
-    const isReopenable = finalized && data.settledTooSoon && effectiveVersion >= 3
+    const isReopenable = finalized && data.settledTooSoon && supportsReopen
       && (data.reopenedBy === ZERO_HASH || reopenerTooSoonFinalized)
       && !data.reopensQuestionId;
     // Show "reopened" when reopener exists and is not itself ready to be re-reopened
-    const isReopened   = finalized && data.settledTooSoon && effectiveVersion >= 3
+    const isReopened   = finalized && data.settledTooSoon && supportsReopen
       && data.reopenedBy !== ZERO_HASH && !reopenerTooSoonFinalized;
 
     // Status badge

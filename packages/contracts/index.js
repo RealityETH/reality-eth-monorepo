@@ -240,9 +240,15 @@ function defaultTokenForChain(chain_id) {
     return ret;
 }
 
+// Extract the bare "major.minor" version number ("3.2") from a contract-version key
+// such as "RealityETH-3.2" or "RealityETH_ERC20-3.0". A bare number is returned as-is.
+function versionNumberFromKey(version_key) {
+    return (""+version_key).replace(/^[A-Za-z][A-Za-z0-9_]*-/, '');
+}
+
 function versionHasFeature(vernum, feature_name) {
     vernum = ""+vernum;
-    if (feature_name == 'min-bond' || feature_name == 'reopen-question') {
+    if (feature_name == 'min-bond' || feature_name == 'reopen-question' || feature_name == 'answered-too-soon') {
         const min_maj = 3;
         const bits = vernum.split('.');
         const maj = parseInt(bits[0]);
@@ -395,6 +401,7 @@ module.exports.templateConfig = templateConfig;
 module.exports.defaultTemplateIDForType = defaultTemplateIDForType;
 module.exports.defaultTokenForChain = defaultTokenForChain;
 module.exports.versionHasFeature = versionHasFeature;
+module.exports.versionNumberFromKey = versionNumberFromKey;
 module.exports.isChainSupported = isChainSupported;
 module.exports.supportedChains = supportedChains;
 module.exports.factoryList = factoryList;

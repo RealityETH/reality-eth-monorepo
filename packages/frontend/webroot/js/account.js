@@ -24,8 +24,10 @@ const SCAN_ABI = [
 // Returns the right built-in template map for a contract version string.
 // Minor version >= 2 uses description+hash type; .0 and .1 use category.
 function builtinTemplatesForVer(verStr) {
-  const minor = parseInt((verStr || '').match(/\.(\d+)/)?.[1] ?? '0');
-  return minor >= 2
+  // The v3.2 template set (which adds the hash template) is exactly the versions that
+  // support the hash-type feature, so reuse the canonical check from @reality.eth/contracts.
+  const num = window.RealityContracts?.versionNumberFromKey(verStr);
+  return window.RealityContracts?.versionHasFeature(num, 'hash-type')
     ? window.RealityLib.preloadedTemplateContentsV32()
     : window.RealityLib.preloadedTemplateContents();
 }

@@ -10,6 +10,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Version feature-detection lives in @reality.eth/contracts — the single source of
+// truth for which contract version supports which feature. Expose it to the static
+// frontend (which has no build step) via window.RealityContracts instead of letting
+// the UI hand-roll its own version parsing.
+const { versionHasFeature, versionNumberFromKey } = require('../index.js');
+
 const project_base = path.resolve(__dirname, '..');
 const webroot = path.resolve(project_base, '../../packages/frontend/webroot');
 const install = process.argv.includes('--install');
@@ -55,7 +61,13 @@ for (const [chainId, chainContracts] of Object.entries(contracts)) {
 }
 
 const data = { chains, contracts, factories, tokens, integrations, nativeTokenByChain, smallBondByChain, contractsByAddress };
-const output = 'window.RealityWebsiteData = ' + JSON.stringify(data) + ';\n';
+const output = 'window.RealityWebsiteData = ' + JSON.stringify(data) + ';\n'
+    // These helpers are self-contained (args + string ops only), so emitting their
+    // source keeps the frontend in lock-step with the contracts package definition.
+    + 'window.RealityContracts = {'
+    + ' versionHasFeature: ' + versionHasFeature.toString() + ','
+    + ' versionNumberFromKey: ' + versionNumberFromKey.toString()
+    + ' };\n';
 
 const generatedPath = path.join(project_base, 'generated/website-data.js');
 fs.writeFileSync(generatedPath, output);
