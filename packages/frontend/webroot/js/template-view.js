@@ -100,7 +100,8 @@ window.RealityTemplate.mount = async function (routeId) {
 
   function getVersionsForToken(data, chain, token) {
     const versions = data[String(chain)]?.[token] || {};
-    const verNum = v => v.replace(/^[A-Za-z_]+-/, '');
+    // Version number extraction is owned by @reality.eth/contracts (window.RealityContracts).
+    const verNum = v => window.RealityContracts?.versionNumberFromKey(v);
     return Object.keys(versions)
       .filter(v => versions[v]?.address)
       .sort((a, b) => {
