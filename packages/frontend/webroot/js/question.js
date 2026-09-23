@@ -1930,8 +1930,19 @@ async function renderArbitrationSection(data, walletAddr) {
   //         fee/TX on the foreign chain (typically Ethereum mainnet).
   let fee, arbContractAddr = arbitrator, txChainId = CHAIN_ID;
 
+  // A revert (CALL_EXCEPTION/BAD_DATA) means the arbitrator doesn't implement the read —
+  // an arbitrator problem. Anything else (unreachable node, timeout, rate-limit, CORS)
+  // is a node problem. Wrap each read so a non-revert failure flags the RPC as down,
+  // regardless of how the surrounding code handles the thrown error.
+  let rpcDown = false;
+  const isRevert = (err) => err?.code === 'CALL_EXCEPTION' || err?.code === 'BAD_DATA';
+  const feeRead = async (fn) => {
+    try { return await fn(); }
+    catch (err) { if (!isRevert(err)) rpcDown = true; throw err; }
+  };
+
   try {
-    fee = await new ethers.Contract(arbitrator, ARBITRATOR_ABI, prov).getDisputeFee(QUESTION_ID);
+    fee = await feeRead(() => new ethers.Contract(arbitrator, ARBITRATOR_ABI, prov).getDisputeFee(QUESTION_ID));
   } catch {
     // Kleros home proxy (e.g. Gnosis) always reverts getDisputeFee — it's a bridge.
     // Detect via metadata() → foreignProxy + foreignChainId, then query the foreign side.
@@ -1943,25 +1954,31 @@ async function renderArbitrationSection(data, walletAddr) {
       ];
       const home = new ethers.Contract(arbitrator, homeAbi, prov);
       let meta = {};
-      try { meta = JSON.parse(await home.metadata()); } catch {}
+      // metadata() failing is fine for the Kleros check (treat as "not Kleros"); feeRead
+      // still flags rpcDown first if the failure was a node error rather than a revert.
+      try { meta = JSON.parse(await feeRead(() => home.metadata())); } catch {}
       if (!meta.foreignProxy) throw new Error('unknown arbitrator');
 
-      const [fpAddr, fpChainBN] = await Promise.all([home.foreignProxy(), home.foreignChainId()]);
+      const [fpAddr, fpChainBN] = await feeRead(() => Promise.all([home.foreignProxy(), home.foreignChainId()]));
       txChainId = Number(fpChainBN);
 
       const fpRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(txChainId) || chainRpcUrl(txChainId);
       if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
       const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, txChainId, { staticNetwork: true });
-      fee = await new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID);
+      fee = await feeRead(() => new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID));
       arbContractAddr = fpAddr;
 
       noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${chainName(txChainId)} to pay the arbitration fee.`;
     } catch {
-      // NB: not flagged on the RPC indicator. This eth_call path can't cleanly tell an
-      // RPC/network failure from a genuinely unsupported arbitrator (the metadata() error
-      // above is swallowed), and the wrong-chain UX here is tracked separately. Left as-is
-      // pending that fix rather than risk a false RPC-offline flag.
-      btn.textContent = 'Fee unavailable — arbitrator may not be responding';
+      // Distinguish a broken RPC from a genuinely unsupported arbitrator: only a node
+      // failure (non-revert) flags the RPC indicator; a revert leaves the honest
+      // "arbitrator may not be responding" message.
+      if (rpcDown) {
+        markRpcOffline('RPC error — could not reach the network to load the arbitration fee');
+        btn.textContent = 'Fee unavailable — network/RPC error';
+      } else {
+        btn.textContent = 'Fee unavailable — arbitrator may not be responding';
+      }
       return;
     }
   }
