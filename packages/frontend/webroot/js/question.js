@@ -1824,7 +1824,7 @@ async function renderArbitrationSection(data, walletAddr) {
     // Asynchronously refine the notice for Kleros foreign-proxy arbitrators.
     (async () => {
       try {
-        const prov = reality?.provider || readProvider;
+        const prov = reality?.runner || readProvider;
         const homeAbi = [
           'function metadata() view returns (string)',
           'function foreignProxy() view returns (address)',
@@ -1905,7 +1905,7 @@ async function renderArbitrationSection(data, walletAddr) {
 
   const btn     = document.getElementById('arb-btn');
   const noteEl  = document.getElementById('arb-note');
-  const prov    = reality?.provider || readProvider;
+  const prov    = reality?.runner || readProvider;
 
   // Step 1: try direct arbitration (getDisputeFee on the question's arbitrator).
   // Step 2: on failure, detect Kleros foreign-proxy pattern and switch to the
