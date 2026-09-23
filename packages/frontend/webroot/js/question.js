@@ -535,8 +535,10 @@ async function ensureCorrectChain() {
 // which can drop inbound messages after the wallet approves). Falls back to
 // tx.wait() via the WC relay with a 2-minute timeout so the user is never
 // permanently stuck.
-async function waitForTx(tx) {
-  const rpcUrl = window.RealitySettings?.getEffectiveRpcUrl(CHAIN_ID);
+async function waitForTx(tx, chainId = CHAIN_ID) {
+  // chainId defaults to the question's chain; cross-chain txs (e.g. Kleros arbitration
+  // paid on a foreign chain) must pass their own chain so we poll the right RPC.
+  const rpcUrl = window.RealitySettings?.getEffectiveRpcUrl(chainId) || chainRpcUrl(chainId);
   if (rpcUrl) {
     return new ethers.JsonRpcProvider(rpcUrl).waitForTransaction(tx.hash);
   }
@@ -1980,7 +1982,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const tx = await new ethers.Contract(arbContractAddr, ARBITRATOR_ABI, new ethers.JsonRpcSigner(wp, walletAddr))
         .requestArbitration(QUESTION_ID, bond, { value: fee });
       btn.textContent = 'Pending…';
-      await waitForTx(tx);
+      await waitForTx(tx, txChainId);
       _autoStarFn?.();
       btn.textContent = '✓ Done';
       setTimeout(() => location.reload(), 1500);

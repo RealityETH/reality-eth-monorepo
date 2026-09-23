@@ -167,14 +167,18 @@ export async function createForeignProxyFixtures(klerosFixtures) {
 
   const homeProxy = new ethers.Contract(
     CONTRACTS.klerosArbitrator,
-    ['function foreignProxy() view returns (address)'],
+    [
+      'function foreignProxy() view returns (address)',
+      'function foreignChainId() view returns (uint256)',
+    ],
     provider,
   );
   const foreignProxyAddr = (await homeProxy.foreignProxy()).toLowerCase();
+  const foreignChainId = Number(await homeProxy.foreignChainId());
 
   await provider.send('anvil_setCode', [foreignProxyAddr, MOCK_FOREIGN_PROXY_BYTECODE]);
 
-  return { foreignProxyAddr, ...klerosFixtures };
+  return { foreignProxyAddr, foreignChainId, ...klerosFixtures };
 }
 
 export async function createAnswerTypeFixtures() {
