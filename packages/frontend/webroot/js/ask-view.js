@@ -112,7 +112,8 @@ window.RealityAsk.mount = async function () {
 
   function getVersionsForToken(data, chain, token) {
     const versions = data[String(chain)]?.[token] || {};
-    const verNum = v => v.replace(/^[A-Za-z_]+-/, '');
+    // Version number extraction is owned by @reality.eth/contracts (window.RealityContracts).
+    const verNum = v => window.RealityContracts?.versionNumberFromKey(v);
     return Object.keys(versions)
       .filter(v => versions[v]?.address && !versions[v]?.reality_eth_address)
       .sort((a, b) => {

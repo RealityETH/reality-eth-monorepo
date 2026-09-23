@@ -59,6 +59,18 @@ test.describe('ask page: template field visibility', () => {
 // The ask page enables/disables it via the version feature check; if that regresses,
 // users on v2.1 could enter a min bond that the contract can't honour, or users on
 // v3.0+ could be blocked from setting one.
+// The version dropdown is ordered by a priority list, keyed on the version number
+// extracted from each version key. On Gnosis the XDAI contracts are 2.1/3.0/3.2 and
+// should list as 3.0, 3.2, 2.1 (3.0 preferred, legacy 2.1 last).
+test.describe('ask page: version select ordering', () => {
+  test('versions are listed in priority order (3.0, 3.2, 2.1)', async ({ page }) => {
+    await loadAskPage(page);
+    const values = await page.locator('#ask-version-select option')
+      .evaluateAll(opts => opts.map(o => o.value));
+    expect(values).toEqual(['RealityETH-3.0', 'RealityETH-3.2', 'RealityETH-2.1']);
+  });
+});
+
 test.describe('ask page: min-bond field gating', () => {
   test('v3.0 (default on Gnosis) enables the minimum-bond field', async ({ page }) => {
     await loadAskPage(page);
