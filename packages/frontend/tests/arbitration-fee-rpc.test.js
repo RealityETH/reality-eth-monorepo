@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ANVIL_URL } from './setup/anvil.js';
 import { walletMockScript } from './setup/wallet-mock.js';
 import { CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
@@ -67,5 +68,26 @@ test.describe('arbitration fee: RPC-down vs unsupported-arbitrator', () => {
     await loadArbQuestion(page, { deadRpc: true });
     await expect(page.locator('#arb-btn')).toContainText('network/RPC error', { timeout: 30000 });
     await expect(page.locator('#ind-rpc')).toHaveClass(/offline/);
+  });
+
+  // With no wallet connected, a disputable question should offer a connect affordance
+  // (parity with the answer form), not hide the arbitration section.
+  test('disconnected wallet shows a Connect wallet button, not the request UI', async ({ page }) => {
+    // No wallet injected. Point the read RPC at anvil so background verify stays local.
+    await page.addInitScript(`try { localStorage.setItem('reality.rpcUrl.100', ${JSON.stringify(ANVIL_URL)}); } catch (e) {}`);
+    await page.route('**/graphql**', (route) => {
+      const body = JSON.parse(route.request().postData() || '{}');
+      if ((body.query || '').includes('template(id:')) {
+        return route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ data: { template: { questionText: BOOL_TEMPLATE } } }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ data: ponderData(ARB) }) });
+    });
+    await page.goto(`${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${QUESTION_ID}`);
+
+    const section = page.locator('#arbitration-section');
+    await expect(section.locator('button.btn-connect')).toBeVisible({ timeout: 30000 });
+    await expect(section.locator('#arb-btn')).toHaveCount(0);
   });
 });

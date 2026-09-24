@@ -1935,7 +1935,24 @@ async function renderArbitrationSection(data, walletAddr) {
     return;
   }
 
-  if (finalized || beforeOpen || bond === 0n || !walletAddr) return;
+  if (finalized || beforeOpen || bond === 0n) return;
+
+  if (!walletAddr) {
+    // Disputable, but no wallet connected — offer a connect affordance instead of hiding
+    // the section entirely (parity with the answer form). Re-rendered on connect by
+    // _setQuestionWallet, which then shows the fee/request UI.
+    section.innerHTML = `
+      <div class="card-title">Arbitration</div>
+      <p class="arb-note">Dispute the current answer by requesting arbitration.</p>`;
+    const connectBtn = el('button', 'btn-connect', 'Connect wallet');
+    connectBtn.type = 'button';
+    connectBtn.addEventListener('click', () => {
+      if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+    });
+    section.appendChild(connectBtn);
+    section.style.display = '';
+    return;
+  }
 
   section.innerHTML = `
     <div class="card-title">Arbitration</div>
@@ -3374,8 +3391,12 @@ async function main(hintAddr) {
         if (addrChanged) {
           lastFormState = null;
           _renderDynamic();
+          // Re-render arbitration so connect/disconnect flips between the connect prompt
+          // and the fee/request UI (renderArbitrationSection isn't driven by _renderDynamic).
+          renderArbitrationSection(data, walletAddr).catch(() => {});
         } else if (!prevRealityRW && realityRW) {
           _renderDynamic();
+          renderArbitrationSection(data, walletAddr).catch(() => {});
         }
       };
     }
