@@ -28,8 +28,8 @@ test.describe('Kleros foreign-proxy arbitration flow', () => {
   test.beforeEach(async () => { snap = await snapshot(); });
   test.afterEach(async () => { await revert(snap); snap = await snapshot(); });
 
-  async function loadQuestion(page) {
-    await setupPage(page, { extraContracts: [fixtures.foreignProxyAddr] });
+  async function loadQuestion(page, opts = {}) {
+    await setupPage(page, { extraContracts: [fixtures.foreignProxyAddr], asyncChainChanged: opts.asyncChainChanged });
     await page.addInitScript(foreignChainRpcOverrideScript(fixtures.foreignChainId));
     await page.goto(
       `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
@@ -70,5 +70,23 @@ test.describe('Kleros foreign-proxy arbitration flow', () => {
     );
 
     await expect(page.locator('#arb-btn')).toHaveText('✓ Done');
+  });
+
+  // Real wallets emit chainChanged a tick after the switch resolves; wallet.js reloads on
+  // chainChanged unless it's an internal switch. If the internal-switch flag is cleared too
+  // early, that late event reloads the page mid-flow and the arbitration never completes.
+  test('cross-chain switch does not reload the page when chainChanged fires async', async ({ page }) => {
+    await loadQuestion(page, { asyncChainChanged: true });
+
+    // Sentinel wiped by a page reload.
+    await page.evaluate(() => { window.__noReload = true; });
+
+    await page.click('#arb-btn');
+
+    await page.waitForFunction(
+      () => document.getElementById('arb-btn')?.textContent === '✓ Done',
+      {}, { timeout: 30000 }
+    );
+    expect(await page.evaluate(() => window.__noReload === true)).toBe(true);
   });
 });

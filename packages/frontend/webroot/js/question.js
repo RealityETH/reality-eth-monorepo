@@ -2020,6 +2020,10 @@ async function renderArbitrationSection(data, walletAddr) {
       const currentHex = await window.ethereum.request({ method: 'eth_chainId' });
       if (parseInt(currentHex, 16) !== txChainId) {
         btn.textContent = `Switching to ${chainName(txChainId)}…`;
+        // Suppress wallet.js's chainChanged→reload for the rest of the flow. Wallets emit
+        // chainChanged asynchronously (a tick after the switch request resolves), so
+        // clearing this in a finally here would let a late event reload the page mid-flow.
+        // Cleared in the catch below on failure; on success the flow ends in a reload.
         window.ethereum._internalChainSwitch = true;
         try {
           await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: targetHex }] });
@@ -2029,8 +2033,6 @@ async function renderArbitrationSection(data, walletAddr) {
           } else {
             throw switchErr;
           }
-        } finally {
-          window.ethereum._internalChainSwitch = false;
         }
       }
 
@@ -2044,6 +2046,8 @@ async function renderArbitrationSection(data, walletAddr) {
       btn.textContent = '✓ Done';
       setTimeout(() => location.reload(), 1500);
     } catch (err) {
+      // Flow ended without a reload — re-enable wallet.js's chainChanged→reload.
+      if (window.ethereum) window.ethereum._internalChainSwitch = false;
       btn.disabled = false;
       btn.textContent = btnLabel;
       showTxError(btn, txErrorMessage(err));

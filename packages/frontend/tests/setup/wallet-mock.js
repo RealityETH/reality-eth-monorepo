@@ -140,7 +140,11 @@ export function wcWalletMockScript({
 //  - intercept /graphql so Ponder returns no data → triggers RPC fallback
 // opts.extraContracts: lowercase addresses to add to KNOWN_LOCAL_CONTRACTS
 export async function setupPage(page, opts = {}) {
-  await page.addInitScript(walletMockScript({ extraContracts: opts.extraContracts ?? [] }));
+  await page.addInitScript(walletMockScript({
+    extraContracts: opts.extraContracts ?? [],
+    failLogs: opts.failLogs ?? false,
+    asyncChainChanged: opts.asyncChainChanged ?? false,
+  }));
   // Return a null question so question.js falls back to RPC event scanning
   await page.route('**/graphql**', route =>
     route.fulfill({
@@ -172,11 +176,12 @@ export async function setupPageWithStalePonder(page, ponderData) {
 // failLogs: simulate an RPC endpoint that serves eth_call but rejects eth_getLogs
 // (a common real-world quirk) — used to test that log failures surface only when
 // load-bearing.
-export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false } = {}) {
+export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false, asyncChainChanged = false } = {}) {
   return `
 (function() {
   const RPC_URL = ${JSON.stringify(rpcUrl)};
   const FAIL_LOGS = ${failLogs};
+  const ASYNC_CHAIN_CHANGED = ${asyncChainChanged};
   let _chainId = ${JSON.stringify(chainId)};
   const _address = ${JSON.stringify(TEST_ACCOUNT.address)};
   const _handlers = {};
@@ -254,7 +259,10 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraCo
         case 'wallet_switchEthereumChain': {
           const newChainId = params[0].chainId;
           _chainId = newChainId;
-          (_handlers['chainChanged'] || []).forEach(h => h(newChainId));
+          const fire = () => (_handlers['chainChanged'] || []).forEach(h => h(newChainId));
+          // Real wallets (e.g. Rabby) emit chainChanged a tick AFTER the switch request
+          // resolves; ASYNC_CHAIN_CHANGED reproduces that timing.
+          if (ASYNC_CHAIN_CHANGED) setTimeout(fire, 0); else fire();
           return null;
         }
 
