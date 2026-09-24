@@ -298,9 +298,15 @@
       // Not restored — put the injected wallet back so it's usable this session.
       window.ethereum = _savedInjected || undefined;
       _savedInjected = null;
-      // Only drop the WC flag when the session is genuinely gone (clean false). On a
-      // transient error keep it so a still-valid session can auto-restore next load.
-      if (!threw) { try { localStorage.removeItem(WC_CACHE_KEY); } catch {} }
+      if (!threw) {
+        // Only drop the WC flag when the session is genuinely gone (clean false). On a
+        // transient error keep it so a still-valid session can auto-restore next load.
+        try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
+        // Clean "no session" and no injected wallet to fall back to: the cached address is
+        // stale, so correct the header (initWallet showed it optimistically at the top)
+        // instead of leaving it claiming a wallet that isn't there.
+        if (!window.ethereum) { setCached(null); onChange(null); return; }
+      }
     }
 
     const eth = window.ethereum;
