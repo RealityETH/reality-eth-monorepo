@@ -369,13 +369,21 @@
   // Clear local state and session.
   function disconnectWallet(onChange) {
     const eth = window.ethereum;
-    // If it's a WC provider, disconnect the session and restore the injected wallet.
-    if (eth && typeof eth.disconnect === 'function' && eth.session) {
-      eth.disconnect().catch(() => {});
-      window.ethereum = _savedInjected || undefined;
+    // Tell a live WC provider to end its session.
+    const isWcProvider = eth && typeof eth.disconnect === 'function' && eth.session;
+    if (isWcProvider) eth.disconnect().catch(() => {});
+    // Always tear down WC state, not only when a live WC provider is present. In a stranded
+    // state (injected wallet hidden in _savedInjected, window.ethereum undefined) the old
+    // guard skipped this, so disconnect couldn't recover the injected wallet and the next
+    // connect wrongly forced a fresh WC session. Restore the injected wallet if we hid one;
+    // otherwise clear the (now-disconnected) WC provider.
+    if (_savedInjected) {
+      window.ethereum = _savedInjected;
       _savedInjected = null;
-      try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
+    } else if (isWcProvider) {
+      window.ethereum = undefined;
     }
+    try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
     setCached(null);
     onChange(null);
   }
