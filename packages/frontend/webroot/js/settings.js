@@ -235,8 +235,19 @@ function attachRpcPanel(el, currentChainId) {
         ? [chains.find(c => c.id === currentChainId), ...chains.filter(c => c.id !== currentChainId)].filter(Boolean)
         : chains;
 
+      // Show a failure message when the RPC indicator is offline (mirrors the Ponder panel).
+      const isOffline = el.classList.contains('offline') || el.classList.contains('fail');
+      const lastError = el.dataset.lastError || (isOffline ? 'RPC error' : '');
+      const errUrl    = el.dataset.rpcUrl || '';
+      const errHtml   = lastError ? `
+        <div class="sp-error-block">
+          <div class="sp-error-msg"></div>
+          ${errUrl ? '<div class="sp-error-url"></div>' : ''}
+        </div>` : '';
+
       panel.innerHTML = `
         <div class="sp-title">RPC Endpoints</div>
+        ${errHtml}
         <label class="sp-check-row">
           <input type="checkbox" id="sp-use-browser" ${getUseBrowserRpc() ? 'checked' : ''}>
           <span>Use browser wallet (MetaMask) if available</span>
@@ -245,6 +256,11 @@ function attachRpcPanel(el, currentChainId) {
         <div class="sp-chain-list" id="sp-chain-list"></div>
         <div class="sp-actions"><button class="sp-save">Save &amp; reload</button></div>
       `;
+
+      if (lastError) {
+        panel.querySelector('.sp-error-msg').textContent = lastError;
+        if (errUrl) panel.querySelector('.sp-error-url').textContent = errUrl;
+      }
 
       const listEl = panel.querySelector('#sp-chain-list');
       for (const chain of sorted) {

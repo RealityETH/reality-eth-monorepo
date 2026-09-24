@@ -140,13 +140,27 @@ async function withIndicator(el, fn) {
 }
 
 // Flag a load-bearing RPC failure on the RPC indicator (mirrors the Ponder offline
-// treatment: amber dot + tooltip). Only call this for reads the page actually depends on —
-// best-effort/supplemental RPC reads are left to fail silently (see safeCall call sites).
+// treatment: amber dot + tooltip + a message shown in the RPC settings popup). Only call
+// this for reads the page actually depends on — best-effort/supplemental RPC reads are
+// left to fail silently (see safeCall call sites).
 function markRpcOffline(msg) {
   if (!rpcInd) return;
   rpcInd.classList.add('offline');
   rpcInd.title = msg;
   rpcInd.dataset.lastError = msg;
+  if (publicRpcUrl) rpcInd.dataset.rpcUrl = publicRpcUrl;
+}
+
+// A revert (CALL_EXCEPTION/BAD_DATA) means the contract responded — a contract/arbitrator
+// problem, not the node. Anything else (unreachable, timeout, rate-limit, CORS, bad host)
+// is a node/transport failure that should flag the RPC indicator.
+// NB: reliable only for JsonRpcProvider reads (public readProvider / foreign fpProv), where
+// transport failures surface as NETWORK_ERROR/SERVER_ERROR/ECONNREFUSED. ethers' BrowserProvider
+// collapses a failed eth_call into CALL_EXCEPTION regardless of cause, so a wallet-node failure
+// can't be told from a revert — acceptable, since the wallet's own node rarely fails and the
+// load-bearing reads that matter go through the public RPC.
+function isNodeError(err) {
+  return !(err?.code === 'CALL_EXCEPTION' || err?.code === 'BAD_DATA');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -156,12 +170,20 @@ async function safeCall(fn, fallback) {
 
 // Fetch the full question struct in one eth_call. Handles v2 (10 fields, no min_bond)
 // and v3 (11 fields) by trying the longer decode first, falling back to the shorter one.
-async function questionsStruct(provider, contractAddr, questionId) {
+// onError (optional) is called when the CALL itself fails on a node error — pass it only
+// where this read is load-bearing (the indexer-down fallback), not for supplemental reads.
+async function questionsStruct(provider, contractAddr, questionId, onError) {
   const selector = ethers.id('questions(bytes32)').slice(0, 10);
-  const raw = await safeCall(() => provider.call({
-    to: contractAddr,
-    data: selector + ethers.zeroPadValue(ethers.toBeHex(questionId), 32).slice(2),
-  }), null);
+  let raw;
+  try {
+    raw = await provider.call({
+      to: contractAddr,
+      data: selector + ethers.zeroPadValue(ethers.toBeHex(questionId), 32).slice(2),
+    });
+  } catch (err) {
+    if (onError && isNodeError(err)) onError(err);
+    return null;
+  }
   if (!raw || raw === '0x') return null;
   const T11 = ['bytes32','address','uint32','uint32','uint32','bool','uint256','bytes32','bytes32','uint256','uint256'];
   const T10 = T11.slice(0, 10);
@@ -1930,15 +1952,13 @@ async function renderArbitrationSection(data, walletAddr) {
   //         fee/TX on the foreign chain (typically Ethereum mainnet).
   let fee, arbContractAddr = arbitrator, txChainId = CHAIN_ID;
 
-  // A revert (CALL_EXCEPTION/BAD_DATA) means the arbitrator doesn't implement the read —
-  // an arbitrator problem. Anything else (unreachable node, timeout, rate-limit, CORS)
-  // is a node problem. Wrap each read so a non-revert failure flags the RPC as down,
+  // A revert means the arbitrator doesn't implement the read (an arbitrator problem); a
+  // node failure means the RPC is at fault. Wrap each read so a node failure flags rpcDown,
   // regardless of how the surrounding code handles the thrown error.
   let rpcDown = false;
-  const isRevert = (err) => err?.code === 'CALL_EXCEPTION' || err?.code === 'BAD_DATA';
   const feeRead = async (fn) => {
     try { return await fn(); }
-    catch (err) { if (!isRevert(err)) rpcDown = true; throw err; }
+    catch (err) { if (isNodeError(err)) rpcDown = true; throw err; }
   };
 
   try {
@@ -2815,7 +2835,9 @@ async function main(hintAddr) {
 
     data = await withIndicator(rpcInd, async () => {
       // One call for all question struct fields; fall back to individual getters if it fails.
-      const q = await questionsStruct(reality.runner, CONTRACT, QUESTION_ID);
+      // Load-bearing here (indexer is down) — a node failure flags the RPC indicator.
+      const q = await questionsStruct(reality.runner, CONTRACT, QUESTION_ID,
+        () => markRpcOffline('RPC error — could not load question data from the network'));
       let bond, finalizeTS, upperBoundTs, bounty, isPendingArbitration;
       if (q) {
         bond                 = q.bond;

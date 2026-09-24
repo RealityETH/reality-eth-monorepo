@@ -76,4 +76,44 @@ test.describe('RPC error indicator: load-bearing vs best-effort log failures', (
 
     await expect(page.locator('#ind-rpc')).toHaveClass(/offline/, { timeout: 30000 });
   });
+
+  test('indexer down + failing eth_call (logs OK) flags via the fallback struct read', async ({ page }) => {
+    // A node that serves getLogs but fails eth_call — the fallback's load-bearing
+    // questions() struct read must flag the indicator on its own. Wallet parked off-chain
+    // so reads go through the public readProvider (JsonRpcProvider), where a transport
+    // failure is distinguishable from a revert.
+    await page.addInitScript(walletMockScript({ chainId: '0x1' }));
+    await page.route('**/graphql**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ data: { question: null } }) }));
+    // Fail eth_call at the RPC transport; let everything else (incl. eth_getLogs) through.
+    await page.route(/127\.0\.0\.1:18545/, async (route) => {
+      let body = {};
+      try { body = JSON.parse(route.request().postData() || '{}'); } catch {}
+      const methods = Array.isArray(body) ? body.map((b) => b.method) : [body.method];
+      if (methods.includes('eth_call')) {
+        return route.fulfill({ status: 502, contentType: 'text/plain', body: 'bad gateway' });
+      }
+      return route.continue();
+    });
+
+    await page.goto(`${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolId}`);
+
+    await expect(page.locator('#ind-rpc')).toHaveClass(/offline/, { timeout: 30000 });
+  });
+
+  test('RPC settings popup shows the error message, not just the icon colour', async ({ page }) => {
+    await page.addInitScript(walletMockScript({ failLogs: true }));
+    await page.route('**/graphql**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ data: { question: null } }) }));
+
+    await page.goto(`${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.boolId}`);
+    await expect(page.locator('#ind-rpc')).toHaveClass(/offline/, { timeout: 30000 });
+
+    await page.locator('#ind-rpc').click();
+    const err = page.locator('.sp-panel .sp-error-msg');
+    await expect(err).toBeVisible();
+    await expect(err).toContainText('RPC error');
+  });
 });
