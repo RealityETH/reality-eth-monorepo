@@ -285,12 +285,22 @@
         _savedInjected = window.ethereum;
         window.ethereum = undefined;
       }
-      const restored = await initWC(onChange);
+      let restored = false, threw = false;
+      try {
+        restored = await initWC(onChange);
+      } catch (e) {
+        // A transient WC failure (relay/bundle hiccup) must NOT strand the injected wallet:
+        // without this, the restore below never ran and window.ethereum stayed undefined.
+        threw = true;
+        console.warn('WalletConnect restore failed:', e?.message || e);
+      }
       if (restored) return;
-      // Session gone — restore the injected wallet, clear the flag, and fall through.
+      // Not restored — put the injected wallet back so it's usable this session.
       window.ethereum = _savedInjected || undefined;
       _savedInjected = null;
-      try { localStorage.removeItem(WC_CACHE_KEY); } catch {}
+      // Only drop the WC flag when the session is genuinely gone (clean false). On a
+      // transient error keep it so a still-valid session can auto-restore next load.
+      if (!threw) { try { localStorage.removeItem(WC_CACHE_KEY); } catch {} }
     }
 
     const eth = window.ethereum;
