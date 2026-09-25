@@ -143,12 +143,15 @@ async function withIndicator(el, fn) {
 // treatment: amber dot + tooltip + a message shown in the RPC settings popup). Only call
 // this for reads the page actually depends on — best-effort/supplemental RPC reads are
 // left to fail silently (see safeCall call sites).
-function markRpcOffline(msg) {
+function markRpcOffline(msg, url = publicRpcUrl, chainId = CHAIN_ID) {
   if (!rpcInd) return;
   rpcInd.classList.add('offline');
   rpcInd.title = msg;
   rpcInd.dataset.lastError = msg;
-  if (publicRpcUrl) rpcInd.dataset.rpcUrl = publicRpcUrl;
+  // Record the endpoint that failed. For a cross-chain Kleros fee this is the foreign
+  // chain's RPC, not the question's — so callers pass the relevant url/chainId.
+  if (url) rpcInd.dataset.rpcUrl = url;
+  if (chainId != null) rpcInd.dataset.rpcChain = chainName(chainId);
 }
 
 // A revert (CALL_EXCEPTION/BAD_DATA) means the contract responded — a contract/arbitrator
@@ -1973,9 +1976,16 @@ async function renderArbitrationSection(data, walletAddr) {
   // node failure means the RPC is at fault. Wrap each read so a node failure flags rpcDown,
   // regardless of how the surrounding code handles the thrown error.
   let rpcDown = false;
+  // Track the chain/RPC of the read that actually failed, so the indicator names the right
+  // endpoint (a cross-chain Kleros fee is read on the foreign chain, not the question's).
+  let rpcDownUrl = publicRpcUrl, rpcDownChain = CHAIN_ID;
+  let readUrl = publicRpcUrl, readChain = CHAIN_ID; // context of the read currently attempted
   const feeRead = async (fn) => {
     try { return await fn(); }
-    catch (err) { if (isNodeError(err)) rpcDown = true; throw err; }
+    catch (err) {
+      if (isNodeError(err)) { rpcDown = true; rpcDownUrl = readUrl; rpcDownChain = readChain; }
+      throw err;
+    }
   };
 
   try {
@@ -2002,6 +2012,7 @@ async function renderArbitrationSection(data, walletAddr) {
       const fpRpcUrl = window.RealitySettings?.getEffectiveRpcUrl(txChainId) || chainRpcUrl(txChainId);
       if (!fpRpcUrl) throw new Error(`No RPC for chain ${txChainId}`);
       const fpProv = new ethers.JsonRpcProvider(fpRpcUrl, txChainId, { staticNetwork: true });
+      readUrl = fpRpcUrl; readChain = txChainId; // the fee read below is on the foreign chain
       fee = await feeRead(() => new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID));
       arbContractAddr = fpAddr;
 
@@ -2011,7 +2022,7 @@ async function renderArbitrationSection(data, walletAddr) {
       // failure (non-revert) flags the RPC indicator; a revert leaves the honest
       // "arbitrator may not be responding" message.
       if (rpcDown) {
-        markRpcOffline('RPC error — could not reach the network to load the arbitration fee');
+        markRpcOffline('RPC error — could not reach the network to load the arbitration fee', rpcDownUrl, rpcDownChain);
         btn.textContent = 'Fee unavailable — network/RPC error';
       } else {
         btn.textContent = 'Fee unavailable — arbitrator may not be responding';

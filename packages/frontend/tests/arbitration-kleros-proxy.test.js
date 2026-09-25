@@ -89,4 +89,22 @@ test.describe('Kleros foreign-proxy arbitration flow', () => {
     );
     expect(await page.evaluate(() => window.__noReload === true)).toBe(true);
   });
+
+  // When the fee read fails on the foreign chain, the RPC indicator must name the foreign
+  // endpoint (the genuinely broken one), not the question chain's RPC.
+  test('cross-chain fee failure records the foreign chain RPC, not the question chain', async ({ page }) => {
+    await setupPage(page, { extraContracts: [fixtures.foreignProxyAddr] });
+    // Question chain stays healthy (anvil); point the FOREIGN chain RPC at a dead endpoint.
+    await page.addInitScript(
+      `try { localStorage.setItem('reality.rpcUrl.' + ${fixtures.foreignChainId}, 'http://127.0.0.1:1'); } catch (e) {}`
+    );
+    await page.goto(
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
+    );
+
+    await expect(page.locator('#ind-rpc')).toHaveClass(/offline/, { timeout: 30000 });
+    const ds = await page.locator('#ind-rpc').evaluate((el) => ({ url: el.dataset.rpcUrl, chain: el.dataset.rpcChain }));
+    expect(ds.url).toBe('http://127.0.0.1:1');   // the foreign RPC, not the Gnosis one
+    expect(ds.chain).not.toBe('Gnosis');          // labelled with the foreign chain
+  });
 });

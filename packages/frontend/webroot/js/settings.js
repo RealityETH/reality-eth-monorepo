@@ -239,6 +239,10 @@ function attachRpcPanel(el, currentChainId) {
       const isOffline = el.classList.contains('offline') || el.classList.contains('fail');
       const lastError = el.dataset.lastError || (isOffline ? 'RPC error' : '');
       const errUrl    = el.dataset.rpcUrl || '';
+      const errChain  = el.dataset.rpcChain || '';
+      // Prefix the endpoint with its chain — a Gnosis question's arbitration RPC is on
+      // mainnet, so a bare URL would be confusing without the chain label.
+      const errUrlText = errChain ? `${errChain}: ${errUrl}` : errUrl;
       const errHtml   = lastError ? `
         <div class="sp-error-block">
           <div class="sp-error-msg"></div>
@@ -259,7 +263,7 @@ function attachRpcPanel(el, currentChainId) {
 
       if (lastError) {
         panel.querySelector('.sp-error-msg').textContent = lastError;
-        if (errUrl) panel.querySelector('.sp-error-url').textContent = errUrl;
+        if (errUrl) panel.querySelector('.sp-error-url').textContent = errUrlText;
       }
 
       const listEl = panel.querySelector('#sp-chain-list');
