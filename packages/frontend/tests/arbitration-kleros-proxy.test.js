@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { snapshot, revert, ANVIL_URL } from './setup/anvil.js';
-import { setupPage } from './setup/wallet-mock.js';
+import { snapshot, revert, ANVIL_URL, TEST_ACCOUNT } from './setup/anvil.js';
+import { setupPage, setupPageWithStalePonder } from './setup/wallet-mock.js';
 import { createKlerosFixtures, createForeignProxyFixtures, CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
@@ -106,5 +106,63 @@ test.describe('Kleros foreign-proxy arbitration flow', () => {
     const ds = await page.locator('#ind-rpc').evaluate((el) => ({ url: el.dataset.rpcUrl, chain: el.dataset.rpcChain }));
     expect(ds.url).toBe('http://127.0.0.1:1');   // the foreign RPC, not the Gnosis one
     expect(ds.chain).not.toBe('Gnosis');          // labelled with the foreign chain
+  });
+
+  // The pending-arbitration refine-notice scans the foreign proxy for ArbitrationRequested
+  // events. An unbounded queryFilter (fromBlock 0) is rejected by public RPCs, so the scan
+  // must start from a bounded block derived from the arbitration-requested timestamp. We
+  // point the foreign chain at a mock RPC and assert the eth_getLogs it issues is bounded.
+  test('pending Kleros refine-notice bounds the ArbitrationRequested log scan', async ({ page }) => {
+    const FOREIGN_RPC = 'https://mock-foreign.reality-test.local/rpc';
+    let logsFromBlock = null;
+
+    const reqTs = Math.floor(Date.now() / 1000) - 3600; // requested ~1h ago
+    const q = {
+      templateId: '0', data: 'Pending Kleros arbitration', title: 'Pending Kleros arbitration',
+      type: 'bool', category: '', lang: 'en_US', outcomes: null,
+      creator: TEST_ACCOUNT.address.toLowerCase(),
+      arbitrator: CONTRACTS.klerosArbitrator,
+      openingTimestamp: '0', timeout: '86400',
+      currentAnswer: '0x' + '0'.repeat(63) + '1', currentAnswerBond: '1000000000000000',
+      minBond: '0', bounty: '0', scheduledFinalizationTimestamp: '0',
+      arbitrationOccurred: false, isPendingArbitration: true,
+      arbitrationRequestedTimestamp: String(reqTs),
+      createdBlock: '1', createdLogIndex: '0',
+      createdTxHash: '0x' + '0'.repeat(64), reopensQuestionId: null,
+    };
+
+    await setupPageWithStalePonder(page, {
+      question: q, responses: { items: [] }, claims: { items: [] }, reopeners: { items: [] },
+    });
+    await page.addInitScript(
+      `try { localStorage.setItem('reality.rpcUrl.' + ${fixtures.foreignChainId}, ${JSON.stringify(FOREIGN_RPC)}); } catch (e) {}`
+    );
+
+    // Mock the foreign RPC: recent head, no existing dispute (eth_call → false), capture getLogs.
+    await page.route(/mock-foreign\.reality-test\.local/, async (route) => {
+      const body = JSON.parse(route.request().postData() || '{}');
+      const handle = (req) => {
+        switch (req.method) {
+          case 'eth_blockNumber': return { jsonrpc: '2.0', id: req.id, result: '0x1312d00' }; // 20,000,000
+          case 'eth_chainId':     return { jsonrpc: '2.0', id: req.id, result: '0x' + Number(fixtures.foreignChainId).toString(16) };
+          case 'eth_getLogs':     logsFromBlock = req.params?.[0]?.fromBlock; return { jsonrpc: '2.0', id: req.id, result: [] };
+          case 'eth_call':        return { jsonrpc: '2.0', id: req.id, result: '0x' + '0'.repeat(64) }; // disputeExists=false
+          default:                return { jsonrpc: '2.0', id: req.id, result: null };
+        }
+      };
+      const resp = Array.isArray(body) ? body.map(handle) : handle(body);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(resp) });
+    });
+
+    await page.goto(
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
+    );
+
+    await expect(page.locator('#arb-pending-notice')).toBeVisible({ timeout: 30000 });
+    await expect.poll(() => logsFromBlock, { timeout: 30000 }).not.toBeNull();
+
+    // Bounded: not a full-history scan from genesis.
+    expect(logsFromBlock).not.toBe('0x0');
+    expect(parseInt(logsFromBlock, 16)).toBeGreaterThan(0);
   });
 });

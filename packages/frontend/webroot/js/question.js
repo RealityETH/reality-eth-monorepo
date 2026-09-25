@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v28');
+console.log('[question.js] v29');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -259,7 +259,7 @@ async function fetchPonderData() {
       arbitrator openingTimestamp timeout
       currentAnswer currentAnswerBond historyHash
       minBond bounty scheduledFinalizationTimestamp
-      arbitrationOccurred isPendingArbitration
+      arbitrationOccurred isPendingArbitration arbitrationRequestedTimestamp
       createdBlock createdLogIndex createdTxHash createdTimestamp
       reopensQuestionId
     }
@@ -439,6 +439,7 @@ function adaptPonderData(ponderData) {
     reopensQuestionId:       pq.reopensQuestionId || null,
     arbitrationOccurred:  !!pq.arbitrationOccurred,
     isPendingArbitration: !!pq.isPendingArbitration,
+    arbitrationRequestedTimestamp: Number(pq.arbitrationRequestedTimestamp || 0),
     creator:              (pq.creator || '').toLowerCase(),
     answerEvents,
     revealMap,
@@ -1904,7 +1905,23 @@ async function renderArbitrationSection(data, walletAddr) {
           try {
             const reqFp = new ethers.Contract(fpAddr,
               ['event ArbitrationRequested(bytes32 indexed _questionID, address indexed _requester)'], fpProv);
-            const evts = await reqFp.queryFilter(reqFp.filters.ArbitrationRequested(QUESTION_ID));
+            // Bound the scan: an unbounded queryFilter (fromBlock 0) is rejected by public
+            // RPCs (range/archive limits). Estimate the foreign block around when arbitration
+            // was requested (from the home-chain timestamp) and scan a chunked window from
+            // there. Best-effort — a miss just leaves the generic "waiting…" notice.
+            const curBlk = await safeCall(() => fpProv.getBlockNumber(), null);
+            let evts = [];
+            if (curBlk !== null) {
+              const secsPerBlock = ({ 1:12, 10:2, 56:3, 100:5, 137:2, 8453:2, 42161:2, 43114:2, 42220:5 })[fpChainId] || 12;
+              const reqTs = data.arbitrationRequestedTimestamp || 0;
+              const behind = reqTs > 0
+                ? Math.ceil((Math.floor(Date.now() / 1000) - reqTs) / secsPerBlock)
+                : Math.ceil((7 * 24 * 3600) / secsPerBlock); // no timestamp → last ~7 days
+              const fromBlk = Math.max(0, curBlk - behind - 10000); // buffer for estimate drift
+              evts = await window.RealitySettings.queryFilter(
+                reqFp, reqFp.filters.ArbitrationRequested(QUESTION_ID), fromBlk, curBlk,
+                { rpcUrl: fpRpcUrl });
+            }
             for (const evt of evts) {
               let status = 0;
               try {
