@@ -4694,9 +4694,13 @@ header {
       _rs.remove();
     }
 
-    RealityWallet.initWallet(onWalletChange);
+    // Default handler for before the wallet state is known. Must be set BEFORE initWallet:
+    // initWallet synchronously calls onWalletChange for a cached address (which wires the
+    // disconnect handler), so setting this afterwards would clobber it back to connect —
+    // leaving a connected button that opens the chooser instead of disconnecting.
     document.getElementById('wallet-btn').onclick =
       () => RealityWallet.connectWallet(onWalletChange);
+    RealityWallet.initWallet(onWalletChange);
 
     renderStarred();
     initControls();
