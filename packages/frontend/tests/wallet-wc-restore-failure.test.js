@@ -42,6 +42,7 @@ test('WC restore failure does not strand the injected wallet', async ({ page }) 
 test('stale WC cache with no live session clears the header on load', async ({ page }) => {
   await page.addInitScript(`
     try {
+      localStorage.setItem('reality.storage.generation', '2'); // opt out of one-time storage reset
       localStorage.setItem('reality-eth-wc-session', '1');
       localStorage.setItem('reality-eth-wallet', '0x1234567890123456789012345678901234567890');
     } catch (e) {}

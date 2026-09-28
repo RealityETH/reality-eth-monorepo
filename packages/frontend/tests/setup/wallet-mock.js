@@ -26,6 +26,8 @@ export function wcWalletMockScript({
   const LOG_MIN_BLOCK = FORK_BLOCK + 1;
   return `
 (function () {
+  // Opt out of index.html's one-time storage reset so seeded test state survives.
+  try { localStorage.setItem('reality.storage.generation', '2'); } catch (e) {}
   const _addr    = ${JSON.stringify(address)};
   const _sesChain = ${sessionChainId};
   const _rpcUrl  = ${JSON.stringify(rpcUrl)};
@@ -182,6 +184,8 @@ export async function setupPageWithStalePonder(page, ponderData) {
 export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false, asyncChainChanged = false, connected = true } = {}) {
   return `
 (function() {
+  // Opt out of index.html's one-time storage reset so seeded test state survives.
+  try { localStorage.setItem('reality.storage.generation', '2'); } catch (e) {}
   const RPC_URL = ${JSON.stringify(rpcUrl)};
   const FAIL_LOGS = ${failLogs};
   const ASYNC_CHAIN_CHANGED = ${asyncChainChanged};

@@ -74,7 +74,8 @@ test.describe('arbitration fee: RPC-down vs unsupported-arbitrator', () => {
   // (parity with the answer form), not hide the arbitration section.
   test('disconnected wallet shows a Connect wallet button, not the request UI', async ({ page }) => {
     // No wallet injected. Point the read RPC at anvil so background verify stays local.
-    await page.addInitScript(`try { localStorage.setItem('reality.rpcUrl.100', ${JSON.stringify(ANVIL_URL)}); } catch (e) {}`);
+    // Opt out of the one-time storage reset so the seeded RPC override survives.
+    await page.addInitScript(`try { localStorage.setItem('reality.storage.generation', '2'); localStorage.setItem('reality.rpcUrl.100', ${JSON.stringify(ANVIL_URL)}); } catch (e) {}`);
     await page.route('**/graphql**', (route) => {
       const body = JSON.parse(route.request().postData() || '{}');
       if ((body.query || '').includes('template(id:')) {

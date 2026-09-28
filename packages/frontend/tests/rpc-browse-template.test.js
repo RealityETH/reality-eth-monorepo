@@ -42,6 +42,7 @@ test.describe('rpc-browse: template resolution', () => {
   // the real file load (fine for the builtin test where the bundle is irrelevant).
   async function scanRpcBrowse(page, bundleContent) {
     await page.addInitScript(`
+      localStorage.setItem('reality.storage.generation', '2'); // opt out of one-time storage reset
       localStorage.setItem('reality.rpcUrl.100', ${JSON.stringify(ANVIL_URL)});
     `);
 

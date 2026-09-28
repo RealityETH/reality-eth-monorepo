@@ -6,6 +6,23 @@
 <title>reality.eth</title>
 <link rel="manifest" href="site.webmanifest">
 <script>
+// One-time storage reset. A past stored-XSS (title_html injection) could poison localStorage
+// with attacker-controlled RPC/indexer URLs and a cached wallet address that the account page
+// rendered via innerHTML. We treat persisted state as a versioned namespace: if this browser
+// isn't on the current generation, wipe everything (the old namespace) and stamp the new one,
+// before any provider or wallet code runs. Bump STORAGE_GEN to force a future reset.
+(function () {
+  try {
+    var GEN_KEY = 'reality.storage.generation';
+    var STORAGE_GEN = '2';
+    if (localStorage.getItem(GEN_KEY) !== STORAGE_GEN) {
+      localStorage.clear();
+      try { sessionStorage.clear(); } catch (e) {}
+      localStorage.setItem(GEN_KEY, STORAGE_GEN);
+    }
+  } catch (e) {}
+})();
+
 // Route-detect before first paint: correct view visibility + selective script loading.
 // Runs synchronously in <head>, no external deps.
 (function () {
