@@ -176,12 +176,16 @@ export async function setupPageWithStalePonder(page, ponderData) {
 // failLogs: simulate an RPC endpoint that serves eth_call but rejects eth_getLogs
 // (a common real-world quirk) — used to test that log failures surface only when
 // load-bearing.
-export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false, asyncChainChanged = false } = {}) {
+// connected: when false, eth_accounts returns [] so the page loads disconnected (the wallet
+// is present but not yet authorized). eth_requestAccounts still returns the address so a
+// click on a "Connect wallet" affordance connects.
+export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraContracts = [], failLogs = false, asyncChainChanged = false, connected = true } = {}) {
   return `
 (function() {
   const RPC_URL = ${JSON.stringify(rpcUrl)};
   const FAIL_LOGS = ${failLogs};
   const ASYNC_CHAIN_CHANGED = ${asyncChainChanged};
+  const CONNECTED = ${connected};
   let _chainId = ${JSON.stringify(chainId)};
   const _address = ${JSON.stringify(TEST_ACCOUNT.address)};
   const _handlers = {};
@@ -247,8 +251,10 @@ export function walletMockScript({ chainId = '0x64', rpcUrl = ANVIL_URL, extraCo
     request: async ({ method, params = [] }) => {
       switch (method) {
         case 'eth_requestAccounts':
-        case 'eth_accounts':
           return [_address];
+
+        case 'eth_accounts':
+          return CONNECTED ? [_address] : [];
 
         case 'eth_chainId':
           return _chainId;

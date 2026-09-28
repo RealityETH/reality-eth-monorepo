@@ -1,6 +1,6 @@
 (function () {
 'use strict';
-console.log('[question.js] v29');
+console.log('[question.js] v30');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const INVALID   = RealityLib.getInvalidValue();
@@ -1957,23 +1957,9 @@ async function renderArbitrationSection(data, walletAddr) {
 
   if (finalized || beforeOpen || bond === 0n) return;
 
-  if (!walletAddr) {
-    // Disputable, but no wallet connected — offer a connect affordance instead of hiding
-    // the section entirely (parity with the answer form). Re-rendered on connect by
-    // _setQuestionWallet, which then shows the fee/request UI.
-    section.innerHTML = `
-      <div class="card-title">Arbitration</div>
-      <p class="arb-note">Dispute the current answer by requesting arbitration.</p>`;
-    const connectBtn = el('button', 'btn-connect', 'Connect wallet');
-    connectBtn.type = 'button';
-    connectBtn.addEventListener('click', () => {
-      if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
-    });
-    section.appendChild(connectBtn);
-    section.style.display = '';
-    return;
-  }
-
+  // Render the section, then load the fee. We load it regardless of wallet connection so the
+  // fee is visible (in the note) even before connecting — the button itself just becomes a
+  // "Connect wallet" affordance in that case.
   section.innerHTML = `
     <div class="card-title">Arbitration</div>
     <p class="arb-note" id="arb-note">Dispute the current answer by requesting arbitration.</p>
@@ -1984,9 +1970,23 @@ async function renderArbitrationSection(data, walletAddr) {
   const noteEl  = document.getElementById('arb-note');
   const prov    = reality?.runner || readProvider;
 
+  // Replace the request button with a connect affordance (used both when the fee loads and
+  // when it can't). Re-rendered on connect by _setQuestionWallet, which then shows the
+  // request UI.
+  const showConnectButton = () => {
+    btn.remove();
+    const connectBtn = el('button', 'btn-connect', 'Connect wallet');
+    connectBtn.type = 'button';
+    connectBtn.addEventListener('click', () => {
+      if (typeof RealityWallet !== 'undefined') RealityWallet.connectWallet(addr => window._globalWalletChange?.(addr));
+    });
+    section.appendChild(connectBtn);
+  };
+
   // Step 1: try direct arbitration (getDisputeFee on the question's arbitrator).
   // Step 2: on failure, detect Kleros foreign-proxy pattern and switch to the
   //         fee/TX on the foreign chain (typically Ethereum mainnet).
+  let noteBase = 'Dispute the current answer by requesting arbitration.';
   let fee, arbContractAddr = arbitrator, txChainId = CHAIN_ID;
 
   // A revert means the arbitrator doesn't implement the read (an arbitrator problem); a
@@ -2005,6 +2005,7 @@ async function renderArbitrationSection(data, walletAddr) {
     }
   };
 
+  let feeError = null; // 'rpc' | 'arbitrator'
   try {
     fee = await feeRead(() => new ethers.Contract(arbitrator, ARBITRATOR_ABI, prov).getDisputeFee(QUESTION_ID));
   } catch {
@@ -2033,25 +2034,47 @@ async function renderArbitrationSection(data, walletAddr) {
       fee = await feeRead(() => new ethers.Contract(fpAddr, ARBITRATOR_ABI, fpProv).getDisputeFee(QUESTION_ID));
       arbContractAddr = fpAddr;
 
-      noteEl.textContent = `Dispute the current answer via Kleros. Your wallet will switch to ${chainName(txChainId)} to pay the arbitration fee.`;
+      noteBase = `Dispute the current answer via Kleros. Your wallet will switch to ${chainName(txChainId)} to pay the arbitration fee.`;
+      noteEl.textContent = noteBase;
     } catch {
       // Distinguish a broken RPC from a genuinely unsupported arbitrator: only a node
       // failure (non-revert) flags the RPC indicator; a revert leaves the honest
       // "arbitrator may not be responding" message.
-      if (rpcDown) {
-        markRpcOffline('RPC error — could not reach the network to load the arbitration fee', rpcDownUrl, rpcDownChain);
-        btn.textContent = 'Fee unavailable — network/RPC error';
-      } else {
-        btn.textContent = 'Fee unavailable — arbitrator may not be responding';
-      }
-      return;
+      feeError = rpcDown ? 'rpc' : 'arbitrator';
     }
   }
 
+  if (feeError) {
+    if (feeError === 'rpc') {
+      markRpcOffline('RPC error — could not reach the network to load the arbitration fee', rpcDownUrl, rpcDownChain);
+    }
+    if (walletAddr) {
+      btn.textContent = feeError === 'rpc'
+        ? 'Fee unavailable — network/RPC error'
+        : 'Fee unavailable — arbitrator may not be responding';
+    } else {
+      // Fee couldn't be loaded, but still let the user connect.
+      showConnectButton();
+    }
+    return;
+  }
+
   const nativeToken = chainToken(txChainId);
+  const feeText = fee === 0n ? 'free' : `${formatEth(fee)} ${nativeToken}`;
+
+  if (!walletAddr) {
+    // No wallet — surface the fee in the note (so it's visible before connecting) and offer
+    // the connect affordance in place of the request button.
+    noteEl.textContent = fee === 0n
+      ? `${noteBase} There is no arbitration fee.`
+      : `${noteBase} The arbitration fee is ${feeText}.`;
+    showConnectButton();
+    return;
+  }
+
   const btnLabel = fee === 0n
     ? 'Request arbitration (free)'
-    : `Request arbitration — costs ${formatEth(fee)} ${nativeToken}`;
+    : `Request arbitration — costs ${feeText}`;
   btn.textContent = btnLabel;
   btn.disabled = false;
 

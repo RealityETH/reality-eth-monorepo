@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { snapshot, revert, ANVIL_URL, TEST_ACCOUNT } from './setup/anvil.js';
-import { setupPage, setupPageWithStalePonder } from './setup/wallet-mock.js';
+import { setupPage, setupPageWithStalePonder, walletMockScript } from './setup/wallet-mock.js';
 import { createKlerosFixtures, createForeignProxyFixtures, CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
@@ -164,5 +164,28 @@ test.describe('Kleros foreign-proxy arbitration flow', () => {
     // Bounded: not a full-history scan from genesis.
     expect(logsFromBlock).not.toBe('0x0');
     expect(parseInt(logsFromBlock, 16)).toBeGreaterThan(0);
+  });
+
+  // With no wallet connected the button becomes "Connect wallet", so the fee (previously only
+  // shown on the request button) must move into the note above it.
+  test('arbitration fee is shown in the note when no wallet is connected', async ({ page }) => {
+    // Wallet present but not authorized (eth_accounts → []), so the page loads disconnected.
+    await page.addInitScript(walletMockScript({ connected: false, extraContracts: [fixtures.foreignProxyAddr] }));
+    await page.route('**/graphql**', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { question: null } }) }));
+    await page.addInitScript(foreignChainRpcOverrideScript(fixtures.foreignChainId));
+
+    await page.goto(
+      `${WEBSITE_URL}/index.html#!/network/100/question/${CONTRACTS.realityEth30}-${fixtures.klerosQuestionId}`
+    );
+
+    // Disconnected → connect affordance, not the request button.
+    await expect(page.locator('#arbitration-section .btn-connect')).toHaveText('Connect wallet', { timeout: 30000 });
+    expect(await page.locator('#arb-btn').count()).toBe(0);
+
+    // The fee is visible in the note above the button.
+    const note = await page.locator('#arb-note').textContent();
+    expect(note).toMatch(/arbitration fee is/i);
+    expect(note).toContain('ETH');
   });
 });
