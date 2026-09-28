@@ -283,6 +283,14 @@ export function parseQuestionJSON(data: string, errors_to_title?: boolean, vspri
         };
     }
 
+    // SECURITY: title_html and title_text are DERIVED, sanitized fields that consumers render
+    // as raw HTML (e.g. innerHTML / jQuery .html()). They must never come from the input JSON.
+    // Otherwise a crafted question could supply title_html verbatim (e.g.
+    // `<img src=x onerror=...>`), bypassing the markdown DOMPurify path entirely — a stored XSS.
+    // Strip them here so only the sanitizing code below can set them.
+    delete question_json['title_html'];
+    delete question_json['title_text'];
+
     if (question_json['outcomes'] && (question_json['outcomes'] as string[]).length > QUESTION_MAX_OUTCOMES) {
         if (!question_json['errors']) question_json['errors'] = {};
         question_json['errors']['too_many_outcomes'] = true;
