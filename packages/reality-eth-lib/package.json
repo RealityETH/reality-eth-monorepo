@@ -1,6 +1,6 @@
 {
   "name": "@reality.eth/reality-eth-lib",
-  "version": "3.4.30",
+  "version": "3.4.31",
   "description": "Tools for handling questions in the reality.eth fact verification platform",
   "scripts": {
     "build": "tsc",
