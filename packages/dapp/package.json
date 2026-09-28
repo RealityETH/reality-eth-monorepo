@@ -49,7 +49,7 @@
     "@atproto/common-web": "^0.4.0",
     "@babel/polyfill": "^7.12.1",
     "@reality.eth/contracts": "^3.2.27",
-    "@reality.eth/reality-eth-lib": "^3.4.30",
+    "@reality.eth/reality-eth-lib": "^3.4.31",
     "assert": "^2.0.0",
     "axios": "^0.27.2",
     "buffer": "^6.0.3",
