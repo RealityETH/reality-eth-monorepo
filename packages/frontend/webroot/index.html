@@ -6,11 +6,11 @@
 <title>reality.eth</title>
 <link rel="manifest" href="site.webmanifest">
 <script>
-// One-time storage reset. A past stored-XSS (title_html injection) could poison localStorage
-// with attacker-controlled RPC/indexer URLs and a cached wallet address that the account page
-// rendered via innerHTML. We treat persisted state as a versioned namespace: if this browser
-// isn't on the current generation, wipe everything (the old namespace) and stamp the new one,
-// before any provider or wallet code runs. Bump STORAGE_GEN to force a future reset.
+// One-time storage reset. A past stored-XSS (title_html injection) could poison client storage
+// with attacker-controlled RPC/indexer URLs, a cached wallet address that the account page
+// rendered via innerHTML, and cached event data. We treat persisted state as a versioned
+// namespace: if this browser isn't on the current generation, wipe everything (the old
+// namespace) before any provider/wallet/cache code runs. Bump STORAGE_GEN to force a reset.
 (function () {
   try {
     var GEN_KEY = 'reality.storage.generation';
@@ -18,6 +18,18 @@
     if (localStorage.getItem(GEN_KEY) !== STORAGE_GEN) {
       localStorage.clear();
       try { sessionStorage.clear(); } catch (e) {}
+      // IndexedDB isn't covered by localStorage.clear(). Request deletion of our own event
+      // cache first — before question-cache.js opens it, so IndexedDB serialises the delete
+      // ahead of the open and it gets a fresh DB — then best-effort clear any others
+      // (e.g. WalletConnect's).
+      try { indexedDB.deleteDatabase('reality-eth-events'); } catch (e) {}
+      try {
+        if (indexedDB.databases) {
+          indexedDB.databases().then(function (dbs) {
+            dbs.forEach(function (d) { if (d && d.name) indexedDB.deleteDatabase(d.name); });
+          }).catch(function () {});
+        }
+      } catch (e) {}
       localStorage.setItem(GEN_KEY, STORAGE_GEN);
     }
   } catch (e) {}
