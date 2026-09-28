@@ -401,6 +401,36 @@ describe('Unsafe markdown questions', function() {
   });
 });
 
+describe('title_html / title_text are never accepted from input (stored XSS guard)', function() {
+  // title_html and title_text are DERIVED, sanitized fields. A crafted question that supplies
+  // title_html directly would otherwise bypass the markdown DOMPurify path and be rendered as
+  // raw HTML by consumers (innerHTML / jQuery .html()) — a stored XSS.
+  const XSS = "<img src=x onerror=eval(atob('YWxlcnQoMSk='))>";
+
+  it('drops an injected title_html on a text/plain question', function() {
+    const q = rc_question.parseQuestionJSON(JSON.stringify({ title: 'hi', type: 'bool', title_html: XSS }), false);
+    expect(q.title_html).to.equal(undefined);
+    expect(q.title_text).to.equal('hi');
+  });
+  it('drops an injected title_html regardless of a bogus format', function() {
+    const q = rc_question.parseQuestionJSON(JSON.stringify({ title: 'hi', type: 'bool', format: 'text/plain', title_html: XSS }), false);
+    expect(q.title_html).to.equal(undefined);
+  });
+  it('does not honour an injected title_text', function() {
+    const q = rc_question.parseQuestionJSON(JSON.stringify({ title: 'hi', type: 'bool', title_text: '<script>alert(1)</script>' }), false);
+    expect(q.title_text).to.equal('hi');
+  });
+  it('overwrites an injected title_html on the markdown path with sanitized output', function() {
+    const q = rc_question.parseQuestionJSON(JSON.stringify({ title: '# Title', type: 'bool', format: 'text/markdown', title_html: XSS }), false);
+    expect(q.title_html).to.equal('<h1>Title</h1>\n');
+  });
+  it('drops an injected title_html supplied via a template parameter', function() {
+    const injected = 'x","title_html":"' + XSS;
+    const q = rc_question.populatedJSONForTemplate('{"title": "%s", "type": "bool"}', injected, false);
+    expect(q.title_html).to.equal(undefined);
+  });
+});
+
 describe('Commitment ID tests', function() {
   // Using rinkeby question:
   // 0xa09ce5e7943f281a782a0dc021c4029f9088bec4-0x0ade9a55d4dfca644062792d8e66cec9fbd5579761d760a6e0ae9856e81086a4
