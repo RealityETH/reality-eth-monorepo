@@ -6,6 +6,13 @@ const RPC_PREFIX     = 'reality.rpcUrl.';
 const BROWSER_RPC_KEY = 'reality.useBrowserRpc';
 const DEFAULT_PONDER = 'https://indexer.reality.gwei.name/graphql';
 
+// Escape for a double-quoted HTML attribute — used for the saved RPC/indexer override URLs,
+// which are user-editable and were a target of the localStorage-poisoning XSS.
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function getChains() {
   const wd = window.RealityWebsiteData;
   if (!wd?.chains) return [];
@@ -201,7 +208,7 @@ function attachPonderPanel(el) {
         <label class="sp-label" for="sp-ponder-url">GraphQL endpoint</label>
         <input id="sp-ponder-url" class="sp-input" type="text"
           placeholder="${DEFAULT_PONDER}"
-          value="${isCustom ? getPonderUrl() : ''}">
+          value="${esc(isCustom ? getPonderUrl() : '')}">
         <div class="sp-hint">Leave blank to use the default (<code>${DEFAULT_PONDER}</code>).<br><br><a href="#!/docs/ponder_indexer" onclick="window.RealitySettings&&window.RealitySettings.closePanel()">Run your own →</a></div>
         <div class="sp-actions"><button class="sp-save">Save &amp; reload</button></div>
       `;
@@ -279,7 +286,7 @@ function attachRpcPanel(el, currentChainId) {
           <input class="sp-input" type="text"
             data-chain="${chain.id}"
             placeholder="${chain.defaultRpc}"
-            value="${custom || ''}">
+            value="${esc(custom || '')}">
         `;
         listEl.appendChild(row);
       }
