@@ -754,7 +754,8 @@ window.RealityAccount.mount = async function (addr) {
       if (fin && q.currentAnswer) {
         const label = answerLabel(q.currentAnswer, q);
         const cls   = answerClass(q.currentAnswer, q);
-        rightHtml = `<span class="ans-pill ${cls}">${label}</span>`;
+        // escHtml: for select types answerLabel is the attacker-controlled outcome string.
+        rightHtml = `<span class="ans-pill ${cls}">${escHtml(label)}</span>`;
       } else if (bond > 0n) {
         rightHtml = `<div class="q-item-amount">${formatAmount(bond, token)} ${token}</div><div class="q-item-chain">top bond</div>`;
       }
