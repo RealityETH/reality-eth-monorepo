@@ -1726,6 +1726,9 @@ async function renderArbitratorTOS(arbitrator) {
   if (tos.toLowerCase().startsWith('ipfs://')) {
     tos = 'https://ipfs.io/ipfs/' + tos.slice(7);
   }
+  // The arbitrator and its metadata are untrusted — only allow http(s) so a
+  // javascript:/data: tos can't become a click-to-XSS link.
+  if (!/^https?:\/\//i.test(tos)) return;
   const el = document.getElementById('arb-tos-question');
   const link = document.getElementById('arb-tos-question-link');
   if (!el || !link) return;

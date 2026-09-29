@@ -1,18 +1,20 @@
 import { test, expect } from '@playwright/test';
 import { snapshot, revert } from './setup/anvil.js';
 import { setupPage } from './setup/wallet-mock.js';
-import { createTOSFixtures, createFixtures, CONTRACTS } from './setup/fixtures.js';
+import { createTOSFixtures, createMaliciousTOSFixtures, createFixtures, CONTRACTS } from './setup/fixtures.js';
 import { WEBSITE_URL } from './setup/website-server.js';
 
 test.describe('arbitrator TOS link', () => {
   let snap;
   let tosFixtures;
   let baseFixtures;
+  let evilTosFixtures;
 
   test.beforeAll(async () => {
     // Sequential — both use TEST_ACCOUNT; parallel NonceManagers collide on first run
     tosFixtures  = await createTOSFixtures();
     baseFixtures = await createFixtures();
+    evilTosFixtures = await createMaliciousTOSFixtures();
   });
 
   test.beforeEach(async () => { snap = await snapshot(); });
@@ -45,5 +47,16 @@ test.describe('arbitrator TOS link', () => {
     // Give enough time for renderArbitratorTOS to run (it resolves quickly for zero address)
     await page.waitForTimeout(2000);
     await expect(page.locator('#arb-tos-question')).toBeHidden();
+  });
+
+  // A malicious arbitrator whose metadata tos is a javascript: URL must never become a
+  // clickable link (would be click-to-XSS). The frontend only allows http(s) schemes.
+  test('javascript: TOS URL is refused, not rendered as a link', async ({ page }) => {
+    await loadQuestion(page, evilTosFixtures.questionId);
+    await page.waitForTimeout(2000); // let renderArbitratorTOS resolve
+    await expect(page.locator('#arb-tos-question')).toBeHidden();
+    // And if the element ever shows, its href must not carry a javascript: scheme.
+    const href = await page.locator('#arb-tos-question-link').getAttribute('href');
+    expect((href || '').toLowerCase()).not.toContain('javascript:');
   });
 });

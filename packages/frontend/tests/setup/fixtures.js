@@ -1491,6 +1491,45 @@ export async function createTOSFixtures() {
   };
 }
 
+// Like createTOSFixtures, but the (untrusted) arbitrator's metadata returns a
+// javascript: tos URL — the frontend must refuse to render it as a link (XSS guard).
+export async function createMaliciousTOSFixtures() {
+  const provider = new ethers.JsonRpcProvider(ANVIL_URL);
+  const wallet = new ethers.NonceManager(new ethers.Wallet(TEST_ACCOUNT.privateKey, provider));
+  const reality = new ethers.Contract(CONTRACTS.realityEth30, REALITY_ETH_ABI, wallet);
+
+  const MOCK_ARB_ADDR = '0x2234567890123456789012345678901234567890';
+  const TOS_META = '{"tos":"javascript:1"}'; // 22 bytes — fits the one-word return below
+
+  const returnData = ethers.AbiCoder.defaultAbiCoder().encode(['string'], [TOS_META]);
+  const words = [
+    returnData.slice(2, 66), returnData.slice(66, 130), returnData.slice(130, 194),
+  ];
+  const bytecode = '0x' + [
+    '7f', words[0], '6000', '52',
+    '7f', words[1], '6020', '52',
+    '7f', words[2], '6040', '52',
+    '6060', '6000', 'f3',
+  ].join('');
+  await provider.send('anvil_setCode', [MOCK_ARB_ADDR, bytecode]);
+
+  const TIMEOUT_90_DAYS = 7776000;
+  const questionId = computeQuestionId(
+    TEMPLATE.bool, 0, 'TOS test: malicious javascript tos',
+    MOCK_ARB_ADDR, TIMEOUT_90_DAYS, 41,
+    TEST_ACCOUNT.address, CONTRACTS.realityEth30
+  );
+  const existing = await reality.questions(questionId);
+  if (BigInt(existing[0]) === 0n) {
+    await (await reality.askQuestion(
+      TEMPLATE.bool, 'TOS test: malicious javascript tos',
+      MOCK_ARB_ADDR, TIMEOUT_90_DAYS, 0, 41,
+      { value: ethers.parseEther('0.001') }
+    )).wait();
+  }
+  return { questionId, arbAddr: MOCK_ARB_ADDR };
+}
+
 // Creates two original questions, each finalized as "answered too soon" and then
 // reopened.  The reopener in each case is also answered "too soon", but:
 //

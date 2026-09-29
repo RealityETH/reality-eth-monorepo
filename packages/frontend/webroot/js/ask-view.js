@@ -190,6 +190,8 @@ window.RealityAsk.mount = async function () {
         if (!meta.tos) return;
         let tos = meta.tos;
         if (tos.toLowerCase().startsWith('ipfs://')) tos = 'https://ipfs.io/ipfs/' + tos.slice(7);
+        // Untrusted arbitrator metadata — only allow http(s), never javascript:/data:.
+        if (!/^https?:\/\//i.test(tos)) return;
         arbTosLink.href = tos;
         arbTosEl.style.display = 'block';
       })
