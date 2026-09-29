@@ -15,5 +15,6 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "ethers": "^6.0.0"
   },
-  "license": "GPL-3.0"
+  "license": "GPL-3.0",
+  "gitHead": "f753ba93b7d8da2e3203912e9985cd5ecb7991ff"
 }
