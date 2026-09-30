@@ -77,7 +77,14 @@ async function renderDoc(docId, main) {
     body.className = 'docs-body';
     body.innerHTML = html;
   } catch (e) {
-    main.querySelector('.docs-body').innerHTML = '<p class="docs-error">Failed to load: ' + e.message + '</p>';
+    // textContent, never innerHTML — the error string must not be treated as markup.
+    const body = main.querySelector('.docs-body');
+    body.className = 'docs-body';
+    body.textContent = '';
+    const p = document.createElement('p');
+    p.className = 'docs-error';
+    p.textContent = 'Failed to load: ' + (e && e.message ? e.message : e);
+    body.appendChild(p);
   }
 }
 

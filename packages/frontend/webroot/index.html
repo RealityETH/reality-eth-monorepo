@@ -68,7 +68,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=162';
+  var V = '?v=163';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -3447,7 +3447,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=162';
+  const V = '?v=163';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -4057,19 +4057,23 @@ header {
       const isActive   = integrationFilter === id;
 
       const initial = info.icon || info.name.charAt(0).toUpperCase();
-      const color = info.color || '#58a6ff';
+      // Defence-in-depth: integrations.json is trusted, but escape its fields anyway.
+      // flatColor() validates to a hex colour (safe in a style attribute); id is reduced to a
+      // slug so it can't break out of the inline onclick's JS string.
+      const safeColor = flatColor(info.color || '#58a6ff');
+      const safeId = String(id).replace(/[^a-z0-9_-]/gi, '');
 
       const fmt = n => isLoading ? '…' : n.toLocaleString();
 
       const guideLink = info.guideId
         ? `` // `<a class="app-card-guide" href="#!/guide/${info.guideId}" onclick="event.stopPropagation()">Dev guide →</a>`
         : '';
-      return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer;box-shadow:inset 0 3px 0 0 ${flatColor(color)}" onclick="selectIntegration('${id}')">
+      return `<div class="app-card${isActive ? ' integ-active' : ''}" style="cursor:pointer;box-shadow:inset 0 3px 0 0 ${safeColor}" onclick="selectIntegration('${safeId}')">
         <div class="app-card-top">
-          <div class="app-icon" style="background:${color}">${initial}</div>
+          <div class="app-icon" style="background:${safeColor}">${esc(initial)}</div>
         </div>
-        <div class="app-card-name">${info.name}</div>
-        <div class="app-card-desc">${info.description || ''}</div>
+        <div class="app-card-name">${esc(info.name)}</div>
+        <div class="app-card-desc">${esc(info.description || '')}</div>
         <div class="app-card-stats">
           <div class="stat">
             <span class="stat-val open">${fmt(openCount)}</span>
