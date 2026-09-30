@@ -203,7 +203,8 @@ app.use('/graphql', graphqlMiddleware);
 app.use('/', graphqlMiddleware);
 
 const port = parseInt(process.env.PORT ?? '42070', 10);
+const host = process.env.HOST ?? '127.0.0.1';
 
-serve({ fetch: app.fetch, port }, () => {
-  console.log(`Serving reality.* via GraphQL on port ${port}`);
+serve({ fetch: app.fetch, port, hostname: host }, () => {
+  console.log(`Serving reality.* via GraphQL on ${host}:${port}`);
 });
