@@ -74,11 +74,9 @@ popd
 CID=`ipfs cid format -v 1 -b base32 "$IPFS_HASH"`
 echo "Made CID $CID"
 
-# The service needs to have been added to ipfs with eg
-# ipfs pin remote service add filebase https://api.filebase.io/v1/ipfs <API_KEY>
-
-echo "Doing local pin"
-ipfs pin add "${IPFS_HASH}"
-
-echo "Trying to pin with filebase..."
-ipfs pin remote add --service filebase "${IPFS_HASH}"
+# Pinning is handled separately by pin_ipfs_old.sh, which uploads the DAG as a CAR
+# file to Filebase over S3 (import=car). That works with the local IPFS node offline
+# and needs no P2P reachability, unlike `ipfs pin remote add`.
+echo ""
+echo "Build complete. To pin to Filebase, run:"
+echo "  tools/pin_ipfs_old.sh $CID"
