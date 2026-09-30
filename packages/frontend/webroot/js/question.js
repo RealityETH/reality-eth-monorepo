@@ -1285,6 +1285,10 @@ function renderWarnings(data) {
 
   // Errors flagged by reality-eth-lib during question JSON parsing
   const errs = data.qjson?.errors || {};
+  if (errs.parameter_injection) {
+    warnings.push({ level: 'danger', title: 'Injected question data',
+      body: 'This question\'s parameters break out of its template and override fields such as the answer options, to try to make labels shown on reality.eth differ from what the question appears to ask. This is a deliberate attack; treat the question as invalid.' });
+  }
   if (errs.suspicious_extra_data) {
     warnings.push({ level: 'danger', title: 'Suspicious extra data',
       body: 'This question\'s data field contains extra data that will not be used in the question. This may indicate a potential attack, which should be settled as invalid.' });

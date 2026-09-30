@@ -68,7 +68,7 @@
 
   // Script lists: route-specific scripts are preloaded & executed first;
   // background scripts are loaded after boot for subsequent navigation.
-  var V = '?v=164';
+  var V = '?v=166';
   var all = [M, DP,
     'js/question.js'+V, 'js/account.js'+V, 'js/notifications-view.js'+V,
     'js/watches-view.js'+V, 'js/watch-configure-view.js'+V, 'js/contract-view.js'+V,
@@ -3447,7 +3447,7 @@ header {
   async function loadViewScripts(srcs) {
     for (const src of srcs) await loadScript(src);
   }
-  const V = '?v=164';
+  const V = '?v=166';
   const VIEW_SCRIPTS = {
     question:          [_CDN_MARKED, _CDN_PURIFY, 'js/question.js'+V],
     account:           ['js/account.js'+V],
@@ -3915,6 +3915,9 @@ header {
     const errs = q.questionJson
       ? (window.RealityLib.parseQuestionJSON(q.questionJson).errors || {})
       : {};
+    if (errs.parameter_injection) {
+      warnings.push({ level: 'danger', text: 'Injected question data' });
+    }
     if (errs.suspicious_extra_data) {
       warnings.push({ level: 'danger', text: 'Suspicious extra data' });
     }
