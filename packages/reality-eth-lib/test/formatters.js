@@ -365,6 +365,21 @@ describe('Parameter injection guard', function() {
     expect(q.errors.parameter_injection).to.equal(true);
   });
 
+  it('flags injection smuggled past JSON.parse with a NUL byte (parseQuestionJSON strips NULs)', function() {
+    // A NUL makes the raw interpolated string fail JSON.parse, but parseQuestionJSON
+    // strips NULs and would then parse a clean injection. The guard must see the same
+    // NUL-stripped view. NUL placed both inside the payload and at the breakout quote.
+    var p1 = 'Will it rain?' + D + '"Yes","No"' + D + 'misc' + D + 'en","outcomes":["No","Yes"],"z":" ';
+    var q1 = rc_question.populatedJSONForTemplate(SELECT, p1);
+    expect(q1.type).to.equal('broken-question');
+    expect(q1.errors.parameter_injection).to.equal(true);
+
+    var p2 = 'Will it rain?' + D + 'misc' + D + 'en ","type":"single-select","outcomes":["No","Yes"],"z":"';
+    var q2 = rc_question.populatedJSONForTemplate(BOOL, p2);
+    expect(q2.type).to.equal('broken-question');
+    expect(q2.errors.parameter_injection).to.equal(true);
+  });
+
   it('still accepts a legitimately-encoded title containing double quotes', function() {
     var title = 'Will Trump say "economics"?';
     var qtext = rc_question.encodeText('single-select', title, ['Yes', 'No'], 'politics', 'en_US');

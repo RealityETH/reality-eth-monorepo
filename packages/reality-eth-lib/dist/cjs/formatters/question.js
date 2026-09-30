@@ -393,14 +393,22 @@ function populatedJSONForTemplate(template, question, errors_to_title) {
     // accepts the injected keys and would render attacker-controlled labels, so we
     // detect the breakout and fail safe. (When it does NOT parse, the normal
     // broken-question path below reports it as json_parse_failed instead.)
+    //
+    // Evaluate against the NUL-stripped view because parseQuestionJSON strips NUL
+    // bytes before JSON.parse. Otherwise a payload that is invalid JSON *with* a NUL
+    // (so the raw string fails to parse and this guard is skipped) but a clean
+    // injection *after* stripping would slip through — NUL bytes are valid in the
+    // on-chain question string, so this is attacker-reachable.
+    const cleanInterpolated = interpolated.replace(/\0/g, '');
+    const cleanQbits = qbits.map((b) => b.replace(/\0/g, ''));
     let parses = true;
     try {
-        JSON.parse(interpolated);
+        JSON.parse(cleanInterpolated);
     }
     catch (e) {
         parses = false;
     }
-    if (question !== '' && parses && hasParameterInjection(template, qbits)) {
+    if (question !== '' && parses && hasParameterInjection(template, cleanQbits)) {
         return parseQuestionJSON(JSON.stringify({
             title: '[Malformed question]',
             type: 'broken-question',
