@@ -327,6 +327,64 @@ describe('Broken questions', function() {
   });
 });
 
+describe('Parameter injection guard', function() {
+  const D = '␟'; // U+241F, the reality.eth parameter delimiter
+  const SELECT = rc_template.defaultTemplateForType('single-select');
+  const BOOL = rc_template.defaultTemplateForType('bool');
+
+  it('flags outcome reordering injected via the lang parameter', function() {
+    // lang breaks out of its string and appends a second "outcomes" key that
+    // JSON.parse would silently prefer, reordering the displayed labels.
+    var malicious = 'Will it rain?' + D + '"Yes","No"' + D + 'misc' + D + 'en_US","outcomes":["No","Yes"],"z":"';
+    var q = rc_question.populatedJSONForTemplate(SELECT, malicious);
+    expect(q.type).to.equal('broken-question');
+    expect(q.errors.parameter_injection).to.equal(true);
+    expect(q.outcomes).to.be.undefined;
+  });
+
+  it('flags a new key (has_invalid) injected via the category parameter', function() {
+    var malicious = 'Will it rain?' + D + '"Yes","No"' + D + 'misc","has_invalid":false,"z":"x' + D + 'en_US';
+    var q = rc_question.populatedJSONForTemplate(SELECT, malicious);
+    expect(q.type).to.equal('broken-question');
+    expect(q.errors.parameter_injection).to.equal(true);
+  });
+
+  it('flags a breakout injected via the outcomes (raw array) parameter', function() {
+    // Closes the outcomes array early, injects has_invalid, and re-balances the
+    // template's trailing ] so the whole string still parses as valid JSON.
+    var malicious = 'Will it rain?' + D + '"No","Yes"],"has_invalid":false,"pad":[0' + D + 'misc' + D + 'en_US';
+    var q = rc_question.populatedJSONForTemplate(SELECT, malicious);
+    expect(q.type).to.equal('broken-question');
+    expect(q.errors.parameter_injection).to.equal(true);
+  });
+
+  it('flags a type override injected via the lang parameter on a bool question', function() {
+    var malicious = 'Will it rain?' + D + 'misc' + D + 'en_US","type":"single-select","outcomes":["No","Yes"],"z":"';
+    var q = rc_question.populatedJSONForTemplate(BOOL, malicious);
+    expect(q.type).to.equal('broken-question');
+    expect(q.errors.parameter_injection).to.equal(true);
+  });
+
+  it('still accepts a legitimately-encoded title containing double quotes', function() {
+    var title = 'Will Trump say "economics"?';
+    var qtext = rc_question.encodeText('single-select', title, ['Yes', 'No'], 'politics', 'en_US');
+    var q = rc_question.populatedJSONForTemplate(SELECT, qtext);
+    expect(q.type).to.equal('single-select');
+    expect(q.title).to.equal(title);
+    expect(q.outcomes).to.deep.equal(['Yes', 'No']);
+    expect(q.errors).to.be.undefined;
+  });
+
+  it('still accepts legitimately-encoded outcomes containing double quotes', function() {
+    var outcomes = ['Alice "Ace"', 'Bob'];
+    var qtext = rc_question.encodeText('single-select', 'Who wins?', outcomes, 'misc', 'en_US');
+    var q = rc_question.populatedJSONForTemplate(SELECT, qtext);
+    expect(q.type).to.equal('single-select');
+    expect(q.outcomes).to.deep.equal(outcomes);
+    expect(q.errors).to.be.undefined;
+  });
+});
+
 describe('Markdown questions', function() {
   it('Sets title, title_html and title_text appropriatly', function() {
     const qMarkdown = "{\"title\": \"# my title oh yes\", \"type\": \"bool\", \"category\": \"art\", \"lang\": \"en_US\", \"format\": \"text/markdown\"}";

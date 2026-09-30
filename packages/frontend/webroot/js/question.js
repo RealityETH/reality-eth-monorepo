@@ -2824,8 +2824,14 @@ async function main(hintAddr) {
       try {
         templateStr = await fetchTemplateStr(Number(pq.templateId || 0));
         data.templateStr = templateStr;
-        const full = populateTemplate(templateStr, pq.data);
-        if (full.title_html) {
+        const full = (pq.data != null) ? populateTemplate(templateStr, String(pq.data)) : null;
+        // SECURITY: re-derive the qjson from the raw on-chain question + template
+        // client-side. This runs the parameter-injection guard, so a question that
+        // injected JSON into its parameters (overriding outcomes/type/has_invalid/…)
+        // renders as broken regardless of what the indexer pre-computed and stored.
+        if (full && full.type === 'broken-question' && full.errors && full.errors.parameter_injection) {
+          data.qjson = full;
+        } else if (full && full.title_html) {
           data.qjson.title_html = full.title_html;
           data.qjson.title_text = full.title_text;
         }

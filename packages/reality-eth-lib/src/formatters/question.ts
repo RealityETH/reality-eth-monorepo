@@ -363,9 +363,70 @@ export function parseQuestionJSON(data: string, errors_to_title?: boolean, vspri
     return question_json;
 }
 
+// For each %s placeholder in the template, record whether it sits inside a JSON
+// string literal ("%s") or in a raw JSON position ([%s], used for outcomes).
+function placeholderContexts(template: string): boolean[] {
+    const ctx: boolean[] = [];
+    let inStr = false;
+    for (let i = 0; i < template.length; i++) {
+        if (template[i] === '%' && template[i + 1] === 's') {
+            ctx.push(inStr);
+            i++;
+            continue;
+        }
+        if (template[i] === '"') {
+            let bs = 0, j = i - 1;
+            while (j >= 0 && template[j] === '\\') { bs++; j--; }
+            if (bs % 2 === 0) inStr = !inStr;
+        }
+    }
+    return ctx;
+}
+
+// SECURITY: parameters are substituted into the template verbatim and the result
+// is JSON.parse()d, so a parameter containing a " can close its JSON string and
+// inject sibling keys (e.g. override outcomes/type/has_invalid/decimals). Duplicate
+// keys silently win in JSON.parse, so the injection renders no error while showing
+// attacker-controlled labels. We cannot re-escape on render (legitimate questions
+// are already encode-time escaped, and re-escaping would double-escape them), so
+// instead we verify each parameter stays inside its own slot and fail safe if not.
+function hasParameterInjection(template: string, qbits: string[]): boolean {
+    const ctx = placeholderContexts(template);
+    for (let i = 0; i < qbits.length && i < ctx.length; i++) {
+        try {
+            if (ctx[i]) {
+                // String context: the parameter must be one self-contained JSON string body.
+                JSON.parse('"' + qbits[i] + '"');
+            } else {
+                // Raw context (outcomes): the parameter must be one self-contained JSON array.
+                const arr = JSON.parse('[' + qbits[i] + ']');
+                if (!Array.isArray(arr)) return true;
+            }
+        } catch (e) {
+            return true;
+        }
+    }
+    return false;
+}
+
 export function populatedJSONForTemplate(template: string, question: string, errors_to_title?: boolean): QuestionJSON {
     const qbits = question.split(delimiter());
     const interpolated = vsprintf(template, qbits);
+
+    // A parameter containing a " can close its JSON string and inject sibling keys.
+    // When the interpolated result still parses as valid JSON, JSON.parse silently
+    // accepts the injected keys and would render attacker-controlled labels, so we
+    // detect the breakout and fail safe. (When it does NOT parse, the normal
+    // broken-question path below reports it as json_parse_failed instead.)
+    let parses = true;
+    try { JSON.parse(interpolated); } catch (e) { parses = false; }
+    if (question !== '' && parses && hasParameterInjection(template, qbits)) {
+        return parseQuestionJSON(JSON.stringify({
+            title: '[Malformed question]',
+            type: 'broken-question',
+            errors: { parameter_injection: true },
+        }), errors_to_title);
+    }
 
     let vsprint_errors: Record<string, boolean> | null = null;
     if (question !== '') {
