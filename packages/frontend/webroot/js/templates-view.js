@@ -273,7 +273,12 @@ window.RealityTemplates.mount = async function (params) {
 
     const creatorItem = document.createElement('div');
     creatorItem.className = 't-footer-item';
-    creatorItem.innerHTML = `Creator: <span>${t.user.slice(0,10)}…${t.user.slice(-6)}</span>`;
+    // textContent, not innerHTML: t.user comes from the (possibly hostile) indexer and
+    // is not guaranteed to be hex, so it must never be interpolated into HTML.
+    creatorItem.textContent = 'Creator: ';
+    const creatorAddr = document.createElement('span');
+    creatorAddr.textContent = `${t.user.slice(0,10)}…${t.user.slice(-6)}`;
+    creatorItem.appendChild(creatorAddr);
     footer.appendChild(creatorItem);
 
     if (t.createdTimestamp) {

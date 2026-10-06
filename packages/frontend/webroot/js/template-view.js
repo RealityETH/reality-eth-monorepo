@@ -739,10 +739,13 @@ window.RealityTemplate.mount = async function (routeId) {
     for (const t of items) {
       const row = document.createElement('div');
       row.className = 'multi-result-row';
+      // t.contract is indexer-supplied and not guaranteed hex — set it via textContent,
+      // never interpolate into HTML. chainName() is a numeric-keyed config lookup.
       row.innerHTML = `<div>
         <div class="chain-info">${chainName(t.chainId)}</div>
-        <div class="contract-info">${t.contract}</div>
+        <div class="contract-info"></div>
       </div>`;
+      row.querySelector('.contract-info').textContent = t.contract;
       row.addEventListener('click', () => {
         document.getElementById('view-multi').style.display = 'none';
         renderTemplateView(t);

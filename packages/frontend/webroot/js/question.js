@@ -212,6 +212,10 @@ async function questionsStruct(provider, contractAddr, questionId, onError) {
 // Render an address as a link to our account page plus an ↗ emoji to the explorer.
 function addrLinks(addr, chainId = CHAIN_ID) {
   if (!addr || /^0x0+$/.test(addr)) return null;
+  // A real address is always 0x + 40 hex. Anything else is untrusted data from a
+  // hostile/compromised or user-pointed indexer — never build links or emit it into
+  // innerHTML (it would carry an XSS payload). Return null so callers skip it.
+  if (!/^0x[0-9a-fA-F]{40}$/.test(addr)) return null;
   const short = addr.slice(0, 6) + '…' + addr.slice(-4);
   const exp   = chainExplorer(chainId);
   const acct  = `<a class="bond-addr-link" href="#!/account/${addr}">${short}</a>`;
@@ -2253,7 +2257,7 @@ function renderStatusCard(data) {
   const totalBond = answerEvents.reduce((sum, ev) => sum + ev.args.bond, 0n);
   const arbHtml = isSelfArbitrator(arbitrator)
     ? 'No arbitrator'
-    : (addrLinks(arbitrator) || `${arbitrator.slice(0,6)}…${arbitrator.slice(-4)}`);
+    : (addrLinks(arbitrator) || '(invalid address)');
   const minBondStr = (minBond ?? 0n) > 0n ? formatBond(minBond) : '—';
   const totalStr   = totalBond > 0n ? formatBond(totalBond) : '—';
 
