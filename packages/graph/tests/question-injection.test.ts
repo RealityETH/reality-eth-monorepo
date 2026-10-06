@@ -69,6 +69,7 @@ describe("handleNewQuestion — parameter injection must be rejected", () => {
     let id = qid(q)
     // Defended: flagged malformed and the forged outcomes are NOT stored.
     assert.fieldEquals("Question", id, "malformed", "true")
+    assert.fieldEquals("Question", id, "qTitle", "[Malformed question] Will it rain?")
     assert.notInStore("Outcome", id + "-0")
     assert.notInStore("Outcome", id + "-1")
   })
@@ -81,6 +82,7 @@ describe("handleNewQuestion — parameter injection must be rejected", () => {
     handleNewQuestion(mockQuestion(q, tid, data))
     let id = qid(q)
     assert.fieldEquals("Question", id, "malformed", "true")
+    assert.fieldEquals("Question", id, "qTitle", "[Malformed question] Approve?")
     // A bool question must never end up with outcome entities.
     assert.notInStore("Outcome", id + "-0")
   })
@@ -92,8 +94,9 @@ describe("handleNewQuestion — parameter injection must be rejected", () => {
     let data = "Real title" + SEP + "cat" + SEP + 'en","title":"FAKE TITLE","z":"x'
     handleNewQuestion(mockQuestion(q, tid, data))
     let id = qid(q)
-    // Defended: don't serve the attacker's injected title as the question title.
+    // Defended: title carries the visible marker (prefixing whatever parsed).
     assert.fieldEquals("Question", id, "malformed", "true")
+    assert.fieldEquals("Question", id, "qTitle", "[Malformed question] FAKE TITLE")
   })
 
   test("legit Zodiac-style question is NOT flagged malformed (no false positive)", () => {
@@ -114,6 +117,7 @@ describe("handleNewQuestion — parameter injection must be rejected", () => {
     handleNewQuestion(mockQuestion(q, tid, data))
     let id = qid(q)
     assert.fieldEquals("Question", id, "malformed", "true")
+    assert.fieldEquals("Question", id, "qTitle", "[Malformed question] Did proposal x")
     assert.notInStore("Outcome", id + "-0")
   })
 })

@@ -77,5 +77,6 @@ describe("handleNewQuestion — existing parsing behaviour", () => {
     handleNewQuestion(mockQuestion(q, tid, data))
     let id = qid(q)
     assert.fieldEquals("Question", id, "data", data)
+    assert.fieldEquals("Question", id, "qTitle", "[Badly formatted question]")
   })
 })

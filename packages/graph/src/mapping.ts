@@ -167,9 +167,26 @@ export function handleNewQuestion(event: LogNewQuestion): void {
               outcome.save()
            }
         }
-      } else {
+      } else if (!tryData.isOk) {
+        // Unparseable JSON — often benign bad quoting, occasionally an attack.
+        // Replace the title with a visible marker so consumers that only render
+        // the title still see it is not a normal question.
         question.malformed = true
-        log.info('Malformed or injected question json for question {}', [contractQuestionId]);
+        question.qTitle = "[Badly formatted question]"
+        log.info('Could not parse json for question {}', [contractQuestionId]);
+      } else {
+        // JSON parsed but a parameter broke out of its slot and overrode fixed
+        // template fields (parameter injection). Prepend a visible marker to the
+        // (untrusted) parsed title if there is one, otherwise use the marker alone.
+        // Store none of the other parsed fields (type/outcomes/etc).
+        question.malformed = true
+        let injTitle = tryData.value.toObject().get('title')
+        if (injTitle != null && injTitle.kind == JSONValueKind.STRING) {
+          question.qTitle = "[Malformed question] " + injTitle.toString()
+        } else {
+          question.qTitle = "[Malformed question]"
+        }
+        log.info('Parameter injection detected for question {}', [contractQuestionId]);
       }
       question.contract = contract;
 
