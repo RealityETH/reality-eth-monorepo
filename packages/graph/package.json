@@ -6,6 +6,9 @@
     "remove-local": "graph remove realityeth/realityeth --node http://127.0.0.1:8020",
     "codegen": "graph codegen",
     "build": "graph build",
+    "pretest": "npm run prepare:mainnet",
+    "test": "graph test",
+    "test:docker": "npm run prepare:mainnet && graph test -d",
     "oink": "echo $GRAPH_AUTH",
     "deploy-local": "npm run deploy-local:rinkeby",
     "deploy-local:rinkeby": "npm run prepare:rinkeby && graph deploy $GRAPH_AUTHrealityeth/realityeth --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
@@ -79,7 +82,8 @@
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.54.0",
-    "@graphprotocol/graph-ts": "^0.27.0"
+    "@graphprotocol/graph-ts": "^0.27.0",
+    "matchstick-as": "^0.5.2"
   },
   "gitHead": "57eca8b4b15ca6d22b0d499213b9a2e35fb4ddf8"
 }
