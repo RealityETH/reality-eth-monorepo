@@ -20,6 +20,12 @@ type Question @entity {
   qLang: String
   qType: String
 
+  # True if the question's parameters break out of the template (parameter
+  # injection) or the resulting JSON cannot be parsed. When true, the parsed
+  # fields above (qTitle/qType/qCategory/qLang/outcomes) are NOT populated from
+  # the untrusted data and must be treated as invalid by consumers.
+  malformed: Boolean
+
   user: Bytes!
   arbitrator: Bytes!
   openingTimestamp: BigInt!

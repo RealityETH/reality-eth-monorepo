@@ -33,6 +33,50 @@ import {
   LogReopenQuestion
 } from '../generated/RealityETH-3.0-ETH/RealityETH'
 
+// For each %s placeholder in the template, record whether it sits inside a JSON
+// string literal ("%s") or in a raw JSON position ([%s] or :%s). Mirrors the
+// placeholderContexts() guard in reality-eth-lib. Tracks string state by counting
+// the backslashes before each quote (so escaped quotes in the template don't toggle).
+function placeholderContexts(template: string): Array<bool> {
+  let ctx = new Array<bool>()
+  let inStr = false
+  for (let i = 0; i < template.length; i++) {
+    let c = template.charCodeAt(i)
+    if (c == 37 /* % */ && (i + 1) < template.length && template.charCodeAt(i + 1) == 115 /* s */) {
+      ctx.push(inStr)
+      i++
+      continue
+    }
+    if (c == 34 /* " */) {
+      let bs = 0
+      let j = i - 1
+      while (j >= 0 && template.charCodeAt(j) == 92 /* \ */) { bs++; j-- }
+      if (bs % 2 == 0) { inStr = !inStr }
+    }
+  }
+  return ctx
+}
+
+// Returns true if any parameter breaks out of its JSON slot (parameter injection or
+// otherwise malformed). A string-context parameter must be a self-contained JSON
+// string body; a raw-context parameter must be a self-contained JSON array. The
+// Graph's json.try_fromString rejects trailing content, so any breakout fails here.
+// Mirrors hasParameterInjection() in reality-eth-lib.
+function hasParameterInjection(template: string, fields: string[]): bool {
+  let ctx = placeholderContexts(template)
+  let n = fields.length < ctx.length ? fields.length : ctx.length
+  for (let i = 0; i < n; i++) {
+    if (ctx[i]) {
+      let r = json.try_fromString('"' + fields[i] + '"')
+      if (!r.isOk) { return true }
+    } else {
+      let r = json.try_fromString('[' + fields[i] + ']')
+      if (!r.isOk || r.value.kind != JSONValueKind.ARRAY) { return true }
+    }
+  }
+  return false
+}
+
 export function handleNewTemplate(event: LogNewTemplate): void {
   let contractTemplateId = event.address.toHexString() + '-' + event.params.template_id.toHexString();
   let tmpl = new Template(contractTemplateId);
@@ -74,7 +118,13 @@ export function handleNewQuestion(event: LogNewQuestion): void {
       let qJsonStr = sprintf(questionText, fields)  
 
       let tryData = json.try_fromString(qJsonStr)
-      if (tryData.isOk) {
+      // SECURITY: a parameter can break out of its JSON slot and inject/override
+      // fixed template fields (type/outcomes/title) — the parameter-injection class
+      // fixed in reality-eth-lib. Only trust the parsed fields when the JSON parses
+      // AND every parameter stayed inside its own slot; otherwise flag the question
+      // malformed and store none of the (untrusted) parsed fields.
+      if (tryData.isOk && !hasParameterInjection(questionText, fields)) {
+        question.malformed = false
         let json_dict = tryData.value.toObject()
 
         let qTitle = json_dict.get('title')
@@ -118,7 +168,8 @@ export function handleNewQuestion(event: LogNewQuestion): void {
            }
         }
       } else {
-        log.info('Could not parse json for question {}', [contractQuestionId]);
+        question.malformed = true
+        log.info('Malformed or injected question json for question {}', [contractQuestionId]);
       }
       question.contract = contract;
 
