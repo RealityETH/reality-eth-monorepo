@@ -48,7 +48,7 @@
   "dependencies": {
     "@atproto/common-web": "^0.4.0",
     "@babel/polyfill": "^7.12.1",
-    "@reality.eth/contracts": "^3.2.30",
+    "@reality.eth/contracts": "^3.2.31",
     "@reality.eth/reality-eth-lib": "^3.4.34",
     "assert": "^2.0.0",
     "axios": "^0.27.2",

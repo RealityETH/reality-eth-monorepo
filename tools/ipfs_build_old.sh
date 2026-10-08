@@ -74,9 +74,17 @@ popd
 CID=`ipfs cid format -v 1 -b base32 "$IPFS_HASH"`
 echo "Made CID $CID"
 
+# Record the CID for the deploy page (deploy/deploy-old.html reads this).
+DEPLOY_DIR="$SRC_DIR/deploy"
+mkdir -p "$DEPLOY_DIR"
+printf '{"cid":"%s","publishedAt":"%s"}\n' \
+    "$CID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "$DEPLOY_DIR/cid-old.json"
+
 # Pinning is handled separately by pin_ipfs_old.sh, which uploads the DAG as a CAR
 # file to Filebase over S3 (import=car). That works with the local IPFS node offline
 # and needs no P2P reachability, unlike `ipfs pin remote add`.
 echo ""
 echo "Build complete. To pin to Filebase, run:"
 echo "  tools/pin_ipfs_old.sh $CID"
+echo "Then open deploy/deploy-old.html to set the old.reality.eth ENS contenthash."
