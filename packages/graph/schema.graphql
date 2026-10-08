@@ -1,4 +1,4 @@
-type Question @entity {
+type Question @entity(immutable: false) {
   id: ID!
   questionId: Bytes!
   contract: Bytes!
@@ -59,13 +59,13 @@ type Question @entity {
   responses: [Response!] @derivedFrom(field: "question")
 }
 
-type Outcome @entity {
+type Outcome @entity(immutable: false) {
   id: ID!
   answer: String!
   question: Question!
 }
 
-type Response @entity {
+type Response @entity(immutable: false) {
   id: ID!
   timestamp: BigInt!
   logIndex: BigInt!
@@ -81,7 +81,7 @@ type Response @entity {
   revealedBlock: BigInt
 }
 
-type Answer @entity {
+type Answer @entity(immutable: false) {
   id: ID!
   timestamp: BigInt!
   answer: Bytes
@@ -91,14 +91,14 @@ type Answer @entity {
   createdBlock: BigInt!
 }
 
-type Category @entity {
+type Category @entity(immutable: false) {
   id: ID!
   numConditions: Int!
   numOpenConditions: Int!
   numClosedConditions: Int!
 }
 
-type Template @entity {
+type Template @entity(immutable: false) {
   id: ID!
   templateId: BigInt!
   contract: Bytes!
@@ -107,7 +107,7 @@ type Template @entity {
   createdBlock: BigInt!
 }
 
-type Claim @entity {
+type Claim @entity(immutable: false) {
   id: ID!
   question: Question!
   user: Bytes!
@@ -115,7 +115,7 @@ type Claim @entity {
   createdBlock: BigInt!
 }
 
-type Fund @entity {
+type Fund @entity(immutable: false) {
   id: ID!
   question: Question!
   user: Bytes!
@@ -123,14 +123,14 @@ type Fund @entity {
   createdBlock: BigInt!
 }
 
-type Withdrawal @entity {
+type Withdrawal @entity(immutable: false) {
   id: ID!
   user: Bytes!
   amount: BigInt!
   createdBlock: BigInt!
 }
 
-type UserAction @entity {
+type UserAction @entity(immutable: false) {
   id: ID!
   actionType: String!
   user: Bytes!
@@ -144,7 +144,7 @@ type UserAction @entity {
   createdTimestamp: BigInt!
 }
 
-type FactoryDeployment @entity {
+type FactoryDeployment @entity(immutable: false) {
   id: ID!
   token_address: Bytes!  
   token_symbol: String!

@@ -9,17 +9,18 @@
     "pretest": "npm run prepare:mainnet",
     "test": "graph test",
     "test:docker": "npm run prepare:mainnet && graph test -d",
-    "deploy-studio:arbitrum": "npm run prepare:arbitrum && graph deploy realityeth-arbitrum --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:ava": "npm run prepare:ava && graph deploy realityeth-ava --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:bsc": "npm run prepare:bsc && graph deploy realityeth-bsc --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:mainnet": "npm run prepare:mainnet && graph deploy realityeth --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:optimism": "npm run prepare:optimism && graph deploy realityeth-optimism --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:polygon": "npm run prepare:polygon && graph deploy realityeth-polygon --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:sepolia": "npm run prepare:sepolia && graph deploy realityeth-sepolia --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:gnosis": "npm run prepare:gnosis && graph deploy realityeth-gnosis --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:unichain": "npm run prepare:unichain && graph deploy realityeth-unichain --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:base": "npm run prepare:base && graph deploy realityeth-base --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
-    "deploy-studio:zksync-era": "npm run prepare:zksync-era && graph deploy realityeth-zksync-era --studio --deploy-key \"$GRAPH_AUTH\" -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "auth-studio": "graph auth $GRAPH_AUTH",
+    "deploy-studio:arbitrum": "npm run prepare:arbitrum && graph deploy realityeth-arbitrum -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:ava": "npm run prepare:ava && graph deploy realityeth-ava -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:bsc": "npm run prepare:bsc && graph deploy realityeth-bsc -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:mainnet": "npm run prepare:mainnet && graph deploy realityeth -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:optimism": "npm run prepare:optimism && graph deploy realityeth-optimism -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:polygon": "npm run prepare:polygon && graph deploy realityeth-polygon -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:sepolia": "npm run prepare:sepolia && graph deploy realityeth-sepolia -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:gnosis": "npm run prepare:gnosis && graph deploy realityeth-gnosis -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:unichain": "npm run prepare:unichain && graph deploy realityeth-unichain -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:base": "npm run prepare:base && graph deploy realityeth-base -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
+    "deploy-studio:zksync-era": "npm run prepare:zksync-era && graph deploy realityeth-zksync-era -l \"${VERSION_LABEL:-$(date +%Y%m%d-%H%M%S)}\"",
     "deploy-studio:all": "npm run deploy-studio:mainnet && npm run deploy-studio:gnosis && npm run deploy-studio:polygon && npm run deploy-studio:bsc && npm run deploy-studio:base && npm run deploy-studio:arbitrum && npm run deploy-studio:optimism && npm run deploy-studio:ava && npm run deploy-studio:unichain && npm run deploy-studio:zksync-era",
     "prepare:arbitrum": "npm run clean && node render-templates.js 42161 && graph codegen",
     "prepare:ava": "npm run clean && node render-templates.js 43114 && graph codegen",
@@ -54,9 +55,9 @@
     "truffle-hdwallet-provider": "^1.0.4"
   },
   "devDependencies": {
-    "@graphprotocol/graph-cli": "^0.54.0",
-    "@graphprotocol/graph-ts": "^0.27.0",
-    "matchstick-as": "^0.5.2"
+    "@graphprotocol/graph-cli": "^0.98.1",
+    "@graphprotocol/graph-ts": "^0.38.2",
+    "matchstick-as": "^0.6.0"
   },
   "gitHead": "57eca8b4b15ca6d22b0d499213b9a2e35fb4ddf8"
 }
