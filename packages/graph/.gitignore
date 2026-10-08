@@ -64,3 +64,8 @@ build/*
 generated/*
 
 subgraph.yaml
+
+# matchstick test artifacts
+tests/.bin/
+tests/.docker/
+tests/.latest.json
