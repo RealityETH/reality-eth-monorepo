@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "seed": "node seed.js",
+    "snapshot-index": "node scripts/snapshot-index.js",
     "sync": "node sync.js",
     "serve": "node serve.js",
     "watch": "node log-watcher.js",

@@ -3,7 +3,7 @@
 // updates reality.question / response / template / claim tables.
 import { decodeEventLog, keccak256, encodePacked } from 'viem';
 import pg from 'pg';
-import { readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -113,10 +113,18 @@ async function refreshSparseIndex(chain) {
 // batch we skip the getLogs call entirely — avoiding ~99% of RPC calls on sparse
 // chains. Above the HWM, getLogs is always called (live events not yet indexed).
 
+// Live updates are written to gitignored *.runtime.json; the tracked
+// known-event-blocks.json/-meta.json are a shipped seed. Prefer runtime, fall back to the
+// seed on a fresh checkout. Promote runtime -> seed with `npm run snapshot-index`.
+function sparseIndexFile(name) {
+  const runtime = join(__dir, `${name}.runtime.json`);
+  return existsSync(runtime) ? runtime : join(__dir, `${name}.json`);
+}
+
 function loadSparseIndex() {
   try {
-    const blocks = JSON.parse(readFileSync(join(__dir, 'known-event-blocks.json'), 'utf8'));
-    const meta   = JSON.parse(readFileSync(join(__dir, 'known-event-blocks-meta.json'), 'utf8'));
+    const blocks = JSON.parse(readFileSync(sparseIndexFile('known-event-blocks'), 'utf8'));
+    const meta   = JSON.parse(readFileSync(sparseIndexFile('known-event-blocks-meta'), 'utf8'));
     // Compute min HWM per chain (worst-case across contracts)
     const hwm = Object.fromEntries(
       Object.entries(meta).map(([chain, contracts]) => [

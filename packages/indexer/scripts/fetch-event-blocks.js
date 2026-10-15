@@ -24,8 +24,16 @@ try {
   }
 } catch {}
 
-const OUTPUT      = path.join(__dirname, '..', '..', 'indexer', 'known-event-blocks.json');
-const META_OUTPUT = path.join(__dirname, '..', '..', 'indexer', 'known-event-blocks-meta.json');
+// Live sparse-index updates are written to gitignored *.runtime.json files. The tracked
+// known-event-blocks.json/-meta.json are a shipped SEED (bootstrap only), promoted from
+// runtime deliberately via scripts/snapshot-index.js — so routine indexer runs never
+// dirty the tracked files. Reads prefer the runtime file, falling back to the seed on a
+// fresh checkout.
+const INDEXER_DIR = path.join(__dirname, '..', '..', 'indexer');
+const OUTPUT      = path.join(INDEXER_DIR, 'known-event-blocks.runtime.json');
+const META_OUTPUT = path.join(INDEXER_DIR, 'known-event-blocks-meta.runtime.json');
+const SEED        = path.join(INDEXER_DIR, 'known-event-blocks.json');
+const META_SEED   = path.join(INDEXER_DIR, 'known-event-blocks-meta.json');
 
 // AUTO-GENERATED from packages/contracts/generated/contracts.json via
 // packages/contracts/scripts/generate_indexer_config.js — do not edit manually.
@@ -157,9 +165,9 @@ async function main() {
   // Load existing data and high-water marks from previous runs.
   let existing = {};
   let meta = {};
-  try { existing = JSON.parse(fs.readFileSync(OUTPUT,      'utf8')); } catch {}
+  try { existing = JSON.parse(fs.readFileSync(fs.existsSync(OUTPUT) ? OUTPUT : SEED, 'utf8')); } catch {}
   try {
-    const rawMeta = JSON.parse(fs.readFileSync(META_OUTPUT, 'utf8'));
+    const rawMeta = JSON.parse(fs.readFileSync(fs.existsSync(META_OUTPUT) ? META_OUTPUT : META_SEED, 'utf8'));
     // Normalise keys to lowercase to match chains-config.json address format.
     for (const [chain, contracts] of Object.entries(rawMeta)) {
       meta[chain] = Object.fromEntries(

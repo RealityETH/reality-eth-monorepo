@@ -6,6 +6,9 @@ serve.log
 generated/
 monitoring/.telegram.env
 .env.local
-known-event-blocks-meta.json
+# Live sparse index — written by the running indexer. The tracked seed
+# (known-event-blocks.json / -meta.json) is updated only via `npm run snapshot-index`.
+known-event-blocks.runtime.json
+known-event-blocks-meta.runtime.json
 sync.log
 .env.local.swp
