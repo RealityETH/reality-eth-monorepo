@@ -42,7 +42,9 @@ The log-watcher promotes any chain to active for two hours after detecting real 
 
 ## Sparse block index
 
-`packages/ponder/scripts/fetch-event-blocks.js` queries block explorer APIs (Etherscan, Blockscout, etc.) to build `known-event-blocks.json` — a compact list of every block that has a reality.eth event. `sync.js` uses this below the high-water mark to fetch only those specific blocks instead of scanning full ranges.
+`packages/indexer/scripts/fetch-event-blocks.js` queries block explorer APIs (Etherscan, Blockscout, etc.) to build the sparse block index — a compact list of every block that has a reality.eth event. `sync.js` uses this below the high-water mark to fetch only those specific blocks instead of scanning full ranges.
+
+Live updates are written to gitignored `known-event-blocks.runtime.json` / `known-event-blocks-meta.runtime.json`; a tracked seed (`known-event-blocks.json` / `-meta.json`) ships as the bootstrap and is refreshed deliberately with `npm run snapshot-index` (so routine indexing never dirties the tracked files).
 
 The index is refreshed automatically before each daily lazy sync and on each lazy→active transition.
 
