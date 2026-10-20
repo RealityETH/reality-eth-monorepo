@@ -62,6 +62,11 @@
         "address": "0x0ef940f7f053a2ef5d6578841072488af0c7d89a",
         "startBlock": 2462149,
         "name": "v3.0"
+      },
+      {
+        "address": "0x544afa97e6a7258eb7ddc1c55df600942d744518",
+        "startBlock": 158432561,
+        "name": "v3.2"
       }
     ]
   },
@@ -136,6 +141,11 @@
         "address": "0xeb51d9d9717906c981c57af09c4a3449ef30705b",
         "startBlock": 39142627,
         "name": "v3.2"
+      },
+      {
+        "address": "0x0bd89e236b937cb39681a2c9d5f159004df2cfe8",
+        "startBlock": 48846033,
+        "name": "ERC20-SAFE-v3.0"
       }
     ]
   },
@@ -190,6 +200,11 @@
         "address": "0x2f39f464d16402ca3d8527da89617b73de2f60e8",
         "startBlock": 26260675,
         "name": "v3.0"
+      },
+      {
+        "address": "0x79809e21450160208f56bbb74491d92f0cb63465",
+        "startBlock": 52836532,
+        "name": "v3.2"
       }
     ]
   },

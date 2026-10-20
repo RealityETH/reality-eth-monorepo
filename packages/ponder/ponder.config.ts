@@ -52,11 +52,13 @@ export default createConfig({
     ...(has(88558801) && { backstoptestnet1: { id: 88558801, rpc: rpc(88558801), pollingInterval: 10_000, ...rps(88558801) } }),
   },
   contracts: {
-    ...((has(1) || has(100) || has(11155111) || has(30) || has(31) || has(143) || has(10200) || has(88558801)) && { RealityETH_v3_2: {
+    ...((has(1) || has(100) || has(10) || has(8453) || has(11155111) || has(30) || has(31) || has(143) || has(10200) || has(88558801)) && { RealityETH_v3_2: {
       abi,
       chain: {
         ...(has(1) && { mainnet: { address: "0x6a2155613b68eFB38D5c6074921F3F4281c8c177", startBlock: 22100226 } }),
         ...(has(100) && { gnosis: { address: "0xEb51d9d9717906c981C57af09C4a3449eF30705b", startBlock: 39142627 } }),
+        ...(has(10) && { optimism: { address: "0x544afa97E6A7258EB7ddc1C55dF600942D744518", startBlock: 158432561 } }),
+        ...(has(8453) && { base: { address: "0x79809e21450160208f56bBB74491D92f0cb63465", startBlock: 52836532 } }),
         ...(has(11155111) && { sepolia: { address: "0xB7982f20CC159a40eba4b0eA86fd6cbA6Ff810e1", startBlock: 7898415 } }),
         ...(has(30) && { rootstock: { address: "0x4396DB62818eFd4dbcf34A069047E66dB4a1cc66", startBlock: 9206460 } }),
         ...(has(31) && { rootstock_testnet: { address: "0xD9C19E152948FF34A817c75D022af9b7Ac8BD5bA", startBlock: 8039801 } }),
@@ -162,6 +164,7 @@ export default createConfig({
           "0x95b2b2b4b66A5a47Df79bF07BEBe72E9870fceb2",
           "0xC9FbdF0df8dE06Ad8d2193F7FA28bdA78c13a102",
           "0x934326a86A99DaB25bB8329089ce73ed9c7c0E4a",
+          "0x0bD89e236b937CB39681A2C9d5f159004dF2CFe8",
         ], startBlock: 20882108 },
       },
     }}),

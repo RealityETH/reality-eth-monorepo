@@ -24,7 +24,8 @@
     "noExplorerRefresh": false,
     "startBlock": 2462149,
     "addresses": [
-      "0x0ef940f7f053a2ef5d6578841072488af0c7d89a"
+      "0x0ef940f7f053a2ef5d6578841072488af0c7d89a",
+      "0x544afa97e6a7258eb7ddc1c55df600942d744518"
     ]
   },
   {
@@ -61,7 +62,8 @@
       "0x95b2b2b4b66a5a47df79bf07bebe72e9870fceb2",
       "0xc9fbdf0df8de06ad8d2193f7fa28bda78c13a102",
       "0x934326a86a99dab25bb8329089ce73ed9c7c0e4a",
-      "0xeb51d9d9717906c981c57af09c4a3449ef30705b"
+      "0xeb51d9d9717906c981c57af09c4a3449ef30705b",
+      "0x0bd89e236b937cb39681a2c9d5f159004df2cfe8"
     ]
   },
   {
@@ -94,7 +96,8 @@
     "noExplorerRefresh": false,
     "startBlock": 26260675,
     "addresses": [
-      "0x2f39f464d16402ca3d8527da89617b73de2f60e8"
+      "0x2f39f464d16402ca3d8527da89617b73de2f60e8",
+      "0x79809e21450160208f56bbb74491d92f0cb63465"
     ]
   },
   {

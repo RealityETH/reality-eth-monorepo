@@ -53,7 +53,8 @@
       ],
       "contracts": {
         "OETH": {
-          "RealityETH-3.0": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A"
+          "RealityETH-3.0": "0x0eF940F7f053a2eF5D6578841072488aF0c7d89A",
+          "RealityETH-3.2": "0x544afa97E6A7258EB7ddc1C55dF600942D744518"
         }
       }
     },
@@ -121,6 +122,9 @@
         "POLK": {
           "RealityETH_ERC20-3.0": "0x934326a86A99DaB25bB8329089ce73ed9c7c0E4a"
         },
+        "SAFE": {
+          "RealityETH_ERC20-3.0": "0x0bD89e236b937CB39681A2C9d5f159004dF2CFe8"
+        },
         "SWISE": {
           "RealityETH_ERC20-3.0": "0xC9FbdF0df8dE06Ad8d2193F7FA28bdA78c13a102"
         },
@@ -183,7 +187,8 @@
       ],
       "contracts": {
         "ETH": {
-          "RealityETH-3.0": "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8"
+          "RealityETH-3.0": "0x2F39f464d16402Ca3D8527dA89617b73DE2F60e8",
+          "RealityETH-3.2": "0x79809e21450160208f56bBB74491D92f0cb63465"
         }
       }
     },
