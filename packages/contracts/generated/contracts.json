@@ -333,6 +333,15 @@
                 }
             }
         },
+        "SAFE": {
+            "RealityETH_ERC20-3.0": {
+                "address": "0x0bD89e236b937CB39681A2C9d5f159004dF2CFe8",
+                "block": 48846033,
+                "token_address": "0x4d18815D14fe5c3304e87B3FA18318baa5c23820",
+                "notes": null,
+                "arbitrators": {}
+            }
+        },
         "SWISE": {
             "RealityETH_ERC20-3.0": {
                 "address": "0xC9FbdF0df8dE06Ad8d2193F7FA28bdA78c13a102",
