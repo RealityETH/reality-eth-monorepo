@@ -349,6 +349,38 @@ window.RealityRpcBrowse.mount = async function () {
   const filterBarEl = document.getElementById('rb-filter-bar');
   const resultsEl  = document.getElementById('rb-results');
 
+  // Offer banner: shown when the browser node is available but on the wrong chain,
+  // so the scan fell back to a public RPC. Persists above the (re-written) status line.
+  const switchChainEl = document.createElement('div');
+  switchChainEl.id = 'rb-switch-chain';
+  switchChainEl.className = 'rpc-scan-msg';
+  switchChainEl.style.display = 'none';
+  statusEl.parentNode.insertBefore(switchChainEl, statusEl);
+
+  function hideSwitchChainOffer() { switchChainEl.style.display = 'none'; switchChainEl.innerHTML = ''; }
+  function showSwitchChainOffer(targetChainId, walletChainId) {
+    switchChainEl.style.display = '';
+    switchChainEl.innerHTML =
+      `Your browser node is on ${escHtml(chainName(walletChainId))}, so this scan used a public RPC. ` +
+      `<a href="#" class="rb-switch-link">Switch it to ${escHtml(chainName(targetChainId))}</a> to use your local node instead.`;
+    switchChainEl.querySelector('.rb-switch-link').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x' + Number(targetChainId).toString(16) }],
+        });
+        hideSwitchChainOffer();
+        scanBtn.click(); // re-scan: now on the right chain, it'll use the browser node
+      } catch (err) {
+        const msg = (err && err.code === 4902)
+          ? "that network isn't configured in your wallet"
+          : escHtml(err?.message || 'switch failed');
+        switchChainEl.insertAdjacentHTML('beforeend', ` <span style="color:var(--bad)">— ${msg}</span>`);
+      }
+    };
+  }
+
   // ── Per-scan state ────────────────────────────────────────────────────────────
   let selectedChainId = null;
   let scanWindow      = null;  // {fromBlock, toBlock, prov, creator, tmpl, ver} after a scan
@@ -697,6 +729,7 @@ window.RealityRpcBrowse.mount = async function () {
     scanItems  = [];
     scanWindow = null;
     resultsEl.innerHTML = '';
+    hideSwitchChainOffer();
 
     let rpcUrl = null;
     let usingBrowserWallet = false;
@@ -731,6 +764,8 @@ window.RealityRpcBrowse.mount = async function () {
         const brProv = new ethers.BrowserProvider(window.ethereum);
         const net = await brProv.getNetwork();
         if (Number(net.chainId) === chainId) { prov = brProv; usingBrowserWallet = true; }
+        // Browser node is available but on a different chain — offer to switch it so we can use it.
+        else { showSwitchChainOffer(chainId, Number(net.chainId)); }
       }
       if (!prov) {
         if (!rpcUrl) throw new Error('No RPC available for this chain');
