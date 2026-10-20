@@ -1,6 +1,7 @@
 {
   "name": "reality-eth",
-  "dependencies": {
-    "lerna": "^7.4.2"
+  "private": true,
+  "devDependencies": {
+    "lerna": "^8.2.4"
   }
 }
