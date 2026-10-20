@@ -16,5 +16,8 @@
     "ethers": "^6.0.0"
   },
   "license": "GPL-3.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "gitHead": "57eca8b4b15ca6d22b0d499213b9a2e35fb4ddf8"
 }
