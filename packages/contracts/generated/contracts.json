@@ -200,6 +200,12 @@
                 "arbitrators": {
                     "0x5AFa42b30955f137e10f89dfb5EF1542a186F90e": "Kleros (Seer)"
                 }
+            },
+            "RealityETH-3.2": {
+                "address": "0x544afa97E6A7258EB7ddc1C55dF600942D744518",
+                "block": 158432561,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
@@ -538,6 +544,12 @@
                     "0xd04f24364687dbd6db67d2101fae59e91a6e605b": "Kleros (Precog)",
                     "0x4A73a9A97c58BB6F724094d250633833Ff462b31": "Kleros (Foresight NOW)"
                 }
+            },
+            "RealityETH-3.2": {
+                "address": "0x79809e21450160208f56bBB74491D92f0cb63465",
+                "block": 52836532,
+                "notes": null,
+                "arbitrators": {}
             }
         }
     },
