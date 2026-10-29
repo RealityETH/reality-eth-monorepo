@@ -37,4 +37,119 @@ abstract contract RealityETHStd is RealityETHBase {
         assertEq(uint256(finalizeTs), 0, "finalize ts should start at 0");
         assertEq(bounty, 1000, "bounty should be 1000 after the 100 fee");
     }
+
+    // ---------------------------------------------------------------------
+    // answer-history tracking — Solidity equivalent of the Python
+    // submitAnswerReturnUpdatedState. Stored chronologically (oldest first);
+    // claim arrays are built newest-first as claimWinnings expects.
+    // ---------------------------------------------------------------------
+    bytes32[] internal hHash; // question history hash *before* each answer
+    uint256[] internal hBond;
+    bytes32[] internal hAnswer; // answer, or commitment id for commitments
+    address[] internal hAddr;
+    uint256[] internal hNonce; // commitment nonce (0 for plain answers)
+
+    uint256 internal constant COMMIT_NONCE = 1234;
+
+    function _histHash(bytes32 qid) internal view returns (bytes32 h) {
+        (,,,,,,,, h,,) = rc.questions(qid);
+    }
+
+    function _submit(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender) internal {
+        bytes32 beforeHash = _histHash(qid);
+        vm.deal(sender, bond + 1 ether);
+        vm.prank(sender);
+        rc.submitAnswer{value: bond}(qid, _answer(ansVal), maxLast);
+        hHash.push(beforeHash);
+        hBond.push(bond);
+        hAnswer.push(_answer(ansVal));
+        hAddr.push(sender);
+        hNonce.push(0);
+    }
+
+    function _submitCommit(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender)
+        internal
+        returns (uint256)
+    {
+        return _submitCommitAs(qid, ansVal, maxLast, bond, sender, sender);
+    }
+
+    // `answerer` is the address passed to submitAnswerCommitment (address(0) for
+    // the "skip sender" case, where RealityETH falls back to msg.sender).
+    function _submitCommitAs(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender, address answerer)
+        internal
+        returns (uint256)
+    {
+        bytes32 beforeHash = _histHash(qid);
+        bytes32 answerHash = _answerHash(_answer(ansVal), COMMIT_NONCE);
+        bytes32 commitmentId = _commitmentId(qid, answerHash, bond);
+        vm.deal(sender, bond + 1 ether);
+        vm.prank(sender);
+        rc.submitAnswerCommitment{value: bond}(qid, answerHash, maxLast, answerer);
+        hHash.push(beforeHash);
+        hBond.push(bond);
+        hAnswer.push(commitmentId);
+        hAddr.push(sender);
+        hNonce.push(COMMIT_NONCE);
+        return COMMIT_NONCE;
+    }
+
+    function _reveal(bytes32 qid, uint256 ansVal, uint256 nonce, uint256 bond, address sender) internal {
+        vm.prank(sender);
+        rc.submitAnswerReveal(qid, _answer(ansVal), nonce, bond);
+    }
+
+    function _lastHistBefore() internal view returns (bytes32) {
+        return hHash[hHash.length - 1];
+    }
+
+    function _lastAnswer() internal view returns (bytes32) {
+        return hAnswer[hAnswer.length - 1];
+    }
+
+    function _lastAddr() internal view returns (address) {
+        return hAddr[hAddr.length - 1];
+    }
+
+    function _buildClaim(bytes32 arbHash, uint256 arbBond, bytes32 arbAnswer, address arbAddr)
+        internal
+        view
+        returns (bytes32[] memory hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers)
+    {
+        uint256 n = hHash.length;
+        hashes = new bytes32[](n + 1);
+        addrs = new address[](n + 1);
+        bonds = new uint256[](n + 1);
+        answers = new bytes32[](n + 1);
+        hashes[0] = arbHash;
+        addrs[0] = arbAddr;
+        bonds[0] = arbBond;
+        answers[0] = arbAnswer;
+        for (uint256 i = 0; i < n; i++) {
+            uint256 src = n - 1 - i;
+            hashes[1 + i] = hHash[src];
+            addrs[1 + i] = hAddr[src];
+            bonds[1 + i] = hBond[src];
+            answers[1 + i] = hAnswer[src];
+        }
+    }
+
+    function _buildClaimNoArb()
+        internal
+        view
+        returns (bytes32[] memory hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers)
+    {
+        uint256 n = hHash.length;
+        hashes = new bytes32[](n);
+        addrs = new address[](n);
+        bonds = new uint256[](n);
+        answers = new bytes32[](n);
+        for (uint256 i = 0; i < n; i++) {
+            uint256 src = n - 1 - i;
+            hashes[i] = hHash[src];
+            addrs[i] = hAddr[src];
+            bonds[i] = hBond[src];
+            answers[i] = hAnswer[src];
+        }
+    }
 }
