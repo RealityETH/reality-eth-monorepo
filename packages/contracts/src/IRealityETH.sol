@@ -44,6 +44,56 @@ interface IRealityETH {
     ) external payable returns (bytes32);
     function fundAnswerBounty(bytes32 question_id) external payable;
 
+    // --- ERC20 variants (RealityETH_ERC20-*) ---
+    function setToken(address token) external;
+    function token() external view returns (address);
+    function askQuestionERC20(
+        uint256 template_id,
+        string calldata question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 tokens
+    ) external returns (bytes32);
+    function askQuestionWithMinBondERC20(
+        uint256 template_id,
+        string calldata question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 min_bond,
+        uint256 tokens
+    ) external returns (bytes32);
+    function reopenQuestionERC20(
+        uint256 template_id,
+        string calldata question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 opening_ts,
+        uint256 nonce,
+        uint256 min_bond,
+        bytes32 reopens_question_id,
+        uint256 tokens
+    ) external returns (bytes32);
+    function fundAnswerBountyERC20(bytes32 question_id, uint256 tokens) external;
+    function submitAnswerERC20(bytes32 question_id, bytes32 answer, uint256 max_previous, uint256 tokens) external;
+    function submitAnswerForERC20(
+        bytes32 question_id,
+        bytes32 answer,
+        uint256 max_previous,
+        address answerer,
+        uint256 tokens
+    ) external;
+    function submitAnswerCommitmentERC20(
+        bytes32 question_id,
+        bytes32 answer_hash,
+        uint256 max_previous,
+        address _answerer,
+        uint256 tokens
+    ) external;
+
     // --- answering ---
     function submitAnswer(bytes32 question_id, bytes32 answer, uint256 max_previous) external payable;
     function submitAnswerFor(bytes32 question_id, bytes32 answer, uint256 max_previous, address answerer) external payable;

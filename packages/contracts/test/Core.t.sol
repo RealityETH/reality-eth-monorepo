@@ -4,10 +4,10 @@ pragma solidity ^0.8.20;
 import {RealityETHStd} from "./StdSetup.t.sol";
 
 /// Ported from tests/python/test.py — core question lifecycle
-/// (no commit-reveal, no arbitration).
+/// (no commit-reveal, no arbitration). Runs against both ETH and ERC20.
 contract CoreTest is RealityETHStd {
     function test_fund_increase() public {
-        rc.fundAnswerBounty{value: 500}(question_id);
+        _fund(address(this), question_id, 500);
         (,,,,,, uint256 bounty,,,,) = rc.questions(question_id);
         assertEq(bounty, 1500);
     }
@@ -19,7 +19,7 @@ contract CoreTest is RealityETHStd {
     }
 
     function test_simple_response_finalization() public {
-        rc.submitAnswer{value: 1}(question_id, _answer(12345), 0);
+        _submit(question_id, 12345, 0, 1, address(this));
         _advanceClock(33);
         (,,,,,,, bytes32 best,,,) = rc.questions(question_id);
         assertEq(uint256(best), 12345);
@@ -34,18 +34,18 @@ contract CoreTest is RealityETHStd {
     }
 
     function test_earliest_finalization_ts() public {
-        rc.submitAnswer{value: 10}(question_id, _answer(54321), 0);
+        _submit(question_id, 54321, 0, 10, address(this));
         (,,,, uint32 ts1,,,,,,) = rc.questions(question_id);
         _advanceClock(1);
-        rc.submitAnswer{value: 20}(question_id, _answer(54321), 0);
+        _submit(question_id, 54321, 0, 20, address(this));
         (,,,, uint32 ts2,,,,, uint256 bond,) = rc.questions(question_id);
         assertEq(bond, 20);
         assertGt(ts2, ts1, "submitting an answer advances the finalization timestamp");
     }
 
     function test_conflicting_response_finalization() public {
-        rc.submitAnswer{value: 1}(question_id, _answer(12345), 0);
-        rc.submitAnswer{value: 10}(question_id, _answer(54321), 0);
+        _submit(question_id, 12345, 0, 1, address(this));
+        _submit(question_id, 54321, 0, 10, address(this));
         _advanceClock(33);
         assertTrue(rc.isFinalized(question_id));
         assertEq(uint256(rc.getFinalAnswer(question_id)), 54321);
@@ -56,7 +56,7 @@ contract CoreTest is RealityETHStd {
         bytes32 wrongCh = _contentHash(0, 0, "not my question");
         address wrongArb = address(0x2222);
 
-        rc.submitAnswer{value: 1}(question_id, _answer(12345), 0);
+        _submit(question_id, 12345, 0, 1, address(this));
 
         // not finalized yet
         vm.expectRevert();

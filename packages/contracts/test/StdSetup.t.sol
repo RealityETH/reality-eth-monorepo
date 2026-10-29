@@ -3,22 +3,27 @@ pragma solidity ^0.8.20;
 
 import {RealityETHBase} from "./RealityETHBase.t.sol";
 import {MockArbitrator} from "./mocks/MockArbitrator.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
 
-/// Standard fixture mirroring the Python `setUp` (ETH variant): an arbitrator
-/// with a 100-wei question fee, and one open question "my question" (template 0,
-/// timeout 30) asked with 1100 wei so the resulting bounty is 1000.
+/// Standard fixture mirroring the Python `setUp`: an arbitrator with a 100-unit
+/// question fee, and one open question "my question" (template 0, timeout 30)
+/// asked with 1100 so the resulting bounty is 1000. Works for both the ETH and
+/// ERC20 contract families — all payment operations route through branching
+/// helpers (_ask/_submit/_fund/...), the Solidity equivalent of the Python
+/// `if ERC20:` branches.
 abstract contract RealityETHStd is RealityETHBase {
     MockArbitrator internal arb;
+    MockERC20 internal token; // only set for ERC20 variants
     bytes32 internal question_id;
 
     uint32 internal constant TIMEOUT = 30;
     uint256 internal constant QUESTION_FEE = 100;
+    uint256 internal constant TOKEN_SUPPLY = 1e24;
 
     function setUp() public virtual override {
         super.setUp();
-        // ETH fixture, v3+ only for now. ERC20 variants and the pre-v3 struct/id
-        // layout need their own plumbing (tracked separately); skip cleanly.
-        if (isERC20 || versionNum < 30) {
+        // pre-v3 struct/id layout handled separately; skip cleanly for now.
+        if (versionNum < 30) {
             vm.skip(true);
             return;
         }
@@ -26,9 +31,16 @@ abstract contract RealityETHStd is RealityETHBase {
         arb = new MockArbitrator();
         arb.setRealitio(address(rc));
         arb.setDisputeFee(10000000000000000);
+
+        if (isERC20) {
+            token = new MockERC20();
+            rc.setToken(address(token));
+            token.mint(address(this), TOKEN_SUPPLY);
+            token.approve(address(rc), type(uint256).max);
+        }
         arb.setQuestionFee(QUESTION_FEE);
 
-        question_id = rc.askQuestion{value: 1100}(0, "my question", address(arb), TIMEOUT, 0, 0);
+        question_id = _ask(address(this), 0, "my question", address(arb), TIMEOUT, 0, 0, 1100);
 
         // mirror the sanity asserts in the Python setUp
         (, address arbitrator,, uint32 timeout, uint32 finalizeTs,, uint256 bounty,,,,) = rc.questions(question_id);
@@ -36,6 +48,190 @@ abstract contract RealityETHStd is RealityETHBase {
         assertEq(uint256(timeout), uint256(TIMEOUT), "timeout");
         assertEq(uint256(finalizeTs), 0, "finalize ts should start at 0");
         assertEq(bounty, 1000, "bounty should be 1000 after the 100 fee");
+    }
+
+    // ---------------------------------------------------------------------
+    // payment helpers: ETH uses msg.value; ERC20 mints+approves then passes
+    // the amount. Each acts as `sender`.
+    // ---------------------------------------------------------------------
+    function _prepERC20(address sender, uint256 amount) private {
+        token.mint(sender, amount);
+        vm.prank(sender);
+        token.approve(address(rc), type(uint256).max);
+    }
+
+    function _ask(
+        address sender,
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 bounty
+    ) internal returns (bytes32) {
+        if (isERC20) {
+            _prepERC20(sender, bounty);
+            vm.prank(sender);
+            return rc.askQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, bounty);
+        }
+        vm.deal(sender, sender.balance + bounty);
+        vm.prank(sender);
+        return rc.askQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce);
+    }
+
+    function _askMinBond(
+        address sender,
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond,
+        uint256 bounty
+    ) internal returns (bytes32) {
+        if (isERC20) {
+            _prepERC20(sender, bounty);
+            vm.prank(sender);
+            return rc.askQuestionWithMinBondERC20(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond, bounty
+            );
+        }
+        vm.deal(sender, sender.balance + bounty);
+        vm.prank(sender);
+        return rc.askQuestionWithMinBond{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond);
+    }
+
+    function _reopen(
+        address sender,
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond,
+        bytes32 reopens,
+        uint256 bounty
+    ) internal returns (bytes32) {
+        if (isERC20) {
+            _prepERC20(sender, bounty);
+            vm.prank(sender);
+            return rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty);
+        }
+        vm.deal(sender, sender.balance + bounty);
+        vm.prank(sender);
+        return rc.reopenQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens);
+    }
+
+    function _fund(address sender, bytes32 qid, uint256 amount) internal {
+        if (isERC20) {
+            _prepERC20(sender, amount);
+            vm.prank(sender);
+            rc.fundAnswerBountyERC20(qid, amount);
+        } else {
+            vm.deal(sender, sender.balance + amount);
+            vm.prank(sender);
+            rc.fundAnswerBounty{value: amount}(qid);
+        }
+    }
+
+    function _submitFor(address sender, bytes32 qid, uint256 ansVal, uint256 maxLast, address answerer, uint256 bond)
+        internal
+    {
+        if (isERC20) {
+            _prepERC20(sender, bond);
+            vm.prank(sender);
+            rc.submitAnswerForERC20(qid, _answer(ansVal), maxLast, answerer, bond);
+        } else {
+            vm.deal(sender, sender.balance + bond);
+            vm.prank(sender);
+            rc.submitAnswerFor{value: bond}(qid, _answer(ansVal), maxLast, answerer);
+        }
+    }
+
+    // external (withdrawable) balance of an account: tokens for ERC20, else ETH
+    function _extBalance(address who) internal view returns (uint256) {
+        return isERC20 ? token.balanceOf(who) : who.balance;
+    }
+
+    // expect-revert variants (payment must be prepped before vm.expectRevert so
+    // the revert target is the ask/submit call itself). All act as address(this).
+    function _submitRevert(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond) internal {
+        if (isERC20) {
+            token.mint(address(this), bond);
+            token.approve(address(rc), type(uint256).max);
+            vm.expectRevert();
+            rc.submitAnswerERC20(qid, _answer(ansVal), maxLast, bond);
+        } else {
+            vm.expectRevert();
+            rc.submitAnswer{value: bond}(qid, _answer(ansVal), maxLast);
+        }
+    }
+
+    function _submitForRevert(bytes32 qid, uint256 ansVal, uint256 maxLast, address answerer, uint256 bond) internal {
+        if (isERC20) {
+            token.mint(address(this), bond);
+            token.approve(address(rc), type(uint256).max);
+            vm.expectRevert();
+            rc.submitAnswerForERC20(qid, _answer(ansVal), maxLast, answerer, bond);
+        } else {
+            vm.expectRevert();
+            rc.submitAnswerFor{value: bond}(qid, _answer(ansVal), maxLast, answerer);
+        }
+    }
+
+    function _askRevert(
+        address sender,
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 bounty
+    ) internal {
+        if (isERC20) {
+            token.mint(sender, bounty);
+            vm.prank(sender);
+            token.approve(address(rc), type(uint256).max);
+            vm.expectRevert();
+            vm.prank(sender);
+            rc.askQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, bounty);
+        } else {
+            vm.deal(sender, sender.balance + bounty);
+            vm.expectRevert();
+            vm.prank(sender);
+            rc.askQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce);
+        }
+    }
+
+    function _reopenRevert(
+        address sender,
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond,
+        bytes32 reopens,
+        uint256 bounty
+    ) internal {
+        if (isERC20) {
+            token.mint(sender, bounty);
+            vm.prank(sender);
+            token.approve(address(rc), type(uint256).max);
+            vm.expectRevert();
+            vm.prank(sender);
+            rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty);
+        } else {
+            vm.deal(sender, sender.balance + bounty);
+            vm.expectRevert();
+            vm.prank(sender);
+            rc.reopenQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -57,9 +253,15 @@ abstract contract RealityETHStd is RealityETHBase {
 
     function _submit(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender) internal {
         bytes32 beforeHash = _histHash(qid);
-        vm.deal(sender, bond + 1 ether);
-        vm.prank(sender);
-        rc.submitAnswer{value: bond}(qid, _answer(ansVal), maxLast);
+        if (isERC20) {
+            _prepERC20(sender, bond);
+            vm.prank(sender);
+            rc.submitAnswerERC20(qid, _answer(ansVal), maxLast, bond);
+        } else {
+            vm.deal(sender, bond + 1 ether);
+            vm.prank(sender);
+            rc.submitAnswer{value: bond}(qid, _answer(ansVal), maxLast);
+        }
         hHash.push(beforeHash);
         hBond.push(bond);
         hAnswer.push(_answer(ansVal));
@@ -83,9 +285,15 @@ abstract contract RealityETHStd is RealityETHBase {
         bytes32 beforeHash = _histHash(qid);
         bytes32 answerHash = _answerHash(_answer(ansVal), COMMIT_NONCE);
         bytes32 commitmentId = _commitmentId(qid, answerHash, bond);
-        vm.deal(sender, bond + 1 ether);
-        vm.prank(sender);
-        rc.submitAnswerCommitment{value: bond}(qid, answerHash, maxLast, answerer);
+        if (isERC20) {
+            _prepERC20(sender, bond);
+            vm.prank(sender);
+            rc.submitAnswerCommitmentERC20(qid, answerHash, maxLast, answerer, bond);
+        } else {
+            vm.deal(sender, bond + 1 ether);
+            vm.prank(sender);
+            rc.submitAnswerCommitment{value: bond}(qid, answerHash, maxLast, answerer);
+        }
         hHash.push(beforeHash);
         hBond.push(bond);
         hAnswer.push(commitmentId);
