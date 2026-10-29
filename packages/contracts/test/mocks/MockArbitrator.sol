@@ -13,6 +13,36 @@ contract MockArbitrator {
     uint256 public disputeFee;
     mapping(bytes32 => uint256) private customFee; // 0 == no override
 
+    address public owner;
+    string public metadata;
+    address public registeredWallet;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function setMetaData(string calldata m) external {
+        require(msg.sender == owner, "owner only");
+        metadata = m;
+    }
+
+    function updateRegisteredWallet(address w) external {
+        require(msg.sender == owner, "owner only");
+        registeredWallet = w;
+    }
+
+    // withdraw this arbitrator's RealityETH balance into this contract
+    function callWithdraw() external {
+        realitio.withdraw();
+    }
+
+    function withdrawToRegisteredWallet() external {
+        require(registeredWallet != address(0), "no registered wallet");
+        uint256 b = address(this).balance;
+        (bool ok,) = registeredWallet.call{value: b}("");
+        require(ok, "transfer failed");
+    }
+
     function setRealitio(address a) external {
         realitio = IRealityETH(a);
     }

@@ -81,8 +81,8 @@ abstract contract RealityETHBase is Test {
 
         commitRevealSupported = versionNum < 40; // commit-reveal was removed in 4.0
         answererAssignmentSupported = versionNum >= 30;
-        reopenSupported = versionNum >= 32;
-        minBondSupported = versionNum >= 32;
+        reopenSupported = versionNum >= 30; // reopenQuestion is in the 3.0 ABI
+        minBondSupported = versionNum >= 30; // askQuestionWithMinBond is in the 3.0 ABI
         claimFeeDivisor = versionNum >= 21 ? 40 : 0;
     }
 
@@ -106,12 +106,34 @@ abstract contract RealityETHBase is Test {
     // ---------------------------------------------------------------------
     // hash helpers (packed keccak, matching Web3.solidity_keccak in test.py)
     // ---------------------------------------------------------------------
+    // special answer meaning "answered too soon" (0xff..fe)
+    bytes32 internal constant ANSWERED_TOO_SOON = bytes32(type(uint256).max - 1);
+
     function _contentHash(uint256 templateId, uint32 openingTs, string memory question)
         internal
         pure
         returns (bytes32)
     {
         return keccak256(abi.encodePacked(templateId, openingTs, question));
+    }
+
+    // question id, matching the Python calculate_question_id (v3+ includes
+    // min_bond and the contract address; older versions do not).
+    function _questionId(
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        address sender,
+        uint256 minBond
+    ) internal view returns (bytes32) {
+        bytes32 ch = _contentHash(templateId, openingTs, question);
+        if (versionNum >= 30) {
+            return keccak256(abi.encodePacked(ch, arbitrator, timeout, minBond, address(rc), sender, nonce));
+        }
+        return keccak256(abi.encodePacked(ch, arbitrator, timeout, sender, nonce));
     }
 
     function _answerHash(bytes32 answer, uint256 nonce) internal pure returns (bytes32) {
