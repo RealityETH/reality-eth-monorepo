@@ -161,4 +161,132 @@ contract BondClaimTest is RealityETHStd {
         assertEq(rc.balanceOf(k6), 32 + 16 + 8 + 4 + 2 - 1 + 1000);
         assertEq(rc.balanceOf(k3), 1 + 1);
     }
+
+    function test_simple_bond_claim() public {
+        address k0 = makeAddr("k0s");
+        _submit(question_id, 12345, 0, 3, k0);
+        _advanceClock(33);
+        assertEq(uint256(rc.getFinalAnswer(question_id)), 12345);
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
+        _claim(hs, ad, bo, an);
+        assertEq(rc.balanceOf(k0), 3 + 1000, "winner gets their bond back plus the bounty");
+    }
+
+    function test_bond_claim_arbitration_existing_not_final() public {
+        address k3 = makeAddr("k3");
+        address k4 = makeAddr("k4");
+        _submit(question_id, 1001, 0, 2, k4);
+        _submit(question_id, 1002, 2, 4, k3);
+        _submit(question_id, 1002, 4, 8, k3);
+        _submit(question_id, 1001, 8, 16, k4);
+
+        uint256 fee = arb.getDisputeFee(question_id);
+        arb.requestArbitration{value: fee}(question_id, 0);
+
+        bytes32 histHash = _histHash(question_id);
+        arb.submitAnswerByArbitrator(question_id, _answer(1002), k3);
+
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) =
+            _buildClaim(histHash, 0, _answer(1002), k3);
+        _claim(hs, ad, bo, an);
+        assertEq(rc.balanceOf(k3), 16 + 8 + 4 + 2 + 1000);
+    }
+
+    function test_bonds() public {
+        address k0 = makeAddr("k0b");
+        address k3 = makeAddr("k3b");
+        address k4 = makeAddr("k4b");
+        address k5 = makeAddr("k5b");
+
+        assertEq(rc.balanceOf(k4), 0);
+
+        vm.expectRevert(); // first answer with bond 0 fails
+        rc.submitAnswer{value: 0}(question_id, _answer(12345), 0);
+
+        _submit(question_id, 12345, 0, 1, k0);
+
+        vm.expectRevert(); // must increase the bond
+        rc.submitAnswer{value: 1}(question_id, _answer(10001), 0);
+
+        _submit(question_id, 10001, 0, 2, k3);
+        _submit(question_id, 10002, 0, 4, k4); // the eventual winning answer
+
+        vm.expectRevert(); // must at least double (7 < 8)
+        rc.submitAnswer{value: 7}(question_id, _answer(10003), 0);
+        vm.expectRevert(); // can't drop back to zero
+        rc.submitAnswer{value: 0}(question_id, _answer(10004), 0);
+
+        _submit(question_id, 10005, 0, 11, k3);
+        _submit(question_id, 10002, 11, 22, k5);
+
+        assertFalse(rc.isFinalized(question_id));
+
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
+        vm.expectRevert(); // can't claim before finalization
+        rc.claimWinnings(question_id, hs, ad, bo, an);
+
+        _advanceClock(33);
+        assertEq(uint256(rc.getFinalAnswer(question_id)), 10002);
+
+        _claim(hs, ad, bo, an);
+        assertEq(rc.balanceOf(k4), 4 + 4 + 1 + 2, "first right answerer: double bond + earlier bonds");
+        assertEq(rc.balanceOf(k5), 22 + 11 - 4 + 1000, "final answerer: bounty + bond + taken bonds - lower right bond");
+        assertEq(rc.balanceOf(k3), 0, "wrong answerers get nothing");
+
+        uint256 beforeBal = k5.balance;
+        vm.prank(k5);
+        rc.withdraw();
+        assertEq(k5.balance, beforeBal + (22 + 11 - 4 + 1000));
+        assertEq(rc.balanceOf(k5), 0);
+    }
+
+    function test_bond_bulk_withdrawal_other_user() public {
+        address k3 = makeAddr("k3");
+        address k5 = makeAddr("k5");
+        _submit(question_id, 1001, 0, 2, k3);
+        _submit(question_id, 1001, 2, 4, k3);
+        _submit(question_id, 1001, 4, 8, k3);
+        _submit(question_id, 1001, 8, 16, k3);
+        _submit(question_id, 1001, 16, 32, k3);
+        _submit(question_id, 1001, 32, 64, k3);
+        uint256 claimable = 64 + _subFee(32) + _subFee(16) + _subFee(8) + _subFee(4) + _subFee(2) + 1000;
+
+        _advanceClock(33);
+        assertEq(rc.balanceOf(k3), 0);
+
+        // an unconnected user does the claim: funds are left in the contract for k3
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
+        bytes32[] memory qids = new bytes32[](1);
+        qids[0] = question_id;
+        uint256[] memory lengths = new uint256[](1);
+        lengths[0] = 6;
+        vm.prank(k5);
+        rc.claimMultipleAndWithdrawBalance(qids, lengths, hs, ad, bo, an);
+
+        assertEq(rc.balanceOf(k3), claimable);
+    }
+
+    function test_withdrawal() public {
+        address k5 = makeAddr("k5w");
+        _submit(question_id, 12345, 0, 100, k5);
+        _advanceClock(33);
+
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
+        vm.prank(k5);
+        rc.claimWinnings(question_id, hs, ad, bo, an);
+        assertEq(rc.balanceOf(k5), 1100);
+
+        uint256 beforeBal = k5.balance;
+        vm.prank(k5);
+        rc.withdraw();
+        assertEq(rc.balanceOf(k5), 0);
+        assertEq(k5.balance, beforeBal + 1100);
+    }
+
+    function test_submit_answer_for_withdrawal() public {
+        // submitAnswerFor with a null answerer must revert (rest of the Python
+        // test is dead code after an early return).
+        vm.expectRevert();
+        rc.submitAnswerFor{value: 100}(question_id, _answer(12345), 0, address(0));
+    }
 }
