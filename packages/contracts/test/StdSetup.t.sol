@@ -139,17 +139,28 @@ abstract contract RealityETHStd is RealityETHBase {
         view
         returns (bytes32[] memory hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers)
     {
+        return _claimSlice(0, hHash.length);
+    }
+
+    // newest-first claim arrays for the half-open range [from, to) of answers
+    // (used by the split-over-transactions tests, mirroring Python st[:2]/st[2:]).
+    function _claimSlice(uint256 from, uint256 to)
+        internal
+        view
+        returns (bytes32[] memory hashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers)
+    {
         uint256 n = hHash.length;
-        hashes = new bytes32[](n);
-        addrs = new address[](n);
-        bonds = new uint256[](n);
-        answers = new bytes32[](n);
-        for (uint256 i = 0; i < n; i++) {
-            uint256 src = n - 1 - i;
-            hashes[i] = hHash[src];
-            addrs[i] = hAddr[src];
-            bonds[i] = hBond[src];
-            answers[i] = hAnswer[src];
+        uint256 m = to - from;
+        hashes = new bytes32[](m);
+        addrs = new address[](m);
+        bonds = new uint256[](m);
+        answers = new bytes32[](m);
+        for (uint256 j = 0; j < m; j++) {
+            uint256 src = n - 1 - (from + j);
+            hashes[j] = hHash[src];
+            addrs[j] = hAddr[src];
+            bonds[j] = hBond[src];
+            answers[j] = hAnswer[src];
         }
     }
 }
