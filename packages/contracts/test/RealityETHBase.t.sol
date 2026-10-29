@@ -23,11 +23,13 @@ abstract contract RealityETHBase is Test {
     bool internal answererAssignmentSupported; // submitAnswerFor / assignWinner... (3.0+)
     bool internal reopenSupported; // 3.2+
     bool internal minBondSupported; // 3.2+
+    uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
     function setUp() public virtual {
         contractName = vm.envOr("REALITYETH", string("RealityETH-3.0"));
         _configureVersion(contractName);
         rc = IRealityETH(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
+        vm.deal(address(this), 1000 ether);
     }
 
     // ---------------------------------------------------------------------
@@ -77,10 +79,11 @@ abstract contract RealityETHBase is Test {
         else if (_contains(name, "-4.0")) versionNum = 40;
         else revert(string.concat("unknown RealityETH version: ", name));
 
-        commitRevealSupported = true; // 2.0+
+        commitRevealSupported = versionNum < 40; // commit-reveal was removed in 4.0
         answererAssignmentSupported = versionNum >= 30;
         reopenSupported = versionNum >= 32;
         minBondSupported = versionNum >= 32;
+        claimFeeDivisor = versionNum >= 21 ? 40 : 0;
     }
 
     function _contains(string memory hay, string memory needle) internal pure returns (bool) {
@@ -132,5 +135,16 @@ abstract contract RealityETHBase is Test {
     // convenience: bytes32 from a small uint answer (reality.eth answers are bytes32)
     function _answer(uint256 v) internal pure returns (bytes32) {
         return bytes32(v);
+    }
+
+    // advance the chain clock by `secs` (Python _advance_clock / time_travel)
+    function _advanceClock(uint256 secs) internal {
+        vm.warp(block.timestamp + secs);
+    }
+
+    // Python subfee(): the 2.5% burn applied to a losing/non-final bond on claim.
+    function _subFee(uint256 bond) internal view returns (uint256) {
+        if (claimFeeDivisor == 0) return bond;
+        return bond - (bond / claimFeeDivisor);
     }
 }
