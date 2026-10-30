@@ -20,9 +20,10 @@ abstract contract RealityETHBase is Test {
 
     // feature flags (see _configureVersion)
     bool internal commitRevealSupported;
-    bool internal answererAssignmentSupported; // submitAnswerFor / assignWinner... (3.0+)
-    bool internal reopenSupported; // 3.2+
-    bool internal minBondSupported; // 3.2+
+    bool internal answererAssignmentSupported; // submitAnswerFor / assignWinner / cancelArbitration (2.1+)
+    bool internal reopenSupported; // 3.0+
+    bool internal minBondSupported; // 3.0+
+    bool internal settledTooSoonSupported; // isSettledTooSoon / resultForOnceSettled (3.0+)
     uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
     function setUp() public virtual {
@@ -38,7 +39,7 @@ abstract contract RealityETHBase is Test {
     function _deployBytecode(string memory path, bytes memory args) internal returns (address addr) {
         bytes memory code = vm.parseBytes(_ensure0x(vm.readFile(path)));
         bytes memory full = bytes.concat(code, args);
-        assembly {
+        assembly ("memory-safe") {
             addr := create(0, add(full, 0x20), mload(full))
         }
         require(addr != address(0), "bytecode deploy failed");
@@ -80,9 +81,10 @@ abstract contract RealityETHBase is Test {
         else revert(string.concat("unknown RealityETH version: ", name));
 
         commitRevealSupported = versionNum < 40; // commit-reveal was removed in 4.0
-        answererAssignmentSupported = versionNum >= 30;
+        answererAssignmentSupported = versionNum >= 21; // assignWinner/submitAnswerFor/cancel added in 2.1
         reopenSupported = versionNum >= 30; // reopenQuestion is in the 3.0 ABI
         minBondSupported = versionNum >= 30; // askQuestionWithMinBond is in the 3.0 ABI
+        settledTooSoonSupported = versionNum >= 30; // isSettledTooSoon is in the 3.0 ABI
         claimFeeDivisor = versionNum >= 21 ? 40 : 0;
     }
 
@@ -157,6 +159,61 @@ abstract contract RealityETHBase is Test {
     // convenience: bytes32 from a small uint answer (reality.eth answers are bytes32)
     function _answer(uint256 v) internal pure returns (bytes32) {
         return bytes32(v);
+    }
+
+    // Normalized question record. 2.x omits min_bond (left 0); the ABI getter
+    // returns 10 fields pre-3.0 and 11 from 3.0 on, so decode by version.
+    struct Q {
+        bytes32 contentHash;
+        address arbitrator;
+        uint32 openingTs;
+        uint32 timeout;
+        uint32 finalizeTs;
+        bool isPendingArbitration;
+        uint256 bounty;
+        bytes32 bestAnswer;
+        bytes32 historyHash;
+        uint256 bond;
+        uint256 minBond;
+    }
+
+    // Pre-3.0 getter without the trailing min_bond field.
+    struct QLegacy {
+        bytes32 contentHash;
+        address arbitrator;
+        uint32 openingTs;
+        uint32 timeout;
+        uint32 finalizeTs;
+        bool isPendingArbitration;
+        uint256 bounty;
+        bytes32 bestAnswer;
+        bytes32 historyHash;
+        uint256 bond;
+    }
+
+    function _q(bytes32 qid) internal view returns (Q memory q) {
+        (bool ok, bytes memory data) = address(rc).staticcall(abi.encodeWithSignature("questions(bytes32)", qid));
+        require(ok, "questions() call failed");
+        // All fields are static, so the getter's return layout matches the
+        // struct's; decode into the struct in one shot (avoids stack-too-deep).
+        if (versionNum >= 30) {
+            q = abi.decode(data, (Q));
+        } else {
+            QLegacy memory l = abi.decode(data, (QLegacy));
+            q = Q(
+                l.contentHash,
+                l.arbitrator,
+                l.openingTs,
+                l.timeout,
+                l.finalizeTs,
+                l.isPendingArbitration,
+                l.bounty,
+                l.bestAnswer,
+                l.historyHash,
+                l.bond,
+                0
+            );
+        }
     }
 
     // advance the chain clock by `secs` (Python _advance_clock / time_travel)

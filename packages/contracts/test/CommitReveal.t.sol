@@ -39,8 +39,7 @@ contract CommitRevealTest is RealityETHStd {
         assertEq(revealedAnswer, _answer(1002));
 
         _advanceClock(33);
-        (,,,,,,, bytes32 best,,,) = rc.questions(question_id);
-        assertEq(uint256(best), 1002);
+        assertEq(uint256(_q(question_id).bestAnswer), 1002);
 
         (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
         rc.claimWinnings(question_id, hs, ad, bo, an);
@@ -95,14 +94,19 @@ contract CommitRevealTest is RealityETHStd {
         uint256 nonce = _submitCommit(question_id, 1002, 0, 1, k3);
         uint256 fee = arb.getDisputeFee(question_id);
 
-        // On 3.0+ arbitration cannot be requested while the only answer is an
-        // unrevealed commitment (2.x allowed it). Reveal first, then it works.
-        vm.expectRevert();
-        arb.requestArbitration{value: fee}(question_id, 0);
-
-        _reveal(question_id, 1002, nonce, 1, k3);
-        arb.requestArbitration{value: fee}(question_id, 0);
-        (,,,,, bool pending,,,,,) = rc.questions(question_id);
-        assertTrue(pending);
+        if (settledTooSoonSupported) {
+            // 3.0+: arbitration cannot be requested while the only answer is an
+            // unrevealed commitment. Reveal first, then it works.
+            vm.expectRevert();
+            arb.requestArbitration{value: fee}(question_id, 0);
+            _reveal(question_id, 1002, nonce, 1, k3);
+            arb.requestArbitration{value: fee}(question_id, 0);
+        } else {
+            // pre-3.0: arbitration on an unrevealed commit is allowed; revealing
+            // still works afterwards.
+            arb.requestArbitration{value: fee}(question_id, 0);
+            _reveal(question_id, 1002, nonce, 1, k3);
+        }
+        assertTrue(_q(question_id).isPendingArbitration);
     }
 }

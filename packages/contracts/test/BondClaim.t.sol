@@ -280,6 +280,10 @@ contract BondClaimTest is RealityETHStd {
     }
 
     function test_submit_answer_for_withdrawal() public {
+        if (!answererAssignmentSupported) {
+            vm.skip(true); // submitAnswerFor added in 2.1
+            return;
+        }
         // submitAnswerFor with a null answerer must revert (rest of the Python
         // test is dead code after an early return).
         _submitForRevert(question_id, 12345, 0, address(0), 100);

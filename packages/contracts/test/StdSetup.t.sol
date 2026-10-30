@@ -22,11 +22,6 @@ abstract contract RealityETHStd is RealityETHBase {
 
     function setUp() public virtual override {
         super.setUp();
-        // pre-v3 struct/id layout handled separately; skip cleanly for now.
-        if (versionNum < 30) {
-            vm.skip(true);
-            return;
-        }
 
         arb = new MockArbitrator();
         arb.setRealitio(address(rc));
@@ -43,11 +38,11 @@ abstract contract RealityETHStd is RealityETHBase {
         question_id = _ask(address(this), 0, "my question", address(arb), TIMEOUT, 0, 0, 1100);
 
         // mirror the sanity asserts in the Python setUp
-        (, address arbitrator,, uint32 timeout, uint32 finalizeTs,, uint256 bounty,,,,) = rc.questions(question_id);
-        assertEq(arbitrator, address(arb), "arbitrator");
-        assertEq(uint256(timeout), uint256(TIMEOUT), "timeout");
-        assertEq(uint256(finalizeTs), 0, "finalize ts should start at 0");
-        assertEq(bounty, 1000, "bounty should be 1000 after the 100 fee");
+        Q memory q = _q(question_id);
+        assertEq(q.arbitrator, address(arb), "arbitrator");
+        assertEq(uint256(q.timeout), uint256(TIMEOUT), "timeout");
+        assertEq(uint256(q.finalizeTs), 0, "finalize ts should start at 0");
+        assertEq(q.bounty, 1000, "bounty should be 1000 after the 100 fee");
     }
 
     // ---------------------------------------------------------------------
@@ -247,8 +242,8 @@ abstract contract RealityETHStd is RealityETHBase {
 
     uint256 internal constant COMMIT_NONCE = 1234;
 
-    function _histHash(bytes32 qid) internal view returns (bytes32 h) {
-        (,,,,,,,, h,,) = rc.questions(qid);
+    function _histHash(bytes32 qid) internal view returns (bytes32) {
+        return _q(qid).historyHash;
     }
 
     function _submit(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender) internal {

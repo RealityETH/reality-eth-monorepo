@@ -8,8 +8,7 @@ import {RealityETHStd} from "./StdSetup.t.sol";
 contract CoreTest is RealityETHStd {
     function test_fund_increase() public {
         _fund(address(this), question_id, 500);
-        (,,,,,, uint256 bounty,,,,) = rc.questions(question_id);
-        assertEq(bounty, 1500);
+        assertEq(_q(question_id).bounty, 1500);
     }
 
     function test_no_response_finalization() public {
@@ -21,26 +20,24 @@ contract CoreTest is RealityETHStd {
     function test_simple_response_finalization() public {
         _submit(question_id, 12345, 0, 1, address(this));
         _advanceClock(33);
-        (,,,,,,, bytes32 best,,,) = rc.questions(question_id);
-        assertEq(uint256(best), 12345);
+        assertEq(uint256(_q(question_id).bestAnswer), 12345);
         assertTrue(rc.isFinalized(question_id));
         assertEq(uint256(rc.getFinalAnswer(question_id)), 12345);
     }
 
     function test_content_hash() public view {
         bytes32 expect = _contentHash(0, 0, "my question");
-        (bytes32 ch,,,,,,,,,,) = rc.questions(question_id);
-        assertEq(ch, expect);
+        assertEq(_q(question_id).contentHash, expect);
     }
 
     function test_earliest_finalization_ts() public {
         _submit(question_id, 54321, 0, 10, address(this));
-        (,,,, uint32 ts1,,,,,,) = rc.questions(question_id);
+        uint32 ts1 = _q(question_id).finalizeTs;
         _advanceClock(1);
         _submit(question_id, 54321, 0, 20, address(this));
-        (,,,, uint32 ts2,,,,, uint256 bond,) = rc.questions(question_id);
-        assertEq(bond, 20);
-        assertGt(ts2, ts1, "submitting an answer advances the finalization timestamp");
+        Q memory q = _q(question_id);
+        assertEq(q.bond, 20);
+        assertGt(q.finalizeTs, ts1, "submitting an answer advances the finalization timestamp");
     }
 
     function test_conflicting_response_finalization() public {

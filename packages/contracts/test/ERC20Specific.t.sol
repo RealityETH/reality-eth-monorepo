@@ -85,12 +85,10 @@ contract ERC20SpecificTest is RealityETHStd {
 
         vm.expectRevert();
         rc.askQuestion(0, "my question x", address(arb), 30, 0, 0);
-        (, address arbBefore,,,,,,,,,) = rc.questions(expectedId);
-        assertEq(arbBefore, address(0));
+        assertEq(_q(expectedId).arbitrator, address(0));
 
         arb.setQuestionFee(0);
         rc.askQuestion(0, "my question x", address(arb), 30, 0, 0);
-        (, address arbAfter,,,,,,,,,) = rc.questions(expectedId);
-        assertTrue(arbAfter != address(0), "question exists at the expected id");
+        assertTrue(_q(expectedId).arbitrator != address(0), "question exists at the expected id");
     }
 }

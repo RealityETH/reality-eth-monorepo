@@ -40,25 +40,38 @@ REALITYETH=RealityETH_ERC20-3.0 forge test   # ERC20 variant
 
 ## Coverage
 
-57 test functions ported (54 shared + 3 ERC20-only). Status by target:
+57 test functions ported (54 shared + 3 ERC20-only), run against every released
+version from 2.0 to 4.0, for both the ETH and ERC20 families. Tests that depend
+on a feature a given version lacks are skipped (never failed), matching the
+Python suite's skips.
 
 | Target | Result |
 |---|---|
+| `RealityETH-2.0` | 41 pass (16 skip: assign/cancel/submitAnswerFor + reopen/min-bond/too-soon/null-arb) |
+| `RealityETH-2.1` / `-2.2` | 48 pass (9 skip: reopen/min-bond/too-soon/null-arb) |
 | `RealityETH-3.0` / `-3.2` | 54 pass (3 ERC20-only skip) |
 | `RealityETH-4.0` | 41 pass (commit-reveal + ERC20-only skip) |
+| `RealityETH_ERC20-2.0` | 44 pass (13 skip) |
 | `RealityETH_ERC20-3.0` / `-3.2` | 57 pass |
 | `RealityETH_ERC20-4.0` | 44 pass (commit-reveal skip) |
+
+(`RealityETH_ERC20` was only released from 2.0 and 3.0+; there is no ERC20 2.1 /
+2.2 bytecode.)
 
 Test files map to the Python tests: `Core`, `Arbitration`, `CommitReveal`,
 `BondClaim`, `Fees`, `Reopen`, `Misc`, `ERC20Specific`, plus `Smoke`.
 
-### Known limitation: pre-v3 (2.x)
+### Version differences handled
 
-`RealityETH-2.x` deploys and passes the smoke test, but the full suite is
-skipped for it. The 2.x `questions()` getter returns a different tuple (no
-`min_bond` field) and uses a different `question_id` formula, so it needs a
-version-specific decode path. 2.x is legacy (superseded by 3.x); adding it would
-mean a second `questions()` interface + version-aware destructuring throughout.
+- `questions()` returns 10 fields pre-3.0 and 11 from 3.0 on (the trailing
+  `min_bond`); `_q()` decodes by version into a normalized struct.
+- `question_id` formula gained `min_bond` + the contract address in 3.0;
+  `_questionId()` branches on version.
+- Feature flags gate per version: commit-reveal (removed in 4.0),
+  assignWinner / submitAnswerFor / cancelArbitration (added in 2.1), and
+  reopen / min-bond / settled-too-soon / null-arbitrator (added in 3.0).
+- Pre-3.0 allows requesting arbitration on an unrevealed commitment; 3.0+ does
+  not — `test_answer_commit_with_arbitration_pending` branches accordingly.
 
 ## Notes
 

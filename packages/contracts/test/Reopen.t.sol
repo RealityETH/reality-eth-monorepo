@@ -43,8 +43,7 @@ contract ReopenTest is RealityETHStd {
         assertEq(rc.balanceOf(k0), 3, "winner gets their bond back but no bounty");
 
         assertEq(rc.reopened_questions(question_id), bytes32(0));
-        (,,,,,, uint256 oldBounty,,,,) = rc.questions(question_id);
-        assertEq(oldBounty, 1000);
+        assertEq(_q(question_id).bounty, 1000);
 
         // details differ from the original question
         _reopenRevert(k0, 0, "not my question", address(arb), 30, 0, 1, 0, question_id, 123);
@@ -53,10 +52,8 @@ contract ReopenTest is RealityETHStd {
         _reopen(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
         assertEq(rc.reopened_questions(question_id), reopenId);
 
-        (,,,,,, uint256 oldBountyNow,,,,) = rc.questions(question_id);
-        assertEq(oldBountyNow, 0, "bounty leaves the reopened question");
-        (,,,,,, uint256 newBounty,,,,) = rc.questions(reopenId);
-        assertEq(newBounty, 1000 + 123 - 100);
+        assertEq(_q(question_id).bounty, 0, "bounty leaves the reopened question");
+        assertEq(_q(reopenId).bounty, 1000 + 123 - 100);
 
         // can't reopen the same one twice (even with a different nonce)
         _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
@@ -69,15 +66,13 @@ contract ReopenTest is RealityETHStd {
         // a reopen can't itself be reopened until its parent is reopened again
         _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 4, 0, reopenId, 123);
 
-        (,,,,,, uint256 preReopenBounty,,,,) = rc.questions(reopenId);
+        uint256 preReopenBounty = _q(reopenId).bounty;
 
         bytes32 reopenId2 = _questionId(0, "my question", address(arb), 30, 0, 2, k0, 0);
         _reopen(k0, 0, "my question", address(arb), 30, 0, 2, 0, question_id, 543);
 
-        (,,,,,, uint256 postReopenBounty,,,,) = rc.questions(reopenId);
-        assertEq(postReopenBounty, 0, "reopening moves the bounty to the new question");
-        (,,,,,, uint256 postReopenBountyB,,,,) = rc.questions(reopenId2);
-        assertEq(postReopenBountyB, preReopenBounty + 543 - 100);
+        assertEq(_q(reopenId).bounty, 0, "reopening moves the bounty to the new question");
+        assertEq(_q(reopenId2).bounty, preReopenBounty + 543 - 100);
         assertEq(rc.reopened_questions(question_id), reopenId2);
 
         // now the parent is reopened again, the child can be reopened

@@ -36,12 +36,10 @@ contract FeesTest is RealityETHStd {
         _askRevert(k4, 0, "my question 2", k5, 10, 0, 0, 122); // 122 < 123 fee
 
         bytes32 q2 = _ask(k4, 0, "my question 2", k5, 10, 0, 0, 126);
-        (,,,,,, uint256 b2,,,,) = rc.questions(q2);
-        assertEq(b2, 126 - 123, "bounty is what's left after the fee");
+        assertEq(_q(q2).bounty, 126 - 123, "bounty is what's left after the fee");
 
         bytes32 q3 = _ask(k5, 0, "my question 3", k5, 10, 0, 0, 122);
-        (,,,,,, uint256 b3,,,,) = rc.questions(q3);
-        assertEq(b3, 122, "arbitrator isn't charged their own fee");
+        assertEq(_q(q3).bounty, 122, "arbitrator isn't charged their own fee");
     }
 
     function test_minimum_bond() public {
@@ -50,15 +48,13 @@ contract FeesTest is RealityETHStd {
             return;
         }
         bytes32 qid = _askMinBond(address(this), 0, "my question 2", address(arb), 10, 0, 0, 1000, 1100);
-        (,,,,,,,,,, uint256 minBond) = rc.questions(qid);
-        assertEq(minBond, 1000);
+        assertEq(_q(qid).minBond, 1000);
 
         _submitRevert(qid, 123, 0, 0); // below the minimum bond
         _submitRevert(qid, 1234, 0, 999);
 
         _submit(qid, 12345, 0, 1000, address(this));
-        (,,,,,,, bytes32 best,,,) = rc.questions(qid);
-        assertEq(uint256(best), 12345);
+        assertEq(uint256(_q(qid).bestAnswer), 12345);
     }
 
     function test_arbitrator_metadata() public {
@@ -109,6 +105,10 @@ contract FeesTest is RealityETHStd {
     }
 
     function test_null_arbitrator_permitted() public {
+        if (versionNum < 30) {
+            vm.skip(true); // null arbitrators were only permitted from 3.0
+            return;
+        }
         address k2 = makeAddr("k2");
         _ask(k2, 0, "my question 3", address(0), 10, 0, 0, 1000);
     }
