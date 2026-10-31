@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.20;
 
-import {IArbitrator} from "./IArbitrator.sol";
-import {IRealityETH} from "./IRealityETH.sol";
-import {IERC20} from "./IERC20.sol";
+import {IArbitrator} from "./interfaces/IArbitrator.sol";
+import {IRealityETH} from "./interfaces/IRealityETH.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 import {Owned} from "./Owned.sol";
 
 contract Arbitrator is Owned, IArbitrator {

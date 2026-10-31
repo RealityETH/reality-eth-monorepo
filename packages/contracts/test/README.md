@@ -9,7 +9,9 @@ Tests **run against the committed creation bytecode** under `../bytecode/`
 rather than recompiling the historical sources — exactly like the Python suite
 ("test the bytecode, not the source"). Forge only compiles the harness,
 interface and mocks here (solc 0.8.20); the contract under test is deployed as
-raw bytecode and driven through [`src/IRealityETH.sol`](../src/IRealityETH.sol).
+raw bytecode and driven through the test-only superset interface
+[`test/interfaces/IRealityETHHarness.sol`](interfaces/IRealityETHHarness.sol).
+The canonical per-version interfaces live in `src/interfaces/`.
 
 The contract under test is chosen with the `REALITYETH` env var (mirroring the
 Python suite), defaulting to `RealityETH-3.0`. `RealityETHBase` sets per-version

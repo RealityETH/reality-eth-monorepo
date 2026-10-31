@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IRealityETHCore} from "./IRealityETHCore.sol";
+import {IRealityETHCore} from "./interfaces/IRealityETHCore.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
 
 // solhint-disable-next-line contract-name-camelcase

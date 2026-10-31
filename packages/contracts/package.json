@@ -11,8 +11,8 @@
     "generate-indexer-config": "node scripts/generate_indexer_config.js",
     "generate-website-data": "node scripts/generate_website_data.js",
     "install-website-data": "node scripts/generate_website_data.js --install",
-    "fmt": "prettier 'development/contracts/*.sol' -w",
-    "fmt:check": "prettier 'development/contracts/*.sol' -c"
+    "fmt": "prettier 'src/**/*.sol' -w",
+    "fmt:check": "prettier 'src/**/*.sol' -c"
   },
   "main": "index.js",
   "keywords": [
