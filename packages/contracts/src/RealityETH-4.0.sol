@@ -49,8 +49,10 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         if (questions[questionId].timeout == 0) revert QuestionMustExist();
         if (questions[questionId].isPendingArbitration) revert QuestionMustNotBePendingArbitration();
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 openingTs = questions[questionId].openingTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
@@ -63,8 +65,10 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     modifier stateOpenOrPendingArbitration(bytes32 questionId) {
         if (questions[questionId].timeout == 0) revert QuestionMustExist();
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 openingTs = questions[questionId].openingTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
@@ -275,12 +279,14 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     function _updateCurrentAnswer(bytes32 questionId, bytes32 answer) internal {
         questions[questionId].bestAnswer = answer;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
         questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout
     function _updateCurrentAnswerByArbitrator(bytes32 questionId, bytes32 answer) internal {
         questions[questionId].bestAnswer = answer;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106
         questions[questionId].finalizeTs = uint32(block.timestamp);
     }
 
@@ -298,6 +304,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     /// @inheritdoc IRealityETHCore
     function cancelArbitration(bytes32 questionId) external onlyArbitrator(questionId) statePendingArbitration(questionId) {
         questions[questionId].isPendingArbitration = false;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
         questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
         emit LogCancelArbitration(questionId);
     }
@@ -323,6 +330,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     /// @inheritdoc IRealityETHCore
     function isFinalized(bytes32 questionId) public view returns (bool) {
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         return (!questions[questionId].isPendingArbitration && (finalizeTs > UNANSWERED) && (finalizeTs <= uint32(block.timestamp)));
     }
 
