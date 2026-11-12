@@ -5,13 +5,21 @@ A Foundry port of the Python suites (`tests/python/test.py` and
 
 ## Approach
 
-Tests **run against the committed creation bytecode** under `../bytecode/`
-rather than recompiling the historical sources — exactly like the Python suite
-("test the bytecode, not the source"). Forge only compiles the harness,
-interface and mocks here (solc 0.8.20); the contract under test is deployed as
-raw bytecode and driven through the test-only superset interface
-[`test/interfaces/IRealityETHHarness.sol`](interfaces/IRealityETHHarness.sol).
-The canonical per-version interfaces live in `src/interfaces/`.
+Released versions (2.0–3.2) **run against the committed creation bytecode**
+under `../bytecode/` rather than recompiling — exactly like the Python suite
+("test the bytecode, not the source"), since their source no longer lives in
+`src/`. The current development version (**4.0**) is instead **compiled and
+deployed from `src/` directly** (`new RealityETH_v4_0()` /
+`new RealityETH_ERC20_v4_0()`), so edits to the v4 source are actually
+exercised. The deploy branch is in `RealityETHBase.setUp()`.
+
+Either way the contract is driven through the test-only superset interface
+[`test/interfaces/IRealityETHHarness.sol`](interfaces/IRealityETHHarness.sol)
+(solc 0.8.20). That interface keeps the released versions' snake_case mapping
+getters; where v4 renamed one (`reopened_questions` → `reopenedQuestions`) the
+call is routed through a version-aware base helper (`_reopenedQuestion`, same
+technique as `_q` for `questions()`). The canonical per-version interfaces live
+in `src/interfaces/`.
 
 The contract under test is chosen with the `REALITYETH` env var (mirroring the
 Python suite), defaulting to `RealityETH-3.0`. `RealityETHBase` sets per-version
@@ -36,7 +44,7 @@ forge install foundry-rs/forge-std --no-git   # populates ./lib (gitignored)
 ```bash
 forge test                                   # default: RealityETH-3.0
 REALITYETH=RealityETH-3.2      forge test
-REALITYETH=RealityETH-4.0      forge test    # commit-reveal tests skip (removed in 4.0)
+REALITYETH=RealityETH-4.0      forge test    # compiled from src/; commit-reveal tests skip (removed in 4.0)
 REALITYETH=RealityETH_ERC20-3.0 forge test   # ERC20 variant
 ```
 
