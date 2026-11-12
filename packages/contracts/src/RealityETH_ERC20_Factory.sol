@@ -11,7 +11,7 @@ contract RealityETH_ERC20_Factory {
     error ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
 
     address public libraryAddress;
-    mapping(address => address) public deployments;
+    mapping(address token => address instance) public deployments;
 
     // solhint-disable-next-line event-name-camelcase
     event RealityETH_ERC20_deployed(address reality_eth, address token, uint8 decimals, string token_ticker);

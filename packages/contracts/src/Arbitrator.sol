@@ -10,10 +10,10 @@ import {Owned} from "./Owned.sol";
 contract Arbitrator is Owned, IArbitrator {
     IRealityETH public realitio;
 
-    mapping(bytes32 => uint256) public arbitration_bounties;
+    mapping(bytes32 questionId => uint256 bounty) public arbitration_bounties;
 
     uint256 dispute_fee;
-    mapping(bytes32 => uint256) custom_dispute_fees;
+    mapping(bytes32 questionId => uint256 fee) custom_dispute_fees;
 
     string public metadata;
 

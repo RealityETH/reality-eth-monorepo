@@ -24,13 +24,13 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     uint256 private nextTemplateID = 0;
-    mapping(uint256 => uint256) public templates;
-    mapping(uint256 => bytes32) public template_hashes;
-    mapping(bytes32 => Question) public questions;
-    mapping(bytes32 => Claim) public question_claims;
-    mapping(address => uint256) public arbitrator_question_fees;
-    mapping(bytes32 => bytes32) public reopened_questions;
-    mapping(bytes32 => bool) public reopener_questions;
+    mapping(uint256 templateId => uint256 createdBlock) public templates;
+    mapping(uint256 templateId => bytes32 contentHash) public template_hashes;
+    mapping(bytes32 questionId => Question question) public questions;
+    mapping(bytes32 questionId => Claim claim) public question_claims;
+    mapping(address arbitrator => uint256 fee) public arbitrator_question_fees;
+    mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopened_questions;
+    mapping(bytes32 questionId => bool isReopener) public reopener_questions;
 
     modifier onlyArbitrator(bytes32 question_id) {
         if (msg.sender != questions[question_id].arbitrator) revert MsgSenderMustBeArbitrator();

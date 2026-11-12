@@ -5,7 +5,7 @@ pragma solidity 0.8.20;
 import {IBalanceHolder} from "./interfaces/IBalanceHolder.sol";
 
 contract BalanceHolder is IBalanceHolder {
-    mapping(address => uint256) public balanceOf;
+    mapping(address account => uint256 balance) public balanceOf;
 
     event LogWithdraw(address indexed user, uint256 amount);
 
