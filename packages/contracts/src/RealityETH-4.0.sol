@@ -63,7 +63,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     modifier stateOpenOrPendingArbitration(bytes32 questionId) {
         if (questions[questionId].timeout == 0) revert QuestionMustExist();
         uint32 finalizeTs = questions[questionId].finalizeTs;
-        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDealineMustNotHavePassed();
+        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 openingTs = questions[questionId].openingTs;
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;

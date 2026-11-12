@@ -17,8 +17,6 @@ interface IRealityETHErrors {
     error OpeningDateMustHavePassed();
     /// @notice question must be pending arbitration
     error QuestionMustBePendingArbitration();
-    /// @notice finalization dealine must not have passed
-    error FinalizationDealineMustNotHavePassed();
     /// @notice question must be finalized
     error QuestionMustBeFinalized();
     /// @notice bond must be positive
