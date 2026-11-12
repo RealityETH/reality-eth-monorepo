@@ -236,19 +236,24 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function arbitratorQuestionFees(address) external view returns (uint256);
     /// @notice Returns the arbitrator address for the question
     /// @param questionId The ID of the question
+    /// @return The arbitrator address for the question
     function getArbitrator(bytes32 questionId) external view returns (address);
     /// @notice Returns the current best answer
     /// @param questionId The ID of the question
+    /// @return The current best answer, encoded as bytes32
     function getBestAnswer(bytes32 questionId) external view returns (bytes32);
     /// @notice Returns the highest bond posted so far for a question
     /// @param questionId The ID of the question
+    /// @return The highest bond posted so far for the question
     function getBond(bytes32 questionId) external view returns (uint256);
     /// @notice Returns the current total unclaimed bounty
     /// @dev Set back to zero once the bounty has been claimed
     /// @param questionId The ID of the question
+    /// @return The current total unclaimed bounty
     function getBounty(bytes32 questionId) external view returns (uint256);
     /// @notice Returns the questions's content hash, identifying the question content
     /// @param questionId The ID of the question
+    /// @return The question's content hash
     function getContentHash(bytes32 questionId) external view returns (bytes32);
     /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
     /// @param questionId The ID of the question
@@ -265,19 +270,24 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function getFinalAnswerIfMatches(bytes32 questionId, bytes32 contentHash, address arbitrator, uint32 minTimeout, uint256 minBond) external view returns (bytes32);
     /// @notice Returns the timestamp at which the question will be/was finalized
     /// @param questionId The ID of the question
+    /// @return The timestamp at which the question will be, or was, finalized
     function getFinalizeTS(bytes32 questionId) external view returns (uint32);
     /// @notice Returns the history hash of the question
     /// @param questionId The ID of the question
     /// @dev Updated on each answer, then rewound as each is claimed
+    /// @return The current history hash of the question
     function getHistoryHash(bytes32 questionId) external view returns (bytes32);
     /// @notice Returns the minimum bond that can answer the question
     /// @param questionId The ID of the question
+    /// @return The minimum bond that can be used to answer the question
     function getMinBond(bytes32 questionId) external view returns (uint256);
     /// @notice Returns the timestamp when the question can first be answered
     /// @param questionId The ID of the question
+    /// @return The timestamp when the question can first be answered
     function getOpeningTS(bytes32 questionId) external view returns (uint32);
     /// @notice Returns the timeout in seconds used after each answer
     /// @param questionId The ID of the question
+    /// @return The timeout in seconds applied after each answer
     function getTimeout(bytes32 questionId) external view returns (uint32);
     /// @notice Report whether the answer to the specified question is finalized
     /// @param questionId The ID of the question
@@ -285,9 +295,11 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function isFinalized(bytes32 questionId) external view returns (bool);
     /// @notice Returns whether the question is pending arbitration
     /// @param questionId The ID of the question
+    /// @return True if the question is pending arbitration
     function isPendingArbitration(bytes32 questionId) external view returns (bool);
     /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
     /// @param questionId The ID of the question
+    /// @return True if the question was settled too soon (resolved to UNRESOLVED_ANSWER)
     function isSettledTooSoon(bytes32 questionId) external view returns (bool);
     function questionClaims(bytes32) external view returns (address payee, uint256 lastBond, uint256 queuedFunds);
     function questions(
@@ -316,6 +328,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function resultFor(bytes32 questionId) external view returns (bytes32);
     /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
     /// @param questionId The ID of the question
+    /// @return The final answer, encoded as bytes32
     function resultForOnceSettled(bytes32 questionId) external view returns (bytes32);
     function templateHashes(uint256) external view returns (bytes32);
     function templates(uint256) external view returns (uint256);

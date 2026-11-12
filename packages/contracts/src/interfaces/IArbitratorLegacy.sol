@@ -6,5 +6,6 @@ import {IRealityETH} from "./IRealityETH.sol";
 
 interface IArbitratorLegacy {
     /// @notice Returns the Realitio contract address - deprecated in favour of realitio()
+    /// @return The RealityETH contract address
     function realitycheck() external view returns (IRealityETH);
 }

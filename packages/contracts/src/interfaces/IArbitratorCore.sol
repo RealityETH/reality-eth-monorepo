@@ -10,6 +10,7 @@ interface IArbitratorCore {
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
     /// @param questionId The question in question
     /// @dev Uses a general default, but can be over-ridden on a question-by-question basis.
+    /// @return The dispute fee in wei, or 0 if this arbitrator will not arbitrate the question
     function getDisputeFee(bytes32 questionId) external view returns (uint256);
     function metadata() external view returns (string memory);
     function realitio() external view returns (IRealityETH);
@@ -18,5 +19,6 @@ interface IArbitratorCore {
     /// Will trigger an error if the notification fails, eg because the question has already been finalized
     /// @param questionId The question in question
     /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    /// @return True if the arbitration request was successful
     function requestArbitration(bytes32 questionId, uint256 maxPrevious) external payable returns (bool);
 }
