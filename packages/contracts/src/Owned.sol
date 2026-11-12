@@ -16,6 +16,7 @@ contract Owned is IOwned {
         _;
     }
 
+    /// @inheritdoc IOwned
     function transferOwnership(address newOwner) external onlyOwner {
         owner = newOwner;
     }

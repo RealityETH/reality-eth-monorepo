@@ -9,6 +9,7 @@ contract BalanceHolder is IBalanceHolder {
 
     event LogWithdraw(address indexed user, uint256 amount);
 
+    /// @inheritdoc IBalanceHolder
     function withdraw() public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;

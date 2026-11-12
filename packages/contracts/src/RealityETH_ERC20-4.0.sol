@@ -105,27 +105,19 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     }
     /* solhint-enable quotes */
 
-    /// @notice Set the address of the ERC20 token that will be used for bonds.
-    /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
-    /// @param _token The ERC20 token that will be used for bonds.
+    /// @inheritdoc IRealityETHCore_ERC20
     function setToken(IERC20 _token) public {
         if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
         token = _token;
     }
 
-    /// @notice Function for arbitrator to set an optional per-question fee.
-    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
-    /// @param fee The fee to be charged by the arbitrator when a question is asked
+    /// @inheritdoc IRealityETHCore_ERC20
     function setQuestionFee(uint256 fee) external stateAny {
         arbitratorQuestionFees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
     }
 
-    /// @notice Create a reusable template, which should be a JSON document.
-    /// Placeholders should use gettext() syntax, eg %s.
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
-    /// @return The ID of the newly-created template, which is created sequentially.
+    /// @inheritdoc IRealityETHCore_ERC20
     function createTemplate(string memory content) public stateAny returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
@@ -135,15 +127,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return id;
     }
 
-    /// @notice Create a new reusable template and use it to ask a question
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param openingTs If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @return The ID of the newly-created template, which is created sequentially.
+    /// @inheritdoc IRealityETHCore_ERC20
     function createTemplateAndAskQuestion(
         string memory content,
         string memory question,
@@ -162,17 +146,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return askQuestion(templateId, question, arbitrator, timeout, openingTs, nonce);
     }
 
-    /// @notice Ask a new question without a bounty and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @dev Calling without the token param will only work if there is no arbitrator-set question fee.
-    /// @dev This has the same function signature as askQuestion() in the non-ERC20 version, which is optionally payable.
-    /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param openingTs If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @return The ID of the newly-created question, created deterministically.
+    /// @inheritdoc IRealityETHCore_ERC20
     function askQuestion(
         uint256 templateId,
         string memory question,
@@ -199,16 +173,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return questionId;
     }
 
-    /// @notice Ask a new question with a bounty and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param openingTs If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @param tokens The combined initial question bounty and question fee
-    /// @return The ID of the newly-created question, created deterministically.
+    /// @inheritdoc IRealityETHCore_ERC20
     function askQuestionERC20(
         uint256 templateId,
         string memory question,
@@ -238,17 +203,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return questionId;
     }
 
-    /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param openingTs If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @param minBond The minimum bond that may be used for an answer.
-    /// @param tokens Number of tokens sent
-    /// @return The ID of the newly-created question, created deterministically.
+    /// @inheritdoc IRealityETHCore_ERC20
     function askQuestionWithMinBondERC20(
         uint256 templateId,
         string memory question,
@@ -337,22 +292,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         }
     }
 
-    /// @notice Add funds to the bounty for a question
-    /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
-    /// @param questionId The ID of the question you wish to fund
-    /// @param tokens The number of tokens to fund
+    /// @inheritdoc IRealityETHCore_ERC20
     function fundAnswerBountyERC20(bytes32 questionId, uint256 tokens) external stateOpen(questionId) {
         _deductTokensOrRevert(tokens);
         questions[questionId].bounty = questions[questionId].bounty + tokens;
         emit LogFundAnswerBounty(questionId, tokens, questions[questionId].bounty, msg.sender);
     }
 
-    /// @notice Submit an answer for a question.
-    /// @dev Adds the answer to the history and updates the current "best" answer.
-    /// @param questionId The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    /// @param tokens The amount of tokens to submit
+    /// @inheritdoc IRealityETHCore_ERC20
     function submitAnswerERC20(
         bytes32 questionId,
         bytes32 answer,
@@ -364,13 +311,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         _updateCurrentAnswer(questionId, answer);
     }
 
-    /// @notice Submit an answer for a question, crediting it to the specified account.
-    /// @dev Adds the answer to the history and updates the current "best" answer.
-    /// @param questionId The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    /// @param answerer The account to which the answer should be credited
-    /// @param tokens Number of tokens sent
+    /// @inheritdoc IRealityETHCore_ERC20
     function submitAnswerForERC20(
         bytes32 questionId,
         bytes32 answer,
@@ -407,11 +348,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         questions[questionId].finalizeTs = uint32(block.timestamp);
     }
 
-    /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
-    /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
-    /// @param questionId The ID of the question
-    /// @param requester The account that requested arbitration
-    /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    /// @inheritdoc IRealityETHCore_ERC20
     function notifyOfArbitrationRequest(
         bytes32 questionId,
         address requester,
@@ -422,23 +359,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         emit LogNotifyOfArbitrationRequest(questionId, requester);
     }
 
-    /// @notice Cancel a previously-requested arbitration and extend the timeout
-    /// @dev Useful when doing arbitration across chains that can't be requested atomically
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function cancelArbitration(bytes32 questionId) external onlyArbitrator(questionId) statePendingArbitration(questionId) {
         questions[questionId].isPendingArbitration = false;
         questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
         emit LogCancelArbitration(questionId);
     }
 
-    /// @notice Submit the answer for a question, for use by the arbitrator.
-    /// @dev Doesn't require (or allow) a bond.
-    /// If the current final answer is correct, the account should be whoever submitted it.
-    /// If the current final answer is wrong, the account should be whoever paid for arbitration.
-    /// However, the answerer stipulations are not enforced by the contract.
-    /// @param questionId The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param answerer The account credited with this answer for the purpose of bond claims
+    /// @inheritdoc IRealityETHCore_ERC20
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) public onlyArbitrator(questionId) statePendingArbitration(questionId) {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
         emit LogFinalize(questionId, answer);
@@ -448,14 +376,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         _updateCurrentAnswerByArbitrator(questionId, answer);
     }
 
-    /// @notice Submit the answer for a question, for use by the arbitrator, working out the appropriate winner based on the last answer details.
-    /// @dev Doesn't require (or allow) a bond.
-    /// @param questionId The ID of the question
-    /// @param answer The answer, encoded into bytes32
-    /// @param payeeIfWrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
-    /// @param lastHistoryHash The history hash before the final one
-    /// @param lastAnswer The last answer given
-    /// @param lastAnswerer The address that supplied the last answer
+    /// @inheritdoc IRealityETHCore_ERC20
     function assignWinnerAndSubmitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address payeeIfWrong, bytes32 lastHistoryHash, bytes32 lastAnswer, address lastAnswerer) external {
         _verifyHistoryInputOrRevert(questions[questionId].historyHash, lastHistoryHash, lastAnswer, questions[questionId].bond, lastAnswerer);
 
@@ -463,36 +384,28 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         submitAnswerByArbitrator(questionId, answer, payee);
     }
 
-    /// @notice Report whether the answer to the specified question is finalized
-    /// @param questionId The ID of the question
-    /// @return Return true if finalized
+    /// @inheritdoc IRealityETHCore_ERC20
     function isFinalized(bytes32 questionId) public view returns (bool) {
         uint32 finalizeTs = questions[questionId].finalizeTs;
         return (!questions[questionId].isPendingArbitration && (finalizeTs > UNANSWERED) && (finalizeTs <= uint32(block.timestamp)));
     }
 
-    /// @notice (Deprecated) Return the final answer to the specified question, or revert if there isn't one
-    /// @param questionId The ID of the question
-    /// @return The answer formatted as a bytes32
+    /// @inheritdoc IRealityETHCore_ERC20
     function getFinalAnswer(bytes32 questionId) external view stateFinalized(questionId) returns (bytes32) {
         return questions[questionId].bestAnswer;
     }
 
-    /// @notice Return the final answer to the specified question, or revert if there isn't one
-    /// @param questionId The ID of the question
-    /// @return The answer formatted as a bytes32
+    /// @inheritdoc IRealityETHCore_ERC20
     function resultFor(bytes32 questionId) public view stateFinalized(questionId) returns (bytes32) {
         return questions[questionId].bestAnswer;
     }
 
-    /// @notice Returns whether the question was answered before it had an answer, ie resolved to UNRESOLVED_ANSWER
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function isSettledTooSoon(bytes32 questionId) public view returns (bool) {
         return (resultFor(questionId) == UNRESOLVED_ANSWER);
     }
 
-    /// @notice Like resultFor(), but errors out if settled too soon, or returns the result of a replacement if it was reopened at the right time and settled
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function resultForOnceSettled(bytes32 questionId) external view returns (bytes32) {
         bytes32 result = resultFor(questionId);
         if (result == UNRESOLVED_ANSWER) {
@@ -506,18 +419,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return result;
     }
 
-    /// @notice Asks a new question reopening a previously-asked question that was settled too soon
-    /// @dev A special version of askQuestion() that replaces a previous question that was settled too soon
-    /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
-    /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
-    /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
-    /// @param openingTs If set, the earliest time it should be possible to answer the question.
-    /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @param minBond The minimum bond that can be used to provide the first answer.
-    /// @param reopensQuestionId The ID of the question this reopens
-    /// @param tokens The number of tokens you want to use as an additional question reward for the reopened question.
-    /// @return The ID of the newly-created question, created deterministically.
+    /// @inheritdoc IRealityETHCore_ERC20
     function reopenQuestionERC20(
         uint256 templateId,
         string memory question,
@@ -579,14 +481,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return questionId;
     }
 
-    /// @notice Return the final answer to the specified question, provided it matches the specified criteria.
-    /// @dev Reverts if the question is not finalized, or if it does not match the specified criteria.
-    /// @param questionId The ID of the question
-    /// @param contentHash The hash of the question content (template ID + opening time + question parameter string)
-    /// @param arbitrator The arbitrator chosen for the question (regardless of whether they are asked to arbitrate)
-    /// @param minTimeout The timeout set in the initial question settings must be this high or higher
-    /// @param minBond The bond sent with the final answer must be this high or higher
-    /// @return The answer formatted as a bytes32
+    /// @inheritdoc IRealityETHCore_ERC20
     function getFinalAnswerIfMatches(bytes32 questionId, bytes32 contentHash, address arbitrator, uint32 minTimeout, uint256 minBond) external view stateFinalized(questionId) returns (bytes32) {
         if (contentHash != questions[questionId].contentHash) revert ContentHashMustMatch();
         if (arbitrator != questions[questionId].arbitrator) revert ArbitratorMustMatch();
@@ -595,20 +490,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return questions[questionId].bestAnswer;
     }
 
-    /// @notice Assigns the winnings (bounty and bonds) to everyone who gave the accepted answer
-    /// Caller must provide the answer history, in reverse order
-    /// @dev Works up the chain and assign bonds to the person who gave the right answer
-    /// If someone gave the winning answer earlier, they must get paid from the higher bond
-    /// That means we can't pay out the bond added at n until we have looked at n-1
-    /// The first answer is authenticated by checking against the stored historyHash.
-    /// One of the inputs to historyHash is the historyHash before it, so we use that to authenticate the next entry, etc
-    /// Once we get to a null hash we'll know we're done and there are no more answers.
-    /// Usually you would call the whole thing in a single transaction, but if not then the data is persisted to pick up later.
-    /// @param questionId The ID of the question
-    /// @param historyHashes Second-last-to-first, the hash of each history entry. (Final one should be empty).
-    /// @param addrs Last-to-first, the address of each answerer
-    /// @param bonds Last-to-first, the bond supplied with each answer
-    /// @param answers Last-to-first, each answer supplied
+    /// @inheritdoc IRealityETHCore_ERC20
     function claimWinnings(bytes32 questionId, bytes32[] memory historyHashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(questionId) {
         if (historyHashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
@@ -704,15 +586,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return (queuedFunds, payee);
     }
 
-    /// @notice Convenience function to assign bounties/bonds for multiple questions in one go, then withdraw all your funds.
-    /// Caller must provide the answer history for each question, in reverse order
-    /// @dev Can be called by anyone to assign bonds/bounties, but funds are only withdrawn for the user making the call.
-    /// @param questionIds The IDs of the questions you want to claim for
-    /// @param lengths The number of history entries you will supply for each question ID
-    /// @param histHashes In a single list for all supplied questions, the hash of each history entry.
-    /// @param addrs In a single list for all supplied questions, the address of each answerer
-    /// @param bonds In a single list for all supplied questions, the bond supplied with each answer
-    /// @param answers In a single list for all supplied questions, each answer supplied
+    /// @inheritdoc IRealityETHCore_ERC20
     function claimMultipleAndWithdrawBalance(
         bytes32[] memory questionIds,
         uint256[] memory lengths,
@@ -746,70 +620,57 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         withdraw();
     }
 
-    /// @notice Returns the questions's content hash, identifying the question content
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getContentHash(bytes32 questionId) public view returns (bytes32) {
         return questions[questionId].contentHash;
     }
 
-    /// @notice Returns the arbitrator address for the question
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getArbitrator(bytes32 questionId) public view returns (address) {
         return questions[questionId].arbitrator;
     }
 
-    /// @notice Returns the timestamp when the question can first be answered
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getOpeningTS(bytes32 questionId) public view returns (uint32) {
         return questions[questionId].openingTs;
     }
 
-    /// @notice Returns the timeout in seconds used after each answer
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getTimeout(bytes32 questionId) public view returns (uint32) {
         return questions[questionId].timeout;
     }
 
-    /// @notice Returns the timestamp at which the question will be/was finalized
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getFinalizeTS(bytes32 questionId) public view returns (uint32) {
         return questions[questionId].finalizeTs;
     }
 
-    /// @notice Returns whether the question is pending arbitration
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function isPendingArbitration(bytes32 questionId) public view returns (bool) {
         return questions[questionId].isPendingArbitration;
     }
 
-    /// @notice Returns the current total unclaimed bounty
-    /// @dev Set back to zero once the bounty has been claimed
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getBounty(bytes32 questionId) public view returns (uint256) {
         return questions[questionId].bounty;
     }
 
-    /// @notice Returns the current best answer
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getBestAnswer(bytes32 questionId) public view returns (bytes32) {
         return questions[questionId].bestAnswer;
     }
 
-    /// @notice Returns the history hash of the question
-    /// @param questionId The ID of the question
-    /// @dev Updated on each answer, then rewound as each is claimed
+    /// @inheritdoc IRealityETHCore_ERC20
     function getHistoryHash(bytes32 questionId) public view returns (bytes32) {
         return questions[questionId].historyHash;
     }
 
-    /// @notice Returns the highest bond posted so far for a question
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getBond(bytes32 questionId) public view returns (uint256) {
         return questions[questionId].bond;
     }
 
-    /// @notice Returns the minimum bond that can answer the question
-    /// @param questionId The ID of the question
+    /// @inheritdoc IRealityETHCore_ERC20
     function getMinBond(bytes32 questionId) public view returns (uint256) {
         return questions[questionId].minBond;
     }
