@@ -10,7 +10,7 @@ import {Owned} from "./Owned.sol";
 contract Arbitrator is Owned, IArbitrator {
     IRealityETH public realitio;
 
-    mapping(bytes32 questionId => uint256 bounty) public arbitration_bounties;
+    mapping(bytes32 questionId => uint256 bounty) public arbitrationBounties;
 
     uint256 disputeFee;
     mapping(bytes32 questionId => uint256 fee) customDisputeFees;
@@ -72,7 +72,7 @@ contract Arbitrator is Owned, IArbitrator {
     /// @param answer The answer
     /// @param answerer The answerer. If arbitration changed the answer, it should be the payer. If not, the old answerer.
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) public onlyOwner {
-        delete arbitration_bounties[questionId];
+        delete arbitrationBounties[questionId];
         realitio.submitAnswerByArbitrator(questionId, answer, answerer);
     }
 
@@ -91,7 +91,7 @@ contract Arbitrator is Owned, IArbitrator {
         bytes32 lastAnswerOrCommitmentId,
         address lastAnswerer
     ) public onlyOwner {
-        delete arbitration_bounties[questionId];
+        delete arbitrationBounties[questionId];
         realitio.assignWinnerAndSubmitAnswerByArbitrator(questionId, answer, payeeIfWrong, lastHistoryHash, lastAnswerOrCommitmentId, lastAnswerer);
     }
 
@@ -111,8 +111,8 @@ contract Arbitrator is Owned, IArbitrator {
         uint256 arbitrationFee = getDisputeFee(questionId);
         if (arbitrationFee == 0) revert TheArbitratorMustHaveSetANonZeroFeeForTheQuestion();
 
-        arbitration_bounties[questionId] += msg.value;
-        uint256 paid = arbitration_bounties[questionId];
+        arbitrationBounties[questionId] += msg.value;
+        uint256 paid = arbitrationBounties[questionId];
 
         if (paid >= arbitrationFee) {
             realitio.notifyOfArbitrationRequest(questionId, msg.sender, maxPrevious);

@@ -105,7 +105,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) external;
     function submitAnswerERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, uint256 tokens) external;
     function submitAnswerForERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, address answerer, uint256 tokens) external;
-    function arbitrator_question_fees(address) external view returns (uint256);
+    function arbitratorQuestionFees(address) external view returns (uint256);
     function getArbitrator(bytes32 questionId) external view returns (address);
     function getBestAnswer(bytes32 questionId) external view returns (bytes32);
     function getBond(bytes32 questionId) external view returns (uint256);
@@ -121,7 +121,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function isFinalized(bytes32 questionId) external view returns (bool);
     function isPendingArbitration(bytes32 questionId) external view returns (bool);
     function isSettledTooSoon(bytes32 questionId) external view returns (bool);
-    function question_claims(bytes32) external view returns (address payee, uint256 lastBond, uint256 queuedFunds);
+    function questionClaims(bytes32) external view returns (address payee, uint256 lastBond, uint256 queuedFunds);
     function questions(
         bytes32
     )
@@ -140,10 +140,10 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
             uint256 bond,
             uint256 minBond
         );
-    function reopened_questions(bytes32) external view returns (bytes32);
-    function reopener_questions(bytes32) external view returns (bool);
+    function reopenedQuestions(bytes32) external view returns (bytes32);
+    function reopenerQuestions(bytes32) external view returns (bool);
     function resultFor(bytes32 questionId) external view returns (bytes32);
     function resultForOnceSettled(bytes32 questionId) external view returns (bytes32);
-    function template_hashes(uint256) external view returns (bytes32);
+    function templateHashes(uint256) external view returns (bytes32);
     function templates(uint256) external view returns (uint256);
 }

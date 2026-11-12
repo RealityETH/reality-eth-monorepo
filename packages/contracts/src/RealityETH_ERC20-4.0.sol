@@ -25,12 +25,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => uint256 createdBlock) public templates;
-    mapping(uint256 templateId => bytes32 contentHash) public template_hashes;
+    mapping(uint256 templateId => bytes32 contentHash) public templateHashes;
     mapping(bytes32 questionId => Question question) public questions;
-    mapping(bytes32 questionId => Claim claim) public question_claims;
-    mapping(address arbitrator => uint256 fee) public arbitrator_question_fees;
-    mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopened_questions;
-    mapping(bytes32 questionId => bool isReopener) public reopener_questions;
+    mapping(bytes32 questionId => Claim claim) public questionClaims;
+    mapping(address arbitrator => uint256 fee) public arbitratorQuestionFees;
+    mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopenedQuestions;
+    mapping(bytes32 questionId => bool isReopener) public reopenerQuestions;
 
     modifier onlyArbitrator(bytes32 questionId) {
         if (msg.sender != questions[questionId].arbitrator) revert MsgSenderMustBeArbitrator();
@@ -88,7 +88,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     modifier previousBondMustNotBeatMaxPrevious(bytes32 questionId, uint256 maxPrevious) {
         if (maxPrevious > 0) {
-            if (questions[questionId].bond > maxPrevious) revert BondMustExceedMax_Previous();
+            if (questions[questionId].bond > maxPrevious) revert BondMustExceedMaxPrevious();
         }
         _;
     }
@@ -117,7 +117,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
     /// @param fee The fee to be charged by the arbitrator when a question is asked
     function setQuestionFee(uint256 fee) external stateAny {
-        arbitrator_question_fees[msg.sender] = fee;
+        arbitratorQuestionFees[msg.sender] = fee;
         emit LogSetQuestionFee(msg.sender, fee);
     }
 
@@ -129,7 +129,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     function createTemplate(string memory content) public stateAny returns (uint256) {
         uint256 id = nextTemplateID;
         templates[id] = block.number;
-        template_hashes[id] = keccak256(abi.encodePacked(content));
+        templateHashes[id] = keccak256(abi.encodePacked(content));
         emit LogNewTemplate(id, msg.sender, content);
         nextTemplateID = id + 1;
         return id;
@@ -315,7 +315,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // This allows them to set an impossibly high fee and make users proxy the question through them.
         // This would allow more sophisticated pricing, question whitelisting etc.
         if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
-            uint256 questionFee = arbitrator_question_fees[arbitrator];
+            uint256 questionFee = arbitratorQuestionFees[arbitrator];
             if (bounty < questionFee) revert TokensProvidedMustCoverQuestionFee();
             bounty = bounty - questionFee;
             balanceOf[arbitrator] = balanceOf[arbitrator] + questionFee;
@@ -497,7 +497,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         bytes32 result = resultFor(questionId);
         if (result == UNRESOLVED_ANSWER) {
             // Try the replacement
-            bytes32 replacementId = reopened_questions[questionId];
+            bytes32 replacementId = reopenedQuestions[questionId];
             if (replacementId == bytes32(0x0)) revert QuestionWasSettledTooSoonAndHasNotBeenReopened();
             // We only try one layer down rather than recursing to keep the gas costs predictable
             result = resultFor(replacementId);
@@ -545,15 +545,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (contentHash != questions[reopensQuestionId].contentHash) revert ContentHashMismatch();
         if (arbitrator != questions[reopensQuestionId].arbitrator) revert ArbitratorMismatch();
         if (timeout != questions[reopensQuestionId].timeout) revert TimeoutMismatch();
-        if (openingTs != questions[reopensQuestionId].openingTs) revert Opening_TsMismatch();
-        if (minBond != questions[reopensQuestionId].minBond) revert Min_BondMismatch();
+        if (openingTs != questions[reopensQuestionId].openingTs) revert OpeningTsMismatch();
+        if (minBond != questions[reopensQuestionId].minBond) revert MinBondMismatch();
 
         // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
         // This ensures the bounty can be passed on to the next attempt of the original question.
-        if (reopener_questions[reopensQuestionId]) revert QuestionIsAlreadyReopeningAPreviousQuestion();
+        if (reopenerQuestions[reopensQuestionId]) revert QuestionIsAlreadyReopeningAPreviousQuestion();
 
         // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
-        bytes32 existingReopenQuestionId = reopened_questions[reopensQuestionId];
+        bytes32 existingReopenQuestionId = reopenedQuestions[reopensQuestionId];
 
         // Normally when we reopen a question we will take its bounty and pass it on to the reopened version.
         bytes32 takeBountyFromQuestionId = reopensQuestionId;
@@ -562,14 +562,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             if (!isSettledTooSoon(existingReopenQuestionId)) revert QuestionHasAlreadyBeenReopened();
             // We'll overwrite the reopening with our new question and move the bounty.
             // Once that's done we'll detach the failed reopener and you'll be able to reopen that too if you really want, but without the bounty.
-            reopener_questions[existingReopenQuestionId] = false;
+            reopenerQuestions[existingReopenQuestionId] = false;
             takeBountyFromQuestionId = existingReopenQuestionId;
         }
 
         bytes32 questionId = askQuestionWithMinBondERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
 
-        reopened_questions[reopensQuestionId] = questionId;
-        reopener_questions[questionId] = true;
+        reopenedQuestions[reopensQuestionId] = questionId;
+        reopenerQuestions[questionId] = true;
 
         questions[questionId].bounty = questions[takeBountyFromQuestionId].bounty + questions[questionId].bounty;
         questions[takeBountyFromQuestionId].bounty = 0;
@@ -613,8 +613,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (historyHashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
-        address payee = question_claims[questionId].payee;
-        uint256 lastBond = question_claims[questionId].lastBond;
+        address payee = questionClaims[questionId].payee;
+        uint256 lastBond = questionClaims[questionId].lastBond;
         uint256 queuedFunds = 0;
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
@@ -649,12 +649,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             // Pay out the latest payee, only keeping back lastBond which the next may have a claim on
             _payPayee(questionId, payee, queuedFunds);
 
-            question_claims[questionId].payee = payee;
-            question_claims[questionId].lastBond = lastBond;
+            questionClaims[questionId].payee = payee;
+            questionClaims[questionId].lastBond = lastBond;
         } else {
             // There is nothing left below us so the payee can keep what remains
             _payPayee(questionId, payee, queuedFunds + lastBond);
-            delete question_claims[questionId];
+            delete questionClaims[questionId];
         }
 
         questions[questionId].historyHash = lastHistoryHash;
