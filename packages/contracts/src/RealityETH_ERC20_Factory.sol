@@ -14,7 +14,7 @@ contract RealityETH_ERC20_Factory {
     mapping(address token => address instance) public deployments;
 
     // solhint-disable-next-line event-name-camelcase
-    event RealityETH_ERC20_deployed(address reality_eth, address token, uint8 decimals, string token_ticker);
+    event RealityETH_ERC20_deployed(address realityEth, address token, uint8 decimals, string tokenTicker);
 
     constructor(address _libraryAddress) {
         libraryAddress = _libraryAddress;

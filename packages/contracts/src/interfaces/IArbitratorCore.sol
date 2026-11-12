@@ -5,10 +5,10 @@ pragma solidity 0.8.20;
 import {IRealityETH} from "./IRealityETH.sol";
 
 interface IArbitratorCore {
-    event LogRequestArbitration(bytes32 indexed question_id, uint256 fee_paid, address requester, uint256 remaining);
+    event LogRequestArbitration(bytes32 indexed questionId, uint256 feePaid, address requester, uint256 remaining);
 
-    function getDisputeFee(bytes32 question_id) external view returns (uint256);
+    function getDisputeFee(bytes32 questionId) external view returns (uint256);
     function metadata() external view returns (string memory);
     function realitio() external view returns (IRealityETH);
-    function requestArbitration(bytes32 question_id, uint256 max_previous) external payable returns (bool);
+    function requestArbitration(bytes32 questionId, uint256 maxPrevious) external payable returns (bool);
 }

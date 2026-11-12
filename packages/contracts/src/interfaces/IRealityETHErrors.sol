@@ -27,7 +27,7 @@ interface IRealityETHErrors {
     error BondMustExceedTheMinimum();
     /// @notice bond must be double at least previous bond
     error BondMustBeDoubleAtLeastPreviousBond();
-    /// @notice bond must exceed max_previous
+    /// @notice bond must exceed maxPrevious
     error BondMustExceedMax_Previous();
     /// @notice template must exist
     error TemplateMustExist();
@@ -63,9 +63,9 @@ interface IRealityETHErrors {
     error ArbitratorMismatch();
     /// @notice timeout mismatch
     error TimeoutMismatch();
-    /// @notice opening_ts mismatch
+    /// @notice openingTs mismatch
     error Opening_TsMismatch();
-    /// @notice min_bond mismatch
+    /// @notice minBond mismatch
     error Min_BondMismatch();
     /// @notice Question is already reopening a previous question
     error QuestionIsAlreadyReopeningAPreviousQuestion();
