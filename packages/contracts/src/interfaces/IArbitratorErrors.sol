@@ -9,4 +9,6 @@ interface IArbitratorErrors {
     error TheQuestionMustNotHaveBeenFinalized();
     /// @notice An ERC20 token transfer returned false
     error TokenTransferFailed();
+    /// @notice The recipient address must not be the zero address
+    error RecipientMustNotBeZero();
 }
