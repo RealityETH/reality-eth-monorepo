@@ -7,4 +7,6 @@ interface IArbitratorErrors {
     error TheArbitratorMustHaveSetANonZeroFeeForTheQuestion();
     /// @notice The question must not have been finalized
     error TheQuestionMustNotHaveBeenFinalized();
+    /// @notice An ERC20 token transfer returned false
+    error TokenTransferFailed();
 }
