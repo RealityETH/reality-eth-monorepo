@@ -105,3 +105,128 @@ contract ReentrancyERC20Test is Test {
         attacker.submit(TWO_B);
     }
 }
+
+interface IReopenTarget {
+    function reopenQuestionERC20(
+        uint256 templateId,
+        string calldata question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond,
+        bytes32 reopensQuestionId,
+        uint256 tokens
+    ) external returns (bytes32);
+}
+
+/// Attacker that re-enters reopenQuestionERC20 once (with a different nonce) from
+/// the token transfer hook while the outer reopen is pulling its tokens.
+contract ReentrantReopener is IReentrancyHook {
+    IReopenTarget public immutable rc;
+    MockReentrantERC20 public immutable token;
+
+    uint256 internal templateId;
+    string internal question;
+    address internal arbitrator;
+    uint32 internal timeout;
+    uint32 internal openingTs;
+    uint256 internal minBond;
+    bytes32 internal reopensQuestionId;
+    uint256 internal tokens;
+    bool public reentered;
+
+    constructor(address _rc, address _token) {
+        rc = IReopenTarget(_rc);
+        token = MockReentrantERC20(_token);
+    }
+
+    function approveToken() external {
+        token.approve(address(rc), type(uint256).max);
+    }
+
+    function configure(
+        uint256 _templateId,
+        string calldata _question,
+        address _arbitrator,
+        uint32 _timeout,
+        uint32 _openingTs,
+        uint256 _minBond,
+        bytes32 _reopensQuestionId,
+        uint256 _tokens
+    ) external {
+        templateId = _templateId;
+        question = _question;
+        arbitrator = _arbitrator;
+        timeout = _timeout;
+        openingTs = _openingTs;
+        minBond = _minBond;
+        reopensQuestionId = _reopensQuestionId;
+        tokens = _tokens;
+    }
+
+    function attack() external {
+        rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, 1, minBond, reopensQuestionId, tokens);
+    }
+
+    function reentrancyHook() external {
+        if (!reentered) {
+            reentered = true;
+            // Re-enter with a different nonce so it isn't a stateNotCreated collision.
+            rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, 2, minBond, reopensQuestionId, tokens);
+        }
+    }
+}
+
+/// Reentrancy regression test for the reopen path. reopenQuestionERC20 writes
+/// reopenedQuestions only after the new question is created; if the token pull
+/// happened before that write, a re-entrant reopen would see reopenedQuestions
+/// still unset, pass the guards, and create a duplicate reopening / divert the
+/// bounty. Pulling tokens last (CEI) makes the re-entrant reopen hit the guards.
+contract ReopenReentrancyTest is Test {
+    RealityETH_ERC20_v4_0 internal rc;
+    MockReentrantERC20 internal token;
+    ReentrantReopener internal attacker;
+
+    bytes32 internal constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
+    uint32 internal constant TIMEOUT = 30;
+
+    bytes32 internal origQid;
+
+    function setUp() public {
+        rc = new RealityETH_ERC20_v4_0();
+        token = new MockReentrantERC20();
+        rc.setToken(IERC20(address(token)));
+
+        uint256 tid = rc.createTemplate("q");
+
+        // Original question with a bounty, answered "too soon" and finalized so it
+        // is eligible to be reopened.
+        token.mint(address(this), 1000e18);
+        token.approve(address(rc), type(uint256).max);
+        origQid = rc.askQuestionERC20(tid, "question", address(0), TIMEOUT, 0, 0, 100e18);
+        rc.submitAnswerERC20(origQid, UNRESOLVED_ANSWER, 0, 1e18);
+        vm.warp(block.timestamp + TIMEOUT + 1);
+        assertTrue(rc.isSettledTooSoon(origQid), "precondition: settled too soon");
+
+        attacker = new ReentrantReopener(address(rc), address(token));
+        token.mint(address(attacker), 1000e18);
+        attacker.approveToken();
+        // Reopen must match the original exactly except nonce/creator.
+        attacker.configure(tid, "question", address(0), TIMEOUT, 0, 0, origQid, 1e18);
+    }
+
+    /// Without reentrancy, a single reopen succeeds and is recorded.
+    function test_reopen_ok() public {
+        attacker.attack();
+        assertTrue(rc.reopenedQuestions(origQid) != bytes32(0), "reopening recorded");
+    }
+
+    /// Re-entrant reopen during the token pull must revert: the outer call has
+    /// already recorded reopenedQuestions, so the inner reopen hits a guard.
+    function test_reentrant_reopen_reverts() public {
+        token.setArmed(true);
+        vm.expectRevert();
+        attacker.attack();
+    }
+}
