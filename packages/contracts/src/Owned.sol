@@ -13,7 +13,7 @@ contract Owned is IOwned {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        if (msg.sender != owner) revert MsgSenderMustBeOwner();
         _;
     }
 
