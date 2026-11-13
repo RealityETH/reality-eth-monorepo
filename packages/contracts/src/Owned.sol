@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-import "./interfaces/IOwned.sol";
+import {IOwned} from "./interfaces/IOwned.sol";
 
 contract Owned is IOwned {
     address public owner;
