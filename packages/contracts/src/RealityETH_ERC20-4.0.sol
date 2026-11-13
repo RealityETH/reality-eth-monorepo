@@ -206,6 +206,28 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return questionId;
     }
 
+    function _askQuestionWithMinBond(
+        uint256 templateId,
+        string memory question,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond,
+        uint256 tokens
+    ) internal returns (bytes32) {
+        if (templates[templateId] == 0) revert TemplateMustExist();
+
+        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
+        bytes32 questionId = keccak256(abi.encodePacked(contentHash, arbitrator, timeout, minBond, address(this), msg.sender, nonce));
+
+        // We emit this event here because _askQuestion doesn't need to know the unhashed question.
+        // Other events are emitted by _askQuestion.
+        emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
+        _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, minBond, tokens);
+        return questionId;
+    }
+
     /// @inheritdoc IRealityETHCore_ERC20
     function askQuestionWithMinBondERC20(
         uint256 templateId,
@@ -223,17 +245,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        if (templates[templateId] == 0) revert TemplateMustExist();
-
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
-        bytes32 questionId = keccak256(abi.encodePacked(contentHash, arbitrator, timeout, minBond, address(this), msg.sender, nonce));
-
-        // We emit this event here because _askQuestion doesn't need to know the unhashed question.
-        // Other events are emitted by _askQuestion.
-        emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
-        _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, minBond, tokens);
+        bytes32 questionId = _askQuestionWithMinBond(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
         _deductTokensOrRevert(tokens);
-
         return questionId;
     }
 
@@ -445,7 +458,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        // _deductTokensOrRevert will be called when we call askQuestionWithMinBondERC20
 
         if (!isSettledTooSoon(reopensQuestionId)) revert YouCanOnlyReopenQuestionsThatResolvedAsSettledTooSoon();
 
@@ -476,7 +488,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             takeBountyFromQuestionId = existingReopenQuestionId;
         }
 
-        bytes32 questionId = askQuestionWithMinBondERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
+        bytes32 questionId = _askQuestionWithMinBond(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
 
         reopenedQuestions[reopensQuestionId] = questionId;
         reopenerQuestions[questionId] = true;
@@ -485,6 +497,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         questions[takeBountyFromQuestionId].bounty = 0;
 
         emit LogReopenQuestion(questionId, reopensQuestionId);
+
+        _deductTokensOrRevert(tokens);
 
         return questionId;
     }
