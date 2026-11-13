@@ -41,11 +41,13 @@ contract RealityETH_ERC20_Factory {
         address clone = _deployProxy(libraryAddress);
         IRealityETH_ERC20(clone).setToken(IERC20(_token));
         /* solhint-disable quotes */
+        // forge-lint: disable-start(unused-return) -- template ids not needed
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
+        // forge-lint: disable-end(unused-return)
         /* solhint-enable quotes */
         deployments[_token] = clone;
         emit RealityETH_ERC20_deployed(clone, _token, decimals, ticker);
