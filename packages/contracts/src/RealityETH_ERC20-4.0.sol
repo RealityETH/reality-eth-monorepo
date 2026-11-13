@@ -608,17 +608,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         public
         stateAny // The finalization checks are done in the claimWinnings function
     {
-        uint256 qi;
-        uint256 i;
-        for (qi = 0; qi < questionIds.length; qi++) {
+        uint256 i = 0;
+        for (uint256 qi = 0; qi < questionIds.length; qi++) {
             bytes32 qid = questionIds[qi];
             uint256 ln = lengths[qi];
             bytes32[] memory hh = new bytes32[](ln);
             address[] memory ad = new address[](ln);
             uint256[] memory bo = new uint256[](ln);
             bytes32[] memory an = new bytes32[](ln);
-            uint256 j;
-            for (j = 0; j < ln; j++) {
+            for (uint256 j = 0; j < ln; j++) {
                 hh[j] = histHashes[i];
                 ad[j] = addrs[i];
                 bo[j] = bonds[i];
