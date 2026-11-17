@@ -26,6 +26,7 @@ abstract contract RealityETHBase is Test {
     bool internal reopenSupported; // 3.0+
     bool internal minBondSupported; // 3.0+
     bool internal settledTooSoonSupported; // isSettledTooSoon / resultForOnceSettled (3.0+)
+    bool internal questionFeeSupported; // arbitrator per-question fee (removed in 4.0)
     uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
     function setUp() public virtual {
@@ -104,6 +105,7 @@ abstract contract RealityETHBase is Test {
         reopenSupported = versionNum >= 30; // reopenQuestion is in the 3.0 ABI
         minBondSupported = versionNum >= 30; // askQuestionWithMinBond is in the 3.0 ABI
         settledTooSoonSupported = versionNum >= 30; // isSettledTooSoon is in the 3.0 ABI
+        questionFeeSupported = versionNum < 40; // arbitrator per-question fee removed in 4.0
         claimFeeDivisor = versionNum >= 21 ? 40 : 0;
     }
 

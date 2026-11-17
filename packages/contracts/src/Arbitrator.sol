@@ -54,12 +54,6 @@ contract Arbitrator is Owned, IArbitrator {
     }
 
     /// @inheritdoc IArbitratorManagement
-    function setQuestionFee(uint256 fee) public onlyOwner {
-        realitio.setQuestionFee(fee);
-        emit LogSetQuestionFee(fee);
-    }
-
-    /// @inheritdoc IArbitratorManagement
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) public onlyOwner {
         delete arbitrationBounties[questionId];
         realitio.submitAnswerByArbitrator(questionId, answer, answerer);

@@ -7,8 +7,6 @@ import {IERC20} from "./IERC20.sol";
 interface IArbitratorManagement {
     event LogSetRealitio(address realitio);
 
-    event LogSetQuestionFee(uint256 fee);
-
     event LogSetDisputeFee(uint256 fee);
 
     event LogSetCustomDisputeFee(bytes32 indexed questionId, uint256 fee);
@@ -23,13 +21,6 @@ interface IArbitratorManagement {
     /// @param questionId The question in question
     /// @param fee The fee amount
     function setCustomDisputeFee(bytes32 questionId, uint256 fee) external;
-    /// @notice Set a fee for asking a question with us as the arbitrator
-    /// @param fee The fee amount
-    /// @dev Default is no fee. Unlike the dispute fee, 0 is an acceptable setting.
-    /// You could set an impossibly high fee if you want to prevent us being used as arbitrator unless we submit the question.
-    /// (Submitting the question ourselves is not implemented here.)
-    /// This fee can be used as a revenue source, an anti-spam measure, or both.
-    function setQuestionFee(uint256 fee) external;
     /// @notice Submit the arbitrator's answer to a question.
     /// @param questionId The question in question
     /// @param answer The answer

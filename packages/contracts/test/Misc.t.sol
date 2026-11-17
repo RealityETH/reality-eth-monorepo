@@ -6,8 +6,8 @@ import {RealityETHStd} from "./StdSetup.t.sol";
 /// Ported from tests/python/test.py — assorted tests.
 contract MiscTest is RealityETHStd {
     function test_arbitrator_fee_received() public view {
-        // the 100-wei question fee from setUp is credited to the arbitrator
-        assertEq(rc.balanceOf(address(arb)), 100);
+        // pre-4.0 the 100-wei question fee from setUp is credited to the arbitrator; 4.0+ has no fee
+        assertEq(rc.balanceOf(address(arb)), questionFeeSupported ? 100 : 0);
     }
 
     function test_min_payment_with_bond_param() public {

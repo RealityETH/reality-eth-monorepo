@@ -33,8 +33,6 @@ interface IRealityETHErrors {
     error TimeoutMustBePositive();
     /// @notice timeout must be less than 365 days
     error TimeoutMustBeLessThan365Days();
-    /// @notice Tokens provided must cover question fee
-    error TokensProvidedMustCoverQuestionFee();
     /// @notice answerer must be non-zero
     error AnswererMustBeNonZero();
     /// @notice commitment must not already exist

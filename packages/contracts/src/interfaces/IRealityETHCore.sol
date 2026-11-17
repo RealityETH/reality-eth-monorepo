@@ -29,7 +29,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     event LogNewTemplate(uint256 indexed templateId, address indexed user, string questionText);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
-    event LogSetQuestionFee(address arbitrator, uint256 amount);
 
     struct Question {
         bytes32 contentHash;
@@ -117,10 +116,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param requester The account that requested arbitration
     /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     function notifyOfArbitrationRequest(bytes32 questionId, address requester, uint256 maxPrevious) external;
-    /// @notice Function for arbitrator to set an optional per-question fee.
-    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
-    /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) external;
     /// @notice Submit the answer for a question, for use by the arbitrator.
     /// @dev Doesn't require (or allow) a bond.
     /// If the current final answer is correct, the account should be whoever submitted it.
@@ -199,7 +194,6 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
     /// @param answerer The account to which the answer should be credited
     function submitAnswerFor(bytes32 questionId, bytes32 answer, uint256 maxPrevious, address answerer) external payable;
-    function arbitratorQuestionFees(address) external view returns (uint256);
     /// @notice Returns the arbitrator address for the question
     /// @param questionId The ID of the question
     /// @return The arbitrator address for the question

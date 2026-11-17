@@ -8,6 +8,10 @@ import {RealityETHStd} from "./StdSetup.t.sol";
 /// Runs against both ETH and ERC20.
 contract FeesTest is RealityETHStd {
     function test_question_fee_withdrawal() public {
+        if (!questionFeeSupported) {
+            vm.skip(true);
+            return;
+        }
         address k4 = makeAddr("k4");
         address k5 = makeAddr("k5");
         address k7 = makeAddr("k7");
@@ -27,6 +31,10 @@ contract FeesTest is RealityETHStd {
     }
 
     function test_question_fees() public {
+        if (!questionFeeSupported) {
+            vm.skip(true);
+            return;
+        }
         address k4 = makeAddr("k4");
         address k5 = makeAddr("k5"); // treated as an (EOA) arbitrator here
 
@@ -70,6 +78,11 @@ contract FeesTest is RealityETHStd {
     }
 
     function test_arbitrator_registered_wallet() public {
+        // Exercises the arbitrator fee-withdrawal path; the per-question fee was removed in 4.0.
+        if (!questionFeeSupported) {
+            vm.skip(true);
+            return;
+        }
         address k2 = makeAddr("k2");
         address k4 = makeAddr("k4");
         address k5 = makeAddr("k5");

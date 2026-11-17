@@ -33,16 +33,22 @@ abstract contract RealityETHStd is RealityETHBase {
             token.mint(address(this), TOKEN_SUPPLY);
             token.approve(address(rc), type(uint256).max);
         }
-        arb.setQuestionFee(QUESTION_FEE);
-
-        question_id = _ask(address(this), 0, "my question", address(arb), TIMEOUT, 0, 0, 1100);
+        // Pre-4.0: arbitrator charges a 100 question fee, so ask 1100 to leave a 1000 bounty.
+        // 4.0+: the per-question fee was removed, so ask the net 1000 directly. Either way the
+        // standard question ends with a bounty of 1000 so the downstream tests are unchanged.
+        if (questionFeeSupported) {
+            arb.setQuestionFee(QUESTION_FEE);
+            question_id = _ask(address(this), 0, "my question", address(arb), TIMEOUT, 0, 0, 1100);
+        } else {
+            question_id = _ask(address(this), 0, "my question", address(arb), TIMEOUT, 0, 0, 1000);
+        }
 
         // mirror the sanity asserts in the Python setUp
         Q memory q = _q(question_id);
         assertEq(q.arbitrator, address(arb), "arbitrator");
         assertEq(uint256(q.timeout), uint256(TIMEOUT), "timeout");
         assertEq(uint256(q.finalizeTs), 0, "finalize ts should start at 0");
-        assertEq(q.bounty, 1000, "bounty should be 1000 after the 100 fee");
+        assertEq(q.bounty, 1000, "bounty should be 1000");
     }
 
     // ---------------------------------------------------------------------
