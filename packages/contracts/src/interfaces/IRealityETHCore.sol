@@ -110,6 +110,9 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param content The template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(string calldata content) external returns (uint256);
+    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
+    /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
+    function createInitialTemplates() external;
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
     /// @dev The arbitrator contract is trusted to only call this if they've been paid, and tell us who paid them.
     /// @param questionId The ID of the question

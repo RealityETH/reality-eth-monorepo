@@ -93,4 +93,17 @@ contract FactoryTest is Test {
         vm.expectRevert();
         factory.createInstance(address(token));
     }
+
+    /// createInitialTemplates can only seed once: the library (constructor-seeded)
+    /// and a factory-seeded clone both reject a second call.
+    function test_createInitialTemplates_only_once() public {
+        vm.expectRevert();
+        lib.createInitialTemplates();
+
+        MockERC20 token2 = new MockERC20();
+        factory.createInstance(address(token2));
+        IRealityETH_ERC20 inst = IRealityETH_ERC20(factory.deployments(address(token2)));
+        vm.expectRevert();
+        inst.createInitialTemplates();
+    }
 }
