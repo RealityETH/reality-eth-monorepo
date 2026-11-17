@@ -42,6 +42,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         bytes32 historyHash;
         uint256 bond;
         uint256 minBond;
+        uint64 createdBlock;
     }
 
     // Only used when claiming more bonds than fits into a transaction
@@ -281,7 +282,8 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
             bytes32 bestAnswer,
             bytes32 historyHash,
             uint256 bond,
-            uint256 minBond
+            uint256 minBond,
+            uint64 createdBlock
         );
     function reopenedQuestions(bytes32) external view returns (bytes32);
     function reopenerQuestions(bytes32) external view returns (bool);

@@ -10,6 +10,15 @@ contract MiscTest is RealityETHStd {
         assertEq(rc.balanceOf(address(arb)), questionFeeSupported ? 100 : 0);
     }
 
+    function test_created_block() public {
+        if (!createdBlockSupported) {
+            vm.skip(true);
+            return;
+        }
+        bytes32 qid = _ask(address(this), 0, "created block question", address(arb), 30, 0, 0, 1000);
+        assertEq(uint256(_q(qid).createdBlock), block.number);
+    }
+
     function test_min_payment_with_bond_param() public {
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");

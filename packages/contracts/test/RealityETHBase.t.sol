@@ -27,6 +27,7 @@ abstract contract RealityETHBase is Test {
     bool internal minBondSupported; // 3.0+
     bool internal settledTooSoonSupported; // isSettledTooSoon / resultForOnceSettled (3.0+)
     bool internal questionFeeSupported; // arbitrator per-question fee (removed in 4.0)
+    bool internal createdBlockSupported; // question createdBlock field (added in 4.0)
     uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
     function setUp() public virtual {
@@ -106,6 +107,7 @@ abstract contract RealityETHBase is Test {
         minBondSupported = versionNum >= 30; // askQuestionWithMinBond is in the 3.0 ABI
         settledTooSoonSupported = versionNum >= 30; // isSettledTooSoon is in the 3.0 ABI
         questionFeeSupported = versionNum < 40; // arbitrator per-question fee removed in 4.0
+        createdBlockSupported = versionNum >= 40; // question createdBlock added in 4.0
         claimFeeDivisor = versionNum >= 21 ? 40 : 0;
     }
 
@@ -196,6 +198,22 @@ abstract contract RealityETHBase is Test {
         bytes32 historyHash;
         uint256 bond;
         uint256 minBond;
+        uint64 createdBlock;
+    }
+
+    // 3.0-3.2 getter (11 fields): has minBond but not createdBlock (added in 4.0).
+    struct Q11 {
+        bytes32 contentHash;
+        address arbitrator;
+        uint32 openingTs;
+        uint32 timeout;
+        uint32 finalizeTs;
+        bool isPendingArbitration;
+        uint256 bounty;
+        bytes32 bestAnswer;
+        bytes32 historyHash;
+        uint256 bond;
+        uint256 minBond;
     }
 
     // Pre-3.0 getter without the trailing min_bond field.
@@ -217,8 +235,24 @@ abstract contract RealityETHBase is Test {
         require(ok, "questions() call failed");
         // All fields are static, so the getter's return layout matches the
         // struct's; decode into the struct in one shot (avoids stack-too-deep).
-        if (versionNum >= 30) {
+        if (versionNum >= 40) {
             q = abi.decode(data, (Q));
+        } else if (versionNum >= 30) {
+            Q11 memory x = abi.decode(data, (Q11));
+            q = Q(
+                x.contentHash,
+                x.arbitrator,
+                x.openingTs,
+                x.timeout,
+                x.finalizeTs,
+                x.isPendingArbitration,
+                x.bounty,
+                x.bestAnswer,
+                x.historyHash,
+                x.bond,
+                x.minBond,
+                0
+            );
         } else {
             QLegacy memory l = abi.decode(data, (QLegacy));
             q = Q(
@@ -232,6 +266,7 @@ abstract contract RealityETHBase is Test {
                 l.bestAnswer,
                 l.historyHash,
                 l.bond,
+                0,
                 0
             );
         }

@@ -213,6 +213,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         questions[questionId].arbitrator = arbitrator;
         questions[questionId].openingTs = openingTs;
         questions[questionId].timeout = timeout;
+        // forge-lint: disable-next-line(unsafe-typecast) -- block.number fits uint64 on any real chain
+        questions[questionId].createdBlock = uint64(block.number);
 
         if (bounty > 0) {
             questions[questionId].bounty = bounty;
