@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {RealityETHBase} from "./RealityETHBase.t.sol";
+import {IRealityETHCore} from "../src/interfaces/IRealityETHCore.sol";
+import {AnswerType, Template} from "../src/RealityETHTypes.sol";
 
 /// Minimal proof that the parametrized bytecode-deploy harness works:
 /// deploy the committed creation bytecode for the selected version, then
@@ -12,15 +14,46 @@ contract SmokeTest is RealityETHBase {
     }
 
     function test_create_template_and_ask() public {
-        uint256 templateId = rc.createTemplate('{"title": "%s", "type": "bool"}');
-        assertGt(templateId, 0, "template id should be > 0");
-
         uint32 timeout = 30;
         // Use a non-null arbitrator so the smoke passes on every version
         // (null arbitrators are a 3.0+ feature; covered in a gated test later).
         address arbitrator = address(0xA11CE);
-        bytes32 questionId =
-            rc.askQuestion(templateId, "Is the sky blue?", arbitrator, timeout, uint32(0), 0);
+
+        uint256 templateId;
+        bytes32 questionId;
+        if (versionNum >= 40) {
+            // 4.0: structured template + string[] params/outcomes (both cores share these selectors).
+            string[] memory titleOnly = new string[](1);
+            templateId = IRealityETHCore(address(rc))
+                .createTemplate(
+                    Template(
+                        AnswerType.Bool,
+                        0,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        address(0),
+                        0,
+                        titleOnly,
+                        _v4NoOutcomes(),
+                        "",
+                        "",
+                        ""
+                    )
+                );
+            assertGt(templateId, 0, "template id should be > 0");
+            questionId = IRealityETHCore(address(rc))
+                .askQuestion(
+                    templateId, _v4Params("Is the sky blue?"), _v4NoOutcomes(), arbitrator, timeout, uint32(0), 0
+                );
+        } else {
+            templateId = rc.createTemplate('{"title": "%s", "type": "bool"}');
+            assertGt(templateId, 0, "template id should be > 0");
+            questionId = rc.askQuestion(templateId, "Is the sky blue?", arbitrator, timeout, uint32(0), 0);
+        }
         assertTrue(questionId != bytes32(0), "question id should be non-zero");
 
         assertEq(uint256(rc.getTimeout(questionId)), uint256(timeout), "timeout mismatch");

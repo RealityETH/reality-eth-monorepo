@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {RealityETHStd} from "./StdSetup.t.sol";
+import {IRealityETHCore} from "../src/interfaces/IRealityETHCore.sol";
+import {IRealityETHCore_ERC20} from "../src/interfaces/IRealityETHCore_ERC20.sol";
 
 /// Ported from tests/python/test.py — question fees, minimum bond, arbitrator
 /// admin (metadata / registered wallet), null arbitrator, and gas checks.
@@ -133,16 +135,35 @@ contract FeesTest is RealityETHStd {
         if (isERC20) {
             token.mint(address(this), 1100);
             token.approve(address(rc), type(uint256).max);
-            uint256 g = gasleft();
-            rc.askQuestionERC20(0, "my question 2", address(arb), 10, 0, 0, 1100);
-            g = g - gasleft();
+            uint256 g;
+            if (versionNum >= 40) {
+                g = gasleft();
+                IRealityETHCore_ERC20(address(rc))
+                    .askQuestionERC20(
+                        _tid(0), _v4Params("my question 2"), _v4NoOutcomes(), address(arb), 10, 0, 0, 1100
+                    );
+                g = g - gasleft();
+            } else {
+                g = gasleft();
+                rc.askQuestionERC20(0, "my question 2", address(arb), 10, 0, 0, 1100);
+                g = g - gasleft();
+            }
             assertLt(g, 200000);
         } else {
-            uint256 g = gasleft();
-            rc.askQuestion{value: 1100}(0, "my question 2", address(arb), 10, 0, 0);
-            g = g - gasleft();
-            // 4.0 adds the createdBlock write (a full unpacked SSTORE for now; it moves into a
-            // shared slot in the later gas pass, at which point this can tighten back toward 140k).
+            uint256 g;
+            if (versionNum >= 40) {
+                g = gasleft();
+                IRealityETHCore(address(rc)).askQuestion{value: 1100}(
+                    _tid(0), _v4Params("my question 2"), _v4NoOutcomes(), address(arb), 10, 0, 0
+                );
+                g = g - gasleft();
+            } else {
+                g = gasleft();
+                rc.askQuestion{value: 1100}(0, "my question 2", address(arb), 10, 0, 0);
+                g = g - gasleft();
+            }
+            // 4.0 stores createdBlock + templateId + outcomeCount (one packed slot) plus the arbitrator
+            // slot, so the ask is dearer than pre-4.0's ~140k; still comfortably under 165k.
             assertLt(g, createdBlockSupported ? 165000 : 140000);
         }
     }

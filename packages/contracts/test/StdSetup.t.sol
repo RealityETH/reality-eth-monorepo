@@ -4,6 +4,8 @@ pragma solidity ^0.8.20;
 import {RealityETHBase} from "./RealityETHBase.t.sol";
 import {MockArbitrator} from "./mocks/MockArbitrator.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {IRealityETHCore} from "../src/interfaces/IRealityETHCore.sol";
+import {IRealityETHCore_ERC20} from "../src/interfaces/IRealityETHCore_ERC20.sol";
 
 /// Standard fixture mirroring the Python `setUp`: an arbitrator with a 100-unit
 /// question fee, and one open question "my question" (template 0, timeout 30)
@@ -71,6 +73,28 @@ abstract contract RealityETHStd is RealityETHBase {
         uint256 nonce,
         uint256 bounty
     ) internal returns (bytes32) {
+        if (versionNum >= 40) {
+            if (isERC20) {
+                _prepERC20(sender, bounty);
+                vm.prank(sender);
+                return IRealityETHCore_ERC20(address(rc))
+                    .askQuestionERC20(
+                        _tid(templateId),
+                        _v4Params(question),
+                        _v4NoOutcomes(),
+                        arbitrator,
+                        timeout,
+                        openingTs,
+                        nonce,
+                        bounty
+                    );
+            }
+            vm.deal(sender, sender.balance + bounty);
+            vm.prank(sender);
+            return IRealityETHCore(address(rc)).askQuestion{value: bounty}(
+                _tid(templateId), _v4Params(question), _v4NoOutcomes(), arbitrator, timeout, openingTs, nonce
+            );
+        }
         if (isERC20) {
             _prepERC20(sender, bounty);
             vm.prank(sender);
@@ -92,6 +116,29 @@ abstract contract RealityETHStd is RealityETHBase {
         uint256 minBond,
         uint256 bounty
     ) internal returns (bytes32) {
+        if (versionNum >= 40) {
+            if (isERC20) {
+                _prepERC20(sender, bounty);
+                vm.prank(sender);
+                return IRealityETHCore_ERC20(address(rc))
+                    .askQuestionWithMinBondERC20(
+                        _tid(templateId),
+                        _v4Params(question),
+                        _v4NoOutcomes(),
+                        arbitrator,
+                        timeout,
+                        openingTs,
+                        nonce,
+                        minBond,
+                        bounty
+                    );
+            }
+            vm.deal(sender, sender.balance + bounty);
+            vm.prank(sender);
+            return IRealityETHCore(address(rc)).askQuestionWithMinBond{value: bounty}(
+                _tid(templateId), _v4Params(question), _v4NoOutcomes(), arbitrator, timeout, openingTs, nonce, minBond
+            );
+        }
         if (isERC20) {
             _prepERC20(sender, bounty);
             vm.prank(sender);
@@ -101,7 +148,10 @@ abstract contract RealityETHStd is RealityETHBase {
         }
         vm.deal(sender, sender.balance + bounty);
         vm.prank(sender);
-        return rc.askQuestionWithMinBond{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond);
+        return
+            rc.askQuestionWithMinBond{value: bounty}(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond
+            );
     }
 
     function _reopen(
@@ -116,14 +166,51 @@ abstract contract RealityETHStd is RealityETHBase {
         bytes32 reopens,
         uint256 bounty
     ) internal returns (bytes32) {
+        if (versionNum >= 40) {
+            if (isERC20) {
+                _prepERC20(sender, bounty);
+                vm.prank(sender);
+                return IRealityETHCore_ERC20(address(rc))
+                    .reopenQuestionERC20(
+                        _tid(templateId),
+                        _v4Params(question),
+                        _v4NoOutcomes(),
+                        arbitrator,
+                        timeout,
+                        openingTs,
+                        nonce,
+                        minBond,
+                        reopens,
+                        bounty
+                    );
+            }
+            vm.deal(sender, sender.balance + bounty);
+            vm.prank(sender);
+            return IRealityETHCore(address(rc)).reopenQuestion{value: bounty}(
+                _tid(templateId),
+                _v4Params(question),
+                _v4NoOutcomes(),
+                arbitrator,
+                timeout,
+                openingTs,
+                nonce,
+                minBond,
+                reopens
+            );
+        }
         if (isERC20) {
             _prepERC20(sender, bounty);
             vm.prank(sender);
-            return rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty);
+            return rc.reopenQuestionERC20(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty
+            );
         }
         vm.deal(sender, sender.balance + bounty);
         vm.prank(sender);
-        return rc.reopenQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens);
+        return
+            rc.reopenQuestion{value: bounty}(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens
+            );
     }
 
     function _fund(address sender, bytes32 qid, uint256 amount) internal {
@@ -193,6 +280,34 @@ abstract contract RealityETHStd is RealityETHBase {
         uint256 nonce,
         uint256 bounty
     ) internal {
+        if (versionNum >= 40) {
+            if (isERC20) {
+                token.mint(sender, bounty);
+                vm.prank(sender);
+                token.approve(address(rc), type(uint256).max);
+                vm.expectRevert();
+                vm.prank(sender);
+                IRealityETHCore_ERC20(address(rc))
+                    .askQuestionERC20(
+                        _tid(templateId),
+                        _v4Params(question),
+                        _v4NoOutcomes(),
+                        arbitrator,
+                        timeout,
+                        openingTs,
+                        nonce,
+                        bounty
+                    );
+            } else {
+                vm.deal(sender, sender.balance + bounty);
+                vm.expectRevert();
+                vm.prank(sender);
+                IRealityETHCore(address(rc)).askQuestion{value: bounty}(
+                    _tid(templateId), _v4Params(question), _v4NoOutcomes(), arbitrator, timeout, openingTs, nonce
+                );
+            }
+            return;
+        }
         if (isERC20) {
             token.mint(sender, bounty);
             vm.prank(sender);
@@ -220,18 +335,60 @@ abstract contract RealityETHStd is RealityETHBase {
         bytes32 reopens,
         uint256 bounty
     ) internal {
+        if (versionNum >= 40) {
+            if (isERC20) {
+                token.mint(sender, bounty);
+                vm.prank(sender);
+                token.approve(address(rc), type(uint256).max);
+                vm.expectRevert();
+                vm.prank(sender);
+                IRealityETHCore_ERC20(address(rc))
+                    .reopenQuestionERC20(
+                        _tid(templateId),
+                        _v4Params(question),
+                        _v4NoOutcomes(),
+                        arbitrator,
+                        timeout,
+                        openingTs,
+                        nonce,
+                        minBond,
+                        reopens,
+                        bounty
+                    );
+            } else {
+                vm.deal(sender, sender.balance + bounty);
+                vm.expectRevert();
+                vm.prank(sender);
+                IRealityETHCore(address(rc)).reopenQuestion{value: bounty}(
+                    _tid(templateId),
+                    _v4Params(question),
+                    _v4NoOutcomes(),
+                    arbitrator,
+                    timeout,
+                    openingTs,
+                    nonce,
+                    minBond,
+                    reopens
+                );
+            }
+            return;
+        }
         if (isERC20) {
             token.mint(sender, bounty);
             vm.prank(sender);
             token.approve(address(rc), type(uint256).max);
             vm.expectRevert();
             vm.prank(sender);
-            rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty);
+            rc.reopenQuestionERC20(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens, bounty
+            );
         } else {
             vm.deal(sender, sender.balance + bounty);
             vm.expectRevert();
             vm.prank(sender);
-            rc.reopenQuestion{value: bounty}(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens);
+            rc.reopenQuestion{value: bounty}(
+                templateId, question, arbitrator, timeout, openingTs, nonce, minBond, reopens
+            );
         }
     }
 
@@ -279,10 +436,14 @@ abstract contract RealityETHStd is RealityETHBase {
 
     // `answerer` is the address passed to submitAnswerCommitment (address(0) for
     // the "skip sender" case, where RealityETH falls back to msg.sender).
-    function _submitCommitAs(bytes32 qid, uint256 ansVal, uint256 maxLast, uint256 bond, address sender, address answerer)
-        internal
-        returns (uint256)
-    {
+    function _submitCommitAs(
+        bytes32 qid,
+        uint256 ansVal,
+        uint256 maxLast,
+        uint256 bond,
+        address sender,
+        address answerer
+    ) internal returns (uint256) {
         bytes32 beforeHash = _histHash(qid);
         bytes32 answerHash = _answerHash(_answer(ansVal), COMMIT_NONCE);
         bytes32 commitmentId = _commitmentId(qid, answerHash, bond);

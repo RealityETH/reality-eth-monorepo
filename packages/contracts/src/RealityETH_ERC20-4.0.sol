@@ -5,6 +5,7 @@ pragma solidity 0.8.20;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IRealityETHCore_ERC20} from "./interfaces/IRealityETHCore_ERC20.sol";
 import {BalanceHolder_ERC20} from "./BalanceHolder_ERC20.sol";
+import {AnswerType, Template} from "./RealityETHTypes.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
@@ -23,16 +24,20 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
     bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
+    // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
+    bytes32 private constant INVALID = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
     uint256 private nextTemplateID = 0;
-    mapping(uint256 templateId => uint256 createdBlock) public templates;
-    mapping(uint256 templateId => bytes32 contentHash) public templateHashes;
-    mapping(bytes32 questionId => Question question) public questions;
+    mapping(uint256 templateId => Template template) internal templateRegistry;
+    // internal + explicit struct getter below: the flat auto-getter would return
+    // too many stack slots for the legacy codegen as the struct grows.
+    mapping(bytes32 questionId => Question question) internal _questions;
     mapping(bytes32 questionId => Claim claim) public questionClaims;
     mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopenedQuestions;
     mapping(bytes32 questionId => bool isReopener) public reopenerQuestions;
 
     modifier onlyArbitrator(bytes32 questionId) {
-        if (msg.sender != questions[questionId].arbitrator) revert MsgSenderMustBeArbitrator();
+        if (msg.sender != _arbitratorOf(questionId)) revert MsgSenderMustBeArbitrator();
         _;
     }
 
@@ -41,33 +46,37 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     }
 
     modifier stateNotCreated(bytes32 questionId) {
-        if (questions[questionId].timeout != 0) revert QuestionMustNotExist();
+        if (_questions[questionId].timeout != 0) revert QuestionMustNotExist();
         _;
     }
 
     modifier stateOpen(bytes32 questionId) {
-        if (questions[questionId].timeout == 0) revert QuestionMustExist();
-        if (questions[questionId].isPendingArbitration) revert QuestionMustNotBePendingArbitration();
-        uint32 finalizeTs = questions[questionId].finalizeTs;
+        if (_questions[questionId].timeout == 0) revert QuestionMustExist();
+        if (_questions[questionId].isPendingArbitration) revert QuestionMustNotBePendingArbitration();
+        uint32 finalizeTs = _questions[questionId].finalizeTs;
         // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
-        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
-        uint32 openingTs = questions[questionId].openingTs;
+        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) {
+            revert FinalizationDeadlineMustNotHavePassed();
+        }
+        uint32 openingTs = _questions[questionId].openingTs;
         // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
 
     modifier statePendingArbitration(bytes32 questionId) {
-        if (!questions[questionId].isPendingArbitration) revert QuestionMustBePendingArbitration();
+        if (!_questions[questionId].isPendingArbitration) revert QuestionMustBePendingArbitration();
         _;
     }
 
     modifier stateOpenOrPendingArbitration(bytes32 questionId) {
-        if (questions[questionId].timeout == 0) revert QuestionMustExist();
-        uint32 finalizeTs = questions[questionId].finalizeTs;
+        if (_questions[questionId].timeout == 0) revert QuestionMustExist();
+        uint32 finalizeTs = _questions[questionId].finalizeTs;
         // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
-        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
-        uint32 openingTs = questions[questionId].openingTs;
+        if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) {
+            revert FinalizationDeadlineMustNotHavePassed();
+        }
+        uint32 openingTs = _questions[questionId].openingTs;
         // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
@@ -80,9 +89,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     modifier bondMustDoubleAndMatchMinimum(bytes32 questionId, uint256 tokens) {
         if (tokens == 0) revert BondMustBePositive();
-        uint256 currentBond = questions[questionId].bond;
+        uint256 currentBond = _questions[questionId].bond;
         if (currentBond == 0) {
-            if (tokens < (questions[questionId].minBond)) revert BondMustExceedTheMinimum();
+            if (tokens < _minBondOf(questionId)) revert BondMustExceedTheMinimum();
         } else {
             if (tokens < (currentBond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
         }
@@ -91,7 +100,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     modifier previousBondMustNotBeatMaxPrevious(bytes32 questionId, uint256 maxPrevious) {
         if (maxPrevious > 0) {
-            if (questions[questionId].bond > maxPrevious) revert BondMustExceedMaxPrevious();
+            if (_questions[questionId].bond > maxPrevious) revert BondMustExceedMaxPrevious();
         }
         _;
     }
@@ -105,15 +114,69 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function createInitialTemplates() public {
         if (nextTemplateID != 0) revert TemplatesAlreadyCreated();
-        /* solhint-disable quotes */
-        createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
-        createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
-        /* solhint-enable quotes */
+        // Generalized defaults: the asker supplies the whole title via params[0] (a single ""
+        // interpolation slot). Select types carry concrete outcomes, so they are registered per-use
+        // with createTemplate rather than as a generalized default.
+        string[] memory titleOnly = new string[](1); // one "" interpolation slot
+        string[] memory noOutcomes = new string[](0);
+        createTemplate(
+            Template(
+                AnswerType.Bool,
+                0,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                ""
+            )
+        );
+        createTemplate(
+            Template(
+                AnswerType.Uint,
+                18,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                ""
+            )
+        );
+        createTemplate(
+            Template(
+                AnswerType.Datetime,
+                0,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                ""
+            )
+        );
     }
-    /* solhint-enable quotes */
 
     /// @inheritdoc IRealityETHCore_ERC20
     function setToken(IERC20 _token) public {
@@ -122,19 +185,166 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function createTemplate(string memory content) public stateAny returns (uint256) {
+    function createTemplate(Template memory template) public stateAny returns (uint256) {
+        _validateTemplate(template);
         uint256 id = nextTemplateID;
-        templates[id] = block.number;
-        templateHashes[id] = keccak256(abi.encodePacked(content));
-        emit LogNewTemplate(id, msg.sender, content);
+        templateRegistry[id] = template;
+        emit LogNewTemplate(id, msg.sender);
         nextTemplateID = id + 1;
         return id;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
+    function getTemplate(uint256 templateId) external view returns (Template memory) {
+        if (templateId >= nextTemplateID) revert TemplateMustExist();
+        return templateRegistry[templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
+    function questions(bytes32 questionId) external view returns (Question memory) {
+        return _questions[questionId];
+    }
+
+    function _validateTemplate(Template memory template) internal pure {
+        if (template.titleParts.length == 0) revert TemplateTitleRequired();
+        bool isSelect =
+            template.answerType == AnswerType.SingleSelect || template.answerType == AnswerType.MultipleSelect;
+        if (isSelect) {
+            // Outcomes are optional in the template: an empty set means the asker supplies them per question;
+            // a non-empty set (<=256) is a gas-saving default shared by every question on this template.
+            if (template.outcomes.length > 256) revert TemplateOutcomesInvalid();
+        } else if (template.outcomes.length != 0) {
+            revert TemplateOutcomesInvalid();
+        }
+        if (template.answerType != AnswerType.Uint && template.decimals != 0) revert TemplateDecimalsInvalid();
+        // tri-state: a field flagged unused must not carry a preset string
+        if (!template.hasDescription && bytes(template.description).length != 0) revert TemplateFieldInvalid();
+        if (!template.hasCategory && bytes(template.category).length != 0) revert TemplateFieldInvalid();
+        if (!template.hasLang && bytes(template.lang).length != 0) revert TemplateFieldInvalid();
+    }
+
+    // Resolve the effective outcome count for a question: the template's preset outcomes if it has any,
+    // otherwise the asker-supplied `outcomes`. Non-select templates must get no outcomes. Returns 0 for
+    // non-select types. The strings themselves live only in the content hash and event; the count is what
+    // answer validation needs on-chain.
+    function _resolveOutcomeCount(uint256 templateId, string[] memory outcomes) internal view returns (uint256) {
+        Template storage t = templateRegistry[templateId];
+        bool isSelect = t.answerType == AnswerType.SingleSelect || t.answerType == AnswerType.MultipleSelect;
+        if (!isSelect) {
+            if (outcomes.length != 0) revert OutcomesInvalid();
+            return 0;
+        }
+        if (t.outcomes.length != 0) {
+            // template presets the outcomes; the asker must not also supply them
+            if (outcomes.length != 0) revert OutcomesInvalid();
+            return t.outcomes.length;
+        }
+        if (outcomes.length == 0 || outcomes.length > 256) revert OutcomesInvalid();
+        return outcomes.length;
+    }
+
+    // Effective arbitrator for a new question: the template's if it fixes one, else the ask-time
+    // override. Reverts if the template fixes it and the asker also supplied one.
+    function _effectiveArbitrator(Template storage t, address supplied) internal view returns (address) {
+        if (t.arbitratorFromTemplate) {
+            if (supplied != address(0)) revert OverrideNotAllowed();
+            return t.arbitrator;
+        }
+        return supplied;
+    }
+
+    // Effective minBond for a new question: the template's if it fixes one, else the ask-time override.
+    function _effectiveMinBond(Template storage t, uint256 supplied) internal view returns (uint256) {
+        if (t.minBondFromTemplate) {
+            if (supplied != 0) revert OverrideNotAllowed();
+            return t.minBond;
+        }
+        return supplied;
+    }
+
+    // Read the effective arbitrator of an existing question: the template's when the template fixes it
+    // (arbitratorFromTemplate), otherwise the per-question value (only written when the asker supplied one).
+    function _arbitratorOf(bytes32 questionId) internal view returns (address) {
+        Template storage t = templateRegistry[_questions[questionId].templateId];
+        return t.arbitratorFromTemplate ? t.arbitrator : _questions[questionId].arbitrator;
+    }
+
+    // Read the effective minBond of an existing question: the template's when the template fixes it
+    // (minBondFromTemplate), otherwise the per-question value.
+    function _minBondOf(bytes32 questionId) internal view returns (uint256) {
+        Template storage t = templateRegistry[_questions[questionId].templateId];
+        return t.minBondFromTemplate ? t.minBond : _questions[questionId].minBond;
+    }
+
+    // Bundles a new question's scalar inputs to keep the ask functions under the stack limit.
+    struct NewQuestionArgs {
+        uint256 templateId;
+        address arbitrator;
+        uint32 timeout;
+        uint32 openingTs;
+        uint256 nonce;
+        uint256 minBond;
+        uint256 tokens;
+    }
+
+    // Central question creation: resolves template defaults/overrides, derives the id, stores the
+    // question, and emits. Token movement (if any) is handled by the public ERC20 wrappers.
+    function _createQuestion(NewQuestionArgs memory a, string[] memory params, string[] memory outcomes)
+        internal
+        returns (bytes32)
+    {
+        if (a.templateId >= nextTemplateID) revert TemplateMustExist();
+        a.arbitrator = _effectiveArbitrator(templateRegistry[a.templateId], a.arbitrator);
+        a.minBond = _effectiveMinBond(templateRegistry[a.templateId], a.minBond);
+
+        // abi.encode (not encodePacked): params/outcomes are dynamic string[], which packed encoding cannot represent unambiguously.
+        bytes32 contentHash = keccak256(abi.encode(a.templateId, a.openingTs, params, outcomes));
+        bytes32 questionId = keccak256(
+            abi.encodePacked(contentHash, a.arbitrator, a.timeout, a.minBond, address(this), msg.sender, a.nonce)
+        );
+
+        _askQuestion(questionId, a.templateId, contentHash, a.timeout, a.openingTs, a.tokens);
+
+        // Store the overridable fields only when the template did NOT fix them (the asker supplied them),
+        // so a template-fixed field leaves the question slot unwritten. Scoped so temporaries free before the emit.
+        {
+            Template storage t = templateRegistry[a.templateId];
+            if (!t.arbitratorFromTemplate && a.arbitrator != address(0)) {
+                _questions[questionId].arbitrator = a.arbitrator;
+            }
+            if (!t.minBondFromTemplate && a.minBond != 0) {
+                _questions[questionId].minBond = a.minBond;
+                emit LogMinimumBond(questionId, a.minBond);
+            }
+            uint256 outcomeCount = _resolveOutcomeCount(a.templateId, outcomes);
+            if (outcomeCount != 0) {
+                // forge-lint: disable-next-line(unsafe-typecast) -- outcome count is capped at 256
+                _questions[questionId].outcomeCount = uint16(outcomeCount);
+            }
+        }
+
+        // The stored question keeps only the content hash, so the raw params/outcomes go in the event.
+        emit LogNewQuestion(
+            questionId,
+            msg.sender,
+            a.templateId,
+            params,
+            outcomes,
+            contentHash,
+            a.arbitrator,
+            a.timeout,
+            a.openingTs,
+            a.nonce,
+            block.timestamp
+        );
+        return questionId;
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
     function createTemplateAndAskQuestion(
-        string memory content,
-        string memory question,
+        Template memory template,
+        string[] memory params,
+        string[] memory outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -146,14 +356,16 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        uint256 templateId = createTemplate(content);
-        return askQuestion(templateId, question, arbitrator, timeout, openingTs, nonce);
+        uint256 templateId = createTemplate(template);
+        return
+            _createQuestion(NewQuestionArgs(templateId, arbitrator, timeout, openingTs, nonce, 0, 0), params, outcomes);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function askQuestion(
         uint256 templateId,
-        string memory question,
+        string[] memory params,
+        string[] memory outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -165,22 +377,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        if (templates[templateId] == 0) revert TemplateMustExist();
-
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
-        bytes32 questionId = keccak256(abi.encodePacked(contentHash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
-
-        // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
-        emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
-        _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, 0, 0);
-
-        return questionId;
+        return
+            _createQuestion(NewQuestionArgs(templateId, arbitrator, timeout, openingTs, nonce, 0, 0), params, outcomes);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function askQuestionERC20(
         uint256 templateId,
-        string memory question,
+        string[] memory params,
+        string[] memory outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -193,45 +398,18 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        if (templates[templateId] == 0) revert TemplateMustExist();
-
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
-        bytes32 questionId = keccak256(abi.encodePacked(contentHash, arbitrator, timeout, uint256(0), address(this), msg.sender, nonce));
-
-        // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
-        emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
-        _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, 0, tokens);
+        bytes32 questionId = _createQuestion(
+            NewQuestionArgs(templateId, arbitrator, timeout, openingTs, nonce, 0, tokens), params, outcomes
+        );
         _deductTokensOrRevert(tokens);
-
-        return questionId;
-    }
-
-    function _askQuestionWithMinBond(
-        uint256 templateId,
-        string memory question,
-        address arbitrator,
-        uint32 timeout,
-        uint32 openingTs,
-        uint256 nonce,
-        uint256 minBond,
-        uint256 tokens
-    ) internal returns (bytes32) {
-        if (templates[templateId] == 0) revert TemplateMustExist();
-
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
-        bytes32 questionId = keccak256(abi.encodePacked(contentHash, arbitrator, timeout, minBond, address(this), msg.sender, nonce));
-
-        // We emit this event here because _askQuestion doesn't need to know the unhashed question.
-        // Other events are emitted by _askQuestion.
-        emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
-        _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, minBond, tokens);
         return questionId;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function askQuestionWithMinBondERC20(
         uint256 templateId,
-        string memory question,
+        string[] memory params,
+        string[] memory outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -245,7 +423,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        bytes32 questionId = _askQuestionWithMinBond(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
+        bytes32 questionId = _createQuestion(
+            NewQuestionArgs(templateId, arbitrator, timeout, openingTs, nonce, minBond, tokens), params, outcomes
+        );
         _deductTokensOrRevert(tokens);
         return questionId;
     }
@@ -269,49 +449,80 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             }
         }
         // Now we need to charge the rest from
-        if (!token.transferFrom(msg.sender, address(this), tokens)) revert TransferOfTokensFailedInsufficientApprovedBalance();
+        if (!token.transferFrom(msg.sender, address(this), tokens)) {
+            revert TransferOfTokensFailedInsufficientApprovedBalance();
+        }
         return;
     }
 
-    function _askQuestion(bytes32 questionId, bytes32 contentHash, address arbitrator, uint32 timeout, uint32 openingTs, uint256 minBond, uint256 tokens) internal stateNotCreated(questionId) {
+    function _askQuestion(
+        bytes32 questionId,
+        uint256 templateId,
+        bytes32 contentHash,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 tokens
+    ) internal stateNotCreated(questionId) {
         // A timeout of 0 makes no sense, and we will use this to check existence
         if (timeout == 0) revert TimeoutMustBePositive();
         if (timeout >= 365 days) revert TimeoutMustBeLessThan365Days();
 
-        uint256 bounty = tokens;
-
-        questions[questionId].contentHash = contentHash;
-        questions[questionId].arbitrator = arbitrator;
-        questions[questionId].openingTs = openingTs;
-        questions[questionId].timeout = timeout;
+        _questions[questionId].contentHash = contentHash;
+        _questions[questionId].openingTs = openingTs;
+        _questions[questionId].timeout = timeout;
+        // forge-lint: disable-next-line(unsafe-typecast) -- template ids are sequential and fit uint64
+        _questions[questionId].templateId = uint64(templateId);
         // forge-lint: disable-next-line(unsafe-typecast) -- block.number fits uint64 on any real chain
-        questions[questionId].createdBlock = uint64(block.number);
+        _questions[questionId].createdBlock = uint64(block.number);
 
-        if (bounty > 0) {
-            questions[questionId].bounty = bounty;
-            emit LogFundAnswerBounty(questionId, bounty, bounty, msg.sender);
-        }
-
-        if (minBond > 0) {
-            questions[questionId].minBond = minBond;
-            emit LogMinimumBond(questionId, minBond);
+        if (tokens > 0) {
+            _questions[questionId].bounty = tokens;
+            emit LogFundAnswerBounty(questionId, tokens, tokens, msg.sender);
         }
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function fundAnswerBountyERC20(bytes32 questionId, uint256 tokens) external stateOpen(questionId) {
-        questions[questionId].bounty = questions[questionId].bounty + tokens;
-        emit LogFundAnswerBounty(questionId, tokens, questions[questionId].bounty, msg.sender);
+        _questions[questionId].bounty = _questions[questionId].bounty + tokens;
+        emit LogFundAnswerBounty(questionId, tokens, _questions[questionId].bounty, msg.sender);
         _deductTokensOrRevert(tokens);
     }
 
+    // Validate a user-submitted answer against the question's template. Arbitrator
+    // answers (submitAnswerByArbitrator) bypass this: the arbitrator adjudicates.
+    function _validateAnswer(bytes32 questionId, bytes32 answer) internal view {
+        // INVALID (0xff..ff) is always acceptable.
+        if (answer == INVALID) {
+            return;
+        }
+        Question storage q = _questions[questionId];
+        Template storage t = templateRegistry[q.templateId];
+        // ANSWERED_TOO_SOON (0xff..fe) is a valid sentinel only when the template opts in.
+        if (answer == UNRESOLVED_ANSWER) {
+            if (!t.hasAnsweredTooSoon) revert AnswerNotAllowedForTemplate();
+            return;
+        }
+        AnswerType at = t.answerType;
+        if (at == AnswerType.Bool) {
+            if (uint256(answer) > 1) revert AnswerNotAllowedForTemplate();
+        } else if (at == AnswerType.SingleSelect) {
+            if (uint256(answer) >= q.outcomeCount) revert AnswerNotAllowedForTemplate();
+        } else if (at == AnswerType.MultipleSelect) {
+            uint256 n = q.outcomeCount;
+            // every set bit must index an outcome; reject any bit at or above n
+            if (n < 256 && (uint256(answer) >> n) != 0) revert AnswerNotAllowedForTemplate();
+        }
+        // Uint / Datetime / Hash accept any bytes32.
+    }
+
     /// @inheritdoc IRealityETHCore_ERC20
-    function submitAnswerERC20(
-        bytes32 questionId,
-        bytes32 answer,
-        uint256 maxPrevious,
-        uint256 tokens
-    ) external stateOpen(questionId) bondMustDoubleAndMatchMinimum(questionId, tokens) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
+    function submitAnswerERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, uint256 tokens)
+        external
+        stateOpen(questionId)
+        bondMustDoubleAndMatchMinimum(questionId, tokens)
+        previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
+    {
+        _validateAnswer(questionId, answer);
         _addAnswerToHistory(questionId, answer, msg.sender, tokens);
         _updateCurrentAnswer(questionId, answer);
         _deductTokensOrRevert(tokens);
@@ -324,90 +535,118 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         uint256 maxPrevious,
         address answerer,
         uint256 tokens
-    ) external stateOpen(questionId) bondMustDoubleAndMatchMinimum(questionId, tokens) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
+    )
+        external
+        stateOpen(questionId)
+        bondMustDoubleAndMatchMinimum(questionId, tokens)
+        previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
+    {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
+        _validateAnswer(questionId, answer);
         _addAnswerToHistory(questionId, answer, answerer, tokens);
         _updateCurrentAnswer(questionId, answer);
         _deductTokensOrRevert(tokens);
     }
 
     function _addAnswerToHistory(bytes32 questionId, bytes32 answer, address answerer, uint256 bond) internal {
-        bytes32 newHistoryHash = keccak256(abi.encodePacked(questions[questionId].historyHash, answer, bond, answerer, false));
+        bytes32 newHistoryHash =
+            keccak256(abi.encodePacked(_questions[questionId].historyHash, answer, bond, answerer, false));
 
         // Update the current bond level, if there's a bond (ie anything except arbitration)
         if (bond > 0) {
-            questions[questionId].bond = bond;
+            _questions[questionId].bond = bond;
         }
-        questions[questionId].historyHash = newHistoryHash;
+        _questions[questionId].historyHash = newHistoryHash;
 
         emit LogNewAnswer(answer, questionId, newHistoryHash, answerer, bond, block.timestamp, false);
     }
 
     function _updateCurrentAnswer(bytes32 questionId, bytes32 answer) internal {
-        questions[questionId].bestAnswer = answer;
+        _questions[questionId].bestAnswer = answer;
         // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
-        questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
+        _questions[questionId].finalizeTs = uint32(block.timestamp) + _questions[questionId].timeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout
     function _updateCurrentAnswerByArbitrator(bytes32 questionId, bytes32 answer) internal {
-        questions[questionId].bestAnswer = answer;
+        _questions[questionId].bestAnswer = answer;
         // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106
-        questions[questionId].finalizeTs = uint32(block.timestamp);
+        _questions[questionId].finalizeTs = uint32(block.timestamp);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function notifyOfArbitrationRequest(
-        bytes32 questionId,
-        address requester,
-        uint256 maxPrevious
-    ) external onlyArbitrator(questionId) stateOpen(questionId) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
-        if (questions[questionId].finalizeTs <= UNANSWERED) revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
-        questions[questionId].isPendingArbitration = true;
+    function notifyOfArbitrationRequest(bytes32 questionId, address requester, uint256 maxPrevious)
+        external
+        onlyArbitrator(questionId)
+        stateOpen(questionId)
+        previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
+    {
+        if (_questions[questionId].finalizeTs <= UNANSWERED) {
+            revert QuestionMustAlreadyHaveAnAnswerWhenArbitrationIsRequested();
+        }
+        _questions[questionId].isPendingArbitration = true;
         emit LogNotifyOfArbitrationRequest(questionId, requester);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function cancelArbitration(bytes32 questionId) external onlyArbitrator(questionId) statePendingArbitration(questionId) {
-        questions[questionId].isPendingArbitration = false;
+    function cancelArbitration(bytes32 questionId)
+        external
+        onlyArbitrator(questionId)
+        statePendingArbitration(questionId)
+    {
+        _questions[questionId].isPendingArbitration = false;
         // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
-        questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
+        _questions[questionId].finalizeTs = uint32(block.timestamp) + _questions[questionId].timeout;
         emit LogCancelArbitration(questionId);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) public onlyArbitrator(questionId) statePendingArbitration(questionId) {
+    function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer)
+        public
+        onlyArbitrator(questionId)
+        statePendingArbitration(questionId)
+    {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeProvided();
         emit LogFinalize(questionId, answer);
 
-        questions[questionId].isPendingArbitration = false;
+        _questions[questionId].isPendingArbitration = false;
         _addAnswerToHistory(questionId, answer, answerer, 0);
         _updateCurrentAnswerByArbitrator(questionId, answer);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function assignWinnerAndSubmitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address payeeIfWrong, bytes32 lastHistoryHash, bytes32 lastAnswer, address lastAnswerer) external {
-        _verifyHistoryInputOrRevert(questions[questionId].historyHash, lastHistoryHash, lastAnswer, questions[questionId].bond, lastAnswerer);
+    function assignWinnerAndSubmitAnswerByArbitrator(
+        bytes32 questionId,
+        bytes32 answer,
+        address payeeIfWrong,
+        bytes32 lastHistoryHash,
+        bytes32 lastAnswer,
+        address lastAnswerer
+    ) external {
+        _verifyHistoryInputOrRevert(
+            _questions[questionId].historyHash, lastHistoryHash, lastAnswer, _questions[questionId].bond, lastAnswerer
+        );
 
-        address payee = (questions[questionId].bestAnswer == answer) ? lastAnswerer : payeeIfWrong;
+        address payee = (_questions[questionId].bestAnswer == answer) ? lastAnswerer : payeeIfWrong;
         submitAnswerByArbitrator(questionId, answer, payee);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function isFinalized(bytes32 questionId) public view returns (bool) {
-        uint32 finalizeTs = questions[questionId].finalizeTs;
-        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
-        return (!questions[questionId].isPendingArbitration && (finalizeTs > UNANSWERED) && (finalizeTs <= uint32(block.timestamp)));
+        uint32 finalizeTs = _questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(unsafe-typecast) -- block.timestamp fits uint32 until 2106
+        uint32 nowTs = uint32(block.timestamp);
+        return !_questions[questionId].isPendingArbitration && finalizeTs > UNANSWERED && finalizeTs <= nowTs;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getFinalAnswer(bytes32 questionId) external view stateFinalized(questionId) returns (bytes32) {
-        return questions[questionId].bestAnswer;
+        return _questions[questionId].bestAnswer;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function resultFor(bytes32 questionId) public view stateFinalized(questionId) returns (bytes32) {
-        return questions[questionId].bestAnswer;
+        return _questions[questionId].bestAnswer;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -432,7 +671,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function reopenQuestionERC20(
         uint256 templateId,
-        string memory question,
+        string[] memory params,
+        string[] memory outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -447,62 +687,78 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
+        // Pack the scalar inputs up front and reference only `a.*` afterwards, so the individual
+        // parameter stack slots can be freed (keeps this 10-parameter function under the stack limit).
+        NewQuestionArgs memory a = NewQuestionArgs(templateId, arbitrator, timeout, openingTs, nonce, minBond, tokens);
 
         if (!isSettledTooSoon(reopensQuestionId)) revert YouCanOnlyReopenQuestionsThatResolvedAsSettledTooSoon();
 
-        bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
+        bytes32 contentHash = keccak256(abi.encode(a.templateId, a.openingTs, params, outcomes));
 
-        // A reopening must exactly match the original question, except for the nonce and the creator
-        if (contentHash != questions[reopensQuestionId].contentHash) revert ContentHashMismatch();
-        if (arbitrator != questions[reopensQuestionId].arbitrator) revert ArbitratorMismatch();
-        if (timeout != questions[reopensQuestionId].timeout) revert TimeoutMismatch();
-        if (openingTs != questions[reopensQuestionId].openingTs) revert OpeningTsMismatch();
-        if (minBond != questions[reopensQuestionId].minBond) revert MinBondMismatch();
+        // A reopening must exactly match the original question, except for the nonce and the creator.
+        // The raw comparisons are correct because the contentHash match pins the same templateId, hence the
+        // same template defaults, so stored-vs-supplied raw values agree iff the effective values agree.
+        if (contentHash != _questions[reopensQuestionId].contentHash) revert ContentHashMismatch();
+        if (a.arbitrator != _questions[reopensQuestionId].arbitrator) revert ArbitratorMismatch();
+        if (a.timeout != _questions[reopensQuestionId].timeout) revert TimeoutMismatch();
+        if (a.openingTs != _questions[reopensQuestionId].openingTs) revert OpeningTsMismatch();
+        if (a.minBond != _questions[reopensQuestionId].minBond) revert MinBondMismatch();
 
         // If the the question was itself reopening some previous question, you'll have to re-reopen the previous question first.
         // This ensures the bounty can be passed on to the next attempt of the original question.
         if (reopenerQuestions[reopensQuestionId]) revert QuestionIsAlreadyReopeningAPreviousQuestion();
 
-        // A question can only be reopened once, unless the reopening was also settled too soon in which case it can be replaced
-        bytes32 existingReopenQuestionId = reopenedQuestions[reopensQuestionId];
-
-        // Normally when we reopen a question we will take its bounty and pass it on to the reopened version.
-        bytes32 takeBountyFromQuestionId = reopensQuestionId;
-        // If the question has already been reopened but was again settled too soon, we can transfer its bounty to the next attempt.
-        if (existingReopenQuestionId != bytes32(0)) {
-            if (!isSettledTooSoon(existingReopenQuestionId)) revert QuestionHasAlreadyBeenReopened();
-            // We'll overwrite the reopening with our new question and move the bounty.
-            // Once that's done we'll detach the failed reopener and you'll be able to reopen that too if you really want, but without the bounty.
-            reopenerQuestions[existingReopenQuestionId] = false;
-            takeBountyFromQuestionId = existingReopenQuestionId;
-        }
-
-        bytes32 questionId = _askQuestionWithMinBond(templateId, question, arbitrator, timeout, openingTs, nonce, minBond, tokens);
-
-        reopenedQuestions[reopensQuestionId] = questionId;
-        reopenerQuestions[questionId] = true;
-
-        questions[questionId].bounty = questions[takeBountyFromQuestionId].bounty + questions[questionId].bounty;
-        questions[takeBountyFromQuestionId].bounty = 0;
-
-        emit LogReopenQuestion(questionId, reopensQuestionId);
-
-        _deductTokensOrRevert(tokens);
-
+        bytes32 questionId = _createQuestion(a, params, outcomes);
+        _recordReopening(questionId, reopensQuestionId);
+        _deductTokensOrRevert(a.tokens);
         return questionId;
     }
 
-    /// @inheritdoc IRealityETHCore_ERC20
-    function getFinalAnswerIfMatches(bytes32 questionId, bytes32 contentHash, address arbitrator, uint32 minTimeout, uint256 minBond) external view stateFinalized(questionId) returns (bytes32) {
-        if (contentHash != questions[questionId].contentHash) revert ContentHashMustMatch();
-        if (arbitrator != questions[questionId].arbitrator) revert ArbitratorMustMatch();
-        if (minTimeout > questions[questionId].timeout) revert TimeoutMustBeLongEnough();
-        if (minBond > questions[questionId].bond) revert BondMustBeHighEnough();
-        return questions[questionId].bestAnswer;
+    // Link a reopening to the question it replaces and move the bounty across (handling the case where the
+    // prior reopening was itself settled too soon). Split out of reopenQuestionERC20 to keep that
+    // (10-parameter) function under the legacy stack limit.
+    function _recordReopening(bytes32 questionId, bytes32 reopensQuestionId) internal {
+        // Normally the bounty comes from the question being reopened.
+        bytes32 takeBountyFromQuestionId = reopensQuestionId;
+        // A question can only be reopened once, unless that reopening was again settled too soon: in that
+        // case overwrite it and take its bounty, detaching the failed reopener so it can be reopened again
+        // (without bounty).
+        bytes32 existingReopenQuestionId = reopenedQuestions[reopensQuestionId];
+        if (existingReopenQuestionId != bytes32(0)) {
+            if (!isSettledTooSoon(existingReopenQuestionId)) revert QuestionHasAlreadyBeenReopened();
+            reopenerQuestions[existingReopenQuestionId] = false;
+            takeBountyFromQuestionId = existingReopenQuestionId;
+        }
+        reopenedQuestions[reopensQuestionId] = questionId;
+        reopenerQuestions[questionId] = true;
+        _questions[questionId].bounty = _questions[takeBountyFromQuestionId].bounty + _questions[questionId].bounty;
+        _questions[takeBountyFromQuestionId].bounty = 0;
+        emit LogReopenQuestion(questionId, reopensQuestionId);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function claimWinnings(bytes32 questionId, bytes32[] memory historyHashes, address[] memory addrs, uint256[] memory bonds, bytes32[] memory answers) public stateFinalized(questionId) {
+    function getFinalAnswerIfMatches(
+        bytes32 questionId,
+        bytes32 contentHash,
+        address arbitrator,
+        uint32 minTimeout,
+        uint256 minBond
+    ) external view stateFinalized(questionId) returns (bytes32) {
+        if (contentHash != _questions[questionId].contentHash) revert ContentHashMustMatch();
+        if (arbitrator != _arbitratorOf(questionId)) revert ArbitratorMustMatch();
+        if (minTimeout > _questions[questionId].timeout) revert TimeoutMustBeLongEnough();
+        if (minBond > _questions[questionId].bond) revert BondMustBeHighEnough();
+        return _questions[questionId].bestAnswer;
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
+    function claimWinnings(
+        bytes32 questionId,
+        bytes32[] memory historyHashes,
+        address[] memory addrs,
+        uint256[] memory bonds,
+        bytes32[] memory answers
+    ) public stateFinalized(questionId) {
         if (historyHashes.length == 0) revert AtLeastOneHistoryHashEntryMustBeProvided();
 
         // These are only set if we split our claim over multiple transactions.
@@ -512,23 +768,24 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
         // Starts as the hash of the final answer submitted. It'll be cleared when we're done.
         // If we're splitting the claim over multiple transactions, it'll be the hash where we left off last time
-        bytes32 lastHistoryHash = questions[questionId].historyHash;
+        bytes32 lastHistoryHash = _questions[questionId].historyHash;
 
-        bytes32 bestAnswer = questions[questionId].bestAnswer;
+        bytes32 bestAnswer = _questions[questionId].bestAnswer;
 
         uint256 i;
         for (i = 0; i < historyHashes.length; i++) {
             _verifyHistoryInputOrRevert(lastHistoryHash, historyHashes[i], answers[i], bonds[i], addrs[i]);
 
             queuedFunds = queuedFunds + lastBond;
-            (queuedFunds, payee) = _processHistoryItem(questionId, bestAnswer, queuedFunds, payee, addrs[i], bonds[i], answers[i]);
+            (queuedFunds, payee) =
+                _processHistoryItem(questionId, bestAnswer, queuedFunds, payee, addrs[i], bonds[i], answers[i]);
 
             // Line the bond up for next time, when it will be added to somebody's queuedFunds
             lastBond = bonds[i];
 
             // Burn (just leave in contract balance) a fraction of all bonds except the final one.
             // This creates a cost to increasing your own bond, which could be used to delay resolution maliciously
-            if (lastBond != questions[questionId].bond) {
+            if (lastBond != _questions[questionId].bond) {
                 lastBond = lastBond - lastBond / BOND_CLAIM_FEE_PROPORTION;
             }
 
@@ -551,7 +808,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         }
 
         // forge-lint: disable-next-line(missing-events-access-control) -- question history hash rewound during claim; derivable from LogNewAnswer + LogClaim
-        questions[questionId].historyHash = lastHistoryHash;
+        _questions[questionId].historyHash = lastHistoryHash;
     }
 
     function _payPayee(bytes32 questionId, address payee, uint256 value) internal {
@@ -560,22 +817,36 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         emit LogClaim(questionId, payee, value);
     }
 
-    function _verifyHistoryInputOrRevert(bytes32 lastHistoryHash, bytes32 historyHash, bytes32 answer, uint256 bond, address addr) internal pure {
+    function _verifyHistoryInputOrRevert(
+        bytes32 lastHistoryHash,
+        bytes32 historyHash,
+        bytes32 answer,
+        uint256 bond,
+        address addr
+    ) internal pure {
         if (lastHistoryHash != keccak256(abi.encodePacked(historyHash, answer, bond, addr, false))) {
             revert HistoryInputProvidedDidNotMatchTheExpectedHash();
         }
     }
 
-    function _processHistoryItem(bytes32 questionId, bytes32 bestAnswer, uint256 queuedFunds, address payee, address addr, uint256 bond, bytes32 answer) internal returns (uint256, address) {
+    function _processHistoryItem(
+        bytes32 questionId,
+        bytes32 bestAnswer,
+        uint256 queuedFunds,
+        address payee,
+        address addr,
+        uint256 bond,
+        bytes32 answer
+    ) internal returns (uint256, address) {
         if (answer == bestAnswer) {
             if (payee == NULL_ADDRESS) {
                 // The entry is for the first payee we come to, ie the winner.
                 // They get the question bounty.
                 payee = addr;
 
-                if (bestAnswer != UNRESOLVED_ANSWER && questions[questionId].bounty > 0) {
-                    _payPayee(questionId, payee, questions[questionId].bounty);
-                    questions[questionId].bounty = 0;
+                if (bestAnswer != UNRESOLVED_ANSWER && _questions[questionId].bounty > 0) {
+                    _payPayee(questionId, payee, _questions[questionId].bounty);
+                    _questions[questionId].bounty = 0;
                 }
             } else if (addr != payee) {
                 // Answerer has changed, ie we found someone lower down who needs to be paid
@@ -610,6 +881,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     )
         public
         stateAny // The finalization checks are done in the claimWinnings function
+
     {
         uint256 i = 0;
         for (uint256 qi = 0; qi < questionIds.length; qi++) {
@@ -633,56 +905,56 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getContentHash(bytes32 questionId) public view returns (bytes32) {
-        return questions[questionId].contentHash;
+        return _questions[questionId].contentHash;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getArbitrator(bytes32 questionId) public view returns (address) {
-        return questions[questionId].arbitrator;
+        return _arbitratorOf(questionId);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getOpeningTS(bytes32 questionId) public view returns (uint32) {
-        return questions[questionId].openingTs;
+        return _questions[questionId].openingTs;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getTimeout(bytes32 questionId) public view returns (uint32) {
-        return questions[questionId].timeout;
+        return _questions[questionId].timeout;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getFinalizeTS(bytes32 questionId) public view returns (uint32) {
-        return questions[questionId].finalizeTs;
+        return _questions[questionId].finalizeTs;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function isPendingArbitration(bytes32 questionId) public view returns (bool) {
-        return questions[questionId].isPendingArbitration;
+        return _questions[questionId].isPendingArbitration;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getBounty(bytes32 questionId) public view returns (uint256) {
-        return questions[questionId].bounty;
+        return _questions[questionId].bounty;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getBestAnswer(bytes32 questionId) public view returns (bytes32) {
-        return questions[questionId].bestAnswer;
+        return _questions[questionId].bestAnswer;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getHistoryHash(bytes32 questionId) public view returns (bytes32) {
-        return questions[questionId].historyHash;
+        return _questions[questionId].historyHash;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getBond(bytes32 questionId) public view returns (uint256) {
-        return questions[questionId].bond;
+        return _questions[questionId].bond;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
     function getMinBond(bytes32 questionId) public view returns (uint256) {
-        return questions[questionId].minBond;
+        return _minBondOf(questionId);
     }
 }
