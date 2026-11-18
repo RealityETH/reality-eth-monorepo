@@ -203,5 +203,26 @@ contract V4TemplateERC20Test is Test {
                 ""
             )
         );
+        // decimals above the max (63) on a Uint type
+        vm.expectRevert(IRealityETHErrors.TemplateDecimalsInvalid.selector);
+        rc.createTemplate(
+            Template(
+                AnswerType.Uint,
+                64,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                _one(""),
+                _none(),
+                "",
+                "",
+                ""
+            )
+        );
     }
 }

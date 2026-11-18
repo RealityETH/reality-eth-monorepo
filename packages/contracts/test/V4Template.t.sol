@@ -140,6 +140,13 @@ contract V4TemplateTest is Test {
                 AnswerType.Bool, 5, false, false, false, false, false, false, address(0), 0, _one(""), none, "", "", ""
             )
         );
+        // decimals above the max (63) on a Uint type
+        vm.expectRevert(IRealityETHErrors.TemplateDecimalsInvalid.selector);
+        rc.createTemplate(
+            Template(
+                AnswerType.Uint, 64, false, false, false, false, false, false, address(0), 0, _one(""), none, "", "", ""
+            )
+        );
         // outcomes on a non-select template
         vm.expectRevert(IRealityETHErrors.TemplateOutcomesInvalid.selector);
         rc.createTemplate(
@@ -189,6 +196,30 @@ contract V4TemplateTest is Test {
                 AnswerType.Bool, 0, false, false, false, false, false, false, address(0), 0, none, none, "", "", ""
             )
         );
+    }
+
+    // decimals == MAX_DECIMALS (63) is the largest accepted value for a Uint template
+    function test_uint_decimals_boundary_accepted() public {
+        uint256 id = rc.createTemplate(
+            Template(
+                AnswerType.Uint,
+                63,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                _one(""),
+                _none(),
+                "",
+                "",
+                ""
+            )
+        );
+        assertEq(uint256(rc.getTemplate(id).decimals), 63);
     }
 
     // a select template with no preset outcomes is now valid (asker supplies per question)

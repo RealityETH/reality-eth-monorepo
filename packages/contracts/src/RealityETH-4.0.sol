@@ -26,6 +26,11 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
     bytes32 private constant INVALID = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
+    // Upper bound for a Uint template's decimals. 63 is a round 6-bit cap, far above any realistic
+    // precision (the default is 18) and well under the point a uint256 answer stops being able to
+    // represent whole units (10**78 > 2**256).
+    uint8 private constant MAX_DECIMALS = 63;
+
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
     // internal + explicit struct getter below: the flat auto-getter would return
@@ -210,7 +215,11 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         } else if (template.outcomes.length != 0) {
             revert TemplateOutcomesInvalid();
         }
-        if (template.answerType != AnswerType.Uint && template.decimals != 0) revert TemplateDecimalsInvalid();
+        if (template.answerType == AnswerType.Uint) {
+            if (template.decimals > MAX_DECIMALS) revert TemplateDecimalsInvalid();
+        } else if (template.decimals != 0) {
+            revert TemplateDecimalsInvalid();
+        }
         // tri-state: a field flagged unused must not carry a preset string
         if (!template.hasDescription && bytes(template.description).length != 0) revert TemplateFieldInvalid();
         if (!template.hasCategory && bytes(template.category).length != 0) revert TemplateFieldInvalid();
