@@ -89,6 +89,8 @@ interface IRealityETHErrors {
     error OutcomesInvalid();
     /// @notice An ask-time override (arbitrator or minBond) was supplied for a field the template already fixes
     error OverrideNotAllowed();
+    /// @notice The number of params supplied does not match the template's interpolation slots
+    error ParamsLengthMismatch();
     /// @notice Only Uint templates may set decimals
     error TemplateDecimalsInvalid();
     /// @notice A field flagged unused must not carry a preset value

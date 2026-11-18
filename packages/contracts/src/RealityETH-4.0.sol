@@ -246,6 +246,16 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return outcomes.length;
     }
 
+    // The number of interpolation slots in a template's title: each empty-string entry in titleParts
+    // is a slot the asker fills with one param. Templates are small, so the scan is cheap.
+    function _titleSlotCount(uint256 templateId) internal view returns (uint256 slots) {
+        string[] storage parts = templateRegistry[templateId].titleParts;
+        uint256 n = parts.length;
+        for (uint256 i = 0; i < n; i++) {
+            if (bytes(parts[i]).length == 0) slots++;
+        }
+    }
+
     // Effective arbitrator for a new question: the template's if it fixes one, else the ask-time
     // override. Reverts if the template fixes it and the asker also supplied one.
     function _effectiveArbitrator(Template storage t, address supplied) internal view returns (address) {
@@ -339,6 +349,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         )
     {
         if (templateId >= nextTemplateID) revert TemplateMustExist();
+        // The asker must supply exactly one param per interpolation slot in the template title.
+        if (params.length != _titleSlotCount(templateId)) revert ParamsLengthMismatch();
 
         // Resolve template defaults vs ask-time overrides (revert if the template fixes a field the asker also sent).
         arbitrator = _effectiveArbitrator(templateRegistry[templateId], arbitrator);
