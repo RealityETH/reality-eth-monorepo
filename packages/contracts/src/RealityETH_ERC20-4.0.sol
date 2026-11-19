@@ -5,7 +5,7 @@ pragma solidity 0.8.20;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {IRealityETHCore_ERC20} from "./interfaces/IRealityETHCore_ERC20.sol";
 import {BalanceHolder_ERC20} from "./BalanceHolder_ERC20.sol";
-import {AnswerType, Template} from "./RealityETHTypes.sol";
+import {AnswerType, Template, BondLevel} from "./RealityETHTypes.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
@@ -34,6 +34,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
+    // Per-template bond-level schedule (empty for most templates); set atomically in
+    // createTemplateWithBondLevels. See RealityETH-4.0.sol for the shared design notes.
+    mapping(uint256 templateId => BondLevel[] bondLevels) internal templateBondLevels;
     // internal + explicit struct getter below: the flat auto-getter would return
     // too many stack slots for the legacy codegen as the struct grows.
     mapping(bytes32 questionId => Question question) internal _questions;
@@ -89,17 +92,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     modifier stateFinalized(bytes32 questionId) {
         if (!isFinalized(questionId)) revert QuestionMustBeFinalized();
-        _;
-    }
-
-    modifier bondMustDoubleAndMatchMinimum(bytes32 questionId, uint256 tokens) {
-        if (tokens == 0) revert BondMustBePositive();
-        uint256 currentBond = _questions[questionId].bond;
-        if (currentBond == 0) {
-            if (tokens < _minBondOf(questionId)) revert BondMustExceedTheMinimum();
-        } else {
-            if (tokens < (currentBond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
-        }
         _;
     }
 
@@ -203,6 +195,42 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     function getTemplate(uint256 templateId) external view returns (Template memory) {
         if (templateId >= nextTemplateID) revert TemplateMustExist();
         return templateRegistry[templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
+    function createTemplateWithBondLevels(Template memory template, BondLevel[] calldata levels)
+        public
+        stateAny
+        returns (uint256 id)
+    {
+        id = createTemplate(template);
+        _validateBondLevels(levels);
+        // Copy element-by-element: the legacy codegen can't assign a calldata struct array to storage.
+        BondLevel[] storage stored = templateBondLevels[id];
+        for (uint256 i = 0; i < levels.length; i++) {
+            stored.push(levels[i]);
+        }
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
+    function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory) {
+        return templateBondLevels[templateId];
+    }
+
+    // Validate bond levels: <=255 points; thresholds strictly increasing and above the implicit 100%
+    // point; timeouts non-decreasing and at least 100%; fee at most 100%.
+    function _validateBondLevels(BondLevel[] calldata levels) internal pure {
+        uint256 n = levels.length;
+        if (n > 255) revert BondLevelsInvalid();
+        uint32 prevThreshold = 100; // implicit first level is [100, 100, 0] at minBond
+        uint16 prevTimeout = 100;
+        for (uint256 i = 0; i < n; i++) {
+            if (levels[i].bondThresholdPct <= prevThreshold) revert BondLevelsInvalid();
+            if (levels[i].timeoutPct < prevTimeout) revert BondLevelsInvalid();
+            if (levels[i].feePct > 100) revert BondLevelsInvalid();
+            prevThreshold = levels[i].bondThresholdPct;
+            prevTimeout = levels[i].timeoutPct;
+        }
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -317,6 +345,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (params.length != _titleSlotCount(a.templateId)) revert ParamsLengthMismatch();
         a.arbitrator = _effectiveArbitrator(templateRegistry[a.templateId], a.arbitrator);
         a.minBond = _effectiveMinBond(templateRegistry[a.templateId], a.minBond);
+        // Bond levels measure thresholds as a percentage of minBond, so they need a positive one.
+        if (templateBondLevels[a.templateId].length != 0 && a.minBond == 0) revert MinBondRequiredForBondLevels();
 
         // abi.encode (not encodePacked): params/outcomes are dynamic string[], which packed encoding cannot represent unambiguously.
         bytes32 contentHash = keccak256(abi.encode(a.templateId, a.openingTs, params, outcomes));
@@ -540,13 +570,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     function submitAnswerERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, uint256 tokens)
         external
         stateOpen(questionId)
-        bondMustDoubleAndMatchMinimum(questionId, tokens)
         previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
     {
-        _validateAnswer(questionId, answer);
-        _addAnswerToHistory(questionId, answer, msg.sender, tokens);
-        _updateCurrentAnswer(questionId, answer);
-        _deductTokensOrRevert(tokens);
+        _submitAnswerERC20(questionId, answer, msg.sender, tokens);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -556,17 +582,75 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         uint256 maxPrevious,
         address answerer,
         uint256 tokens
-    )
-        external
-        stateOpen(questionId)
-        bondMustDoubleAndMatchMinimum(questionId, tokens)
-        previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
-    {
+    ) external stateOpen(questionId) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
         if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
+        _submitAnswerERC20(questionId, answer, answerer, tokens);
+    }
+
+    // Shared answer path: `tokens` is the total value sent; split it into a bond and an extra arbitrator
+    // fee per the template's bond levels, enforce the bond rules on the derived bond, record the answer
+    // with the level-scaled timeout, pull the tokens, and credit any fee to the arbitrator.
+    function _submitAnswerERC20(bytes32 questionId, bytes32 answer, address answerer, uint256 tokens) internal {
+        (uint256 bond, uint256 fee, uint256 timeoutPct) = _applyBondLevels(questionId, tokens);
+        _requireBondValid(questionId, bond);
         _validateAnswer(questionId, answer);
-        _addAnswerToHistory(questionId, answer, answerer, tokens);
-        _updateCurrentAnswer(questionId, answer);
+        _addAnswerToHistory(questionId, answer, answerer, bond);
+        _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
+        // Credit the fee (an effect) before pulling tokens (the external call), per CEI.
+        if (fee > 0) {
+            // fee credited to the arbitrator (arbitrator 0x0 burns it); LogBondLevelFeePaid emitted below
+            address arbitrator = _arbitratorOf(questionId);
+            balanceOf[arbitrator] = balanceOf[arbitrator] + fee;
+            emit LogBondLevelFeePaid(questionId, arbitrator, fee);
+        }
         _deductTokensOrRevert(tokens);
+    }
+
+    // Split the value sent into a bond and an extra arbitrator fee per the template's bond levels, and
+    // report the timeout multiplier for the applicable level. No levels => (value, 0, 100%). The tier is
+    // keyed on the value sent (as a percentage of minBond); the fee is taken on top, so
+    // bond = value*100/(100+feePct) and fee = value - bond.
+    function _applyBondLevels(bytes32 questionId, uint256 value)
+        internal
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct)
+    {
+        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
+        if (levels.length == 0) {
+            return (value, 0, 100);
+        }
+        uint256 pctOfMin = value * 100 / _minBondOf(questionId); // minBond > 0 guaranteed for bond levels at ask time
+        uint256 feePct = 0;
+        timeoutPct = 100; // implicit first level [100, 100, 0]
+        for (uint256 i = 0; i < levels.length; i++) {
+            if (pctOfMin >= levels[i].bondThresholdPct) {
+                timeoutPct = levels[i].timeoutPct;
+                feePct = levels[i].feePct;
+            } else {
+                break; // thresholds are strictly increasing, so no later level can match
+            }
+        }
+        bond = value * 100 / (100 + feePct);
+        fee = value - bond;
+    }
+
+    // The base timeout scaled by the bond level's percentage, clamped to 365 days.
+    function _effectiveTimeout(bytes32 questionId, uint256 timeoutPct) internal view returns (uint32) {
+        uint256 eff = uint256(_questions[questionId].timeout) * timeoutPct / 100;
+        if (eff > 365 days) eff = 365 days;
+        // forge-lint: disable-next-line(unsafe-typecast) -- clamped to 365 days, well within uint32
+        return uint32(eff);
+    }
+
+    // Bond rules on the (bond-level-derived) bond. Replaces the bondMustDoubleAndMatchMinimum modifier.
+    function _requireBondValid(bytes32 questionId, uint256 bond) internal view {
+        if (bond == 0) revert BondMustBePositive();
+        uint256 currentBond = _questions[questionId].bond;
+        if (currentBond == 0) {
+            if (bond < _minBondOf(questionId)) revert BondMustExceedTheMinimum();
+        } else {
+            if (bond < (currentBond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
+        }
     }
 
     function _addAnswerToHistory(bytes32 questionId, bytes32 answer, address answerer, uint256 bond) internal {
@@ -582,10 +666,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         emit LogNewAnswer(answer, questionId, newHistoryHash, answerer, bond, block.timestamp, false);
     }
 
-    function _updateCurrentAnswer(bytes32 questionId, bytes32 answer) internal {
+    function _updateCurrentAnswer(bytes32 questionId, bytes32 answer, uint32 effectiveTimeout) internal {
         _questions[questionId].bestAnswer = answer;
-        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
-        _questions[questionId].finalizeTs = uint32(block.timestamp) + _questions[questionId].timeout;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; effectiveTimeout clamped to 1 year
+        _questions[questionId].finalizeTs = uint32(block.timestamp) + effectiveTimeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout

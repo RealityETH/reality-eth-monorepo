@@ -5,7 +5,7 @@ pragma solidity 0.8.20;
 import {IBalanceHolder_ERC20} from "./IBalanceHolder_ERC20.sol";
 import {IERC20} from "./IERC20.sol";
 import {IRealityETHErrors_ERC20} from "./IRealityETHErrors_ERC20.sol";
-import {AnswerType, Template} from "../RealityETHTypes.sol";
+import {AnswerType, Template, BondLevel} from "../RealityETHTypes.sol";
 
 /* solhint-disable func-name-mixedcase */
 
@@ -39,6 +39,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         uint256 created
     );
     event LogNewTemplate(uint256 indexed templateId, address indexed user);
+    event LogBondLevelFeePaid(bytes32 indexed questionId, address indexed arbitrator, uint256 fee);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
 
@@ -199,6 +200,19 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     /// @param template The template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
+    /// @notice Create a template together with a per-template bond-level schedule.
+    /// @dev As an answer's bond rises past each level (threshold as a % of minBond), the level's timeout
+    /// multiplier and extra arbitrator fee apply. Empty == plain createTemplate. Requires minBond > 0.
+    /// @param template The structured template content
+    /// @param levels The ordered bond levels (see {BondLevel})
+    /// @return The ID of the newly-created template
+    function createTemplateWithBondLevels(Template calldata template, BondLevel[] calldata levels)
+        external
+        returns (uint256);
+    /// @notice Read back a template's bond levels (empty if none).
+    /// @param templateId The template id
+    /// @return The bond levels
+    function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template

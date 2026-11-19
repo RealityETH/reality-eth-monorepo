@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 
 import {IBalanceHolder} from "./IBalanceHolder.sol";
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
-import {AnswerType, Template} from "../RealityETHTypes.sol";
+import {AnswerType, Template, BondLevel} from "../RealityETHTypes.sol";
 
 /* solhint-disable func-name-mixedcase */
 
@@ -37,6 +37,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 created
     );
     event LogNewTemplate(uint256 indexed templateId, address indexed user);
+    event LogBondLevelFeePaid(bytes32 indexed questionId, address indexed arbitrator, uint256 fee);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
 
@@ -135,10 +136,24 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
+    /// @notice Create a template together with a per-template bond levels.
+    /// @dev As an answer's bond rises past each bond level (threshold as a % of minBond), the point's
+    /// timeout multiplier and extra arbitrator fee apply. Empty levels == plain createTemplate behaviour.
+    /// Bond levels require the question's effective minBond to be positive.
+    /// @param template The structured template content
+    /// @param levels The ordered bond levels (see {BondLevel})
+    /// @return The ID of the newly-created template
+    function createTemplateWithBondLevels(Template calldata template, BondLevel[] calldata levels)
+        external
+        returns (uint256);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template
     function getTemplate(uint256 templateId) external view returns (Template memory);
+    /// @notice Read back a template's bond levels (empty if none).
+    /// @param templateId The template id
+    /// @return The bond levels
+    function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory);
     /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;

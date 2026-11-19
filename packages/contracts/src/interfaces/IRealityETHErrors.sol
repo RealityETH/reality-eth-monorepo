@@ -91,6 +91,10 @@ interface IRealityETHErrors {
     error OverrideNotAllowed();
     /// @notice The number of params supplied does not match the template's interpolation slots
     error ParamsLengthMismatch();
+    /// @notice Bond levels are malformed (too long, thresholds not strictly increasing above 100%, timeouts decreasing, or fee > 100)
+    error BondLevelsInvalid();
+    /// @notice A template with a bond levels requires a positive minBond (thresholds are a percentage of it)
+    error MinBondRequiredForBondLevels();
     /// @notice Only Uint templates may set decimals
     error TemplateDecimalsInvalid();
     /// @notice A field flagged unused must not carry a preset value
