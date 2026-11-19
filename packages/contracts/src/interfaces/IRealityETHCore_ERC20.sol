@@ -209,10 +209,15 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     function createTemplateWithBondLevels(Template calldata template, BondLevel[] calldata levels)
         external
         returns (uint256);
-    /// @notice Read back a template's bond levels (empty if none).
+    /// @notice Read back a template's bond levels as stored (empty if none; excludes the implicit base).
     /// @param templateId The template id
     /// @return The bond levels
     function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory);
+    /// @notice Read a question's full effective bond-level schedule: the implicit base level
+    /// [100, 100, 0] first, then the levels inherited from its template.
+    /// @param questionId The question id
+    /// @return The effective bond levels
+    function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template

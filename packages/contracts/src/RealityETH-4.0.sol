@@ -212,6 +212,16 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return templateBondLevels[templateId];
     }
 
+    /// @inheritdoc IRealityETHCore
+    function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory out) {
+        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
+        out = new BondLevel[](levels.length + 1);
+        out[0] = BondLevel(100, 100, 0); // the implicit base level at minBond
+        for (uint256 i = 0; i < levels.length; i++) {
+            out[i + 1] = levels[i];
+        }
+    }
+
     // Validate bond levels: <=255 points; thresholds strictly increasing and above the
     // implicit 100% point; timeouts non-decreasing and at least 100%; fee at most 100%.
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {

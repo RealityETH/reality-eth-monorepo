@@ -150,10 +150,15 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param templateId The template id
     /// @return The stored template
     function getTemplate(uint256 templateId) external view returns (Template memory);
-    /// @notice Read back a template's bond levels (empty if none).
+    /// @notice Read back a template's bond levels as stored (empty if none; excludes the implicit base).
     /// @param templateId The template id
     /// @return The bond levels
     function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory);
+    /// @notice Read a question's full effective bond-level schedule: the implicit base level
+    /// [100, 100, 0] first, then the levels inherited from its template.
+    /// @param questionId The question id
+    /// @return The effective bond levels
+    function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory);
     /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;

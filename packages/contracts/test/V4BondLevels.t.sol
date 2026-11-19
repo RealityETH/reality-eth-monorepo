@@ -169,4 +169,19 @@ contract V4BondLevelsTest is Test {
         rc.submitAnswer{value: 2 * MIN_BOND}(qid, bytes32(uint256(1)), 0); // 200% -> the big-multiplier tier
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + 365 days, "clamped to one year");
     }
+
+    // getBondLevels returns the implicit base level first, then the template's levels.
+    function test_get_bond_levels_includes_implicit_base() public {
+        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
+        BondLevel[] memory bl = rc.getBondLevels(qid);
+        assertEq(bl.length, 3, "implicit base + 2 template levels");
+        assertEq(uint256(bl[0].bondThresholdPct), 100, "base threshold");
+        assertEq(uint256(bl[0].timeoutPct), 100, "base timeout");
+        assertEq(uint256(bl[0].feePct), 0, "base fee");
+        assertEq(uint256(bl[1].bondThresholdPct), 200, "level 1");
+        assertEq(uint256(bl[2].bondThresholdPct), 400, "level 2");
+        // the raw template view excludes the implicit base
+        assertEq(rc.getTemplateBondLevels(id).length, 2, "raw levels exclude the implicit base");
+    }
 }
