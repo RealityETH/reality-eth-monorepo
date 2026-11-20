@@ -122,7 +122,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             Template(
                 AnswerType.Bool,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -141,7 +141,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             Template(
                 AnswerType.Uint,
                 18,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -160,7 +160,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             Template(
                 AnswerType.SingleSelect,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -179,7 +179,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             Template(
                 AnswerType.MultipleSelect,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -198,7 +198,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             Template(
                 AnswerType.Datetime,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,

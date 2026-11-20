@@ -54,6 +54,7 @@ contract V4TemplateTest is Test {
         assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.SingleSelect));
         assertEq(uint256(rc.getTemplate(3).answerType), uint256(AnswerType.MultipleSelect));
         assertEq(uint256(rc.getTemplate(4).answerType), uint256(AnswerType.Datetime));
+        assertTrue(rc.getTemplate(0).hasAnsweredTooSoon, "defaults opt into the too-soon sentinel");
     }
 
     function test_getTemplate_out_of_range_reverts() public {
@@ -116,12 +117,20 @@ contract V4TemplateTest is Test {
         rc.submitAnswer{value: 2}(qid, bytes32(uint256(2)), 0); // out of {0,1}
     }
 
-    function test_invalid_allowed_too_soon_gated() public {
+    function test_invalid_and_too_soon_allowed_on_default() public {
         bytes32 qid = rc.askQuestion(0, _one("Will it rain?"), _none(), arb, 30, 0, 0);
         rc.submitAnswer{value: 1}(qid, INVALID, 0); // always acceptable
-        // bool default has hasAnsweredTooSoon = false, so the sentinel is banned
-        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        // bool default has hasAnsweredTooSoon = true, so the too-soon sentinel is accepted
         rc.submitAnswer{value: 2}(qid, TOO_SOON, 0);
+        assertEq(rc.questions(qid).bond, 2, "too-soon sentinel recorded as the answer");
+    }
+
+    function test_too_soon_banned_when_template_opts_out() public {
+        // a custom template with hasAnsweredTooSoon = false still bans the sentinel
+        uint256 id = rc.createTemplate(_selectTemplate(AnswerType.Bool, _none()));
+        bytes32 qid = rc.askQuestion(id, _one("Will it rain?"), _none(), arb, 30, 0, 0);
+        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        rc.submitAnswer{value: 1}(qid, TOO_SOON, 0);
     }
 
     // outcomes supplied at ask time
