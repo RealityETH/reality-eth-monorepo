@@ -15,7 +15,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     event LogClaim(bytes32 indexed questionId, address indexed user, uint256 amount);
     event LogFinalize(bytes32 indexed questionId, bytes32 indexed answer);
     event LogFundAnswerBounty(bytes32 indexed questionId, uint256 bountyAdded, uint256 bounty, address indexed user);
-    event LogMinimumBond(bytes32 indexed questionId, uint256 minBond);
     event LogNewAnswer(
         bytes32 answer,
         bytes32 indexed questionId,
@@ -28,12 +27,12 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     event LogNewQuestion(
         bytes32 indexed questionId,
         address indexed user,
-        uint256 templateId,
+        uint256 indexed templateId,
         string[] params,
         string[] outcomes,
-        bytes32 indexed contentHash,
         address arbitrator,
         uint32 timeout,
+        uint256 minBond,
         uint32 openingTs,
         uint256 nonce,
         uint256 created

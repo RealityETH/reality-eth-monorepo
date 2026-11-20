@@ -451,7 +451,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             }
             if (!t.minBondFromTemplate && minBond != 0) {
                 _questions[questionId].minBond = minBond;
-                emit LogMinimumBond(questionId, minBond);
             }
             // Reverts unless the template/outcomes combination is valid; 0 for non-select types.
             uint256 outcomeCount = _resolveOutcomeCount(templateId, outcomes);
@@ -468,9 +467,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             templateId,
             params,
             outcomes,
-            contentHash,
             arbitrator,
             timeout,
+            minBond,
             openingTs,
             nonce,
             block.timestamp
