@@ -68,8 +68,11 @@ contract FactoryTest is Test {
             "template 2 seeded (single-select)"
         );
         assertEq(uint256(inst.getTemplate(4).answerType), uint256(AnswerType.Datetime), "template 4 seeded (datetime)");
-        vm.expectRevert(); // v4 seeds the 5 generalized defaults (0..4)
-        inst.getTemplate(5);
+        assertEq(
+            uint256(inst.getTemplate(5).answerType), uint256(AnswerType.Assertion), "template 5 seeded (assertion)"
+        );
+        vm.expectRevert(); // v4 seeds the 6 generalized defaults (0..5)
+        inst.getTemplate(6);
 
         string[] memory params = new string[](1);
         params[0] = "q";
