@@ -45,6 +45,26 @@ contract V4TemplateTest is Test {
             );
     }
 
+    function _assertionTemplate(bool tooSoon) internal pure returns (Template memory) {
+        return Template(
+            AnswerType.Assertion,
+            0,
+            tooSoon,
+            false,
+            false,
+            false,
+            false,
+            false,
+            address(0),
+            0,
+            _one(""),
+            _none(),
+            "",
+            "",
+            ""
+        );
+    }
+
     // ---- default templates --------------------------------------------------
 
     function test_default_templates() public view {
@@ -153,6 +173,36 @@ contract V4TemplateTest is Test {
         rc.submitAnswer{value: 1}(qid, bytes32(uint256(0)), 0); // Red
         vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
         rc.submitAnswer{value: 2}(qid, bytes32(uint256(3)), 0);
+    }
+
+    // ---- assertion type -----------------------------------------------------
+
+    function test_assertion_answer_validation() public {
+        uint256 id = rc.createTemplate(_assertionTemplate(false));
+        bytes32 qid = rc.askQuestion(id, _one("Did it happen?"), _none(), arb, 30, 0, 0);
+        // 0 ("no") is not a valid answer
+        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        rc.submitAnswer{value: 1}(qid, bytes32(uint256(0)), 0);
+        // nor any other value
+        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        rc.submitAnswer{value: 1}(qid, bytes32(uint256(2)), 0);
+        // only 1 ("true") is accepted
+        rc.submitAnswer{value: 1}(qid, bytes32(uint256(1)), 0);
+        assertEq(rc.questions(qid).bond, 1, "true recorded");
+        // INVALID is always accepted
+        rc.submitAnswer{value: 2}(qid, INVALID, 0);
+    }
+
+    function test_assertion_too_soon_gated() public {
+        // too-soon off: the sentinel is banned
+        uint256 off = rc.createTemplate(_assertionTemplate(false));
+        bytes32 qoff = rc.askQuestion(off, _one("Did it happen?"), _none(), arb, 30, 0, 0);
+        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        rc.submitAnswer{value: 1}(qoff, TOO_SOON, 0);
+        // too-soon on: the sentinel is accepted
+        uint256 on = rc.createTemplate(_assertionTemplate(true));
+        bytes32 qon = rc.askQuestion(on, _one("Did it happen?"), _none(), arb, 30, 0, 0);
+        rc.submitAnswer{value: 1}(qon, TOO_SOON, 0);
     }
 
     // ---- ask-time outcome validation ---------------------------------------

@@ -11,7 +11,8 @@ enum AnswerType {
     SingleSelect, // 2 — answer = index into `outcomes`
     MultipleSelect, // 3 — answer = bitmask over `outcomes`
     Datetime, // 4 — unix timestamp, validated like Uint
-    Hash // 5 — any bytes32
+    Hash, // 5 — any bytes32
+    Assertion // 6 — "boolean with no no": the only substantive answer is 1 (plus the universal sentinels)
 }
 
 /// @notice One step of a template's bond levels. As an answer's bond rises past each level's
