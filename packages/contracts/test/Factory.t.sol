@@ -62,9 +62,14 @@ contract FactoryTest is Test {
         IRealityETH_ERC20 inst = IRealityETH_ERC20(clone);
         assertEq(address(inst.token()), address(token), "clone token set");
         assertEq(uint256(inst.getTemplate(0).answerType), uint256(AnswerType.Bool), "template 0 seeded (bool)");
-        assertEq(uint256(inst.getTemplate(2).answerType), uint256(AnswerType.Datetime), "template 2 seeded (datetime)");
-        vm.expectRevert(); // v4 seeds only the 3 generalized defaults (0,1,2)
-        inst.getTemplate(3);
+        assertEq(
+            uint256(inst.getTemplate(2).answerType),
+            uint256(AnswerType.SingleSelect),
+            "template 2 seeded (single-select)"
+        );
+        assertEq(uint256(inst.getTemplate(4).answerType), uint256(AnswerType.Datetime), "template 4 seeded (datetime)");
+        vm.expectRevert(); // v4 seeds the 5 generalized defaults (0..4)
+        inst.getTemplate(5);
 
         string[] memory params = new string[](1);
         params[0] = "q";

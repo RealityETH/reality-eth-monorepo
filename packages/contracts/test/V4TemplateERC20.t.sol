@@ -91,7 +91,9 @@ contract V4TemplateERC20Test is Test {
     function test_default_templates() public view {
         assertEq(uint256(rc.getTemplate(0).answerType), uint256(AnswerType.Bool));
         assertEq(uint256(rc.getTemplate(1).answerType), uint256(AnswerType.Uint));
-        assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.Datetime));
+        assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.SingleSelect));
+        assertEq(uint256(rc.getTemplate(3).answerType), uint256(AnswerType.MultipleSelect));
+        assertEq(uint256(rc.getTemplate(4).answerType), uint256(AnswerType.Datetime));
     }
 
     // a title with two interpolation slots: ["Will ", "", " beat ", "", "?"]

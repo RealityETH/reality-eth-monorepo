@@ -111,9 +111,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function createInitialTemplates() public {
         if (nextTemplateID != 0) revert TemplatesAlreadyCreated();
-        // Generalized defaults: the asker supplies the whole title via params[0] (a single ""
-        // interpolation slot). Select types carry concrete outcomes, so they are registered per-use
-        // with createTemplate rather than as a generalized default.
+        // Generalized defaults matching the historical reality.eth template ids (0 bool, 1 uint,
+        // 2 single-select, 3 multiple-select, 4 datetime): the asker supplies the whole title via
+        // params[0] (a single "" interpolation slot). The select types carry no preset outcomes
+        // here, so the asker supplies them per question at ask time.
         string[] memory titleOnly = new string[](1); // one "" interpolation slot
         string[] memory noOutcomes = new string[](0);
         createTemplate(
@@ -139,6 +140,44 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.Uint,
                 18,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                ""
+            )
+        );
+        createTemplate(
+            Template(
+                AnswerType.SingleSelect,
+                0,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                ""
+            )
+        );
+        createTemplate(
+            Template(
+                AnswerType.MultipleSelect,
+                0,
                 false,
                 false,
                 false,
