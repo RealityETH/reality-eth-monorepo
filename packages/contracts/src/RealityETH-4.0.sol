@@ -880,8 +880,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         uint32 minTimeout,
         uint256 minBond
     ) external view stateFinalized(questionId) returns (bytes32) {
-        if (contentHash != _questions[questionId].contentHash) revert ContentHashMustMatch();
-        if (arbitrator != _arbitratorOf(questionId)) revert ArbitratorMustMatch();
+        if (contentHash != _questions[questionId].contentHash) revert ContentHashMismatch();
+        if (arbitrator != _arbitratorOf(questionId)) revert ArbitratorMismatch();
         if (minTimeout > _questions[questionId].timeout) revert TimeoutMustBeLongEnough();
         if (minBond > _questions[questionId].bond) revert BondMustBeHighEnough();
         return _questions[questionId].bestAnswer;
