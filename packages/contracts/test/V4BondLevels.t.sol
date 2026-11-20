@@ -57,7 +57,7 @@ contract V4BondLevelsTest is Test {
     }
 
     function _askWithBondLevels() internal returns (bytes32) {
-        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         return rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
     }
 
@@ -103,7 +103,7 @@ contract V4BondLevelsTest is Test {
         Template memory t = Template(
             AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
         );
-        uint256 id = rc.createTemplateWithBondLevels(t, _bondLevels());
+        uint256 id = rc.createTemplate(t, _bondLevels());
         vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondLevels.selector);
         rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0); // minBond 0
     }
@@ -112,7 +112,7 @@ contract V4BondLevelsTest is Test {
 
     function _rejectsBondLevels(BondLevel[] memory c) internal {
         vm.expectRevert(IRealityETHErrors.BondLevelsInvalid.selector);
-        rc.createTemplateWithBondLevels(_uintTemplate(), c);
+        rc.createTemplate(_uintTemplate(), c);
     }
 
     function test_bond_levels_validation_rejects_bad() public {
@@ -143,7 +143,7 @@ contract V4BondLevelsTest is Test {
     function test_timeout_clamped_to_one_year() public {
         BondLevel[] memory c = new BondLevel[](1);
         c[0] = BondLevel(200, 60000, 0); // 600x a 30s base would be 5 hours... use a big base to exceed a year
-        uint256 id = rc.createTemplateWithBondLevels(
+        uint256 id = rc.createTemplate(
             Template(
                 AnswerType.Uint,
                 0,
@@ -172,7 +172,7 @@ contract V4BondLevelsTest is Test {
 
     // getBondLevels returns the implicit base level first, then the template's levels.
     function test_get_bond_levels_includes_implicit_base() public {
-        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         BondLevel[] memory bl = rc.getBondLevels(qid);
         assertEq(bl.length, 3, "implicit base + 2 template levels");
@@ -186,7 +186,7 @@ contract V4BondLevelsTest is Test {
     }
 
     function test_getters_template_and_bond_settings() public {
-        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
 
         // getTemplateForQuestion resolves the question's template in one call
@@ -210,7 +210,7 @@ contract V4BondLevelsTest is Test {
 
     // getAnswerFeeForBond: inverse of the split — the extra fee on top of a desired bond.
     function test_get_answer_fee_for_bond() public {
-        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
 
         // a bond between minBond (100%) and the first threshold (200%) incurs no fee

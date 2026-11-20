@@ -62,7 +62,7 @@ contract V4BondLevelsERC20Test is Test {
     }
 
     function test_bond_levels_scale_timeout_and_fee() public {
-        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(MIN_BOND), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(MIN_BOND), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         uint256 t0 = block.timestamp;
 
@@ -97,7 +97,7 @@ contract V4BondLevelsERC20Test is Test {
         Template memory t = Template(
             AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
         );
-        uint256 id = rc.createTemplateWithBondLevels(t, _bondLevels());
+        uint256 id = rc.createTemplate(t, _bondLevels());
         vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondLevels.selector);
         rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
     }
@@ -106,6 +106,6 @@ contract V4BondLevelsERC20Test is Test {
         BondLevel[] memory bad = new BondLevel[](1);
         bad[0] = BondLevel(100, 100, 0); // first threshold must be > 100
         vm.expectRevert(IRealityETHErrors.BondLevelsInvalid.selector);
-        rc.createTemplateWithBondLevels(_uintTemplate(MIN_BOND), bad);
+        rc.createTemplate(_uintTemplate(MIN_BOND), bad);
     }
 }

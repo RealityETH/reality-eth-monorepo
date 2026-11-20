@@ -35,7 +35,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
     // Per-template bond-level schedule (empty for most templates); set atomically in
-    // createTemplateWithBondLevels. See RealityETH-4.0.sol for the shared design notes.
+    // createTemplate(template, levels). See RealityETH-4.0.sol for the shared design notes.
     mapping(uint256 templateId => BondLevel[] bondLevels) internal templateBondLevels;
     // internal + explicit struct getter below: the flat auto-getter would return
     // too many stack slots for the legacy codegen as the struct grows.
@@ -242,12 +242,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     /// @inheritdoc IRealityETHCore_ERC20
     function createTemplate(Template memory template) public stateAny returns (uint256) {
+        return _createTemplate(template);
+    }
+
+    function _createTemplate(Template memory template) internal returns (uint256 id) {
         _validateTemplate(template);
-        uint256 id = nextTemplateID;
+        id = nextTemplateID;
         templateRegistry[id] = template;
         emit LogNewTemplate(id, msg.sender);
         nextTemplateID = id + 1;
-        return id;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -257,12 +260,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
-    function createTemplateWithBondLevels(Template memory template, BondLevel[] calldata levels)
+    function createTemplate(Template memory template, BondLevel[] calldata levels)
         public
         stateAny
         returns (uint256 id)
     {
-        id = createTemplate(template);
+        id = _createTemplate(template);
         _validateBondLevels(levels);
         // Copy element-by-element: the legacy codegen can't assign a calldata struct array to storage.
         BondLevel[] storage stored = templateBondLevels[id];

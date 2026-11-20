@@ -135,16 +135,15 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
-    /// @notice Create a template together with a per-template bond levels.
+    /// @notice Create a template together with a per-template bond-level schedule (overload of
+    /// createTemplate). An empty `levels` is equivalent to the no-levels overload.
     /// @dev As an answer's bond rises past each bond level (threshold as a % of minBond), the point's
-    /// timeout multiplier and extra arbitrator fee apply. Empty levels == plain createTemplate behaviour.
-    /// Bond levels require the question's effective minBond to be positive.
+    /// timeout multiplier and extra arbitrator fee apply. Bond levels require the question's effective
+    /// minBond to be positive.
     /// @param template The structured template content
     /// @param levels The ordered bond levels (see {BondLevel})
     /// @return The ID of the newly-created template
-    function createTemplateWithBondLevels(Template calldata template, BondLevel[] calldata levels)
-        external
-        returns (uint256);
+    function createTemplate(Template calldata template, BondLevel[] calldata levels) external returns (uint256);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template
