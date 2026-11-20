@@ -114,7 +114,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // Generalized defaults matching the historical reality.eth template ids (0 bool, 1 uint,
         // 2 single-select, 3 multiple-select, 4 datetime): the asker supplies the whole title via
         // params[0] (a single "" interpolation slot). The select types carry no preset outcomes
-        // here, so the asker supplies them per question at ask time.
+        // here, so the asker supplies them per question at ask time. Every default declares
+        // English (lang "en").
         string[] memory titleOnly = new string[](1); // one "" interpolation slot
         string[] memory noOutcomes = new string[](0);
         createTemplate(
@@ -124,7 +125,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 true,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 address(0),
@@ -133,7 +134,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 noOutcomes,
                 "",
                 "",
-                ""
+                "en"
             )
         );
         createTemplate(
@@ -143,7 +144,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 true,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 address(0),
@@ -152,7 +153,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 noOutcomes,
                 "",
                 "",
-                ""
+                "en"
             )
         );
         createTemplate(
@@ -162,7 +163,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 true,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 address(0),
@@ -171,7 +172,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 noOutcomes,
                 "",
                 "",
-                ""
+                "en"
             )
         );
         createTemplate(
@@ -181,7 +182,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 true,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 address(0),
@@ -190,7 +191,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 noOutcomes,
                 "",
                 "",
-                ""
+                "en"
             )
         );
         createTemplate(
@@ -200,7 +201,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 true,
                 false,
                 false,
-                false,
+                true,
                 false,
                 false,
                 address(0),
@@ -209,7 +210,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 noOutcomes,
                 "",
                 "",
-                ""
+                "en"
             )
         );
     }
