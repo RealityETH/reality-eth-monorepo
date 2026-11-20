@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {IRealityETHErrors} from "../src/interfaces/IRealityETHErrors.sol";
+import {IRealityETHErrors_ERC20} from "../src/interfaces/IRealityETHErrors_ERC20.sol";
 import {AnswerType, Template} from "../src/RealityETHTypes.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
@@ -19,11 +20,30 @@ contract V4TemplateERC20Test is Test {
     bytes32 internal constant TOO_SOON = bytes32(type(uint256).max - 1); // 0xff..fe
 
     function setUp() public {
-        rc = new RealityETH_ERC20_v4_0();
         token = new MockERC20();
-        rc.setToken(IERC20(address(token)));
+        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)));
         token.mint(address(this), 1_000_000 ether);
         token.approve(address(rc), type(uint256).max);
+    }
+
+    // ---- token initialization ----------------------------------------------
+
+    // Constructor path: setUp deployed rc with the token, so it is wired and a second set reverts.
+    function test_token_set_in_constructor() public view {
+        assertEq(address(rc.token()), address(token), "token set via constructor");
+    }
+
+    function test_setToken_reverts_once_set() public {
+        vm.expectRevert(IRealityETHErrors_ERC20.TokenCanOnlyBeInitializedOnce.selector);
+        rc.setToken(IERC20(address(token)));
+    }
+
+    // Deferred path (used by clones): construct with the zero address, then set once via setToken.
+    function test_token_set_via_setToken_when_deferred() public {
+        RealityETH_ERC20_v4_0 rc2 = new RealityETH_ERC20_v4_0(IERC20(address(0)));
+        assertEq(address(rc2.token()), address(0), "token deferred at construction");
+        rc2.setToken(IERC20(address(token)));
+        assertEq(address(rc2.token()), address(token), "token set via setToken");
     }
 
     function _one(string memory s) internal pure returns (string[] memory a) {

@@ -7,6 +7,7 @@ import {RealityETH_v4_0} from "../src/RealityETH-4.0.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {IRealityETHCore} from "../src/interfaces/IRealityETHCore.sol";
 import {IRealityETHCore_ERC20} from "../src/interfaces/IRealityETHCore_ERC20.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
 import {AnswerType, Template} from "../src/RealityETHTypes.sol";
 
 /// @dev Base harness for the ported RealityETH suite.
@@ -105,7 +106,7 @@ abstract contract RealityETHBase is Test {
     // ---------------------------------------------------------------------
     function _deployV4Source() internal returns (address) {
         if (isERC20) {
-            return address(new RealityETH_ERC20_v4_0());
+            return address(new RealityETH_ERC20_v4_0(IERC20(address(0))));
         }
         return address(new RealityETH_v4_0());
     }
