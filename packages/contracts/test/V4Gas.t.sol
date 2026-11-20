@@ -141,7 +141,7 @@ contract V4GasTest is Test {
     }
 
     function test_gas_compare() public {
-        RealityETH_v4_0 nw = new RealityETH_v4_0();
+        RealityETH_v4_0 nw = new RealityETH_v4_0(address(0));
         address old30 = _deploy("RealityETH-3.0");
         address old32 = _deploy("RealityETH-3.2");
 

@@ -19,7 +19,7 @@ contract V4BondLevelsERC20Test is Test {
 
     function setUp() public {
         token = new MockERC20();
-        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)));
+        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)), address(0));
         token.mint(address(this), 1_000_000 ether);
         token.approve(address(rc), type(uint256).max);
     }

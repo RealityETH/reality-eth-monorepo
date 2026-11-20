@@ -21,7 +21,7 @@ contract V4TemplateERC20Test is Test {
 
     function setUp() public {
         token = new MockERC20();
-        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)));
+        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)), address(0));
         token.mint(address(this), 1_000_000 ether);
         token.approve(address(rc), type(uint256).max);
     }
@@ -40,7 +40,7 @@ contract V4TemplateERC20Test is Test {
 
     // Deferred path (used by clones): construct with the zero address, then set once via setToken.
     function test_token_set_via_setToken_when_deferred() public {
-        RealityETH_ERC20_v4_0 rc2 = new RealityETH_ERC20_v4_0(IERC20(address(0)));
+        RealityETH_ERC20_v4_0 rc2 = new RealityETH_ERC20_v4_0(IERC20(address(0)), address(0));
         assertEq(address(rc2.token()), address(0), "token deferred at construction");
         rc2.setToken(IERC20(address(token)));
         assertEq(address(rc2.token()), address(token), "token set via setToken");

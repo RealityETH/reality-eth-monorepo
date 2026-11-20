@@ -32,6 +32,11 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     // represent whole units (10**78 > 2**256).
     uint8 private constant MAX_DECIMALS = 63;
 
+    // Fees that would otherwise be burned (the bond-claim fee, and the bond-level fee when there is no
+    // arbitrator) are credited here instead; address(0) keeps the old burn behaviour. Set at creation
+    // (constructor for a direct deploy, or setTreasury before setToken for a clone).
+    address public treasury;
+
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
     // Per-template bond-level schedule (empty for most templates); set atomically in
@@ -104,11 +109,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor(IERC20 _token) {
-        // Two supported deployment paths: a direct deployment passes the token here (set once at
-        // construction); a clone template passes the zero address and each clone's token is set
-        // afterwards via setToken, which reverts once a token is set (TokenCanOnlyBeInitializedOnce).
+    constructor(IERC20 _token, address _treasury) {
+        // Two supported deployment paths: a direct deployment passes the token (and treasury) here, set
+        // once at construction; a clone template passes the zero address and each clone's token is set
+        // afterwards via setToken (reverting once set), with the treasury set by setTreasury just before.
         token = _token;
+        treasury = _treasury;
         createInitialTemplates();
     }
 
@@ -236,6 +242,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
                 "en"
             )
         );
+    }
+
+    /// @inheritdoc IRealityETHCore_ERC20
+    function setTreasury(address _treasury) public {
+        // Only in the pre-init window (before the token is set); the factory calls this just before
+        // setToken, so a clone's treasury is fixed in the same transaction it is created.
+        if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
+        treasury = _treasury;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -713,10 +727,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
         // Credit the fee (an effect) before pulling tokens (the external call), per CEI.
         if (fee > 0) {
-            // fee credited to the arbitrator (arbitrator 0x0 burns it); LogBondLevelFeePaid emitted below
+            // fee goes to the arbitrator; when there is no arbitrator (0x0) it goes to the treasury
+            // instead (a 0x0 treasury then burns it, as before)
             address arbitrator = _arbitratorOf(questionId);
-            balanceOf[arbitrator] = balanceOf[arbitrator] + fee;
-            emit LogBondLevelFeePaid(questionId, arbitrator, fee);
+            address recipient = arbitrator == NULL_ADDRESS ? treasury : arbitrator;
+            balanceOf[recipient] = balanceOf[recipient] + fee;
+            emit LogBondLevelFeePaid(questionId, recipient, fee);
         }
         _deductTokensOrRevert(tokens);
     }
@@ -1003,10 +1019,13 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             // Line the bond up for next time, when it will be added to somebody's queuedFunds
             lastBond = bonds[i];
 
-            // Burn (just leave in contract balance) a fraction of all bonds except the final one.
-            // This creates a cost to increasing your own bond, which could be used to delay resolution maliciously
+            // Take a fraction of all bonds except the final one and credit it to the treasury (a 0x0
+            // treasury leaves it in the contract, ie burned, as before). This creates a cost to
+            // increasing your own bond, which could be used to delay resolution maliciously.
             if (lastBond != _questions[questionId].bond) {
-                lastBond = lastBond - lastBond / BOND_CLAIM_FEE_PROPORTION;
+                uint256 claimFee = lastBond / BOND_CLAIM_FEE_PROPORTION;
+                lastBond = lastBond - claimFee;
+                balanceOf[treasury] = balanceOf[treasury] + claimFee;
             }
 
             lastHistoryHash = historyHashes[i];

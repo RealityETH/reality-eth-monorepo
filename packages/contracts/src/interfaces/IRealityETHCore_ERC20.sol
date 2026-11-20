@@ -302,6 +302,11 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
     /// @param _token The ERC20 token that will be used for bonds.
     function setToken(IERC20 _token) external;
+    /// @notice Set the treasury that receives fees which would otherwise be burned.
+    /// @dev Only callable before the token is set (the clone init window); a direct deployment sets it
+    /// in the constructor instead. address(0) keeps the burn behaviour.
+    /// @param _treasury The address that can withdraw redirected fees.
+    function setTreasury(address _treasury) external;
     /// @notice Submit the answer for a question, for use by the arbitrator.
     /// @dev Doesn't require (or allow) a bond.
     /// If the current final answer is correct, the account should be whoever submitted it.

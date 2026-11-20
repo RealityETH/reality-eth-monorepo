@@ -15,7 +15,7 @@ contract V4BondLevelsTest is Test {
     uint256 internal constant MIN_BOND = 1000;
 
     function setUp() public {
-        rc = new RealityETH_v4_0();
+        rc = new RealityETH_v4_0(address(0));
         vm.deal(address(this), 1_000_000 ether);
     }
 
@@ -226,5 +226,17 @@ contract V4BondLevelsTest is Test {
         // and sending bond + fee actually records the target bond
         rc.submitAnswer{value: value}(qid, bytes32(uint256(7)), 0);
         assertEq(rc.questions(qid).bond, 2000, "bond + fee records the target bond");
+    }
+
+    // With no arbitrator (0x0), the escalation fee goes to the treasury rather than being burned.
+    function test_bond_level_fee_to_treasury_when_no_arbitrator() public {
+        address treasury = address(0x7EA5);
+        RealityETH_v4_0 rct = new RealityETH_v4_0(treasury);
+        uint256 id = rct.createTemplate(_uintTemplate(), _bondLevels());
+        bytes32 qid = rct.askQuestion(id, _one("Price?"), _none(), address(0), TIMEOUT, 0, 0); // no arbitrator
+        rct.submitAnswer{value: MIN_BOND}(qid, bytes32(uint256(1)), 0); // base tier, no fee
+        rct.submitAnswer{value: 2200}(qid, bytes32(uint256(2)), 0); // 220% -> 10% fee -> bond 2000, fee 200
+        assertEq(rct.questions(qid).bond, 2000, "derived bond");
+        assertEq(rct.balanceOf(treasury), 200, "no-arbitrator bond-level fee credited to the treasury");
     }
 }

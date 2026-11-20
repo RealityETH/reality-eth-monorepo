@@ -31,6 +31,10 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // represent whole units (10**78 > 2**256).
     uint8 private constant MAX_DECIMALS = 63;
 
+    // Fees that would otherwise be burned (the bond-claim fee, and the bond-level fee when there is no
+    // arbitrator) are credited here instead; address(0) keeps the old burn behaviour. Set at creation.
+    address public immutable treasury;
+
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
     // Per-template bond levels (empty for most templates). Kept in its own mapping rather than
@@ -104,7 +108,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor() {
+    constructor(address _treasury) {
+        treasury = _treasury;
         createInitialTemplates();
     }
 
@@ -634,10 +639,12 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _addAnswerToHistory(questionId, answer, answerer, bond);
         _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
         if (fee > 0) {
-            // fee credited to the arbitrator (arbitrator 0x0 burns it); LogBondLevelFeePaid emitted below
+            // fee goes to the arbitrator; when there is no arbitrator (0x0) it goes to the treasury
+            // instead (a 0x0 treasury then burns it, as before)
             address arbitrator = _arbitratorOf(questionId);
-            balanceOf[arbitrator] = balanceOf[arbitrator] + fee;
-            emit LogBondLevelFeePaid(questionId, arbitrator, fee);
+            address recipient = arbitrator == NULL_ADDRESS ? treasury : arbitrator;
+            balanceOf[recipient] = balanceOf[recipient] + fee;
+            emit LogBondLevelFeePaid(questionId, recipient, fee);
         }
     }
 
@@ -919,10 +926,13 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             // Line the bond up for next time, when it will be added to somebody's queuedFunds
             lastBond = bonds[i];
 
-            // Burn (just leave in contract balance) a fraction of all bonds except the final one.
-            // This creates a cost to increasing your own bond, which could be used to delay resolution maliciously
+            // Take a fraction of all bonds except the final one and credit it to the treasury (a 0x0
+            // treasury leaves it in the contract, ie burned, as before). This creates a cost to
+            // increasing your own bond, which could be used to delay resolution maliciously.
             if (lastBond != _questions[questionId].bond) {
-                lastBond = lastBond - lastBond / BOND_CLAIM_FEE_PROPORTION;
+                uint256 claimFee = lastBond / BOND_CLAIM_FEE_PROPORTION;
+                lastBond = lastBond - claimFee;
+                balanceOf[treasury] = balanceOf[treasury] + claimFee;
             }
 
             lastHistoryHash = historyHashes[i];

@@ -47,8 +47,8 @@ contract FactoryTest is Test {
     RealityETH_ERC20_Factory internal factory;
 
     function setUp() public {
-        lib = new RealityETH_ERC20_v4_0(IERC20(address(0)));
-        factory = new RealityETH_ERC20_Factory(address(lib));
+        lib = new RealityETH_ERC20_v4_0(IERC20(address(0)), address(0));
+        factory = new RealityETH_ERC20_Factory(address(lib), address(0));
     }
 
     /// createInstance deploys a working clone: token wired, templates seeded, and
@@ -92,7 +92,18 @@ contract FactoryTest is Test {
     /// Constructor rejects a zero library address.
     function test_constructor_rejects_zero_library() public {
         vm.expectRevert();
-        new RealityETH_ERC20_Factory(address(0));
+        new RealityETH_ERC20_Factory(address(0), address(0));
+    }
+
+    /// The factory's treasury is set on each clone it deploys (via setTreasury before setToken).
+    function test_clone_treasury_set_by_factory() public {
+        address treasury = address(0x7EA5);
+        RealityETH_ERC20_Factory f = new RealityETH_ERC20_Factory(address(lib), treasury);
+        MockERC20 tok = new MockERC20();
+        f.createInstance(address(tok));
+        address clone = f.deployments(address(tok));
+        assertEq(RealityETH_ERC20_v4_0(clone).treasury(), treasury, "factory sets the treasury on the clone");
+        assertEq(address(RealityETH_ERC20_v4_0(clone).token()), address(tok), "and the token");
     }
 
     /// A token re-entering createInstance (via decimals()) for its own instance
