@@ -222,6 +222,21 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         }
     }
 
+    /// @inheritdoc IRealityETHCore
+    function getTemplateForQuestion(bytes32 questionId) external view returns (Template memory) {
+        return templateRegistry[_questions[questionId].templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getBondSettingsForValue(bytes32 questionId, uint256 value)
+        external
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout)
+    {
+        (bond, fee, timeoutPct) = _applyBondLevels(questionId, value);
+        effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
+    }
+
     // Validate bond levels: <=255 points; thresholds strictly increasing and above the
     // implicit 100% point; timeouts non-decreasing and at least 100%; fee at most 100%.
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {

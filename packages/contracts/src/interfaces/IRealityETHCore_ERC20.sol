@@ -218,6 +218,21 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     /// @param questionId The question id
     /// @return The effective bond levels
     function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory);
+    /// @notice The template a question uses, in one call.
+    /// @param questionId The question id
+    /// @return The question's template
+    function getTemplateForQuestion(bytes32 questionId) external view returns (Template memory);
+    /// @notice Preview how a given value sent with an answer would split for a question.
+    /// @param questionId The question id
+    /// @param value The total value that would be sent with the answer
+    /// @return bond The bond that would be recorded
+    /// @return fee The extra arbitrator fee taken on top
+    /// @return timeoutPct The timeout multiplier (percent) of the applicable bond level
+    /// @return effectiveTimeout The resulting finalization window in seconds (clamped to 365 days)
+    function getBondSettingsForValue(bytes32 questionId, uint256 value)
+        external
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template

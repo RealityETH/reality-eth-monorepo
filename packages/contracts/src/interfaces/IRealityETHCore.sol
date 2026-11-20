@@ -159,6 +159,21 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param questionId The question id
     /// @return The effective bond levels
     function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory);
+    /// @notice The template a question uses, in one call.
+    /// @param questionId The question id
+    /// @return The question's template
+    function getTemplateForQuestion(bytes32 questionId) external view returns (Template memory);
+    /// @notice Preview how a given value sent with an answer would split for a question.
+    /// @param questionId The question id
+    /// @param value The total value that would be sent with the answer
+    /// @return bond The bond that would be recorded
+    /// @return fee The extra arbitrator fee taken on top
+    /// @return timeoutPct The timeout multiplier (percent) of the applicable bond level
+    /// @return effectiveTimeout The resulting finalization window in seconds (clamped to 365 days)
+    function getBondSettingsForValue(bytes32 questionId, uint256 value)
+        external
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
     /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;

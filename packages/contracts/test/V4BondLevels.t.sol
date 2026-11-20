@@ -184,4 +184,27 @@ contract V4BondLevelsTest is Test {
         // the raw template view excludes the implicit base
         assertEq(rc.getTemplateBondLevels(id).length, 2, "raw levels exclude the implicit base");
     }
+
+    function test_getters_template_and_bond_settings() public {
+        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
+
+        // getTemplateForQuestion resolves the question's template in one call
+        assertEq(uint256(rc.getTemplateForQuestion(qid).answerType), uint256(AnswerType.Uint), "template type");
+        assertEq(rc.getTemplateForQuestion(qid).minBond, MIN_BOND, "template minBond");
+
+        // getBondSettingsForValue previews the split: 2200 (220%) -> bond 2000, fee 200, timeout x2
+        (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 eff) = rc.getBondSettingsForValue(qid, 2200);
+        assertEq(bond, 2000, "preview bond");
+        assertEq(fee, 200, "preview fee");
+        assertEq(timeoutPct, 200, "preview timeout multiplier");
+        assertEq(uint256(eff), TIMEOUT * 2, "preview effective timeout");
+
+        // base tier (send exactly minBond): no fee, base timeout
+        (bond, fee, timeoutPct, eff) = rc.getBondSettingsForValue(qid, MIN_BOND);
+        assertEq(bond, MIN_BOND, "base bond");
+        assertEq(fee, 0, "base fee");
+        assertEq(timeoutPct, 100, "base multiplier");
+        assertEq(uint256(eff), TIMEOUT, "base timeout");
+    }
 }
