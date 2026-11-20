@@ -233,6 +233,13 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         external
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
+    /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
+    /// `targetBond + fee`. Read-only helper for the inverse of getBondSettingsForValue; may round up
+    /// slightly since the fee is a percentage of the bond and the tier is keyed on the value sent.
+    /// @param questionId The question id
+    /// @param targetBond The bond the answerer wants to post
+    /// @return fee The extra fee to add to the bond
+    function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template

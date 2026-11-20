@@ -207,4 +207,24 @@ contract V4BondLevelsTest is Test {
         assertEq(timeoutPct, 100, "base multiplier");
         assertEq(uint256(eff), TIMEOUT, "base timeout");
     }
+
+    // getAnswerFeeForBond: inverse of the split — the extra fee on top of a desired bond.
+    function test_get_answer_fee_for_bond() public {
+        uint256 id = rc.createTemplateWithBondLevels(_uintTemplate(), _bondLevels());
+        bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
+
+        // a bond between minBond (100%) and the first threshold (200%) incurs no fee
+        assertEq(rc.getAnswerFeeForBond(qid, 1500), 0, "no fee below first threshold");
+
+        // a bond of 2000 lands at the 200% tier (10% fee) -> fee 200, total to send 2200
+        uint256 fee = rc.getAnswerFeeForBond(qid, 2000);
+        assertEq(fee, 200, "10% fee for a 2000 bond");
+        uint256 value = 2000 + fee;
+        (uint256 bond,,,) = rc.getBondSettingsForValue(qid, value);
+        assertGe(bond, 2000, "round-trip records at least the target bond");
+
+        // and sending bond + fee actually records the target bond
+        rc.submitAnswer{value: value}(qid, bytes32(uint256(7)), 0);
+        assertEq(rc.questions(qid).bond, 2000, "bond + fee records the target bond");
+    }
 }

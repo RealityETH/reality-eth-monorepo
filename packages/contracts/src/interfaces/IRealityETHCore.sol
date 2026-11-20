@@ -174,6 +174,13 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         external
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
+    /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
+    /// `targetBond + fee`. Read-only helper for the inverse of getBondSettingsForValue; may round up
+    /// slightly since the fee is a percentage of the bond and the tier is keyed on the value sent.
+    /// @param questionId The question id
+    /// @param targetBond The bond the answerer wants to post
+    /// @return fee The extra fee to add to the bond
+    function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee);
     /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;

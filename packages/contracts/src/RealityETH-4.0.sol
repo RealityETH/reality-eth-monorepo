@@ -237,6 +237,28 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
     }
 
+    /// @inheritdoc IRealityETHCore
+    function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee) {
+        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
+        if (levels.length == 0) {
+            return 0; // no fee
+        }
+        // The applicable fee is one of a small set (the implicit 0% or a level's feePct). For each, the
+        // minimum value that records a bond of at least targetBond is ceil(targetBond*(100+fee)/100);
+        // verify it with the same split the answer path uses (so a tier boundary can't fool the rounding)
+        // and keep the cheapest that actually clears the target. The fee to send on top is value - bond.
+        uint256 value = type(uint256).max;
+        for (uint256 i = 0; i <= levels.length; i++) {
+            uint256 feePct = i == 0 ? 0 : levels[i - 1].feePct;
+            uint256 v = (targetBond * (100 + feePct) + 99) / 100; // ceil div by 100
+            if (v < value) {
+                (uint256 recordedBond,,) = _applyBondLevels(questionId, v);
+                if (recordedBond >= targetBond) value = v;
+            }
+        }
+        return value - targetBond;
+    }
+
     // Validate bond levels: <=255 points; thresholds strictly increasing and above the
     // implicit 100% point; timeouts non-decreasing and at least 100%; fee at most 100%.
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {
