@@ -328,20 +328,20 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (levels.length == 0) {
             return 0; // no fee
         }
-        // The applicable fee is one of a small set (the implicit 0% or a level's feePct). For each, the
-        // minimum value that records a bond of at least targetBond is ceil(targetBond*(100+fee)/100);
-        // verify it with the same split the answer path uses (so a tier boundary can't fool the rounding)
-        // and keep the cheapest that actually clears the target. The fee to send on top is value - bond.
-        uint256 value = type(uint256).max;
-        for (uint256 i = 0; i <= levels.length; i++) {
-            uint256 feePct = i == 0 ? 0 : levels[i - 1].feePct;
-            uint256 v = (targetBond * (100 + feePct) + 99) / 100; // ceil div by 100
-            if (v < value) {
-                (uint256 recordedBond,,) = _applyBondLevels(questionId, v);
-                if (recordedBond >= targetBond) value = v;
+        // Tiers are keyed on the bond, so the fee is a direct lookup: find the highest level whose
+        // threshold (a percentage of minBond) the target bond reaches, and take that level's fee of the
+        // bond. Send targetBond + fee to post a bond of exactly targetBond.
+        uint256 minBond = _minBondOf(questionId);
+        uint256 feePct = 0;
+        uint256 n = levels.length;
+        for (uint256 i = 0; i < n; i++) {
+            if (targetBond * 100 >= minBond * levels[i].bondThresholdPct) {
+                feePct = levels[i].feePct;
+            } else {
+                break;
             }
         }
-        return value - targetBond;
+        return targetBond * feePct / 100;
     }
 
     // Validate bond levels: <=255 points; thresholds strictly increasing and above the implicit 100%
@@ -351,12 +351,16 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (n > 255) revert BondLevelsInvalid();
         uint32 prevThreshold = 100; // implicit first level is [100, 100, 0] at minBond
         uint16 prevTimeout = 100;
+        uint8 prevFee = 0;
         for (uint256 i = 0; i < n; i++) {
             if (levels[i].bondThresholdPct <= prevThreshold) revert BondLevelsInvalid();
             if (levels[i].timeoutPct < prevTimeout) revert BondLevelsInvalid();
+            // fees must not decrease: tiers are keyed on the bond, so a higher bond must not pay less
+            if (levels[i].feePct < prevFee) revert BondLevelsInvalid();
             if (levels[i].feePct > 100) revert BondLevelsInvalid();
             prevThreshold = levels[i].bondThresholdPct;
             prevTimeout = levels[i].timeoutPct;
+            prevFee = levels[i].feePct;
         }
     }
 
@@ -739,8 +743,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     // Split the value sent into a bond and an extra arbitrator fee per the template's bond levels, and
     // report the timeout multiplier for the applicable level. No levels => (value, 0, 100%). The tier is
-    // keyed on the value sent (as a percentage of minBond); the fee is taken on top, so
-    // bond = value*100/(100+feePct) and fee = value - bond.
+    // keyed on the resulting bond (see below); the fee is taken on top, so bond = value*100/(100+feePct)
+    // and fee = value - bond.
     function _applyBondLevels(bytes32 questionId, uint256 value)
         internal
         view
@@ -750,16 +754,29 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (levels.length == 0) {
             return (value, 0, 100);
         }
-        uint256 pctOfMin = value * 100 / _minBondOf(questionId); // minBond > 0 guaranteed for bond levels at ask time
+        // Tiers are keyed on the resulting bond (as a percentage of minBond), with the fee phasing in
+        // across each threshold. Within a tier the bond climbs with the value; at a threshold it holds
+        // (a plateau) while the extra fee ramps from the lower tier's rate up to this tier's rate, then
+        // climbs again -- so the recorded bond is a continuous, non-decreasing function of the value.
+        uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond levels at ask time
         uint256 feePct = 0;
         timeoutPct = 100; // implicit first level [100, 100, 0]
-        for (uint256 i = 0; i < levels.length; i++) {
-            if (pctOfMin >= levels[i].bondThresholdPct) {
-                timeoutPct = levels[i].timeoutPct;
-                feePct = levels[i].feePct;
-            } else {
-                break; // thresholds are strictly increasing, so no later level can match
+        uint256 n = levels.length;
+        for (uint256 i = 0; i < n; i++) {
+            // threshold scaled by 100 so it compares against value * 10000 without dividing first
+            uint256 threshold = minBond * levels[i].bondThresholdPct;
+            // Below this threshold at the current (lower) fee? Then the bond belongs in the current tier.
+            if (value * 10000 < threshold * (100 + feePct)) break;
+            // Reached it, but not enough value to also cover this level's fee on the threshold? Plateau:
+            // pin the bond at the threshold and take the remainder as the (partial) fee.
+            if (value * 10000 < threshold * (100 + levels[i].feePct)) {
+                bond = threshold / 100;
+                fee = value - bond;
+                return (bond, fee, levels[i].timeoutPct);
             }
+            // Past the plateau: this level's fee is fully covered, so adopt it and keep climbing.
+            feePct = levels[i].feePct;
+            timeoutPct = levels[i].timeoutPct;
         }
         bond = value * 100 / (100 + feePct);
         fee = value - bond;
