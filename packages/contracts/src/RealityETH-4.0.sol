@@ -250,6 +250,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         templateRegistry[id] = template;
         emit LogNewTemplate(id, msg.sender);
         nextTemplateID = id + 1;
+        return id;
     }
 
     /// @inheritdoc IRealityETHCore
@@ -271,6 +272,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         for (uint256 i = 0; i < levels.length; i++) {
             stored.push(levels[i]);
         }
+        return id;
     }
 
     /// @inheritdoc IRealityETHCore
@@ -286,6 +288,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         for (uint256 i = 0; i < levels.length; i++) {
             out[i + 1] = levels[i];
         }
+        return out;
     }
 
     /// @inheritdoc IRealityETHCore
@@ -301,6 +304,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     {
         (bond, fee, timeoutPct) = _applyBondLevels(questionId, value);
         effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
+        return (bond, fee, timeoutPct, effectiveTimeout);
     }
 
     /// @inheritdoc IRealityETHCore
@@ -400,6 +404,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         for (uint256 i = 0; i < n; i++) {
             if (bytes(parts[i]).length == 0) slots++;
         }
+        return slots;
     }
 
     // Effective arbitrator for a new question: the template's if it fixes one, else the ask-time
@@ -691,6 +696,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         }
         bond = value * 100 / (100 + feePct);
         fee = value - bond;
+        return (bond, fee, timeoutPct);
     }
 
     // The base timeout scaled by the bond level's percentage, clamped to 365 days (so finalizeTs can't

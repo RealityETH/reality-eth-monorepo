@@ -269,6 +269,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         templateRegistry[id] = template;
         emit LogNewTemplate(id, msg.sender);
         nextTemplateID = id + 1;
+        return id;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -290,6 +291,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         for (uint256 i = 0; i < levels.length; i++) {
             stored.push(levels[i]);
         }
+        return id;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -305,6 +307,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         for (uint256 i = 0; i < levels.length; i++) {
             out[i + 1] = levels[i];
         }
+        return out;
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -320,6 +323,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     {
         (bond, fee, timeoutPct) = _applyBondLevels(questionId, value);
         effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
+        return (bond, fee, timeoutPct, effectiveTimeout);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -419,6 +423,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         for (uint256 i = 0; i < n; i++) {
             if (bytes(parts[i]).length == 0) slots++;
         }
+        return slots;
     }
 
     // Effective arbitrator for a new question: the template's if it fixes one, else the ask-time
@@ -780,6 +785,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         }
         bond = value * 100 / (100 + feePct);
         fee = value - bond;
+        return (bond, fee, timeoutPct);
     }
 
     // The base timeout scaled by the bond level's percentage, clamped to 365 days.
