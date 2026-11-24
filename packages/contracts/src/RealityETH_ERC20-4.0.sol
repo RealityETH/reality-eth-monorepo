@@ -253,6 +253,18 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
+    // The token (set here or in the constructor) must be a standard, well-behaved ERC20:
+    //  - an exact 1:1 transfer -- no fee-on-transfer / deflationary behaviour, since bonds and bounties
+    //    are credited by the amount requested, not the amount actually received, so a token that delivers
+    //    less would leave the contract under-collateralised;
+    //  - no rebasing / elastic balances (a changing balance breaks the internal bond accounting);
+    //  - no transfer hooks or callbacks (ERC777-style), which open reentrancy;
+    //  - a transfer/transferFrom that returns a bool.
+    // Its maximum issuance must also leave ample headroom below 2**256: the bond-level fee math scales a
+    // bond by up to 10000 (two percentage factors), so a single bond must stay under ~2**256/10000
+    // (~1.16e73 base units) or the arithmetic reverts. Every real token is many orders of magnitude below
+    // this (and well below, e.g., Uniswap V2's uint112 reserve cap); a pathological huge-supply token is
+    // out of scope -- it fails safe by reverting, never by losing funds.
     function setToken(IERC20 _token) public {
         if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
         token = _token;
