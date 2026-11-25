@@ -12,6 +12,7 @@ contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
 
     event LogWithdraw(address indexed user, uint256 amount);
 
+    /// @inheritdoc IBalanceHolder_ERC20
     function withdraw() public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
