@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 import {IRealityETHCore_ERC20} from "./IRealityETHCore_ERC20.sol";
 import {IRealityETHCommitReveal_ERC20} from "./IRealityETHCommitReveal_ERC20.sol";

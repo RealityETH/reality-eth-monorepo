@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 import {IBalanceHolder_ERC20} from "./IBalanceHolder_ERC20.sol";
 import {IERC20} from "./IERC20.sol";

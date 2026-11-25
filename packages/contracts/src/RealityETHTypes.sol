@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 /// @notice The answer type a template declares. Drives on-chain answer validation.
 /// @dev Numbering follows v3's template base ids. Datetime validates like Uint
