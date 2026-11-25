@@ -9,6 +9,9 @@ interface IOwned {
     /// @param newOwner The owner after the transfer
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    /// @notice The caller must be the owner
+    error MsgSenderMustBeOwner();
+
     function owner() external view returns (address);
     function transferOwnership(address newOwner) external;
 }

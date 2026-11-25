@@ -9,14 +9,17 @@ import {IERC20} from "./interfaces/IERC20.sol";
 contract RealityETH_ERC20_Factory {
     /// @notice There should only be one deployment per version per token
     error ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
+    /// @notice The library address must not be the zero address
+    error LibraryAddressMustNotBeZero();
 
     address public libraryAddress;
     mapping(address token => address instance) public deployments;
 
     // solhint-disable-next-line event-name-camelcase
-    event RealityETH_ERC20_deployed(address realityEth, address token, uint8 decimals, string tokenTicker);
+    event RealityETH_ERC20_deployed(address indexed realityEth, address indexed token, uint8 decimals, string tokenTicker);
 
     constructor(address _libraryAddress) {
+        if (_libraryAddress == address(0)) revert LibraryAddressMustNotBeZero();
         libraryAddress = _libraryAddress;
     }
 

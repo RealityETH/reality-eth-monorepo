@@ -16,7 +16,7 @@ contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
     function withdraw() public {
         uint256 bal = balanceOf[msg.sender];
         balanceOf[msg.sender] = 0;
-        require(token.transfer(msg.sender, bal));
+        if (!token.transfer(msg.sender, bal)) revert TokenTransferFailed();
         emit LogWithdraw(msg.sender, bal);
     }
 }

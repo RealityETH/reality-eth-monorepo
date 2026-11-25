@@ -112,6 +112,7 @@ contract Arbitrator is Owned, IArbitrator {
 
     /// @inheritdoc IArbitratorManagement
     function withdraw(address addr) public onlyOwner {
+        if (addr == address(0)) revert RecipientMustNotBeZero();
         payable(addr).transfer(address(this).balance);
     }
 

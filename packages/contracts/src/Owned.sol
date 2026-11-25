@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.20;
 
-import "./interfaces/IOwned.sol";
+import {IOwned} from "./interfaces/IOwned.sol";
 
 contract Owned is IOwned {
     address public owner;
@@ -13,7 +13,7 @@ contract Owned is IOwned {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        if (msg.sender != owner) revert MsgSenderMustBeOwner();
         _;
     }
 
