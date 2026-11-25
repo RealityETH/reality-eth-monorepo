@@ -685,12 +685,14 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             uint256 threshold = minBond * levels[i].bondThresholdPct;
             // Below this threshold at the current (lower) fee? Then the bond belongs in the current tier.
             if (value * 10000 < threshold * (100 + feePct)) break;
-            // Reached it, but not enough value to also cover this level's fee on the threshold? Plateau:
-            // pin the bond at the threshold and take the remainder as the (partial) fee.
+            // Reached it, but not enough value to also cover this level's fee? Keep the bond in the lower
+            // tier -- its highest allowed value, just under the threshold -- at the lower tier's timeout,
+            // and treat the excess as a fee. The higher tier (and its longer timeout) is entered only once
+            // its fee is covered.
             if (value * 10000 < threshold * (100 + levels[i].feePct)) {
-                bond = threshold / 100;
+                bond = (threshold - 1) / 100;
                 fee = value - bond;
-                return (bond, fee, levels[i].timeoutPct);
+                return (bond, fee, timeoutPct);
             }
             // Past the plateau: this level's fee is fully covered, so adopt it and keep climbing.
             feePct = levels[i].feePct;

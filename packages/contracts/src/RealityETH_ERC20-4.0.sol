@@ -771,10 +771,11 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (levels.length == 0) {
             return (value, 0, 100);
         }
-        // Tiers are keyed on the resulting bond (as a percentage of minBond), with the fee phasing in
-        // across each threshold. Within a tier the bond climbs with the value; at a threshold it holds
-        // (a plateau) while the extra fee ramps from the lower tier's rate up to this tier's rate, then
-        // climbs again -- so the recorded bond is a continuous, non-decreasing function of the value.
+        // Tiers are keyed on the resulting bond (as a percentage of minBond). Within a tier the bond
+        // climbs with the value. In the gap above a threshold -- the value clears the threshold but not
+        // the next tier's fee -- the bond holds at the lower tier's highest allowed value (keeping the
+        // lower tier's timeout) and the excess is taken as a fee; the higher tier is entered only once
+        // its fee is covered. The recorded bond stays continuous and non-decreasing.
         uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond levels at ask time
         uint256 feePct = 0;
         timeoutPct = 100; // implicit first level [100, 100, 0]
@@ -784,12 +785,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             uint256 threshold = minBond * levels[i].bondThresholdPct;
             // Below this threshold at the current (lower) fee? Then the bond belongs in the current tier.
             if (value * 10000 < threshold * (100 + feePct)) break;
-            // Reached it, but not enough value to also cover this level's fee on the threshold? Plateau:
-            // pin the bond at the threshold and take the remainder as the (partial) fee.
+            // Reached it, but not enough value to also cover this level's fee? Keep the bond in the lower
+            // tier -- its highest allowed value, just under the threshold -- at the lower tier's timeout,
+            // and treat the excess as a fee. The higher tier (and its longer timeout) is entered only once
+            // its fee is covered.
             if (value * 10000 < threshold * (100 + levels[i].feePct)) {
-                bond = threshold / 100;
+                bond = (threshold - 1) / 100;
                 fee = value - bond;
-                return (bond, fee, levels[i].timeoutPct);
+                return (bond, fee, timeoutPct);
             }
             // Past the plateau: this level's fee is fully covered, so adopt it and keep climbing.
             feePct = levels[i].feePct;

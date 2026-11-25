@@ -147,19 +147,19 @@ contract V4BondLevelsTest is Test {
 
     // Bond-keyed with a phased-in fee: a value in the gap above a threshold pins the bond at the
     // threshold and takes the remainder as the (partial) fee, so the fee ramps in instead of jumping.
-    function test_value_in_gap_pins_bond_at_threshold() public {
+    function test_value_in_gap_stays_in_lower_tier() public {
         uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
-        // 2100 is above the 200% threshold (2000); the full 10% fee would need 2200, so the bond pins at
-        // 2000 and the remaining 100 is the (partial) fee, at the 200% tier's timeout.
+        // 2100 clears the 200% threshold (2000) but can't cover its 10% fee (which needs 2200), so the
+        // bond stays at the base tier's max (1999) with the base timeout, and the excess 101 is the fee.
         (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 eff) = rc.getBondSettingsForValue(qid, 2100);
-        assertEq(bond, 2000, "bond pinned at the threshold");
-        assertEq(fee, 100, "the remainder is the fee (partway to the 10% rate)");
-        assertEq(timeoutPct, 200, "threshold reached -> that tier's timeout");
-        assertEq(uint256(eff), TIMEOUT * 2, "effective timeout x2");
+        assertEq(bond, 1999, "bond stays at the lower tier's max");
+        assertEq(fee, 101, "the excess over the lower-tier bond is the fee");
+        assertEq(timeoutPct, 100, "lower (base) tier timeout, not escalated");
+        assertEq(uint256(eff), TIMEOUT, "base timeout");
         rc.submitAnswer{value: 2100}(qid, bytes32(uint256(5)), 0);
-        assertEq(rc.questions(qid).bond, 2000, "pinned bond recorded");
-        assertEq(rc.balanceOf(arb), 100, "partial fee to the arbitrator");
+        assertEq(rc.questions(qid).bond, 1999, "lower-tier bond recorded");
+        assertEq(rc.balanceOf(arb), 101, "excess fee to the arbitrator");
 
         // getAnswerFeeForBond is a direct per-tier lookup: 4000 is at the 400% tier (20%) -> 800
         assertEq(rc.getAnswerFeeForBond(qid, 4000), 800, "tier-2 fee is a direct 20% of the bond");
@@ -170,13 +170,13 @@ contract V4BondLevelsTest is Test {
         uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         (uint256 b1,,,) = rc.getBondSettingsForValue(qid, 1999); // base, just below the threshold
-        (uint256 b2,,,) = rc.getBondSettingsForValue(qid, 2000); // plateau start
-        (uint256 b3,,,) = rc.getBondSettingsForValue(qid, 2200); // tier proper (full fee)
+        (uint256 b2,,,) = rc.getBondSettingsForValue(qid, 2000); // in the gap -> held at the lower tier's max
+        (uint256 b3,,,) = rc.getBondSettingsForValue(qid, 2200); // enters the tier once its fee is covered
         (uint256 b4,,,) = rc.getBondSettingsForValue(qid, 2310); // climbing within the tier
         assertEq(b1, 1999, "base: bond == value");
-        assertEq(b2, 2000, "plateau: pinned at the threshold");
-        assertEq(b3, 2000, "still 2000 once the full fee is covered");
-        assertEq(b4, 2100, "climbs again past the plateau");
+        assertEq(b2, 1999, "gap: held at the lower tier's max");
+        assertEq(b3, 2000, "enters the tier once its fee is covered");
+        assertEq(b4, 2100, "climbs within the tier");
         assertGe(b2, b1);
         assertGe(b3, b2);
         assertGe(b4, b3);
