@@ -3,16 +3,14 @@
 pragma solidity ^0.8.4;
 
 /// @notice The answer type a template declares. Drives on-chain answer validation.
-/// @dev Numbering follows v3's template base ids. Datetime validates like Uint
-/// (it is a display hint). Hash is the type the Zodiac/Snapshot integration uses.
 enum AnswerType {
-    Bool, // 0 — answer in {0, 1}
-    Uint, // 1 — any uint, rendered with `decimals`
+    Bool, // 0 — answer {0, 1}
+    Uint, // 1 — any uint below uint256(-2), rendered with `decimals`
     SingleSelect, // 2 — answer = index into `outcomes`
     MultipleSelect, // 3 — answer = bitmask over `outcomes`
     Datetime, // 4 — unix timestamp, validated like Uint
     Hash, // 5 — any bytes32
-    Assertion // 6 — "boolean with no no": the only substantive answer is 1 (plus the universal sentinels)
+    Assertion // 6 — "boolean with no no": the only substantive answer is 1 (plus invalid/too-soon)
 }
 
 /// @notice One step of a template's bond levels. As an answer's bond rises past each level's
@@ -27,9 +25,10 @@ struct BondLevel {
 
 /// @notice A reusable, structured, on-chain question template.
 /// @dev title/description/category/lang replace the old delimiter-joined JSON.
-/// `hasDescription`/`hasCategory`/`hasLang` drive a tri-state per field: false =>
-/// unused; true with a non-empty stored string => preset; true with an empty
-/// stored string => supplied by the asker at ask time.
+/// `hasDescription`/`hasCategory`/`hasLang` drive a tri-state per field: 
+/// false => unused; 
+/// true with a non-empty stored string => preset; 
+/// true with an empty /// stored string => supplied by the asker at ask time.
 struct Template {
     // scalars (pack into a single slot: 1+1+4 bools + 20-byte address = 26 bytes)
     AnswerType answerType;
@@ -38,10 +37,6 @@ struct Template {
     bool hasDescription;
     bool hasCategory;
     bool hasLang;
-    // When true, the template fixes the corresponding field below for every question (even to the
-    // zero value, e.g. "no arbitrator" / "no minimum bond"); the asker must leave it empty at ask
-    // time, the question stores nothing for it, and reads fall back to the template. When false,
-    // the asker supplies it per question and it is stored on the question.
     bool arbitratorFromTemplate;
     bool minBondFromTemplate;
     address arbitrator; // packs into the scalar slot

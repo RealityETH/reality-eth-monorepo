@@ -26,25 +26,17 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
     bytes32 private constant INVALID = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    // Upper bound for a Uint template's decimals. 63 is a round 6-bit cap, far above any realistic
-    // precision (the default is 18) and well under the point a uint256 answer stops being able to
-    // represent whole units (10**78 > 2**256).
+    // Max number of decimals for a uint256 answer, typically 0 or 18
     uint8 private constant MAX_DECIMALS = 63;
 
-    // Fees that would otherwise be burned (the bond-claim fee, and the bond-level fee when there is no
-    // arbitrator) are credited here instead; address(0) keeps the old burn behaviour. Set at creation.
+    // Fees that would otherwise be burned are credited here.
     address public immutable treasury;
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
-    // Per-template bond levels (empty for most templates). Kept in its own mapping rather than as a
-    // Template field because the legacy (no-via_ir) codegen can't copy a memory BondLevel[] into storage
-    // (templateRegistry[id] = template would fail), so the levels are pushed element-by-element here
-    // instead. Still strictly per-template (set atomically in createTemplate(template, levels)), not a
-    // shared registry.
+    // Optional custom settings for fee and timeout depending on bond level
     mapping(uint256 templateId => BondLevel[] levels) internal templateBondLevels;
-    // internal + explicit struct getter below: the flat auto-getter would return
-    // too many stack slots for the legacy codegen as the struct grows.
+
     mapping(bytes32 questionId => Question question) internal _questions;
     mapping(bytes32 questionId => Claim claim) public questionClaims;
     mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopenedQuestions;
@@ -118,13 +110,10 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     /// @inheritdoc IRealityETHCore
     function createInitialTemplates() public {
         if (nextTemplateID != 0) revert TemplatesAlreadyCreated();
-        // Generalized defaults: 0 bool, 1 uint, 2 single-select, 3 multiple-select, 4 datetime
-        // (the historical reality.eth ids) and 5 assertion (new in v4): the asker
-        // supplies the whole title via params[0] (a single "" interpolation slot). The
-        // select types carry no preset outcomes here, so the asker supplies them per
-        // question at ask time. Every default declares English (lang "en").
+        // Defaults:
+        // 0 bool, 1 uint, 2 single-select, 3 multiple-select, 4 datetime, 5 assertion
         string[] memory titleOnly = new string[](1); // one "" interpolation slot
-        string[] memory noOutcomes = new string[](0);
+        string[] memory noOutcomes = new string[](0); // outcomes inapplicable or per-question
         createTemplate(
             Template(
                 AnswerType.Bool,
@@ -269,7 +258,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     {
         id = _createTemplate(template);
         _validateBondLevels(levels);
-        // Copy element-by-element: the legacy codegen can't assign a calldata struct array to storage.
+        // Copy calldata struct array to storage.
         BondLevel[] storage stored = templateBondLevels[id];
         for (uint256 i = 0; i < levels.length; i++) {
             stored.push(levels[i]);
@@ -315,9 +304,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         if (levels.length == 0) {
             return 0; // no fee
         }
-        // Tiers are keyed on the bond, so the fee is a direct lookup: find the highest level whose
-        // threshold (a percentage of minBond) the target bond reaches, and take that level's fee of the
-        // bond. Send targetBond + fee to post a bond of targetBond (within one base unit from integer division).
+        // Try every bond tier until we find one that exceeds the bond level
         uint256 minBond = _minBondOf(questionId);
         uint256 feePct = 0;
         uint256 n = levels.length;
@@ -331,8 +318,12 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return targetBond * feePct / 100;
     }
 
-    // Validate bond levels: <=255 levels; thresholds strictly increasing and above the
-    // implicit 100% level; timeouts non-decreasing and at least 100%; fees non-decreasing and at most 100%.
+    // Validate bond levels, up to 255 bands may be defined.
+    // Implicitly start at 100% of minBond, 100% of original timeout, 0% fee.
+    // Threshold must increase each time.
+    // Fee and timeout must increase or stay the same each time.
+    // Max fee is 100% of bond.
+    // Timeout (as percent of original) is uncapped (but will be clamped at 365 days when applied)
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {
         uint256 n = levels.length;
         if (n > 255) revert BondLevelsInvalid();
@@ -342,7 +333,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         for (uint256 i = 0; i < n; i++) {
             if (levels[i].bondThresholdPct <= prevThreshold) revert BondLevelsInvalid();
             if (levels[i].timeoutPct < prevTimeout) revert BondLevelsInvalid();
-            // fees must not decrease: tiers are keyed on the bond, so a higher bond must not pay less
             if (levels[i].feePct < prevFee) revert BondLevelsInvalid();
             if (levels[i].feePct > 100) revert BondLevelsInvalid();
             prevThreshold = levels[i].bondThresholdPct;
@@ -378,10 +368,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         if (!template.hasLang && bytes(template.lang).length != 0) revert TemplateFieldInvalid();
     }
 
-    // Resolve the effective outcome count for a question: the template's preset outcomes if it has any,
-    // otherwise the asker-supplied `outcomes`. Non-select templates must get no outcomes. Returns 0 for
-    // non-select types. The strings themselves live only in the content hash and event; the count is what
-    // answer validation needs on-chain.
+    // We store the number of outcomes so we can sanity-check the answers.
+    // Outcomes can be set in either the template or the question depending on template settings.
     function _resolveOutcomeCount(uint256 templateId, string[] memory outcomes) internal view returns (uint256) {
         Template storage t = templateRegistry[templateId];
         bool isSelect = t.answerType == AnswerType.SingleSelect || t.answerType == AnswerType.MultipleSelect;
@@ -398,8 +386,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return outcomes.length;
     }
 
-    // The number of interpolation slots in a template's title: each empty-string entry in titleParts
-    // is a slot the asker fills with one param. Templates are small, so the scan is cheap.
+    // Count the interpolation slots ("") in the title so we can sanity-check interpolation
     function _titleSlotCount(uint256 templateId) internal view returns (uint256 slots) {
         string[] storage parts = templateRegistry[templateId].titleParts;
         uint256 n = parts.length;
@@ -409,8 +396,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return slots;
     }
 
-    // Effective arbitrator for a new question: the template's if it fixes one, else the ask-time
-    // override. Reverts if the template fixes it and the asker also supplied one.
+    // Arbitrator for a new question, fixed by template or supplied per-question.
+    // Reverts if the template fixed it but the asker also supplied it.
     function _effectiveArbitrator(Template storage t, address supplied) internal view returns (address) {
         if (t.arbitratorFromTemplate) {
             if (supplied != address(0)) revert OverrideNotAllowed();
@@ -428,15 +415,13 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return supplied;
     }
 
-    // Read the effective arbitrator of an existing question: the template's when the template fixes it
-    // (arbitratorFromTemplate), otherwise the per-question value (which is only written when the asker supplied one).
+    // Arbitrator for an existing question, fixed by template or supplied per-question.
     function _arbitratorOf(bytes32 questionId) internal view returns (address) {
         Template storage t = templateRegistry[_questions[questionId].templateId];
         return t.arbitratorFromTemplate ? t.arbitrator : _questions[questionId].arbitrator;
     }
 
-    // Read the effective minBond of an existing question: the template's when the template fixes it
-    // (minBondFromTemplate), otherwise the per-question value.
+    // minBond for an existing question, fixed by template or supplied per-question.
     function _minBondOf(bytes32 questionId) internal view returns (uint256) {
         Template storage t = templateRegistry[_questions[questionId].templateId];
         return t.minBondFromTemplate ? t.minBond : _questions[questionId].minBond;
@@ -518,9 +503,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
         _askQuestion(questionId, templateId, contentHash, timeout, openingTs, msg.value);
 
-        // Store the overridable fields on the question only when the template did NOT fix them (the asker
-        // supplied them). When the template fixes a field, the question slot stays zero and reads fall back
-        // to the template, saving a cold SSTORE. Scoped so these temporaries free before the emit below.
+        // Store the question-specific overridable fields.
+        // If it's already in the template we'll read it from there instead to avoid gas storage cost
+        // Scoped to avoid stack-too-deep later
         {
             Template storage t = templateRegistry[templateId];
             if (!t.arbitratorFromTemplate && arbitrator != address(0)) {
@@ -640,18 +625,15 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _submitAnswer(questionId, answer, answerer);
     }
 
-    // Shared answer path: resolve the bond levels (bond + fee + timeout multiplier) from the
-    // value sent, enforce the bond rules on the derived bond, validate the answer, record it with the
-    // levels-scaled timeout, and credit any extra fee to the arbitrator.
     function _submitAnswer(bytes32 questionId, bytes32 answer, address answerer) internal {
         (uint256 bond, uint256 fee, uint256 timeoutPct) = _applyBondLevels(questionId, msg.value);
         _requireBondValid(questionId, bond);
         _validateAnswer(questionId, answer);
         _addAnswerToHistory(questionId, answer, answerer, bond);
         _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
+        // Apply the per-bond-level fee.
         if (fee > 0) {
-            // fee goes to the arbitrator; when there is no arbitrator (0x0) it goes to the treasury
-            // instead (a 0x0 treasury then burns it, as before)
+            // fee goes to the arbitrator, or the treasury if there is no arbitrator
             address arbitrator = _arbitratorOf(questionId);
             address recipient = arbitrator == NULL_ADDRESS ? treasury : arbitrator;
             balanceOf[recipient] = balanceOf[recipient] + fee;
@@ -659,10 +641,11 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         }
     }
 
-    // Split the value sent into a bond and an extra arbitrator fee per the template's levels, and report
-    // the timeout multiplier for the applicable level. No bond levels => (value, 0, 100%). The tier is keyed
-    // on the resulting bond (see below); the fee is taken on top, so bond = value*100/(100+feePct) and
-    // fee = value - bond (they sum back exactly).
+    // The user sends us bond+fee as a single payment.
+    // We need to work out how much of it is supposed to be the bond and how much the fee.
+    // Find the appropriate bond tier, split them out, and also return the timeout multiplier.
+    // If they exceeded one tier but didn't cover bond+fee in the next tier up,
+    // ...we'll assume they sent the max bond from the lower tier with a needlessly high fee.
     function _applyBondLevels(bytes32 questionId, uint256 value)
         internal
         view
@@ -672,10 +655,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         if (levels.length == 0) {
             return (value, 0, 100);
         }
-        // Tiers are keyed on the resulting bond (as a percentage of minBond), with the fee phasing in
-        // across each threshold. Within a tier the bond climbs with the value; at a threshold it holds
-        // (a plateau) while the extra fee ramps from the lower tier's rate up to this tier's rate, then
-        // climbs again -- so the recorded bond is a continuous, non-decreasing function of the value.
         uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond levels at ask time
         uint256 feePct = 0;
         timeoutPct = 100; // implicit first level [100, 100, 0]
@@ -694,7 +673,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
                 fee = value - bond;
                 return (bond, fee, timeoutPct);
             }
-            // Past the plateau: this level's fee is fully covered, so adopt it and keep climbing.
+            // Past the plateau: this level's fee is fully covered, so adopt it then try the next tier up.
             feePct = levels[i].feePct;
             timeoutPct = levels[i].timeoutPct;
         }
@@ -703,8 +682,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return (bond, fee, timeoutPct);
     }
 
-    // The base timeout scaled by the bond level's percentage, clamped to 365 days (so finalizeTs can't
-    // overflow uint32). timeoutPct >= 100 always, so this never rounds below the base.
+    // The base timeout scaled by the bond level's percentage, up to a maximum of 365 days
     function _effectiveTimeout(bytes32 questionId, uint256 timeoutPct) internal view returns (uint32) {
         uint256 eff = uint256(_questions[questionId].timeout) * timeoutPct / 100;
         if (eff > 365 days) eff = 365 days;
@@ -712,8 +690,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return uint32(eff);
     }
 
-    // Bond rules on the (levels-derived) bond: positive, and >= minBond on the first answer or at least
-    // double the previous bond thereafter. Replaces the bondMustDoubleAndMatchMinimum modifier.
+    // Ensures bond is at least minBond, and double the previous bond
     function _requireBondValid(bytes32 questionId, uint256 bond) internal view {
         if (bond == 0) revert BondMustBePositive();
         uint256 currentBond = _questions[questionId].bond;
