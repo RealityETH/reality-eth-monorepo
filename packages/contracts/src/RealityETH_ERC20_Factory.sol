@@ -36,9 +36,11 @@ contract RealityETH_ERC20_Factory {
 
     function createInstance(address _token) external {
         if (deployments[_token] != address(0)) revert ThereShouldOnlyBeOneDeploymentPerVersionPerToken();
-        uint8 decimals = IERC20(_token).decimals();
-        string memory ticker = IERC20(_token).symbol();
         address clone = _deployProxy(libraryAddress);
+        // Record the deployment before any call into the untrusted token (CEI): a
+        // malicious token re-entering via decimals()/symbol() then hits the guard
+        // above instead of deploying a duplicate instance for the same token.
+        deployments[_token] = clone;
         IRealityETH_ERC20(clone).setToken(IERC20(_token));
         /* solhint-disable quotes */
         // forge-lint: disable-start(unused-return) -- template ids not needed
@@ -49,7 +51,8 @@ contract RealityETH_ERC20_Factory {
         IRealityETH_ERC20(clone).createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
         // forge-lint: disable-end(unused-return)
         /* solhint-enable quotes */
-        deployments[_token] = clone;
+        uint8 decimals = IERC20(_token).decimals();
+        string memory ticker = IERC20(_token).symbol();
         emit RealityETH_ERC20_deployed(clone, _token, decimals, ticker);
     }
 }

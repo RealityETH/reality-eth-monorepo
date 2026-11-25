@@ -18,6 +18,7 @@ contract Owned is IOwned {
     }
 
     /// @inheritdoc IOwned
+    // forge-lint: disable-next-line(missing-zero-check) -- burning ownership (newOwner == address(0)) is permitted
     function transferOwnership(address newOwner) external onlyOwner {
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
