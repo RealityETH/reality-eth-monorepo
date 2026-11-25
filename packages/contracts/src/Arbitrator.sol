@@ -107,7 +107,10 @@ contract Arbitrator is Owned, IArbitrator {
     /// @inheritdoc IArbitratorManagement
     function withdraw(address addr) public onlyOwner {
         if (addr == address(0)) revert RecipientMustNotBeZero();
-        payable(addr).transfer(address(this).balance);
+        // call rather than transfer so a contract recipient (e.g. a multisig) isn't blocked by the
+        // 2300-gas stipend; owner-only, and no state follows, so there is nothing to reenter.
+        (bool ok,) = payable(addr).call{value: address(this).balance}("");
+        if (!ok) revert WithdrawFailed();
     }
 
     /// @inheritdoc IArbitratorManagement

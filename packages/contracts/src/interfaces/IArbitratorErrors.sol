@@ -11,4 +11,6 @@ interface IArbitratorErrors {
     error TokenTransferFailed();
     /// @notice The recipient address must not be the zero address
     error RecipientMustNotBeZero();
+    /// @notice The native-value transfer in withdraw() failed
+    error WithdrawFailed();
 }
