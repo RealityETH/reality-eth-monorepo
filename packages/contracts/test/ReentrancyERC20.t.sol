@@ -5,6 +5,31 @@ import {Test} from "forge-std/Test.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {MockReentrantERC20, IReentrancyHook} from "./mocks/MockReentrantERC20.sol";
+import {AnswerType, Template} from "../src/RealityETHTypes.sol";
+
+// Shared helpers for building v4 ask-time params/outcomes and a generalized bool template.
+function _one(string memory s) pure returns (string[] memory a) {
+    a = new string[](1);
+    a[0] = s;
+}
+
+function _none() pure returns (string[] memory) {
+    return new string[](0);
+}
+
+function _boolTpl() pure returns (Template memory) {
+    return Template(
+        AnswerType.Bool, 0, false, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
+    );
+}
+
+// Bool template that permits the ANSWERED_TOO_SOON sentinel (needed to settle a question "too soon").
+function _boolTplTooSoon() pure returns (Template memory) {
+    return
+        Template(
+            AnswerType.Bool, 0, true, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
+        );
+}
 
 interface IReenterTarget {
     function submitAnswerERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, uint256 tokens) external;
@@ -70,8 +95,8 @@ contract ReentrancyERC20Test is Test {
         token = new MockReentrantERC20();
         rc.setToken(IERC20(address(token)));
 
-        uint256 tid = rc.createTemplate("q");
-        qid = rc.askQuestionERC20(tid, "question", address(0), 30, 0, 0, 0);
+        uint256 tid = rc.createTemplate(_boolTpl());
+        qid = rc.askQuestionERC20(tid, _one("question"), _none(), address(0), 30, 0, 0, 0);
 
         attacker = new ReentrantAttacker(address(rc), address(token));
         token.mint(address(attacker), 100e18);
@@ -109,7 +134,8 @@ contract ReentrancyERC20Test is Test {
 interface IReopenTarget {
     function reopenQuestionERC20(
         uint256 templateId,
-        string calldata question,
+        string[] calldata params,
+        string[] calldata outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -127,7 +153,8 @@ contract ReentrantReopener is IReentrancyHook {
     MockReentrantERC20 public immutable token;
 
     uint256 internal templateId;
-    string internal question;
+    string[] internal params;
+    string[] internal outcomes;
     address internal arbitrator;
     uint32 internal timeout;
     uint32 internal openingTs;
@@ -147,7 +174,8 @@ contract ReentrantReopener is IReentrancyHook {
 
     function configure(
         uint256 _templateId,
-        string calldata _question,
+        string[] memory _params,
+        string[] memory _outcomes,
         address _arbitrator,
         uint32 _timeout,
         uint32 _openingTs,
@@ -156,7 +184,8 @@ contract ReentrantReopener is IReentrancyHook {
         uint256 _tokens
     ) external {
         templateId = _templateId;
-        question = _question;
+        params = _params;
+        outcomes = _outcomes;
         arbitrator = _arbitrator;
         timeout = _timeout;
         openingTs = _openingTs;
@@ -166,14 +195,18 @@ contract ReentrantReopener is IReentrancyHook {
     }
 
     function attack() external {
-        rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, 1, minBond, reopensQuestionId, tokens);
+        rc.reopenQuestionERC20(
+            templateId, params, outcomes, arbitrator, timeout, openingTs, 1, minBond, reopensQuestionId, tokens
+        );
     }
 
     function reentrancyHook() external {
         if (!reentered) {
             reentered = true;
             // Re-enter with a different nonce so it isn't a stateNotCreated collision.
-            rc.reopenQuestionERC20(templateId, question, arbitrator, timeout, openingTs, 2, minBond, reopensQuestionId, tokens);
+            rc.reopenQuestionERC20(
+                templateId, params, outcomes, arbitrator, timeout, openingTs, 2, minBond, reopensQuestionId, tokens
+            );
         }
     }
 }
@@ -198,13 +231,13 @@ contract ReopenReentrancyTest is Test {
         token = new MockReentrantERC20();
         rc.setToken(IERC20(address(token)));
 
-        uint256 tid = rc.createTemplate("q");
+        uint256 tid = rc.createTemplate(_boolTplTooSoon());
 
         // Original question with a bounty, answered "too soon" and finalized so it
         // is eligible to be reopened.
         token.mint(address(this), 1000e18);
         token.approve(address(rc), type(uint256).max);
-        origQid = rc.askQuestionERC20(tid, "question", address(0), TIMEOUT, 0, 0, 100e18);
+        origQid = rc.askQuestionERC20(tid, _one("question"), _none(), address(0), TIMEOUT, 0, 0, 100e18);
         rc.submitAnswerERC20(origQid, UNRESOLVED_ANSWER, 0, 1e18);
         vm.warp(block.timestamp + TIMEOUT + 1);
         assertTrue(rc.isSettledTooSoon(origQid), "precondition: settled too soon");
@@ -213,7 +246,7 @@ contract ReopenReentrancyTest is Test {
         token.mint(address(attacker), 1000e18);
         attacker.approveToken();
         // Reopen must match the original exactly except nonce/creator.
-        attacker.configure(tid, "question", address(0), TIMEOUT, 0, 0, origQid, 1e18);
+        attacker.configure(tid, _one("question"), _none(), address(0), TIMEOUT, 0, 0, origQid, 1e18);
     }
 
     /// Without reentrancy, a single reopen succeeds and is recorded.

@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {RealityETH_ERC20_Factory} from "../src/RealityETH_ERC20_Factory.sol";
 import {IRealityETH_ERC20} from "../src/interfaces/IRealityETH_ERC20.sol";
+import {AnswerType} from "../src/RealityETHTypes.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
 interface IFactoryCreate {
@@ -60,11 +61,14 @@ contract FactoryTest is Test {
 
         IRealityETH_ERC20 inst = IRealityETH_ERC20(clone);
         assertEq(address(inst.token()), address(token), "clone token set");
-        assertTrue(inst.templates(0) != 0, "template 0 seeded");
-        assertTrue(inst.templates(4) != 0, "template 4 seeded");
-        assertEq(inst.templates(5), 0, "no sixth template");
+        assertEq(uint256(inst.getTemplate(0).answerType), uint256(AnswerType.Bool), "template 0 seeded (bool)");
+        assertEq(uint256(inst.getTemplate(2).answerType), uint256(AnswerType.Datetime), "template 2 seeded (datetime)");
+        vm.expectRevert(); // v4 seeds only the 3 generalized defaults (0,1,2)
+        inst.getTemplate(3);
 
-        bytes32 qid = inst.askQuestionERC20(0, "q", address(0), 30, 0, 0, 0);
+        string[] memory params = new string[](1);
+        params[0] = "q";
+        bytes32 qid = inst.askQuestionERC20(0, params, new string[](0), address(0), 30, 0, 0, 0);
         assertTrue(qid != bytes32(0), "question created on clone");
     }
 

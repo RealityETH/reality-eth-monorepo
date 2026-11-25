@@ -81,4 +81,18 @@ interface IRealityETHErrors {
     error HistoryInputProvidedDidNotMatchTheExpectedHash();
     /// @notice The initial templates have already been created
     error TemplatesAlreadyCreated();
+    /// @notice A template must have at least one title part
+    error TemplateTitleRequired();
+    /// @notice A template may preset up to 256 outcomes for select types, and none otherwise
+    error TemplateOutcomesInvalid();
+    /// @notice Outcomes supplied at ask time are invalid: required but missing/too many, supplied for a non-select type, or supplied when the template already presets them
+    error OutcomesInvalid();
+    /// @notice An ask-time override (arbitrator or minBond) was supplied for a field the template already fixes
+    error OverrideNotAllowed();
+    /// @notice Only Uint templates may set decimals
+    error TemplateDecimalsInvalid();
+    /// @notice A field flagged unused must not carry a preset value
+    error TemplateFieldInvalid();
+    /// @notice The submitted answer is not valid for this question's template
+    error AnswerNotAllowedForTemplate();
 }

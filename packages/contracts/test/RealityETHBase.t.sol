@@ -5,6 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {IRealityETHHarness} from "./interfaces/IRealityETHHarness.sol";
 import {RealityETH_v4_0} from "../src/RealityETH-4.0.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
+import {IRealityETHCore} from "../src/interfaces/IRealityETHCore.sol";
+import {IRealityETHCore_ERC20} from "../src/interfaces/IRealityETHCore_ERC20.sol";
+import {AnswerType, Template} from "../src/RealityETHTypes.sol";
 
 /// @dev Base harness for the ported RealityETH suite.
 ///
@@ -30,6 +33,14 @@ abstract contract RealityETHBase is Test {
     bool internal createdBlockSupported; // question createdBlock field (added in 4.0)
     uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
+    // 4.0 validates answers by the template's answer type, and templates/questions use a structured
+    // ABI (string[] params/outcomes) rather than a question string. The ported suite asks generic
+    // questions on template 0 with arbitrary uint answers (and occasionally the ANSWERED_TOO_SOON
+    // sentinel). So on 4.0 we create one freeform template -- Uint (accepts any bytes32) with
+    // hasAnsweredTooSoon enabled -- and the ask/hash helpers substitute it for template id 0. The
+    // mechanics under test (bonds, claims, arbitration, reopening) are answer-type-agnostic.
+    uint256 internal freeformTemplateId;
+
     function setUp() public virtual {
         contractName = vm.envOr("REALITYETH", string("RealityETH-3.0"));
         _configureVersion(contractName);
@@ -38,10 +49,55 @@ abstract contract RealityETHBase is Test {
         // stay on their frozen committed bytecode as regression fixtures.
         if (versionNum == 40) {
             rc = IRealityETHHarness(_deployV4Source());
+            freeformTemplateId = _createFreeformTemplate();
         } else {
             rc = IRealityETHHarness(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
         }
         vm.deal(address(this), 1000 ether);
+    }
+
+    // ---------------------------------------------------------------------
+    // 4.0 ABI helpers (see freeformTemplateId above)
+    // ---------------------------------------------------------------------
+
+    // The template id the generic helpers use for 4.0; template 0 is remapped to the freeform template.
+    function _tid(uint256 templateId) internal view returns (uint256) {
+        return (versionNum >= 40 && templateId == 0) ? freeformTemplateId : templateId;
+    }
+
+    // A one-element ["<question>"] params array (the 4.0 title has a single interpolation slot).
+    function _v4Params(string memory question) internal pure returns (string[] memory a) {
+        a = new string[](1);
+        a[0] = question;
+    }
+
+    function _v4NoOutcomes() internal pure returns (string[] memory) {
+        return new string[](0);
+    }
+
+    // Create the Uint + ANSWERED_TOO_SOON freeform template used by the ported suite on 4.0.
+    function _createFreeformTemplate() internal returns (uint256) {
+        Template memory t = Template(
+            AnswerType.Uint,
+            0,
+            true, // hasAnsweredTooSoon: allow the too-soon sentinel as a user answer
+            false,
+            false,
+            false,
+            false, // arbitratorFromTemplate: asker supplies it
+            false, // minBondFromTemplate: asker supplies it
+            address(0),
+            0,
+            _v4Params(""), // single interpolation slot
+            _v4NoOutcomes(),
+            "",
+            "",
+            ""
+        );
+        if (isERC20) {
+            return IRealityETHCore_ERC20(address(rc)).createTemplate(t);
+        }
+        return IRealityETHCore(address(rc)).createTemplate(t);
     }
 
     // ---------------------------------------------------------------------
@@ -136,9 +192,13 @@ abstract contract RealityETHBase is Test {
 
     function _contentHash(uint256 templateId, uint32 openingTs, string memory question)
         internal
-        pure
+        view
         returns (bytes32)
     {
+        if (versionNum >= 40) {
+            // 4.0: templateId 0 -> the freeform template, question -> params[0], no outcomes.
+            return keccak256(abi.encode(_tid(templateId), openingTs, _v4Params(question), _v4NoOutcomes()));
+        }
         return keccak256(abi.encodePacked(templateId, openingTs, question));
     }
 
@@ -231,13 +291,31 @@ abstract contract RealityETHBase is Test {
     }
 
     function _q(bytes32 qid) internal view returns (Q memory q) {
+        // 4.0 returns the Question struct from an explicit getter with a reordered layout, so decode via
+        // the typed interface and map by field name. (arbitrator/minBond read the stored per-question
+        // values, which equal the effective values for the freeform template the suite uses.)
+        if (versionNum >= 40) {
+            IRealityETHCore.Question memory v = IRealityETHCore(address(rc)).questions(qid);
+            return Q(
+                v.contentHash,
+                v.arbitrator,
+                v.openingTs,
+                v.timeout,
+                v.finalizeTs,
+                v.isPendingArbitration,
+                v.bounty,
+                v.bestAnswer,
+                v.historyHash,
+                v.bond,
+                v.minBond,
+                v.createdBlock
+            );
+        }
         (bool ok, bytes memory data) = address(rc).staticcall(abi.encodeWithSignature("questions(bytes32)", qid));
         require(ok, "questions() call failed");
         // All fields are static, so the getter's return layout matches the
         // struct's; decode into the struct in one shot (avoids stack-too-deep).
-        if (versionNum >= 40) {
-            q = abi.decode(data, (Q));
-        } else if (versionNum >= 30) {
+        if (versionNum >= 30) {
             Q11 memory x = abi.decode(data, (Q11));
             q = Q(
                 x.contentHash,

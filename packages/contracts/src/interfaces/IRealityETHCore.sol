@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 
 import {IBalanceHolder} from "./IBalanceHolder.sol";
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
+import {AnswerType, Template} from "../RealityETHTypes.sol";
 
 /* solhint-disable func-name-mixedcase */
 
@@ -13,12 +14,21 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     event LogFinalize(bytes32 indexed questionId, bytes32 indexed answer);
     event LogFundAnswerBounty(bytes32 indexed questionId, uint256 bountyAdded, uint256 bounty, address indexed user);
     event LogMinimumBond(bytes32 indexed questionId, uint256 minBond);
-    event LogNewAnswer(bytes32 answer, bytes32 indexed questionId, bytes32 historyHash, address indexed user, uint256 bond, uint256 ts, bool isCommitment);
+    event LogNewAnswer(
+        bytes32 answer,
+        bytes32 indexed questionId,
+        bytes32 historyHash,
+        address indexed user,
+        uint256 bond,
+        uint256 ts,
+        bool isCommitment
+    );
     event LogNewQuestion(
         bytes32 indexed questionId,
         address indexed user,
         uint256 templateId,
-        string question,
+        string[] params,
+        string[] outcomes,
         bytes32 indexed contentHash,
         address arbitrator,
         uint32 timeout,
@@ -26,23 +36,31 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 nonce,
         uint256 created
     );
-    event LogNewTemplate(uint256 indexed templateId, address indexed user, string questionText);
+    event LogNewTemplate(uint256 indexed templateId, address indexed user);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
 
     struct Question {
+        // slot 0
         bytes32 contentHash;
-        address arbitrator;
+        // slot 1: the small fields pack together (4+4+4+8+8+2+1 == 31 bytes). The three
+        // timestamps live here (not with arbitrator) so arbitrator can have its own slot.
         uint32 openingTs;
         uint32 timeout;
         uint32 finalizeTs;
+        uint64 createdBlock;
+        uint64 templateId;
+        uint16 outcomeCount; // select types only: effective number of outcomes (asker-supplied or template default)
         bool isPendingArbitration;
+        // slot 2: arbitrator alone. Zero when the template fixes the arbitrator, so it stays
+        // an unwritten slot in that case (saves a cold SSTORE); reads fall back to the template.
+        address arbitrator;
+        // full slots
         uint256 bounty;
         bytes32 bestAnswer;
         bytes32 historyHash;
         uint256 bond;
-        uint256 minBond;
-        uint64 createdBlock;
+        uint256 minBond; // zero when the template fixes minBond; reads fall back to the template
     }
 
     // Only used when claiming more bonds than fits into a transaction
@@ -104,13 +122,23 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param addrs Last-to-first, the address of each answerer
     /// @param bonds Last-to-first, the bond supplied with each answer
     /// @param answers Last-to-first, each answer supplied
-    function claimWinnings(bytes32 questionId, bytes32[] calldata historyHashes, address[] calldata addrs, uint256[] calldata bonds, bytes32[] calldata answers) external;
-    /// @notice Create a reusable template, which should be a JSON document.
-    /// Placeholders should use gettext() syntax, eg %s.
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
+    function claimWinnings(
+        bytes32 questionId,
+        bytes32[] calldata historyHashes,
+        address[] calldata addrs,
+        uint256[] calldata bonds,
+        bytes32[] calldata answers
+    ) external;
+    /// @notice Create a reusable, structured template stored on-chain.
+    /// @dev The template is kept in contract storage (not only in the event log) so answer
+    /// validation and rendering can read it back. See {Template}.
+    /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplate(string calldata content) external returns (uint256);
+    function createTemplate(Template calldata template) external returns (uint256);
+    /// @notice Read back a stored template by id.
+    /// @param templateId The template id
+    /// @return The stored template
+    function getTemplate(uint256 templateId) external view returns (Template memory);
     /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;
@@ -132,34 +160,59 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @notice Ask a new question and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param openingTs If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestion(uint256 templateId, string calldata question, address arbitrator, uint32 timeout, uint32 openingTs, uint256 nonce) external payable returns (bytes32);
+    function askQuestion(
+        uint256 templateId,
+        string[] calldata params,
+        string[] calldata outcomes,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce
+    ) external payable returns (bytes32);
     /// @notice Ask a new question and return the ID
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
     /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param openingTs If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
     /// @param minBond The minimum bond that may be used for an answer.
     /// @return The ID of the newly-created question, created deterministically.
-    function askQuestionWithMinBond(uint256 templateId, string calldata question, address arbitrator, uint32 timeout, uint32 openingTs, uint256 nonce, uint256 minBond) external payable returns (bytes32);
+    function askQuestionWithMinBond(
+        uint256 templateId,
+        string[] calldata params,
+        string[] calldata outcomes,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce,
+        uint256 minBond
+    ) external payable returns (bytes32);
     /// @notice Create a new reusable template and use it to ask a question
     /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param content The template content
-    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param template The structured template content
+    /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param openingTs If set, the earliest time it should be possible to answer the question.
     /// @param nonce A user-specified nonce used in the question ID. Change it to repeat a question.
-    /// @return The ID of the newly-created template, which is created sequentially.
-    function createTemplateAndAskQuestion(string calldata content, string calldata question, address arbitrator, uint32 timeout, uint32 openingTs, uint256 nonce) external payable returns (bytes32);
+    /// @return The ID of the newly-created question, created deterministically.
+    function createTemplateAndAskQuestion(
+        Template calldata template,
+        string[] calldata params,
+        string[] calldata outcomes,
+        address arbitrator,
+        uint32 timeout,
+        uint32 openingTs,
+        uint256 nonce
+    ) external payable returns (bytes32);
     /// @notice Add funds to the bounty for a question
     /// @dev Add bounty funds after the initial question creation. Can be done any time until the question is finalized.
     /// @param questionId The ID of the question you wish to fund
@@ -167,7 +220,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @notice Asks a new question reopening a previously-asked question that was settled too soon
     /// @dev A special version of askQuestion() that replaces a previous question that was settled too soon
     /// @param templateId The ID number of the template the question will use
-    /// @param question A string containing the parameters that will be passed into the template to make the question
+    /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
     /// @param timeout How long the contract should wait after the answer is changed before finalizing on that answer
     /// @param openingTs If set, the earliest time it should be possible to answer the question.
@@ -177,7 +230,8 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @return The ID of the newly-created question, created deterministically.
     function reopenQuestion(
         uint256 templateId,
-        string calldata question,
+        string[] calldata params,
+        string[] calldata outcomes,
         address arbitrator,
         uint32 timeout,
         uint32 openingTs,
@@ -231,7 +285,13 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param minTimeout The timeout set in the initial question settings must be this high or higher
     /// @param minBond The bond sent with the final answer must be this high or higher
     /// @return The answer formatted as a bytes32
-    function getFinalAnswerIfMatches(bytes32 questionId, bytes32 contentHash, address arbitrator, uint32 minTimeout, uint256 minBond) external view returns (bytes32);
+    function getFinalAnswerIfMatches(
+        bytes32 questionId,
+        bytes32 contentHash,
+        address arbitrator,
+        uint32 minTimeout,
+        uint256 minBond
+    ) external view returns (bytes32);
     /// @notice Returns the timestamp at which the question will be/was finalized
     /// @param questionId The ID of the question
     /// @return The timestamp at which the question will be, or was, finalized
@@ -266,25 +326,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @return True if the question was settled too soon (resolved to UNRESOLVED_ANSWER)
     function isSettledTooSoon(bytes32 questionId) external view returns (bool);
     function questionClaims(bytes32) external view returns (address payee, uint256 lastBond, uint256 queuedFunds);
-    function questions(
-        bytes32
-    )
-        external
-        view
-        returns (
-            bytes32 contentHash,
-            address arbitrator,
-            uint32 openingTs,
-            uint32 timeout,
-            uint32 finalizeTs,
-            bool isPendingArbitration,
-            uint256 bounty,
-            bytes32 bestAnswer,
-            bytes32 historyHash,
-            uint256 bond,
-            uint256 minBond,
-            uint64 createdBlock
-        );
+    function questions(bytes32 questionId) external view returns (Question memory);
     function reopenedQuestions(bytes32) external view returns (bytes32);
     function reopenerQuestions(bytes32) external view returns (bool);
     /// @notice Return the final answer to the specified question, or revert if there isn't one
@@ -295,6 +337,4 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param questionId The ID of the question
     /// @return The final answer, encoded as bytes32
     function resultForOnceSettled(bytes32 questionId) external view returns (bytes32);
-    function templateHashes(uint256) external view returns (bytes32);
-    function templates(uint256) external view returns (uint256);
 }
