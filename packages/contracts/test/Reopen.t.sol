@@ -42,7 +42,7 @@ contract ReopenTest is RealityETHStd {
         _oneClaim(k0, 3, ANSWERED_TOO_SOON);
         assertEq(rc.balanceOf(k0), 3, "winner gets their bond back but no bounty");
 
-        assertEq(rc.reopened_questions(question_id), bytes32(0));
+        assertEq(_reopenedQuestion(question_id), bytes32(0));
         assertEq(_q(question_id).bounty, 1000);
 
         // details differ from the original question
@@ -50,7 +50,7 @@ contract ReopenTest is RealityETHStd {
 
         bytes32 reopenId = _questionId(0, "my question", address(arb), 30, 0, 1, k0, 0);
         _reopen(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
-        assertEq(rc.reopened_questions(question_id), reopenId);
+        assertEq(_reopenedQuestion(question_id), reopenId);
 
         assertEq(_q(question_id).bounty, 0, "bounty leaves the reopened question");
         assertEq(_q(reopenId).bounty, 1000 + 123 - 100);
@@ -73,7 +73,7 @@ contract ReopenTest is RealityETHStd {
 
         assertEq(_q(reopenId).bounty, 0, "reopening moves the bounty to the new question");
         assertEq(_q(reopenId2).bounty, preReopenBounty + 543 - 100);
-        assertEq(rc.reopened_questions(question_id), reopenId2);
+        assertEq(_reopenedQuestion(question_id), reopenId2);
 
         // now the parent is reopened again, the child can be reopened
         _reopen(k0, 0, "my question", address(arb), 30, 0, 4, 0, reopenId, 123);

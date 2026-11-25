@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {IRealityETHHarness} from "./interfaces/IRealityETHHarness.sol";
+import {RealityETH_v4_0} from "../src/RealityETH-4.0.sol";
+import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 
 /// @dev Base harness for the ported RealityETH suite.
 ///
@@ -29,8 +31,25 @@ abstract contract RealityETHBase is Test {
     function setUp() public virtual {
         contractName = vm.envOr("REALITYETH", string("RealityETH-3.0"));
         _configureVersion(contractName);
-        rc = IRealityETHHarness(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
+        // v4 is the current development source, so we deploy and test the compiled
+        // source directly. Released versions (2.0-3.2) have no source in src/ and
+        // stay on their frozen committed bytecode as regression fixtures.
+        if (versionNum == 40) {
+            rc = IRealityETHHarness(_deployV4Source());
+        } else {
+            rc = IRealityETHHarness(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
+        }
         vm.deal(address(this), 1000 ether);
+    }
+
+    // ---------------------------------------------------------------------
+    // deployment: compile-from-source (v4, the current development version)
+    // ---------------------------------------------------------------------
+    function _deployV4Source() internal returns (address) {
+        if (isERC20) {
+            return address(new RealityETH_ERC20_v4_0());
+        }
+        return address(new RealityETH_v4_0());
     }
 
     // ---------------------------------------------------------------------
@@ -214,6 +233,15 @@ abstract contract RealityETHBase is Test {
                 0
             );
         }
+    }
+
+    // reopened_questions getter. Renamed reopened_questions -> reopenedQuestions
+    // (camelCase) in v4, so pick the signature by version (same technique as _q).
+    function _reopenedQuestion(bytes32 qid) internal view returns (bytes32) {
+        string memory sig = versionNum >= 40 ? "reopenedQuestions(bytes32)" : "reopened_questions(bytes32)";
+        (bool ok, bytes memory data) = address(rc).staticcall(abi.encodeWithSignature(sig, qid));
+        require(ok, "reopened_questions getter failed");
+        return abi.decode(data, (bytes32));
     }
 
     // advance the chain clock by `secs` (Python _advance_clock / time_travel)
