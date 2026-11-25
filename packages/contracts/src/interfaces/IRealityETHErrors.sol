@@ -81,4 +81,6 @@ interface IRealityETHErrors {
     error AtLeastOneHistoryHashEntryMustBeProvided();
     /// @notice History input provided did not match the expected hash
     error HistoryInputProvidedDidNotMatchTheExpectedHash();
+    /// @notice The initial templates have already been created
+    error TemplatesAlreadyCreated();
 }

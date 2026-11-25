@@ -96,15 +96,22 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _;
     }
 
-    /* solhint-disable quotes */
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
     constructor() {
+        createInitialTemplates();
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function createInitialTemplates() public {
+        if (nextTemplateID != 0) revert TemplatesAlreadyCreated();
+        /* solhint-disable quotes */
         createTemplate('{"title": "%s", "type": "bool", "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "uint", "decimals": 18, "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "single-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "multiple-select", "outcomes": [%s], "category": "%s", "lang": "%s"}');
         createTemplate('{"title": "%s", "type": "datetime", "category": "%s", "lang": "%s"}');
+        /* solhint-enable quotes */
     }
     /* solhint-enable quotes */
 
