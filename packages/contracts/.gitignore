@@ -1,3 +1,8 @@
 node_modules
 development/contracts/out
 secrets
+
+# Foundry (build artifacts + vendored deps)
+/out
+/cache
+/lib
