@@ -18,14 +18,12 @@ contract ArbitrationTest is RealityETHStd {
 
         uint256 fee = arb.getDisputeFee(question_id);
         arb.requestArbitration{value: fee}(question_id, 0);
-        (,,,,, bool pending,,,,,) = rc.questions(question_id);
-        assertTrue(pending, "is_pending_arbitration set");
+        assertTrue(_q(question_id).isPendingArbitration, "is_pending_arbitration set");
 
         arb.submitAnswerByArbitrator(question_id, _answer(123456), address(this));
         assertTrue(rc.isFinalized(question_id));
         assertEq(uint256(rc.getFinalAnswer(question_id)), 123456);
-        (,,,,,,,,, uint256 bond,) = rc.questions(question_id);
-        assertTrue(bond != 0);
+        assertTrue(_q(question_id).bond != 0);
     }
 
     function test_arbitrator_answering_unanswered() public {
@@ -33,18 +31,24 @@ contract ArbitrationTest is RealityETHStd {
         arb.submitAnswerByArbitrator(question_id, _answer(123456), address(arb));
 
         assertFalse(rc.isFinalized(question_id));
-        (,,,,,,,,, uint256 bond,) = rc.questions(question_id);
-        assertEq(bond, 0);
+        assertEq(_q(question_id).bond, 0);
 
         uint256 fee = arb.getDisputeFee(question_id);
         // Requesting arbitration on an unanswered question must not leave it
         // pending (whether it reverts is version-dependent).
         try arb.requestArbitration{value: fee}(question_id, 0) {} catch {}
-        (,,,,, bool pending,,,,,) = rc.questions(question_id);
-        assertFalse(pending);
+        assertFalse(_q(question_id).isPendingArbitration);
     }
 
-    function test_arbitrator_cancel() public {
+    modifier onlyAssignment() {
+        if (!answererAssignmentSupported) {
+            vm.skip(true);
+            return;
+        }
+        _;
+    }
+
+    function test_arbitrator_cancel() public onlyAssignment {
         _submit(question_id, 12345, 0, 1, address(this));
 
         vm.expectRevert();
@@ -57,8 +61,7 @@ contract ArbitrationTest is RealityETHStd {
 
         uint256 fee = arb.getDisputeFee(question_id);
         arb.requestArbitration{value: fee}(question_id, 0);
-        (,,,,, bool pending,,,,,) = rc.questions(question_id);
-        assertTrue(pending);
+        assertTrue(_q(question_id).isPendingArbitration);
 
         vm.expectRevert(); // only the arbitrator can cancel
         rc.cancelArbitration(question_id);
@@ -70,9 +73,9 @@ contract ArbitrationTest is RealityETHStd {
         vm.expectRevert(); // cannot cancel again (no longer pending)
         arb.cancelArbitration(question_id);
 
-        (,,,, uint32 finalizeTs, bool pending2,,,,,) = rc.questions(question_id);
-        assertFalse(pending2, "pending cleared after cancel");
-        assertEq(uint256(finalizeTs), cancelledTs + 30, "cancel extends the timeout");
+        Q memory q = _q(question_id);
+        assertFalse(q.isPendingArbitration, "pending cleared after cancel");
+        assertEq(uint256(q.finalizeTs), cancelledTs + 30, "cancel extends the timeout");
 
         // answering + re-requesting works again
         _submit(question_id, 54321, 0, 2, address(this));
@@ -107,7 +110,7 @@ contract ArbitrationTest is RealityETHStd {
         arb.requestArbitration{value: fee}(question_id, 4);
     }
 
-    function test_arbitrator_answering_assigning_answerer_right() public {
+    function test_arbitrator_answering_assigning_answerer_right() public onlyAssignment {
         address k2 = makeAddr("k2");
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");
@@ -145,7 +148,7 @@ contract ArbitrationTest is RealityETHStd {
         );
     }
 
-    function test_arbitrator_answering_assigning_answerer_wrong() public {
+    function test_arbitrator_answering_assigning_answerer_wrong() public onlyAssignment {
         address k2 = makeAddr("k2");
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");
@@ -186,7 +189,7 @@ contract ArbitrationTest is RealityETHStd {
         _;
     }
 
-    function test_arbitrator_answering_assigning_answerer_right_commit() public onlyCommitReveal {
+    function test_arbitrator_answering_assigning_answerer_right_commit() public onlyCommitReveal onlyAssignment {
         address k2 = makeAddr("k2");
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");
@@ -214,7 +217,7 @@ contract ArbitrationTest is RealityETHStd {
         assertEq(rc.balanceOf(k4), 2 + _subFee(4) + _subFee(8) + _subFee(16) + 1000);
     }
 
-    function test_arbitrator_answering_assigning_answerer_wrong_commit() public onlyCommitReveal {
+    function test_arbitrator_answering_assigning_answerer_wrong_commit() public onlyCommitReveal onlyAssignment {
         address k2 = makeAddr("k2");
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");
@@ -242,7 +245,7 @@ contract ArbitrationTest is RealityETHStd {
         assertEq(rc.balanceOf(k2), 2 + _subFee(4) + _subFee(8) + _subFee(16) + 1000);
     }
 
-    function test_arbitrator_answering_assigning_answerer_unrevealed_commit() public onlyCommitReveal {
+    function test_arbitrator_answering_assigning_answerer_unrevealed_commit() public onlyCommitReveal onlyAssignment {
         address k2 = makeAddr("k2");
         address k3 = makeAddr("k3");
         address k4 = makeAddr("k4");
@@ -278,6 +281,11 @@ contract ArbitrationTest is RealityETHStd {
     }
 
     function test_arbitrator_answering_single_unrevealed_commit() public onlyCommitReveal {
+        // the "can't request arbitration on a single unrevealed commit" rule is 3.0+
+        if (!settledTooSoonSupported) {
+            vm.skip(true);
+            return;
+        }
         address k4 = makeAddr("k4");
         uint256 nonce = _submitCommit(question_id, 1001, 0, 2, k4);
 
