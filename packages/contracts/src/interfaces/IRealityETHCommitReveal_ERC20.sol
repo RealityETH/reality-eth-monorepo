@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 interface IRealityETHCommitReveal_ERC20 {
     // Stored in a mapping indexed by commitmentId, a hash of commitment hash, question, bond.
