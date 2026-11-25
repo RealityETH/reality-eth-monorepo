@@ -17,12 +17,12 @@ enum AnswerType {
 
 /// @notice One step of a template's bond levels. As an answer's bond rises past each level's
 /// threshold, that level's timeout multiplier and extra-fee take effect. See the contract for how the
-/// implicit first point [100, 100, 0] (at minBond) and the per-level rules are applied.
+/// implicit first level [100, 100, 0] (at minBond) and the per-level rules are applied.
 /// @dev Packs into a single slot (4 + 2 + 1 bytes).
 struct BondLevel {
     uint32 bondThresholdPct; // threshold as a percentage of minBond; strictly increasing, first > 100
     uint16 timeoutPct; // timeout as a percentage of the base timeout; non-decreasing, first >= 100
-    uint8 feePct; // extra arbitrator fee as a percentage of the bond, 0..100
+    uint8 feePct; // extra arbitrator fee as a percentage of the bond, 0..100, non-decreasing
 }
 
 /// @notice A reusable, structured, on-chain question template.

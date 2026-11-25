@@ -137,7 +137,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     function createTemplate(Template calldata template) external returns (uint256);
     /// @notice Create a template together with a per-template bond-level schedule (overload of
     /// createTemplate). An empty `levels` is equivalent to the no-levels overload.
-    /// @dev As an answer's bond rises past each bond level (threshold as a % of minBond), the point's
+    /// @dev As an answer's bond rises past each bond level (threshold as a % of minBond), the level's
     /// timeout multiplier and extra arbitrator fee apply. Bond levels require the question's effective
     /// minBond to be positive.
     /// @param template The structured template content
@@ -173,13 +173,14 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
     /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
-    /// `targetBond + fee`. Read-only helper for the inverse of getBondSettingsForValue; may round up
-    /// slightly since the fee is a percentage of the bond and the tier is keyed on the value sent.
+    /// `targetBond + fee`. Tiers are keyed on the bond, so this is a direct lookup -- the applicable
+    /// bond level's percentage of the target bond. Sending targetBond + fee records a bond of
+    /// targetBond, up to a one-base-unit difference from integer division.
     /// @param questionId The question id
     /// @param targetBond The bond the answerer wants to post
     /// @return fee The extra fee to add to the bond
     function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee);
-    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
+    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime, assertion).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -198,7 +199,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param answerer The account credited with this answer for the purpose of bond claims
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) external;
     /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -216,7 +217,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 nonce
     ) external payable returns (bytes32);
     /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -236,7 +237,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 minBond
     ) external payable returns (bytes32);
     /// @notice Create a new reusable template and use it to ask a question
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param template The structured template content
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute

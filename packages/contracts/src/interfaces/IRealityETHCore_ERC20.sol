@@ -74,8 +74,8 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     }
 
     /// @notice Ask a new question without a bounty and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @dev Calling without the token param will only work if there is no arbitrator-set question fee.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
+    /// @dev Without the token param it asks with no bounty; use askQuestionERC20 to include one.
     /// @dev This has the same function signature as askQuestion() in the non-ERC20 version, which is optionally payable.
     /// @param templateId The ID number of the template the question will use
     /// @param params A string containing the parameters that will be passed into the template to make the question
@@ -94,7 +94,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         uint256 nonce
     ) external returns (bytes32);
     /// @notice Ask a new question with a bounty and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -114,7 +114,7 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         uint256 tokens
     ) external returns (bytes32);
     /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -193,10 +193,10 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         uint256[] calldata bonds,
         bytes32[] calldata answers
     ) external;
-    /// @notice Create a reusable template, which should be a JSON document.
-    /// Placeholders should use gettext() syntax, eg %s.
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
-    /// @param template The template content
+    /// @notice Create a reusable, structured template stored on-chain.
+    /// @dev The template is kept in contract storage (not only in the event log) so answer
+    /// validation and rendering can read it back. See {Template}.
+    /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
     /// @notice Create a template together with a per-template bond-level schedule (overload of
@@ -232,8 +232,9 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
     /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
-    /// `targetBond + fee`. Read-only helper for the inverse of getBondSettingsForValue; may round up
-    /// slightly since the fee is a percentage of the bond and the tier is keyed on the value sent.
+    /// `targetBond + fee`. Tiers are keyed on the bond, so this is a direct lookup -- the applicable
+    /// bond level's percentage of the target bond. Sending targetBond + fee records a bond of
+    /// targetBond, up to a one-base-unit difference from integer division.
     /// @param questionId The question id
     /// @param targetBond The bond the answerer wants to post
     /// @return fee The extra fee to add to the bond
@@ -242,11 +243,11 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     /// @param templateId The template id
     /// @return The stored template
     function getTemplate(uint256 templateId) external view returns (Template memory);
-    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
+    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime, assertion).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;
     /// @notice Create a new reusable template and use it to ask a question
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param template The template content
     /// @param params A string containing the parameters that will be passed into the template to make the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute

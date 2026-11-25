@@ -14,14 +14,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     // History hash when no history is created, or history has been cleared
     bytes32 private constant NULL_HASH = bytes32(0);
 
-    // An unitinalized finalizeTs for a question will indicate an unanswered question.
+    // An uninitialized finalizeTs for a question will indicate an unanswered question.
     uint32 private constant UNANSWERED = 0;
 
     // Proportion withheld when you claim an earlier bond.
     uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
-    // Special value representing a question that was answered too soon.
-    // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
+    // Special value for a question answered too soon: bytes32(-2). As a user-submitted answer it is
+    // accepted only when the template opts in via hasAnsweredTooSoon. (bytes32(-1), "invalid", is below.)
     bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
@@ -107,8 +107,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         _;
     }
 
-    /// @notice Constructor, sets up some initial templates
-    /// @dev Creates some generalized templates for different question types used in the DApp.
+    /// @notice Constructor: records the token and treasury and seeds the initial default templates.
+    /// @dev Seeds the generalized default templates for the standard question types (see createInitialTemplates).
     constructor(IERC20 _token, address _treasury) {
         // Two supported deployment paths: a direct deployment passes the token (and treasury) here, set
         // once at construction; a clone template passes the zero address and each clone's token is set
@@ -346,7 +346,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         }
         // Tiers are keyed on the bond, so the fee is a direct lookup: find the highest level whose
         // threshold (a percentage of minBond) the target bond reaches, and take that level's fee of the
-        // bond. Send targetBond + fee to post a bond of exactly targetBond.
+        // bond. Send targetBond + fee to post a bond of targetBond (within one base unit from integer division).
         uint256 minBond = _minBondOf(questionId);
         uint256 feePct = 0;
         uint256 n = levels.length;
@@ -360,8 +360,8 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         return targetBond * feePct / 100;
     }
 
-    // Validate bond levels: <=255 points; thresholds strictly increasing and above the implicit 100%
-    // point; timeouts non-decreasing and at least 100%; fee at most 100%.
+    // Validate bond levels: <=255 levels; thresholds strictly increasing and above the implicit 100%
+    // level; timeouts non-decreasing and at least 100%; fees non-decreasing and at most 100%.
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {
         uint256 n = levels.length;
         if (n > 255) revert BondLevelsInvalid();

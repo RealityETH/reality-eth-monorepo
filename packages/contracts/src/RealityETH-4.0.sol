@@ -13,14 +13,14 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // History hash when no history is created, or history has been cleared
     bytes32 private constant NULL_HASH = bytes32(0);
 
-    // An unitinalized finalizeTs for a question will indicate an unanswered question.
+    // An uninitialized finalizeTs for a question will indicate an unanswered question.
     uint32 private constant UNANSWERED = 0;
 
     // Proportion withheld when you claim an earlier bond.
     uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
-    // Special value representing a question that was answered too soon.
-    // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
+    // Special value for a question answered too soon: bytes32(-2). As a user-submitted answer it is
+    // accepted only when the template opts in via hasAnsweredTooSoon. (bytes32(-1), "invalid", is below.)
     bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
@@ -37,9 +37,11 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
-    // Per-template bond levels (empty for most templates). Kept in its own mapping rather than
-    // inlined into Template so adding the feature doesn't churn every Template literal; it is still
-    // strictly per-template (set atomically in createTemplate(template, levels)), not a shared registry.
+    // Per-template bond levels (empty for most templates). Kept in its own mapping rather than as a
+    // Template field because the legacy (no-via_ir) codegen can't copy a memory BondLevel[] into storage
+    // (templateRegistry[id] = template would fail), so the levels are pushed element-by-element here
+    // instead. Still strictly per-template (set atomically in createTemplate(template, levels)), not a
+    // shared registry.
     mapping(uint256 templateId => BondLevel[] levels) internal templateBondLevels;
     // internal + explicit struct getter below: the flat auto-getter would return
     // too many stack slots for the legacy codegen as the struct grows.
@@ -106,8 +108,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _;
     }
 
-    /// @notice Constructor, sets up some initial templates
-    /// @dev Creates some generalized templates for different question types used in the DApp.
+    /// @notice Constructor: records the treasury and seeds the initial default templates.
+    /// @dev Seeds the generalized default templates for the standard question types (see createInitialTemplates).
     constructor(address _treasury) {
         treasury = _treasury;
         createInitialTemplates();
@@ -315,7 +317,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         }
         // Tiers are keyed on the bond, so the fee is a direct lookup: find the highest level whose
         // threshold (a percentage of minBond) the target bond reaches, and take that level's fee of the
-        // bond. Send targetBond + fee to post a bond of exactly targetBond.
+        // bond. Send targetBond + fee to post a bond of targetBond (within one base unit from integer division).
         uint256 minBond = _minBondOf(questionId);
         uint256 feePct = 0;
         uint256 n = levels.length;
@@ -329,8 +331,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return targetBond * feePct / 100;
     }
 
-    // Validate bond levels: <=255 points; thresholds strictly increasing and above the
-    // implicit 100% point; timeouts non-decreasing and at least 100%; fee at most 100%.
+    // Validate bond levels: <=255 levels; thresholds strictly increasing and above the
+    // implicit 100% level; timeouts non-decreasing and at least 100%; fees non-decreasing and at most 100%.
     function _validateBondLevels(BondLevel[] calldata levels) internal pure {
         uint256 n = levels.length;
         if (n > 255) revert BondLevelsInvalid();
@@ -506,7 +508,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         // Resolve template defaults vs ask-time overrides (revert if the template fixes a field the asker also sent).
         arbitrator = _effectiveArbitrator(templateRegistry[templateId], arbitrator);
         minBond = _effectiveMinBond(templateRegistry[templateId], minBond);
-        // Bond levels measure thresholds as a percentage of minBond, so it needs a positive one.
+        // Bond levels measure thresholds as a percentage of minBond, so they need a positive one.
         if (templateBondLevels[templateId].length != 0 && minBond == 0) revert MinBondRequiredForBondLevels();
 
         // abi.encode (not encodePacked): params/outcomes are dynamic string[], which packed encoding cannot represent unambiguously.
