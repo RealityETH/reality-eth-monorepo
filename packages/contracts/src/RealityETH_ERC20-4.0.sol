@@ -189,8 +189,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        _deductTokensOrRevert(tokens);
-
         if (templates[templateId] == 0) revert TemplateMustExist();
 
         bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
@@ -199,6 +197,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // We emit this event here because _askQuestion doesn't need to know the unhashed question. Other events are emitted by _askQuestion.
         emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
         _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, 0, tokens);
+        _deductTokensOrRevert(tokens);
 
         return questionId;
     }
@@ -220,8 +219,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             bytes32
         )
     {
-        _deductTokensOrRevert(tokens);
-
         if (templates[templateId] == 0) revert TemplateMustExist();
 
         bytes32 contentHash = keccak256(abi.encodePacked(templateId, openingTs, question));
@@ -231,6 +228,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // Other events are emitted by _askQuestion.
         emit LogNewQuestion(questionId, msg.sender, templateId, question, contentHash, arbitrator, timeout, openingTs, nonce, block.timestamp);
         _askQuestion(questionId, contentHash, arbitrator, timeout, openingTs, minBond, tokens);
+        _deductTokensOrRevert(tokens);
 
         return questionId;
     }
@@ -294,9 +292,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     /// @inheritdoc IRealityETHCore_ERC20
     function fundAnswerBountyERC20(bytes32 questionId, uint256 tokens) external stateOpen(questionId) {
-        _deductTokensOrRevert(tokens);
         questions[questionId].bounty = questions[questionId].bounty + tokens;
         emit LogFundAnswerBounty(questionId, tokens, questions[questionId].bounty, msg.sender);
+        _deductTokensOrRevert(tokens);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -306,9 +304,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         uint256 maxPrevious,
         uint256 tokens
     ) external stateOpen(questionId) bondMustDoubleAndMatchMinimum(questionId, tokens) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
-        _deductTokensOrRevert(tokens);
         _addAnswerToHistory(questionId, answer, msg.sender, tokens);
         _updateCurrentAnswer(questionId, answer);
+        _deductTokensOrRevert(tokens);
     }
 
     /// @inheritdoc IRealityETHCore_ERC20
@@ -319,10 +317,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         address answerer,
         uint256 tokens
     ) external stateOpen(questionId) bondMustDoubleAndMatchMinimum(questionId, tokens) previousBondMustNotBeatMaxPrevious(questionId, maxPrevious) {
-        _deductTokensOrRevert(tokens);
         if (answerer == NULL_ADDRESS) revert AnswererMustBeNonZero();
         _addAnswerToHistory(questionId, answer, answerer, tokens);
         _updateCurrentAnswer(questionId, answer);
+        _deductTokensOrRevert(tokens);
     }
 
     function _addAnswerToHistory(bytes32 questionId, bytes32 answer, address answerer, uint256 bond) internal {

@@ -9,6 +9,7 @@ contract Owned is IOwned {
 
     constructor() {
         owner = msg.sender;
+        emit OwnershipTransferred(address(0), msg.sender);
     }
 
     modifier onlyOwner() {
@@ -18,6 +19,7 @@ contract Owned is IOwned {
 
     /// @inheritdoc IOwned
     function transferOwnership(address newOwner) external onlyOwner {
+        emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
 }
