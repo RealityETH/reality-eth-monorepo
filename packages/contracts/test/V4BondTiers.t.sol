@@ -4,11 +4,11 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {RealityETH_v4_0} from "../src/RealityETH-4.0.sol";
 import {IRealityETHErrors} from "../src/interfaces/IRealityETHErrors.sol";
-import {AnswerType, Template, BondLevel} from "../src/RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "../src/RealityETHTypes.sol";
 
-/// Tests for the per-template bond levels on the ETH core: tiered timeout scaling and the
+/// Tests for the per-template bond tiers on the ETH core: tiered timeout scaling and the
 /// extra arbitrator fee (bond + fee derived from the value sent), plus validation guards.
-contract V4BondLevelsTest is Test {
+contract V4BondTiersTest is Test {
     RealityETH_v4_0 internal rc;
     address internal arb = address(0xA4B);
     uint32 internal constant TIMEOUT = 30;
@@ -49,20 +49,20 @@ contract V4BondLevelsTest is Test {
         );
     }
 
-    // Levels: at 200% of minBond -> timeout x2, +10% fee; at 400% -> timeout x3, +20% fee.
-    function _bondLevels() internal pure returns (BondLevel[] memory c) {
-        c = new BondLevel[](2);
-        c[0] = BondLevel(200, 200, 10);
-        c[1] = BondLevel(400, 300, 20);
+    // Tiers: at 200% of minBond -> timeout x2, +10% fee; at 400% -> timeout x3, +20% fee.
+    function _bondTiers() internal pure returns (BondTier[] memory c) {
+        c = new BondTier[](2);
+        c[0] = BondTier(200, 200, 10);
+        c[1] = BondTier(400, 300, 20);
     }
 
-    function _askWithBondLevels() internal returns (bytes32) {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+    function _askWithBondTiers() internal returns (bytes32) {
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         return rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
     }
 
-    function test_bond_levels_scale_timeout_and_fee() public {
-        bytes32 qid = _askWithBondLevels();
+    function test_bond_tiers_scale_timeout_and_fee() public {
+        bytes32 qid = _askWithBondTiers();
         uint256 t0 = block.timestamp;
 
         // First answer at exactly minBond (100% -> implicit [100,100,0]): no fee, base timeout.
@@ -86,8 +86,8 @@ contract V4BondLevelsTest is Test {
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + TIMEOUT * 3, "timeout x3");
     }
 
-    // No bond levels => value is the bond, no fee, base timeout (unchanged behaviour).
-    function test_no_bond_levels_unchanged() public {
+    // No bond tiers => value is the bond, no fee, base timeout (unchanged behaviour).
+    function test_no_bond_tiers_unchanged() public {
         uint256 id = rc.createTemplate(_uintTemplate());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         uint256 t0 = block.timestamp;
@@ -97,58 +97,58 @@ contract V4BondLevelsTest is Test {
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + TIMEOUT, "base timeout");
     }
 
-    // Bond levels need a positive minBond (thresholds are a percentage of it).
-    function test_bond_levels_requires_minbond() public {
-        // template with bond levels but minBond left to the asker, who supplies 0
+    // Bond tiers need a positive minBond (thresholds are a percentage of it).
+    function test_bond_tiers_requires_minbond() public {
+        // template with bond tiers but minBond left to the asker, who supplies 0
         Template memory t = Template(
             AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
         );
-        uint256 id = rc.createTemplate(t, _bondLevels());
-        vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondLevels.selector);
+        uint256 id = rc.createTemplate(t, _bondTiers());
+        vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondTiers.selector);
         rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0); // minBond 0
     }
 
-    // ---- levels validation --------------------------------------------------
+    // ---- tiers validation --------------------------------------------------
 
-    function _rejectsBondLevels(BondLevel[] memory c) internal {
-        vm.expectRevert(IRealityETHErrors.BondLevelsInvalid.selector);
+    function _rejectsBondTiers(BondTier[] memory c) internal {
+        vm.expectRevert(IRealityETHErrors.BondTiersInvalid.selector);
         rc.createTemplate(_uintTemplate(), c);
     }
 
-    function test_bond_levels_validation_rejects_bad() public {
+    function test_bond_tiers_validation_rejects_bad() public {
         // first threshold must be > 100
-        BondLevel[] memory a = new BondLevel[](1);
-        a[0] = BondLevel(100, 100, 0);
-        _rejectsBondLevels(a);
+        BondTier[] memory a = new BondTier[](1);
+        a[0] = BondTier(100, 100, 0);
+        _rejectsBondTiers(a);
 
         // thresholds must strictly increase
-        BondLevel[] memory b = new BondLevel[](2);
-        b[0] = BondLevel(200, 200, 0);
-        b[1] = BondLevel(200, 300, 0);
-        _rejectsBondLevels(b);
+        BondTier[] memory b = new BondTier[](2);
+        b[0] = BondTier(200, 200, 0);
+        b[1] = BondTier(200, 300, 0);
+        _rejectsBondTiers(b);
 
         // timeouts must not decrease
-        BondLevel[] memory c = new BondLevel[](2);
-        c[0] = BondLevel(200, 200, 0);
-        c[1] = BondLevel(400, 150, 0);
-        _rejectsBondLevels(c);
+        BondTier[] memory c = new BondTier[](2);
+        c[0] = BondTier(200, 200, 0);
+        c[1] = BondTier(400, 150, 0);
+        _rejectsBondTiers(c);
 
         // fee must be <= 100
-        BondLevel[] memory d = new BondLevel[](1);
-        d[0] = BondLevel(200, 200, 101);
-        _rejectsBondLevels(d);
+        BondTier[] memory d = new BondTier[](1);
+        d[0] = BondTier(200, 200, 101);
+        _rejectsBondTiers(d);
 
         // fees must not decrease (tiers are keyed on the bond, so a higher bond can't pay a lower fee)
-        BondLevel[] memory e = new BondLevel[](2);
-        e[0] = BondLevel(200, 200, 20);
-        e[1] = BondLevel(400, 300, 10);
-        _rejectsBondLevels(e);
+        BondTier[] memory e = new BondTier[](2);
+        e[0] = BondTier(200, 200, 20);
+        e[1] = BondTier(400, 300, 10);
+        _rejectsBondTiers(e);
     }
 
     // Bond-keyed with a phased-in fee: a value in the gap above a threshold pins the bond at the
     // threshold and takes the remainder as the (partial) fee, so the fee ramps in instead of jumping.
     function test_value_in_gap_stays_in_lower_tier() public {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         // 2100 clears the 200% threshold (2000) but can't cover its 10% fee (which needs 2200), so the
         // bond stays at the base tier's max (1999) with the base timeout, and the excess 101 is the fee.
@@ -167,7 +167,7 @@ contract V4BondLevelsTest is Test {
 
     // The recorded bond never decreases as the value rises (the plateau holds it flat, no downward jump).
     function test_bond_is_monotonic_across_threshold() public {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         (uint256 b1,,,) = rc.getBondSettingsForValue(qid, 1999); // base, just below the threshold
         (uint256 b2,,,) = rc.getBondSettingsForValue(qid, 2000); // in the gap -> held at the lower tier's max
@@ -184,8 +184,8 @@ contract V4BondLevelsTest is Test {
 
     // Over-large multipliers are clamped to one year rather than rejected.
     function test_timeout_clamped_to_one_year() public {
-        BondLevel[] memory c = new BondLevel[](1);
-        c[0] = BondLevel(200, 60000, 0); // 600x a 30s base would be 5 hours... use a big base to exceed a year
+        BondTier[] memory c = new BondTier[](1);
+        c[0] = BondTier(200, 60000, 0); // 600x a 30s base would be 5 hours... use a big base to exceed a year
         uint256 id = rc.createTemplate(
             Template(
                 AnswerType.Uint,
@@ -213,23 +213,23 @@ contract V4BondLevelsTest is Test {
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + 365 days, "clamped to one year");
     }
 
-    // getBondLevels returns the implicit base level first, then the template's levels.
-    function test_get_bond_levels_includes_implicit_base() public {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+    // getBondTiers returns the implicit base tier first, then the template's tiers.
+    function test_get_bond_tiers_includes_implicit_base() public {
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
-        BondLevel[] memory bl = rc.getBondLevels(qid);
-        assertEq(bl.length, 3, "implicit base + 2 template levels");
+        BondTier[] memory bl = rc.getBondTiers(qid);
+        assertEq(bl.length, 3, "implicit base + 2 template tiers");
         assertEq(uint256(bl[0].bondThresholdPct), 100, "base threshold");
         assertEq(uint256(bl[0].timeoutPct), 100, "base timeout");
         assertEq(uint256(bl[0].feePct), 0, "base fee");
-        assertEq(uint256(bl[1].bondThresholdPct), 200, "level 1");
-        assertEq(uint256(bl[2].bondThresholdPct), 400, "level 2");
+        assertEq(uint256(bl[1].bondThresholdPct), 200, "tier 1");
+        assertEq(uint256(bl[2].bondThresholdPct), 400, "tier 2");
         // the raw template view excludes the implicit base
-        assertEq(rc.getTemplateBondLevels(id).length, 2, "raw levels exclude the implicit base");
+        assertEq(rc.getTemplateBondTiers(id).length, 2, "raw tiers exclude the implicit base");
     }
 
     function test_getters_template_and_bond_settings() public {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
 
         // getTemplateForQuestion resolves the question's template in one call
@@ -253,7 +253,7 @@ contract V4BondLevelsTest is Test {
 
     // getAnswerFeeForBond: inverse of the split — the extra fee on top of a desired bond.
     function test_get_answer_fee_for_bond() public {
-        uint256 id = rc.createTemplate(_uintTemplate(), _bondLevels());
+        uint256 id = rc.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
 
         // a bond between minBond (100%) and the first threshold (200%) incurs no fee
@@ -272,14 +272,14 @@ contract V4BondLevelsTest is Test {
     }
 
     // With no arbitrator (0x0), the escalation fee goes to the treasury rather than being burned.
-    function test_bond_level_fee_to_treasury_when_no_arbitrator() public {
+    function test_bond_tier_fee_to_treasury_when_no_arbitrator() public {
         address treasury = address(0x7EA5);
         RealityETH_v4_0 rct = new RealityETH_v4_0(treasury);
-        uint256 id = rct.createTemplate(_uintTemplate(), _bondLevels());
+        uint256 id = rct.createTemplate(_uintTemplate(), _bondTiers());
         bytes32 qid = rct.askQuestion(id, _one("Price?"), _none(), address(0), TIMEOUT, 0, 0); // no arbitrator
         rct.submitAnswer{value: MIN_BOND}(qid, bytes32(uint256(1)), 0); // base tier, no fee
         rct.submitAnswer{value: 2200}(qid, bytes32(uint256(2)), 0); // 220% -> 10% fee -> bond 2000, fee 200
         assertEq(rct.questions(qid).bond, 2000, "derived bond");
-        assertEq(rct.balanceOf(treasury), 200, "no-arbitrator bond-level fee credited to the treasury");
+        assertEq(rct.balanceOf(treasury), 200, "no-arbitrator bond-tier fee credited to the treasury");
     }
 }

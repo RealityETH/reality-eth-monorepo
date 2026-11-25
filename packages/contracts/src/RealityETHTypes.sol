@@ -13,11 +13,11 @@ enum AnswerType {
     Assertion // 6 — "boolean with no no": the only substantive answer is 1 (plus invalid/too-soon)
 }
 
-/// @notice One step of a template's bond levels. As an answer's bond rises past each level's
-/// threshold, that level's timeout multiplier and extra-fee take effect. See the contract for how the
-/// implicit first level [100, 100, 0] (at minBond) and the per-level rules are applied.
+/// @notice One tier of a template's bond schedule. As an answer's bond rises past each tier's
+/// threshold, that tier's timeout multiplier and extra-fee take effect. See the contract for how the
+/// implicit first tier [100, 100, 0] (at minBond) and the per-tier rules are applied.
 /// @dev Packs into a single slot (4 + 2 + 1 bytes).
-struct BondLevel {
+struct BondTier {
     uint32 bondThresholdPct; // threshold as a percentage of minBond; strictly increasing, first > 100
     uint16 timeoutPct; // timeout as a percentage of the base timeout; non-decreasing, first >= 100
     uint8 feePct; // extra arbitrator fee as a percentage of the bond, 0..100, non-decreasing
@@ -25,9 +25,9 @@ struct BondLevel {
 
 /// @notice A reusable, structured, on-chain question template.
 /// @dev title/description/category/lang replace the old delimiter-joined JSON.
-/// `hasDescription`/`hasCategory`/`hasLang` drive a tri-state per field: 
-/// false => unused; 
-/// true with a non-empty stored string => preset; 
+/// `hasDescription`/`hasCategory`/`hasLang` drive a tri-state per field:
+/// false => unused;
+/// true with a non-empty stored string => preset;
 /// true with an empty /// stored string => supplied by the asker at ask time.
 struct Template {
     // scalars (pack into a single slot: 1+1+4 bools + 20-byte address = 26 bytes)

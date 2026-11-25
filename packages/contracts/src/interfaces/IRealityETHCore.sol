@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 
 import {IBalanceHolder} from "./IBalanceHolder.sol";
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
-import {AnswerType, Template, BondLevel} from "../RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "../RealityETHTypes.sol";
 
 /* solhint-disable func-name-mixedcase */
 
@@ -36,7 +36,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 created
     );
     event LogNewTemplate(uint256 indexed templateId, address indexed user);
-    event LogBondLevelFeePaid(bytes32 indexed questionId, address indexed arbitrator, uint256 fee);
+    event LogBondTierFeePaid(bytes32 indexed questionId, address indexed arbitrator, uint256 fee);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
 
@@ -135,28 +135,28 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
-    /// @notice Create a template together with a per-template bond-level schedule (overload of
-    /// createTemplate). An empty `levels` is equivalent to the no-levels overload.
-    /// @dev As an answer's bond rises past each bond level (threshold as a % of minBond), the level's
-    /// timeout multiplier and extra arbitrator fee apply. Bond levels require the question's effective
+    /// @notice Create a template together with a per-template bond-tier schedule (overload of
+    /// createTemplate). An empty `tiers` is equivalent to the no-tiers overload.
+    /// @dev As an answer's bond rises past each bond tier (threshold as a % of minBond), the tier's
+    /// timeout multiplier and extra arbitrator fee apply. Bond tiers require the question's effective
     /// minBond to be positive.
     /// @param template The structured template content
-    /// @param levels The ordered bond levels (see {BondLevel})
+    /// @param tiers The ordered bond tiers (see {BondTier})
     /// @return The ID of the newly-created template
-    function createTemplate(Template calldata template, BondLevel[] calldata levels) external returns (uint256);
+    function createTemplate(Template calldata template, BondTier[] calldata tiers) external returns (uint256);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template
     function getTemplate(uint256 templateId) external view returns (Template memory);
-    /// @notice Read back a template's bond levels as stored (empty if none; excludes the implicit base).
+    /// @notice Read back a template's bond tiers as stored (empty if none; excludes the implicit base).
     /// @param templateId The template id
-    /// @return The bond levels
-    function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory);
-    /// @notice Read a question's full effective bond-level schedule: the implicit base level
-    /// [100, 100, 0] first, then the levels inherited from its template.
+    /// @return The bond tiers
+    function getTemplateBondTiers(uint256 templateId) external view returns (BondTier[] memory);
+    /// @notice Read a question's full effective bond-tier schedule: the implicit base tier
+    /// [100, 100, 0] first, then the tiers inherited from its template.
     /// @param questionId The question id
-    /// @return The effective bond levels
-    function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory);
+    /// @return The effective bond tiers
+    function getBondTiers(bytes32 questionId) external view returns (BondTier[] memory);
     /// @notice The template a question uses, in one call.
     /// @param questionId The question id
     /// @return The question's template
@@ -166,7 +166,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param value The total value that would be sent with the answer
     /// @return bond The bond that would be recorded
     /// @return fee The extra arbitrator fee taken on top
-    /// @return timeoutPct The timeout multiplier (percent) of the applicable bond level
+    /// @return timeoutPct The timeout multiplier (percent) of the applicable bond tier
     /// @return effectiveTimeout The resulting finalization window in seconds (clamped to 365 days)
     function getBondSettingsForValue(bytes32 questionId, uint256 value)
         external
@@ -174,7 +174,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
     /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
     /// `targetBond + fee`. Tiers are keyed on the bond, so this is a direct lookup -- the applicable
-    /// bond level's percentage of the target bond. Sending targetBond + fee records a bond of
+    /// bond tier's percentage of the target bond. Sending targetBond + fee records a bond of
     /// targetBond, up to a one-base-unit difference from integer division.
     /// @param questionId The question id
     /// @param targetBond The bond the answerer wants to post

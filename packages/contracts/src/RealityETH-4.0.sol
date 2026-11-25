@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import {IRealityETHCore} from "./interfaces/IRealityETHCore.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
-import {AnswerType, Template, BondLevel} from "./RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "./RealityETHTypes.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
@@ -34,8 +34,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
-    // Optional custom settings for fee and timeout depending on bond level
-    mapping(uint256 templateId => BondLevel[] levels) internal templateBondLevels;
+    // Optional custom settings for fee and timeout depending on bond tier
+    mapping(uint256 templateId => BondTier[] tiers) internal templateBondTiers;
 
     mapping(bytes32 questionId => Question question) internal _questions;
     mapping(bytes32 questionId => Claim claim) public questionClaims;
@@ -251,33 +251,29 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     }
 
     /// @inheritdoc IRealityETHCore
-    function createTemplate(Template memory template, BondLevel[] calldata levels)
-        public
-        stateAny
-        returns (uint256 id)
-    {
+    function createTemplate(Template memory template, BondTier[] calldata tiers) public stateAny returns (uint256 id) {
         id = _createTemplate(template);
-        _validateBondLevels(levels);
+        _validateBondTiers(tiers);
         // Copy calldata struct array to storage.
-        BondLevel[] storage stored = templateBondLevels[id];
-        for (uint256 i = 0; i < levels.length; i++) {
-            stored.push(levels[i]);
+        BondTier[] storage stored = templateBondTiers[id];
+        for (uint256 i = 0; i < tiers.length; i++) {
+            stored.push(tiers[i]);
         }
         return id;
     }
 
     /// @inheritdoc IRealityETHCore
-    function getTemplateBondLevels(uint256 templateId) external view returns (BondLevel[] memory) {
-        return templateBondLevels[templateId];
+    function getTemplateBondTiers(uint256 templateId) external view returns (BondTier[] memory) {
+        return templateBondTiers[templateId];
     }
 
     /// @inheritdoc IRealityETHCore
-    function getBondLevels(bytes32 questionId) external view returns (BondLevel[] memory out) {
-        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
-        out = new BondLevel[](levels.length + 1);
-        out[0] = BondLevel(100, 100, 0); // the implicit base level at minBond
-        for (uint256 i = 0; i < levels.length; i++) {
-            out[i + 1] = levels[i];
+    function getBondTiers(bytes32 questionId) external view returns (BondTier[] memory out) {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        out = new BondTier[](tiers.length + 1);
+        out[0] = BondTier(100, 100, 0); // the implicit base tier at minBond
+        for (uint256 i = 0; i < tiers.length; i++) {
+            out[i + 1] = tiers[i];
         }
         return out;
     }
@@ -293,24 +289,24 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout)
     {
-        (bond, fee, timeoutPct) = _applyBondLevels(questionId, value);
+        (bond, fee, timeoutPct) = _applyBondTiers(questionId, value);
         effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
         return (bond, fee, timeoutPct, effectiveTimeout);
     }
 
     /// @inheritdoc IRealityETHCore
     function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee) {
-        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
-        if (levels.length == 0) {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        if (tiers.length == 0) {
             return 0; // no fee
         }
-        // Try every bond tier until we find one that exceeds the bond level
+        // Try every bond tier until we find one that exceeds the bond tier
         uint256 minBond = _minBondOf(questionId);
         uint256 feePct = 0;
-        uint256 n = levels.length;
+        uint256 n = tiers.length;
         for (uint256 i = 0; i < n; i++) {
-            if (targetBond * 100 >= minBond * levels[i].bondThresholdPct) {
-                feePct = levels[i].feePct;
+            if (targetBond * 100 >= minBond * tiers[i].bondThresholdPct) {
+                feePct = tiers[i].feePct;
             } else {
                 break;
             }
@@ -318,26 +314,26 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return targetBond * feePct / 100;
     }
 
-    // Validate bond levels, up to 255 bands may be defined.
+    // Validate bond tiers, up to 255 tiers may be defined.
     // Implicitly start at 100% of minBond, 100% of original timeout, 0% fee.
     // Threshold must increase each time.
     // Fee and timeout must increase or stay the same each time.
     // Max fee is 100% of bond.
     // Timeout (as percent of original) is uncapped (but will be clamped at 365 days when applied)
-    function _validateBondLevels(BondLevel[] calldata levels) internal pure {
-        uint256 n = levels.length;
-        if (n > 255) revert BondLevelsInvalid();
-        uint32 prevThreshold = 100; // implicit first level is [100, 100, 0] at minBond
+    function _validateBondTiers(BondTier[] calldata tiers) internal pure {
+        uint256 n = tiers.length;
+        if (n > 255) revert BondTiersInvalid();
+        uint32 prevThreshold = 100; // implicit first tier is [100, 100, 0] at minBond
         uint16 prevTimeout = 100;
         uint8 prevFee = 0;
         for (uint256 i = 0; i < n; i++) {
-            if (levels[i].bondThresholdPct <= prevThreshold) revert BondLevelsInvalid();
-            if (levels[i].timeoutPct < prevTimeout) revert BondLevelsInvalid();
-            if (levels[i].feePct < prevFee) revert BondLevelsInvalid();
-            if (levels[i].feePct > 100) revert BondLevelsInvalid();
-            prevThreshold = levels[i].bondThresholdPct;
-            prevTimeout = levels[i].timeoutPct;
-            prevFee = levels[i].feePct;
+            if (tiers[i].bondThresholdPct <= prevThreshold) revert BondTiersInvalid();
+            if (tiers[i].timeoutPct < prevTimeout) revert BondTiersInvalid();
+            if (tiers[i].feePct < prevFee) revert BondTiersInvalid();
+            if (tiers[i].feePct > 100) revert BondTiersInvalid();
+            prevThreshold = tiers[i].bondThresholdPct;
+            prevTimeout = tiers[i].timeoutPct;
+            prevFee = tiers[i].feePct;
         }
     }
 
@@ -493,8 +489,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         // Resolve template defaults vs ask-time overrides (revert if the template fixes a field the asker also sent).
         arbitrator = _effectiveArbitrator(templateRegistry[templateId], arbitrator);
         minBond = _effectiveMinBond(templateRegistry[templateId], minBond);
-        // Bond levels measure thresholds as a percentage of minBond, so they need a positive one.
-        if (templateBondLevels[templateId].length != 0 && minBond == 0) revert MinBondRequiredForBondLevels();
+        // Bond tiers measure thresholds as a percentage of minBond, so they need a positive one.
+        if (templateBondTiers[templateId].length != 0 && minBond == 0) revert MinBondRequiredForBondTiers();
 
         // abi.encode (not encodePacked): params/outcomes are dynamic string[], which packed encoding cannot represent unambiguously.
         bytes32 contentHash = keccak256(abi.encode(templateId, openingTs, params, outcomes));
@@ -626,18 +622,18 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     }
 
     function _submitAnswer(bytes32 questionId, bytes32 answer, address answerer) internal {
-        (uint256 bond, uint256 fee, uint256 timeoutPct) = _applyBondLevels(questionId, msg.value);
+        (uint256 bond, uint256 fee, uint256 timeoutPct) = _applyBondTiers(questionId, msg.value);
         _requireBondValid(questionId, bond);
         _validateAnswer(questionId, answer);
         _addAnswerToHistory(questionId, answer, answerer, bond);
         _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
-        // Apply the per-bond-level fee.
+        // Apply the per-bond-tier fee.
         if (fee > 0) {
             // fee goes to the arbitrator, or the treasury if there is no arbitrator
             address arbitrator = _arbitratorOf(questionId);
             address recipient = arbitrator == NULL_ADDRESS ? treasury : arbitrator;
             balanceOf[recipient] = balanceOf[recipient] + fee;
-            emit LogBondLevelFeePaid(questionId, recipient, fee);
+            emit LogBondTierFeePaid(questionId, recipient, fee);
         }
     }
 
@@ -646,43 +642,43 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // Find the appropriate bond tier, split them out, and also return the timeout multiplier.
     // If they exceeded one tier but didn't cover bond+fee in the next tier up,
     // ...we'll assume they sent the max bond from the lower tier with a needlessly high fee.
-    function _applyBondLevels(bytes32 questionId, uint256 value)
+    function _applyBondTiers(bytes32 questionId, uint256 value)
         internal
         view
         returns (uint256 bond, uint256 fee, uint256 timeoutPct)
     {
-        BondLevel[] storage levels = templateBondLevels[_questions[questionId].templateId];
-        if (levels.length == 0) {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        if (tiers.length == 0) {
             return (value, 0, 100);
         }
-        uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond levels at ask time
+        uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond tiers at ask time
         uint256 feePct = 0;
-        timeoutPct = 100; // implicit first level [100, 100, 0]
-        uint256 n = levels.length;
+        timeoutPct = 100; // implicit first tier [100, 100, 0]
+        uint256 n = tiers.length;
         for (uint256 i = 0; i < n; i++) {
             // threshold scaled by 100 so it compares against value * 10000 without dividing first
-            uint256 threshold = minBond * levels[i].bondThresholdPct;
+            uint256 threshold = minBond * tiers[i].bondThresholdPct;
             // Below this threshold at the current (lower) fee? Then the bond belongs in the current tier.
             if (value * 10000 < threshold * (100 + feePct)) break;
-            // Reached it, but not enough value to also cover this level's fee? Keep the bond in the lower
+            // Reached it, but not enough value to also cover this tier's fee? Keep the bond in the lower
             // tier -- its highest allowed value, just under the threshold -- at the lower tier's timeout,
             // and treat the excess as a fee. The higher tier (and its longer timeout) is entered only once
             // its fee is covered.
-            if (value * 10000 < threshold * (100 + levels[i].feePct)) {
+            if (value * 10000 < threshold * (100 + tiers[i].feePct)) {
                 bond = (threshold - 1) / 100;
                 fee = value - bond;
                 return (bond, fee, timeoutPct);
             }
-            // Past the plateau: this level's fee is fully covered, so adopt it then try the next tier up.
-            feePct = levels[i].feePct;
-            timeoutPct = levels[i].timeoutPct;
+            // Past the plateau: this tier's fee is fully covered, so adopt it then try the next tier up.
+            feePct = tiers[i].feePct;
+            timeoutPct = tiers[i].timeoutPct;
         }
         bond = value * 100 / (100 + feePct);
         fee = value - bond;
         return (bond, fee, timeoutPct);
     }
 
-    // The base timeout scaled by the bond level's percentage, up to a maximum of 365 days
+    // The base timeout scaled by the bond tier's percentage, up to a maximum of 365 days
     function _effectiveTimeout(bytes32 questionId, uint256 timeoutPct) internal view returns (uint32) {
         uint256 eff = uint256(_questions[questionId].timeout) * timeoutPct / 100;
         if (eff > 365 days) eff = 365 days;
@@ -705,7 +701,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         bytes32 newHistoryHash =
             keccak256(abi.encodePacked(_questions[questionId].historyHash, answer, bond, answerer, false));
 
-        // Update the current bond level, if there's a bond (ie anything except arbitration)
+        // Update the current bond tier, if there's a bond (ie anything except arbitration)
         if (bond > 0) {
             _questions[questionId].bond = bond;
         }

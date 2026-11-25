@@ -32,7 +32,7 @@ interface IArbitratorManagement {
     /// @notice Withdraw any accumulated token fees to the specified address
     /// @param addr The address to which the balance should be sent
     /// @dev Only needed when the Realitio contract uses an ERC20 token, in which case the arbitrator's
-    /// accrued fees (e.g. bond-level fees) are held in that token rather than in ETH.
+    /// accrued fees (e.g. bond-tier fees) are held in that token rather than in ETH.
     function withdrawERC20(IERC20 _token, address addr) external;
     /// @notice Pull the arbitrator's accrued balance from the Realitio contract into this contract
     /// @dev Funds can then be liberated from this contract with our withdraw() function

@@ -5,12 +5,12 @@ import {Test} from "forge-std/Test.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {IRealityETHErrors} from "../src/interfaces/IRealityETHErrors.sol";
-import {AnswerType, Template, BondLevel} from "../src/RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "../src/RealityETHTypes.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
-/// Bond-level tests for the ERC20 core (mirrors V4BondLevels.t.sol). `tokens` is the total value sent;
+/// Bond-tier tests for the ERC20 core (mirrors V4BondTiers.t.sol). `tokens` is the total value sent;
 /// the bond and the extra arbitrator fee are derived from it.
-contract V4BondLevelsERC20Test is Test {
+contract V4BondTiersERC20Test is Test {
     RealityETH_ERC20_v4_0 internal rc;
     MockERC20 internal token;
     address internal arb = address(0xA4B);
@@ -54,14 +54,14 @@ contract V4BondLevelsERC20Test is Test {
     }
 
     // at 200% of minBond -> timeout x2, +10% fee; at 400% -> timeout x3, +20% fee
-    function _bondLevels() internal pure returns (BondLevel[] memory c) {
-        c = new BondLevel[](2);
-        c[0] = BondLevel(200, 200, 10);
-        c[1] = BondLevel(400, 300, 20);
+    function _bondTiers() internal pure returns (BondTier[] memory c) {
+        c = new BondTier[](2);
+        c[0] = BondTier(200, 200, 10);
+        c[1] = BondTier(400, 300, 20);
     }
 
-    function test_bond_levels_scale_timeout_and_fee() public {
-        uint256 id = rc.createTemplate(_uintTemplate(MIN_BOND), _bondLevels());
+    function test_bond_tiers_scale_timeout_and_fee() public {
+        uint256 id = rc.createTemplate(_uintTemplate(MIN_BOND), _bondTiers());
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         uint256 t0 = block.timestamp;
 
@@ -76,12 +76,12 @@ contract V4BondLevelsERC20Test is Test {
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + TIMEOUT * 2, "timeout x2");
 
         rc.submitAnswerERC20(qid, bytes32(uint256(44)), 0, 4800); // 480% -> (400,300,20)
-        assertEq(rc.questions(qid).bond, 4000, "derived bond at level 2");
+        assertEq(rc.questions(qid).bond, 4000, "derived bond at tier 2");
         assertEq(rc.balanceOf(arb), 200 + 800, "cumulative fees");
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + TIMEOUT * 3, "timeout x3");
     }
 
-    function test_no_bond_levels_unchanged() public {
+    function test_no_bond_tiers_unchanged() public {
         uint256 id = rc.createTemplate(_uintTemplate(MIN_BOND));
         bytes32 qid = rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
         uint256 t0 = block.timestamp;
@@ -91,20 +91,20 @@ contract V4BondLevelsERC20Test is Test {
         assertEq(uint256(rc.questions(qid).finalizeTs), t0 + TIMEOUT, "base timeout");
     }
 
-    function test_bond_levels_requires_minbond() public {
-        // template with bond levels but minBond left to the asker, who supplies 0
+    function test_bond_tiers_requires_minbond() public {
+        // template with bond tiers but minBond left to the asker, who supplies 0
         Template memory t = Template(
             AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, _one(""), _none(), "", "", ""
         );
-        uint256 id = rc.createTemplate(t, _bondLevels());
-        vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondLevels.selector);
+        uint256 id = rc.createTemplate(t, _bondTiers());
+        vm.expectRevert(IRealityETHErrors.MinBondRequiredForBondTiers.selector);
         rc.askQuestion(id, _one("Price?"), _none(), arb, TIMEOUT, 0, 0);
     }
 
-    function test_bond_levels_validation_rejects_bad() public {
-        BondLevel[] memory bad = new BondLevel[](1);
-        bad[0] = BondLevel(100, 100, 0); // first threshold must be > 100
-        vm.expectRevert(IRealityETHErrors.BondLevelsInvalid.selector);
+    function test_bond_tiers_validation_rejects_bad() public {
+        BondTier[] memory bad = new BondTier[](1);
+        bad[0] = BondTier(100, 100, 0); // first threshold must be > 100
+        vm.expectRevert(IRealityETHErrors.BondTiersInvalid.selector);
         rc.createTemplate(_uintTemplate(MIN_BOND), bad);
     }
 }
