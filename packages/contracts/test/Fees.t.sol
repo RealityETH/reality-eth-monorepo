@@ -128,7 +128,9 @@ contract FeesTest is RealityETHStd {
             uint256 g = gasleft();
             rc.askQuestion{value: 1100}(0, "my question 2", address(arb), 10, 0, 0);
             g = g - gasleft();
-            assertLt(g, 140000);
+            // 4.0 adds the createdBlock write (a full unpacked SSTORE for now; it moves into a
+            // shared slot in the later gas pass, at which point this can tighten back toward 140k).
+            assertLt(g, createdBlockSupported ? 165000 : 140000);
         }
     }
 
