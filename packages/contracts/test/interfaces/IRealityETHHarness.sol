@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /// @dev Superset interface across RealityETH 2.x / 3.x / 4.x. Any given
 /// deployed version implements a subset; tests gate calls on feature flags.
 /// Signatures taken from the RealityETH-3.0 ABI (plus 3.2 additions).
-interface IRealityETH {
+interface IRealityETHHarness {
     // --- templates / asking ---
     function createTemplate(string calldata content) external returns (uint256);
     function createTemplateAndAskQuestion(

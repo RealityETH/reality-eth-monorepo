@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
-import {IRealityETH} from "../../src/IRealityETH.sol";
+import {IRealityETHHarness} from "../interfaces/IRealityETHHarness.sol";
 
 /// @dev Minimal arbitrator for the ported suite — the 0.8.20 equivalent of the
 /// 0.4.25 RegisteredWalletArbitrator the Python tests deploy. It holds a dispute
@@ -9,7 +9,7 @@ import {IRealityETH} from "../../src/IRealityETH.sol";
 /// RealityETH, and forwards the arbitrator answer/cancel calls (so msg.sender on
 /// RealityETH is this arbitrator).
 contract MockArbitrator {
-    IRealityETH public realitio;
+    IRealityETHHarness public realitio;
     uint256 public disputeFee;
     mapping(bytes32 => uint256) private customFee; // 0 == no override
 
@@ -44,7 +44,7 @@ contract MockArbitrator {
     }
 
     function setRealitio(address a) external {
-        realitio = IRealityETH(a);
+        realitio = IRealityETHHarness(a);
     }
 
     function setDisputeFee(uint256 f) external {

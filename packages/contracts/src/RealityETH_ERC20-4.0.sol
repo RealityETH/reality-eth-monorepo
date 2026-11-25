@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from "./IERC20.sol";
-import {IRealityETHCore_ERC20} from "./IRealityETHCore_ERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
+import {IRealityETHCore_ERC20} from "./interfaces/IRealityETHCore_ERC20.sol";
 import {BalanceHolder_ERC20} from "./BalanceHolder_ERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase

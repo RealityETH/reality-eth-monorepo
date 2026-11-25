@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IRealityETH_ERC20} from "./IRealityETH_ERC20.sol";
-import {IERC20} from "./IERC20.sol";
+import {IRealityETH_ERC20} from "./interfaces/IRealityETH_ERC20.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_ERC20_Factory {

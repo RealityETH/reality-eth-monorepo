@@ -2,17 +2,17 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {IRealityETH} from "../src/IRealityETH.sol";
+import {IRealityETHHarness} from "./interfaces/IRealityETHHarness.sol";
 
 /// @dev Base harness for the ported RealityETH suite.
 ///
 /// Mirrors the Python tests' `REALITYETH` env-var approach: the contract-under-
 /// test is selected at runtime (default RealityETH-3.0) and deployed from its
 /// committed creation bytecode under ./bytecode, then driven through the
-/// {IRealityETH} superset interface. Per-version feature flags gate tests the
+/// {IRealityETHHarness} superset interface. Per-version feature flags gate tests the
 /// same way the Python suite skips unsupported features.
 abstract contract RealityETHBase is Test {
-    IRealityETH internal rc;
+    IRealityETHHarness internal rc;
 
     string internal contractName;
     uint256 internal versionNum; // 20, 21, 22, 30, 32, 40
@@ -29,7 +29,7 @@ abstract contract RealityETHBase is Test {
     function setUp() public virtual {
         contractName = vm.envOr("REALITYETH", string("RealityETH-3.0"));
         _configureVersion(contractName);
-        rc = IRealityETH(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
+        rc = IRealityETHHarness(_deployBytecode(string.concat("bytecode/", contractName, ".bin"), ""));
         vm.deal(address(this), 1000 ether);
     }
 
@@ -218,7 +218,7 @@ abstract contract RealityETHBase is Test {
 
     // advance the chain clock by `secs` (Python _advance_clock / time_travel)
     function _advanceClock(uint256 secs) internal {
-        vm.warp(block.timestamp + secs);
+        vm.warp(vm.getBlockTimestamp() + secs);
     }
 
     // Python subfee(): the 2.5% burn applied to a losing/non-final bond on claim.
