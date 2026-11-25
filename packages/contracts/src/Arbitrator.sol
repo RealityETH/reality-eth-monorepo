@@ -118,7 +118,7 @@ contract Arbitrator is Owned, IArbitrator {
     /// @inheritdoc IArbitratorManagement
     function withdrawERC20(IERC20 _token, address addr) public onlyOwner {
         uint256 bal = _token.balanceOf(address(this));
-        IERC20(_token).transfer(addr, bal);
+        if (!_token.transfer(addr, bal)) revert TokenTransferFailed();
     }
 
     receive() external payable {}

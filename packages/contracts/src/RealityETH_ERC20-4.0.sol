@@ -50,8 +50,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         if (questions[questionId].timeout == 0) revert QuestionMustExist();
         if (questions[questionId].isPendingArbitration) revert QuestionMustNotBePendingArbitration();
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 openingTs = questions[questionId].openingTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
@@ -64,8 +66,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     modifier stateOpenOrPendingArbitration(bytes32 questionId) {
         if (questions[questionId].timeout == 0) revert QuestionMustExist();
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (finalizeTs != UNANSWERED && finalizeTs <= uint32(block.timestamp)) revert FinalizationDeadlineMustNotHavePassed();
         uint32 openingTs = questions[questionId].openingTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         if (openingTs != 0 && openingTs > uint32(block.timestamp)) revert OpeningDateMustHavePassed();
         _;
     }
@@ -243,6 +247,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         // Deduct any tokens you have in your internal balance first
         if (bal > 0) {
             if (bal >= tokens) {
+                // forge-lint: disable-next-line(missing-events-access-control) -- internal balance spent paying a question/answer/bounty; emitted by LogNewQuestion / LogNewAnswer / LogFundAnswerBounty
                 balanceOf[msg.sender] = bal - tokens;
                 return;
             } else {
@@ -271,6 +276,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             uint256 questionFee = arbitratorQuestionFees[arbitrator];
             if (bounty < questionFee) revert TokensProvidedMustCoverQuestionFee();
             bounty = bounty - questionFee;
+            // forge-lint: disable-next-line(missing-events-access-control) -- arbitrator question fee credited on ask (LogNewQuestion)
             balanceOf[arbitrator] = balanceOf[arbitrator] + questionFee;
         }
 
@@ -337,12 +343,14 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     function _updateCurrentAnswer(bytes32 questionId, bytes32 answer) internal {
         questions[questionId].bestAnswer = answer;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
         questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout
     function _updateCurrentAnswerByArbitrator(bytes32 questionId, bytes32 answer) internal {
         questions[questionId].bestAnswer = answer;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106
         questions[questionId].finalizeTs = uint32(block.timestamp);
     }
 
@@ -360,6 +368,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function cancelArbitration(bytes32 questionId) external onlyArbitrator(questionId) statePendingArbitration(questionId) {
         questions[questionId].isPendingArbitration = false;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
         questions[questionId].finalizeTs = uint32(block.timestamp) + questions[questionId].timeout;
         emit LogCancelArbitration(questionId);
     }
@@ -385,6 +394,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function isFinalized(bytes32 questionId) public view returns (bool) {
         uint32 finalizeTs = questions[questionId].finalizeTs;
+        // forge-lint: disable-next-line(block-timestamp, unsafe-typecast) -- safe until 2106
         return (!questions[questionId].isPendingArbitration && (finalizeTs > UNANSWERED) && (finalizeTs <= uint32(block.timestamp)));
     }
 
@@ -537,10 +547,12 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             delete questionClaims[questionId];
         }
 
+        // forge-lint: disable-next-line(missing-events-access-control) -- question history hash rewound during claim; derivable from LogNewAnswer + LogClaim
         questions[questionId].historyHash = lastHistoryHash;
     }
 
     function _payPayee(bytes32 questionId, address payee, uint256 value) internal {
+        // forge-lint: disable-next-line(missing-events-access-control) -- balance credit emitted by the following LogClaim
         balanceOf[payee] = balanceOf[payee] + value;
         emit LogClaim(questionId, payee, value);
     }
@@ -596,17 +608,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         public
         stateAny // The finalization checks are done in the claimWinnings function
     {
-        uint256 qi;
-        uint256 i;
-        for (qi = 0; qi < questionIds.length; qi++) {
+        uint256 i = 0;
+        for (uint256 qi = 0; qi < questionIds.length; qi++) {
             bytes32 qid = questionIds[qi];
             uint256 ln = lengths[qi];
             bytes32[] memory hh = new bytes32[](ln);
             address[] memory ad = new address[](ln);
             uint256[] memory bo = new uint256[](ln);
             bytes32[] memory an = new bytes32[](ln);
-            uint256 j;
-            for (j = 0; j < ln; j++) {
+            for (uint256 j = 0; j < ln; j++) {
                 hh[j] = histHashes[i];
                 ad[j] = addrs[i];
                 bo[j] = bonds[i];
