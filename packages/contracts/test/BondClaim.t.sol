@@ -200,21 +200,17 @@ contract BondClaimTest is RealityETHStd {
 
         assertEq(rc.balanceOf(k4), 0);
 
-        vm.expectRevert(); // first answer with bond 0 fails
-        rc.submitAnswer{value: 0}(question_id, _answer(12345), 0);
+        _submitRevert(question_id, 12345, 0, 0); // first answer with bond 0 fails
 
         _submit(question_id, 12345, 0, 1, k0);
 
-        vm.expectRevert(); // must increase the bond
-        rc.submitAnswer{value: 1}(question_id, _answer(10001), 0);
+        _submitRevert(question_id, 10001, 0, 1); // must increase the bond
 
         _submit(question_id, 10001, 0, 2, k3);
         _submit(question_id, 10002, 0, 4, k4); // the eventual winning answer
 
-        vm.expectRevert(); // must at least double (7 < 8)
-        rc.submitAnswer{value: 7}(question_id, _answer(10003), 0);
-        vm.expectRevert(); // can't drop back to zero
-        rc.submitAnswer{value: 0}(question_id, _answer(10004), 0);
+        _submitRevert(question_id, 10003, 0, 7); // must at least double (7 < 8)
+        _submitRevert(question_id, 10004, 0, 0); // can't drop back to zero
 
         _submit(question_id, 10005, 0, 11, k3);
         _submit(question_id, 10002, 11, 22, k5);
@@ -233,10 +229,10 @@ contract BondClaimTest is RealityETHStd {
         assertEq(rc.balanceOf(k5), 22 + 11 - 4 + 1000, "final answerer: bounty + bond + taken bonds - lower right bond");
         assertEq(rc.balanceOf(k3), 0, "wrong answerers get nothing");
 
-        uint256 beforeBal = k5.balance;
+        uint256 beforeBal = _extBalance(k5);
         vm.prank(k5);
         rc.withdraw();
-        assertEq(k5.balance, beforeBal + (22 + 11 - 4 + 1000));
+        assertEq(_extBalance(k5), beforeBal + (22 + 11 - 4 + 1000));
         assertEq(rc.balanceOf(k5), 0);
     }
 
@@ -276,17 +272,16 @@ contract BondClaimTest is RealityETHStd {
         rc.claimWinnings(question_id, hs, ad, bo, an);
         assertEq(rc.balanceOf(k5), 1100);
 
-        uint256 beforeBal = k5.balance;
+        uint256 beforeBal = _extBalance(k5);
         vm.prank(k5);
         rc.withdraw();
         assertEq(rc.balanceOf(k5), 0);
-        assertEq(k5.balance, beforeBal + 1100);
+        assertEq(_extBalance(k5), beforeBal + 1100);
     }
 
     function test_submit_answer_for_withdrawal() public {
         // submitAnswerFor with a null answerer must revert (rest of the Python
         // test is dead code after an early return).
-        vm.expectRevert();
-        rc.submitAnswerFor{value: 100}(question_id, _answer(12345), 0, address(0));
+        _submitForRevert(question_id, 12345, 0, address(0), 100);
     }
 }

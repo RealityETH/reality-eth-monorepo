@@ -6,7 +6,7 @@ import {RealityETHStd} from "./StdSetup.t.sol";
 /// Ported from tests/python/test.py — arbitration (non commit-reveal).
 contract ArbitrationTest is RealityETHStd {
     function test_arbitrator_answering_answered() public {
-        rc.submitAnswer{value: 1}(question_id, _answer(12345), 0);
+        _submit(question_id, 12345, 0, 1, address(this));
 
         vm.expectRevert(); // arbitrator cannot answer an un-requested question
         arb.submitAnswerByArbitrator(question_id, _answer(123456), address(this));
@@ -45,7 +45,7 @@ contract ArbitrationTest is RealityETHStd {
     }
 
     function test_arbitrator_cancel() public {
-        rc.submitAnswer{value: 1}(question_id, _answer(12345), 0);
+        _submit(question_id, 12345, 0, 1, address(this));
 
         vm.expectRevert();
         arb.submitAnswerByArbitrator(question_id, _answer(123456), address(this));
@@ -75,7 +75,7 @@ contract ArbitrationTest is RealityETHStd {
         assertEq(uint256(finalizeTs), cancelledTs + 30, "cancel extends the timeout");
 
         // answering + re-requesting works again
-        rc.submitAnswer{value: 2}(question_id, _answer(54321), 0);
+        _submit(question_id, 54321, 0, 2, address(this));
         arb.requestArbitration{value: fee}(question_id, 0);
     }
 

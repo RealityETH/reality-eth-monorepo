@@ -28,8 +28,9 @@ contract ReopenTest is RealityETHStd {
 
     function test_reopen_question() public onlyReopen {
         address k0 = address(this);
+        uint256 TOO_SOON = type(uint256).max - 1; // ANSWERED_TOO_SOON as a uint
 
-        rc.submitAnswer{value: 3}(question_id, ANSWERED_TOO_SOON, 0);
+        _submit(question_id, TOO_SOON, 0, 3, k0);
         _advanceClock(33);
 
         assertEq(rc.resultFor(question_id), ANSWERED_TOO_SOON);
@@ -45,11 +46,11 @@ contract ReopenTest is RealityETHStd {
         (,,,,,, uint256 oldBounty,,,,) = rc.questions(question_id);
         assertEq(oldBounty, 1000);
 
-        vm.expectRevert(); // details differ from the original question
-        rc.reopenQuestion{value: 123}(0, "not my question", address(arb), 30, 0, 1, 0, question_id);
+        // details differ from the original question
+        _reopenRevert(k0, 0, "not my question", address(arb), 30, 0, 1, 0, question_id, 123);
 
         bytes32 reopenId = _questionId(0, "my question", address(arb), 30, 0, 1, k0, 0);
-        rc.reopenQuestion{value: 123}(0, "my question", address(arb), 30, 0, 1, 0, question_id);
+        _reopen(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
         assertEq(rc.reopened_questions(question_id), reopenId);
 
         (,,,,,, uint256 oldBountyNow,,,,) = rc.questions(question_id);
@@ -57,23 +58,21 @@ contract ReopenTest is RealityETHStd {
         (,,,,,, uint256 newBounty,,,,) = rc.questions(reopenId);
         assertEq(newBounty, 1000 + 123 - 100);
 
-        vm.expectRevert(); // can't reopen the same one twice
-        rc.reopenQuestion{value: 123}(0, "my question", address(arb), 30, 0, 1, 0, question_id);
-        vm.expectRevert(); // different nonce still fails (already reopened)
-        rc.reopenQuestion{value: 123}(0, "my question", address(arb), 30, 0, 2, 0, question_id);
+        // can't reopen the same one twice (even with a different nonce)
+        _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
+        _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 2, 0, question_id, 123);
 
-        rc.submitAnswer{value: 3}(reopenId, ANSWERED_TOO_SOON, 0);
+        _submit(reopenId, TOO_SOON, 0, 3, k0);
         _advanceClock(33);
         assertEq(rc.getFinalAnswer(reopenId), ANSWERED_TOO_SOON);
 
         // a reopen can't itself be reopened until its parent is reopened again
-        vm.expectRevert();
-        rc.reopenQuestion{value: 123}(0, "my question", address(arb), 30, 0, 4, 0, reopenId);
+        _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 4, 0, reopenId, 123);
 
         (,,,,,, uint256 preReopenBounty,,,,) = rc.questions(reopenId);
 
         bytes32 reopenId2 = _questionId(0, "my question", address(arb), 30, 0, 2, k0, 0);
-        rc.reopenQuestion{value: 543}(0, "my question", address(arb), 30, 0, 2, 0, question_id);
+        _reopen(k0, 0, "my question", address(arb), 30, 0, 2, 0, question_id, 543);
 
         (,,,,,, uint256 postReopenBounty,,,,) = rc.questions(reopenId);
         assertEq(postReopenBounty, 0, "reopening moves the bounty to the new question");
@@ -82,9 +81,9 @@ contract ReopenTest is RealityETHStd {
         assertEq(rc.reopened_questions(question_id), reopenId2);
 
         // now the parent is reopened again, the child can be reopened
-        rc.reopenQuestion{value: 123}(0, "my question", address(arb), 30, 0, 4, 0, reopenId);
+        _reopen(k0, 0, "my question", address(arb), 30, 0, 4, 0, reopenId, 123);
 
-        rc.submitAnswer{value: 3}(reopenId2, _answer(432), 0);
+        _submit(reopenId2, 432, 0, 3, k0);
         _advanceClock(33);
         assertEq(uint256(rc.getFinalAnswer(reopenId2)), 432);
         assertFalse(rc.isSettledTooSoon(reopenId2));
