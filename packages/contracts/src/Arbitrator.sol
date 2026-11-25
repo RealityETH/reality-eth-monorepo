@@ -10,10 +10,10 @@ import {Owned} from "./Owned.sol";
 contract Arbitrator is Owned, IArbitrator {
     IRealityETH public realitio;
 
-    mapping(bytes32 => uint256) public arbitration_bounties;
+    mapping(bytes32 questionId => uint256 bounty) public arbitrationBounties;
 
-    uint256 dispute_fee;
-    mapping(bytes32 => uint256) custom_dispute_fees;
+    uint256 disputeFee;
+    mapping(bytes32 questionId => uint256 fee) customDisputeFees;
 
     string public metadata;
 
@@ -37,23 +37,23 @@ contract Arbitrator is Owned, IArbitrator {
     /// @notice Set the default fee
     /// @param fee The default fee amount
     function setDisputeFee(uint256 fee) public onlyOwner {
-        dispute_fee = fee;
+        disputeFee = fee;
         emit LogSetDisputeFee(fee);
     }
 
     /// @notice Set a custom fee for this particular question
-    /// @param question_id The question in question
+    /// @param questionId The question in question
     /// @param fee The fee amount
-    function setCustomDisputeFee(bytes32 question_id, uint256 fee) public onlyOwner {
-        custom_dispute_fees[question_id] = fee;
-        emit LogSetCustomDisputeFee(question_id, fee);
+    function setCustomDisputeFee(bytes32 questionId, uint256 fee) public onlyOwner {
+        customDisputeFees[questionId] = fee;
+        emit LogSetCustomDisputeFee(questionId, fee);
     }
 
     /// @notice Return the dispute fee for the specified question. 0 indicates that we won't arbitrate it.
-    /// @param question_id The question in question
+    /// @param questionId The question in question
     /// @dev Uses a general default, but can be over-ridden on a question-by-question basis.
-    function getDisputeFee(bytes32 question_id) public view returns (uint256) {
-        return (custom_dispute_fees[question_id] > 0) ? custom_dispute_fees[question_id] : dispute_fee;
+    function getDisputeFee(bytes32 questionId) public view returns (uint256) {
+        return (customDisputeFees[questionId] > 0) ? customDisputeFees[questionId] : disputeFee;
     }
 
     /// @notice Set a fee for asking a question with us as the arbitrator
@@ -68,59 +68,59 @@ contract Arbitrator is Owned, IArbitrator {
     }
 
     /// @notice Submit the arbitrator's answer to a question.
-    /// @param question_id The question in question
+    /// @param questionId The question in question
     /// @param answer The answer
     /// @param answerer The answerer. If arbitration changed the answer, it should be the payer. If not, the old answerer.
-    function submitAnswerByArbitrator(bytes32 question_id, bytes32 answer, address answerer) public onlyOwner {
-        delete arbitration_bounties[question_id];
-        realitio.submitAnswerByArbitrator(question_id, answer, answerer);
+    function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) public onlyOwner {
+        delete arbitrationBounties[questionId];
+        realitio.submitAnswerByArbitrator(questionId, answer, answerer);
     }
 
     /// @notice Submit the arbitrator's answer to a question, assigning the winner automatically.
-    /// @param question_id The question in question
+    /// @param questionId The question in question
     /// @param answer The answer
-    /// @param payee_if_wrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
-    /// @param last_history_hash The history hash before the final one
-    /// @param last_answer_or_commitment_id The last answer given, or the commitment ID if it was a commitment.
-    /// @param last_answerer The address that supplied the last answer
+    /// @param payeeIfWrong The account to by credited as winner if the last answer given is wrong, usually the account that paid the arbitrator
+    /// @param lastHistoryHash The history hash before the final one
+    /// @param lastAnswerOrCommitmentId The last answer given, or the commitment ID if it was a commitment.
+    /// @param lastAnswerer The address that supplied the last answer
     function assignWinnerAndSubmitAnswerByArbitrator(
-        bytes32 question_id,
+        bytes32 questionId,
         bytes32 answer,
-        address payee_if_wrong,
-        bytes32 last_history_hash,
-        bytes32 last_answer_or_commitment_id,
-        address last_answerer
+        address payeeIfWrong,
+        bytes32 lastHistoryHash,
+        bytes32 lastAnswerOrCommitmentId,
+        address lastAnswerer
     ) public onlyOwner {
-        delete arbitration_bounties[question_id];
-        realitio.assignWinnerAndSubmitAnswerByArbitrator(question_id, answer, payee_if_wrong, last_history_hash, last_answer_or_commitment_id, last_answerer);
+        delete arbitrationBounties[questionId];
+        realitio.assignWinnerAndSubmitAnswerByArbitrator(questionId, answer, payeeIfWrong, lastHistoryHash, lastAnswerOrCommitmentId, lastAnswerer);
     }
 
     /// @notice Cancel a previous arbitration request
     /// @dev This is intended for situations where the arbitration is happening non-atomically and the fee or something change.
-    /// @param question_id The question in question
-    function cancelArbitration(bytes32 question_id) public onlyOwner {
-        realitio.cancelArbitration(question_id);
+    /// @param questionId The question in question
+    function cancelArbitration(bytes32 questionId) public onlyOwner {
+        realitio.cancelArbitration(questionId);
     }
 
     /// @notice Request arbitration, freezing the question until we send submitAnswerByArbitrator
     /// @dev The bounty can be paid only in part, in which case the last person to pay will be considered the payer
     /// Will trigger an error if the notification fails, eg because the question has already been finalized
-    /// @param question_id The question in question
-    /// @param max_previous If specified, reverts if a bond higher than this was submitted after you sent your transaction.
-    function requestArbitration(bytes32 question_id, uint256 max_previous) external payable returns (bool) {
-        uint256 arbitration_fee = getDisputeFee(question_id);
-        if (arbitration_fee == 0) revert TheArbitratorMustHaveSetANonZeroFeeForTheQuestion();
+    /// @param questionId The question in question
+    /// @param maxPrevious If specified, reverts if a bond higher than this was submitted after you sent your transaction.
+    function requestArbitration(bytes32 questionId, uint256 maxPrevious) external payable returns (bool) {
+        uint256 arbitrationFee = getDisputeFee(questionId);
+        if (arbitrationFee == 0) revert TheArbitratorMustHaveSetANonZeroFeeForTheQuestion();
 
-        arbitration_bounties[question_id] += msg.value;
-        uint256 paid = arbitration_bounties[question_id];
+        arbitrationBounties[questionId] += msg.value;
+        uint256 paid = arbitrationBounties[questionId];
 
-        if (paid >= arbitration_fee) {
-            realitio.notifyOfArbitrationRequest(question_id, msg.sender, max_previous);
-            emit LogRequestArbitration(question_id, msg.value, msg.sender, 0);
+        if (paid >= arbitrationFee) {
+            realitio.notifyOfArbitrationRequest(questionId, msg.sender, maxPrevious);
+            emit LogRequestArbitration(questionId, msg.value, msg.sender, 0);
             return true;
         } else {
-            if (realitio.isFinalized(question_id)) revert TheQuestionMustNotHaveBeenFinalized();
-            emit LogRequestArbitration(question_id, msg.value, msg.sender, arbitration_fee - paid);
+            if (realitio.isFinalized(questionId)) revert TheQuestionMustNotHaveBeenFinalized();
+            emit LogRequestArbitration(questionId, msg.value, msg.sender, arbitrationFee - paid);
             return false;
         }
     }

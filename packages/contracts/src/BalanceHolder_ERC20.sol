@@ -8,7 +8,7 @@ import {IBalanceHolder_ERC20} from "./interfaces/IBalanceHolder_ERC20.sol";
 contract BalanceHolder_ERC20 is IBalanceHolder_ERC20 {
     IERC20 public token;
 
-    mapping(address => uint256) public balanceOf;
+    mapping(address account => uint256 balance) public balanceOf;
 
     event LogWithdraw(address indexed user, uint256 amount);
 

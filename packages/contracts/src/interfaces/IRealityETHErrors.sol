@@ -17,8 +17,6 @@ interface IRealityETHErrors {
     error OpeningDateMustHavePassed();
     /// @notice question must be pending arbitration
     error QuestionMustBePendingArbitration();
-    /// @notice finalization dealine must not have passed
-    error FinalizationDealineMustNotHavePassed();
     /// @notice question must be finalized
     error QuestionMustBeFinalized();
     /// @notice bond must be positive
@@ -27,8 +25,8 @@ interface IRealityETHErrors {
     error BondMustExceedTheMinimum();
     /// @notice bond must be double at least previous bond
     error BondMustBeDoubleAtLeastPreviousBond();
-    /// @notice bond must exceed max_previous
-    error BondMustExceedMax_Previous();
+    /// @notice bond must exceed maxPrevious
+    error BondMustExceedMaxPrevious();
     /// @notice template must exist
     error TemplateMustExist();
     /// @notice timeout must be positive
@@ -63,10 +61,10 @@ interface IRealityETHErrors {
     error ArbitratorMismatch();
     /// @notice timeout mismatch
     error TimeoutMismatch();
-    /// @notice opening_ts mismatch
-    error Opening_TsMismatch();
-    /// @notice min_bond mismatch
-    error Min_BondMismatch();
+    /// @notice openingTs mismatch
+    error OpeningTsMismatch();
+    /// @notice minBond mismatch
+    error MinBondMismatch();
     /// @notice Question is already reopening a previous question
     error QuestionIsAlreadyReopeningAPreviousQuestion();
     /// @notice Question has already been reopened
