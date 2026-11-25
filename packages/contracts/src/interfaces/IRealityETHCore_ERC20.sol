@@ -31,7 +31,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     event LogNewTemplate(uint256 indexed templateId, address indexed user, string questionText);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
-    event LogSetQuestionFee(address arbitrator, uint256 amount);
 
     struct Question {
         bytes32 contentHash;
@@ -205,10 +204,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
         bytes32 reopensQuestionId,
         uint256 tokens
     ) external returns (bytes32);
-    /// @notice Function for arbitrator to set an optional per-question fee.
-    /// @dev The per-question fee, charged when a question is asked, is intended as an anti-spam measure.
-    /// @param fee The fee to be charged by the arbitrator when a question is asked
-    function setQuestionFee(uint256 fee) external;
     /// @notice Set the address of the ERC20 token that will be used for bonds.
     /// @dev Should not be used with ERC20-like token contracts that implement callbacks like ERC777 that could cause re-entrancy issues
     /// @param _token The ERC20 token that will be used for bonds.
@@ -237,7 +232,6 @@ interface IRealityETHCore_ERC20 is IBalanceHolder_ERC20, IRealityETHErrors_ERC20
     /// @param answerer The account to which the answer should be credited
     /// @param tokens Number of tokens sent
     function submitAnswerForERC20(bytes32 questionId, bytes32 answer, uint256 maxPrevious, address answerer, uint256 tokens) external;
-    function arbitratorQuestionFees(address) external view returns (uint256);
     /// @notice Returns the arbitrator address for the question
     /// @param questionId The ID of the question
     /// @return The arbitrator address for the question

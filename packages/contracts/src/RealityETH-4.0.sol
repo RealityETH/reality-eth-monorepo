@@ -27,7 +27,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     mapping(uint256 templateId => bytes32 contentHash) public templateHashes;
     mapping(bytes32 questionId => Question question) public questions;
     mapping(bytes32 questionId => Claim claim) public questionClaims;
-    mapping(address arbitrator => uint256 fee) public arbitratorQuestionFees;
     mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopenedQuestions;
     mapping(bytes32 questionId => bool isReopener) public reopenerQuestions;
 
@@ -114,12 +113,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         /* solhint-enable quotes */
     }
     /* solhint-enable quotes */
-
-    /// @inheritdoc IRealityETHCore
-    function setQuestionFee(uint256 fee) external stateAny {
-        arbitratorQuestionFees[msg.sender] = fee;
-        emit LogSetQuestionFee(msg.sender, fee);
-    }
 
     /// @inheritdoc IRealityETHCore
     function createTemplate(string memory content) public stateAny returns (uint256) {
@@ -216,17 +209,7 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
         uint256 bounty = tokens;
 
-        // The arbitrator can set a fee for asking a question.
-        // This is intended as an anti-spam defence.
-        // The fee is waived if the arbitrator is asking the question.
-        // This allows them to set an impossibly high fee and make users proxy the question through them.
-        // This would allow more sophisticated pricing, question whitelisting etc.
-        if (arbitrator != NULL_ADDRESS && msg.sender != arbitrator) {
-            uint256 questionFee = arbitratorQuestionFees[arbitrator];
-            if (bounty < questionFee) revert TokensProvidedMustCoverQuestionFee();
-            bounty = bounty - questionFee;
-            balanceOf[arbitrator] = balanceOf[arbitrator] + questionFee;
-        }
+        // todo: replacement arbitration fee goes here
 
         questions[questionId].contentHash = contentHash;
         questions[questionId].arbitrator = arbitrator;

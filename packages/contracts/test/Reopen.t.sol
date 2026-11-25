@@ -53,7 +53,7 @@ contract ReopenTest is RealityETHStd {
         assertEq(_reopenedQuestion(question_id), reopenId);
 
         assertEq(_q(question_id).bounty, 0, "bounty leaves the reopened question");
-        assertEq(_q(reopenId).bounty, 1000 + 123 - 100);
+        assertEq(_q(reopenId).bounty, 1000 + 123 - (questionFeeSupported ? 100 : 0));
 
         // can't reopen the same one twice (even with a different nonce)
         _reopenRevert(k0, 0, "my question", address(arb), 30, 0, 1, 0, question_id, 123);
@@ -72,7 +72,7 @@ contract ReopenTest is RealityETHStd {
         _reopen(k0, 0, "my question", address(arb), 30, 0, 2, 0, question_id, 543);
 
         assertEq(_q(reopenId).bounty, 0, "reopening moves the bounty to the new question");
-        assertEq(_q(reopenId2).bounty, preReopenBounty + 543 - 100);
+        assertEq(_q(reopenId2).bounty, preReopenBounty + 543 - (questionFeeSupported ? 100 : 0));
         assertEq(_reopenedQuestion(question_id), reopenId2);
 
         // now the parent is reopened again, the child can be reopened

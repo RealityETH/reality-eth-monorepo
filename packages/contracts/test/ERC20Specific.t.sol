@@ -16,7 +16,7 @@ contract ERC20SpecificTest is RealityETHStd {
 
     // give `acct` an internal RealityETH balance of `amt` (Python _setup_balance)
     function _setupBalance(address acct, uint256 amt) internal {
-        uint256 fee = QUESTION_FEE;
+        uint256 fee = questionFeeSupported ? QUESTION_FEE : 0;
         uint256 bond = 1;
         uint256 startBal = rc.balanceOf(acct);
         bytes32 qid = _ask(acct, 0, "my question _setup_balance", address(arb), 30, 0, 0, amt + fee - bond);
@@ -79,8 +79,12 @@ contract ERC20SpecificTest is RealityETHStd {
     }
 
     function test_non_erc_ask_question_id() public onlyERC20 {
-        // ERC20 contracts also expose a plain askQuestion (no bounty). With a
-        // question fee set it must fail; once the fee is zero it succeeds.
+        // This exercises the per-question fee (removed in 4.0): with a fee set, a
+        // zero-bounty ask must fail, then succeed once the fee is zeroed.
+        if (!questionFeeSupported) {
+            vm.skip(true);
+            return;
+        }
         bytes32 expectedId = _questionId(0, "my question x", address(arb), 30, 0, 0, address(this), 0);
 
         vm.expectRevert();
