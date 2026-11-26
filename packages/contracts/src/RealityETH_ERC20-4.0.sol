@@ -127,7 +127,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.Bool,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -146,7 +146,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.Uint,
                 18,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -165,7 +165,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.SingleSelect,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -184,7 +184,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.MultipleSelect,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
@@ -203,7 +203,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             Template(
                 AnswerType.Datetime,
                 0,
-                false,
+                true,
                 false,
                 false,
                 false,
