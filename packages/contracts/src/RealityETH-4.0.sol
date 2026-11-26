@@ -479,6 +479,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         AnswerType at = t.answerType;
         if (at == AnswerType.Bool) {
             if (uint256(answer) > 1) revert AnswerNotAllowedForTemplate();
+        } else if (at == AnswerType.Assertion) {
+            // only "true"; INVALID and (if enabled) too-soon were already accepted above
+            if (uint256(answer) != 1) revert AnswerNotAllowedForTemplate();
         } else if (at == AnswerType.SingleSelect) {
             if (uint256(answer) >= q.outcomeCount) revert AnswerNotAllowedForTemplate();
         } else if (at == AnswerType.MultipleSelect) {

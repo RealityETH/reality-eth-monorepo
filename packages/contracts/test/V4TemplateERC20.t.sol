@@ -86,6 +86,40 @@ contract V4TemplateERC20Test is Test {
         );
     }
 
+    function _assertionTemplate(bool tooSoon) internal pure returns (Template memory) {
+        return Template(
+            AnswerType.Assertion,
+            0,
+            tooSoon,
+            false,
+            false,
+            false,
+            false,
+            false,
+            address(0),
+            0,
+            _one(""),
+            _none(),
+            "",
+            "",
+            ""
+        );
+    }
+
+    function test_assertion_answer_validation() public {
+        uint256 id = rc.createTemplate(_assertionTemplate(true));
+        bytes32 qid = rc.askQuestion(id, _one("Did it happen?"), _none(), arb, 30, 0, 0);
+        // 0 ("no") is not a valid answer
+        vm.expectRevert(IRealityETHErrors.AnswerNotAllowedForTemplate.selector);
+        rc.submitAnswerERC20(qid, bytes32(uint256(0)), 0, 1);
+        // only 1 ("true") is accepted
+        rc.submitAnswerERC20(qid, bytes32(uint256(1)), 0, 1);
+        assertEq(rc.questions(qid).bond, 1, "true recorded");
+        // the universal sentinels are accepted (too-soon flag on)
+        rc.submitAnswerERC20(qid, INVALID, 0, 2);
+        rc.submitAnswerERC20(qid, TOO_SOON, 0, 4);
+    }
+
     // ---- defaults + basic asking ------------------------------------------
 
     function test_default_templates() public view {

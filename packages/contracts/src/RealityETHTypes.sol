@@ -3,15 +3,14 @@
 pragma solidity 0.8.20;
 
 /// @notice The answer type a template declares. Drives on-chain answer validation.
-/// @dev Numbering follows v3's template base ids. Datetime validates like Uint
-/// (it is a display hint). Hash is the type the Zodiac/Snapshot integration uses.
 enum AnswerType {
-    Bool, // 0 — answer in {0, 1}
-    Uint, // 1 — any uint, rendered with `decimals`
+    Bool, // 0 — answer {0, 1}
+    Uint, // 1 — any uint below uint256(-2), rendered with `decimals`
     SingleSelect, // 2 — answer = index into `outcomes`
     MultipleSelect, // 3 — answer = bitmask over `outcomes`
     Datetime, // 4 — unix timestamp, validated like Uint
-    Hash // 5 — any bytes32
+    Hash, // 5 — any bytes32
+    Assertion // 6 — "boolean with no no": the only substantive answer is 1 (plus invalid/too-soon)
 }
 
 /// @notice A reusable, structured, on-chain question template.

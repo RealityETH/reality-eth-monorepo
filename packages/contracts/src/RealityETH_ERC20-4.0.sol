@@ -562,6 +562,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         AnswerType at = t.answerType;
         if (at == AnswerType.Bool) {
             if (uint256(answer) > 1) revert AnswerNotAllowedForTemplate();
+        } else if (at == AnswerType.Assertion) {
+            // only "true"; INVALID and (if enabled) too-soon were already accepted above
+            if (uint256(answer) != 1) revert AnswerNotAllowedForTemplate();
         } else if (at == AnswerType.SingleSelect) {
             if (uint256(answer) >= q.outcomeCount) revert AnswerNotAllowedForTemplate();
         } else if (at == AnswerType.MultipleSelect) {
