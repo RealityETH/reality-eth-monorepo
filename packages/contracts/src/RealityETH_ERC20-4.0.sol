@@ -401,7 +401,6 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             }
             if (!t.minBondFromTemplate && a.minBond != 0) {
                 _questions[questionId].minBond = a.minBond;
-                emit LogMinimumBond(questionId, a.minBond);
             }
             uint256 outcomeCount = _resolveOutcomeCount(a.templateId, outcomes);
             if (outcomeCount != 0) {
@@ -417,9 +416,9 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             a.templateId,
             params,
             outcomes,
-            contentHash,
             a.arbitrator,
             a.timeout,
+            a.minBond,
             a.openingTs,
             a.nonce,
             block.timestamp
