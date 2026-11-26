@@ -73,6 +73,38 @@ contract V4TemplateTest is Test {
         rc.askQuestion(99, _one("Nope"), _none(), arb, 30, 0, 0);
     }
 
+    // a title with two interpolation slots: ["Will ", "", " beat ", "", "?"]
+    function _twoSlotTemplate() internal pure returns (Template memory t) {
+        string[] memory parts = new string[](5);
+        parts[0] = "Will ";
+        parts[1] = "";
+        parts[2] = " beat ";
+        parts[3] = "";
+        parts[4] = "?";
+        return Template(
+            AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, parts, _none(), "", "", ""
+        );
+    }
+
+    function test_params_must_match_title_slots() public {
+        // default template 0 (bool) has a single slot: 0 or 2 params is rejected, 1 is accepted.
+        vm.expectRevert(IRealityETHErrors.ParamsLengthMismatch.selector);
+        rc.askQuestion(0, _none(), _none(), arb, 30, 0, 0);
+
+        string[] memory two = new string[](2);
+        two[0] = "Alice";
+        two[1] = "Bob";
+        vm.expectRevert(IRealityETHErrors.ParamsLengthMismatch.selector);
+        rc.askQuestion(0, two, _none(), arb, 30, 0, 0);
+
+        // a two-slot template needs exactly two params.
+        uint256 id = rc.createTemplate(_twoSlotTemplate());
+        bytes32 qid = rc.askQuestion(id, two, _none(), arb, 30, 0, 0);
+        assertTrue(qid != bytes32(0));
+        vm.expectRevert(IRealityETHErrors.ParamsLengthMismatch.selector);
+        rc.askQuestion(id, _one("Alice"), _none(), arb, 30, 0, 0);
+    }
+
     // ---- answer validation --------------------------------------------------
 
     function test_bool_answer_validation() public {

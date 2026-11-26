@@ -94,6 +94,33 @@ contract V4TemplateERC20Test is Test {
         assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.Datetime));
     }
 
+    // a title with two interpolation slots: ["Will ", "", " beat ", "", "?"]
+    function _twoSlotTemplate() internal pure returns (Template memory) {
+        string[] memory parts = new string[](5);
+        parts[0] = "Will ";
+        parts[1] = "";
+        parts[2] = " beat ";
+        parts[3] = "";
+        parts[4] = "?";
+        return Template(
+            AnswerType.Uint, 0, false, false, false, false, false, false, address(0), 0, parts, _none(), "", "", ""
+        );
+    }
+
+    function test_params_must_match_title_slots() public {
+        vm.expectRevert(IRealityETHErrors.ParamsLengthMismatch.selector);
+        rc.askQuestion(0, _none(), _none(), arb, 30, 0, 0); // 0 params for template 0's single slot
+
+        string[] memory two = new string[](2);
+        two[0] = "Alice";
+        two[1] = "Bob";
+        uint256 id = rc.createTemplate(_twoSlotTemplate());
+        bytes32 qid = rc.askQuestion(id, two, _none(), arb, 30, 0, 0); // two slots, two params
+        assertTrue(qid != bytes32(0));
+        vm.expectRevert(IRealityETHErrors.ParamsLengthMismatch.selector);
+        rc.askQuestion(id, _one("Alice"), _none(), arb, 30, 0, 0); // one param for two slots
+    }
+
     function test_ask_stores_template_block_count() public {
         bytes32 qid = rc.askQuestion(0, _one("Will it rain?"), _none(), arb, 30, 0, 0);
         assertEq(uint256(rc.questions(qid).templateId), 0);
