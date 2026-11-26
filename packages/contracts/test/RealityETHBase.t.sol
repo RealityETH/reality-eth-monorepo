@@ -34,6 +34,8 @@ abstract contract RealityETHBase is Test {
     bool internal createdBlockSupported; // question createdBlock field (added in 4.0)
     uint256 internal claimFeeDivisor; // 40 (2.5% burn) for >=2.1, else 0
 
+    address internal constant TREASURY = address(0x7EA5);
+
     // 4.0 validates answers by the template's answer type, and templates/questions use a structured
     // ABI (string[] params/outcomes) rather than a question string. The ported suite asks generic
     // questions on template 0 with arbitrary uint answers (and occasionally the ANSWERED_TOO_SOON
@@ -106,9 +108,9 @@ abstract contract RealityETHBase is Test {
     // ---------------------------------------------------------------------
     function _deployV4Source() internal returns (address) {
         if (isERC20) {
-            return address(new RealityETH_ERC20_v4_0(IERC20(address(0))));
+            return address(new RealityETH_ERC20_v4_0(IERC20(address(0)), TREASURY));
         }
-        return address(new RealityETH_v4_0());
+        return address(new RealityETH_v4_0(TREASURY));
     }
 
     // ---------------------------------------------------------------------

@@ -28,10 +28,7 @@ contract BondClaimTest is RealityETHStd {
         _advanceClock(33);
         (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
         _claim(hs, ad, bo, an);
-        assertEq(
-            rc.balanceOf(sdr),
-            640 + _subFee(320) + _subFee(160) + _subFee(80) + _subFee(40) + _subFee(20) + 1000
-        );
+        assertEq(rc.balanceOf(sdr), 640 + _subFee(320) + _subFee(160) + _subFee(80) + _subFee(40) + _subFee(20) + 1000);
     }
 
     function test_bond_claim_same_person_contradicting_self() public {
@@ -45,10 +42,7 @@ contract BondClaimTest is RealityETHStd {
         _advanceClock(33);
         (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
         _claim(hs, ad, bo, an);
-        assertEq(
-            rc.balanceOf(k3),
-            640 + _subFee(320) + _subFee(160) + _subFee(80) + _subFee(40) + _subFee(20) + 1000
-        );
+        assertEq(rc.balanceOf(k3), 640 + _subFee(320) + _subFee(160) + _subFee(80) + _subFee(40) + _subFee(20) + 1000);
     }
 
     function test_bond_claim_arbitration_existing_none() public {
@@ -160,6 +154,25 @@ contract BondClaimTest is RealityETHStd {
 
         assertEq(rc.balanceOf(k6), 32 + 16 + 8 + 4 + 2 - 1 + 1000);
         assertEq(rc.balanceOf(k3), 1 + 1);
+    }
+
+    // v4 credits the 2.5% bond-claim fee to the treasury rather than burning it in the contract.
+    function test_bond_claim_fee_goes_to_treasury() public {
+        if (versionNum < 40) {
+            vm.skip(true); // treasury redirect is a v4 feature
+            return;
+        }
+        address sdr = makeAddr("sdrT");
+        _submit(question_id, 1001, 0, 2000, sdr);
+        _submit(question_id, 1001, 2000, 4000, sdr);
+        _submit(question_id, 1001, 4000, 8000, sdr);
+        _advanceClock(33);
+        (bytes32[] memory hs, address[] memory ad, uint256[] memory bo, bytes32[] memory an) = _buildClaimNoArb();
+        _claim(hs, ad, bo, an);
+        // the fee taken from each non-final bond (2000, 4000) goes to the treasury; 8000 (final) is untouched
+        uint256 toTreasury = (2000 - _subFee(2000)) + (4000 - _subFee(4000));
+        assertEq(toTreasury, 150, "sanity: 50 + 100");
+        assertEq(rc.balanceOf(TREASURY), toTreasury, "bond-claim fee credited to the treasury");
     }
 
     function test_simple_bond_claim() public {

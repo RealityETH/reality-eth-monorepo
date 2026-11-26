@@ -18,7 +18,7 @@ contract V4TemplateTest is Test {
     bytes32 internal constant TOO_SOON = bytes32(type(uint256).max - 1); // 0xff..fe
 
     function setUp() public {
-        rc = new RealityETH_v4_0();
+        rc = new RealityETH_v4_0(address(0));
         vm.deal(address(this), 100 ether);
     }
 

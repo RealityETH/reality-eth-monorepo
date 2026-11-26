@@ -29,6 +29,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // Max number of decimals for a uint256 answer, typically 0 or 18
     uint8 private constant MAX_DECIMALS = 63;
 
+    // Fees that would otherwise be burned are credited here.
+    address public immutable treasury;
+
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
     // internal + explicit struct getter below: the flat auto-getter would return
@@ -109,7 +112,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor() {
+    constructor(address _treasury) {
+        treasury = _treasury;
         createInitialTemplates();
     }
 
@@ -773,10 +777,13 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
             // Line the bond up for next time, when it will be added to somebody's queuedFunds
             lastBond = bonds[i];
 
-            // Burn (just leave in contract balance) a fraction of all bonds except the final one.
-            // This creates a cost to increasing your own bond, which could be used to delay resolution maliciously
+            // Take a fraction of all bonds except the final one and credit it to the treasury (a 0x0
+            // treasury leaves it in the contract, ie burned, as before). This creates a cost to
+            // increasing your own bond, which could be used to delay resolution maliciously.
             if (lastBond != _questions[questionId].bond) {
-                lastBond = lastBond - lastBond / BOND_CLAIM_FEE_PROPORTION;
+                uint256 claimFee = lastBond / BOND_CLAIM_FEE_PROPORTION;
+                lastBond = lastBond - claimFee;
+                balanceOf[treasury] = balanceOf[treasury] + claimFee;
             }
 
             lastHistoryHash = historyHashes[i];

@@ -92,7 +92,7 @@ contract ReentrancyERC20Test is Test {
 
     function setUp() public {
         token = new MockReentrantERC20();
-        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)));
+        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)), address(0));
 
         uint256 tid = rc.createTemplate(_boolTpl());
         qid = rc.askQuestionERC20(tid, _one("question"), _none(), address(0), 30, 0, 0, 0);
@@ -227,7 +227,7 @@ contract ReopenReentrancyTest is Test {
 
     function setUp() public {
         token = new MockReentrantERC20();
-        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)));
+        rc = new RealityETH_ERC20_v4_0(IERC20(address(token)), address(0));
 
         uint256 tid = rc.createTemplate(_boolTplTooSoon());
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {IRealityETH_ERC20} from "./interfaces/IRealityETH_ERC20.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
@@ -13,14 +13,19 @@ contract RealityETH_ERC20_Factory {
     error LibraryAddressMustNotBeZero();
 
     address public libraryAddress;
+    // Treasury applied to every clone this factory deploys (address(0) = burn fees, as before).
+    address public treasury;
     mapping(address token => address instance) public deployments;
 
     // solhint-disable-next-line event-name-camelcase
-    event RealityETH_ERC20_deployed(address indexed realityEth, address indexed token, uint8 decimals, string tokenTicker);
+    event RealityETH_ERC20_deployed(
+        address indexed realityEth, address indexed token, uint8 decimals, string tokenTicker
+    );
 
-    constructor(address _libraryAddress) {
+    constructor(address _libraryAddress, address _treasury) {
         if (_libraryAddress == address(0)) revert LibraryAddressMustNotBeZero();
         libraryAddress = _libraryAddress;
+        treasury = _treasury;
     }
 
     /// @notice Returns the address of a proxy based on the specified address
@@ -44,6 +49,9 @@ contract RealityETH_ERC20_Factory {
         // malicious token re-entering via decimals()/symbol() then hits the guard
         // above instead of deploying a duplicate instance for the same token.
         deployments[_token] = clone;
+        // setTreasury must precede setToken: it is only callable while the token is unset, and setToken
+        // closes that window. Both run in this one transaction, so there is no window for anyone else.
+        IRealityETH_ERC20(clone).setTreasury(treasury);
         IRealityETH_ERC20(clone).setToken(IERC20(_token));
         IRealityETH_ERC20(clone).createInitialTemplates();
         uint8 decimals = IERC20(_token).decimals();
