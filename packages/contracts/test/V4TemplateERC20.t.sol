@@ -95,6 +95,8 @@ contract V4TemplateERC20Test is Test {
         assertEq(uint256(rc.getTemplate(3).answerType), uint256(AnswerType.MultipleSelect));
         assertEq(uint256(rc.getTemplate(4).answerType), uint256(AnswerType.Datetime));
         assertTrue(rc.getTemplate(0).hasAnsweredTooSoon, "defaults opt into the too-soon sentinel");
+        assertTrue(rc.getTemplate(0).hasLang, "defaults declare a language");
+        assertEq(rc.getTemplate(0).lang, "en", "defaults declare English");
     }
 
     // a title with two interpolation slots: ["Will ", "", " beat ", "", "?"]
