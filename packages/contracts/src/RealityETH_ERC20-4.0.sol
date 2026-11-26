@@ -117,13 +117,10 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     /// @inheritdoc IRealityETHCore_ERC20
     function createInitialTemplates() public {
         if (nextTemplateID != 0) revert TemplatesAlreadyCreated();
-        // Generalized defaults matching the historical reality.eth template ids (0 bool, 1 uint,
-        // 2 single-select, 3 multiple-select, 4 datetime): the asker supplies the whole title via
-        // params[0] (a single "" interpolation slot). The select types carry no preset outcomes
-        // here, so the asker supplies them per question at ask time. Every default declares
-        // English (lang "en").
+        // Defaults:
+        // 0 bool, 1 uint, 2 single-select, 3 multiple-select, 4 datetime, 5 assertion
         string[] memory titleOnly = new string[](1); // one "" interpolation slot
-        string[] memory noOutcomes = new string[](0);
+        string[] memory noOutcomes = new string[](0); // outcomes inapplicable or per-question
         createTemplate(
             Template(
                 AnswerType.Bool,
@@ -203,6 +200,25 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
         createTemplate(
             Template(
                 AnswerType.Datetime,
+                0,
+                true,
+                false,
+                false,
+                true,
+                false,
+                false,
+                address(0),
+                0,
+                titleOnly,
+                noOutcomes,
+                "",
+                "",
+                "en"
+            )
+        );
+        createTemplate(
+            Template(
+                AnswerType.Assertion,
                 0,
                 true,
                 false,

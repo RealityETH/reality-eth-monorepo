@@ -74,6 +74,7 @@ contract V4TemplateTest is Test {
         assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.SingleSelect));
         assertEq(uint256(rc.getTemplate(3).answerType), uint256(AnswerType.MultipleSelect));
         assertEq(uint256(rc.getTemplate(4).answerType), uint256(AnswerType.Datetime));
+        assertEq(uint256(rc.getTemplate(5).answerType), uint256(AnswerType.Assertion));
         assertTrue(rc.getTemplate(0).hasAnsweredTooSoon, "defaults opt into the too-soon sentinel");
         assertTrue(rc.getTemplate(0).hasLang, "defaults declare a language");
         assertEq(rc.getTemplate(0).lang, "en", "defaults declare English");
@@ -81,7 +82,7 @@ contract V4TemplateTest is Test {
 
     function test_getTemplate_out_of_range_reverts() public {
         vm.expectRevert(IRealityETHErrors.TemplateMustExist.selector);
-        rc.getTemplate(5);
+        rc.getTemplate(6);
     }
 
     // ---- asking -------------------------------------------------------------
