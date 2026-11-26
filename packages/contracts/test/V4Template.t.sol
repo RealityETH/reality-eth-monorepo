@@ -51,12 +51,14 @@ contract V4TemplateTest is Test {
         assertEq(uint256(rc.getTemplate(0).answerType), uint256(AnswerType.Bool));
         assertEq(uint256(rc.getTemplate(1).answerType), uint256(AnswerType.Uint));
         assertEq(uint256(rc.getTemplate(1).decimals), 18);
-        assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.Datetime));
+        assertEq(uint256(rc.getTemplate(2).answerType), uint256(AnswerType.SingleSelect));
+        assertEq(uint256(rc.getTemplate(3).answerType), uint256(AnswerType.MultipleSelect));
+        assertEq(uint256(rc.getTemplate(4).answerType), uint256(AnswerType.Datetime));
     }
 
     function test_getTemplate_out_of_range_reverts() public {
         vm.expectRevert(IRealityETHErrors.TemplateMustExist.selector);
-        rc.getTemplate(3);
+        rc.getTemplate(5);
     }
 
     // ---- asking -------------------------------------------------------------
