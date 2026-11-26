@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 interface IArbitratorErrors {
     /// @notice The arbitrator must have set a non-zero fee for the question
@@ -11,4 +11,6 @@ interface IArbitratorErrors {
     error TokenTransferFailed();
     /// @notice The recipient address must not be the zero address
     error RecipientMustNotBeZero();
+    /// @notice The native-value transfer in withdraw() failed
+    error WithdrawFailed();
 }
