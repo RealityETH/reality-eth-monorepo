@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {RealityETH_ERC20_v4_0} from "../src/RealityETH_ERC20-4.0.sol";
 import {RealityETH_ERC20_Factory} from "../src/RealityETH_ERC20_Factory.sol";
 import {IRealityETH_ERC20} from "../src/interfaces/IRealityETH_ERC20.sol";
+import {IERC20} from "../src/interfaces/IERC20.sol";
 import {AnswerType} from "../src/RealityETHTypes.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
@@ -46,7 +47,7 @@ contract FactoryTest is Test {
     RealityETH_ERC20_Factory internal factory;
 
     function setUp() public {
-        lib = new RealityETH_ERC20_v4_0();
+        lib = new RealityETH_ERC20_v4_0(IERC20(address(0)));
         factory = new RealityETH_ERC20_Factory(address(lib));
     }
 

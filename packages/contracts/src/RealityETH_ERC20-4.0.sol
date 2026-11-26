@@ -110,7 +110,11 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
 
     /// @notice Constructor, sets up some initial templates
     /// @dev Creates some generalized templates for different question types used in the DApp.
-    constructor() {
+    constructor(IERC20 _token) {
+        // Two supported deployment paths: a direct deployment passes the token here (set once at
+        // construction); a clone template passes the zero address and each clone's token is set
+        // afterwards via setToken, which reverts once a token is set (TokenCanOnlyBeInitializedOnce).
+        token = _token;
         createInitialTemplates();
     }
 

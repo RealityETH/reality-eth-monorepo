@@ -10,7 +10,7 @@ under `../bytecode/` rather than recompiling — exactly like the Python suite
 ("test the bytecode, not the source"), since their source no longer lives in
 `src/`. The current development version (**4.0**) is instead **compiled and
 deployed from `src/` directly** (`new RealityETH_v4_0()` /
-`new RealityETH_ERC20_v4_0()`), so edits to the v4 source are actually
+`new RealityETH_ERC20_v4_0(token)`), so edits to the v4 source are actually
 exercised. The deploy branch is in `RealityETHBase.setUp()`.
 
 Either way the contract is driven through the test-only superset interface
