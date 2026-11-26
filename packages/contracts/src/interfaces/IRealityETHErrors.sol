@@ -67,10 +67,6 @@ interface IRealityETHErrors {
     error QuestionIsAlreadyReopeningAPreviousQuestion();
     /// @notice Question has already been reopened
     error QuestionHasAlreadyBeenReopened();
-    /// @notice content hash must match
-    error ContentHashMustMatch();
-    /// @notice arbitrator must match
-    error ArbitratorMustMatch();
     /// @notice timeout must be long enough
     error TimeoutMustBeLongEnough();
     /// @notice bond must be high enough
