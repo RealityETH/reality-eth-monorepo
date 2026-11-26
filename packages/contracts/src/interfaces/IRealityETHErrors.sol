@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 interface IRealityETHErrors {
     /// @notice msg.sender must be arbitrator
@@ -87,6 +87,10 @@ interface IRealityETHErrors {
     error OverrideNotAllowed();
     /// @notice The number of params supplied does not match the template's interpolation slots
     error ParamsLengthMismatch();
+    /// @notice Bond tiers are malformed (too long, thresholds not strictly increasing above 100%, timeouts decreasing, fees decreasing, or a fee above 100%)
+    error BondTiersInvalid();
+    /// @notice A template with a bond tiers requires a positive minBond (thresholds are a percentage of it)
+    error MinBondRequiredForBondTiers();
     /// @notice Only Uint templates may set decimals
     error TemplateDecimalsInvalid();
     /// @notice A field flagged unused must not carry a preset value

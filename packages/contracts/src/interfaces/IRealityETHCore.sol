@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.4;
 
 import {IBalanceHolder} from "./IBalanceHolder.sol";
 import {IRealityETHErrors} from "./IRealityETHErrors.sol";
-import {AnswerType, Template} from "../RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "../RealityETHTypes.sol";
 
 /* solhint-disable func-name-mixedcase */
 
@@ -36,6 +36,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 created
     );
     event LogNewTemplate(uint256 indexed templateId, address indexed user);
+    event LogBondTierFeePaid(bytes32 indexed questionId, address indexed arbitrator, uint256 fee);
     event LogNotifyOfArbitrationRequest(bytes32 indexed questionId, address indexed user);
     event LogReopenQuestion(bytes32 indexed questionId, bytes32 indexed reopenedQuestionId);
 
@@ -134,11 +135,52 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param template The structured template content
     /// @return The ID of the newly-created template, which is created sequentially.
     function createTemplate(Template calldata template) external returns (uint256);
+    /// @notice Create a template together with a per-template bond-tier schedule (overload of
+    /// createTemplate). An empty `tiers` is equivalent to the no-tiers overload.
+    /// @dev As an answer's bond rises past each bond tier (threshold as a % of minBond), the tier's
+    /// timeout multiplier and extra arbitrator fee apply. Bond tiers require the question's effective
+    /// minBond to be positive.
+    /// @param template The structured template content
+    /// @param tiers The ordered bond tiers (see {BondTier})
+    /// @return The ID of the newly-created template
+    function createTemplate(Template calldata template, BondTier[] calldata tiers) external returns (uint256);
     /// @notice Read back a stored template by id.
     /// @param templateId The template id
     /// @return The stored template
     function getTemplate(uint256 templateId) external view returns (Template memory);
-    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime).
+    /// @notice Read back a template's bond tiers as stored (empty if none; excludes the implicit base).
+    /// @param templateId The template id
+    /// @return The bond tiers
+    function getTemplateBondTiers(uint256 templateId) external view returns (BondTier[] memory);
+    /// @notice Read a question's full effective bond-tier schedule: the implicit base tier
+    /// [100, 100, 0] first, then the tiers inherited from its template.
+    /// @param questionId The question id
+    /// @return The effective bond tiers
+    function getBondTiers(bytes32 questionId) external view returns (BondTier[] memory);
+    /// @notice The template a question uses, in one call.
+    /// @param questionId The question id
+    /// @return The question's template
+    function getTemplateForQuestion(bytes32 questionId) external view returns (Template memory);
+    /// @notice Preview how a given value sent with an answer would split for a question.
+    /// @param questionId The question id
+    /// @param value The total value that would be sent with the answer
+    /// @return bond The bond that would be recorded
+    /// @return fee The extra arbitrator fee taken on top
+    /// @return timeoutPct The timeout multiplier (percent) of the applicable bond tier
+    /// @return effectiveTimeout The resulting finalization window in seconds (clamped to 365 days)
+    function getBondSettingsForValue(bytes32 questionId, uint256 value)
+        external
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout);
+    /// @notice The extra arbitrator fee to send on top of a desired bond, so the total to send is
+    /// `targetBond + fee`. Tiers are keyed on the bond, so this is a direct lookup -- the applicable
+    /// bond tier's percentage of the target bond. Sending targetBond + fee records a bond of
+    /// targetBond, up to a one-base-unit difference from integer division.
+    /// @param questionId The question id
+    /// @param targetBond The bond the answerer wants to post
+    /// @return fee The extra fee to add to the bond
+    function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee);
+    /// @notice Create the initial set of default templates (bool, uint, single-select, multiple-select, datetime, assertion).
     /// @dev Called by the constructor, and callable once on a freshly-deployed proxy clone that has no templates yet. Reverts if any template already exists.
     function createInitialTemplates() external;
     /// @notice Notify the contract that the arbitrator has been paid for a question, freezing it pending their decision.
@@ -157,7 +199,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
     /// @param answerer The account credited with this answer for the purpose of bond claims
     function submitAnswerByArbitrator(bytes32 questionId, bytes32 answer, address answerer) external;
     /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -175,7 +217,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 nonce
     ) external payable returns (bytes32);
     /// @notice Ask a new question and return the ID
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param templateId The ID number of the template the question will use
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute
@@ -195,7 +237,7 @@ interface IRealityETHCore is IBalanceHolder, IRealityETHErrors {
         uint256 minBond
     ) external payable returns (bytes32);
     /// @notice Create a new reusable template and use it to ask a question
-    /// @dev Template data is only stored in the event logs, but its block number is kept in contract storage.
+    /// @dev The question stores only a content hash on-chain; raw params/outcomes go in the LogNewQuestion event. The template itself is stored on-chain (templateRegistry).
     /// @param template The structured template content
     /// @param params The parameters interpolated into the template's title parts to form the question
     /// @param arbitrator The arbitration contract that will have the final word on the answer if there is a dispute

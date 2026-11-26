@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import {IRealityETHCore} from "./interfaces/IRealityETHCore.sol";
 import {BalanceHolder} from "./BalanceHolder.sol";
-import {AnswerType, Template} from "./RealityETHTypes.sol";
+import {AnswerType, Template, BondTier} from "./RealityETHTypes.sol";
 
 // solhint-disable-next-line contract-name-camelcase
 contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
@@ -13,14 +13,14 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     // History hash when no history is created, or history has been cleared
     bytes32 private constant NULL_HASH = bytes32(0);
 
-    // An unitinalized finalizeTs for a question will indicate an unanswered question.
+    // An uninitialized finalizeTs for a question will indicate an unanswered question.
     uint32 private constant UNANSWERED = 0;
 
     // Proportion withheld when you claim an earlier bond.
     uint256 private constant BOND_CLAIM_FEE_PROPORTION = 40; // One 40th ie 2.5%
 
-    // Special value representing a question that was answered too soon.
-    // bytes32(-2). By convention we use bytes32(-1) for "invalid", although the contract does not handle this.
+    // Special value for a question answered too soon: bytes32(-2). As a user-submitted answer it is
+    // accepted only when the template opts in via hasAnsweredTooSoon. (bytes32(-1), "invalid", is below.)
     bytes32 private constant UNRESOLVED_ANSWER = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe;
 
     // Special value representing an invalid question. bytes32(-1). Always an acceptable answer.
@@ -34,8 +34,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     uint256 private nextTemplateID = 0;
     mapping(uint256 templateId => Template template) internal templateRegistry;
-    // internal + explicit struct getter below: the flat auto-getter would return
-    // too many stack slots for the legacy codegen as the struct grows.
+    // Optional custom settings for fee and timeout depending on bond tier
+    mapping(uint256 templateId => BondTier[] tiers) internal templateBondTiers;
+
     mapping(bytes32 questionId => Question question) internal _questions;
     mapping(bytes32 questionId => Claim claim) public questionClaims;
     mapping(bytes32 reopenedQuestionId => bytes32 replacementQuestionId) public reopenedQuestions;
@@ -92,17 +93,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _;
     }
 
-    modifier bondMustDoubleAndMatchMinimum(bytes32 questionId, uint256 tokens) {
-        if (tokens == 0) revert BondMustBePositive();
-        uint256 currentBond = _questions[questionId].bond;
-        if (currentBond == 0) {
-            if (tokens < _minBondOf(questionId)) revert BondMustExceedTheMinimum();
-        } else {
-            if (tokens < (currentBond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
-        }
-        _;
-    }
-
     modifier previousBondMustNotBeatMaxPrevious(bytes32 questionId, uint256 maxPrevious) {
         if (maxPrevious > 0) {
             if (_questions[questionId].bond > maxPrevious) revert BondMustExceedMaxPrevious();
@@ -110,8 +100,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         _;
     }
 
-    /// @notice Constructor, sets up some initial templates
-    /// @dev Creates some generalized templates for different question types used in the DApp.
+    /// @notice Constructor: records the treasury and seeds the initial default templates.
+    /// @dev Seeds the generalized default templates for the standard question types (see createInitialTemplates).
     constructor(address _treasury) {
         treasury = _treasury;
         createInitialTemplates();
@@ -242,8 +232,12 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
     /// @inheritdoc IRealityETHCore
     function createTemplate(Template memory template) public stateAny returns (uint256) {
+        return _createTemplate(template);
+    }
+
+    function _createTemplate(Template memory template) internal returns (uint256 id) {
         _validateTemplate(template);
-        uint256 id = nextTemplateID;
+        id = nextTemplateID;
         templateRegistry[id] = template;
         emit LogNewTemplate(id, msg.sender);
         nextTemplateID = id + 1;
@@ -254,6 +248,93 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
     function getTemplate(uint256 templateId) external view returns (Template memory) {
         if (templateId >= nextTemplateID) revert TemplateMustExist();
         return templateRegistry[templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function createTemplate(Template memory template, BondTier[] calldata tiers) public stateAny returns (uint256 id) {
+        id = _createTemplate(template);
+        _validateBondTiers(tiers);
+        // Copy calldata struct array to storage.
+        BondTier[] storage stored = templateBondTiers[id];
+        for (uint256 i = 0; i < tiers.length; i++) {
+            stored.push(tiers[i]);
+        }
+        return id;
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getTemplateBondTiers(uint256 templateId) external view returns (BondTier[] memory) {
+        return templateBondTiers[templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getBondTiers(bytes32 questionId) external view returns (BondTier[] memory out) {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        out = new BondTier[](tiers.length + 1);
+        out[0] = BondTier(100, 100, 0); // the implicit base tier at minBond
+        for (uint256 i = 0; i < tiers.length; i++) {
+            out[i + 1] = tiers[i];
+        }
+        return out;
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getTemplateForQuestion(bytes32 questionId) external view returns (Template memory) {
+        return templateRegistry[_questions[questionId].templateId];
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getBondSettingsForValue(bytes32 questionId, uint256 value)
+        external
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct, uint32 effectiveTimeout)
+    {
+        (bond, fee, timeoutPct) = _applyBondTiers(questionId, value);
+        effectiveTimeout = _effectiveTimeout(questionId, timeoutPct);
+        return (bond, fee, timeoutPct, effectiveTimeout);
+    }
+
+    /// @inheritdoc IRealityETHCore
+    function getAnswerFeeForBond(bytes32 questionId, uint256 targetBond) external view returns (uint256 fee) {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        if (tiers.length == 0) {
+            return 0; // no fee
+        }
+        // Try every bond tier until we find one that exceeds the bond tier
+        uint256 minBond = _minBondOf(questionId);
+        uint256 feePct = 0;
+        uint256 n = tiers.length;
+        for (uint256 i = 0; i < n; i++) {
+            if (targetBond * 100 >= minBond * tiers[i].bondThresholdPct) {
+                feePct = tiers[i].feePct;
+            } else {
+                break;
+            }
+        }
+        return targetBond * feePct / 100;
+    }
+
+    // Validate bond tiers, up to 255 tiers may be defined.
+    // Implicitly start at 100% of minBond, 100% of original timeout, 0% fee.
+    // Threshold must increase each time.
+    // Fee and timeout must increase or stay the same each time.
+    // Max fee is 100% of bond.
+    // Timeout (as percent of original) is uncapped (but will be clamped at 365 days when applied)
+    function _validateBondTiers(BondTier[] calldata tiers) internal pure {
+        uint256 n = tiers.length;
+        if (n > 255) revert BondTiersInvalid();
+        uint32 prevThreshold = 100; // implicit first tier is [100, 100, 0] at minBond
+        uint16 prevTimeout = 100;
+        uint8 prevFee = 0;
+        for (uint256 i = 0; i < n; i++) {
+            if (tiers[i].bondThresholdPct <= prevThreshold) revert BondTiersInvalid();
+            if (tiers[i].timeoutPct < prevTimeout) revert BondTiersInvalid();
+            if (tiers[i].feePct < prevFee) revert BondTiersInvalid();
+            if (tiers[i].feePct > 100) revert BondTiersInvalid();
+            prevThreshold = tiers[i].bondThresholdPct;
+            prevTimeout = tiers[i].timeoutPct;
+            prevFee = tiers[i].feePct;
+        }
     }
 
     /// @inheritdoc IRealityETHCore
@@ -301,14 +382,14 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         return outcomes.length;
     }
 
-    // The number of interpolation slots in a template's title: each empty-string entry in titleParts
-    // is a slot the asker fills with one param. Templates are small, so the scan is cheap.
+    // Count the interpolation slots ("") in the title so we can sanity-check interpolation
     function _titleSlotCount(uint256 templateId) internal view returns (uint256 slots) {
         string[] storage parts = templateRegistry[templateId].titleParts;
         uint256 n = parts.length;
         for (uint256 i = 0; i < n; i++) {
             if (bytes(parts[i]).length == 0) slots++;
         }
+        return slots;
     }
 
     // Arbitrator for a new question, fixed by template or supplied per-question.
@@ -408,6 +489,8 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         // Resolve template defaults vs ask-time overrides (revert if the template fixes a field the asker also sent).
         arbitrator = _effectiveArbitrator(templateRegistry[templateId], arbitrator);
         minBond = _effectiveMinBond(templateRegistry[templateId], minBond);
+        // Bond tiers measure thresholds as a percentage of minBond, so they need a positive one.
+        if (templateBondTiers[templateId].length != 0 && minBond == 0) revert MinBondRequiredForBondTiers();
 
         // abi.encode (not encodePacked): params/outcomes are dynamic string[], which packed encoding cannot represent unambiguously.
         bytes32 contentHash = keccak256(abi.encode(templateId, openingTs, params, outcomes));
@@ -416,9 +499,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
 
         _askQuestion(questionId, templateId, contentHash, timeout, openingTs, msg.value);
 
-        // Store the overridable fields on the question only when the template did NOT fix them (the asker
-        // supplied them). When the template fixes a field, the question slot stays zero and reads fall back
-        // to the template, saving a cold SSTORE. Scoped so these temporaries free before the emit below.
+        // Store the question-specific overridable fields.
+        // If it's already in the template we'll read it from there instead to avoid gas storage cost
+        // Scoped to avoid stack-too-deep later
         {
             Template storage t = templateRegistry[templateId];
             if (!t.arbitratorFromTemplate && arbitrator != address(0)) {
@@ -464,8 +547,6 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         // A timeout of 0 makes no sense, and we will use this to check existence
         if (timeout == 0) revert TimeoutMustBePositive();
         if (timeout >= 365 days) revert TimeoutMustBeLessThan365Days();
-
-        // todo: replacement arbitration fee goes here
 
         _questions[questionId].contentHash = contentHash;
         _questions[questionId].openingTs = openingTs;
@@ -522,12 +603,9 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         external
         payable
         stateOpen(questionId)
-        bondMustDoubleAndMatchMinimum(questionId, msg.value)
         previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
     {
-        _validateAnswer(questionId, answer);
-        _addAnswerToHistory(questionId, answer, msg.sender, msg.value);
-        _updateCurrentAnswer(questionId, answer);
+        _submitAnswer(questionId, answer, msg.sender);
     }
 
     /// @inheritdoc IRealityETHCore
@@ -535,22 +613,95 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         external
         payable
         stateOpen(questionId)
-        bondMustDoubleAndMatchMinimum(questionId, msg.value)
         previousBondMustNotBeatMaxPrevious(questionId, maxPrevious)
     {
         if (answerer == NULL_ADDRESS) {
             revert AnswererMustBeNonZero();
         }
+        _submitAnswer(questionId, answer, answerer);
+    }
+
+    function _submitAnswer(bytes32 questionId, bytes32 answer, address answerer) internal {
+        (uint256 bond, uint256 fee, uint256 timeoutPct) = _applyBondTiers(questionId, msg.value);
+        _requireBondValid(questionId, bond);
         _validateAnswer(questionId, answer);
-        _addAnswerToHistory(questionId, answer, answerer, msg.value);
-        _updateCurrentAnswer(questionId, answer);
+        _addAnswerToHistory(questionId, answer, answerer, bond);
+        _updateCurrentAnswer(questionId, answer, _effectiveTimeout(questionId, timeoutPct));
+        // Apply the per-bond-tier fee.
+        if (fee > 0) {
+            // fee goes to the arbitrator, or the treasury if there is no arbitrator
+            address arbitrator = _arbitratorOf(questionId);
+            address recipient = arbitrator == NULL_ADDRESS ? treasury : arbitrator;
+            balanceOf[recipient] = balanceOf[recipient] + fee;
+            emit LogBondTierFeePaid(questionId, recipient, fee);
+        }
+    }
+
+    // The user sends us bond+fee as a single payment.
+    // We need to work out how much of it is supposed to be the bond and how much the fee.
+    // Find the appropriate bond tier, split them out, and also return the timeout multiplier.
+    // If they exceeded one tier but didn't cover bond+fee in the next tier up,
+    // ...we'll assume they sent the max bond from the lower tier with a needlessly high fee.
+    function _applyBondTiers(bytes32 questionId, uint256 value)
+        internal
+        view
+        returns (uint256 bond, uint256 fee, uint256 timeoutPct)
+    {
+        BondTier[] storage tiers = templateBondTiers[_questions[questionId].templateId];
+        if (tiers.length == 0) {
+            return (value, 0, 100);
+        }
+        uint256 minBond = _minBondOf(questionId); // > 0 guaranteed for bond tiers at ask time
+        uint256 feePct = 0;
+        timeoutPct = 100; // implicit first tier [100, 100, 0]
+        uint256 n = tiers.length;
+        for (uint256 i = 0; i < n; i++) {
+            // threshold scaled by 100 so it compares against value * 10000 without dividing first
+            uint256 threshold = minBond * tiers[i].bondThresholdPct;
+            // Below this threshold at the current (lower) fee? Then the bond belongs in the current tier.
+            if (value * 10000 < threshold * (100 + feePct)) break;
+            // Reached it, but not enough value to also cover this tier's fee? Keep the bond in the lower
+            // tier -- its highest allowed value, just under the threshold -- at the lower tier's timeout,
+            // and treat the excess as a fee. The higher tier (and its longer timeout) is entered only once
+            // its fee is covered.
+            if (value * 10000 < threshold * (100 + tiers[i].feePct)) {
+                bond = (threshold - 1) / 100;
+                fee = value - bond;
+                return (bond, fee, timeoutPct);
+            }
+            // Past the plateau: this tier's fee is fully covered, so adopt it then try the next tier up.
+            feePct = tiers[i].feePct;
+            timeoutPct = tiers[i].timeoutPct;
+        }
+        bond = value * 100 / (100 + feePct);
+        fee = value - bond;
+        return (bond, fee, timeoutPct);
+    }
+
+    // The base timeout scaled by the bond tier's percentage, up to a maximum of 365 days
+    function _effectiveTimeout(bytes32 questionId, uint256 timeoutPct) internal view returns (uint32) {
+        uint256 eff = uint256(_questions[questionId].timeout) * timeoutPct / 100;
+        if (eff > 365 days) eff = 365 days;
+        // forge-lint: disable-next-line(unsafe-typecast) -- clamped to 365 days, well within uint32
+        return uint32(eff);
+    }
+
+    // Ensures bond is at least minBond, and double the previous bond
+    function _requireBondValid(bytes32 questionId, uint256 bond) internal view {
+        if (bond == 0) revert BondMustBePositive();
+        uint256 currentBond = _questions[questionId].bond;
+        if (currentBond == 0) {
+            if (bond < _minBondOf(questionId)) revert BondMustExceedTheMinimum();
+        } else {
+            if (bond < (currentBond * 2)) revert BondMustBeDoubleAtLeastPreviousBond();
+        }
     }
 
     function _addAnswerToHistory(bytes32 questionId, bytes32 answer, address answerer, uint256 bond) internal {
         bytes32 newHistoryHash =
             keccak256(abi.encodePacked(_questions[questionId].historyHash, answer, bond, answerer, false));
 
-        // Update the current bond level, if there's a bond (ie anything except arbitration)
+        // Update the current bond tier, if there's a bond (ie anything except arbitration)
         if (bond > 0) {
             _questions[questionId].bond = bond;
         }
@@ -559,10 +710,10 @@ contract RealityETH_v4_0 is BalanceHolder, IRealityETHCore {
         emit LogNewAnswer(answer, questionId, newHistoryHash, answerer, bond, block.timestamp, false);
     }
 
-    function _updateCurrentAnswer(bytes32 questionId, bytes32 answer) internal {
+    function _updateCurrentAnswer(bytes32 questionId, bytes32 answer, uint32 effectiveTimeout) internal {
         _questions[questionId].bestAnswer = answer;
-        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; timeout capped at 1 year
-        _questions[questionId].finalizeTs = uint32(block.timestamp) + _questions[questionId].timeout;
+        // forge-lint: disable-next-line(unsafe-typecast) -- safe until 2106; effectiveTimeout clamped to 1 year
+        _questions[questionId].finalizeTs = uint32(block.timestamp) + effectiveTimeout;
     }
 
     // Like _updateCurrentAnswer but without advancing the timeout
