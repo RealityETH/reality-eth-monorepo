@@ -239,7 +239,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     function setTreasury(address _treasury) public {
         // Only in the pre-init window (before the token is set); the factory calls this just before
         // setToken, so a clone's treasury is fixed in the same transaction it is created.
-        if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
+        if (address(token) != address(0)) revert TokenCanOnlyBeInitializedOnce();
         treasury = _treasury;
     }
 
@@ -257,7 +257,7 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
     // this (and well below, e.g., Uniswap V2's uint112 reserve cap); a pathological huge-supply token is
     // out of scope -- it fails safe by reverting, never by losing funds.
     function setToken(IERC20 _token) public {
-        if (token != IERC20(address(0x0))) revert TokenCanOnlyBeInitializedOnce();
+        if (address(token) != address(0)) revert TokenCanOnlyBeInitializedOnce();
         token = _token;
     }
 
@@ -684,15 +684,15 @@ contract RealityETH_ERC20_v4_0 is BalanceHolder_ERC20, IRealityETHCore_ERC20 {
             if (!t.hasAnsweredTooSoon) revert AnswerNotAllowedForTemplate();
             return;
         }
-        AnswerType at = t.answerType;
-        if (at == AnswerType.Bool) {
+        AnswerType answerType = t.answerType;
+        if (answerType == AnswerType.Bool) {
             if (uint256(answer) > 1) revert AnswerNotAllowedForTemplate();
-        } else if (at == AnswerType.Assertion) {
+        } else if (answerType == AnswerType.Assertion) {
             // only "true"; INVALID and (if enabled) too-soon were already accepted above
             if (uint256(answer) != 1) revert AnswerNotAllowedForTemplate();
-        } else if (at == AnswerType.SingleSelect) {
+        } else if (answerType == AnswerType.SingleSelect) {
             if (uint256(answer) >= q.outcomeCount) revert AnswerNotAllowedForTemplate();
-        } else if (at == AnswerType.MultipleSelect) {
+        } else if (answerType == AnswerType.MultipleSelect) {
             uint256 n = q.outcomeCount;
             // every set bit must index an outcome; reject any bit at or above n
             if (n < 256 && (uint256(answer) >> n) != 0) revert AnswerNotAllowedForTemplate();
